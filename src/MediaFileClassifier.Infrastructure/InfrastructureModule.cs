@@ -1,7 +1,9 @@
 namespace MediaFileClassifier.Infrastructure;
 
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Paths;
+using MediaFileClassifier.Infrastructure.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -18,6 +20,7 @@ public static class InfrastructureModule
     public static IServiceCollection AddInfrastructure(this IServiceCollection services)
     {
         services.TryAddSingleton<IAppPaths, AppPaths>();
+        services.TryAddSingleton<ISettingsService, JsonSettingsService>();
         return services;
     }
 }

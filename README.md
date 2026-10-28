@@ -1,3 +1,99 @@
 # Media File Classifier
 
 A Windows desktop app that indexes local media with local AI and lets you find any file by describing it.
+
+The product backlog lives in Jira (project MFC). The decisions behind it (D001, D002, …) are in the [development plan repository](https://github.com/Raynir/mfc-development-plan/blob/main/DECISIONS.md).
+
+## Setting up a development machine
+
+### Prerequisites
+
+- **Windows 11** (D039).
+- **.NET 10 SDK**, 10.0.400 or later. `global.json` selects it. Install it with:
+
+  ```powershell
+  winget install Microsoft.DotNet.SDK.10
+  ```
+
+- **Git.**
+- **An IDE (optional):** Visual Studio 2026, or JetBrains Rider with the AvaloniaRider plugin, or VS Code with the C# Dev Kit and Avalonia extensions. The Avalonia extension gives you the XAML previewer.
+- **Avalonia project templates (optional).** You only need them to create new projects:
+
+  ```powershell
+  dotnet new install Avalonia.Templates
+  ```
+
+- **Android workload:** not needed yet. It's added after the Android smoke test (E01-SP02).
+
+### Build, run and test
+
+All commands run from the repository root.
+
+```powershell
+dotnet build
+dotnet run --project src/MediaFileClassifier.Desktop
+dotnet test
+```
+
+The tests run on Microsoft.Testing.Platform. `global.json` opts `dotnet test` into it.
+
+To check that unhandled exceptions are logged rather than closing the app, run a Debug build with `--simulate-crash`:
+
+```powershell
+dotnet run --project src/MediaFileClassifier.Desktop -- --simulate-crash
+```
+
+### Where the app keeps its files
+
+Everything lives under `%LOCALAPPDATA%\MediaFileClassifier` (D061):
+
+| Path | Contents |
+|------|----------|
+| `logs\mfc-<date>.log` | Daily log files. The last 14 days are kept. |
+| `settings.json` | App settings, such as window placement. Delete it to reset. A corrupt file is kept as `settings.json.corrupt`, and the app starts with defaults. |
+| `models\` | The AI model store (from E06-S12). |
+
+### Local model servers (optional)
+
+The app talks to AI models in-process and through OpenAI-compatible HTTP endpoints (D005). You need a model server only for features and integration tests that use one.
+
+**LM Studio**
+
+1. Install [LM Studio](https://lmstudio.ai/) and download a vision-capable model.
+2. Start its server from the **Developer** tab. It listens on `http://localhost:1234/v1` by default.
+3. Check it with:
+
+   ```powershell
+   curl http://localhost:1234/v1/models
+   ```
+
+**Ollama in a Podman container**
+
+Use this setup for repeatable integration tests:
+
+```powershell
+podman run -d --name mfc-ollama -p 11434:11434 -v mfc-ollama:/root/.ollama docker.io/ollama/ollama
+podman exec mfc-ollama ollama pull llava
+```
+
+The OpenAI-compatible endpoint is `http://localhost:11434/v1`. Stop the container with `podman stop mfc-ollama`.
+
+## Solution structure
+
+The solution uses a layered structure (D062). Inner layers never reference outer ones.
+
+| Project | Contents |
+|---------|----------|
+| `Domain` | Entities and enums. No project references. |
+| `Infrastructure.Abstractions` | Interfaces implemented by the infrastructure: paths, settings, and later repositories, search and AI providers. |
+| `UseCases`, `UseCases.Common` | MediatR commands, queries and handlers, DTOs (Mapperly), shared helpers (D063). |
+| `Infrastructure` | General implementations: app paths, JSON settings. |
+| `Infrastructure.DataAccess`, `.Search`, `.AI`, `.Jobs` | SQLite persistence, search index, AI providers, background jobs. |
+| `Ui` | Shared Avalonia views and view models (CommunityToolkit.Mvvm, D060). |
+| `Desktop` | Windows head: entry point, composition root, logging. |
+
+Tests live in `tests/`. Code style follows `tools/MediaFileClassifier.ruleset` and StyleCop, with warnings treated as errors (D065).
+
+## Contributing
+
+Branching and commit rules are in [docs/development-workflow.md](docs/development-workflow.md).

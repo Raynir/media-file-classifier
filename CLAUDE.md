@@ -34,7 +34,7 @@ dotnet run --project src/MediaFileClassifier.Desktop  # add -- --simulate-crash 
 ## Code style (D065)
 
 - `tools/MediaFileClassifier.ruleset` with StyleCop.Analyzers. Extra severities go in `.editorconfig`.
-- File-scoped namespaces, with `using` directives inside the namespace.
+- `using` directives first, then the file-scoped namespace, then the code. `.editorconfig` enforces it (IDE0065).
 - No `this.` prefix except to disambiguate. No underscore prefix on fields.
 - Trailing commas in multi-line initializers.
 - XML doc comments are checked when present, but not required.

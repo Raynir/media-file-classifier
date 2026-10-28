@@ -1,6 +1,6 @@
-namespace MediaFileClassifier.Infrastructure.Paths;
-
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+
+namespace MediaFileClassifier.Infrastructure.Paths;
 
 /// <summary>
 /// App paths under the local application data folder, e.g. <c>%LOCALAPPDATA%\MediaFileClassifier</c> (D061).

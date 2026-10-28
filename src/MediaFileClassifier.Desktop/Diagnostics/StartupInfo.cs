@@ -1,8 +1,8 @@
-namespace MediaFileClassifier.Desktop.Diagnostics;
-
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+
+namespace MediaFileClassifier.Desktop.Diagnostics;
 
 /// <summary>
 /// Describes the running build and machine, for the first line of every log (D044).

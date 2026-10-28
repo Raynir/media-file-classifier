@@ -1,11 +1,11 @@
-namespace MediaFileClassifier.Ui;
-
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace MediaFileClassifier.Ui;
 
 /// <summary>
 /// The Avalonia application shared by all platform heads.

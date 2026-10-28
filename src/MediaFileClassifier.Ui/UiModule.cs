@@ -1,8 +1,8 @@
-namespace MediaFileClassifier.Ui;
-
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace MediaFileClassifier.Ui;
 
 /// <summary>
 /// Registers the shared UI: windows, view models and the view locator.

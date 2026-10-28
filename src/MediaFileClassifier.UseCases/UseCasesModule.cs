@@ -1,6 +1,6 @@
-namespace MediaFileClassifier.UseCases;
-
 using Microsoft.Extensions.DependencyInjection;
+
+namespace MediaFileClassifier.UseCases;
 
 /// <summary>
 /// Registers the use case layer.

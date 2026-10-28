@@ -1,8 +1,8 @@
-namespace MediaFileClassifier.Desktop.Diagnostics;
-
 using Avalonia.Logging;
 using Microsoft.Extensions.Logging;
 using AvaloniaLogLevel = Avalonia.Logging.LogEventLevel;
+
+namespace MediaFileClassifier.Desktop.Diagnostics;
 
 /// <summary>
 /// Forwards Avalonia's internal log to <see cref="ILogger"/>, so it lands in the app log file.

@@ -1,9 +1,9 @@
-namespace MediaFileClassifier.Infrastructure.Tests.Settings;
-
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
+
+namespace MediaFileClassifier.Infrastructure.Tests.Settings;
 
 /// <summary>
 /// Tests for <see cref="JsonSettingsService"/>.

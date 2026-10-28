@@ -1,7 +1,7 @@
-namespace MediaFileClassifier.Desktop.Diagnostics;
-
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
+
+namespace MediaFileClassifier.Desktop.Diagnostics;
 
 /// <summary>
 /// Logs exceptions nothing else caught, so no failure is silent.

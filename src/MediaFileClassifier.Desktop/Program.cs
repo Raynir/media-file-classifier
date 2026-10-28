@@ -1,5 +1,3 @@
-namespace MediaFileClassifier.Desktop;
-
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging;
@@ -13,6 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
+
+namespace MediaFileClassifier.Desktop;
 
 /// <summary>
 /// The desktop entry point and composition root.

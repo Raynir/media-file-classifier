@@ -1,8 +1,8 @@
-namespace MediaFileClassifier.Ui.Views;
-
 using Avalonia;
 using Avalonia.Controls;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+
+namespace MediaFileClassifier.Ui.Views;
 
 /// <summary>
 /// The main application window. Restores and saves its placement through <see cref="ISettingsService"/>.

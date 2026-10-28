@@ -1,9 +1,9 @@
-namespace MediaFileClassifier.Infrastructure.Settings;
-
 using System.Text.Json;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using Microsoft.Extensions.Logging;
+
+namespace MediaFileClassifier.Infrastructure.Settings;
 
 /// <summary>
 /// Stores <see cref="AppSettings"/> in a JSON file. Writes go to a temporary file that then replaces

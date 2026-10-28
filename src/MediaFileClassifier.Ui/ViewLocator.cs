@@ -1,8 +1,8 @@
-namespace MediaFileClassifier.Ui;
-
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using MediaFileClassifier.Ui.ViewModels;
+
+namespace MediaFileClassifier.Ui;
 
 /// <summary>
 /// Builds the view for a view model from explicit registrations, without reflection,

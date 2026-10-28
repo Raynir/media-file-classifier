@@ -1,7 +1,7 @@
-namespace MediaFileClassifier.Infrastructure.Settings;
-
 using System.Text.Json.Serialization;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+
+namespace MediaFileClassifier.Infrastructure.Settings;
 
 /// <summary>
 /// Source-generated JSON metadata for the settings file, so no reflection is needed.

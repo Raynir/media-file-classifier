@@ -1,6 +1,6 @@
-namespace MediaFileClassifier.Ui.ViewModels;
-
 using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace MediaFileClassifier.Ui.ViewModels;
 
 /// <summary>
 /// View model of the main window. Navigation is view-model-first: setting

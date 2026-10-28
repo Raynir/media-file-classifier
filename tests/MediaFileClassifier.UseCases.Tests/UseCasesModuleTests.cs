@@ -1,7 +1,7 @@
-namespace MediaFileClassifier.UseCases.Tests;
-
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace MediaFileClassifier.UseCases.Tests;
 
 /// <summary>
 /// Tests for <see cref="UseCasesModule"/>.

@@ -1,6 +1,6 @@
-namespace MediaFileClassifier.Ui.ViewModels;
-
 using CommunityToolkit.Mvvm.ComponentModel;
+
+namespace MediaFileClassifier.Ui.ViewModels;
 
 /// <summary>
 /// Base class for all view models (D060).

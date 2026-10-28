@@ -16,7 +16,7 @@ trim_trailing_whitespace = false
 # Project-specific analyzer severities, on top of tools/MediaFileClassifier.ruleset (D065).
 [*.cs]
 csharp_style_namespace_declarations = file_scoped:warning
-csharp_using_directive_placement = inside_namespace:warning
+csharp_using_directive_placement = outside_namespace:warning
 
 # Dead-code rules.
 dotnet_diagnostic.IDE0005.severity = warning   # unnecessary using directive

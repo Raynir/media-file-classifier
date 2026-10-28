@@ -1,11 +1,11 @@
-namespace MediaFileClassifier.Infrastructure;
-
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace MediaFileClassifier.Infrastructure;
 
 /// <summary>
 /// Registers the general infrastructure implementations.

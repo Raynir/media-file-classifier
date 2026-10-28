@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- Windows 11 only (D028, D039). Shared projects stay on plain net10.0 for Android. -->
+    <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../MediaFileClassifier.Ui/MediaFileClassifier.Ui.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure/MediaFileClassifier.Infrastructure.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.DataAccess/MediaFileClassifier.Infrastructure.DataAccess.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.Search/MediaFileClassifier.Infrastructure.Search.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.AI/MediaFileClassifier.Infrastructure.AI.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.Jobs/MediaFileClassifier.Infrastructure.Jobs.csproj" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+</Project>

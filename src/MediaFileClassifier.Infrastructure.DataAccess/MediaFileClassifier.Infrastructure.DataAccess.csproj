@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.Abstractions/MediaFileClassifier.Infrastructure.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

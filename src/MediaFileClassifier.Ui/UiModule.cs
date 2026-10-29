@@ -27,8 +27,8 @@ public static class UiModule
         services.AddSingleton<ThemeService>();
         services.AddSingleton<ShellLayout>();
 
-        // Commands (E13-S05). The capability gate is a stand-in until MFC-57's capability flags are merged.
-        services.TryAddSingleton<ICapabilityGate, AllCapabilitiesAvailable>();
+        // Commands (E13-S05). Commands follow the capability flags that AddInfrastructure registers.
+        services.TryAddSingleton<ICapabilityGate, CapabilityServiceGate>();
         services.TryAddSingleton<IFolderLauncher, AvaloniaFolderLauncher>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ShellCommands>());
         services.AddSingleton<CommandRegistry>();

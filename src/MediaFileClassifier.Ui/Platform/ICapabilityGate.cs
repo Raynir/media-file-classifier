@@ -1,24 +1,23 @@
+using Avalonia.Threading;
+using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
+
 namespace MediaFileClassifier.Ui.Platform;
 
 /// <summary>
 /// Tells the command system whether a capability is available, and why not (E13-S05, E01-S07-T03).
+/// Capability IDs are <see cref="CapabilityDefinition.Id"/> values, e.g. <c>platform.reveal-in-file-explorer</c>.
 /// </summary>
-/// <remarks>
-/// A narrow seam over the capability flags service from MFC-57 (<c>ICapabilityService</c>), which isn't on
-/// <c>develop</c> yet. Once it is, an adapter over it replaces <see cref="AllCapabilitiesAvailable"/>.
-/// Capability IDs are the same strings as <c>CapabilityDefinition.Id</c>.
-/// </remarks>
 public interface ICapabilityGate
 {
     /// <summary>
-    /// Raised when any capability changes.
+    /// Raised on the UI thread when any capability changes.
     /// </summary>
     event EventHandler? Changed;
 
     /// <summary>
     /// Checks a capability.
     /// </summary>
-    /// <param name="capabilityId">Capability ID, e.g. <c>platform.reveal-in-file-explorer</c>.</param>
+    /// <param name="capabilityId">Capability ID.</param>
     /// <returns>Whether it's available, and if not, a reason to show the user.</returns>
     CapabilityState Check(string capabilityId);
 }
@@ -31,18 +30,44 @@ public interface ICapabilityGate
 public readonly record struct CapabilityState(bool IsAvailable, string? Reason);
 
 /// <summary>
-/// The stand-in <see cref="ICapabilityGate"/> until the capability flags service (MFC-57) is merged:
-/// every capability is available.
+/// The <see cref="ICapabilityGate"/> over the app's capability flags (<see cref="ICapabilityService"/>).
 /// </summary>
-public sealed class AllCapabilitiesAvailable : ICapabilityGate
+public sealed class CapabilityServiceGate : ICapabilityGate
 {
-    /// <inheritdoc />
-    public event EventHandler? Changed
+    private readonly ICapabilityService capabilities;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CapabilityServiceGate"/> class.
+    /// </summary>
+    /// <param name="capabilities">The capability flags.</param>
+    public CapabilityServiceGate(ICapabilityService capabilities)
     {
-        add { }
-        remove { }
+        this.capabilities = capabilities;
+        capabilities.FlagChanged += (_, _) => RaiseChanged();
     }
 
     /// <inheritdoc />
-    public CapabilityState Check(string capabilityId) => new(true, null);
+    public event EventHandler? Changed;
+
+    /// <inheritdoc />
+    /// <remarks>A capability without a registered flag doesn't restrict anything, so it counts as available.</remarks>
+    public CapabilityState Check(string capabilityId)
+    {
+        var flag = capabilities.Flags.FirstOrDefault(flag => flag.Id == capabilityId);
+        return flag is null || flag.IsAvailable ? new(true, null) : new(false, flag.Reason);
+    }
+
+    // Flags can change on a background thread, such as a refresh after a dependency download,
+    // and commands update bound UI.
+    private void RaiseChanged()
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(() => Changed?.Invoke(this, EventArgs.Empty));
+        }
+    }
 }

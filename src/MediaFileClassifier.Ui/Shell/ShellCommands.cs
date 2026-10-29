@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
+using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
@@ -38,11 +39,6 @@ public sealed class ShellCommands : ICommandContributor
 
     /// <summary>Command ID: close the app.</summary>
     public const string Exit = "library.exit";
-
-    /// <summary>
-    /// Capability ID of <c>KnownCapabilities.RevealInFileExplorer</c> (MFC-57).
-    /// </summary>
-    private const string RevealInFileExplorer = "platform.reveal-in-file-explorer";
 
     private readonly ShellLayout layout;
     private readonly ThemeService theme;
@@ -123,7 +119,7 @@ public sealed class ShellCommands : ICommandContributor
         registry.Add(new AppCommand(OpenLogFolder, CommandGroups.Help, 100, "Command_OpenLogFolder", () => folderLauncher.OpenFolderAsync(paths.LogsDirectory))
         {
             IconKey = "Icon.FolderOpen",
-            RequiredCapability = RevealInFileExplorer,
+            RequiredCapability = KnownCapabilities.RevealInFileExplorer.Id,
         });
     }
 

@@ -14,8 +14,8 @@ namespace MediaFileClassifier.Domain.Embeddings;
 /// use <see cref="IsComparableWith(Id{ModelRegistration})"/> or <see cref="EnsureComparableWith"/>.
 /// </para>
 /// <para>
-/// An item can hold several embeddings: one per model and kind, e.g. from an old and a new model during a migration
-/// (E06-S07-T05). Embeddings aren't versioned per analysis run, and rejecting a run in review keeps them (D021).
+/// An item can hold several embeddings: one per model, kind and keyframe, e.g. from an old and a new model during a
+/// migration (E06-S07-T05), or one per sampled frame of a video (E06-S02). Embeddings aren't versioned per analysis run, and rejecting a run in review keeps them (D021).
 /// </para>
 /// <para>Invariants: the dimension is positive and equals the vector length, and the vector has no NaN or infinite values.</para>
 /// </remarks>
@@ -28,6 +28,7 @@ public sealed class Embedding
     /// <param name="itemId">Embedded item.</param>
     /// <param name="modelId">Model that produced the vector.</param>
     /// <param name="kind">What the vector was computed from.</param>
+    /// <param name="keyframeId">Frame the vector was computed from, or <c>null</c> for the whole item.</param>
     /// <param name="dimension">Vector length.</param>
     /// <param name="vector">The vector.</param>
     /// <param name="createdAt">When the vector was computed.</param>
@@ -36,6 +37,7 @@ public sealed class Embedding
         Id<MediaItem> itemId,
         Id<ModelRegistration> modelId,
         EmbeddingKind kind,
+        Id<Keyframe>? keyframeId,
         int dimension,
         ReadOnlyMemory<float> vector,
         DateTimeOffset createdAt)
@@ -58,6 +60,7 @@ public sealed class Embedding
         ItemId = itemId;
         ModelId = modelId;
         Kind = kind;
+        KeyframeId = keyframeId;
         Dimension = dimension;
         Vector = vector;
         CreatedAt = createdAt;
@@ -70,6 +73,8 @@ public sealed class Embedding
     public Id<ModelRegistration> ModelId { get; }
 
     public EmbeddingKind Kind { get; }
+
+    public Id<Keyframe>? KeyframeId { get; }
 
     public int Dimension { get; }
 
@@ -85,8 +90,15 @@ public sealed class Embedding
     /// <param name="kind">What the vector was computed from.</param>
     /// <param name="vector">The vector. It's copied.</param>
     /// <param name="now">Current time.</param>
+    /// <param name="keyframeId">Frame the vector was computed from, or <c>null</c> for the whole item.</param>
     /// <returns>The embedding.</returns>
-    public static Embedding Create(Id<MediaItem> itemId, ModelRegistration model, EmbeddingKind kind, ReadOnlySpan<float> vector, DateTimeOffset now)
+    public static Embedding Create(
+        Id<MediaItem> itemId,
+        ModelRegistration model,
+        EmbeddingKind kind,
+        ReadOnlySpan<float> vector,
+        DateTimeOffset now,
+        Id<Keyframe>? keyframeId = null)
     {
         ArgumentNullException.ThrowIfNull(model);
         if (model.EmbeddingDimension is not { } dimension)
@@ -94,7 +106,7 @@ public sealed class Embedding
             throw new ArgumentException($"Model {model.ModelName} isn't registered as an embedding model.", nameof(model));
         }
 
-        return new Embedding(Id<Embedding>.New(), itemId, model.Id, kind, dimension, vector.ToArray(), now);
+        return new Embedding(Id<Embedding>.New(), itemId, model.Id, kind, keyframeId, dimension, vector.ToArray(), now);
     }
 
     /// <summary>

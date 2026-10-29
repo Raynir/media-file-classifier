@@ -1,7 +1,9 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
+using MediaFileClassifier.Infrastructure.Abstractions.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Capabilities;
+using MediaFileClassifier.Infrastructure.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +27,9 @@ public static class InfrastructureModule
         services.TryAddSingleton<ISettingsService, JsonSettingsService>();
         services.TryAddSingleton<ICapabilityService, CapabilityService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICapabilityContributor, PlatformCapabilityContributor>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICapabilityContributor, NativeDependencyCapabilityContributor>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, FfmpegProbe>(
+            _ => new FfmpegProbe(FfmpegProbe.GetDefaultSearchDirectories())));
         return services;
     }
 }

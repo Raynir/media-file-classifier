@@ -1,4 +1,5 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Infrastructure.Files;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +21,7 @@ internal static class DesktopPlatformModule
     {
         services.TryAddSingleton<IPlatformServices, WindowsPlatformServices>();
         services.TryAddSingleton<IMediaFileSource, FileSystemMediaFileSource>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, SkiaSharpProbe>());
         return services;
     }
 }

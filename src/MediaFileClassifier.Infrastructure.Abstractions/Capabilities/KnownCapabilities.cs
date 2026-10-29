@@ -10,4 +10,9 @@ public static class KnownCapabilities
     /// Showing a file in the platform's file manager.
     /// </summary>
     public static readonly CapabilityDefinition RevealInFileExplorer = new("platform.reveal-in-file-explorer", "Show in file explorer");
+
+    /// <summary>
+    /// Reading video metadata and frames, and extracting audio for transcription. Needs FFmpeg.
+    /// </summary>
+    public static readonly CapabilityDefinition VideoAnalysis = new("media.video-analysis", "Video analysis");
 }

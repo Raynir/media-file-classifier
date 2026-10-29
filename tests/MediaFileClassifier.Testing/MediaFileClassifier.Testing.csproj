@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The sample media corpus (E01-S11). Copied into the output of every test project that references this one. -->
+    <None Include="../SampleMedia/**" Exclude="../SampleMedia/README.md" LinkBase="SampleMedia" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

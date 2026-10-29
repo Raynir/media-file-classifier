@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Desktop.Diagnostics;
@@ -23,5 +24,27 @@ internal static class StartupInfo
             RuntimeInformation.OSDescription,
             RuntimeInformation.ProcessArchitecture.ToString(),
             RuntimeInformation.FrameworkDescription);
+    }
+
+    /// <summary>
+    /// Writes the detected hardware, and the execution provider and parallelism chosen from it (E01-S07-T04).
+    /// </summary>
+    /// <param name="logger">Logger to write to.</param>
+    /// <param name="hardware">Detected hardware.</param>
+    public static void LogHardware(ILogger logger, IHardwareInfo hardware)
+    {
+        const double Gigabyte = 1024 * 1024 * 1024;
+        var profile = hardware.Profile;
+        var gpus = profile.Gpus.Count == 0
+            ? "none found"
+            : string.Join("; ", profile.Gpus.Select(gpu => $"{gpu.Name} ({gpu.Vendor}, {gpu.DedicatedMemoryBytes / Gigabyte:0.0} GB)"));
+        logger.LogInformation(
+            "Hardware: {LogicalProcessors} logical processors, {MemoryGb:0.0} GB memory, GPUs: {Gpus}. "
+                + "Execution provider {ExecutionProvider} (applied when ONNX Runtime is added in E06), default parallelism {Parallelism}",
+            profile.LogicalProcessorCount,
+            profile.TotalMemoryBytes / Gigabyte,
+            gpus,
+            hardware.PreferredExecutionProvider,
+            hardware.DefaultParallelism);
     }
 }

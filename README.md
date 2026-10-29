@@ -62,6 +62,15 @@ dotnet run --project src/MediaFileClassifier.Desktop -- --theme=light
 dotnet run --project src/MediaFileClassifier.Desktop -- --theme=dark
 ```
 
+### Commands and the main menu
+
+Every user action is an `AppCommand` in the command registry (E13-S05). It has an ID, a label, an icon, a shortcut, an enablement rule and a handler, so the main menu, context menus, buttons and shortcuts show it the same way:
+
+- A feature registers its commands in an `ICommandContributor`, added with `services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, MyCommands>())`. The command's group (`CommandGroups`: Library, Edit, View, Item, Tools, Help) places it in the main menu.
+- Bind a button with `Command="{Binding Commands[help.open-log-folder]}"`, and its `ToolTip.Tip` and `AutomationProperties.Name` to the command's `ToolTip` and `PlainLabel`. Menus and context menus with `Classes="Commands"` take everything from the command (`Commands/CommandStyles.axaml`).
+- `RequiredCapability` disables a command when a capability flag is off, with the reason as its tooltip. `WhyDisabled` covers context, such as an empty selection.
+- **Help → Open log folder** opens the log folder. **Tools → Pseudo-localisation** switches pseudo-localisation on and off while the app runs.
+
 ### UI checks for every view
 
 On top of the [definition of done](https://github.com/Raynir/mfc-development-plan/blob/main/README.md#definition-of-done-every-mvp-story), check each new or changed view by running the app:

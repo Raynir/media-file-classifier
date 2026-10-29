@@ -62,6 +62,24 @@
   <data name="Menu_Help" xml:space="preserve">
     <value>_Help</value>
   </data>
+  <data name="Command_Exit" xml:space="preserve">
+    <value>E_xit</value>
+  </data>
+  <data name="Command_ThemeSystem" xml:space="preserve">
+    <value>_System theme</value>
+  </data>
+  <data name="Command_ThemeLight" xml:space="preserve">
+    <value>_Light theme</value>
+  </data>
+  <data name="Command_ThemeDark" xml:space="preserve">
+    <value>Dar_k theme</value>
+  </data>
+  <data name="Command_PseudoLocalization" xml:space="preserve">
+    <value>_Pseudo-localisation</value>
+  </data>
+  <data name="Command_OpenLogFolder" xml:space="preserve">
+    <value>Open _log folder</value>
+  </data>
   <data name="FileSize_Bytes" xml:space="preserve">
     <value>{0} bytes</value>
     <comment>{0} is a whole number of bytes.</comment>

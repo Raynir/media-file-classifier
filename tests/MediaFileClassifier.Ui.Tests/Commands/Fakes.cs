@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Resources;
+using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
 
@@ -28,6 +29,34 @@ internal sealed class FakeCapabilityGate : ICapabilityGate
         unavailable.Remove(capabilityId);
         Changed?.Invoke(this, EventArgs.Empty);
     }
+}
+
+/// <summary>
+/// Records the folders it was asked to open.
+/// </summary>
+internal sealed class FakeFolderLauncher : IFolderLauncher
+{
+    public List<string> Opened { get; } = [];
+
+    public Task<bool> OpenFolderAsync(string path)
+    {
+        Opened.Add(path);
+        return Task.FromResult(true);
+    }
+}
+
+/// <summary>
+/// App folders under a fixed fake root.
+/// </summary>
+internal sealed class FakeAppPaths : IAppPaths
+{
+    public string DataDirectory => Path.Combine(Path.GetTempPath(), "mfc-tests", "data");
+
+    public string LogsDirectory => Path.Combine(DataDirectory, "logs");
+
+    public string CacheDirectory => Path.Combine(DataDirectory, "cache");
+
+    public string SettingsFile => Path.Combine(DataDirectory, "settings.json");
 }
 
 /// <summary>

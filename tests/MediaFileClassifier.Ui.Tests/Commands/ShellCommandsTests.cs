@@ -4,6 +4,7 @@ using System.Xml.Linq;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
 
 namespace MediaFileClassifier.Ui.Tests.Commands;
@@ -14,14 +15,17 @@ namespace MediaFileClassifier.Ui.Tests.Commands;
 public sealed class ShellCommandsTests
 {
     private readonly ShellLayout layout = new();
+    private readonly ThemeService theme = new();
     private readonly Localizer localizer = TestLocalizer.Create();
     private readonly FakeCapabilityGate capabilities = new();
+    private readonly FakeFolderLauncher folderLauncher = new();
+    private readonly FakeAppPaths paths = new();
     private readonly CommandRegistry registry;
 
     public ShellCommandsTests()
     {
         registry = new CommandRegistry(
-            [new ShellCommands(layout)], localizer, capabilities);
+            [new ShellCommands(layout, theme, localizer, paths, folderLauncher)], localizer, capabilities);
     }
 
     [Fact]
@@ -41,6 +45,7 @@ public sealed class ShellCommandsTests
 
         Assert.Equal(CommandGroups.All.Where(groups.Contains), groups);
         Assert.Contains(CommandGroups.View, groups);
+        Assert.Contains(CommandGroups.Help, groups);
     }
 
     [Fact]
@@ -62,6 +67,27 @@ public sealed class ShellCommandsTests
     }
 
     [Fact]
+    public async Task OpenLogFolder_OpensTheLogsDirectory()
+    {
+        await registry[ShellCommands.OpenLogFolder].ExecuteAsync();
+
+        Assert.Equal([paths.LogsDirectory], folderLauncher.Opened);
+    }
+
+    [Fact]
+    public async Task OpenLogFolder_IsDisabledWithAReasonWithoutAFileExplorer()
+    {
+        var command = registry[ShellCommands.OpenLogFolder];
+
+        capabilities.SetUnavailable("platform.reveal-in-file-explorer", "Show in file explorer unavailable: no file manager.");
+        await command.ExecuteAsync();
+
+        Assert.False(command.IsEnabled);
+        Assert.Equal("Show in file explorer unavailable: no file manager.", command.ToolTip);
+        Assert.Empty(folderLauncher.Opened);
+    }
+
+    [Fact]
     public async Task PanelToggles_FlipTheLayoutAndShowItsState()
     {
         var toggle = registry[ShellCommands.ToggleNavigation];
@@ -75,5 +101,30 @@ public sealed class ShellCommandsTests
 
         Assert.False(layout.IsDetailsPanelOpen);
         Assert.False(registry[ShellCommands.ToggleDetails].IsChecked);
+    }
+
+    [Fact]
+    public async Task ThemeCommands_SetTheModeAndCheckOnlyTheActiveOne()
+    {
+        await registry[ShellCommands.ThemeDark].ExecuteAsync();
+
+        Assert.Equal(ThemeMode.Dark, theme.Mode);
+        Assert.True(registry[ShellCommands.ThemeDark].IsChecked);
+        Assert.False(registry[ShellCommands.ThemeSystem].IsChecked);
+        Assert.False(registry[ShellCommands.ThemeLight].IsChecked);
+    }
+
+    [Fact]
+    public async Task PseudoLocalization_TogglesAndRelabelsTheMenu()
+    {
+        var menu = new MainMenuViewModel(registry, localizer);
+        var view = menu.Groups.Single(group => group.Group == CommandGroups.View);
+
+        await registry[ShellCommands.PseudoLocalization].ExecuteAsync();
+
+        Assert.True(localizer.IsPseudoLocalized);
+        Assert.True(registry[ShellCommands.PseudoLocalization].IsChecked);
+        Assert.Equal(PseudoLocalizer.Transform("_View"), view.Header);
+        Assert.Equal(PseudoLocalizer.Transform("Open _log folder"), registry[ShellCommands.OpenLogFolder].Label);
     }
 }

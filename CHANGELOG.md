@@ -15,3 +15,4 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Platform services, file access through folder handles, and capability flags with reasons for the UI (E01-S07).
 - UI strings in resource files, culture-aware formatting, and a pseudo-localisation mode (`--pseudo-loc`) for layout testing (E13-S08).
 - Light and dark themes that follow Windows, with an override (`--theme=light|dark`), provisional design tokens and icons, and a placeholder main window layout with collapsible side panels (E13-S06).
+- A command registry and a main menu (Library, View, Tools, Help so far), with Help → Open log folder, theme switching and a pseudo-localisation toggle (E13-S05).

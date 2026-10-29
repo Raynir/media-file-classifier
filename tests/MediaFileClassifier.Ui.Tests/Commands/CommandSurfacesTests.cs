@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
@@ -19,6 +20,8 @@ public sealed class CommandSurfacesTests
     public Task ToggleNavigation_IsConsistentInMenuContextMenuAndButton() => TestApp.RunAsync(() =>
     {
         using var services = new ServiceCollection()
+            .AddSingleton<IAppPaths>(new FakeAppPaths())
+            .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
             .AddUi()
             .BuildServiceProvider();

@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Ui;
+using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -57,6 +58,9 @@ internal static class Program
             GlobalExceptionHandlers.Install(logger);
             Logger.Sink = new AvaloniaLogSink(loggerFactory);
             host.Services.GetRequiredService<ICapabilityService>().RefreshAsync().GetAwaiter().GetResult();
+
+            // Lengthens every UI string, to find layout problems (E13-S08-T03).
+            Localizer.Current.IsPseudoLocalized = args.Contains("--pseudo-loc");
 
             host.Start();
             var exitCode = BuildAvaloniaApp(host.Services)

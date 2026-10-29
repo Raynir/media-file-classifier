@@ -6,12 +6,13 @@ namespace MediaFileClassifier.Ui.Localization;
 /// <summary>
 /// Looks up UI strings in the resource files (E13-S08). Views bind strings with
 /// <see cref="LocExtension"/>, and code calls <see cref="Get"/> or <see cref="Format"/>.
-/// Bound strings update when <see cref="Culture"/> changes.
+/// Bound strings update when <see cref="Culture"/> or <see cref="IsPseudoLocalized"/> changes.
 /// </summary>
 public sealed class Localizer
 {
     private readonly ResourceManager resources;
     private CultureInfo? culture;
+    private bool isPseudoLocalized;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Localizer"/> class.
@@ -23,7 +24,7 @@ public sealed class Localizer
     }
 
     /// <summary>
-    /// Raised when the strings change, after a culture switch.
+    /// Raised when the strings change, after a culture or pseudo-localisation switch.
     /// </summary>
     public event EventHandler? Changed;
 
@@ -48,6 +49,22 @@ public sealed class Localizer
     }
 
     /// <summary>
+    /// Gets or sets a value indicating whether strings are pseudo-localised, to find layout problems (E13-S08-T03).
+    /// </summary>
+    public bool IsPseudoLocalized
+    {
+        get => isPseudoLocalized;
+        set
+        {
+            if (isPseudoLocalized != value)
+            {
+                isPseudoLocalized = value;
+                Changed?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    /// <summary>
     /// Gets the string with the given key.
     /// </summary>
     /// <param name="key">Resource key.</param>
@@ -62,7 +79,12 @@ public sealed class Localizer
     public string Get(string key)
     {
         var value = resources.GetString(key, culture ?? CultureInfo.CurrentUICulture);
-        return value ?? $"!{key}!";
+        if (value is null)
+        {
+            return $"!{key}!";
+        }
+
+        return isPseudoLocalized ? PseudoLocalizer.Transform(value) : value;
     }
 
     /// <summary>

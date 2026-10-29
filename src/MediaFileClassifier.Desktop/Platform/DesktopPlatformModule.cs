@@ -1,4 +1,6 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Infrastructure.Files;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -17,6 +19,7 @@ internal static class DesktopPlatformModule
     public static IServiceCollection AddDesktopPlatform(this IServiceCollection services)
     {
         services.TryAddSingleton<IPlatformServices, WindowsPlatformServices>();
+        services.TryAddSingleton<IMediaFileSource, FileSystemMediaFileSource>();
         return services;
     }
 }

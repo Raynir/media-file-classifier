@@ -44,3 +44,12 @@ winget install --id Gyan.FFmpeg.Essentials   # or: choco install ffmpeg, or: sco
 ```
 
 Restart the app after you install it. The log then shows a line like `Native dependency FFmpeg: available, version 7.1.1 …`.
+
+## FFmpeg strategy (D068, tentative)
+
+This section summarizes the proposed decision; DECISIONS.md is the source of truth.
+
+- **MVP developer build (D033):** don't bundle FFmpeg. Use a documented local install, found as described above. The app distributes no FFmpeg binaries, so FFmpeg's license puts no obligations on it yet.
+- **Wrapper:** FFMpegCore (MIT) when video features land (E08). It calls the same `ffmpeg` and `ffprobe` executables, so the probe and the wrapper agree on what is installed.
+- **Installer (E19):** if FFmpeg is bundled, ship an **LGPL** build: shared libraries, configured without `--enable-gpl` or `--enable-nonfree`. LGPL requires the license notice, a written offer of the exact source, and letting users replace the binaries, which separate executables or DLLs allow. A **GPL** build, such as the common gyan.dev "full" and "essentials" builds that include x264/x265, would make the distributed bundle subject to the GPL, so don't ship one. The probe reports whether the installed build is GPL.
+- **Android:** deferred to E20. The platform media APIs may make FFmpeg unnecessary there.

@@ -8,7 +8,7 @@ This is Media File Classifier: a Windows 11 desktop app (C#, .NET 10, Avalonia 1
 
 Sources of truth:
 - **Backlog:** Jira project MFC on raynir.atlassian.net. Each Story has sub-tasks with a **Done when** line.
-- **Decisions:** `DECISIONS.md` in https://github.com/Raynir/mfc-development-plan. A local clone may be at `C:\Users\Dmitr\Downloads\AIDev\MFCJira`. Cite decisions as D-numbers. Don't invent product decisions: ask, then record a new D-number there.
+- **Decisions:** `DECISIONS.md` in https://github.com/Raynir/mfc-development-plan. Cite decisions as D-numbers. Don't invent product decisions: ask, then record a new D-number there.
 
 ## Commands (from the repository root)
 

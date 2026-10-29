@@ -1,11 +1,27 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:MediaFileClassifier.Ui.ViewModels"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
         x:Class="MediaFileClassifier.Ui.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="{Binding Title}"
+        Title="{l:Loc App_Title}"
         Width="1280"
         Height="800"
         WindowStartupLocation="CenterScreen">
-  <ContentControl Content="{Binding CurrentPage}" />
+  <Panel>
+    <ContentControl Content="{Binding CurrentPage}" />
+    <StackPanel IsVisible="{Binding CurrentPage, Converter={x:Static ObjectConverters.IsNull}}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                MaxWidth="480"
+                Spacing="8">
+      <TextBlock Text="{l:Loc MainWindow_EmptyTitle}"
+                 FontSize="20"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap" />
+      <TextBlock Text="{l:Loc MainWindow_EmptyHint}"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap" />
+    </StackPanel>
+  </Panel>
 </Window>

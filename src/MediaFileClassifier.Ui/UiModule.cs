@@ -1,3 +1,4 @@
+using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -5,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace MediaFileClassifier.Ui;
 
 /// <summary>
-/// Registers the shared UI: windows, view models and the view locator.
+/// Registers the shared UI: windows, view models, the view locator and the localizer.
 /// </summary>
 public static class UiModule
 {
@@ -17,6 +18,7 @@ public static class UiModule
     public static IServiceCollection AddUi(this IServiceCollection services)
     {
         services.AddSingleton(new ViewLocator());
+        services.AddSingleton(Localizer.Current);
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
         return services;

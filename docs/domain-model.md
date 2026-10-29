@@ -6,7 +6,7 @@ Each library is its own database (`<name>.mfc/library.db`, E01-S03), so every en
 
 ## Identity
 
-Every entity ID is a UUIDv7 created with `Guid.CreateVersion7()`, wrapped in `Id<TEntity>` so IDs of different entities can't be mixed up (D066, tentative number).
+Every entity ID is a UUIDv7 created with `Guid.CreateVersion7()`, wrapped in `Id<TEntity>` so IDs of different entities can't be mixed up (D066).
 
 - **Globally unique and device-independent:** libraries exported from different devices merge without key collisions (D004). Auto-increment integers would collide.
 - **Time-sortable:** new rows append to B-tree indexes, which keeps inserts cheap.

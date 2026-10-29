@@ -8,10 +8,11 @@
   <ItemGroup>
     <ProjectReference Include="../../src/MediaFileClassifier.Ui/MediaFileClassifier.Ui.csproj" />
     <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Avalonia.Headless" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The views, so the hard-coded string check can read them (E13-S08-T01). -->
+    <!-- The XAML files, so the string and token checks can read them (E13-S08-T01, E13-S06-T02). -->
     <Content Include="../../src/MediaFileClassifier.Ui/**/*.axaml" Exclude="../../src/MediaFileClassifier.Ui/bin/**;../../src/MediaFileClassifier.Ui/obj/**" LinkBase="UiViews" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

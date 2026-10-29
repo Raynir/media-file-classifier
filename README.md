@@ -94,6 +94,13 @@ The solution uses a layered structure (D062). Inner layers never reference outer
 
 Tests live in `tests/`. Code style follows `tools/MediaFileClassifier.ruleset` and StyleCop, with warnings treated as errors (D065).
 
+## Tests
+
+`dotnet test` runs every test project in `tests/`. Shared test helpers live in `MediaFileClassifier.Testing`:
+
+- **`TemporaryLibrary`** creates a library folder (`<name>.mfc/library.db`) in `%TEMP%\mfc-tests` and deletes it on dispose. Use one per test.
+- **`SampleMedia`** points to the edge-case media corpus in `tests/SampleMedia`: JPEG with EXIF, PNG, WebP, static and animated GIF, a short MP4, an image with text, and corrupt, empty and non-ASCII-named files. [tests/SampleMedia/README.md](tests/SampleMedia/README.md) describes each file and how to regenerate them.
+
 ## Contributing
 
 Branching and commit rules are in [docs/development-workflow.md](docs/development-workflow.md).

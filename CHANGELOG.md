@@ -10,3 +10,4 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Empty main window, resolved through dependency injection and bound to a view model.
 - Rolling log files and logging of unhandled exceptions.
 - App settings stored as JSON, including the main window placement.
+- Test helpers for temporary library databases, and a sample media corpus of edge-case files (E01-S11).

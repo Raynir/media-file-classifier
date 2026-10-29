@@ -26,4 +26,24 @@
   <data name="MainWindow_EmptyHint" xml:space="preserve">
     <value>Create a library or open an existing one to start indexing your media.</value>
   </data>
+  <data name="FileSize_Bytes" xml:space="preserve">
+    <value>{0} bytes</value>
+    <comment>{0} is a whole number of bytes.</comment>
+  </data>
+  <data name="FileSize_Kilobytes" xml:space="preserve">
+    <value>{0} KB</value>
+    <comment>{0} is a number, formatted for the current culture.</comment>
+  </data>
+  <data name="FileSize_Megabytes" xml:space="preserve">
+    <value>{0} MB</value>
+    <comment>{0} is a number, formatted for the current culture.</comment>
+  </data>
+  <data name="FileSize_Gigabytes" xml:space="preserve">
+    <value>{0} GB</value>
+    <comment>{0} is a number, formatted for the current culture.</comment>
+  </data>
+  <data name="FileSize_Terabytes" xml:space="preserve">
+    <value>{0} TB</value>
+    <comment>{0} is a number, formatted for the current culture.</comment>
+  </data>
 </root>

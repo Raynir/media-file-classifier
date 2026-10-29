@@ -2,7 +2,10 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging;
 using MediaFileClassifier.Desktop.Diagnostics;
+using MediaFileClassifier.Desktop.Platform;
 using MediaFileClassifier.Infrastructure;
+using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
+using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Ui;
@@ -42,6 +45,7 @@ internal static class Program
             builder.Services
                 .AddSerilog()
                 .AddSingleton<IAppPaths>(appPaths)
+                .AddDesktopPlatform()
                 .AddInfrastructure()
                 .AddUseCases()
                 .AddUi()
@@ -51,8 +55,10 @@ internal static class Program
             var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
             var logger = loggerFactory.CreateLogger(typeof(Program).FullName!);
             StartupInfo.Log(logger);
+            StartupInfo.LogHardware(logger, host.Services.GetRequiredService<IHardwareInfo>());
             GlobalExceptionHandlers.Install(logger);
             Logger.Sink = new AvaloniaLogSink(loggerFactory);
+            host.Services.GetRequiredService<ICapabilityService>().RefreshAsync().GetAwaiter().GetResult();
 
             host.Start();
             var exitCode = BuildAvaloniaApp(host.Services)

@@ -6,6 +6,8 @@
     <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- DXGI adapter detection (Platform/WindowsHardwareDetector). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

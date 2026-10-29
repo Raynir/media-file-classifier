@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Logging;
 using MediaFileClassifier.Desktop.Diagnostics;
+using MediaFileClassifier.Desktop.Platform;
 using MediaFileClassifier.Infrastructure;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Paths;
@@ -42,6 +43,7 @@ internal static class Program
             builder.Services
                 .AddSerilog()
                 .AddSingleton<IAppPaths>(appPaths)
+                .AddDesktopPlatform()
                 .AddInfrastructure()
                 .AddUseCases()
                 .AddUi()

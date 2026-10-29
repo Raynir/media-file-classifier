@@ -1,5 +1,7 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Infrastructure.Capabilities;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +23,8 @@ public static class InfrastructureModule
     {
         services.TryAddSingleton<IAppPaths, AppPaths>();
         services.TryAddSingleton<ISettingsService, JsonSettingsService>();
+        services.TryAddSingleton<ICapabilityService, CapabilityService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICapabilityContributor, PlatformCapabilityContributor>());
         return services;
     }
 }

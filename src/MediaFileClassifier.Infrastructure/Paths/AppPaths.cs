@@ -29,12 +29,16 @@ public sealed class AppPaths : IAppPaths
     public AppPaths(string dataDirectory)
     {
         DataDirectory = dataDirectory;
+        CacheDirectory = Path.Combine(dataDirectory, "cache");
         LogsDirectory = Path.Combine(dataDirectory, "logs");
         SettingsFile = Path.Combine(dataDirectory, "settings.json");
     }
 
     /// <inheritdoc />
     public string DataDirectory { get; }
+
+    /// <inheritdoc />
+    public string CacheDirectory { get; }
 
     /// <inheritdoc />
     public string LogsDirectory { get; }

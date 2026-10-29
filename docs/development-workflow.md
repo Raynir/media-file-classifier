@@ -36,4 +36,4 @@ The branching and commit rules (D064).
 
 - Open pull requests from `feature/*` into `develop`.
 - The title names the Story or sub-task key.
-- The build and tests must pass (CI arrives with E01-S11).
+- The **CI** checks must pass: *Build and test (Windows)* and *Build shared projects (Linux)*.

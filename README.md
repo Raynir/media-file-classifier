@@ -94,6 +94,24 @@ The solution uses a layered structure (D062). Inner layers never reference outer
 
 Tests live in `tests/`. Code style follows `tools/MediaFileClassifier.ruleset` and StyleCop, with warnings treated as errors (D065).
 
+## Tests
+
+`dotnet test` runs every test project in `tests/`. Shared test helpers live in `MediaFileClassifier.Testing`:
+
+- **`TemporaryLibrary`** creates a library folder (`<name>.mfc/library.db`) in `%TEMP%\mfc-tests` and deletes it on dispose. Use one per test.
+- **`SampleMedia`** points to the edge-case media corpus in `tests/SampleMedia`: JPEG with EXIF, PNG, WebP, static and animated GIF, a short MP4, an image with text, and corrupt, empty and non-ASCII-named files. [tests/SampleMedia/README.md](tests/SampleMedia/README.md) describes each file and how to regenerate them.
+
+## Continuous integration
+
+GitHub Actions runs `.github/workflows/ci.yml`. The repository is private on GitHub Free, so CI is set up to use few Actions minutes:
+
+- It builds and tests on Windows for pushes to `develop`, `main`, `release/**` and `hotfix/**`, and for pull requests into `develop` and `main`. Pull requests also build the shared projects (everything except `Desktop`) on Linux, to catch Windows-only dependencies.
+- Pushes to a feature branch don't trigger it. Open a pull request, or run the workflow by hand from the Actions tab (**Run workflow**, then pick the branch).
+- Changes to Markdown files and `docs/` only don't trigger it. Neither does a commit with `[skip ci]` in its message.
+- A newer push to the same branch cancels the running build.
+
+Minutes used are under **Settings → Billing and licensing → Usage** on GitHub.
+
 ## Contributing
 
 Branching and commit rules are in [docs/development-workflow.md](docs/development-workflow.md).

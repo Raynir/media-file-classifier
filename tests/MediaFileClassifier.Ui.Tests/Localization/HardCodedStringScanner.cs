@@ -8,6 +8,8 @@ namespace MediaFileClassifier.Ui.Tests.Localization;
 /// </summary>
 public static partial class HardCodedStringScanner
 {
+    private const string XamlNamespace = "http://schemas.microsoft.com/winfx/2006/xaml";
+
     /// <summary>
     /// Attributes that show text to the user, matched by local name, so attached properties such as
     /// <c>ToolTip.Tip</c> are covered too.
@@ -45,8 +47,8 @@ public static partial class HardCodedStringScanner
                 }
             }
 
-            // x:String and other XAML-language elements are resources, not displayed text.
-            if (element.Name.NamespaceName == "http://schemas.microsoft.com/winfx/2006/xaml")
+            // XAML-language elements such as x:Double, and keyed resources such as icon geometry, aren't displayed text.
+            if (element.Name.NamespaceName == XamlNamespace || element.Attribute(XName.Get("Key", XamlNamespace)) is not null)
             {
                 continue;
             }

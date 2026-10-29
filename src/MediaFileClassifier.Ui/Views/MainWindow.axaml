@@ -7,21 +7,113 @@
         Title="{l:Loc App_Title}"
         Width="1280"
         Height="800"
+        MinWidth="720"
+        MinHeight="480"
         WindowStartupLocation="CenterScreen">
-  <Panel>
-    <ContentControl Content="{Binding CurrentPage}" />
-    <StackPanel IsVisible="{Binding CurrentPage, Converter={x:Static ObjectConverters.IsNull}}"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                MaxWidth="480"
-                Spacing="8">
-      <TextBlock Text="{l:Loc MainWindow_EmptyTitle}"
-                 FontSize="20"
-                 TextAlignment="Center"
-                 TextWrapping="Wrap" />
-      <TextBlock Text="{l:Loc MainWindow_EmptyHint}"
-                 TextAlignment="Center"
-                 TextWrapping="Wrap" />
-    </StackPanel>
-  </Panel>
+  <!-- Provisional shell after the Figma skeleton: navigation, content, details. E13-S01 builds the real one. -->
+  <Window.Styles>
+    <Style Selector="Border#NavigationPanel">
+      <Setter Property="Width" Value="{DynamicResource Size.Navigation.Expanded}" />
+    </Style>
+    <Style Selector="Border#NavigationPanel.Collapsed">
+      <Setter Property="Width" Value="{DynamicResource Size.Navigation.Collapsed}" />
+    </Style>
+  </Window.Styles>
+
+  <Grid ColumnDefinitions="Auto,*,Auto">
+    <!-- Navigation -->
+    <Border x:Name="NavigationPanel"
+            Grid.Column="0"
+            Classes="Panel"
+            Classes.Collapsed="{Binding !IsNavigationExpanded}"
+            BorderThickness="0,0,1,0">
+      <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Header}">
+          <Button DockPanel.Dock="Left"
+                  Classes="Icon"
+                  Command="{Binding ToggleNavigationCommand}"
+                  ToolTip.Tip="{l:Loc Command_ToggleNavigation}"
+                  AutomationProperties.Name="{l:Loc Command_ToggleNavigation}">
+            <PathIcon Data="{StaticResource Icon.Menu}" />
+          </Button>
+          <TextBlock Classes="Subtitle"
+                     Text="{l:Loc Navigation_Title}"
+                     IsVisible="{Binding IsNavigationExpanded}"
+                     Margin="{DynamicResource Padding.Compact}"
+                     VerticalAlignment="Center"
+                     TextWrapping="Wrap" />
+        </DockPanel>
+        <TextBlock Classes="Tertiary"
+                   Text="{l:Loc Navigation_Empty}"
+                   IsVisible="{Binding IsNavigationExpanded}"
+                   Margin="{DynamicResource Padding.Panel}"
+                   TextWrapping="Wrap" />
+      </DockPanel>
+    </Border>
+
+    <!-- Content -->
+    <Border Grid.Column="1" Classes="Content">
+      <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Height="{DynamicResource Size.ContentHeader}" Margin="{DynamicResource Padding.Header}">
+          <Button DockPanel.Dock="Right"
+                  Classes="Icon"
+                  IsVisible="{Binding !IsDetailsPanelOpen}"
+                  Command="{Binding ToggleDetailsPanelCommand}"
+                  ToolTip.Tip="{l:Loc Command_ToggleDetails}"
+                  AutomationProperties.Name="{l:Loc Command_ToggleDetails}">
+            <PathIcon Data="{StaticResource Icon.PanelRightOpen}" />
+          </Button>
+          <Panel />
+        </DockPanel>
+        <Panel>
+          <ContentControl Content="{Binding CurrentPage}" />
+          <StackPanel IsVisible="{Binding CurrentPage, Converter={x:Static ObjectConverters.IsNull}}"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      MaxWidth="480"
+                      Margin="{DynamicResource Padding.Panel}"
+                      Spacing="{DynamicResource Space.S}">
+            <PathIcon Classes="Large"
+                      Data="{StaticResource Icon.Library}"
+                      Foreground="{DynamicResource Brush.Text.Tertiary}" />
+            <TextBlock Classes="Title"
+                       Text="{l:Loc MainWindow_EmptyTitle}"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap" />
+            <TextBlock Classes="Secondary"
+                       Text="{l:Loc MainWindow_EmptyHint}"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap" />
+          </StackPanel>
+        </Panel>
+      </DockPanel>
+    </Border>
+
+    <!-- Details -->
+    <Border Grid.Column="2"
+            Classes="Panel"
+            Width="{DynamicResource Size.DetailsPanel}"
+            BorderThickness="1,0,0,0"
+            IsVisible="{Binding IsDetailsPanelOpen}">
+      <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Header}">
+          <Button DockPanel.Dock="Right"
+                  Classes="Icon"
+                  Command="{Binding ToggleDetailsPanelCommand}"
+                  ToolTip.Tip="{l:Loc Command_ToggleDetails}"
+                  AutomationProperties.Name="{l:Loc Command_ToggleDetails}">
+            <PathIcon Data="{StaticResource Icon.PanelRightClose}" />
+          </Button>
+          <TextBlock Classes="Title"
+                     Text="{l:Loc Details_Title}"
+                     VerticalAlignment="Center"
+                     TextWrapping="Wrap" />
+        </DockPanel>
+        <TextBlock Classes="Tertiary"
+                   Text="{l:Loc Details_Empty}"
+                   Margin="{DynamicResource Padding.Panel}"
+                   TextWrapping="Wrap" />
+      </DockPanel>
+    </Border>
+  </Grid>
 </Window>

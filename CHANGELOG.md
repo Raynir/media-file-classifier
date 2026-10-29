@@ -12,4 +12,5 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - App settings stored as JSON, including the main window placement.
 - Test helpers for temporary library databases, and a sample media corpus of edge-case files (E01-S11).
 - CI builds and tests pull requests and the long-lived branches on GitHub Actions.
+- Platform services, file access through folder handles, and capability flags with reasons for the UI (E01-S07).
 - Core domain model: libraries, folders, media items, three metadata layers with provenance, analysis runs, embeddings and collections (E01-S02).

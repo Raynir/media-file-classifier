@@ -1,8 +1,10 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
+using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Capabilities;
+using MediaFileClassifier.Infrastructure.Hardware;
 using MediaFileClassifier.Infrastructure.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
@@ -25,6 +27,8 @@ public static class InfrastructureModule
     {
         services.TryAddSingleton<IAppPaths, AppPaths>();
         services.TryAddSingleton<ISettingsService, JsonSettingsService>();
+        services.TryAddSingleton<IHardwareDetector, PortableHardwareDetector>();
+        services.TryAddSingleton<IHardwareInfo, HardwareInfo>();
         services.TryAddSingleton<ICapabilityService, CapabilityService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICapabilityContributor, PlatformCapabilityContributor>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICapabilityContributor, NativeDependencyCapabilityContributor>());

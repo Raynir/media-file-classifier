@@ -53,3 +53,13 @@ This section summarizes the proposed decision; DECISIONS.md is the source of tru
 - **Wrapper:** FFMpegCore (MIT) when video features land (E08). It calls the same `ffmpeg` and `ffprobe` executables, so the probe and the wrapper agree on what is installed.
 - **Installer (E19):** if FFmpeg is bundled, ship an **LGPL** build: shared libraries, configured without `--enable-gpl` or `--enable-nonfree`. LGPL requires the license notice, a written offer of the exact source, and letting users replace the binaries, which separate executables or DLLs allow. A **GPL** build, such as the common gyan.dev "full" and "essentials" builds that include x264/x265, would make the distributed bundle subject to the GPL, so don't ship one. The probe reports whether the installed build is GPL.
 - **Android:** deferred to E20. The platform media APIs may make FFmpeg unnecessary there.
+
+## Hardware and execution provider (E01-S07-T04)
+
+- At startup the app logs the processor count, memory, and graphics adapters. On Windows the adapters come from DXGI.
+- From those, it chooses an ONNX execution provider and a default level of parallelism:
+  - **DirectML** when a hardware adapter has at least 2 GB of dedicated memory.
+  - **CPU** otherwise.
+  - **Default parallelism:** half the logical processors, from 1 to 8.
+- ONNX Runtime isn't referenced yet. E06 reads `IHardwareInfo.PreferredExecutionProvider` when it creates its sessions, and falls back to CPU if the provider fails to load.
+- NPUs aren't detected yet. DXGI doesn't list them; DXCore would.

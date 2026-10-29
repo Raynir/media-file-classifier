@@ -23,7 +23,12 @@ public sealed record LibrarySettings
 
     /// <summary>
     /// Gets how many previous analysis runs are kept per item and analyzer, besides the active one (D020).
+    /// Zero keeps only the active run.
     /// </summary>
+    /// <remarks>
+    /// One previous run costs roughly as much as the active AI layer: about 4–5 KB per item, or 0.4–0.5 GB
+    /// for a 100k-item library. See "Storage cost of a previous run" in docs/domain-model.md.
+    /// </remarks>
     public int RetainedPreviousRuns
     {
         get => retainedPreviousRuns;

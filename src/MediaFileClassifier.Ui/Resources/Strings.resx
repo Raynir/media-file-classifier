@@ -39,10 +39,28 @@
     <value>Select an item to see its details.</value>
   </data>
   <data name="Command_ToggleNavigation" xml:space="preserve">
-    <value>Toggle navigation panel</value>
+    <value>Toggle _navigation panel</value>
   </data>
   <data name="Command_ToggleDetails" xml:space="preserve">
-    <value>Toggle details panel</value>
+    <value>Toggle _details panel</value>
+  </data>
+  <data name="Menu_Library" xml:space="preserve">
+    <value>_Library</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>_Edit</value>
+  </data>
+  <data name="Menu_View" xml:space="preserve">
+    <value>_View</value>
+  </data>
+  <data name="Menu_Item" xml:space="preserve">
+    <value>_Item</value>
+  </data>
+  <data name="Menu_Tools" xml:space="preserve">
+    <value>_Tools</value>
+  </data>
+  <data name="Menu_Help" xml:space="preserve">
+    <value>_Help</value>
   </data>
   <data name="FileSize_Bytes" xml:space="preserve">
     <value>{0} bytes</value>

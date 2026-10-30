@@ -22,18 +22,18 @@ public sealed class NativeDependencyCapabilityContributorTests
 
         var flag = capabilities.Get(KnownCapabilities.VideoAnalysis);
         Assert.False(flag.IsAvailable);
-        Assert.Equal($"Video analysis unavailable: {FfmpegProbe.NotFoundMessage}", flag.Reason);
+        Assert.Equal(CapabilityReasons.FfmpegMissing(), flag.Reason);
     }
 
     [Fact]
     public async Task VideoAnalysis_FfmpegFound_IsAvailable()
     {
         var capabilities = await RefreshAsync(
-            new FakeProbe("FFmpeg", [KnownCapabilities.VideoAnalysis], NativeDependencyStatus.Available("7.1", @"C:\ffmpeg.exe", "FFmpeg 7.1 found.")));
+            new FakeProbe("FFmpeg", [KnownCapabilities.VideoAnalysis], NativeDependencyStatus.Available("7.1", @"C:\ffmpeg.exe")));
 
         var flag = capabilities.Get(KnownCapabilities.VideoAnalysis);
         Assert.True(flag.IsAvailable);
-        Assert.Equal("Video analysis available: FFmpeg 7.1 found.", flag.Reason);
+        Assert.Null(flag.Reason);
     }
 
     [Fact]
@@ -41,9 +41,9 @@ public sealed class NativeDependencyCapabilityContributorTests
     {
         var capabilities = await RefreshAsync(
             new FakeProbe("Whisper", [Transcription], exception: new DllNotFoundException("whisper.dll")),
-            new FakeProbe("FFmpeg", [KnownCapabilities.VideoAnalysis], NativeDependencyStatus.Available("7.1", null, "FFmpeg 7.1 found.")));
+            new FakeProbe("FFmpeg", [KnownCapabilities.VideoAnalysis], NativeDependencyStatus.Available("7.1", null)));
 
-        Assert.Equal("Transcription unavailable: Whisper failed to load: whisper.dll", capabilities.Get(Transcription).Reason);
+        Assert.Equal(CapabilityReasons.FailedToLoad("Whisper"), capabilities.Get(Transcription).Reason);
         Assert.True(capabilities.Get(KnownCapabilities.VideoAnalysis).IsAvailable);
     }
 
@@ -51,12 +51,23 @@ public sealed class NativeDependencyCapabilityContributorTests
     public async Task CapabilityWithSeveralDependencies_NeedsAllOfThem()
     {
         var capabilities = await RefreshAsync(
-            new FakeProbe("FFmpeg", [Transcription], NativeDependencyStatus.Available("7.1", null, "FFmpeg 7.1 found.")),
-            new FakeProbe("Whisper", [Transcription], NativeDependencyStatus.Unavailable("Whisper runtime not found.")));
+            new FakeProbe("FFmpeg", [Transcription], NativeDependencyStatus.Available("7.1", null)),
+            new FakeProbe("Whisper", [Transcription], NativeDependencyStatus.Unavailable(CapabilityReasons.FailedToLoad("Whisper"))));
 
         var flag = capabilities.Get(Transcription);
         Assert.False(flag.IsAvailable);
-        Assert.Equal("Transcription unavailable: Whisper runtime not found.", flag.Reason);
+        Assert.Equal(CapabilityReasons.FailedToLoad("Whisper"), flag.Reason);
+    }
+
+    [Fact]
+    public async Task UnavailableStatusWithoutProblem_StillDisablesWithAReason()
+    {
+        var capabilities = await RefreshAsync(
+            new FakeProbe("Whisper", [Transcription], new NativeDependencyStatus(false, null, null, null, null)));
+
+        var flag = capabilities.Get(Transcription);
+        Assert.False(flag.IsAvailable);
+        Assert.Equal(CapabilityReasons.FailedToLoad("Whisper"), flag.Reason);
     }
 
     private static async Task<CapabilityService> RefreshAsync(params INativeDependencyProbe[] probes)

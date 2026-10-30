@@ -27,7 +27,7 @@ public sealed class FfmpegProbeTests : IDisposable
         var status = await new FfmpegProbe([directory]).ProbeAsync(TestContext.Current.CancellationToken);
 
         Assert.False(status.IsAvailable);
-        Assert.Equal(FfmpegProbe.NotFoundMessage, status.Detail);
+        Assert.Equal(CapabilityReasons.FfmpegMissing(), status.Problem);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class FfmpegProbeTests : IDisposable
         var status = await new FfmpegProbe([directory]).ProbeAsync(TestContext.Current.CancellationToken);
 
         Assert.False(status.IsAvailable);
-        Assert.StartsWith("FFprobe not found.", status.Detail, StringComparison.Ordinal);
+        Assert.Equal(CapabilityReasons.FfprobeNotFound, status.Problem?.Code);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class FfmpegProbeTests : IDisposable
         var status = await new FfmpegProbe([directory]).ProbeAsync(TestContext.Current.CancellationToken);
 
         Assert.False(status.IsAvailable);
-        Assert.Contains("failed to run", status.Detail, StringComparison.Ordinal);
+        Assert.Equal(CapabilityReasons.DependencyFailedToRun, status.Problem?.Code);
     }
 
     [Fact]
@@ -60,14 +60,14 @@ public sealed class FfmpegProbeTests : IDisposable
 
         var status = await probe.ProbeAsync(TestContext.Current.CancellationToken);
 
-        if (!status.IsAvailable && status.Detail == FfmpegProbe.NotFoundMessage)
+        if (!status.IsAvailable && Equals(status.Problem, CapabilityReasons.FfmpegMissing()))
         {
             Assert.Skip("FFmpeg isn't installed on this machine.");
         }
 
-        Assert.True(status.IsAvailable, status.Detail);
+        Assert.True(status.IsAvailable, status.Problem?.ToString());
         Assert.False(string.IsNullOrEmpty(status.Version));
-        Assert.StartsWith($"FFmpeg {status.Version} found", status.Detail, StringComparison.Ordinal);
+        Assert.Contains("GPL build", status.Detail, StringComparison.Ordinal);
     }
 
     public void Dispose()

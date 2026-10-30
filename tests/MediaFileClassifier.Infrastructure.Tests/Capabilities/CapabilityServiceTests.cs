@@ -10,7 +10,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Capabilities;
 /// </summary>
 public sealed class CapabilityServiceTests
 {
-    private static readonly CapabilityDefinition Video = new("test.video", "Video analysis");
+    private static readonly CapabilityDefinition Video = new("test.video", "VideoAnalysis");
 
     [Fact]
     public void Get_NewCapability_IsUnavailableUntilChecked()
@@ -18,7 +18,7 @@ public sealed class CapabilityServiceTests
         var flag = CreateService().Get(Video);
 
         Assert.False(flag.IsAvailable);
-        Assert.Equal("Video analysis unavailable: not checked yet.", flag.Reason);
+        Assert.Equal(CapabilityReasons.NotCheckedYet(), flag.Reason);
     }
 
     [Fact]
@@ -31,13 +31,13 @@ public sealed class CapabilityServiceTests
     }
 
     [Fact]
-    public void SetUnavailable_ComposesReasonFromDisplayNameAndCause()
+    public void SetUnavailable_KeepsTheReasonCode()
     {
         var service = CreateService();
 
-        service.SetUnavailable(Video, "FFmpeg not found.");
+        service.SetUnavailable(Video, CapabilityReasons.FfprobeMissing("/opt/ffmpeg"));
 
-        Assert.Equal("Video analysis unavailable: FFmpeg not found.", service.Get(Video).Reason);
+        Assert.Equal(new CapabilityReason(CapabilityReasons.FfprobeNotFound, ["/opt/ffmpeg"]), service.Get(Video).Reason);
     }
 
     [Fact]
@@ -48,10 +48,10 @@ public sealed class CapabilityServiceTests
         var changed = new List<string?>();
         flag.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
 
-        service.SetAvailable(Video, "FFmpeg 7.1 found.");
+        service.SetAvailable(Video);
 
         Assert.True(flag.IsAvailable);
-        Assert.Equal("Video analysis available: FFmpeg 7.1 found.", flag.Reason);
+        Assert.Null(flag.Reason);
         Assert.Equal([nameof(CapabilityFlag.IsAvailable), nameof(CapabilityFlag.Reason)], changed);
     }
 
@@ -62,8 +62,8 @@ public sealed class CapabilityServiceTests
         var raised = new List<CapabilityFlag>();
         service.FlagChanged += (_, e) => raised.Add(e.Flag);
 
-        service.SetAvailable(Video, "found.");
-        service.SetAvailable(Video, "found.");
+        service.SetAvailable(Video);
+        service.SetAvailable(Video);
 
         Assert.Equal([service.Get(Video)], raised);
     }
@@ -74,7 +74,7 @@ public sealed class CapabilityServiceTests
         var other = new CapabilityDefinition("test.other", "Other");
         var service = CreateService(
             new DelegateContributor(_ => throw new InvalidOperationException("Broken probe")),
-            new DelegateContributor(capabilities => capabilities.SetAvailable(other, "ok.")));
+            new DelegateContributor(capabilities => capabilities.SetAvailable(other)));
 
         await service.RefreshAsync(TestContext.Current.CancellationToken);
 

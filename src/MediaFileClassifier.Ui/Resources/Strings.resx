@@ -80,6 +80,41 @@
   <data name="Command_OpenLogFolder" xml:space="preserve">
     <value>Open _log folder</value>
   </data>
+  <data name="Capability_Unavailable" xml:space="preserve">
+    <value>{0} unavailable: {1}</value>
+    <comment>Tooltip of a command whose capability is missing. {0}: a Capability_* name; {1}: a CapabilityReason_* text.</comment>
+  </data>
+  <data name="Capability_RevealInFileExplorer" xml:space="preserve">
+    <value>Show in file explorer</value>
+  </data>
+  <data name="Capability_VideoAnalysis" xml:space="preserve">
+    <value>Video analysis</value>
+  </data>
+  <data name="CapabilityReason_NotChecked" xml:space="preserve">
+    <value>not checked yet.</value>
+  </data>
+  <data name="CapabilityReason_NoFileExplorer" xml:space="preserve">
+    <value>this platform has no file explorer.</value>
+  </data>
+  <data name="CapabilityReason_FfmpegNotFound" xml:space="preserve">
+    <value>FFmpeg not found. Install FFmpeg and add it to PATH, or put ffmpeg and ffprobe in the ffmpeg folder next to the app, then restart.</value>
+  </data>
+  <data name="CapabilityReason_FfprobeNotFound" xml:space="preserve">
+    <value>FFprobe not found. Install a complete FFmpeg build that includes ffprobe, next to {0}.</value>
+    <comment>{0}: path of the ffmpeg executable.</comment>
+  </data>
+  <data name="CapabilityReason_DependencyFailedToRun" xml:space="preserve">
+    <value>{0} at {1} failed to run. The log has the details.</value>
+    <comment>{0}: dependency name, e.g. FFmpeg; {1}: its path.</comment>
+  </data>
+  <data name="CapabilityReason_DependencyVersionUnknown" xml:space="preserve">
+    <value>{0} at {1} didn't report its version.</value>
+    <comment>{0}: dependency name, e.g. FFmpeg; {1}: its path.</comment>
+  </data>
+  <data name="CapabilityReason_DependencyFailedToLoad" xml:space="preserve">
+    <value>{0} failed to load. The log has the details.</value>
+    <comment>{0}: dependency name, e.g. Whisper.</comment>
+  </data>
   <data name="FileSize_Bytes" xml:space="preserve">
     <value>{0} bytes</value>
     <comment>{0} is a whole number of bytes.</comment>

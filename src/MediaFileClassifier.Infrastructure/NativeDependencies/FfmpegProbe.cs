@@ -13,12 +13,6 @@ namespace MediaFileClassifier.Infrastructure.NativeDependencies;
 /// <param name="searchDirectories">Folders to look in, in order.</param>
 public sealed partial class FfmpegProbe(IReadOnlyList<string> searchDirectories) : INativeDependencyProbe
 {
-    /// <summary>
-    /// Message when FFmpeg is missing.
-    /// </summary>
-    public const string NotFoundMessage =
-        "FFmpeg not found. Install FFmpeg and add it to PATH, or put ffmpeg and ffprobe in the ffmpeg folder next to the app, then restart.";
-
     private static readonly TimeSpan RunTimeout = TimeSpan.FromSeconds(10);
 
     /// <inheritdoc />
@@ -48,14 +42,12 @@ public sealed partial class FfmpegProbe(IReadOnlyList<string> searchDirectories)
         var ffmpeg = FindExecutable("ffmpeg");
         if (ffmpeg is null)
         {
-            return NativeDependencyStatus.Unavailable(NotFoundMessage);
+            return NativeDependencyStatus.Unavailable(CapabilityReasons.FfmpegMissing());
         }
 
         if (FindExecutable("ffprobe") is null)
         {
-            return NativeDependencyStatus.Unavailable(
-                $"FFprobe not found. Install a complete FFmpeg build that includes ffprobe, next to {ffmpeg}.",
-                ffmpeg);
+            return NativeDependencyStatus.Unavailable(CapabilityReasons.FfprobeMissing(ffmpeg), ffmpeg);
         }
 
         string output;
@@ -65,18 +57,18 @@ public sealed partial class FfmpegProbe(IReadOnlyList<string> searchDirectories)
         }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or TimeoutException)
         {
-            return NativeDependencyStatus.Unavailable($"FFmpeg at {ffmpeg} failed to run: {ex.Message}", ffmpeg);
+            return NativeDependencyStatus.Unavailable(CapabilityReasons.FailedToRun(DependencyName, ffmpeg), ffmpeg, ex.Message);
         }
 
         var match = VersionPattern().Match(output);
         if (!match.Success)
         {
-            return NativeDependencyStatus.Unavailable($"FFmpeg at {ffmpeg} didn't report its version.", ffmpeg);
+            return NativeDependencyStatus.Unavailable(CapabilityReasons.VersionUnknown(DependencyName, ffmpeg), ffmpeg);
         }
 
         var version = match.Groups["version"].Value;
         var build = output.Contains("--enable-gpl", StringComparison.Ordinal) ? "GPL build" : "LGPL build";
-        return NativeDependencyStatus.Available(version, ffmpeg, $"FFmpeg {version} found ({build}).");
+        return NativeDependencyStatus.Available(version, ffmpeg, build);
     }
 
     private static async Task<string> RunAsync(string executable, string arguments, CancellationToken cancellationToken)

@@ -18,3 +18,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Light and dark themes that follow Windows, with an override (`--theme=light|dark`), provisional design tokens and icons, and a placeholder main window layout with collapsible side panels (E13-S06).
 - A command registry and a main menu (Library, View, Tools, Help so far), with Help → Open log folder, theme switching and a pseudo-localisation toggle (E13-S05).
 - Native dependency matrix, third-party license register, and startup checks that disable video analysis when FFmpeg is missing (E01-S08).
+
+### Changed
+
+- Capability names and reasons come from the resource files, so disabled-command tooltips are localised and pseudo-localised too (E13-S08).

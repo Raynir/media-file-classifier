@@ -1,5 +1,6 @@
 using Avalonia.Threading;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
+using MediaFileClassifier.Ui.Localization;
 
 namespace MediaFileClassifier.Ui.Platform;
 
@@ -35,14 +36,17 @@ public readonly record struct CapabilityState(bool IsAvailable, string? Reason);
 public sealed class CapabilityServiceGate : ICapabilityGate
 {
     private readonly ICapabilityService capabilities;
+    private readonly Localizer localizer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CapabilityServiceGate"/> class.
     /// </summary>
     /// <param name="capabilities">The capability flags.</param>
-    public CapabilityServiceGate(ICapabilityService capabilities)
+    /// <param name="localizer">Turns the flags' reason codes into text.</param>
+    public CapabilityServiceGate(ICapabilityService capabilities, Localizer localizer)
     {
         this.capabilities = capabilities;
+        this.localizer = localizer;
         capabilities.FlagChanged += (_, _) => RaiseChanged();
     }
 
@@ -54,7 +58,13 @@ public sealed class CapabilityServiceGate : ICapabilityGate
     public CapabilityState Check(string capabilityId)
     {
         var flag = capabilities.Flags.FirstOrDefault(flag => flag.Id == capabilityId);
-        return flag is null || flag.IsAvailable ? new(true, null) : new(false, flag.Reason);
+        if (flag is null || flag.IsAvailable)
+        {
+            return new(true, null);
+        }
+
+        var reason = flag.Reason ?? CapabilityReasons.NotCheckedYet();
+        return new(false, CapabilityText.Describe(localizer, flag.Definition, reason));
     }
 
     // Flags can change on a background thread, such as a refresh after a dependency download,

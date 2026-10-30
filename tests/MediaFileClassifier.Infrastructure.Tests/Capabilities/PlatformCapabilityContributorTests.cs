@@ -27,7 +27,7 @@ public sealed class PlatformCapabilityContributorTests
         var flag = await RefreshAsync(new FakePlatformServices { CanRevealInFileExplorer = false });
 
         Assert.False(flag.IsAvailable);
-        Assert.Equal("Show in file explorer unavailable: this platform has no file explorer.", flag.Reason);
+        Assert.Equal(CapabilityReasons.NoFileExplorerOnPlatform(), flag.Reason);
     }
 
     private static async Task<CapabilityFlag> RefreshAsync(IPlatformServices platform)

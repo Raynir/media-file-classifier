@@ -12,4 +12,14 @@ namespace MediaFileClassifier.Domain.Metadata;
 /// <param name="Tag">The rejected tag.</param>
 /// <param name="RejectedFrom">AI run that suggested the tag, if it was an AI tag.</param>
 /// <param name="RejectedAt">When the user rejected it.</param>
-public sealed record TagRejection(Id<MediaItem> ItemId, TagName Tag, RunReference? RejectedFrom, DateTimeOffset RejectedAt);
+public sealed record TagRejection(Id<MediaItem> ItemId, TagName Tag, RunReference? RejectedFrom, DateTimeOffset RejectedAt)
+{
+    /// <summary>
+    /// Creates an empty instance for EF Core to fill when it loads the tombstone (D071). EF Core can't pass the
+    /// complex-typed values to the public constructor.
+    /// </summary>
+    private TagRejection()
+        : this(default, null!, null, default)
+    {
+    }
+}

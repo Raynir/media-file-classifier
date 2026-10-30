@@ -62,6 +62,12 @@ public sealed class TagAssignment
         CreatedAt = createdAt;
     }
 
+    /// <summary>
+    /// Creates an empty instance for EF Core to fill when it loads the assignment (D071). EF Core can't pass the
+    /// complex-typed values to the public constructor.
+    /// </summary>
+    private TagAssignment() => Tag = null!;
+
     public Id<MediaItem> ItemId { get; }
 
     public TagName Tag { get; }

@@ -240,3 +240,16 @@ A **conflict** leaves the target's value effective and lists the incoming value 
 ### Repeat imports
 
 Every rule is idempotent: importing the same package twice changes nothing the second time. A conflict the user resolved by keeping the target value is listed again, because nothing records the earlier choice yet (gap G3).
+
+## Model gaps (E01-S09 acceptance criterion 2)
+
+Checked against `src/MediaFileClassifier.Domain` on `develop` (E01-S02, MFC-56). The Domain code isn't changed by this Story. Agreed handling: the small fields are added in a follow-up sub-task after MFC-19 (E01-S03) merges; G3 and G4 come with the Stories that use them.
+
+| # | Gap | Needed for | Handling |
+|---|-----|------------|----------|
+| G1 | `MediaItem` has no `FavoriteChangedAt` or `ReviewStatusChangedAt`. `SetFavorite`, `MarkReviewed` and `MarkUnreviewed` take no time. | "Newer change wins" for favorites and review status | Follow-up sub-task after MFC-19: two nullable columns and a `now` parameter on those methods. Until then the merge treats them as conflicts. |
+| G2 | `IndexedFolder` has no machine-independent name: `DisplayPath` and `PlatformHandle` are both absolute. | Showing package folders on the target | No change needed: the writer derives the label from the last segment of `DisplayPath`. An explicit folder name can be added later if the user should be able to rename folders. |
+| G3 | Nowhere to store import conflicts, or the user's choices about them. | The conflict rule, and repeat imports | E07-S09 (import report and undo) adds a table. Not needed in the MVP schema. |
+| G4 | No change tracking: no per-item modified date, and no record of earlier imports and exports (`package_id`, peer library, date). | Changes-only export from the phone (E20-S08-T01) | E20-S08 adds it. Needed only on the phone side, Later. |
+
+**Not gaps:** IDs (D066), relative paths, the three hashes, provenance (`RunReference`, origins, update and rejection dates), tag tombstones, run rejection dates, model registrations with file hash, embeddings per model and keyframe, collections with `AddedAt`, saved searches and `Library.Id` are all in the model. Collection renames and removals don't need tracking, because memberships are merged as a union.

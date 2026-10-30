@@ -53,6 +53,24 @@ To check that layouts survive longer translations, run with pseudo-localisation.
 dotnet run --project src/MediaFileClassifier.Desktop -- --pseudo-loc
 ```
 
+### Themes and design tokens
+
+Colours, sizes and fonts come from design tokens in `src/MediaFileClassifier.Ui/Theming/`. [docs/design-tokens.md](docs/design-tokens.md) explains how to use them. The app follows the Windows light or dark setting. To check a view in one theme, run:
+
+```powershell
+dotnet run --project src/MediaFileClassifier.Desktop -- --theme=light
+dotnet run --project src/MediaFileClassifier.Desktop -- --theme=dark
+```
+
+### UI checks for every view
+
+On top of the [definition of done](https://github.com/Raynir/mfc-development-plan/blob/main/README.md#definition-of-done-every-mvp-story), check each new or changed view by running the app:
+
+- in the light theme (`--theme=light`) and the dark theme (`--theme=dark`): every text, icon and border is readable;
+- with pseudo-localisation (`--pseudo-loc`): no text is clipped, and every string shows its closing bracket.
+
+Tests catch hard-coded strings and literal colours and sizes in views.
+
 ### Where the app keeps its files
 
 Everything lives under `%LOCALAPPDATA%\MediaFileClassifier` (D061):

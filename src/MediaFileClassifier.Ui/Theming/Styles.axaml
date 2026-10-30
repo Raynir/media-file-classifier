@@ -1,0 +1,141 @@
+<!--
+  Shared styles built only from the tokens in Tokens.axaml (E13-S06-T02). See docs/design-tokens.md.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Window}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+    <Setter Property="FontFamily" Value="{DynamicResource Font.Family}" />
+  </Style>
+
+  <!-- Typography -->
+  <Style Selector="TextBlock">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}" />
+  </Style>
+  <Style Selector="TextBlock.Title">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Title}" />
+    <Setter Property="FontWeight" Value="{DynamicResource FontWeight.Title}" />
+  </Style>
+  <Style Selector="TextBlock.Subtitle">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Subtitle}" />
+    <Setter Property="FontWeight" Value="{DynamicResource FontWeight.Label}" />
+  </Style>
+  <Style Selector="TextBlock.Label">
+    <Setter Property="FontWeight" Value="{DynamicResource FontWeight.Label}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <Style Selector="TextBlock.Secondary">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <Style Selector="TextBlock.Tertiary">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}" />
+  </Style>
+  <Style Selector="TextBlock.Caption">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+  </Style>
+
+  <!-- Icons. They inherit Foreground, so an icon in a status badge takes the status colour. -->
+  <Style Selector="PathIcon">
+    <Setter Property="Width" Value="{DynamicResource Size.Icon}" />
+    <Setter Property="Height" Value="{DynamicResource Size.Icon}" />
+  </Style>
+  <Style Selector="PathIcon.Small">
+    <Setter Property="Width" Value="{DynamicResource Size.Icon.Small}" />
+    <Setter Property="Height" Value="{DynamicResource Size.Icon.Small}" />
+  </Style>
+  <Style Selector="PathIcon.Large">
+    <Setter Property="Width" Value="{DynamicResource Size.Icon.Large}" />
+    <Setter Property="Height" Value="{DynamicResource Size.Icon.Large}" />
+  </Style>
+
+  <!-- Surfaces -->
+  <Style Selector="Border.Panel">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Panel}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Divider}" />
+  </Style>
+  <Style Selector="Border.Content">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Content}" />
+  </Style>
+
+  <!-- Icon-only buttons, e.g. panel toggles -->
+  <Style Selector="Button.Icon">
+    <Setter Property="Width" Value="{DynamicResource Size.Control}" />
+    <Setter Property="Height" Value="{DynamicResource Size.Control}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Compact}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Icon}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.Icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.State.Hover}" />
+  </Style>
+  <Style Selector="Button.Icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.State.Pressed}" />
+  </Style>
+  <Style Selector="Button.Icon:disabled">
+    <Setter Property="Opacity" Value="{DynamicResource Opacity.Disabled}" />
+  </Style>
+
+  <!--
+    Item status badges: <Border Classes="StatusBadge Missing"> with a TextBlock and PathIcon inside.
+    Statuses: Pending, Error, Missing, Offline, Excluded.
+  -->
+  <Style Selector="Border.StatusBadge">
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+  </Style>
+  <Style Selector="Border.StatusBadge.Pending">
+    <Setter Property="Background" Value="{DynamicResource Brush.Status.Pending.Background}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Status.Pending.Foreground}" />
+  </Style>
+  <Style Selector="Border.StatusBadge.Error">
+    <Setter Property="Background" Value="{DynamicResource Brush.Status.Error.Background}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+  </Style>
+  <Style Selector="Border.StatusBadge.Missing">
+    <Setter Property="Background" Value="{DynamicResource Brush.Status.Missing.Background}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Status.Missing.Foreground}" />
+  </Style>
+  <Style Selector="Border.StatusBadge.Offline">
+    <Setter Property="Background" Value="{DynamicResource Brush.Status.Offline.Background}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Status.Offline.Foreground}" />
+  </Style>
+  <Style Selector="Border.StatusBadge.Excluded">
+    <Setter Property="Background" Value="{DynamicResource Brush.Status.Excluded.Background}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Status.Excluded.Foreground}" />
+  </Style>
+  <Style Selector="Border.StatusBadge PathIcon">
+    <Setter Property="Width" Value="{DynamicResource Size.Icon.Small}" />
+    <Setter Property="Height" Value="{DynamicResource Size.Icon.Small}" />
+  </Style>
+
+  <!--
+    Provenance slots (AI, edited, accepted, new suggestion): <Border Classes="Provenance Ai">.
+    Their look is designed in E07-S11-T01 (M3); these only reserve the names.
+  -->
+  <Style Selector="Border.Provenance">
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+  </Style>
+  <Style Selector="Border.Provenance.Ai">
+    <Setter Property="Background" Value="{DynamicResource Brush.Provenance.Ai.Background}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Provenance.Ai.Foreground}" />
+  </Style>
+  <Style Selector="Border.Provenance.Edited">
+    <Setter Property="Background" Value="{DynamicResource Brush.Provenance.Edited.Background}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Provenance.Edited.Foreground}" />
+  </Style>
+  <Style Selector="Border.Provenance.Accepted">
+    <Setter Property="Background" Value="{DynamicResource Brush.Provenance.Accepted.Background}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Provenance.Accepted.Foreground}" />
+  </Style>
+  <Style Selector="Border.Provenance.NewSuggestion">
+    <Setter Property="Background" Value="{DynamicResource Brush.Provenance.NewSuggestion.Background}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Provenance.NewSuggestion.Foreground}" />
+  </Style>
+</Styles>

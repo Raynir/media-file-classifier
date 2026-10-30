@@ -14,4 +14,5 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - CI builds and tests pull requests and the long-lived branches on GitHub Actions.
 - Platform services, file access through folder handles, and capability flags with reasons for the UI (E01-S07).
 - UI strings in resource files, culture-aware formatting, and a pseudo-localisation mode (`--pseudo-loc`) for layout testing (E13-S08).
+- Light and dark themes that follow Windows, with an override (`--theme=light|dark`), provisional design tokens and icons, and a placeholder main window layout with collapsible side panels (E13-S06).
 - Native dependency matrix, third-party license register, and startup checks that disable video analysis when FFmpeg is missing (E01-S08).

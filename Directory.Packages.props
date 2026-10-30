@@ -28,5 +28,6 @@
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <!-- Testing -->
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="Avalonia.Headless" Version="12.1.4" />
   </ItemGroup>
 </Project>

@@ -43,6 +43,43 @@ To check that unhandled exceptions are logged rather than closing the app, run a
 dotnet run --project src/MediaFileClassifier.Desktop -- --simulate-crash
 ```
 
+### UI strings and pseudo-localisation
+
+Every user-facing string lives in `src/MediaFileClassifier.Ui/Resources/Strings.resx` (E13-S08). Views bind strings with `{l:Loc Key}` (`xmlns:l="using:MediaFileClassifier.Ui.Localization"`), and code uses `Localizer.Current.Get(key)` or `Format(key, args)`. Numbers, dates, durations and file sizes go through `Format` or `FormatConverters`, which use the current culture. A test fails if a view has a hard-coded string or uses a key that isn't in `Strings.resx`.
+
+To check that layouts survive longer translations, run with pseudo-localisation. It accents every string and makes it about 40% longer, in brackets, so clipped text is easy to spot:
+
+```powershell
+dotnet run --project src/MediaFileClassifier.Desktop -- --pseudo-loc
+```
+
+### Themes and design tokens
+
+Colours, sizes and fonts come from design tokens in `src/MediaFileClassifier.Ui/Theming/`. [docs/design-tokens.md](docs/design-tokens.md) explains how to use them. The app follows the Windows light or dark setting. To check a view in one theme, run:
+
+```powershell
+dotnet run --project src/MediaFileClassifier.Desktop -- --theme=light
+dotnet run --project src/MediaFileClassifier.Desktop -- --theme=dark
+```
+
+### Commands and the main menu
+
+Every user action is an `AppCommand` in the command registry (E13-S05). It has an ID, a label, an icon, a shortcut, an enablement rule and a handler, so the main menu, context menus, buttons and shortcuts show it the same way:
+
+- A feature registers its commands in an `ICommandContributor`, added with `services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, MyCommands>())`. The command's group (`CommandGroups`: Library, Edit, View, Item, Tools, Help) places it in the main menu.
+- Bind a button with `Command="{Binding Commands[help.open-log-folder]}"`, and its `ToolTip.Tip` and `AutomationProperties.Name` to the command's `ToolTip` and `PlainLabel`. Menus and context menus with `Classes="Commands"` take everything from the command (`Commands/CommandStyles.axaml`).
+- `RequiredCapability` disables a command when a capability flag is off, with the reason as its tooltip. `WhyDisabled` covers context, such as an empty selection.
+- **Help → Open log folder** opens the log folder. **Tools → Pseudo-localisation** switches pseudo-localisation on and off while the app runs.
+
+### UI checks for every view
+
+On top of the [definition of done](https://github.com/Raynir/mfc-development-plan/blob/main/README.md#definition-of-done-every-mvp-story), check each new or changed view by running the app:
+
+- in the light theme (`--theme=light`) and the dark theme (`--theme=dark`): every text, icon and border is readable;
+- with pseudo-localisation (`--pseudo-loc`): no text is clipped, and every string shows its closing bracket.
+
+Tests catch hard-coded strings and literal colours and sizes in views.
+
 ### Where the app keeps its files
 
 Everything lives under `%LOCALAPPDATA%\MediaFileClassifier` (D061):

@@ -1,0 +1,17 @@
+namespace MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+
+/// <summary>
+/// ONNX Runtime execution providers the app can choose between.
+/// </summary>
+public enum ExecutionProvider
+{
+    /// <summary>
+    /// The default CPU provider. Always available.
+    /// </summary>
+    Cpu,
+
+    /// <summary>
+    /// DirectML on a DirectX 12 graphics adapter (Windows).
+    /// </summary>
+    DirectMl,
+}

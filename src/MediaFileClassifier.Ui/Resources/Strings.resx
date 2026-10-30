@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English UI strings (D029). Every user-facing string lives here (E13-S08).
+  Key names: <Area>_<Name>, e.g. MainWindow_EmptyTitle. Views bind them with {l:Loc Key};
+  code reads them through Localizer. A second language goes in Strings.<culture>.resx (E13-S10).
+-->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="App_Title" xml:space="preserve">
+    <value>Media File Classifier</value>
+  </data>
+  <data name="MainWindow_EmptyTitle" xml:space="preserve">
+    <value>No library open</value>
+  </data>
+  <data name="MainWindow_EmptyHint" xml:space="preserve">
+    <value>Create a library or open an existing one to start indexing your media.</value>
+  </data>
+  <data name="Navigation_Title" xml:space="preserve">
+    <value>Libraries</value>
+  </data>
+  <data name="Navigation_Empty" xml:space="preserve">
+    <value>No libraries yet.</value>
+  </data>
+  <data name="Details_Title" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Details_Empty" xml:space="preserve">
+    <value>Select an item to see its details.</value>
+  </data>
+  <data name="Command_ToggleNavigation" xml:space="preserve">
+    <value>Toggle _navigation panel</value>
+  </data>
+  <data name="Command_ToggleDetails" xml:space="preserve">
+    <value>Toggle _details panel</value>
+  </data>
+  <data name="Menu_Library" xml:space="preserve">
+    <value>_Library</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>_Edit</value>
+  </data>
+  <data name="Menu_View" xml:space="preserve">
+    <value>_View</value>
+  </data>
+  <data name="Menu_Item" xml:space="preserve">
+    <value>_Item</value>
+  </data>
+  <data name="Menu_Tools" xml:space="preserve">
+    <value>_Tools</value>
+  </data>
+  <data name="Menu_Help" xml:space="preserve">
+    <value>_Help</value>
+  </data>
+  <data name="Command_Exit" xml:space="preserve">
+    <value>E_xit</value>
+  </data>
+  <data name="Command_ThemeSystem" xml:space="preserve">
+    <value>_System theme</value>
+  </data>
+  <data name="Command_ThemeLight" xml:space="preserve">
+    <value>_Light theme</value>
+  </data>
+  <data name="Command_ThemeDark" xml:space="preserve">
+    <value>Dar_k theme</value>
+  </data>
+  <data name="Command_PseudoLocalization" xml:space="preserve">
+    <value>_Pseudo-localisation</value>
+  </data>
+  <data name="Command_OpenLogFolder" xml:space="preserve">
+    <value>Open _log folder</value>
+  </data>
+  <data name="FileSize_Bytes" xml:space="preserve">
+    <value>{0} bytes</value>
+    <comment>{0} is a whole number of bytes.</comment>
+  </data>
+  <data name="FileSize_Kilobytes" xml:space="preserve">
+    <value>{0} KB</value>
+    <comment>{0} is a number, formatted for the current culture.</comment>
+  </data>
+  <data name="FileSize_Megabytes" xml:space="preserve">
+    <value>{0} MB</value>
+    <comment>{0} is a number, formatted for the current culture.</comment>
+  </data>
+  <data name="FileSize_Gigabytes" xml:space="preserve">
+    <value>{0} GB</value>
+    <comment>{0} is a number, formatted for the current culture.</comment>
+  </data>
+  <data name="FileSize_Terabytes" xml:space="preserve">
+    <value>{0} TB</value>
+    <comment>{0} is a number, formatted for the current culture.</comment>
+  </data>
+</root>

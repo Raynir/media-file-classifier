@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <!-- Strings.resx is English (D029). Other languages are satellite resources (E13-S10). -->
+    <NeutralLanguage>en</NeutralLanguage>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="../MediaFileClassifier.UseCases/MediaFileClassifier.UseCases.csproj" />
     <PackageReference Include="Avalonia" />

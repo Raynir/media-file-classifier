@@ -1,0 +1,33 @@
+<!--
+  Binding helpers for menus (E13-S05-T01): a MenuItem whose data is an AppCommand gets its label, icon,
+  shortcut, checked state, enablement and disabled reason from the command. Use them with
+  <Menu Classes="Commands" ItemsSource="{Binding Menu.Groups}" /> for the main menu, and
+  <ContextMenu Classes="Commands" ItemsSource="{Binding SomeCommands}" /> for context menus.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:MediaFileClassifier.Ui.Commands"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels">
+
+  <Style Selector="Menu.Commands > MenuItem" x:DataType="vm:MenuGroupViewModel">
+    <Setter Property="Header" Value="{Binding Header}" />
+    <Setter Property="ItemsSource" Value="{Binding Items}" />
+  </Style>
+
+  <Style Selector="Menu.Commands > MenuItem > MenuItem, ContextMenu.Commands > MenuItem" x:DataType="c:AppCommand">
+    <Setter Property="Header" Value="{Binding Label}" />
+    <Setter Property="Command" Value="{Binding}" />
+    <Setter Property="InputGesture" Value="{Binding Gesture}" />
+    <Setter Property="ToggleType" Value="{Binding ToggleType}" />
+    <Setter Property="IsChecked" Value="{Binding IsChecked, Mode=OneWay}" />
+    <Setter Property="IsVisible" Value="{Binding IsVisible}" />
+    <Setter Property="ToolTip.Tip" Value="{Binding DisabledReason}" />
+    <Setter Property="ToolTip.ShowOnDisabled" Value="True" />
+    <Setter Property="AutomationProperties.Name" Value="{Binding PlainLabel}" />
+    <Setter Property="Icon">
+      <Template>
+        <PathIcon Classes="Small" Data="{Binding Icon}" />
+      </Template>
+    </Setter>
+  </Style>
+</Styles>

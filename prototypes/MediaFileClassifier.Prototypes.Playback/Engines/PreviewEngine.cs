@@ -2,7 +2,7 @@ namespace MediaFileClassifier.Prototypes.Playback.Engines;
 
 /// <summary>
 /// The shape a preview player needs, whatever decodes the video. E14-S06 would put an interface like
-/// this in Infrastructure.Abstractions, with one implementation per platform route (D070 draft).
+/// this in Infrastructure.Abstractions, with one implementation per platform route (D070).
 /// </summary>
 internal abstract class PreviewEngine : IDisposable
 {

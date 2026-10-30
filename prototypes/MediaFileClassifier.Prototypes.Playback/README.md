@@ -1,6 +1,6 @@
 # Playback spike prototype (MFC-54)
 
-A throwaway preview player for the media playback spike (E14-SP01). Findings and the D070 draft are in [docs/spikes/media-playback.md](../../docs/spikes/media-playback.md). Nothing in `src/` references this project.
+A throwaway preview player for the media playback spike (E14-SP01). Findings and D070 are in [docs/spikes/media-playback.md](../../docs/spikes/media-playback.md). Nothing in `src/` references this project.
 
 ## Run it
 

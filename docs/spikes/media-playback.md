@@ -1,6 +1,6 @@
 # Spike: media playback component (MFC-54, E14-SP01)
 
-**Blocks:** E14-S06 Video playback (MFC-117), E14-S12 Animated image playback (MFC-118). **Decision:** D070 (draft at the end). **Status:** measured on Windows. Android is assessed from documentation only and is confirmed in E20.
+**Blocks:** E14-S06 Video playback (MFC-117), E14-S12 Animated image playback (MFC-118). **Decision:** D070, accepted by the user; the entry for DECISIONS.md is at the end. **Status:** measured on Windows. Android is assessed from documentation only and is confirmed in E20.
 
 ## Question
 
@@ -163,10 +163,10 @@ SkiaSharp's `SKCodec` decodes them, which is what `Avalonia.Labs.AnimatedImage` 
 
 ---
 
-## D070 draft
+## D070 (for DECISIONS.md)
 
 > **D070 — Media playback: LibVLC for video, Avalonia Labs AnimatedImage for GIF and WebP**
-> **Status:** Proposed (from E14-SP01, MFC-54)
+> **Status:** Accepted (from E14-SP01, MFC-54; decided by the user on 2026-10-30)
 >
 > - **Video (Windows, MVP):** in-app playback uses **LibVLC 3 through LibVLCSharp** (LGPL-2.1-or-later). Frames are rendered into memory and drawn by an Avalonia control (the "frames route"), so the preview has no airspace limits. The cost is software decoding: about 0.2–0.35 of a core at 1080p on the test machine.
 >   - The player sits behind an `IMediaPreviewPlayer` interface in `Infrastructure.Abstractions`.

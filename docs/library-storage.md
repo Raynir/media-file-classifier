@@ -23,7 +23,7 @@ A library is one self-contained folder, so it can be backed up or moved as a uni
 - **Open:** `ILibraryStore.OpenAsync(folder)` takes the lock, migrates an older schema after a backup, and returns an `IOpenLibrary`. Disposing it waits for queued writes, closes every connection, which folds the WAL back into `library.db`, and releases the lock.
 - **Errors:** `LibraryOpenException.Error` is a code (`NotFound`, `AlreadyExists`, `InUse`, `NewerVersion`, `NotALibrary`) for the UI to map to a resource string (E13-S08).
 
-### Thumbnails
+### Thumbnails (D078)
 
 Thumbnails are files on disk, not database rows, to keep the database small; at about 20 KB each they're about 2 GB per 100k items.
 
@@ -32,7 +32,7 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
   - Its head is a timestamp and would cluster.
 - **Keyed by item:** deleting or regenerating an item's thumbnail touches only its own file. Duplicates get separate thumbnails.
 
-### Lock file
+### Lock file (D077)
 
 `library.lock` is opened with no sharing (`FileShare.None`) and held for as long as the library is open.
 

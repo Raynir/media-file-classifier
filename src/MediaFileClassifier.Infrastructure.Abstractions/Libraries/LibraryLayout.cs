@@ -100,7 +100,7 @@ public sealed record LibraryLayout
     }
 
     /// <summary>
-    /// Gets the thumbnail path of an item. Thumbnails are sharded into 256 folders by the last two hex digits of the
+    /// Gets the thumbnail path of an item (D078). Thumbnails are sharded into 256 folders by the last two hex digits of the
     /// item ID, which are random in a UUIDv7; its first digits are a timestamp and would cluster.
     /// </summary>
     /// <param name="itemId">The item.</param>

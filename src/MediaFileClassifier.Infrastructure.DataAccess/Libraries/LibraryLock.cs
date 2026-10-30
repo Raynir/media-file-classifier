@@ -5,7 +5,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 
 /// <summary>
-/// The lock file that stops two app instances from opening the same library. The file is held open with no sharing
+/// The lock file that stops two app instances from opening the same library (D077). The file is held open with no sharing
 /// for as long as the library is open, so the operating system releases it when the process ends, even after a
 /// crash; there are no stale locks. The process ID, machine and time are written into it for diagnostics. On Android,
 /// .NET maps this to an advisory <c>flock</c>, which other .NET processes respect.

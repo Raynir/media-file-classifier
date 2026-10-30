@@ -9,6 +9,7 @@
     <ProjectReference Include="../../src/MediaFileClassifier.Ui/MediaFileClassifier.Ui.csproj" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
 
   <ItemGroup>

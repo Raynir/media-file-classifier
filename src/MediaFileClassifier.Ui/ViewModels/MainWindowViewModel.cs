@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Shell;
 
 namespace MediaFileClassifier.Ui.ViewModels;
 
@@ -10,32 +11,42 @@ namespace MediaFileClassifier.Ui.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
+    /// </summary>
+    /// <param name="layout">Which panels are shown.</param>
+    /// <param name="commands">The command registry, for binding buttons and menus by command ID.</param>
+    /// <param name="menu">The main menu.</param>
+    public MainWindowViewModel(ShellLayout layout, CommandRegistry commands, MainMenuViewModel menu)
+    {
+        Layout = layout;
+        Commands = commands;
+        Menu = menu;
+        NavigationContextMenu = [commands[ShellCommands.ToggleNavigation], commands[ShellCommands.ToggleDetails]];
+    }
+
+    /// <summary>
+    /// Gets which panels are shown.
+    /// </summary>
+    public ShellLayout Layout { get; }
+
+    /// <summary>
+    /// Gets the command registry. Bind a surface with <c>{Binding Commands[view.toggle-navigation]}</c>.
+    /// </summary>
+    public CommandRegistry Commands { get; }
+
+    /// <summary>
+    /// Gets the main menu.
+    /// </summary>
+    public MainMenuViewModel Menu { get; }
+
+    /// <summary>
+    /// Gets the commands of the navigation panel's context menu.
+    /// </summary>
+    public IReadOnlyList<AppCommand> NavigationContextMenu { get; }
+
+    /// <summary>
     /// The page shown in the main content area, or <c>null</c> for an empty window.
     /// </summary>
     [ObservableProperty]
     public partial ViewModelBase? CurrentPage { get; set; }
-
-    /// <summary>
-    /// Whether the navigation panel on the left is expanded. Collapsed, it shows only its icons.
-    /// </summary>
-    [ObservableProperty]
-    public partial bool IsNavigationExpanded { get; set; } = true;
-
-    /// <summary>
-    /// Whether the details panel on the right is shown.
-    /// </summary>
-    [ObservableProperty]
-    public partial bool IsDetailsPanelOpen { get; set; } = true;
-
-    /// <summary>
-    /// Expands or collapses the navigation panel.
-    /// </summary>
-    [RelayCommand]
-    private void ToggleNavigation() => IsNavigationExpanded = !IsNavigationExpanded;
-
-    /// <summary>
-    /// Shows or hides the details panel.
-    /// </summary>
-    [RelayCommand]
-    private void ToggleDetailsPanel() => IsDetailsPanelOpen = !IsDetailsPanelOpen;
 }

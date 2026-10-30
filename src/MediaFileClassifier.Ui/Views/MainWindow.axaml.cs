@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Ui.Commands;
 
 namespace MediaFileClassifier.Ui.Views;
 
@@ -25,10 +27,16 @@ public partial class MainWindow : Window
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
     /// </summary>
     /// <param name="settingsService">App settings.</param>
-    public MainWindow(ISettingsService settingsService)
+    /// <param name="commands">The commands, whose shortcuts the window binds.</param>
+    public MainWindow(ISettingsService settingsService, CommandRegistry commands)
         : this()
     {
         this.settingsService = settingsService;
+        foreach (var command in commands.All.Where(command => command.Gesture is not null))
+        {
+            KeyBindings.Add(new KeyBinding { Gesture = command.Gesture!, Command = command });
+        }
+
         RestorePlacement(settingsService.Current.MainWindow);
         PositionChanged += (_, _) => RememberNormalBounds();
         SizeChanged += (_, _) => RememberNormalBounds();

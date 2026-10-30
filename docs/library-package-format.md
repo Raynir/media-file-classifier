@@ -52,3 +52,90 @@ A package holds what a target device needs to search the media without analysing
 ### Scope
 
 The export scope is the whole library, selected folders, or the current selection (E07-S08). A partial package contains the scoped items and only the folders, collections, runs, models, keyframes and embeddings they refer to. Collections keep only the memberships of included items.
+
+## Container (E01-S09-T02)
+
+**The package is a single SQLite database file (D074).** Every platform already uses SQLite (D003), so no new parser is needed, and:
+
+- the writer and reader stream row by row, which keeps memory low on the phone (E20-S03);
+- embeddings stay binary BLOBs in the D067 layout, with no base64;
+- the import attaches the package to the library (`ATTACH`) and validates and merges with SQL;
+- old packages are upgraded with ordinary migrations (see Versioning).
+
+It isn't human-readable. The optional flat JSON/CSV export (E07-S08-T03) covers that, and isn't a package.
+
+### File
+
+- **Extension:** `.mfcpkg` (working name; E07-S08 may change it before release).
+- **`PRAGMA application_id`** = `0x4D464350` (`MFCP`), so the reader recognises a package before reading any table.
+- The writer creates the file in a temporary location, fills it in one transaction, runs `VACUUM`, and moves it to the destination only when it's complete. A partial file is never left at the destination.
+- `journal_mode` is `DELETE`, so the package is one file with no `-wal` or `-shm` companions.
+
+### Encoding
+
+The package defines its own encodings, so it stays a stable contract even when the library schema (E01-S03) changes.
+
+| Kind | Encoding |
+|------|----------|
+| IDs (`Id<T>`, UUIDv7, D066) | 16-byte BLOB, RFC 9562 byte order (`Guid.ToByteArray(bigEndian: true)`). |
+| Timestamps (`DateTimeOffset`) | TEXT, ISO 8601 round-trip format with offset (`"o"`). |
+| `DateTaken` | TEXT, ISO 8601 without offset, plus the offset in its own column (as in the domain). |
+| Durations and keyframe timestamps | INTEGER, milliseconds. |
+| Fingerprint and content hash (`UInt128`) | 16-byte BLOB, big-endian. |
+| Perceptual hash (`ulong`) | 8-byte BLOB, big-endian. |
+| Enums | TEXT, the member name (e.g. `AnimatedImage`), never the number. |
+| Field values (`FieldValue`) | TEXT for text fields; a JSON array of strings for list fields. |
+| `RunReference` snapshots | JSON object: run ID, analyzer, model, model version, prompt version, date. |
+| Folder rules, filters | JSON, as in the domain. |
+| Embedding vectors | BLOB, L2-normalised, little-endian half precision (D067). |
+| Relative paths | TEXT, `/`-separated, as `RelativePath` in the domain. |
+
+### Tables
+
+Table and column names below are the draft; E07-S08-T01 fixes them. Foreign keys are declared and checked on import.
+
+| Table | Key | Columns |
+|-------|-----|---------|
+| `manifest` | `key` | `value` (see below) |
+| `library` | — (one row) | `id`, `name`, `active_search_model_id` |
+| `folders` | `id` | `label`, `include_subfolders`, `include_patterns`, `exclude_patterns` |
+| `items` | `id` | `folder_id`, `path`, `media_type`, `size_bytes`, `file_created_at`, `file_modified_at`, `imported_at`, `fingerprint`, `content_hash`, `perceptual_hash`, `review_status`, `review_status_changed_at`¹, `is_favorite`, `favorite_changed_at`¹, `source_status` |
+| `technical_metadata` | `item_id` | the `TechnicalMetadata` properties, `raw_metadata_json`, `extracted_at` |
+| `technical_field_values` | `item_id`, `field` | `value`, `read_at` |
+| `keyframes` | `id` | `item_id`, `index`, `timestamp_ms`, `frame_number` |
+| `model_registrations` | `id` | `provider_id`, `model_name`, `version`, `file_hash`, `embedding_dimension`, `registered_at` |
+| `analysis_runs` | `id` | `item_id`, `analyzer`, `provider_id`, `model_id`, `model_version`, `prompt_version`, `started_at`, `completed_at`, `rejected_at` |
+| `ai_field_values` | `run_id`, `field` | `value`, `model_id`, `confidence`, `created_at` |
+| `user_field_values` | `item_id`, `field` | `value`, `origin`, `accepted_from`, `suggestion_run_id`, `updated_at` |
+| `tag_assignments` | `item_id`, `tag`, `source`, `run_id` | `model_id`, `confidence`, `origin`, `accepted_from`, `created_at` |
+| `tag_rejections` | `item_id`, `tag` | `rejected_from`, `rejected_at` |
+| `collections` | `id` | `name`, `parent_id`, `created_at` |
+| `collection_memberships` | `collection_id`, `item_id` | `added_at` |
+| `saved_searches` | `id` | `name`, `query_text`, `filters_json`, `sort`, `created_at` |
+| `embeddings` | `id` | `item_id`, `model_id`, `kind`, `keyframe_id`, `dimension`, `vector`, `created_at` |
+
+¹ Not in the domain model yet: gap G1.
+
+`suggestion_run_id` is kept only when that run is in the package; otherwise it's empty.
+
+### Manifest
+
+| Key | Example | Meaning |
+|-----|---------|---------|
+| `format_version` | `1.0` | Package format, `MAJOR.MINOR` (see Versioning). |
+| `package_id` | UUIDv7 | Identifies this package, for the import report and repeat imports. |
+| `created_at` | `2027-03-01T10:15:00.0000000+00:00` | Export date. |
+| `app_name` | `MediaFileClassifier` | Writer. |
+| `app_version` | `1.4.0` | Writer's app version. |
+| `app_platform` | `windows` or `android` | Writer's platform. |
+| `source_schema_version` | `7` | The source library's schema version. For information only. |
+| `source_library_id` | UUIDv7 | `Library.Id` of the source. |
+| `scope` | `library`, `folders` or `selection` | What was exported. |
+| `embedding_models` | JSON array of model IDs | Models whose embeddings are included; empty if none. |
+| `item_count` | `48213` | For progress and validation. |
+
+Readers ignore manifest keys they don't know.
+
+### Size
+
+Roughly, for 100k items: the metadata is 0.5–1 GB (the active AI layer alone is about 0.45 GB, `docs/domain-model.md`), plus about 150 MB per included embedding model.

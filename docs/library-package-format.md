@@ -176,3 +176,67 @@ Roughly, for 100k items: the metadata is 0.5–1 GB (the active AI layer alone i
 - Each MAJOR bump ships an upgrade step from the previous MAJOR. Steps are kept as long as that format is supported; dropping support for an old format needs a decision.
 - The desktop app and the Android app (D058 version lines) both write the newest format they know. Because MINOR changes stay readable, a phone that is a minor version behind can still import a desktop package.
 - A MAJOR bump is a breaking change in the sense of D058 (2.0.0).
+
+## Import and merge rules (E01-S09-T04)
+
+Draft (D076). E07-S09 finalises them, and E07-S09-T03 and E20-S08-T02 test each scenario.
+
+### Import modes
+
+| Mode | When | What happens |
+|------|------|--------------|
+| **New library** | The phone's first import (D004), or a restore on a new computer | Every item is imported with its package ID (IDs are globally unique, D066). The user points each package folder at a local folder, or skips it. Items start as `Missing`, and become `Indexed` as file matching finds their files. |
+| **Merge** | Importing into an existing library, including phone changes going back to the desktop (E20-S08) | Package items are matched to library items as below, and their data is merged into the matched items. Package folders aren't created. |
+
+Each import produces a report (E07-S09-T04): counts, matches by type, conflicts, skipped items and skipped data.
+
+### Matching items
+
+1. **Same ID.** A package item whose ID is already in the library is the same item, for example when phone changes come back to the desktop the library was exported from.
+2. **The file matching service (E01-S06-T05):** full content hash, then fingerprint plus size, then perceptual hash, then the filename and metadata heuristic.
+
+| Match | What happens |
+|-------|--------------|
+| ID, content hash, or fingerprint plus size | Merged automatically. |
+| Perceptual hash only, or the heuristic only | **Proposed in the report.** Merged only when the user confirms, one by one or all at once. |
+| Several target items match one package item exactly (the file exists twice in the library) | The package item is merged into **each** of them. |
+| Several package items match one target item | Each is merged in turn. Where they disagree, the conflict rules below apply. |
+| No match | **Skipped**, and listed in the report. Metadata is restored only where the files can be identified (spec 3.13). |
+
+A matched target item keeps its own ID, folder and path. Package IDs are mapped to target IDs for the rest of the import.
+
+### Merging a matched item
+
+"Newer" compares the timestamps of the two sides. When they're equal, or when one side has no timestamp (data recorded before gap G1 is filled), the case becomes a **conflict**.
+
+A **conflict** leaves the target's value effective and lists the incoming value in the import report, with "take incoming" per item or in bulk, and "keep newer".
+
+| Data | Target has nothing | Both sides have it and they differ |
+|------|--------------------|------------------------------------|
+| **User field value** (including a cleared, empty value) | Incoming value is added. | **Conflict.** Equal values: nothing changes. |
+| **User tag vs. tombstone** (a tag on one side, a `TagRejection` for it on the other) | Incoming tag or tombstone is added. A tombstone hides the target's AI and technical tags, as usual. | **Newer action wins:** tag `CreatedAt` against `RejectedAt`. Equal: conflict. |
+| **User tags on both sides** | — | Union. |
+| **AI run** of an analyzer | Incoming run is added and becomes active (applied with `ApplyRun`). | If the incoming run **completed later**, it's applied with `ApplyRun`, as if it had just finished: it becomes active, user values get new-AI-suggestion flags, retention prunes old runs, and the item may go back to Unreviewed. Otherwise it's ignored. |
+| **Same AI run** (same run ID on both sides) | — | Nothing changes, except that a rejection on either side is kept. |
+| **Technical metadata and values** | Incoming values are added, e.g. video facts the phone can't read itself. | The target's own reading is kept. |
+| **Favorite** | — | **Newer change wins** (`favorite_changed_at`, gap G1). |
+| **Review status** | — | **Newer change wins** (`review_status_changed_at`, gap G1). A merge that changes an effective value still sends the item back to Unreviewed (D021). |
+| **Keyframes** | Incoming keyframes are added. | The target's are kept. Incoming per-frame embeddings attach to the target keyframe with the same index, and are dropped if there's none. |
+
+### Models and embeddings
+
+- **Matching registrations:** by `FileHash` when both sides have it, otherwise by provider, model name and version. A matched registration is mapped to the target's ID. An unmatched one is imported as a new registration.
+- **Embeddings whose model isn't installed on the target** are imported and kept **dormant**. Text search works at once. Semantic search tells the user it needs the model, and starts working without re-embedding once the model is installed (E20-S05, E20-S03).
+- **Embeddings for a model the target item already has embeddings for:** the target's are kept, since they come from the local file.
+- **Active search model:** a new library takes the package's. A merge keeps the target's.
+- Vectors from different models are never compared (D067).
+
+### Collections and saved searches
+
+- **Collections** are matched by ID, then by name ignoring case. Unmatched collections are created. If the same collection has a different name on each side, the target's name is kept and the report says so.
+- **Memberships** are combined (union). Removing an item from a collection, or deleting a collection, doesn't carry over to the other device.
+- **Saved searches** are matched by ID. New ones are added, and folder filters are mapped to the target's folders (E07-S09). A saved search that differs on each side keeps the target's version, and the report says so.
+
+### Repeat imports
+
+Every rule is idempotent: importing the same package twice changes nothing the second time. A conflict the user resolved by keeping the target value is listed again, because nothing records the earlier choice yet (gap G3).

@@ -3,8 +3,9 @@ using Microsoft.Data.Sqlite;
 namespace MediaFileClassifier.Testing.Libraries;
 
 /// <summary>
-/// A library folder with an empty SQLite database in the temp folder, deleted on dispose.
-/// Follows the <c>&lt;name&gt;.mfc/library.db</c> layout of E01-S03; the schema comes with E01-S03.
+/// A library folder in the temp folder, deleted on dispose, following the <c>&lt;name&gt;.mfc/library.db</c>
+/// layout of E01-S03. <see cref="Create"/> makes an empty SQLite database; <see cref="Reserve"/> only picks the
+/// paths, so the library store can create the library with its schema in <see cref="ParentDirectory"/>.
 /// </summary>
 public sealed class TemporaryLibrary : IDisposable
 {
@@ -26,6 +27,11 @@ public sealed class TemporaryLibrary : IDisposable
             Mode = SqliteOpenMode.ReadWriteCreate,
         }.ToString();
     }
+
+    /// <summary>
+    /// Gets the unique temp folder the library folder is in.
+    /// </summary>
+    public string ParentDirectory => rootDirectory;
 
     /// <summary>
     /// Gets the library folder, e.g. <c>%TEMP%\mfc-tests\&lt;guid&gt;\test.mfc</c>.
@@ -57,6 +63,15 @@ public sealed class TemporaryLibrary : IDisposable
 
         return library;
     }
+
+    /// <summary>
+    /// Picks the paths of a library without creating anything, e.g. for <c>ILibraryStore.CreateAsync</c> with
+    /// <see cref="ParentDirectory"/> and the same name.
+    /// </summary>
+    /// <param name="name">Library name, without the <c>.mfc</c> extension.</param>
+    /// <returns>The reserved library.</returns>
+    public static TemporaryLibrary Reserve(string name = "test") =>
+        new(Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N")), name);
 
     /// <summary>
     /// Opens a new connection to the library database. The caller disposes it.

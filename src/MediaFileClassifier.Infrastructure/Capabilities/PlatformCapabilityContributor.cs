@@ -14,11 +14,11 @@ public sealed class PlatformCapabilityContributor(IPlatformServices platform) : 
     {
         if (platform.CanRevealInFileExplorer)
         {
-            capabilities.SetAvailable(KnownCapabilities.RevealInFileExplorer, "the platform has a file explorer.");
+            capabilities.SetAvailable(KnownCapabilities.RevealInFileExplorer);
         }
         else
         {
-            capabilities.SetUnavailable(KnownCapabilities.RevealInFileExplorer, "this platform has no file explorer.");
+            capabilities.SetUnavailable(KnownCapabilities.RevealInFileExplorer, CapabilityReasons.NoFileExplorerOnPlatform());
         }
 
         return Task.CompletedTask;

@@ -3,8 +3,8 @@ using System.ComponentModel;
 namespace MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 
 /// <summary>
-/// Whether a capability is available, and why. The UI binds to <see cref="IsAvailable"/> and <see cref="Reason"/>;
-/// changes raise <see cref="PropertyChanged"/> on the thread that made them.
+/// Whether a capability is available, and why not. The UI binds to <see cref="IsAvailable"/> and turns
+/// <see cref="Reason"/> into text; changes raise <see cref="PropertyChanged"/> on the thread that made them.
 /// </summary>
 public sealed class CapabilityFlag : INotifyPropertyChanged
 {
@@ -15,7 +15,7 @@ public sealed class CapabilityFlag : INotifyPropertyChanged
     public CapabilityFlag(CapabilityDefinition definition)
     {
         Definition = definition;
-        Reason = $"{definition.DisplayName} unavailable: not checked yet.";
+        Reason = CapabilityReasons.NotCheckedYet();
     }
 
     /// <inheritdoc />
@@ -37,20 +37,30 @@ public sealed class CapabilityFlag : INotifyPropertyChanged
     public bool IsAvailable { get; private set; }
 
     /// <summary>
-    /// Gets a message for the user, such as "Video analysis unavailable: FFmpeg not found." when unavailable.
+    /// Gets why the feature is unavailable, or <see langword="null"/> when it's available.
     /// </summary>
-    public string Reason { get; private set; }
+    public CapabilityReason? Reason { get; private set; }
 
     /// <summary>
-    /// Changes the state. Call it through <see cref="ICapabilityService"/>, which also raises its change event.
+    /// Marks the capability available. Call it through <see cref="ICapabilityService"/>, which also raises its change event.
     /// </summary>
-    /// <param name="isAvailable">Whether the feature can be used.</param>
-    /// <param name="reason">Message for the user.</param>
     /// <returns><see langword="true"/> if anything changed.</returns>
-    public bool Update(bool isAvailable, string reason)
+    public bool MarkAvailable() => Update(isAvailable: true, reason: null);
+
+    /// <summary>
+    /// Marks the capability unavailable. Call it through <see cref="ICapabilityService"/>, which also raises its change event.
+    /// </summary>
+    /// <param name="reason">Why.</param>
+    /// <returns><see langword="true"/> if anything changed.</returns>
+    public bool MarkUnavailable(CapabilityReason reason) => Update(isAvailable: false, reason);
+
+    /// <inheritdoc />
+    public override string ToString() => IsAvailable ? $"{Id}: available" : $"{Id}: unavailable, {Reason}";
+
+    private bool Update(bool isAvailable, CapabilityReason? reason)
     {
         var availabilityChanged = IsAvailable != isAvailable;
-        var reasonChanged = !string.Equals(Reason, reason, StringComparison.Ordinal);
+        var reasonChanged = !Equals(Reason, reason);
         IsAvailable = isAvailable;
         Reason = reason;
         if (availabilityChanged)
@@ -65,7 +75,4 @@ public sealed class CapabilityFlag : INotifyPropertyChanged
 
         return availabilityChanged || reasonChanged;
     }
-
-    /// <inheritdoc />
-    public override string ToString() => Reason;
 }

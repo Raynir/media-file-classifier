@@ -33,16 +33,17 @@ public sealed partial class NativeDependencyCapabilityContributor(
             }
         }
 
+        // The UI shows one reason; with several missing dependencies it names the first, and the log lists them all.
         foreach (var (capability, statuses) in results)
         {
-            var missing = statuses.Where(status => !status.IsAvailable).ToList();
-            if (missing.Count > 0)
+            var problem = statuses.FirstOrDefault(status => !status.IsAvailable)?.Problem;
+            if (problem is not null)
             {
-                capabilities.SetUnavailable(capability, string.Join(" ", missing.Select(status => status.Detail)));
+                capabilities.SetUnavailable(capability, problem);
             }
             else
             {
-                capabilities.SetAvailable(capability, string.Join(" ", statuses.Select(status => status.Detail)));
+                capabilities.SetAvailable(capability);
             }
         }
     }
@@ -57,26 +58,31 @@ public sealed partial class NativeDependencyCapabilityContributor(
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             LogProbeFailed(ex, probe.DependencyName);
-            return NativeDependencyStatus.Unavailable($"{probe.DependencyName} failed to load: {ex.Message}");
+            return NativeDependencyStatus.Unavailable(CapabilityReasons.FailedToLoad(probe.DependencyName), detail: ex.Message);
+        }
+
+        if (!status.IsAvailable && status.Problem is null)
+        {
+            status = status with { Problem = CapabilityReasons.FailedToLoad(probe.DependencyName) };
         }
 
         if (status.IsAvailable)
         {
-            LogAvailable(probe.DependencyName, status.Version, status.Location ?? "the default library path");
+            LogAvailable(probe.DependencyName, status.Version, status.Location ?? "the default library path", status.Detail);
         }
         else
         {
-            LogUnavailable(probe.DependencyName, status.Detail);
+            LogUnavailable(probe.DependencyName, status.Problem, status.Location, status.Detail);
         }
 
         return status;
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Native dependency {Dependency}: available, version {Version}, at {Location}")]
-    private partial void LogAvailable(string dependency, string? version, string location);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Native dependency {Dependency}: available, version {Version}, at {Location}. {Detail}")]
+    private partial void LogAvailable(string dependency, string? version, string location, string? detail);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Native dependency {Dependency}: unavailable. {Detail}")]
-    private partial void LogUnavailable(string dependency, string detail);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Native dependency {Dependency}: unavailable, {Problem}, at {Location}. {Detail}")]
+    private partial void LogUnavailable(string dependency, CapabilityReason? problem, string? location, string? detail);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Native dependency {Dependency}: the probe failed")]
     private partial void LogProbeFailed(Exception exception, string dependency);

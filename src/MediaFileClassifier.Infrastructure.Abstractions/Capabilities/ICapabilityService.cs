@@ -2,6 +2,7 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 
 /// <summary>
 /// Which features this machine and platform support, each with a reason the UI can show (E01-S07-T03, D001).
+/// Reasons are codes; the UI turns them into text (E13-S08).
 /// </summary>
 public interface ICapabilityService
 {
@@ -27,15 +28,14 @@ public interface ICapabilityService
     /// Marks a capability available.
     /// </summary>
     /// <param name="capability">The capability.</param>
-    /// <param name="detail">What made it available, such as "FFmpeg 7.1 found." for video analysis.</param>
-    void SetAvailable(CapabilityDefinition capability, string detail);
+    void SetAvailable(CapabilityDefinition capability);
 
     /// <summary>
-    /// Marks a capability unavailable. The reason reads "&lt;display name&gt; unavailable: &lt;cause&gt;".
+    /// Marks a capability unavailable.
     /// </summary>
     /// <param name="capability">The capability.</param>
-    /// <param name="cause">Why, such as "FFmpeg not found." for video analysis.</param>
-    void SetUnavailable(CapabilityDefinition capability, string cause);
+    /// <param name="reason">Why, such as <see cref="CapabilityReasons.FfmpegMissing"/> for video analysis.</param>
+    void SetUnavailable(CapabilityDefinition capability, CapabilityReason reason);
 
     /// <summary>
     /// Runs every registered <see cref="ICapabilityContributor"/>.

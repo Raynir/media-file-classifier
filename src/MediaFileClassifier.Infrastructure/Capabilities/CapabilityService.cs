@@ -46,12 +46,12 @@ public sealed partial class CapabilityService(
     }
 
     /// <inheritdoc />
-    public void SetAvailable(CapabilityDefinition capability, string detail)
-        => Set(capability, isAvailable: true, $"{capability.DisplayName} available: {detail}");
+    public void SetAvailable(CapabilityDefinition capability)
+        => Set(capability, flag => flag.MarkAvailable());
 
     /// <inheritdoc />
-    public void SetUnavailable(CapabilityDefinition capability, string cause)
-        => Set(capability, isAvailable: false, $"{capability.DisplayName} unavailable: {cause}");
+    public void SetUnavailable(CapabilityDefinition capability, CapabilityReason reason)
+        => Set(capability, flag => flag.MarkUnavailable(reason));
 
     /// <inheritdoc />
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
@@ -69,24 +69,24 @@ public sealed partial class CapabilityService(
         }
     }
 
-    private void Set(CapabilityDefinition capability, bool isAvailable, string reason)
+    private void Set(CapabilityDefinition capability, Func<CapabilityFlag, bool> update)
     {
         var flag = Get(capability);
         bool changed;
         lock (gate)
         {
-            changed = flag.Update(isAvailable, reason);
+            changed = update(flag);
         }
 
         if (changed)
         {
-            LogFlagChanged(capability.Id, isAvailable, reason);
+            LogFlagChanged(capability.Id, flag.IsAvailable, flag.Reason);
             FlagChanged?.Invoke(this, new CapabilityChangedEventArgs(flag));
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Capability {CapabilityId}: available={IsAvailable}. {Reason}")]
-    private partial void LogFlagChanged(string capabilityId, bool isAvailable, string reason);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Capability {CapabilityId}: available={IsAvailable}, reason {Reason}")]
+    private partial void LogFlagChanged(string capabilityId, bool isAvailable, CapabilityReason? reason);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Capability contributor {Contributor} failed; its flags stay as they were")]
     private partial void LogContributorFailed(Exception exception, string contributor);

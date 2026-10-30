@@ -21,14 +21,16 @@ The native binaries the app needs: which features use each one, how it is obtain
 
 - At startup, `Program.cs` calls `ICapabilityService.RefreshAsync()`.
 - That runs `NativeDependencyCapabilityContributor`, which runs every registered `INativeDependencyProbe`, logs what each one found (version and location), and sets the flags of the features that need it.
-- A missing or broken dependency disables only those features. For example, without FFmpeg the **Video analysis** flag reads "Video analysis unavailable: FFmpeg not found. …". A probe that throws is logged and treated as unavailable, and nothing crashes.
+- A missing or broken dependency disables only those features. A probe that throws is logged and treated as unavailable, and nothing crashes.
+- Flags carry a reason **code**, not text, e.g. `CapabilityReasons.FfmpegNotFound`. The UI turns it into text from `Strings.resx` (E13-S08). Without FFmpeg, a command that needs video analysis is disabled with the tooltip "Video analysis unavailable: FFmpeg not found. …". Technical details, such as error messages, go only to the log.
 
 To add a dependency:
 
 1. Implement `INativeDependencyProbe` next to the code that uses it.
-2. List the capabilities that need it.
-3. Register it with `services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, MyProbe>())`.
-4. Add a row here and an entry in `THIRD_PARTY_NOTICES.md`.
+2. List the capabilities that need it. A new capability needs a `Capability_<Name>` string in `Strings.resx`.
+3. Report problems with a `CapabilityReasons` code. A new code needs a `CapabilityReason_<Code>` string; `CapabilityTextTests` checks both.
+4. Register it with `services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, MyProbe>())`.
+5. Add a row here and an entry in `THIRD_PARTY_NOTICES.md`.
 
 ## FFmpeg on a developer machine
 

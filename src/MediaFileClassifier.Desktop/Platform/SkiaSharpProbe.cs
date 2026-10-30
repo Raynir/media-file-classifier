@@ -20,6 +20,6 @@ internal sealed class SkiaSharpProbe : INativeDependencyProbe
     public Task<NativeDependencyStatus> ProbeAsync(CancellationToken cancellationToken)
     {
         var version = SkiaSharpVersion.Native.ToString();
-        return Task.FromResult(NativeDependencyStatus.Available(version, location: null, $"SkiaSharp {version} loaded."));
+        return Task.FromResult(NativeDependencyStatus.Available(version, location: null));
     }
 }

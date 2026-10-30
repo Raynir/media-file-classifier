@@ -139,3 +139,40 @@ Readers ignore manifest keys they don't know.
 ### Size
 
 Roughly, for 100k items: the metadata is 0.5–1 GB (the active AI layer alone is about 0.45 GB, `docs/domain-model.md`), plus about 150 MB per included embedding model.
+
+## Versioning and compatibility (E01-S09-T03)
+
+**The package has its own format version, `MAJOR.MINOR`, independent of the library schema version (D075).**
+
+### Format version and schema version
+
+- The library schema version (`Library.SchemaVersion`, E01-S03) changes with every migration, including internal tables such as jobs and caches. The package format changes only when the **package's** tables or encodings change.
+- A schema migration that touches exported data must update the writer's mapping. A round-trip test (export, then import into an empty library, then compare) catches a mapping that wasn't updated.
+- `source_schema_version` in the manifest is for diagnostics only. The reader never decides anything from it.
+- The first implemented format (E07-S08) is `1.0`.
+
+### What bumps which number
+
+| Change | Bump |
+|--------|------|
+| A new table, or a new nullable column | MINOR |
+| A new manifest key | MINOR |
+| A new enum value (e.g. a new `DescriptiveField`) | MINOR |
+| A removed or renamed table or column, or a column that becomes required | MAJOR |
+| A changed encoding (e.g. vector layout, ID byte order) | MAJOR |
+| A changed meaning of an existing column | MAJOR |
+
+### Reading rules
+
+| Package | What happens |
+|---------|--------------|
+| Not a SQLite file, wrong `application_id`, or no manifest | Refused: "This file isn't a Media File Classifier library package." |
+| Same MAJOR, any MINOR | Imported. Tables and columns the reader doesn't know are ignored. Rows with an enum value it doesn't know are skipped. The import report says how much was skipped and suggests updating the app. |
+| Older MAJOR, still supported | Copied to a temporary file and upgraded one major version at a time (1→2→3), then imported. The original file isn't changed. |
+| Older MAJOR, no longer supported | Refused: "This package was made by Media File Classifier {app_version} (format {format_version}), which this version can no longer read." |
+| Newer MAJOR | Refused: "This package was made by Media File Classifier {app_version} (format {format_version}). This app reads format {major}.x. Update the app to import it." |
+| Fails validation (`PRAGMA integrity_check`, foreign keys, item count) | Refused, with the reason, before anything is merged. |
+
+- Each MAJOR bump ships an upgrade step from the previous MAJOR. Steps are kept as long as that format is supported; dropping support for an old format needs a decision.
+- The desktop app and the Android app (D058 version lines) both write the newest format they know. Because MINOR changes stay readable, a phone that is a minor version behind can still import a desktop package.
+- A MAJOR bump is a breaking change in the sense of D058 (2.0.0).

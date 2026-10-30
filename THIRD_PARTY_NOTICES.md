@@ -23,7 +23,8 @@ The third-party libraries, native binaries and AI models that Media File Classif
 | Serilog | 4.3.0 | Apache-2.0 | https://github.com/serilog/serilog | |
 | Serilog.Extensions.Hosting, Serilog.Extensions.Logging | 10.0.0 | Apache-2.0 | https://github.com/serilog/serilog-extensions-hosting | |
 | Serilog.Sinks.File | 7.0.0 | Apache-2.0 | https://github.com/serilog/serilog-sinks-file | |
-| Microsoft.Data.Sqlite | 10.0.14 | MIT | https://github.com/dotnet/efcore | Referenced by tests now; by the app from E01-S03 |
+| Microsoft.Data.Sqlite, Microsoft.Data.Sqlite.Core | 10.0.14 | MIT | https://github.com/dotnet/efcore | |
+| Microsoft.EntityFrameworkCore (`.Abstractions`, `.Relational`, `.Sqlite`, `.Sqlite.Core`) | 10.0.14 | MIT | https://github.com/dotnet/efcore | Data access (D071) |
 | SQLitePCLRaw (`bundle_e_sqlite3`, `core`, `provider.e_sqlite3`, `lib.e_sqlite3`) | 2.1.13 | Apache-2.0 | https://github.com/ericsink/SQLitePCL.raw | |
 | SQLite (`e_sqlite3`) | bundled by SQLitePCLRaw | Public domain | https://sqlite.org/copyright.html | Native; see the dependency matrix |
 
@@ -35,6 +36,7 @@ The third-party libraries, native binaries and AI models that Media File Classif
 | Riok.Mapperly (source generator) | 4.3.1 | Apache-2.0 | https://github.com/riok/mapperly |
 | Avalonia.BuildServices | 11.3.2 | MIT | https://github.com/AvaloniaUI/Avalonia |
 | xunit.v3 | 4.0.2 | Apache-2.0 | https://github.com/xunit/xunit |
+| Microsoft.EntityFrameworkCore.Design, dotnet-ef (tool) | 10.0.14 | MIT | https://github.com/dotnet/efcore |
 
 ## Planned (in the dependency matrix, not referenced yet)
 

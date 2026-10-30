@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/MediaFileClassifier.Benchmarks/MediaFileClassifier.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/MediaFileClassifier.Desktop/MediaFileClassifier.Desktop.csproj" />
     <Project Path="src/MediaFileClassifier.Domain/MediaFileClassifier.Domain.csproj" />

@@ -18,6 +18,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/MediaFileClassifier.Infrastructure.Tests/MediaFileClassifier.Infrastructure.Tests.csproj" />
     <Project Path="tests/MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
+    <Project Path="tests/MediaFileClassifier.Ui.Tests/MediaFileClassifier.Ui.Tests.csproj" />
     <Project Path="tests/MediaFileClassifier.UseCases.Tests/MediaFileClassifier.UseCases.Tests.csproj" />
   </Folder>
 </Solution>

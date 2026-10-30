@@ -43,6 +43,16 @@ To check that unhandled exceptions are logged rather than closing the app, run a
 dotnet run --project src/MediaFileClassifier.Desktop -- --simulate-crash
 ```
 
+### UI strings and pseudo-localisation
+
+Every user-facing string lives in `src/MediaFileClassifier.Ui/Resources/Strings.resx` (E13-S08). Views bind strings with `{l:Loc Key}` (`xmlns:l="using:MediaFileClassifier.Ui.Localization"`), and code uses `Localizer.Current.Get(key)` or `Format(key, args)`. Numbers, dates, durations and file sizes go through `Format` or `FormatConverters`, which use the current culture. A test fails if a view has a hard-coded string or uses a key that isn't in `Strings.resx`.
+
+To check that layouts survive longer translations, run with pseudo-localisation. It accents every string and makes it about 40% longer, in brackets, so clipped text is easy to spot:
+
+```powershell
+dotnet run --project src/MediaFileClassifier.Desktop -- --pseudo-loc
+```
+
 ### Where the app keeps its files
 
 Everything lives under `%LOCALAPPDATA%\MediaFileClassifier` (D061):

@@ -9,11 +9,6 @@ namespace MediaFileClassifier.Ui.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     /// <summary>
-    /// Window title.
-    /// </summary>
-    public string Title => "Media File Classifier";
-
-    /// <summary>
     /// The page shown in the main content area, or <c>null</c> for an empty window.
     /// </summary>
     [ObservableProperty]

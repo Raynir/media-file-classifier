@@ -46,6 +46,9 @@ Check each version and license again when its package is added, and move its row
 | ONNX Runtime (`Microsoft.ML.OnnxRuntime`) | MIT | https://github.com/microsoft/onnxruntime | E06 |
 | DirectML (`Microsoft.AI.DirectML`, comes with `Microsoft.ML.OnnxRuntime.DirectML`) | Microsoft DirectML license (redistributable, proprietary) | https://github.com/microsoft/DirectML | Review the redistribution terms before E19 |
 | FFmpeg (`ffmpeg`, `ffprobe`) | LGPL-2.1-or-later, or GPL-2.0/3.0 for builds with `--enable-gpl` | https://ffmpeg.org/legal.html | Not distributed in the MVP; the user installs it (D068, tentative) |
+| LibVLCSharp, LibVLCSharp.Avalonia | LGPL-2.1-or-later | https://code.videolan.org/videolan/LibVLCSharp | 3.10.2. Referenced by the playback prototype only (MFC-54); in-app video if D070 is accepted |
+| LibVLC (`VideoLAN.LibVLC.Windows`, `VideoLAN.LibVLC.Android`) | LGPL-2.1-or-later (libvlc, libvlccore and the kept plugins); a few plugins are GPL and are left out | https://www.videolan.org/vlc/libvlc.html | 3.0.24. Native, prototype only; see the dependency matrix |
+| Avalonia.Labs.AnimatedImage | MIT | https://github.com/AvaloniaUI/Avalonia.Labs | 12.1.0. Animated GIF and WebP; prototype only (MFC-54) |
 | FFMpegCore | MIT | https://github.com/rosenbjerg/FFMpegCore | Wrapper, E08 |
 | Whisper.net, Whisper.net.Runtime | MIT | https://github.com/sandrohanea/whisper.net | E08 |
 | whisper.cpp, ggml (inside Whisper.net.Runtime) | MIT | https://github.com/ggml-org/whisper.cpp | Native |

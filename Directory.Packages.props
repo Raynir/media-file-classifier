@@ -24,6 +24,11 @@
     <!-- Vector search spike (MFC-17): benchmarks only until D067 is settled. -->
     <PackageVersion Include="sqlite-vec" Version="0.1.7-alpha.2.1" />
     <PackageVersion Include="System.Numerics.Tensors" Version="10.0.14" />
+    <!-- Playback spike (MFC-54): prototype only until D070 is settled. -->
+    <PackageVersion Include="Avalonia.Labs.AnimatedImage" Version="12.1.0" />
+    <PackageVersion Include="LibVLCSharp" Version="3.10.2" />
+    <PackageVersion Include="LibVLCSharp.Avalonia" Version="3.10.2" />
+    <PackageVersion Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
     <!-- Analyzers -->
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <!-- Testing -->

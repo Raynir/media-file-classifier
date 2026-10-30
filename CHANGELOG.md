@@ -19,6 +19,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - A command registry and a main menu (Library, View, Tools, Help so far), with Help → Open log folder, theme switching and a pseudo-localisation toggle (E13-S05).
 - Native dependency matrix, third-party license register, and startup checks that disable video analysis when FFmpeg is missing (E01-S08).
 - Library package format specification: contents, SQLite container, versioning, and draft import and merge rules (E01-S09).
+- Library storage: `<name>.mfc` folders with a SQLite database, a thumbnail cache and a lock file; schema migrations with a backup on open; repositories; integrity check and online backup (E01-S03).
 
 ### Changed
 

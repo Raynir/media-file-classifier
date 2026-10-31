@@ -120,7 +120,7 @@ The schema is built with EF Core from the domain entities (`docs/domain-model.md
      dotnet ef migrations add <Name> -p src/MediaFileClassifier.Infrastructure.DataAccess -s src/MediaFileClassifier.Infrastructure.DataAccess -o Migrations
      ```
   3. Raise `Library.CurrentSchemaVersion` by one.
-  4. Run the tests. `LibraryStoreTests.OpenAsync_LibraryAtEachOlderVersion_BacksUpAndUpgradesKeepingData` rolls a library back to every older version and upgrades it again. With only the initial migration there's no older version yet, so it starts checking real upgrades from the second migration.
+  4. Run the tests. `LibraryStoreTests.OpenAsync_LibraryAtEachOlderVersion_BacksUpAndUpgradesKeepingData` rolls a library back to every older version and upgrades it again. It also checks that the upgraded columns match a new library's, and that an item keeps its values and can save new ones.
 - **Generated code:** files in `Migrations/` are marked `generated_code` in `.editorconfig`, so the style analyzers skip them. EF can't index complex-type columns, so the hash indexes are hand-written SQL in the initial migration.
 
 ## Integrity check and backup (D073)

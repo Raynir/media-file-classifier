@@ -99,7 +99,7 @@ Table and column names below are the draft; E07-S08-T01 fixes them. Foreign keys
 | `manifest` | `key` | `value` (see below) |
 | `library` | — (one row) | `id`, `name`, `active_search_model_id` |
 | `folders` | `id` | `label`, `include_subfolders`, `include_patterns`, `exclude_patterns` |
-| `items` | `id` | `folder_id`, `path`, `media_type`, `size_bytes`, `file_created_at`, `file_modified_at`, `imported_at`, `fingerprint`, `content_hash`, `perceptual_hash`, `review_status`, `review_status_changed_at`¹, `is_favorite`, `favorite_changed_at`¹, `source_status` |
+| `items` | `id` | `folder_id`, `path`, `media_type`, `size_bytes`, `file_created_at`, `file_modified_at`, `imported_at`, `fingerprint`, `content_hash`, `perceptual_hash`, `review_status`, `review_status_changed_at`, `is_favorite`, `favorite_changed_at`, `source_status` |
 | `technical_metadata` | `item_id` | the `TechnicalMetadata` properties, `raw_metadata_json`, `extracted_at` |
 | `technical_field_values` | `item_id`, `field` | `value`, `read_at` |
 | `keyframes` | `id` | `item_id`, `index`, `timestamp_ms`, `frame_number` |
@@ -113,8 +113,6 @@ Table and column names below are the draft; E07-S08-T01 fixes them. Foreign keys
 | `collection_memberships` | `collection_id`, `item_id` | `added_at` |
 | `saved_searches` | `id` | `name`, `query_text`, `filters_json`, `sort`, `created_at` |
 | `embeddings` | `id` | `item_id`, `model_id`, `kind`, `keyframe_id`, `dimension`, `vector`, `created_at` |
-
-¹ Not in the domain model yet: gap G1.
 
 `suggestion_run_id` is kept only when that run is in the package; otherwise it's empty.
 
@@ -207,7 +205,7 @@ A matched target item keeps its own ID, folder and path. Package IDs are mapped 
 
 ### Merging a matched item
 
-"Newer" compares the timestamps of the two sides. When they're equal, or when one side has no timestamp (data recorded before gap G1 is filled), the case becomes a **conflict**.
+"Newer" compares the timestamps of the two sides. When they're equal, the case becomes a **conflict**. A favorite or review status with no change time (the user never changed it on that side, or it changed before library schema version 2) counts as older than any time; when neither side has one and the values differ, it's a conflict.
 
 A **conflict** leaves the target's value effective and lists the incoming value in the import report, with "take incoming" per item or in bulk, and "keep newer".
 
@@ -219,8 +217,8 @@ A **conflict** leaves the target's value effective and lists the incoming value 
 | **AI run** of an analyzer | Incoming run is added and becomes active (applied with `ApplyRun`). | If the incoming run **completed later**, it's applied with `ApplyRun`, as if it had just finished: it becomes active, user values get new-AI-suggestion flags, retention prunes old runs, and the item may go back to Unreviewed. Otherwise it's ignored. |
 | **Same AI run** (same run ID on both sides) | — | Nothing changes, except that a rejection on either side is kept. |
 | **Technical metadata and values** | Incoming values are added, e.g. video facts the phone can't read itself. | The target's own reading is kept. |
-| **Favorite** | — | **Newer change wins** (`favorite_changed_at`, gap G1). |
-| **Review status** | — | **Newer change wins** (`review_status_changed_at`, gap G1). A merge that changes an effective value still sends the item back to Unreviewed (D021). |
+| **Favorite** | — | **Newer change wins** (`favorite_changed_at`). |
+| **Review status** | — | **Newer change wins** (`review_status_changed_at`). A merge that changes an effective value still sends the item back to Unreviewed (D021). |
 | **Keyframes** | Incoming keyframes are added. | The target's are kept. Incoming per-frame embeddings attach to the target keyframe with the same index, and are dropped if there's none. |
 
 ### Models and embeddings
@@ -243,11 +241,11 @@ Every rule is idempotent: importing the same package twice changes nothing the s
 
 ## Model gaps (E01-S09 acceptance criterion 2)
 
-Checked against `src/MediaFileClassifier.Domain` on `develop` (E01-S02, MFC-56). The Domain code isn't changed by this Story. Agreed handling: the small fields are added in a follow-up sub-task after MFC-19 (E01-S03) merges; G3 and G4 come with the Stories that use them.
+Checked against `src/MediaFileClassifier.Domain` on `develop` (E01-S02, MFC-56). The Domain code isn't changed by this Story. Agreed handling: the small fields are added in a follow-up sub-task after MFC-19 (E01-S03) merges; G3 and G4 come with the Stories that use them. G1 is filled by MFC-974 (E01-S02-T10).
 
 | # | Gap | Needed for | Handling |
 |---|-----|------------|----------|
-| G1 | `MediaItem` has no `FavoriteChangedAt` or `ReviewStatusChangedAt`. `SetFavorite`, `MarkReviewed` and `MarkUnreviewed` take no time. | "Newer change wins" for favorites and review status | Follow-up sub-task after MFC-19: two nullable columns and a `now` parameter on those methods. Until then the merge treats them as conflicts. |
+| G1 | `MediaItem` has no `FavoriteChangedAt` or `ReviewStatusChangedAt`. `SetFavorite`, `MarkReviewed` and `MarkUnreviewed` take no time. | "Newer change wins" for favorites and review status | **Filled** by MFC-974 (E01-S02-T10): nullable `FavoriteChangedAt` and `ReviewStatusChangedAt`, set by a `now` parameter on those methods only when the value changes; library schema version 2 adds the columns. Null means the user never changed it. |
 | G2 | `IndexedFolder` has no machine-independent name: `DisplayPath` and `PlatformHandle` are both absolute. | Showing package folders on the target | No change needed: the writer derives the label from the last segment of `DisplayPath`. An explicit folder name can be added later if the user should be able to rename folders. |
 | G3 | Nowhere to store import conflicts, or the user's choices about them. | The conflict rule, and repeat imports | E07-S09 (import report and undo) adds a table. Not needed in the MVP schema. |
 | G4 | No change tracking: no per-item modified date, and no record of earlier imports and exports (`package_id`, peer library, date). | Changes-only export from the phone (E20-S08-T01) | E20-S08 adds it. Needed only on the phone side, Later. |

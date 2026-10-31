@@ -5,6 +5,7 @@
   <ItemGroup>
     <!-- UI -->
     <PackageVersion Include="Avalonia" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Android" Version="12.1.4" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.4" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.4" />
@@ -27,6 +28,9 @@
     <!-- Vector search spike (MFC-17): benchmarks only until D067 is settled. -->
     <PackageVersion Include="sqlite-vec" Version="0.1.7-alpha.2.1" />
     <PackageVersion Include="System.Numerics.Tensors" Version="10.0.14" />
+    <!-- Android smoke test (MFC-18): the App.Android head only, with a provisional model until MFC-53. -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" />
+    <PackageVersion Include="Microsoft.ML.Tokenizers" Version="2.0.1" />
     <!-- Playback spike (MFC-54): prototype only until D070 is settled. -->
     <PackageVersion Include="Avalonia.Labs.AnimatedImage" Version="12.1.0" />
     <PackageVersion Include="LibVLCSharp" Version="3.10.2" />

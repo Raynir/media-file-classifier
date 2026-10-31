@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:MediaFileClassifier.App.Android.Spike"
+             x:Class="MediaFileClassifier.App.Android.Spike.SpikeView"
+             x:DataType="s:SpikeViewModel">
+  <!-- Smoke-test page (MFC-18). Not localised: it goes away with E20. -->
+  <DockPanel Margin="{DynamicResource Padding.Panel}">
+    <WrapPanel DockPanel.Dock="Top" IsEnabled="{Binding !IsBusy}">
+      <Button Content="SQLite" Command="{Binding RunCommand}" CommandParameter="sqlite" Margin="0,0,8,8" />
+      <Button Content="Pick folder (SAF)" Command="{Binding RunCommand}" CommandParameter="saf" Margin="0,0,8,8" />
+      <Button Content="Vectors 300k" Command="{Binding RunCommand}" CommandParameter="vectors:300000" Margin="0,0,8,8" />
+      <Button Content="e5 CPU" Command="{Binding RunCommand}" CommandParameter="onnx:e5:cpu" Margin="0,0,8,8" />
+      <Button Content="e5 XNNPACK" Command="{Binding RunCommand}" CommandParameter="onnx:e5:xnnpack" Margin="0,0,8,8" />
+      <Button Content="e5 NNAPI" Command="{Binding RunCommand}" CommandParameter="onnx:e5:nnapi" Margin="0,0,8,8" />
+      <Button Content="SigLIP 2 CPU" Command="{Binding RunCommand}" CommandParameter="onnx:siglip2:cpu" Margin="0,0,8,8" />
+      <Button Content="SigLIP 2 XNNPACK" Command="{Binding RunCommand}" CommandParameter="onnx:siglip2:xnnpack" Margin="0,0,8,8" />
+      <Button Content="SigLIP 2 NNAPI" Command="{Binding RunCommand}" CommandParameter="onnx:siglip2:nnapi" Margin="0,0,8,8" />
+    </WrapPanel>
+    <ProgressBar DockPanel.Dock="Top" IsIndeterminate="True" IsVisible="{Binding IsBusy}" Margin="0,0,0,8" />
+    <ScrollViewer>
+      <ItemsControl ItemsSource="{Binding Lines}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

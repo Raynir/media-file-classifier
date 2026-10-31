@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- The Android head (E20). It is the only project that may call Android APIs; shared projects stay on net10.0. -->
+    <TargetFramework>net10.0-android</TargetFramework>
+    <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
+    <RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
+    <ApplicationId>com.raynir.mediafileclassifier</ApplicationId>
+    <ApplicationTitle>Media File Classifier</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!-- LLVM AOT vectorises managed hot loops 2-3 times better than the default AOT (MFC-18, vector search). -->
+    <EnableLLVM>true</EnableLLVM>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../MediaFileClassifier.Ui/MediaFileClassifier.Ui.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure/MediaFileClassifier.Infrastructure.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.DataAccess/MediaFileClassifier.Infrastructure.DataAccess.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.Search/MediaFileClassifier.Infrastructure.Search.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.AI/MediaFileClassifier.Infrastructure.AI.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.Jobs/MediaFileClassifier.Infrastructure.Jobs.csproj" />
+    <PackageReference Include="Avalonia.Android" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <!-- Smoke test (MFC-18): ONNX Runtime with a provisional text encoder until MFC-53 picks the model. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
+    <!-- D067 sizing case on the phone, deferred from MFC-17. -->
+    <PackageReference Include="System.Numerics.Tensors" />
+  </ItemGroup>
+
+</Project>

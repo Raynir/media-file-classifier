@@ -6,6 +6,10 @@
     <Project Path="prototypes/MediaFileClassifier.Prototypes.Playback/MediaFileClassifier.Prototypes.Playback.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <!-- Needs the android workload, so a plain `dotnet build` skips it; CI builds it in its own job (MFC-18). -->
+    <Project Path="src/MediaFileClassifier.App.Android/MediaFileClassifier.App.Android.csproj">
+      <Build Project="false" />
+    </Project>
     <Project Path="src/MediaFileClassifier.Desktop/MediaFileClassifier.Desktop.csproj" />
     <Project Path="src/MediaFileClassifier.Domain/MediaFileClassifier.Domain.csproj" />
     <Project Path="src/MediaFileClassifier.Infrastructure.Abstractions/MediaFileClassifier.Infrastructure.Abstractions.csproj" />

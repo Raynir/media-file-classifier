@@ -42,9 +42,10 @@ public sealed class LibraryMaintenanceTests : IAsyncLifetime
         await using var copy = await bed.Store.OpenAsync(restored, Token);
         Assert.True((await copy.Maintenance.CheckIntegrityAsync(Token)).IsOk);
         var count = await copy.Items.CountAsync(Token);
-        Assert.InRange(count, 1, 10_000);
+        Assert.True(writtenDuringBackup, "The import finished before the backup did, so the backup wasn't taken under a write load.");
+        Assert.InRange(count, 1, 9_999);
         Assert.Equal(bed.Library.Library.Id, copy.Library.Id);
-        TestContext.Current.TestOutputHelper?.WriteLine($"Backup holds {count} items; ingestion still running after backup: {writtenDuringBackup}.");
+        TestContext.Current.TestOutputHelper?.WriteLine($"Backup holds {count} of 10000 items.");
     }
 
     [Fact]

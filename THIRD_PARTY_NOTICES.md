@@ -27,6 +27,11 @@ The third-party libraries, native binaries and AI models that Media File Classif
 | Microsoft.EntityFrameworkCore (`.Abstractions`, `.Relational`, `.Sqlite`, `.Sqlite.Core`) | 10.0.14 | MIT | https://github.com/dotnet/efcore | Data access (D071) |
 | SQLitePCLRaw (`bundle_e_sqlite3`, `core`, `provider.e_sqlite3`, `lib.e_sqlite3`) | 2.1.13 | Apache-2.0 | https://github.com/ericsink/SQLitePCL.raw | |
 | SQLite (`e_sqlite3`) | bundled by SQLitePCLRaw | Public domain | https://sqlite.org/copyright.html | Native; see the dependency matrix |
+| Avalonia.Android | 12.1.4 | MIT | https://github.com/AvaloniaUI/Avalonia | Android head only (MFC-18) |
+| AndroidX and Kotlin bindings (`Xamarin.AndroidX.*`, `Xamarin.Kotlin.*`, `Xamarin.Google.*`), transitive through Avalonia.Android | per package | Apache-2.0 | https://github.com/dotnet/android-libraries | Android head only |
+| ONNX Runtime (`Microsoft.ML.OnnxRuntime`, `.Managed`) | 1.31.1 | MIT | https://github.com/microsoft/onnxruntime | Native. Android head only so far (MFC-18); its telemetry provider and network permissions are stripped (D081) |
+| Microsoft.ML.Tokenizers | 2.0.1 | MIT | https://github.com/dotnet/machinelearning | Android head only so far (MFC-18) |
+| System.Numerics.Tensors | 10.0.14 | MIT | https://github.com/dotnet/runtime | Android head (MFC-18); vector search (D067) |
 
 ## Build and test only (not shipped)
 
@@ -45,7 +50,6 @@ Check each version and license again when its package is added, and move its row
 | Component | License | Source | Notes |
 |---|---|---|---|
 | sqlite-vec | MIT or Apache-2.0 | https://github.com/asg017/sqlite-vec | Only if SP01 chooses it (MFC-17) |
-| ONNX Runtime (`Microsoft.ML.OnnxRuntime`) | MIT | https://github.com/microsoft/onnxruntime | E06 |
 | DirectML (`Microsoft.AI.DirectML`, comes with `Microsoft.ML.OnnxRuntime.DirectML`) | Microsoft DirectML license (redistributable, proprietary) | https://github.com/microsoft/DirectML | Review the redistribution terms before E19 |
 | FFmpeg (`ffmpeg`, `ffprobe`) | LGPL-2.1-or-later, or GPL-2.0/3.0 for builds with `--enable-gpl` | https://ffmpeg.org/legal.html | Not distributed in the MVP; the user installs it (D068, tentative) |
 | LibVLCSharp, LibVLCSharp.Avalonia | LGPL-2.1-or-later | https://code.videolan.org/videolan/LibVLCSharp | 3.10.2. Referenced by the playback prototype only (MFC-54); in-app video (D070) |

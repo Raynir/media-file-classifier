@@ -71,6 +71,32 @@ public sealed class LibraryStoreTests
     }
 
     [Fact]
+    public async Task CreateAsync_FailsAfterDatabaseIsWritten_RemovesFolderSoItCanBeCreatedAgain()
+    {
+        using var temporary = TemporaryLibrary.Reserve();
+        var failing = new LibraryStore(new TestClock(LibraryTestBed.Start), new ThrowingLogger<LibraryStore>());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => failing.CreateAsync(temporary.ParentDirectory, "test", Token));
+
+        Assert.False(Directory.Exists(temporary.LibraryDirectory));
+        await using var library = await LibraryTestBed.CreateStore(TimeProvider.System).CreateAsync(temporary.ParentDirectory, "test", Token);
+        Assert.Equal("test", library.Library.Name);
+    }
+
+    [Fact]
+    public async Task CreateAsync_FailsInEmptyFolderGivenByUser_KeepsFolderAndEmptiesIt()
+    {
+        using var temporary = TemporaryLibrary.Reserve();
+        Directory.CreateDirectory(temporary.LibraryDirectory);
+        var failing = new LibraryStore(new TestClock(LibraryTestBed.Start), new ThrowingLogger<LibraryStore>());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => failing.CreateAsync(temporary.ParentDirectory, "test", Token));
+
+        Assert.True(Directory.Exists(temporary.LibraryDirectory));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(temporary.LibraryDirectory));
+    }
+
+    [Fact]
     public async Task OpenAsync_LibraryAlreadyOpen_ThrowsInUse()
     {
         await using var bed = await LibraryTestBed.CreateAsync();

@@ -35,13 +35,15 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
             throw new LibraryOpenException(LibraryOpenError.AlreadyExists, layout.RootDirectory);
         }
 
+        var createdRoot = !Directory.Exists(layout.RootDirectory);
         Directory.CreateDirectory(layout.RootDirectory);
-        Directory.CreateDirectory(layout.ThumbnailsDirectory);
         var now = timeProvider.GetUtcNow();
-        var heldLock = LibraryLock.Acquire(layout, now);
         var connections = new LibraryConnectionFactory(layout.DatabasePath);
+        LibraryLock? heldLock = null;
         try
         {
+            heldLock = LibraryLock.Acquire(layout, now);
+            Directory.CreateDirectory(layout.ThumbnailsDirectory);
             Library library;
             await using (var db = await connections.CreateContextAsync(tracking: true, cancellationToken).ConfigureAwait(false))
             {
@@ -56,7 +58,14 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
         }
         catch
         {
+            // Without the lock, another instance may be creating the same library; its files aren't ours to remove.
+            var ours = heldLock is not null;
             Release(connections, heldLock);
+            if (ours)
+            {
+                RemoveUnfinished(layout, createdRoot);
+            }
+
             throw;
         }
     }
@@ -96,14 +105,44 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
         }
     }
 
-    private static void Release(LibraryConnectionFactory connections, LibraryLock heldLock)
+    private static void Release(LibraryConnectionFactory connections, LibraryLock? heldLock)
     {
         using (var connection = new SqliteConnection(connections.ConnectionString))
         {
             SqliteConnection.ClearPool(connection);
         }
 
-        heldLock.Dispose();
+        heldLock?.Dispose();
+    }
+
+    /// <summary>
+    /// Removes what a failed or cancelled <see cref="CreateAsync"/> left, so the library can be created again. The
+    /// folder was empty or missing before, so everything in it is ours.
+    /// </summary>
+    private void RemoveUnfinished(LibraryLayout layout, bool createdRoot)
+    {
+        try
+        {
+            if (createdRoot)
+            {
+                Directory.Delete(layout.RootDirectory, recursive: true);
+                return;
+            }
+
+            foreach (var directory in Directory.EnumerateDirectories(layout.RootDirectory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+
+            foreach (var file in Directory.EnumerateFiles(layout.RootDirectory))
+            {
+                File.Delete(file);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            LogCleanupFailed(exception, layout.RootDirectory);
+        }
     }
 
     private async Task MigrateAsync(LibraryDbContext db, LibraryLayout layout, CancellationToken cancellationToken)
@@ -141,6 +180,9 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Created library {Directory}")]
     private partial void LogCreated(string directory);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't remove the unfinished library {Directory}")]
+    private partial void LogCleanupFailed(Exception exception, string directory);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Backed up library {Directory} at schema version {Version} to {BackupPath}")]
     private partial void LogBackedUp(string directory, int version, string backupPath);

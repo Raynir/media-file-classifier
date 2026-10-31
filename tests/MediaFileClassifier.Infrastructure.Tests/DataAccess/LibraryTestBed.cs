@@ -4,6 +4,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 using MediaFileClassifier.Testing.Libraries;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.DataAccess;
@@ -127,4 +128,22 @@ internal sealed class TestClock(DateTimeOffset now) : TimeProvider
     /// </summary>
     /// <returns>The new time.</returns>
     public DateTimeOffset Tick() => now = now.AddSeconds(1);
+}
+
+/// <summary>
+/// A logger that throws on the first message, to make a library operation fail once its database is written.
+/// </summary>
+/// <typeparam name="T">Category.</typeparam>
+internal sealed class ThrowingLogger<T> : ILogger<T>
+{
+    /// <inheritdoc />
+    public IDisposable? BeginScope<TState>(TState state)
+        where TState : notnull => null;
+
+    /// <inheritdoc />
+    public bool IsEnabled(LogLevel logLevel) => logLevel == LogLevel.Information;
+
+    /// <inheritdoc />
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+        throw new InvalidOperationException("Simulated failure.");
 }

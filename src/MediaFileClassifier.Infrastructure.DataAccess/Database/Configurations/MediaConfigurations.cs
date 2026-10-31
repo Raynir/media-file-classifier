@@ -28,7 +28,9 @@ internal sealed class MediaItemConfiguration : IEntityTypeConfiguration<MediaIte
         builder.Property(item => item.StatusReason);
         builder.Property(item => item.StatusChangedAt);
         builder.Property(item => item.ReviewStatus);
+        builder.Property(item => item.ReviewStatusChangedAt);
         builder.Property(item => item.IsFavorite);
+        builder.Property(item => item.FavoriteChangedAt);
         builder.ComplexProperty(item => item.Hashes, hashes =>
         {
             hashes.Property(value => value.Fingerprint);

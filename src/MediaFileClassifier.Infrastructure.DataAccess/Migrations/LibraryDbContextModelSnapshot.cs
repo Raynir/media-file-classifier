@@ -393,6 +393,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 
+                    b.Property<long?>("FavoriteChangedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("favorite_changed_at");
+
                     b.Property<long>("FileCreatedAt")
                         .HasColumnType("INTEGER")
                         .HasColumnName("file_created_at");
@@ -426,6 +430,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<int>("ReviewStatus")
                         .HasColumnType("INTEGER")
                         .HasColumnName("review_status");
+
+                    b.Property<long?>("ReviewStatusChangedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("review_status_changed_at");
 
                     b.Property<long>("SizeBytes")
                         .HasColumnType("INTEGER")

@@ -144,21 +144,25 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
         db.ChangeTracker.Clear();
     }
 
-    private Task UpdateManyAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, Action<ItemMetadata> change, CancellationToken cancellationToken)
+    private async Task UpdateManyAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, Action<ItemMetadata> change, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(itemIds);
 
-        return writer.ExecuteAsync(
-            async (db, token) =>
-            {
-                foreach (var itemId in itemIds.Distinct())
+        // In batches, like MediaItemRepository.AddRangeAsync, so tagging a large selection doesn't hold up other writes.
+        foreach (var batch in itemIds.Distinct().Chunk(MediaItemRepository.BatchSize))
+        {
+            await writer.ExecuteAsync(
+                async (db, token) =>
                 {
-                    var metadata = await LoadExistingAsync(db, itemId, token).ConfigureAwait(false);
-                    change(metadata);
-                    await ReplaceAsync(db, metadata, token).ConfigureAwait(false);
-                }
-            },
-            cancellationToken);
+                    foreach (var itemId in batch)
+                    {
+                        var metadata = await LoadExistingAsync(db, itemId, token).ConfigureAwait(false);
+                        change(metadata);
+                        await ReplaceAsync(db, metadata, token).ConfigureAwait(false);
+                    }
+                },
+                cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>

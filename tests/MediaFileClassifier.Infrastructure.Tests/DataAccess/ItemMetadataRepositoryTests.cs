@@ -161,6 +161,18 @@ public sealed class ItemMetadataRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AddTagAsync_MoreItemsThanOneBatch_TagsEveryItem()
+    {
+        var items = Enumerable.Range(2, MediaItemRepository.BatchSize + 50).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(items, Token);
+
+        await bed.Library.Metadata.AddTagAsync([item.Id, .. items.Select(other => other.Id)], TagName.From("trip"), Token);
+
+        var tag = Assert.Single(await bed.Library.Metadata.GetUserTagsAsync(Token));
+        Assert.Equal(items.Count + 1, tag.ItemCount);
+    }
+
+    [Fact]
     public async Task GetUserTagsAsync_CountsTagsIgnoringCase()
     {
         var other = bed.NewItem(2);

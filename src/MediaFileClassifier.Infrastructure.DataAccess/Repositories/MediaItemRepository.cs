@@ -15,7 +15,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Repositories;
 internal sealed class MediaItemRepository(LibraryConnectionFactory connections, LibraryWriter writer) : IMediaItemRepository
 {
     /// <summary>
-    /// Number of items written per transaction by <see cref="AddRangeAsync"/>. A user edit queued behind two ingesting
+    /// Number of items written per transaction by <see cref="AddRangeAsync"/> and by the tag operations on many items
+    /// of <see cref="ItemMetadataRepository"/>. A user edit queued behind two ingesting
     /// jobs waited about 20 ms (p50) and 45 ms (max) with 100, against 170 ms and 240 ms with 500, for the same
     /// throughput (stress test of E01-S03-T04).
     /// </summary>

@@ -46,6 +46,8 @@ public interface IItemMetadataRepository
 
     /// <summary>
     /// Adds a user tag to many items, e.g. a multi-selection, and removes its tombstones (E07).
+    /// The items are written in batches, each its own short write, so other writes such as the user's edits get their
+    /// turn between batches (D072). If one fails or is cancelled, the batches before it stay written.
     /// </summary>
     /// <param name="itemIds">The items.</param>
     /// <param name="tag">The tag.</param>
@@ -55,6 +57,8 @@ public interface IItemMetadataRepository
 
     /// <summary>
     /// Removes a tag from many items and leaves tombstones, so neither the file nor an AI run adds it again (E07).
+    /// The items are written in batches, each its own short write, so other writes such as the user's edits get their
+    /// turn between batches (D072). If one fails or is cancelled, the batches before it stay written.
     /// </summary>
     /// <param name="itemIds">The items.</param>
     /// <param name="tag">The tag.</param>

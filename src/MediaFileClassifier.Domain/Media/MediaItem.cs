@@ -29,7 +29,9 @@ public sealed class MediaItem
     /// <param name="statusReason">Error message or other reason for the status, if any.</param>
     /// <param name="statusChangedAt">When the status last changed.</param>
     /// <param name="reviewStatus">Whether the user reviewed the AI results (D021).</param>
+    /// <param name="reviewStatusChangedAt">When the review status last changed, or null if it never did.</param>
     /// <param name="isFavorite">Whether the user marked the item as a favorite.</param>
+    /// <param name="favoriteChangedAt">When the favorite mark last changed, or null if it never did.</param>
     public MediaItem(
         Id<MediaItem> id,
         Id<IndexedFolder> folderId,
@@ -44,7 +46,9 @@ public sealed class MediaItem
         string? statusReason,
         DateTimeOffset statusChangedAt,
         ReviewStatus reviewStatus,
-        bool isFavorite)
+        DateTimeOffset? reviewStatusChangedAt,
+        bool isFavorite,
+        DateTimeOffset? favoriteChangedAt)
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentOutOfRangeException.ThrowIfNegative(sizeBytes);
@@ -63,7 +67,9 @@ public sealed class MediaItem
         StatusReason = statusReason;
         StatusChangedAt = statusChangedAt;
         ReviewStatus = reviewStatus;
+        ReviewStatusChangedAt = reviewStatusChangedAt;
         IsFavorite = isFavorite;
+        FavoriteChangedAt = favoriteChangedAt;
     }
 
     /// <summary>
@@ -112,7 +118,19 @@ public sealed class MediaItem
 
     public ReviewStatus ReviewStatus { get; private set; }
 
+    /// <summary>
+    /// Gets when the review status last changed, or null if it never changed since the item was found. A
+    /// library package merge keeps the newer change (D076); null counts as older than any time.
+    /// </summary>
+    public DateTimeOffset? ReviewStatusChangedAt { get; private set; }
+
     public bool IsFavorite { get; private set; }
+
+    /// <summary>
+    /// Gets when the favorite mark last changed, or null if it never changed since the item was found. A
+    /// library package merge keeps the newer change (D076); null counts as older than any time.
+    /// </summary>
+    public DateTimeOffset? FavoriteChangedAt { get; private set; }
 
     /// <summary>
     /// Creates an item for a newly found file, in <see cref="MediaItemStatus.Discovered"/> status.
@@ -149,7 +167,9 @@ public sealed class MediaItem
             null,
             now,
             ReviewStatus.Unreviewed,
-            false);
+            null,
+            false,
+            null);
 
     /// <summary>
     /// Changes the processing status.
@@ -216,12 +236,40 @@ public sealed class MediaItem
         Hashes = hashes;
     }
 
-    public void MarkReviewed() => ReviewStatus = ReviewStatus.Reviewed;
+    /// <summary>
+    /// Records that the user reviewed the AI results (D021).
+    /// </summary>
+    /// <param name="now">Current time.</param>
+    public void MarkReviewed(DateTimeOffset now) => SetReviewStatus(ReviewStatus.Reviewed, now);
 
     /// <summary>
     /// Sends the item back to review, e.g. when a new analysis run changed its effective values (D021).
     /// </summary>
-    public void MarkUnreviewed() => ReviewStatus = ReviewStatus.Unreviewed;
+    /// <param name="now">Current time.</param>
+    public void MarkUnreviewed(DateTimeOffset now) => SetReviewStatus(ReviewStatus.Unreviewed, now);
 
-    public void SetFavorite(bool isFavorite) => IsFavorite = isFavorite;
+    /// <summary>
+    /// Marks or unmarks the item as a favorite. The change time stays the same when the value does.
+    /// </summary>
+    /// <param name="isFavorite">Whether the item is a favorite.</param>
+    /// <param name="now">Current time.</param>
+    public void SetFavorite(bool isFavorite, DateTimeOffset now)
+    {
+        if (IsFavorite != isFavorite)
+        {
+            FavoriteChangedAt = now;
+        }
+
+        IsFavorite = isFavorite;
+    }
+
+    private void SetReviewStatus(ReviewStatus reviewStatus, DateTimeOffset now)
+    {
+        if (ReviewStatus != reviewStatus)
+        {
+            ReviewStatusChangedAt = now;
+        }
+
+        ReviewStatus = reviewStatus;
+    }
 }

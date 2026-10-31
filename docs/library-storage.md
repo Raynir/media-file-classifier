@@ -21,7 +21,7 @@ A library is one self-contained folder, so it can be backed up or moved as a uni
 
 - **Create:** `ILibraryStore.CreateAsync(parent, name)` creates the folder, the database at the latest schema, the library record and `thumbnails/`. It fails with `AlreadyExists` if a non-empty folder of that name exists.
 - **Open:** `ILibraryStore.OpenAsync(folder)` takes the lock, migrates an older schema after a backup, and returns an `IOpenLibrary`. Disposing it waits for queued writes, closes every connection, which folds the WAL back into `library.db`, and releases the lock.
-- **Errors:** `LibraryOpenException.Error` is a code (`NotFound`, `AlreadyExists`, `InUse`, `NewerVersion`, `NotALibrary`) for the UI to map to a resource string (E13-S08).
+- **Errors:** `LibraryOpenException.Error` is a code (`NotFound`, `AlreadyExists`, `InUse`, `NewerVersion`, `NotALibrary`, `NotWritable`) for the UI to map to a resource string (E13-S08).
 
 ### Thumbnails (D078)
 
@@ -39,6 +39,7 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 - **No stale locks:** the operating system releases the lock when the process ends, even after a crash.
 - **Diagnostics:** the file holds the process ID, machine name and time.
 - **Other platforms:** on Android and Linux, .NET maps this to an advisory `flock`, which other .NET processes respect.
+- **Errors:** a lock held by another instance gives `InUse`. A lock file that can't be written, e.g. in a read-only folder, gives `NotWritable`.
 - **Limitation:** locking over SMB or NFS shares isn't reliable.
 
 ## Connections and pragmas
@@ -71,7 +72,8 @@ SQLite allows one writer at a time, so all writes go through one `LibraryWriter`
   | Read, p99 | | under 30 ms |
 
   Throughput was the same for both batch sizes.
-- **Rule for callers:** code running inside a write (e.g. the change passed to `IItemMetadataRepository.UpdateAsync`) must not wait for another library write, or the writer deadlocks.
+- **Rule for callers:** code running inside a write (e.g. the change passed to `IItemMetadataRepository.UpdateAsync`) must not wait for another library write. The writer rejects such a write with `InvalidOperationException` instead of deadlocking.
+- **Cancellation:** a queued write is dropped as soon as its token is cancelled. A started write is rolled back if it stops on the token.
 
 ## Schema (D071)
 

@@ -88,7 +88,8 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
         await bed.Library.Items.AddAsync(item, Token);
 
         item.ChangeStatus(MediaItemStatus.Pending, bed.Clock.Tick());
-        item.SetFavorite(true);
+        item.SetFavorite(true, bed.Clock.Tick());
+        item.MarkReviewed(bed.Clock.Tick());
         item.SetHashes(new FileHashes { Fingerprint = 1, ContentHash = 2, PerceptualHash = 3 });
         item.Relocate(bed.Folder.Id, RelativePath.From("moved/IMG_00001.jpg"));
         await bed.Library.Items.UpdateAsync(item, Token);

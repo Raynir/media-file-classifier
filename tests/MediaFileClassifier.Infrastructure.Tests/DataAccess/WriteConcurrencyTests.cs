@@ -54,7 +54,7 @@ public sealed class WriteConcurrencyTests
             {
                 while (!ingestion.IsCompleted)
                 {
-                    edited.SetFavorite(!edited.IsFavorite);
+                    edited.SetFavorite(!edited.IsFavorite, DateTimeOffset.UtcNow);
                     var watch = Stopwatch.StartNew();
                     await bed.Library.Items.UpdateAsync(edited, Token);
                     editLatencies.Add(watch.Elapsed);

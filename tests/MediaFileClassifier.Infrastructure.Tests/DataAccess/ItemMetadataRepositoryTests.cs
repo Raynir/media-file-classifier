@@ -173,6 +173,47 @@ public sealed class ItemMetadataRepositoryTests : IAsyncLifetime
         Assert.Equal(2, tag.ItemCount);
     }
 
+    [Theory]
+    [InlineData("Отпуск", "отпуск")]
+    [InlineData("Été", "été")]
+    public async Task GetUserTagsAsync_CountsNonAsciiTagsIgnoringCase(string first, string second)
+    {
+        var other = bed.NewItem(2);
+        await bed.Library.Items.AddAsync(other, Token);
+
+        await bed.Library.Metadata.AddTagAsync([item.Id], TagName.From(first), Token);
+        await bed.Library.Metadata.AddTagAsync([other.Id], TagName.From(second), Token);
+
+        var tag = Assert.Single(await bed.Library.Metadata.GetUserTagsAsync(Token));
+        Assert.Equal(TagName.From(first), tag.Tag);
+        Assert.Equal(2, tag.ItemCount);
+    }
+
+    [Fact]
+    public async Task RemoveTagAsync_NonAsciiTagInOtherCase_RemovesItAndLeavesOneTombstone()
+    {
+        await bed.Library.Metadata.AddTagAsync([item.Id], TagName.From("Отпуск"), Token);
+
+        await bed.Library.Metadata.RemoveTagAsync([item.Id], TagName.From("ОТПУСК"), Token);
+        await bed.Library.Metadata.RemoveTagAsync([item.Id], TagName.From("отпуск"), Token);
+
+        var metadata = await bed.Library.Metadata.GetAsync(item.Id, Token);
+        Assert.Empty(metadata.GetEffectiveTags());
+        Assert.Single(metadata.Rejections);
+    }
+
+    [Fact]
+    public async Task GetUserTagsAsync_SameCount_OrdersByTag()
+    {
+        await bed.Library.Metadata.AddTagAsync([item.Id], TagName.From("zoo"), Token);
+        await bed.Library.Metadata.AddTagAsync([item.Id], TagName.From("Apple"), Token);
+        await bed.Library.Metadata.AddTagAsync([item.Id], TagName.From("mango"), Token);
+
+        var tags = await bed.Library.Metadata.GetUserTagsAsync(Token);
+
+        Assert.Equal(["Apple", "mango", "zoo"], tags.Select(tag => tag.Tag.Value));
+    }
+
     [Fact]
     public async Task AcceptAll_MakesAiValuesAndTagsUserOwned()
     {

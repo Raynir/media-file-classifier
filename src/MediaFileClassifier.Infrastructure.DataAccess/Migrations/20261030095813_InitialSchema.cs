@@ -249,7 +249,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 columns: table => new
                 {
                     item_id = table.Column<string>(type: "TEXT", nullable: false),
-                    tag = table.Column<string>(type: "TEXT", nullable: false, collation: "NOCASE"),
+                    tag_key = table.Column<string>(type: "TEXT", nullable: false),
+                    tag = table.Column<string>(type: "TEXT", nullable: false),
                     rejected_at = table.Column<long>(type: "INTEGER", nullable: false),
                     rejected_from_analyzer = table.Column<string>(type: "TEXT", nullable: true),
                     rejected_from_model_id = table.Column<string>(type: "TEXT", nullable: true),
@@ -259,7 +260,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_tag_rejection", x => new { x.item_id, x.tag });
+                    table.PrimaryKey("PK_tag_rejection", x => new { x.item_id, x.tag_key });
                     table.ForeignKey(
                         name: "FK_tag_rejection_media_item_item_id",
                         column: x => x.item_id,
@@ -368,13 +369,14 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     id = table.Column<long>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     item_id = table.Column<string>(type: "TEXT", nullable: false),
-                    tag = table.Column<string>(type: "TEXT", nullable: false, collation: "NOCASE"),
+                    tag = table.Column<string>(type: "TEXT", nullable: false),
                     source = table.Column<int>(type: "INTEGER", nullable: false),
                     run_id = table.Column<string>(type: "TEXT", nullable: true),
                     model_id = table.Column<string>(type: "TEXT", nullable: true),
                     confidence = table.Column<double>(type: "REAL", nullable: true),
                     origin = table.Column<int>(type: "INTEGER", nullable: true),
                     created_at = table.Column<long>(type: "INTEGER", nullable: false),
+                    tag_key = table.Column<string>(type: "TEXT", nullable: false),
                     accepted_from_analyzer = table.Column<string>(type: "TEXT", nullable: true),
                     accepted_from_model_id = table.Column<string>(type: "TEXT", nullable: true),
                     accepted_from_prompt_version = table.Column<string>(type: "TEXT", nullable: true),
@@ -561,9 +563,9 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 column: "run_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_tag_assignment_tag",
+                name: "IX_tag_assignment_tag_key",
                 table: "tag_assignment",
-                column: "tag");
+                column: "tag_key");
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_field_value_suggestion_run_id",

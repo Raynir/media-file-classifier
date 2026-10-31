@@ -61,8 +61,8 @@ internal sealed class RelativePathConverter()
     : ValueConverter<RelativePath, string>(path => path.Value, text => RelativePath.From(text));
 
 /// <summary>
-/// Stores a <see cref="TagName"/> as its text. Tag columns use the NOCASE collation, so they compare like
-/// <see cref="TagName"/> does for ASCII letters.
+/// Stores a <see cref="TagName"/> as its display text. Tags are matched by their <c>tag_key</c> column instead,
+/// see <see cref="TagKeyGenerator"/>.
 /// </summary>
 internal sealed class TagNameConverter()
     : ValueConverter<TagName, string>(tag => tag.Value, text => TagName.From(text));

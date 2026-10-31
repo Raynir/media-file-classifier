@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.DataAccess.Database.Conversions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -90,23 +91,26 @@ internal sealed class TagAssignmentConfiguration : IEntityTypeConfiguration<TagA
         builder.Property(tag => tag.Confidence);
         builder.Property(tag => tag.Origin);
         builder.Property(tag => tag.CreatedAt);
+        builder.Property<string>(TagKeyGenerator.Property).IsRequired().HasValueGenerator<TagKeyGenerator>();
         builder.ComplexProperty(tag => tag.AcceptedFrom, RunReferenceMapping.Configure);
         builder.HasOne<MediaItem>().WithMany().HasForeignKey(tag => tag.ItemId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<AnalysisRun>().WithMany().HasForeignKey(tag => tag.RunId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<ModelRegistration>().WithMany().HasForeignKey(tag => tag.ModelId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasIndex(tag => tag.Tag);
+        builder.HasIndex(TagKeyGenerator.Property);
     }
 }
 
 /// <summary>
-/// Maps <see cref="TagRejection"/>, keyed by item and tag.
+/// Maps <see cref="TagRejection"/>, keyed by item and tag key.
 /// </summary>
 internal sealed class TagRejectionConfiguration : IEntityTypeConfiguration<TagRejection>
 {
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<TagRejection> builder)
     {
-        builder.HasKey(rejection => new { rejection.ItemId, rejection.Tag });
+        builder.Property(rejection => rejection.Tag);
+        builder.Property<string>(TagKeyGenerator.Property).IsRequired().HasValueGenerator<TagKeyGenerator>();
+        builder.HasKey(nameof(TagRejection.ItemId), TagKeyGenerator.Property);
         builder.ComplexProperty(rejection => rejection.RejectedFrom, RunReferenceMapping.Configure);
         builder.HasOne<MediaItem>().WithMany().HasForeignKey(rejection => rejection.ItemId).OnDelete(DeleteBehavior.Cascade);
     }

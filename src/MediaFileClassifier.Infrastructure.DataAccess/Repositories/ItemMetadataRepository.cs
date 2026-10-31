@@ -80,14 +80,20 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
     public async Task<IReadOnlyList<(TagName Tag, int ItemCount)>> GetUserTagsAsync(CancellationToken cancellationToken = default)
     {
         await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        var tags = await db.TagAssignments
-            .Where(tag => tag.Source == MetadataSource.User)
-            .GroupBy(tag => tag.Tag)
-            .Select(group => new { Tag = group.Key, ItemCount = group.Select(tag => tag.ItemId).Distinct().Count() })
-            .OrderByDescending(tag => tag.ItemCount)
+        // Grouped by tag_key, so tags that differ only in case are one tag in every alphabet. Spellings of one tag
+        // can differ between items; min() picks one of them, the same one every time.
+        var tags = await db.Database
+            .SqlQuery<UserTagRow>(
+                $"""
+                SELECT min(tag) AS Tag, count(DISTINCT item_id) AS ItemCount
+                FROM tag_assignment
+                WHERE source = {(int)MetadataSource.User}
+                GROUP BY tag_key
+                ORDER BY ItemCount DESC, tag_key
+                """)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        return [.. tags.Select(tag => (tag.Tag, tag.ItemCount))];
+        return [.. tags.Select(tag => (TagName.From(tag.Tag), tag.ItemCount))];
     }
 
     private static async Task<ItemMetadata> LoadAsync(LibraryDbContext db, Id<MediaItem> itemId, CancellationToken cancellationToken)
@@ -155,4 +161,11 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             },
             cancellationToken);
     }
+
+    /// <summary>
+    /// A row of <see cref="GetUserTagsAsync"/>.
+    /// </summary>
+    /// <param name="Tag">One spelling of the tag.</param>
+    /// <param name="ItemCount">Number of items with the tag.</param>
+    private sealed record UserTagRow(string Tag, int ItemCount);
 }

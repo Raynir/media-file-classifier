@@ -552,8 +552,12 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<string>("Tag")
                         .IsRequired()
                         .HasColumnType("TEXT")
-                        .HasColumnName("tag")
-                        .UseCollation("NOCASE");
+                        .HasColumnName("tag");
+
+                    b.Property<string>("TagKey")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("tag_key");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "AcceptedFrom", "MediaFileClassifier.Domain.Metadata.TagAssignment.AcceptedFrom#RunReference", b1 =>
                         {
@@ -589,7 +593,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
 
                     b.HasIndex("RunId");
 
-                    b.HasIndex("Tag");
+                    b.HasIndex("TagKey");
 
                     b.ToTable("tag_assignment");
                 });
@@ -600,14 +604,18 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("item_id");
 
-                    b.Property<string>("Tag")
+                    b.Property<string>("TagKey")
                         .HasColumnType("TEXT")
-                        .HasColumnName("tag")
-                        .UseCollation("NOCASE");
+                        .HasColumnName("tag_key");
 
                     b.Property<long>("RejectedAt")
                         .HasColumnType("INTEGER")
                         .HasColumnName("rejected_at");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("tag");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "RejectedFrom", "MediaFileClassifier.Domain.Metadata.TagRejection.RejectedFrom#RunReference", b1 =>
                         {
@@ -635,7 +643,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                                 .HasColumnName("rejected_from_run_id");
                         });
 
-                    b.HasKey("ItemId", "Tag");
+                    b.HasKey("ItemId", "TagKey");
 
                     b.ToTable("tag_rejection");
                 });

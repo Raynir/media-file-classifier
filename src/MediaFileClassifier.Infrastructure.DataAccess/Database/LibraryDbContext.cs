@@ -103,7 +103,7 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
         configurationBuilder.Properties<ulong>().HaveConversion<UInt64BitsConverter>();
 
         configurationBuilder.Properties<RelativePath>().HaveConversion<RelativePathConverter>();
-        configurationBuilder.Properties<TagName>().HaveConversion<TagNameConverter>().UseCollation("NOCASE");
+        configurationBuilder.Properties<TagName>().HaveConversion<TagNameConverter>();
         configurationBuilder.Properties<FieldValue>().HaveConversion<FieldValueConverter>();
         configurationBuilder.Properties<FolderRules>().HaveConversion<FolderRulesConverter>();
         configurationBuilder.Properties<LibrarySettings>().HaveConversion<LibrarySettingsConverter>();

@@ -89,7 +89,9 @@ The schema is built with EF Core from the domain entities (`docs/domain-model.md
   - `hashes_content_hash` and `hashes_fingerprint` are indexed.
 - **Field values:** a JSON string for a text value, a JSON array for a list value.
 - **JSON columns:** `FolderRules`, `LibrarySettings` and a job's item IDs are JSON. Serialization is source-generated, so it trims safely on Android.
-- **Tags:** tag columns use `COLLATE NOCASE`, matching `TagName`'s case-insensitive comparison for ASCII letters.
+- **Tags:**
+  - `tag` holds the display text. `tag_key` holds the tag in upper case (`ToUpperInvariant`), which EF fills when a row is added.
+  - Tags are matched, grouped and keyed by `tag_key`. That matches `TagName`'s `OrdinalIgnoreCase` comparison in every alphabet, where SQLite's `NOCASE` folds only A–Z.
 - **Embeddings:** one row per vector, holding a little-endian half-precision BLOB of 2 bytes per dimension (D067).
 - **Composite values:** `RunReference`, `FileHashes` and `GeoLocation` are EF complex types, so each part is its own column. EF can't pass a complex type to a constructor, so `MediaItem`, `UserFieldValue`, `TagAssignment` and `TagRejection` have a private parameterless constructor for EF. Those four skip their constructor checks when loaded; the data was checked when it was written.
 - **Tag assignments:** an assignment has no ID of its own, so `tag_assignment` has an integer row key.

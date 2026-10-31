@@ -14,19 +14,15 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Repositories;
 internal sealed class FolderRepository(LibraryConnectionFactory connections, LibraryWriter writer) : IFolderRepository
 {
     /// <inheritdoc />
-    public async Task<IndexedFolder?> GetAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
-    {
-        await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        return await db.Folders.SingleOrDefaultAsync(folder => folder.Id == id, cancellationToken).ConfigureAwait(false);
-    }
+    public Task<IndexedFolder?> GetAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync((db, token) => db.Folders.SingleOrDefaultAsync(folder => folder.Id == id, token), cancellationToken);
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<IndexedFolder>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        return await db.Folders.OrderBy(folder => folder.AddedAt).ThenBy(folder => folder.Id)
-            .ToListAsync(cancellationToken).ConfigureAwait(false);
-    }
+    public Task<IReadOnlyList<IndexedFolder>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<IndexedFolder>>(
+            async (db, token) => await db.Folders.OrderBy(folder => folder.AddedAt).ThenBy(folder => folder.Id)
+                .ToListAsync(token).ConfigureAwait(false),
+            cancellationToken);
 
     /// <inheritdoc />
     public Task AddAsync(IndexedFolder folder, CancellationToken cancellationToken = default)

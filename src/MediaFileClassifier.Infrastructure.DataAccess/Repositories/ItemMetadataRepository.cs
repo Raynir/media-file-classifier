@@ -19,11 +19,8 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
     : IItemMetadataRepository
 {
     /// <inheritdoc />
-    public async Task<ItemMetadata> GetAsync(Id<MediaItem> itemId, CancellationToken cancellationToken = default)
-    {
-        await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        return await LoadAsync(db, itemId, cancellationToken).ConfigureAwait(false);
-    }
+    public Task<ItemMetadata> GetAsync(Id<MediaItem> itemId, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync((db, token) => LoadAsync(db, itemId, token), cancellationToken);
 
     /// <inheritdoc />
     public Task<(ItemMetadata Metadata, TResult Result)> UpdateAsync<TResult>(
@@ -77,24 +74,26 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<(TagName Tag, int ItemCount)>> GetUserTagsAsync(CancellationToken cancellationToken = default)
-    {
-        await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        // Grouped by tag_key, so tags that differ only in case are one tag in every alphabet. Spellings of one tag
-        // can differ between items; min() picks one of them, the same one every time.
-        var tags = await db.Database
-            .SqlQuery<UserTagRow>(
-                $"""
-                SELECT min(tag) AS Tag, count(DISTINCT item_id) AS ItemCount
-                FROM tag_assignment
-                WHERE source = {(int)MetadataSource.User}
-                GROUP BY tag_key
-                ORDER BY ItemCount DESC, tag_key
-                """)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-        return [.. tags.Select(tag => (TagName.From(tag.Tag), tag.ItemCount))];
-    }
+    public Task<IReadOnlyList<(TagName Tag, int ItemCount)>> GetUserTagsAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<(TagName Tag, int ItemCount)>>(
+            async (db, token) =>
+            {
+                // Grouped by tag_key, so tags that differ only in case are one tag in every alphabet. Spellings of one
+                // tag can differ between items; min() picks one of them, the same one every time.
+                var tags = await db.Database
+                    .SqlQuery<UserTagRow>(
+                        $"""
+                        SELECT min(tag) AS Tag, count(DISTINCT item_id) AS ItemCount
+                        FROM tag_assignment
+                        WHERE source = {(int)MetadataSource.User}
+                        GROUP BY tag_key
+                        ORDER BY ItemCount DESC, tag_key
+                        """)
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                return [.. tags.Select(tag => (TagName.From(tag.Tag), tag.ItemCount))];
+            },
+            cancellationToken);
 
     private static async Task<ItemMetadata> LoadAsync(LibraryDbContext db, Id<MediaItem> itemId, CancellationToken cancellationToken)
     {

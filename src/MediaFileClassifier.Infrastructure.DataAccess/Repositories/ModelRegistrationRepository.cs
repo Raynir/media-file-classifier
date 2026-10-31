@@ -13,12 +13,11 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Repositories;
 internal sealed class ModelRegistrationRepository(LibraryConnectionFactory connections, LibraryWriter writer) : IModelRegistrationRepository
 {
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ModelRegistration>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        return await db.Models.OrderBy(model => model.RegisteredAt).ThenBy(model => model.Id)
-            .ToListAsync(cancellationToken).ConfigureAwait(false);
-    }
+    public Task<IReadOnlyList<ModelRegistration>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<ModelRegistration>>(
+            async (db, token) => await db.Models.OrderBy(model => model.RegisteredAt).ThenBy(model => model.Id)
+                .ToListAsync(token).ConfigureAwait(false),
+            cancellationToken);
 
     /// <inheritdoc />
     public Task AddAsync(ModelRegistration model, CancellationToken cancellationToken = default)

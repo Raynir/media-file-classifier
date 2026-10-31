@@ -71,6 +71,23 @@ internal sealed class LibraryConnectionFactory(string databasePath)
     }
 
     /// <summary>
+    /// Runs a read on its own no-tracking context, on a thread-pool thread. Microsoft.Data.Sqlite runs its async
+    /// methods synchronously, so without the hop a read called from the UI thread would block it.
+    /// </summary>
+    /// <typeparam name="T">What the read returns.</typeparam>
+    /// <param name="read">The read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>What the read returned.</returns>
+    public Task<T> ReadAsync<T>(Func<LibraryDbContext, CancellationToken, Task<T>> read, CancellationToken cancellationToken) =>
+        Task.Run(
+            async () =>
+            {
+                await using var db = await CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                return await read(db, cancellationToken).ConfigureAwait(false);
+            },
+            cancellationToken);
+
+    /// <summary>
     /// Creates a context on an open connection.
     /// </summary>
     /// <param name="connection">The connection, from <see cref="OpenAsync"/>.</param>

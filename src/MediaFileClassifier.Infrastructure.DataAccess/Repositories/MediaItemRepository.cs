@@ -22,39 +22,33 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     public const int BatchSize = 100;
 
     /// <inheritdoc />
-    public async Task<MediaItem?> GetAsync(Id<MediaItem> id, CancellationToken cancellationToken = default)
-    {
-        await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        return await db.MediaItems.SingleOrDefaultAsync(item => item.Id == id, cancellationToken).ConfigureAwait(false);
-    }
+    public Task<MediaItem?> GetAsync(Id<MediaItem> id, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync((db, token) => db.MediaItems.SingleOrDefaultAsync(item => item.Id == id, token), cancellationToken);
 
     /// <inheritdoc />
-    public async Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default)
+    public Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(path);
 
-        await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        return await db.MediaItems
-            .SingleOrDefaultAsync(item => item.FolderId == folderId && item.Path == path, cancellationToken)
-            .ConfigureAwait(false);
+        return connections.ReadAsync(
+            (db, token) => db.MediaItems.SingleOrDefaultAsync(item => item.FolderId == folderId && item.Path == path, token),
+            cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<MediaItem>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<MediaItem>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
 
-        await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        return await db.MediaItems.OrderBy(item => item.Id).Skip(offset).Take(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+        return connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems.OrderBy(item => item.Id).Skip(offset).Take(limit).ToListAsync(token).ConfigureAwait(false),
+            cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
-    {
-        await using var db = await connections.CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        return await db.MediaItems.CountAsync(cancellationToken).ConfigureAwait(false);
-    }
+    public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync((db, token) => db.MediaItems.CountAsync(token), cancellationToken);
 
     /// <inheritdoc />
     public Task AddAsync(MediaItem item, CancellationToken cancellationToken = default)

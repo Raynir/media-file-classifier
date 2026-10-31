@@ -10,7 +10,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 
 /// <summary>
 /// Creates and opens library folders (E01-S03). Opening an older library migrates its schema after a
-/// <c>VACUUM INTO</c> backup into <c>backups/</c>.
+/// <c>VACUUM INTO</c> backup into <c>backups/</c>. Both run on a thread-pool thread, because Microsoft.Data.Sqlite
+/// runs its async methods synchronously.
 /// </summary>
 /// <param name="timeProvider">Clock.</param>
 /// <param name="logger">Logger.</param>
@@ -19,7 +20,14 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
     private const int SqliteNotADatabase = 26;
 
     /// <inheritdoc />
-    public async Task<IOpenLibrary> CreateAsync(string parentDirectory, string name, CancellationToken cancellationToken = default)
+    public Task<IOpenLibrary> CreateAsync(string parentDirectory, string name, CancellationToken cancellationToken = default) =>
+        Task.Run(() => CreateCoreAsync(parentDirectory, name, cancellationToken), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IOpenLibrary> OpenAsync(string libraryDirectory, CancellationToken cancellationToken = default) =>
+        Task.Run(() => OpenCoreAsync(libraryDirectory, cancellationToken), cancellationToken);
+
+    private async Task<IOpenLibrary> CreateCoreAsync(string parentDirectory, string name, CancellationToken cancellationToken)
     {
         var layout = LibraryLayout.For(parentDirectory, name);
         if (Directory.Exists(layout.RootDirectory) && Directory.EnumerateFileSystemEntries(layout.RootDirectory).Any())
@@ -53,8 +61,7 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
         }
     }
 
-    /// <inheritdoc />
-    public async Task<IOpenLibrary> OpenAsync(string libraryDirectory, CancellationToken cancellationToken = default)
+    private async Task<IOpenLibrary> OpenCoreAsync(string libraryDirectory, CancellationToken cancellationToken)
     {
         var layout = LibraryLayout.FromDirectory(libraryDirectory);
         if (!File.Exists(layout.DatabasePath))

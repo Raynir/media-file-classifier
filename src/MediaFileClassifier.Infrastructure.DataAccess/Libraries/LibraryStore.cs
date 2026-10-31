@@ -142,11 +142,7 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
 
     private static void Release(LibraryConnectionFactory connections, LibraryLock? heldLock)
     {
-        using (var connection = new SqliteConnection(connections.ConnectionString))
-        {
-            SqliteConnection.ClearPool(connection);
-        }
-
+        connections.Close();
         heldLock?.Dispose();
     }
 

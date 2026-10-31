@@ -3,7 +3,6 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using MediaFileClassifier.Infrastructure.DataAccess.Repositories;
-using Microsoft.Data.Sqlite;
 
 namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 
@@ -15,7 +14,7 @@ internal sealed class OpenLibrary : IOpenLibrary
     private readonly LibraryConnectionFactory connections;
     private readonly LibraryWriter writer;
     private readonly LibraryLock heldLock;
-    private bool disposed;
+    private int disposed;
 
     private OpenLibrary(
         LibraryLayout layout,
@@ -87,18 +86,13 @@ internal sealed class OpenLibrary : IOpenLibrary
     /// <returns>A task that completes when the library is closed.</returns>
     public async ValueTask DisposeAsync()
     {
-        if (disposed)
+        if (Interlocked.Exchange(ref disposed, 1) == 1)
         {
             return;
         }
 
-        disposed = true;
         await writer.DisposeAsync().ConfigureAwait(false);
-        using (var connection = new SqliteConnection(connections.ConnectionString))
-        {
-            SqliteConnection.ClearPool(connection);
-        }
-
+        connections.Close();
         heldLock.Dispose();
     }
 }

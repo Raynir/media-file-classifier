@@ -141,6 +141,17 @@ public sealed class LibraryStoreTests
     }
 
     [Fact]
+    public async Task DisposeAsync_ThenReadOrWrite_ThrowsObjectDisposed()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        await bed.Library.DisposeAsync();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => bed.Library.Items.CountAsync(Token));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => bed.Library.Maintenance.CheckIntegrityAsync(Token));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => bed.Library.Items.AddAsync(bed.NewItem(1), Token));
+    }
+
+    [Fact]
     public async Task OpenAsync_MissingLibrary_ThrowsNotFound()
     {
         using var temporary = TemporaryLibrary.Reserve();

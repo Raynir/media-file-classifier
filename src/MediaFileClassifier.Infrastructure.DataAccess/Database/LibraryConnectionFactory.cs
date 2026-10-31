@@ -24,6 +24,8 @@ internal sealed class LibraryConnectionFactory(string databasePath)
     private const string Pragmas =
         "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;";
 
+    private volatile bool closed;
+
     /// <summary>
     /// Gets the connection string.
     /// </summary>
@@ -40,8 +42,10 @@ internal sealed class LibraryConnectionFactory(string databasePath)
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The open connection. The caller disposes it.</returns>
+    /// <exception cref="ObjectDisposedException">The library is closed.</exception>
     public async Task<SqliteConnection> OpenAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(closed, this);
         var connection = new SqliteConnection(ConnectionString);
         try
         {
@@ -56,6 +60,17 @@ internal sealed class LibraryConnectionFactory(string databasePath)
             await connection.DisposeAsync().ConfigureAwait(false);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Stops opening connections, once the library is closed, and closes the idle pooled ones. A read after this fails
+    /// instead of holding the database file open after the lock is released.
+    /// </summary>
+    public void Close()
+    {
+        closed = true;
+        using var connection = new SqliteConnection(ConnectionString);
+        SqliteConnection.ClearPool(connection);
     }
 
     /// <summary>

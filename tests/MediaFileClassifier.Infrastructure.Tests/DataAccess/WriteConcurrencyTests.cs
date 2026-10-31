@@ -100,6 +100,45 @@ public sealed class WriteConcurrencyTests
         await Assert.ThrowsAsync<ObjectDisposedException>(() => writer.ExecuteAsync((db, token) => Task.CompletedTask, Token));
     }
 
+    [Fact]
+    public async Task Writer_QueuedWriteCancelled_FailsAtOnceAndNeverRuns()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        await using var writer = await LibraryWriter.StartAsync(new LibraryConnectionFactory(bed.Library.Layout.DatabasePath), Token);
+        var gate = new TaskCompletionSource();
+        var blocking = writer.ExecuteAsync((db, token) => gate.Task, Token);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        var ran = false;
+        var queued = writer.ExecuteAsync(
+            (db, token) =>
+            {
+                ran = true;
+                return Task.CompletedTask;
+            },
+            cancellation.Token);
+
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => queued);
+        Assert.False(blocking.IsCompleted);
+        gate.SetResult();
+        await blocking;
+        await writer.ExecuteAsync((db, token) => Task.CompletedTask, Token);
+        Assert.False(ran);
+    }
+
+    [Fact]
+    public async Task Writer_WriteQueuesAnotherWrite_FailsInsteadOfDeadlocking()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        await using var writer = await LibraryWriter.StartAsync(new LibraryConnectionFactory(bed.Library.Layout.DatabasePath), Token);
+
+        var nested = writer.ExecuteAsync((db, token) => writer.ExecuteAsync((inner, innerToken) => Task.CompletedTask, token), Token);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => nested.WaitAsync(TimeSpan.FromSeconds(10), Token));
+        await writer.ExecuteAsync((db, token) => Task.CompletedTask, Token);
+    }
+
     private static TimeSpan Percentile(List<TimeSpan> values, double percentile)
     {
         var sorted = values.Order().ToList();

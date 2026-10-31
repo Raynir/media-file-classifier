@@ -19,8 +19,9 @@ A library is one self-contained folder, so it can be backed up or moved as a uni
     library-v1-20261030-120000-000.db   taken before a schema migration
 ```
 
-- **Create:** `ILibraryStore.CreateAsync(parent, name)` creates the folder, the database at the latest schema, the library record and `thumbnails/`. It fails with `AlreadyExists` if a non-empty folder of that name exists.
-- **Open:** `ILibraryStore.OpenAsync(folder)` takes the lock, migrates an older schema after a backup, and returns an `IOpenLibrary`. Disposing it waits for queued writes, closes every connection, which folds the WAL back into `library.db`, and releases the lock.
+- **Create:** `ILibraryStore.CreateAsync(parent, name)` creates the folder, the database at the latest schema, the library record and `thumbnails/`. It fails with `AlreadyExists` if a non-empty folder of that name exists. If creating fails or is cancelled after the lock is taken, it removes what it made, so the library can be created again.
+- **Open:** `ILibraryStore.OpenAsync(folder)` takes the lock, migrates an older schema after a backup, and returns an `IOpenLibrary`. Disposing it waits for queued writes, closes every connection, which folds the WAL back into `library.db`, and releases the lock. Reads and writes on a closed library throw `ObjectDisposedException`.
+- **Threads:** Microsoft.Data.Sqlite runs its async methods synchronously, so reads, backups, integrity checks, create and open run on a thread-pool thread, and writes on the writer's. Calling them from the UI thread doesn't block it.
 - **Errors:** `LibraryOpenException.Error` is a code (`NotFound`, `AlreadyExists`, `InUse`, `NewerVersion`, `NotALibrary`, `NotWritable`) for the UI to map to a resource string (E13-S08).
 
 ### Thumbnails (D078)

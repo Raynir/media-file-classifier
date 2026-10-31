@@ -161,7 +161,20 @@ Release build, AOT, arm64, on the device above.
 
 ## Risks and proposed backlog items
 
-None of these is in Jira yet. They wait for the user's go-ahead.
+The user approved the backlog items, and they're in Jira. Where a sub-task already covered a risk, the findings went into it as a comment instead of a duplicate.
+
+| Risk | Jira |
+|---|---|
+| R1 | MFC-975 (new, E20-S09-T03) |
+| R2 | MFC-976 (new, E20-S05-T04) |
+| R3 | MFC-977 (new, E20-S03-T03) |
+| R4 | Comments on MFC-954 and MFC-53 |
+| R5 | Comments on MFC-954, MFC-955 and MFC-53 |
+| R6 | MFC-978 (new, E20-S09-T04) |
+| R7 | Comment on MFC-945 |
+| R8 | Comment on MFC-942 |
+| R9 | MFC-980 (new, E01-S01-T09) |
+| R10 | MFC-979 (new, E20-S09-T05) |
 
 | # | Risk | Impact | Proposed backlog item |
 |---|---|---|---|

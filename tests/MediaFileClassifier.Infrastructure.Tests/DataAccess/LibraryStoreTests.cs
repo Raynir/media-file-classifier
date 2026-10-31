@@ -156,12 +156,15 @@ public sealed class LibraryStoreTests
     {
         using var temporary = TemporaryLibrary.Reserve();
         Directory.CreateDirectory(temporary.LibraryDirectory);
-        await File.WriteAllTextAsync(temporary.DatabasePath, "This is not a database, but it is long enough to have a header.", Token);
+        const string Text = "This is not a database, but it is long enough to have a header.";
+        await File.WriteAllTextAsync(temporary.DatabasePath, Text, Token);
         var store = LibraryTestBed.CreateStore(TimeProvider.System);
 
         var exception = await Assert.ThrowsAsync<LibraryOpenException>(() => store.OpenAsync(temporary.LibraryDirectory, Token));
 
         Assert.Equal(LibraryOpenError.NotALibrary, exception.Error);
+        Assert.Equal(Text, await File.ReadAllTextAsync(temporary.DatabasePath, Token));
+        Assert.False(File.Exists(Path.Combine(temporary.LibraryDirectory, LibraryLayout.LockFileName)));
     }
 
     [Fact]
@@ -173,6 +176,8 @@ public sealed class LibraryStoreTests
         var exception = await Assert.ThrowsAsync<LibraryOpenException>(() => store.OpenAsync(temporary.LibraryDirectory, Token));
 
         Assert.Equal(LibraryOpenError.NotALibrary, exception.Error);
+        Assert.Equal(0, new FileInfo(temporary.DatabasePath).Length);
+        Assert.False(File.Exists(Path.Combine(temporary.LibraryDirectory, LibraryLayout.LockFileName)));
         using var connection = temporary.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT count(*) FROM sqlite_master WHERE name = 'media_item'";

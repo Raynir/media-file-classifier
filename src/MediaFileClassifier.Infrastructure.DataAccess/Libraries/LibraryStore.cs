@@ -78,6 +78,7 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
             throw new LibraryOpenException(LibraryOpenError.NotFound, layout.RootDirectory);
         }
 
+        await EnsureLibraryDatabaseAsync(layout, cancellationToken).ConfigureAwait(false);
         var heldLock = LibraryLock.Acquire(layout, timeProvider.GetUtcNow());
         var connections = new LibraryConnectionFactory(layout.DatabasePath);
         try
@@ -102,6 +103,40 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
         {
             Release(connections, heldLock);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Checks that the database has a schema version table, before the lock file is created and before the connection
+    /// pragmas run, so a database that isn't a library is left exactly as it was. <c>journal_mode = WAL</c> would
+    /// otherwise be written into its header.
+    /// </summary>
+    private static async Task EnsureLibraryDatabaseAsync(LibraryLayout layout, CancellationToken cancellationToken)
+    {
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = layout.DatabasePath,
+            Mode = SqliteOpenMode.ReadWrite,
+            Pooling = false,
+        }.ToString();
+        long tables;
+        try
+        {
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = $table";
+            command.Parameters.AddWithValue("$table", LibraryDbContext.SchemaVersionTable);
+            tables = (long)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false))!;
+        }
+        catch (SqliteException exception) when (exception.SqliteErrorCode == SqliteNotADatabase)
+        {
+            throw new LibraryOpenException(LibraryOpenError.NotALibrary, layout.RootDirectory, exception);
+        }
+
+        if (tables == 0)
+        {
+            throw new LibraryOpenException(LibraryOpenError.NotALibrary, layout.RootDirectory);
         }
     }
 

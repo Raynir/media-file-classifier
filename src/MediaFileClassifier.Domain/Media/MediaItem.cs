@@ -66,6 +66,16 @@ public sealed class MediaItem
         IsFavorite = isFavorite;
     }
 
+    /// <summary>
+    /// Creates an empty instance for EF Core to fill when it loads the item (D071). EF Core can't pass the
+    /// complex-typed values to the public constructor.
+    /// </summary>
+    private MediaItem()
+    {
+        Path = null!;
+        Hashes = null!;
+    }
+
     public Id<MediaItem> Id { get; }
 
     public Id<IndexedFolder> FolderId { get; private set; }

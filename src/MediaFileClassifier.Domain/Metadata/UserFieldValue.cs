@@ -48,6 +48,12 @@ public sealed class UserFieldValue
         SuggestionRunId = suggestionRunId;
     }
 
+    /// <summary>
+    /// Creates an empty instance for EF Core to fill when it loads the value (D071). EF Core can't pass the
+    /// complex-typed values to the public constructor.
+    /// </summary>
+    private UserFieldValue() => Value = null!;
+
     public Id<MediaItem> ItemId { get; }
 
     public DescriptiveField Field { get; }

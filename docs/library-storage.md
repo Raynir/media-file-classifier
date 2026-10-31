@@ -16,7 +16,7 @@ A library is one self-contained folder, so it can be backed up or moved as a uni
     a7/              last two hex digits of the item ID
       019a3b2c-...-0000000000a7.webp
   backups/
-    library-v1-20261030-120000.db   taken before a schema migration
+    library-v1-20261030-120000-000.db   taken before a schema migration
 ```
 
 - **Create:** `ILibraryStore.CreateAsync(parent, name)` creates the folder, the database at the latest schema, the library record and `thumbnails/`. It fails with `AlreadyExists` if a non-empty folder of that name exists.
@@ -105,7 +105,8 @@ The schema is built with EF Core from the domain entities (`docs/domain-model.md
 
 - **Version table:** each EF migration is one schema version. `schema_version` (EF's migrations history table) lists the applied ones, and `library.schema_version` holds their count. A test checks that the count equals `Library.CurrentSchemaVersion`.
 - **On open:**
-  - If migrations are pending, the database is copied with `VACUUM INTO` to `backups/library-v<old>-<time>.db`, then migrated.
+  - If migrations are pending, the database is copied with `VACUUM INTO` to `backups/library-v<old>-<time>.db`, then migrated. The time has milliseconds, `yyyyMMdd-HHmmss-fff`.
+  - `library.schema_version` is set to the migration count on every open, so a version left stale by a crash between migrating and updating it is repaired.
   - A library with migrations the app doesn't know fails with `NewerVersion`.
   - A database with no migrations fails with `NotALibrary` and is left untouched.
 - **Adding a migration:**

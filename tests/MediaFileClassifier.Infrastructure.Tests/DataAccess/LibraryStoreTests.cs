@@ -178,6 +178,26 @@ public sealed class LibraryStoreTests
     }
 
     [Fact]
+    public async Task OpenAsync_StaleLibrarySchemaVersion_IsRepaired()
+    {
+        // As if the app stopped between migrating and updating library.schema_version.
+        await using var bed = await LibraryTestBed.CreateAsync();
+        await bed.Library.DisposeAsync();
+        using (var connection = bed.Temporary.OpenConnection())
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "UPDATE library SET schema_version = 0";
+            command.ExecuteNonQuery();
+        }
+
+        SqliteConnection.ClearAllPools();
+
+        await bed.OpenAgainAsync();
+
+        Assert.Equal(Library.CurrentSchemaVersion, bed.Library.Library.SchemaVersion);
+    }
+
+    [Fact]
     public async Task OpenAsync_LibraryAtEachOlderVersion_BacksUpAndUpgradesKeepingData()
     {
         // Runs for every older schema version. With a single migration there's none yet (N-1 = 0 has no library

@@ -160,22 +160,25 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
             throw new LibraryOpenException(LibraryOpenError.NewerVersion, layout.RootDirectory);
         }
 
-        if (applied.Count == known.Count)
+        if (applied.Count < known.Count)
         {
-            return;
+            // Milliseconds, so a migration retried right after a failed one doesn't collide with its backup.
+            var backupPath = Path.Combine(
+                layout.BackupsDirectory,
+                string.Create(CultureInfo.InvariantCulture, $"library-v{applied.Count}-{timeProvider.GetUtcNow():yyyyMMdd-HHmmss-fff}.db"));
+            await SqliteBackup.VacuumIntoAsync((SqliteConnection)db.Database.GetDbConnection(), backupPath, cancellationToken)
+                .ConfigureAwait(false);
+            LogBackedUp(layout.RootDirectory, applied.Count, backupPath);
+
+            await db.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+            LogMigrated(layout.RootDirectory, applied.Count, known.Count);
         }
 
-        var backupPath = Path.Combine(
-            layout.BackupsDirectory,
-            string.Create(CultureInfo.InvariantCulture, $"library-v{applied.Count}-{timeProvider.GetUtcNow():yyyyMMdd-HHmmss}.db"));
-        await SqliteBackup.VacuumIntoAsync((SqliteConnection)db.Database.GetDbConnection(), backupPath, cancellationToken)
+        // On every open, not only after a migration: this also repairs a version left behind when the app stopped
+        // between migrating and this update.
+        await db.Database
+            .ExecuteSqlAsync($"UPDATE library SET schema_version = {known.Count} WHERE schema_version <> {known.Count}", cancellationToken)
             .ConfigureAwait(false);
-        LogBackedUp(layout.RootDirectory, applied.Count, backupPath);
-
-        await db.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
-        await db.Database.ExecuteSqlAsync($"UPDATE library SET schema_version = {known.Count}", cancellationToken)
-            .ConfigureAwait(false);
-        LogMigrated(layout.RootDirectory, applied.Count, known.Count);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Created library {Directory}")]

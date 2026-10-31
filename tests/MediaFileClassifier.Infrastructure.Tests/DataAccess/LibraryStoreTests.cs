@@ -107,6 +107,27 @@ public sealed class LibraryStoreTests
     }
 
     [Fact]
+    public async Task OpenAsync_LockFileNotWritable_ThrowsNotWritable()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        await bed.Library.DisposeAsync();
+        var lockFile = new FileInfo(bed.Library.Layout.LockFilePath);
+        lockFile.IsReadOnly = true;
+        try
+        {
+            var exception = await Assert.ThrowsAsync<LibraryOpenException>(() => bed.Store.OpenAsync(bed.Temporary.LibraryDirectory, Token));
+
+            Assert.Equal(LibraryOpenError.NotWritable, exception.Error);
+        }
+        finally
+        {
+            lockFile.IsReadOnly = false;
+        }
+
+        await bed.OpenAgainAsync();
+    }
+
+    [Fact]
     public async Task OpenAsync_AfterClose_ReleasesLockAndKeepsData()
     {
         await using var bed = await LibraryTestBed.CreateAsync();

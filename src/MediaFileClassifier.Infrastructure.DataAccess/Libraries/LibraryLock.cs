@@ -12,6 +12,13 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 /// </summary>
 internal sealed class LibraryLock : IDisposable
 {
+    // Windows: ERROR_SHARING_VIOLATION and ERROR_LOCK_VIOLATION, in the low word of the HRESULT.
+    private const int WindowsSharingViolation = 32;
+    private const int WindowsLockViolation = 33;
+
+    // Linux and Android: .NET reports a held flock as EWOULDBLOCK, with the errno as the HRESULT.
+    private const int UnixWouldBlock = 11;
+
     private readonly FileStream stream;
 
     private LibraryLock(FileStream stream) => this.stream = stream;
@@ -22,7 +29,8 @@ internal sealed class LibraryLock : IDisposable
     /// <param name="layout">The library.</param>
     /// <param name="now">Current time, written into the lock file.</param>
     /// <returns>The held lock. Disposing it releases the lock.</returns>
-    /// <exception cref="LibraryOpenException">Another app instance holds the lock.</exception>
+    /// <exception cref="LibraryOpenException">Another app instance holds the lock (<see cref="LibraryOpenError.InUse"/>),
+    /// or the lock file can't be written (<see cref="LibraryOpenError.NotWritable"/>).</exception>
     public static LibraryLock Acquire(LibraryLayout layout, DateTimeOffset now)
     {
         FileStream stream;
@@ -30,9 +38,13 @@ internal sealed class LibraryLock : IDisposable
         {
             stream = new FileStream(layout.LockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         }
-        catch (IOException exception)
+        catch (IOException exception) when (IsHeldElsewhere(exception))
         {
             throw new LibraryOpenException(LibraryOpenError.InUse, layout.RootDirectory, exception);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new LibraryOpenException(LibraryOpenError.NotWritable, layout.RootDirectory, exception);
         }
 
         try
@@ -45,6 +57,11 @@ internal sealed class LibraryLock : IDisposable
             stream.Flush();
             return new LibraryLock(stream);
         }
+        catch (IOException exception)
+        {
+            stream.Dispose();
+            throw new LibraryOpenException(LibraryOpenError.NotWritable, layout.RootDirectory, exception);
+        }
         catch
         {
             stream.Dispose();
@@ -56,4 +73,8 @@ internal sealed class LibraryLock : IDisposable
     /// Releases the lock. The file stays; its presence alone doesn't mean the library is open.
     /// </summary>
     public void Dispose() => stream.Dispose();
+
+    private static bool IsHeldElsewhere(IOException exception) => OperatingSystem.IsWindows()
+        ? (exception.HResult & 0xFFFF) is WindowsSharingViolation or WindowsLockViolation
+        : exception.HResult == UnixWouldBlock;
 }

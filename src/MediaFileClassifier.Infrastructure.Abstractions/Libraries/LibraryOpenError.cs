@@ -30,4 +30,10 @@ public enum LibraryOpenError
     /// The database isn't a library database, e.g. its library record is missing.
     /// </summary>
     NotALibrary,
+
+    /// <summary>
+    /// The library folder can't be written, e.g. it's read-only, the user has no write permission, or the disk failed.
+    /// An open library needs to write its lock file and database.
+    /// </summary>
+    NotWritable,
 }

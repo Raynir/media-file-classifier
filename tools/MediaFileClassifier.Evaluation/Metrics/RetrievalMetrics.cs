@@ -7,7 +7,9 @@ namespace MediaFileClassifier.Evaluation.Metrics;
 public static class RetrievalMetrics
 {
     /// <summary>
-    /// The share of the relevant items found in the first <paramref name="k"/> results.
+    /// Capped recall: the relevant items found in the first <paramref name="k"/> results, divided by
+    /// the number of relevant items or <paramref name="k"/>, whichever is smaller. A perfect ranking
+    /// scores 1 even when a query has more than <paramref name="k"/> relevant items (as in BEIR).
     /// </summary>
     public static double RecallAt(int k, IReadOnlyList<string> ranked, IReadOnlySet<string> relevant)
     {
@@ -18,7 +20,7 @@ public static class RetrievalMetrics
         }
 
         var found = Distinct(ranked).Take(k).Count(relevant.Contains);
-        return (double)found / relevant.Count;
+        return (double)found / Math.Min(relevant.Count, k);
     }
 
     /// <summary>

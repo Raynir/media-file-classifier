@@ -14,8 +14,18 @@ public sealed class RetrievalMetricsTests
     {
         string[] ranked = ["x", "a", "y", "b", "z", "c"];
 
-        Assert.Equal(0.25, RetrievalMetrics.RecallAt(2, ranked, Relevant));
+        Assert.Equal(0.5, RetrievalMetrics.RecallAt(2, ranked, Relevant));
         Assert.Equal(0.75, RetrievalMetrics.RecallAt(10, ranked, Relevant));
+    }
+
+    [Fact]
+    public void RecallAt_IsCappedAtTheCutoff()
+    {
+        string[] ranked = ["a", "b", "x", "c"];
+
+        // Four relevant items but only three results counted: two of three is the best share possible.
+        Assert.Equal(2.0 / 3, RetrievalMetrics.RecallAt(3, ranked, Relevant), 10);
+        Assert.Equal(1.0, RetrievalMetrics.RecallAt(2, ranked, Relevant));
     }
 
     [Fact]
@@ -23,7 +33,7 @@ public sealed class RetrievalMetricsTests
     {
         string[] ranked = ["a", "a", "a", "b"];
 
-        Assert.Equal(0.5, RetrievalMetrics.RecallAt(3, ranked, Relevant));
+        Assert.Equal(2.0 / 3, RetrievalMetrics.RecallAt(3, ranked, Relevant), 10);
     }
 
     [Fact]

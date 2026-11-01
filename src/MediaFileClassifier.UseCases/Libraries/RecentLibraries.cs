@@ -9,7 +9,25 @@ namespace MediaFileClassifier.UseCases.Libraries;
 public static class RecentLibraries
 {
     /// <summary>
-    /// Puts a library first in the recent list and makes it the last opened one.
+    /// The most entries the list keeps.
+    /// </summary>
+    public const int MaxCount = 10;
+
+    /// <summary>
+    /// Removes a library from the recent list, and forgets it as the last library.
+    /// </summary>
+    /// <param name="settings">The app settings.</param>
+    /// <param name="path">The library folder.</param>
+    public static void Remove(ISettingsService settings, string path)
+        => settings.Update(current => current with
+        {
+            LastLibraryPath = current.LastLibraryPath is { } last && SamePath(last, path) ? null : current.LastLibraryPath,
+            RecentLibraries = [.. (current.RecentLibraries ?? []).Where(entry => !SamePath(entry.Path, path))],
+        });
+
+    /// <summary>
+    /// Puts a library first in the recent list, keeping at most <see cref="MaxCount"/> entries, and makes it the last
+    /// opened one.
     /// </summary>
     /// <param name="settings">The app settings.</param>
     /// <param name="library">The library just created or opened.</param>
@@ -23,7 +41,7 @@ public static class RecentLibraries
             RecentLibraries =
             [
                 new RecentLibrary(path, library.Library.Name, now),
-                .. (current.RecentLibraries ?? []).Where(entry => !SamePath(entry.Path, path)),
+                .. (current.RecentLibraries ?? []).Where(entry => !SamePath(entry.Path, path)).Take(MaxCount - 1),
             ],
         });
     }

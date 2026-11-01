@@ -24,6 +24,7 @@ public static class UseCasesModule
         services.AddSetting(KnownSettings.OpenAiCompatibleEndpoint);
         services.AddSetting(KnownSettings.AnalyzeAutomatically);
         services.AddSetting(KnownSettings.RetainedPreviousRuns);
+        services.AddSetting(Libraries.OpenLibrary.LibraryStartupSettings.OpenLastLibrary);
         return services;
     }
 }

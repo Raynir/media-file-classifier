@@ -26,6 +26,7 @@ public static class UiModule
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSingleton<ShellLayout>();
+        services.AddSingleton<ShellRegions>();
 
         // Commands (E13-S05). Commands follow the capability flags that AddInfrastructure registers.
         services.TryAddSingleton<ICapabilityGate, CapabilityServiceGate>();

@@ -27,10 +27,10 @@ The UI takes every colour, size and font setting from design tokens (E13-S06). T
 | States | `Brush.State.Hover`, `.Pressed`, `.Selected`, `.Focus`; `Opacity.Disabled`, `Opacity.Inactive` | |
 | Item status | `Brush.Status.<Status>.Foreground` and `.Background`; `Icon.Status.<Status>` | `<Status>` is `Pending`, `Error`, `Missing`, `Offline` or `Excluded`. |
 | Provenance | `Brush.Provenance.<Slot>.Foreground` and `.Background`; `Icon.Provenance.<Slot>` | `<Slot>` is `Ai`, `Edited`, `Accepted` or `NewSuggestion`. The look is designed in E07-S11-T01 (M3). |
-| Spacing | `Space.XS` 4, `.S` 8, `.M` 12, `.L` 16, `.XL` 20, `.XXL` 24; `Padding.Panel`, `.Header`, `.Control`, `.Compact` | |
+| Spacing | `Space.XS` 4, `.S` 8, `.M` 12, `.L` 16, `.XL` 20, `.XXL` 24; `Padding.Panel`, `.Header`, `.Control`, `.Compact`, `.Strip` | |
 | Radii | `Radius.None`, `.Control`, `.Tile`, `.Tooltip`, `.Pill` | |
 | Typography | `Font.Family`; `FontSize.Title`, `.Subtitle`, `.Body`, `.Caption`, `.Badge`; `FontWeight.Title`, `.Label`, `.Body` | Figma uses Roboto. The app bundles Inter until the font is decided. |
-| Layout | `Size.Navigation.Expanded`, `.Collapsed`, `Size.DetailsPanel`, `Size.Toolbar`, `Size.ContentHeader`, `Size.Control`, `Size.Control.Small`, `Size.Icon`, `.Small`, `.Large`, `Size.Tile.Width`, `.Height`, `Size.ListRow` | |
+| Layout | `Size.Navigation.Expanded`, `.Collapsed`, `Size.DetailsPanel`, `.Collapsed`, `Size.Splitter`, `Size.Toolbar`, `Size.ContentHeader`, `Size.Control`, `Size.Control.Small`, `Size.Icon`, `.Small`, `.Large`, `Size.Tile.Width`, `.Height`, `Size.ListRow` | The expanded panel widths are defaults: the user resizes the panels, and `ShellLayout` keeps their limits. `Size.DetailsPanel.Collapsed` isn't in Figma. |
 
 ## Classes in Styles.axaml
 

@@ -17,7 +17,7 @@ namespace MediaFileClassifier.Ui.Tests.Commands;
 public sealed class CommandSurfacesTests
 {
     [Fact]
-    public Task ToggleNavigation_IsConsistentInMenuContextMenuAndButton() => TestApp.RunAsync(() =>
+    public Task CollapseNavigation_IsConsistentInMenuContextMenuAndButton() => TestApp.RunAsync(() =>
     {
         using var services = new ServiceCollection()
             .AddSingleton<IAppPaths>(new FakeAppPaths())
@@ -26,7 +26,7 @@ public sealed class CommandSurfacesTests
             .AddUi()
             .BuildServiceProvider();
         var viewModel = services.GetRequiredService<MainWindowViewModel>();
-        var command = viewModel.Commands[ShellCommands.ToggleNavigation];
+        var command = viewModel.Commands[ShellCommands.CollapseNavigation];
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -35,7 +35,10 @@ public sealed class CommandSurfacesTests
             .Single(item => item.DataContext is MenuGroupViewModel { Group: "view" });
         viewMenu.Open();
         Dispatcher.UIThread.RunJobs();
-        var menuItem = (MenuItem)viewMenu.ContainerFromItem(command)!;
+        var submenu = (MenuItem)viewMenu.ContainerFromItem(viewModel.Menu.Groups.Single(group => group.Group == "view").Items[0])!;
+        submenu.Open();
+        Dispatcher.UIThread.RunJobs();
+        var menuItem = (MenuItem)submenu.ContainerFromItem(command)!;
 
         var navigationPanel = window.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "NavigationPanel");
         navigationPanel.ContextMenu!.Open(navigationPanel);
@@ -56,11 +59,12 @@ public sealed class CommandSurfacesTests
         button.Command!.Execute(null);
         Dispatcher.UIThread.RunJobs();
 
-        Assert.False(viewModel.Layout.IsNavigationExpanded);
-        Assert.False(menuItem.IsChecked);
-        Assert.False(contextItem.IsChecked);
+        Assert.True(viewModel.Layout.Navigation.IsCollapsed);
+        var collapsedChoice = (MenuItem)submenu.ContainerFromItem(viewModel.Commands[ShellCommands.NavigationCollapsed])!;
+        Assert.True(collapsedChoice.IsChecked);
 
         navigationPanel.ContextMenu.Close();
+        submenu.Close();
         viewMenu.Close();
         window.Close();
     });

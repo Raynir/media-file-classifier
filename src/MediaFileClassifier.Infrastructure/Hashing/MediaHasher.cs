@@ -9,7 +9,8 @@ namespace MediaFileClassifier.Infrastructure.Hashing;
 /// </summary>
 /// <param name="files">Reads the files.</param>
 /// <param name="fileHasher">Computes fingerprints and content hashes.</param>
-public sealed class MediaHasher(IMediaFileSource files, IFileHasher fileHasher) : IMediaHasher
+/// <param name="perceptualHasher">Computes perceptual hashes of images.</param>
+public sealed class MediaHasher(IMediaFileSource files, IFileHasher fileHasher, IPerceptualHasher perceptualHasher) : IMediaHasher
 {
     /// <inheritdoc />
     public async Task<UInt128> ComputeFingerprintAsync(FileLocation file, long sizeBytes, CancellationToken cancellationToken = default)
@@ -43,6 +44,15 @@ public sealed class MediaHasher(IMediaFileSource files, IFileHasher fileHasher) 
             await using (stream.ConfigureAwait(false))
             {
                 hashes = hashes with { ContentHash = await fileHasher.ComputeContentHashAsync(stream, cancellationToken).ConfigureAwait(false) };
+            }
+        }
+
+        if (hashes.PerceptualHash is null && mediaType is MediaType.Image or MediaType.AnimatedImage)
+        {
+            var stream = await files.OpenReadAsync(file, cancellationToken).ConfigureAwait(false);
+            await using (stream.ConfigureAwait(false))
+            {
+                hashes = hashes with { PerceptualHash = perceptualHasher.Compute(stream) };
             }
         }
 

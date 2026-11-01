@@ -37,6 +37,7 @@ public static class InfrastructureModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, FfmpegProbe>(
             _ => new FfmpegProbe(FfmpegProbe.GetDefaultSearchDirectories())));
         services.TryAddSingleton<IFileHasher, XxHashFileHasher>();
+        services.TryAddSingleton<IPerceptualHasher, SkiaPerceptualHasher>();
         services.TryAddSingleton<IMediaHasher, MediaHasher>();
         return services;
     }

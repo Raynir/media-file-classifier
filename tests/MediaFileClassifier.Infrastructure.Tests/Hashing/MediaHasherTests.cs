@@ -13,7 +13,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Hashing;
 public sealed class MediaHasherTests : IAsyncLifetime
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
-    private readonly MediaHasher hasher = new(new FileSystemMediaFileSource(), new XxHashFileHasher());
+    private readonly MediaHasher hasher = new(new FileSystemMediaFileSource(), new XxHashFileHasher(), new SkiaPerceptualHasher());
     private LibraryTestBed bed = null!;
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -42,6 +42,7 @@ public sealed class MediaHasherTests : IAsyncLifetime
 
         Assert.NotNull(original.ContentHash);
         Assert.NotNull(original.Fingerprint);
+        Assert.NotNull(original.PerceptualHash);
         Assert.Equal(original, copy);
         Assert.NotEqual(original.ContentHash, other.ContentHash);
         Assert.NotEqual(original.Fingerprint, other.Fingerprint);

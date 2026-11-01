@@ -106,7 +106,7 @@ Commit the reports of public runs, so the next run compares against a shared his
 
 ## Baselines
 
-`eval/baselines.json` holds per-language minimums for recall@10 and MRR, and per-script maximums for CER. They're empty until E06-SP01 (MFC-53) records the first values, for example recall@10 ≥ 0.7 in each language; later quality criteria refer to them. Write in `note` which report set them.
+`eval/baselines.json` holds per-language minimums for recall@10 and MRR, and per-script maximums for CER. E06-SP01 (MFC-53) set the search values from SigLIP 2 base-patch16-256, at about 0.02 below what it measured: recall@10 ≥ 0.94 (en) and ≥ 0.79 (ru), MRR ≥ 0.96 and ≥ 0.81 ([docs/spikes/embedding-model.md](spikes/embedding-model.md)). The CER maximums stay empty until the OCR spike (E06-SP04). Later quality criteria refer to these values. When you change one, write in `note` which report set it.
 
 ## Private data sets (E01-S10-T05)
 

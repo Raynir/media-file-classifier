@@ -1,0 +1,16 @@
+# Python environment of the embedding model spike (MFC-53). Install torch from the CUDA index first:
+#   pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
+av==19.0.2
+huggingface_hub==2.4.0
+numpy==2.5.4
+onnx==1.23.2
+onnxconverter-common==1.16.0
+onnxruntime-gpu[cuda,cudnn]==1.31.1
+onnxscript==0.7.2
+open_clip_torch==3.3.0
+pillow==13.0.0
+protobuf==7.36.2
+sentence-transformers==6.2.0
+sentencepiece==0.2.2
+tokenizers==0.23.3
+transformers==5.22.1

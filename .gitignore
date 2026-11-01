@@ -488,3 +488,6 @@ $RECYCLE.BIN/
 eval/corpus/
 eval/private/
 eval-corpus-*.zip
+
+# Embedding model spike (MFC-53): local model files, caches and the Python environment
+models/

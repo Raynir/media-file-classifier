@@ -238,4 +238,37 @@
   <data name="Settings_Off" xml:space="preserve">
     <value>Off</value>
   </data>
+  <data name="Settings_Search_Placeholder" xml:space="preserve">
+    <value>Search settings</value>
+  </data>
+  <data name="Settings_SearchResults" xml:space="preserve">
+    <value>Results for “{0}”</value>
+    <comment>{0} is the search text.</comment>
+  </data>
+  <data name="Settings_NoResults" xml:space="preserve">
+    <value>No settings match “{0}”.</value>
+    <comment>{0} is the search text.</comment>
+  </data>
+  <data name="Settings_ResetCategory" xml:space="preserve">
+    <value>Reset to defaults</value>
+  </data>
+  <data name="Settings_ResetCategory_Confirm" xml:space="preserve">
+    <value>Reset all {0} settings to their defaults?</value>
+    <comment>{0} is the category name, such as Appearance.</comment>
+  </data>
+  <data name="Settings_ResetAll" xml:space="preserve">
+    <value>Reset all settings</value>
+  </data>
+  <data name="Settings_ResetAll_Confirm" xml:space="preserve">
+    <value>Reset every setting to its default?</value>
+  </data>
+  <data name="Settings_ResetAll_NoLibrary" xml:space="preserve">
+    <value>Library settings stay as they are, because no library is open.</value>
+  </data>
+  <data name="Settings_Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Settings_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
 </root>

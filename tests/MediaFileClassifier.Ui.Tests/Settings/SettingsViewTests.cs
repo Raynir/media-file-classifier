@@ -32,7 +32,7 @@ public sealed class SettingsViewTests
             viewModel.SelectedCategory = category;
             Dispatcher.UIThread.RunJobs();
             controls.AddRange(window.GetLogicalDescendants().OfType<Control>()
-                .Where(control => control is ToggleSwitch or NumericUpDown or TextBox or ComboBox));
+                .Where(control => control is ToggleSwitch or NumericUpDown or TextBox or ComboBox && control.DataContext is SettingItemViewModel));
         }
 
         window.Close();
@@ -51,7 +51,7 @@ public sealed class SettingsViewTests
         var window = CreateWindow(services, viewModel);
         window.Show();
         Dispatcher.UIThread.RunJobs();
-        var textBox = window.GetLogicalDescendants().OfType<TextBox>().Single();
+        var textBox = window.GetLogicalDescendants().OfType<TextBox>().Single(box => box.DataContext is TextSettingItemViewModel);
 
         textBox.Focus();
         textBox.Text = "http://localhost:11434";

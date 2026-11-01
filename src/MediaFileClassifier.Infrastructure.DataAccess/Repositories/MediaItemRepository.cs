@@ -37,6 +37,31 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> FindByContentHashAsync(UInt128 contentHash, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems
+                .Where(item => item.Hashes.ContentHash == contentHash)
+                .OrderBy(item => item.Id)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> GetWithoutContentHashAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+
+        return connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems
+                .Where(item => item.Hashes.ContentHash == null)
+                .OrderBy(item => item.Id)
+                .Take(limit)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<MediaItem>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset);

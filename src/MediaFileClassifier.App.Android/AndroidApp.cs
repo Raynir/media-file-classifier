@@ -10,6 +10,7 @@ using MediaFileClassifier.Infrastructure;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.DataAccess;
+using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Ui;
 using MediaFileClassifier.Ui.Shell;
@@ -100,6 +101,7 @@ public sealed class AndroidApp : AvaloniaAndroidApplication<UiApp>
             .AddAndroidPlatform(context)
             .AddInfrastructure()
             .AddDataAccess()
+            .AddMedia()
             .AddUseCases()
             .AddUi()
             .AddSpike();

@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.DataAccess.Database.Conversions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -59,6 +60,7 @@ internal sealed class TechnicalMetadataConfiguration : IEntityTypeConfiguration<
             location.Property(value => value.Longitude);
             location.Property(value => value.AltitudeMeters);
         });
+        builder.Property(metadata => metadata.Warnings).HasConversion(new ExtractionWarningListConverter(), new ExtractionWarningListComparer());
         builder.HasOne<MediaItem>().WithOne().HasForeignKey<TechnicalMetadata>(metadata => metadata.ItemId).OnDelete(DeleteBehavior.Cascade);
     }
 }

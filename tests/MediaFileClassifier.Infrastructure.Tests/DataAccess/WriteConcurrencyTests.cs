@@ -78,6 +78,45 @@ public sealed class WriteConcurrencyTests
     }
 
     [Fact]
+    public async Task Writer_CommitsDoNotCheckpoint()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        await using var writer = await LibraryWriter.StartAsync(new LibraryConnectionFactory(bed.Library.Layout.DatabasePath), Token);
+        long autoCheckpoint = -1;
+
+        await writer.ExecuteWithoutTransactionAsync(
+            async (connection, token) =>
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = "PRAGMA wal_autocheckpoint;";
+                autoCheckpoint = (long)(await command.ExecuteScalarAsync(token))!;
+            },
+            Token);
+
+        Assert.Equal(0, autoCheckpoint);
+    }
+
+    [Fact]
+    public async Task Writer_CheckpointsInTheBackground()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        var database = new FileInfo(bed.Library.Layout.DatabasePath);
+        var before = database.Length;
+
+        await bed.Library.Items.AddRangeAsync([.. Enumerable.Range(1, 2_000).Select(bed.NewItem)], Token);
+
+        // Only a checkpoint copies the new pages from the WAL into the database file while the library is open.
+        var watch = Stopwatch.StartNew();
+        while (database.Length <= before && watch.Elapsed < TimeSpan.FromSeconds(10))
+        {
+            await Task.Delay(50, Token);
+            database.Refresh();
+        }
+
+        Assert.True(database.Length > before, $"The database file is still {database.Length} bytes.");
+    }
+
+    [Fact]
     public async Task Writer_FailedWrite_DoesNotStopLaterWrites()
     {
         await using var bed = await LibraryTestBed.CreateAsync();

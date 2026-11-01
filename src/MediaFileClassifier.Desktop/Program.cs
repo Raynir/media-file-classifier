@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.DataAccess;
+using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Ui;
 using MediaFileClassifier.UseCases;
@@ -49,6 +50,7 @@ internal static class Program
                 .AddDesktopPlatform()
                 .AddInfrastructure()
                 .AddDataAccess()
+                .AddJobs()
                 .AddUseCases()
                 .AddUi()
                 .Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true);

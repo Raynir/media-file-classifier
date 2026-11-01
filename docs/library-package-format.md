@@ -39,7 +39,7 @@ A package holds what a target device needs to search the media without analysing
 |------|-----|
 | Thumbnails | Regenerated on the target device. |
 | Absolute machine paths: `IndexedFolder.DisplayPath`, `PlatformHandle` | Meaningless on another device, and private. |
-| Absolute paths inside `TechnicalMetadata.RawMetadataJson` | Extractors can record the source file path (e.g. a `SourceFile` or `Directory` key). The writer removes them; E07-S08 fixes the key list once the extractor (E03-S03) is chosen. |
+| Absolute paths inside `TechnicalMetadata.RawMetadataJson` | The E03-S03 extractors read streams, so their dumps hold no file paths. The writer still removes path keys (e.g. `SourceFile`, `Directory`, `filename`) as a safeguard; E07-S08 fixes the key list. |
 | App settings, and `LibrarySettings` other than the active search model | Device preferences, e.g. whether to analyse automatically. |
 | API keys and other secrets | Never exported. |
 | Previous (inactive) analysis runs | Only used to compare runs in review (E08-S06). About 15–20% of a library's size (`docs/domain-model.md`). |

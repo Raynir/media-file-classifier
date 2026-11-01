@@ -1,12 +1,15 @@
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Metadata;
 
 namespace MediaFileClassifier.Infrastructure.Media.Formats;
 
 /// <summary>
 /// PNG images. Animated PNG isn't an MVP format (D010), so an APNG counts as a still image of its first frame.
 /// </summary>
-public sealed class PngFormatHandler : IMediaFormatHandler
+/// <param name="metadataExtractor">Reads the metadata.</param>
+public sealed class PngFormatHandler(ImageMetadataExtractor metadataExtractor) : IMediaFormatHandler
 {
     /// <inheritdoc />
     public string FormatId => "png";
@@ -16,6 +19,9 @@ public sealed class PngFormatHandler : IMediaFormatHandler
 
     /// <inheritdoc />
     public IReadOnlyList<string> Extensions { get; } = [".png"];
+
+    /// <inheritdoc />
+    public IMediaMetadataExtractor MetadataExtractor => metadataExtractor;
 
     /// <inheritdoc />
     public int SignatureLength => 8;

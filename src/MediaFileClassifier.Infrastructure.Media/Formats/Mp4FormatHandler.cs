@@ -1,5 +1,7 @@
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Metadata;
 
 namespace MediaFileClassifier.Infrastructure.Media.Formats;
 
@@ -8,7 +10,8 @@ namespace MediaFileClassifier.Infrastructure.Media.Formats;
 /// whether FFmpeg can decode a file shows later, when its metadata and frames are read. Audio-only files and the
 /// relatives that share the container (QuickTime, 3GPP, HEIF) are skipped (D010).
 /// </summary>
-public sealed class Mp4FormatHandler : IMediaFormatHandler
+/// <param name="metadataExtractor">Reads the metadata.</param>
+public sealed class Mp4FormatHandler(VideoMetadataExtractor metadataExtractor) : IMediaFormatHandler
 {
     /// <summary>
     /// Major brands of ISO base media files that aren't MP4 video, by prefix.
@@ -39,6 +42,9 @@ public sealed class Mp4FormatHandler : IMediaFormatHandler
 
     /// <inheritdoc />
     public IReadOnlyList<string> Extensions { get; } = [".mp4", ".m4v"];
+
+    /// <inheritdoc />
+    public IMediaMetadataExtractor MetadataExtractor => metadataExtractor;
 
     /// <inheritdoc />
     public int SignatureLength => 8;

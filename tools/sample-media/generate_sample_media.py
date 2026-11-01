@@ -19,7 +19,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageCms, ImageDraw, ImageFont
 
 SEED = 52
 
@@ -66,6 +66,20 @@ def jpeg_with_exif(path: Path) -> None:
     gps_ifd[0x0003] = "W"  # 67°17'21" W
     gps_ifd[0x0004] = (67.0, 17.0, 21.0)
     gradient(640, 480).save(path, "JPEG", quality=85, exif=exif)
+
+
+def jpeg_with_icc_and_offset(path: Path) -> None:
+    exif = Image.Exif()
+    exif[0x010F] = "MFC Test Camera Co."  # Make
+    exif[0x0110] = "Sample 2"  # Model
+    exif_ifd = exif.get_ifd(0x8769)
+    exif_ifd[0x9003] = "2026:06:15 08:30:00"  # DateTimeOriginal
+    exif_ifd[0x9011] = "+03:00"  # OffsetTimeOriginal (EXIF 2.31)
+    exif_ifd[0x9291] = "25"  # SubSecTimeOriginal: 250 ms
+    exif_ifd[0xA001] = 1  # ColorSpace: sRGB
+    exif_ifd[0xA434] = "MFC Lens 35mm"  # LensModel
+    icc = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    gradient(200, 100).save(path, "JPEG", quality=80, exif=exif, icc_profile=icc)
 
 
 def png_with_alpha(path: Path) -> None:
@@ -180,12 +194,35 @@ def av1_video(path: Path) -> None:
     )
 
 
+def portrait_video(path: Path) -> None:
+    # Like a phone held upright: landscape pixels with a display matrix that turns them 90° clockwise, and the
+    # container's creation time.
+    landscape = path.with_suffix(".tmp.mp4")
+    encode_video(
+        landscape,
+        ["-f", "lavfi", "-i", "testsrc=size=160x90:rate=10:duration=1"],
+        ["-c:v", "libx264", "-preset", "veryslow", "-crf", "35", "-pix_fmt", "yuv420p"],
+    )
+    subprocess.run(
+        [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+            "-display_rotation", "-90", "-i", str(landscape),
+            "-c", "copy", "-map_metadata", "-1", "-metadata", "creation_time=2026-07-01T10:20:30.000000Z",
+            "-fflags", "+bitexact", "-movflags", "+faststart",
+            str(path),
+        ],
+        check=True,
+    )
+    landscape.unlink()
+
+
 def audio_only_mp4(path: Path) -> None:
     encode_video(path, ["-f", "lavfi", "-i", "sine=frequency=440:duration=1"], ["-c:a", "aac", "-b:a", "32k"])
 
 
 GENERATORS = {
     "jpeg-exif.jpg": jpeg_with_exif,
+    "jpeg-icc-offset.jpg": jpeg_with_icc_and_offset,
     "png-alpha.png": png_with_alpha,
     "webp.webp": webp,
     "gif-static.gif": static_gif,
@@ -194,6 +231,7 @@ GENERATORS = {
     "video-short.mp4": short_video,
     "video-hevc.mp4": hevc_video,
     "video-av1.mp4": av1_video,
+    "video-portrait.mp4": portrait_video,
     "audio-only.mp4": audio_only_mp4,
     "ocr-text.png": ocr_text,
     "corrupt.jpg": corrupt_jpeg,

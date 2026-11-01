@@ -17,6 +17,11 @@ public static class SampleMedia
     public static string JpegWithExif => Combine("jpeg-exif.jpg");
 
     /// <summary>
+    /// Gets a 200×100 JPEG with an sRGB ICC profile, and EXIF with a lens, a time zone offset and subseconds.
+    /// </summary>
+    public static string JpegWithIccAndOffset => Combine("jpeg-icc-offset.jpg");
+
+    /// <summary>
     /// Gets a 256×256 PNG with an alpha channel.
     /// </summary>
     public static string PngWithAlpha => Combine("png-alpha.png");
@@ -55,6 +60,12 @@ public static class SampleMedia
     /// Gets a 1-second 160×120 MP4 with AV1 video and no audio.
     /// </summary>
     public static string Av1Video => Combine("video-av1.mp4");
+
+    /// <summary>
+    /// Gets a 1-second MP4 stored 160×90 with a −90° display rotation, so it shows portrait, and a container
+    /// creation time of 2026-07-01 10:20:30 UTC.
+    /// </summary>
+    public static string PortraitVideo => Combine("video-portrait.mp4");
 
     /// <summary>
     /// Gets an MP4 with an AAC audio track and no video track.

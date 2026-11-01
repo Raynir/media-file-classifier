@@ -1,12 +1,15 @@
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Metadata;
 
 namespace MediaFileClassifier.Infrastructure.Media.Formats;
 
 /// <summary>
 /// WebP images: a still image with one frame, an animated image with more.
 /// </summary>
-public sealed class WebPFormatHandler : IMediaFormatHandler
+/// <param name="metadataExtractor">Reads the metadata.</param>
+public sealed class WebPFormatHandler(ImageMetadataExtractor metadataExtractor) : IMediaFormatHandler
 {
     /// <inheritdoc />
     public string FormatId => "webp";
@@ -16,6 +19,9 @@ public sealed class WebPFormatHandler : IMediaFormatHandler
 
     /// <inheritdoc />
     public IReadOnlyList<string> Extensions { get; } = [".webp"];
+
+    /// <inheritdoc />
+    public IMediaMetadataExtractor MetadataExtractor => metadataExtractor;
 
     /// <inheritdoc />
     public int SignatureLength => 12;

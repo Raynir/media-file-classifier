@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Media.Formats;
+using MediaFileClassifier.Infrastructure.Media.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -11,13 +12,18 @@ namespace MediaFileClassifier.Infrastructure.Media;
 public static class MediaModule
 {
     /// <summary>
-    /// Adds the format registry and a handler for each MVP format (D010). A new format is another
-    /// <see cref="IMediaFormatHandler"/> registration here.
+    /// Adds the format registry, a handler for each MVP format (D010) and the metadata extractors. A new format is
+    /// another <see cref="IMediaFormatHandler"/> registration here. Video metadata needs the capability service of
+    /// <c>AddInfrastructure</c>.
     /// </summary>
     /// <param name="services">Service collection.</param>
     /// <returns>The same service collection, for chaining.</returns>
     public static IServiceCollection AddMedia(this IServiceCollection services)
     {
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<ImageMetadataExtractor>();
+        services.TryAddSingleton(_ => new FfprobeLocator(FfprobeLocator.GetDefaultSearchDirectories()));
+        services.TryAddSingleton<VideoMetadataExtractor>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, JpegFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, PngFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, WebPFormatHandler>());

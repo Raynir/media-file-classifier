@@ -38,6 +38,12 @@ public sealed record TechnicalMetadata
     /// </summary>
     public int? FrameCount { get; init; }
 
+    /// <summary>
+    /// Gets how many times an animated image repeats, as stored in the file: <c>0</c> means forever, and <c>null</c>
+    /// means the file doesn't say, so it plays once.
+    /// </summary>
+    public int? LoopCount { get; init; }
+
     public double? FrameRate { get; init; }
 
     /// <summary>
@@ -51,17 +57,35 @@ public sealed record TechnicalMetadata
 
     public string? AudioCodec { get; init; }
 
+    /// <summary>
+    /// Gets whether a video has an audio track, or <c>null</c> when it wasn't read.
+    /// </summary>
+    public bool? HasAudio { get; init; }
+
+    /// <summary>
+    /// Gets the color space, such as <c>sRGB</c>, an ICC profile name such as <c>Display P3</c>, or a video's
+    /// <c>bt709</c>.
+    /// </summary>
+    public string? ColorSpace { get; init; }
+
     public long? BitRate { get; init; }
 
     /// <summary>
-    /// Gets the local wall-clock time the photo or video was taken (EXIF DateTimeOriginal), without a time zone.
+    /// Gets when the photo or video was taken, as a wall-clock time. With <see cref="DateTakenOffset"/> it is an exact
+    /// instant; without, it is the local time where it was taken, in an unknown time zone (usual for EXIF).
     /// </summary>
     public DateTime? DateTaken { get; init; }
 
     /// <summary>
-    /// Gets the UTC offset of <see cref="DateTaken"/>, when the file records it.
+    /// Gets the UTC offset of <see cref="DateTaken"/>, or <c>null</c> when it is unknown. Video creation times and file
+    /// modification times are instants, stored as UTC with a zero offset.
     /// </summary>
     public TimeSpan? DateTakenOffset { get; init; }
+
+    /// <summary>
+    /// Gets where <see cref="DateTaken"/> comes from, or <c>null</c> when there is no date.
+    /// </summary>
+    public DateTakenSource? DateTakenSource { get; init; }
 
     public string? CameraMake { get; init; }
 
@@ -75,6 +99,11 @@ public sealed record TechnicalMetadata
     /// Gets everything the metadata reader found, as JSON.
     /// </summary>
     public string? RawMetadataJson { get; init; }
+
+    /// <summary>
+    /// Gets what went wrong while reading the file. The values that could be read are still set.
+    /// </summary>
+    public IReadOnlyList<ExtractionWarning> Warnings { get; init; } = [];
 
     public required DateTimeOffset ExtractedAt { get; init; }
 

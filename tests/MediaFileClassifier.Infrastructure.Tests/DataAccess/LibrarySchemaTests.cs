@@ -35,9 +35,14 @@ public sealed class LibrarySchemaTests
             FrameRate = 29.97,
             DateTaken = new DateTime(2024, 7, 14, 18, 30, 5, 250),
             DateTakenOffset = TimeSpan.FromHours(2),
+            DateTakenSource = DateTakenSource.ExifDateTimeOriginal,
+            LoopCount = 0,
+            HasAudio = true,
+            ColorSpace = "Display P3",
             CameraModel = "X100V",
             Location = new GeoLocation(48.8584, 2.2945, 35),
             RawMetadataJson = """{"Exif":{}}""",
+            Warnings = [new ExtractionWarning("MetadataPartlyUnreadable", "Bad IFD"), new ExtractionWarning("FfmpegUnavailable")],
             ExtractedAt = Now,
         };
         var keyframe = new Keyframe(Id<Keyframe>.New(), item.Id, 0, TimeSpan.FromSeconds(1.5), 45);

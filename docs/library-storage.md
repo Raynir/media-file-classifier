@@ -53,6 +53,7 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 | `synchronous` | `NORMAL` | Safe with WAL; a power cut can lose the last commits but doesn't corrupt the database. |
 | `foreign_keys` | `ON` | SQLite leaves them off by default. |
 | `busy_timeout` | 5000 ms | A backstop; the app's own writes never collide (see below). |
+| `wal_autocheckpoint` | `0`, on the write connection only | Commits don't checkpoint; a background checkpointer does (see below). |
 
 **FTS5** is compiled into the SQLite build that `SQLitePCLRaw.bundle_e_sqlite3` ships (`sqlite_compileoption_used('ENABLE_FTS5')` returns 1). No extension is loaded (D067). Tests cover both the pragmas and FTS5.
 
@@ -73,6 +74,15 @@ SQLite allows one writer at a time, so all writes go through one `LibraryWriter`
   | Read, p99 | | under 30 ms |
 
   Throughput was the same for both batch sizes.
+- **Checkpoints:** SQLite's automatic checkpoint runs inside the commit that fills the WAL past 1000 pages. It copies the WAL into the database file and syncs it, and the write and every write queued behind it wait. On the CI runner (2 CPUs) that took 0.2–2 s, so an edit took up to 3.5 s (MFC-982). The writer turns the automatic checkpoint off. After each write, it asks `WalCheckpointer` for a checkpoint. That runs `PRAGMA wal_checkpoint(PASSIVE)` on its own connection, at most once every 500 ms, and never blocks readers or the writer. Closing the library still checkpoints the rest. Measured on the CI runner with the stress test, five runs before and three after:
+
+  | | Checkpoint in the commit | Checkpoint in the background |
+  |---|---|---|
+  | Batch, p99 | 195–1320 ms | 66–180 ms |
+  | Edit wait, max | 237–2082 ms | 110–315 ms |
+
+  Throughput was about the same.
+
 - **Rule for callers:** code running inside a write (e.g. the change passed to `IItemMetadataRepository.UpdateAsync`) must not wait for another library write. The writer rejects such a write with `InvalidOperationException` instead of deadlocking.
 - **Cancellation:** a queued write is dropped as soon as its token is cancelled. A started write is rolled back if it stops on the token.
 

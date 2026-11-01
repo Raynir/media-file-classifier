@@ -28,6 +28,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private readonly Dictionary<Id<WorkItem>, Task> running = [];
     private readonly Channel<bool> wake = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropWrite });
     private readonly CancellationTokenSource stopping = new();
+    private HashSet<Id<MediaItem>> boosted = [];
+    private bool boostChanged;
     private Task loop = Task.CompletedTask;
     private volatile bool paused;
 
@@ -117,7 +119,18 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         throw new NotSupportedException();
 
     /// <inheritdoc />
-    public void Boost(IReadOnlyCollection<Id<MediaItem>> itemIds) => throw new NotSupportedException();
+    public void Boost(IReadOnlyCollection<Id<MediaItem>> itemIds)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+
+        lock (gate)
+        {
+            boosted = [.. itemIds];
+            boostChanged = true;
+        }
+
+        Wake();
+    }
 
     /// <inheritdoc />
     public int GetPoolLimit(ResourcePool pool)
@@ -182,12 +195,27 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         }
     }
 
-    private static bool RunsBefore(WorkItem candidate, WorkItem best) =>
-        candidate.Priority != best.Priority
-            ? candidate.Priority > best.Priority
-            : candidate.CreatedAt != best.CreatedAt
-                ? candidate.CreatedAt < best.CreatedAt
-                : string.CompareOrdinal(candidate.Id.ToString(), best.Id.ToString()) < 0;
+    /// <summary>
+    /// Gets whether a work item runs before another: user-initiated actions first, then boosted items, then by
+    /// priority, then oldest first. Called under the lock.
+    /// </summary>
+    private bool RunsBefore(WorkItem candidate, WorkItem best)
+    {
+        var candidateRank = Rank(candidate);
+        var bestRank = Rank(best);
+        return candidateRank != bestRank
+            ? candidateRank > bestRank
+            : candidate.Priority != best.Priority
+                ? candidate.Priority > best.Priority
+                : candidate.CreatedAt != best.CreatedAt
+                    ? candidate.CreatedAt < best.CreatedAt
+                    : string.CompareOrdinal(candidate.Id.ToString(), best.Id.ToString()) < 0;
+    }
+
+    private int Rank(WorkItem workItem) =>
+        workItem.Priority >= (int)JobPriority.UserAction ? 2
+            : workItem.ItemId is { } itemId && boosted.Contains(itemId) ? 1
+            : 0;
 
     private List<WorkItem> CreateWorkItems(Id<ProcessingJob> jobId, int priority, IReadOnlyList<WorkItemRequest> requests, DateTimeOffset now) =>
         requests.Select(request =>
@@ -232,6 +260,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             {
                 if (!paused)
                 {
+                    await LoadBoostedAsync(token).ConfigureAwait(false);
                     await DispatchAsync(token).ConfigureAwait(false);
                 }
 
@@ -245,6 +274,43 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         catch (Exception exception)
         {
             LogDispatcherFailed(exception);
+        }
+    }
+
+    /// <summary>
+    /// After <see cref="Boost"/>, reads the boosted items' queued work into the buffers, because it may be far down
+    /// the queue.
+    /// </summary>
+    private async Task LoadBoostedAsync(CancellationToken token)
+    {
+        List<Id<MediaItem>> itemIds;
+        lock (gate)
+        {
+            if (!boostChanged)
+            {
+                return;
+            }
+
+            boostChanged = false;
+            itemIds = [.. boosted];
+        }
+
+        if (itemIds.Count == 0)
+        {
+            return;
+        }
+
+        var queued = await Library.Jobs.GetQueuedForItemsAsync(itemIds, token).ConfigureAwait(false);
+        lock (gate)
+        {
+            foreach (var workItem in queued)
+            {
+                var pool = pools[workItem.Pool];
+                if (!running.ContainsKey(workItem.Id) && !pool.Buffer.Any(buffered => buffered.Id == workItem.Id))
+                {
+                    pool.Buffer.Add(workItem);
+                }
+            }
         }
     }
 

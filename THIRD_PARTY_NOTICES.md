@@ -33,6 +33,8 @@ The third-party libraries, native binaries and AI models that Media File Classif
 | Microsoft.ML.Tokenizers | 2.0.1 | MIT | https://github.com/dotnet/machinelearning | Android head only so far (MFC-18) |
 | System.Numerics.Tensors | 10.0.14 | MIT | https://github.com/dotnet/runtime | Android head (MFC-18); vector search (D067) |
 | MetadataExtractor | 2.9.3 | Apache-2.0 | https://github.com/drewnoakes/metadata-extractor-dotnet | Image metadata (E03-S03) |
+| FFMpegCore | 5.5.0 | MIT | https://github.com/rosenbjerg/FFMpegCore | Runs the locally installed `ffprobe` for video metadata (D068, E03-S03) |
+| Instances | 3.1.0 | MIT | https://github.com/rosenbjerg/Instances | Process runner, through FFMpegCore |
 | XmpCore | 6.1.10.1 | BSD-3-Clause (Adobe XMP Toolkit) | https://github.com/drewnoakes/xmp-core-dotnet | XMP parsing, through MetadataExtractor |
 
 ## Build and test only (not shipped)

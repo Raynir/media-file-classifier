@@ -11,7 +11,7 @@ namespace MediaFileClassifier.Infrastructure.Media.Formats;
 /// relatives that share the container (QuickTime, 3GPP, HEIF) are skipped (D010).
 /// </summary>
 /// <param name="metadataExtractor">Reads the metadata.</param>
-public sealed class Mp4FormatHandler(FileMetadataExtractor metadataExtractor) : IMediaFormatHandler
+public sealed class Mp4FormatHandler(VideoMetadataExtractor metadataExtractor) : IMediaFormatHandler
 {
     /// <summary>
     /// Major brands of ISO base media files that aren't MP4 video, by prefix.

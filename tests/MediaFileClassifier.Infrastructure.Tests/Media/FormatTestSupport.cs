@@ -1,4 +1,6 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Capabilities;
 using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Media.Metadata;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +25,7 @@ internal static class FormatTestSupport
     public static ServiceProvider CreateServices()
         => new ServiceCollection()
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddSingleton<ICapabilityService>(new CapabilityService([], NullLogger<CapabilityService>.Instance))
             .AddMedia()
             .BuildServiceProvider();
 

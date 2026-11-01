@@ -62,6 +62,12 @@ public static class SampleMedia
     public static string Av1Video => Combine("video-av1.mp4");
 
     /// <summary>
+    /// Gets a 1-second MP4 stored 160×90 with a −90° display rotation, so it shows portrait, and a container
+    /// creation time of 2026-07-01 10:20:30 UTC.
+    /// </summary>
+    public static string PortraitVideo => Combine("video-portrait.mp4");
+
+    /// <summary>
     /// Gets an MP4 with an AAC audio track and no video track.
     /// </summary>
     public static string AudioOnlyMp4 => Combine("audio-only.mp4");

@@ -13,7 +13,8 @@ public static class MediaModule
 {
     /// <summary>
     /// Adds the format registry, a handler for each MVP format (D010) and the metadata extractors. A new format is
-    /// another <see cref="IMediaFormatHandler"/> registration here.
+    /// another <see cref="IMediaFormatHandler"/> registration here. Video metadata needs the capability service of
+    /// <c>AddInfrastructure</c>.
     /// </summary>
     /// <param name="services">Service collection.</param>
     /// <returns>The same service collection, for chaining.</returns>
@@ -21,7 +22,8 @@ public static class MediaModule
     {
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<ImageMetadataExtractor>();
-        services.TryAddSingleton<FileMetadataExtractor>();
+        services.TryAddSingleton(_ => new FfprobeLocator(FfprobeLocator.GetDefaultSearchDirectories()));
+        services.TryAddSingleton<VideoMetadataExtractor>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, JpegFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, PngFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, WebPFormatHandler>());

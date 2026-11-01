@@ -194,6 +194,28 @@ def av1_video(path: Path) -> None:
     )
 
 
+def portrait_video(path: Path) -> None:
+    # Like a phone held upright: landscape pixels with a display matrix that turns them 90° clockwise, and the
+    # container's creation time.
+    landscape = path.with_suffix(".tmp.mp4")
+    encode_video(
+        landscape,
+        ["-f", "lavfi", "-i", "testsrc=size=160x90:rate=10:duration=1"],
+        ["-c:v", "libx264", "-preset", "veryslow", "-crf", "35", "-pix_fmt", "yuv420p"],
+    )
+    subprocess.run(
+        [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+            "-display_rotation", "-90", "-i", str(landscape),
+            "-c", "copy", "-map_metadata", "-1", "-metadata", "creation_time=2026-07-01T10:20:30.000000Z",
+            "-fflags", "+bitexact", "-movflags", "+faststart",
+            str(path),
+        ],
+        check=True,
+    )
+    landscape.unlink()
+
+
 def audio_only_mp4(path: Path) -> None:
     encode_video(path, ["-f", "lavfi", "-i", "sine=frequency=440:duration=1"], ["-c:a", "aac", "-b:a", "32k"])
 
@@ -209,6 +231,7 @@ GENERATORS = {
     "video-short.mp4": short_video,
     "video-hevc.mp4": hevc_video,
     "video-av1.mp4": av1_video,
+    "video-portrait.mp4": portrait_video,
     "audio-only.mp4": audio_only_mp4,
     "ocr-text.png": ocr_text,
     "corrupt.jpg": corrupt_jpeg,

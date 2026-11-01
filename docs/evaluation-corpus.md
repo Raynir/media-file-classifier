@@ -51,7 +51,7 @@ Accepted: CC0, Public Domain, CC BY and CC BY-SA (2.0–4.0, ported versions too
 `eval/queries.json` has one query per line:
 
 ```json
-{"id": "ru-031", "language": "ru", "category": "scene", "text": "снег", "relevant": ["photo-018", "video-012"], "notes": "unsure: photo-082 ..."}
+{"id": "ru-031", "language": "ru", "category": "scene", "text": "снег", "relevant": ["photo-018", "video-012"], "notes": "Reviewed: photo-082 (metro entrance) has too little snow to count."}
 ```
 
 - **Relevance is binary**, and **every** relevant item of the corpus is listed, not just one.

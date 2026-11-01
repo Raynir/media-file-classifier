@@ -136,14 +136,14 @@ public sealed class VideoMetadataExtractorTests
     /// <summary>
     /// Reads a video with the installed FFmpeg, or skips the test without it.
     /// </summary>
-    internal static async Task<TechnicalMetadata> ExtractWithFfprobeAsync(string path, bool withPath = true, bool detect = true)
+    internal static async Task<TechnicalMetadata> ExtractWithFfprobeAsync(string path, bool withPath = true, bool detect = true, DateTimeOffset? modified = null)
     {
         if (new FfprobeLocator(FfprobeLocator.GetDefaultSearchDirectories()).FindFolder() is null)
         {
             Assert.Skip("FFmpeg isn't installed on this machine.");
         }
 
-        return await ExtractAsync(CreateExtractor(available: true, FfprobeLocator.GetDefaultSearchDirectories()), path, withPath, detect);
+        return await ExtractAsync(CreateExtractor(available: true, FfprobeLocator.GetDefaultSearchDirectories()), path, withPath, detect, modified);
     }
 
     private static VideoMetadataExtractor CreateExtractor(bool available, IReadOnlyList<string> searchDirectories)
@@ -157,13 +157,13 @@ public sealed class VideoMetadataExtractorTests
         return new VideoMetadataExtractor(capabilities, new FfprobeLocator(searchDirectories), TimeProvider.System, NullLogger<VideoMetadataExtractor>.Instance);
     }
 
-    private static async Task<TechnicalMetadata> ExtractAsync(VideoMetadataExtractor extractor, string path, bool withPath, bool detect = true)
+    private static async Task<TechnicalMetadata> ExtractAsync(VideoMetadataExtractor extractor, string path, bool withPath, bool detect = true, DateTimeOffset? modified = null)
     {
         // Without detection, the file is taken as a supported MP4, so damage the detector would catch reaches FFprobe.
         var detection = detect
             ? await DetectFileAsync(path)
             : MediaFormatDetection.Supported(CreateRegistry().FindByFormatId("mp4")!, MediaType.Video, []);
-        var content = new MediaContent(Id<MediaItem>.New(), Modified, _ => Task.FromResult<Stream>(File.OpenRead(path)))
+        var content = new MediaContent(Id<MediaItem>.New(), modified ?? Modified, _ => Task.FromResult<Stream>(File.OpenRead(path)))
         {
             LocalPath = withPath ? path : null,
         };

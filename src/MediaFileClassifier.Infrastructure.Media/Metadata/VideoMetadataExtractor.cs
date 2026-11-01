@@ -31,6 +31,9 @@ public sealed partial class VideoMetadataExtractor(
 
     /// <inheritdoc />
     public async Task<TechnicalMetadata> ExtractAsync(MediaContent content, MediaFormatDetection format, CancellationToken cancellationToken)
+        => DateTakenFallback.Apply(await ReadAsync(content, format, cancellationToken), content.LastModifiedUtc);
+
+    private async Task<TechnicalMetadata> ReadAsync(MediaContent content, MediaFormatDetection format, CancellationToken cancellationToken)
     {
         var metadata = MetadataFactory.Create(content, format, timeProvider);
         var folder = capabilities.Get(KnownCapabilities.VideoAnalysis).IsAvailable ? ffprobe.FindFolder() : null;
@@ -70,7 +73,7 @@ public sealed partial class VideoMetadataExtractor(
             HasAudio = analysis.AudioStreams.Count > 0,
             BitRate = analysis.Format.BitRate > 0 ? (long)analysis.Format.BitRate : null,
             ColorSpace = video?.ColorSpace is { Length: > 0 } colorSpace && colorSpace != "unknown" ? colorSpace : null,
-            DateTaken = creationTime?.UtcDateTime,
+            DateTaken = creationTime is { } instant ? DateTakenFallback.ToWallClock(instant) : null,
             DateTakenOffset = creationTime is null ? null : TimeSpan.Zero,
             DateTakenSource = creationTime is null ? null : DateTakenSource.VideoCreationTime,
             RawMetadataJson = ToRawJson(analysis),

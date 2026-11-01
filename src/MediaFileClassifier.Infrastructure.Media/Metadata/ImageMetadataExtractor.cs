@@ -59,7 +59,7 @@ public sealed partial class ImageMetadataExtractor(TimeProvider timeProvider, IL
             ? await ReadAnimationAsync(content, format, warnings, cancellationToken)
             : null;
 
-        return MetadataFactory.Create(content, format, timeProvider) with
+        var metadata = MetadataFactory.Create(content, format, timeProvider) with
         {
             Width = width,
             Height = height,
@@ -78,6 +78,7 @@ public sealed partial class ImageMetadataExtractor(TimeProvider timeProvider, IL
             RawMetadataJson = directories.Count == 0 ? null : RawMetadataJson.FromDirectories(directories),
             Warnings = warnings,
         };
+        return DateTakenFallback.Apply(metadata, content.LastModifiedUtc);
     }
 
     private static async Task<IReadOnlyList<MetadataDirectory>> ReadDirectoriesAsync(MediaContent content, CancellationToken cancellationToken)

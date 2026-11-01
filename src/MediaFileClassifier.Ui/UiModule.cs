@@ -44,6 +44,8 @@ public static class UiModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ShortcutCommands>());
         services.AddSingleton<Keymap>();
         services.AddSingleton<ShortcutHandler>();
+        services.AddSingleton<ShortcutReferenceViewModel>();
+        services.TryAddSingleton<IKeyboardLayout, QwertyKeyboardLayout>();
 
         // Status bar (E13-S04). Features add segments through IStatusBarContributor.
         services.AddSingleton<StatusBarViewModel>();

@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
+             x:Class="MediaFileClassifier.Ui.Views.ShortcutReferenceView"
+             x:DataType="sc:ShortcutReferenceViewModel">
+  <!--
+    The shortcut reference (E16-S01-T03): a dimmed overlay over the main window with every active shortcut,
+    grouped by scope. Esc, the close button or a click on the dimmed area closes it. Provisional (D095).
+  -->
+  <Panel>
+    <Border x:Name="Scrim" Background="{DynamicResource Brush.Scrim}" PointerPressed="OnScrimPressed" />
+    <Border x:Name="Card"
+            Classes="Panel"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Width="{DynamicResource Size.Dialog.Width}"
+            MaxHeight="{DynamicResource Size.Dialog.MaxHeight}"
+            CornerRadius="{DynamicResource Radius.Control}"
+            BorderThickness="1"
+            Focusable="True"
+            AutomationProperties.Name="{l:Loc Shortcuts_Title}">
+      <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Header}">
+          <Button x:Name="CloseButton"
+                  DockPanel.Dock="Right"
+                  Classes="Icon"
+                  Command="{Binding CloseCommand}"
+                  ToolTip.Tip="{l:Loc Shortcuts_Close}"
+                  AutomationProperties.Name="{l:Loc Shortcuts_Close}">
+            <PathIcon Data="{StaticResource Icon.Close}" />
+          </Button>
+          <TextBlock Classes="Title" Text="{l:Loc Shortcuts_Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
+        </DockPanel>
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding Groups}" Margin="{DynamicResource Padding.Panel}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="sc:ShortcutGroup">
+                <StackPanel Spacing="{DynamicResource Space.S}" Margin="{DynamicResource Padding.Group}">
+                  <TextBlock Classes="Label" Text="{Binding Name}" />
+                  <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="sc:ShortcutRow">
+                        <Grid ColumnDefinitions="*,Auto" Margin="{DynamicResource Padding.Row}">
+                          <TextBlock Text="{Binding Label}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                          <TextBlock Grid.Column="1"
+                                     Classes="Secondary"
+                                     Text="{Binding Keys}"
+                                     Margin="{DynamicResource Padding.Compact}"
+                                     VerticalAlignment="Center" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+  </Panel>
+</UserControl>

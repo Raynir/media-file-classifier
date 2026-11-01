@@ -19,21 +19,22 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <param name="commands">The command registry, for binding buttons and menus by command ID.</param>
     /// <param name="menu">The main menu.</param>
     /// <param name="statusBar">The status bar.</param>
-    /// <param name="keymap">The keymap. Taking it builds it, which gives the commands their shortcuts.</param>
+    /// <param name="shortcuts">The shortcut reference. Taking it also builds the keymap, which gives the
+    /// commands their shortcuts.</param>
     public MainWindowViewModel(
         ShellLayout layout,
         ShellRegions regions,
         CommandRegistry commands,
         MainMenuViewModel menu,
         StatusBarViewModel statusBar,
-        Keymap keymap)
+        ShortcutReferenceViewModel shortcuts)
     {
         Layout = layout;
         Regions = regions;
         Commands = commands;
         Menu = menu;
         StatusBar = statusBar;
-        Keymap = keymap;
+        Shortcuts = shortcuts;
         NavigationContextMenu =
         [
             commands[ShellCommands.CollapseNavigation],
@@ -77,9 +78,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     public StatusBarViewModel StatusBar { get; }
 
     /// <summary>
-    /// Gets the keymap.
+    /// Gets the shortcut reference overlay.
     /// </summary>
-    public Keymap Keymap { get; }
+    public ShortcutReferenceViewModel Shortcuts { get; }
 
     /// <summary>
     /// Gets the entries of the navigation panel's context menu.

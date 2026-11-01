@@ -26,6 +26,7 @@
     </Style>
   </UserControl.Styles>
 
+  <Panel>
   <DockPanel>
     <Menu x:Name="MainMenu" DockPanel.Dock="Top" Classes="Commands" ItemsSource="{Binding Menu.Groups}" />
 
@@ -196,4 +197,10 @@
       </Panel>
     </Grid>
   </DockPanel>
+
+  <!-- Shortcut reference (E16-S01-T03), over everything. -->
+  <v:ShortcutReferenceView x:Name="ShortcutReference"
+                           DataContext="{Binding Shortcuts}"
+                           IsVisible="{Binding State.IsOpen}" />
+  </Panel>
 </UserControl>

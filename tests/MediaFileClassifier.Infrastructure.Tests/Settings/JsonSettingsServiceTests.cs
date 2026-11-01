@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
@@ -45,7 +46,9 @@ public sealed class JsonSettingsServiceTests : IDisposable
         {
             LastLibraryPath = @"D:\Media\Library",
             MainWindow = new WindowPlacement(100, 200, 1024, 768, IsMaximized: true),
-            Providers = new ProviderSettings { OpenAiCompatibleEndpoint = "http://localhost:1234/v1" },
+            Values = SettingValues.Empty
+                .With("ai.openAiCompatibleEndpoint", JsonSerializer.SerializeToElement("http://localhost:1234/v1"))
+                .With("library.retainedPreviousRuns", JsonSerializer.SerializeToElement(3)),
         };
 
         CreateService().Save(settings);
@@ -54,6 +57,52 @@ public sealed class JsonSettingsServiceTests : IDisposable
 
         Assert.Equal(settings, loaded);
         Assert.False(File.Exists(appPaths.SettingsFile + ".tmp"));
+    }
+
+    [Fact]
+    public void Current_Version1File_MovesTheEndpointIntoValues()
+    {
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(appPaths.SettingsFile, """
+            {
+              "schemaVersion": 1,
+              "lastLibraryPath": "D:\\Media",
+              "providers": { "openAiCompatibleEndpoint": "http://localhost:11434" }
+            }
+            """);
+
+        var settings = CreateService().Current;
+
+        Assert.Equal(@"D:\Media", settings.LastLibraryPath);
+        Assert.Equal("http://localhost:11434", settings.Values[KnownSettings.OpenAiCompatibleEndpoint.Key].GetString());
+    }
+
+    [Fact]
+    public void Save_WritesTheCurrentSchemaVersionWithoutProviders()
+    {
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(appPaths.SettingsFile, """{ "schemaVersion": 1, "providers": { "openAiCompatibleEndpoint": "" } }""");
+        var service = CreateService();
+
+        service.Save(service.Current);
+
+        var json = File.ReadAllText(appPaths.SettingsFile);
+        Assert.Contains("\"schemaVersion\": 2", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("providers", json, StringComparison.Ordinal);
+        Assert.Empty(CreateService().Current.Values);
+    }
+
+    [Fact]
+    public void Update_ChangesAndStoresTheCurrentSettings()
+    {
+        var service = CreateService();
+        service.Save(new AppSettings { LastLibraryPath = "a" });
+
+        var updated = service.Update(settings => settings with { Values = settings.Values.With("x", JsonSerializer.SerializeToElement(true)) });
+
+        Assert.Equal("a", updated.LastLibraryPath);
+        Assert.Same(updated, service.Current);
+        Assert.True(CreateService().Current.Values["x"].GetBoolean());
     }
 
     public void Dispose()

@@ -6,9 +6,9 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Settings;
 public sealed record AppSettings
 {
     /// <summary>
-    /// Schema version written by this build.
+    /// Schema version written by this build. Version 2 moved the AI endpoint into <see cref="Values"/>.
     /// </summary>
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     /// <summary>
     /// Schema version of the stored file, for future migrations.
@@ -26,7 +26,16 @@ public sealed record AppSettings
     public string? LastLibraryPath { get; init; }
 
     /// <summary>
-    /// AI provider configuration.
+    /// Values of the registered app-scope settings (E17-S01). Read and write them through <see cref="ISettingsStore"/>.
     /// </summary>
-    public ProviderSettings Providers { get; init; } = new();
+    /// <remarks>
+    /// The JSON source generator sets a property missing from the file to <c>null</c>, so the setter maps that to empty.
+    /// </remarks>
+    public SettingValues Values
+    {
+        get;
+        init => field = value ?? SettingValues.Empty;
+    }
+
+    = SettingValues.Empty;
 }

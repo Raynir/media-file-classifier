@@ -27,6 +27,8 @@ public static class InfrastructureModule
     {
         services.TryAddSingleton<IAppPaths, AppPaths>();
         services.TryAddSingleton<ISettingsService, JsonSettingsService>();
+        services.TryAddSingleton<ILibrarySettingValues, NoLibrarySettingValues>();
+        services.TryAddSingleton<ISettingsStore, SettingsStore>();
         services.TryAddSingleton<IHardwareDetector, PortableHardwareDetector>();
         services.TryAddSingleton<IHardwareInfo, HardwareInfo>();
         services.TryAddSingleton<ICapabilityService, CapabilityService>();

@@ -5,6 +5,7 @@ using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.UseCases.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -25,6 +26,7 @@ public static class UiModule
         services.AddSingleton(new ViewLocator());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
+        services.AddSetting(ThemeService.ThemeSetting);
         services.AddSingleton<ShellLayout>();
 
         // Commands (E13-S05). Commands follow the capability flags that AddInfrastructure registers.

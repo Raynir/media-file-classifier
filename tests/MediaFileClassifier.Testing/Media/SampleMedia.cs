@@ -37,9 +37,29 @@ public static class SampleMedia
     public static string AnimatedGif => Combine("gif-animated.gif");
 
     /// <summary>
+    /// Gets a looping animated WebP with 6 frames of 120 ms.
+    /// </summary>
+    public static string AnimatedWebP => Combine("webp-animated.webp");
+
+    /// <summary>
     /// Gets a 2-second 320×240 MP4 with H.264 video and an AAC tone.
     /// </summary>
     public static string ShortVideo => Combine("video-short.mp4");
+
+    /// <summary>
+    /// Gets a 1-second 160×120 MP4 with HEVC video (<c>hvc1</c>) and no audio.
+    /// </summary>
+    public static string HevcVideo => Combine("video-hevc.mp4");
+
+    /// <summary>
+    /// Gets a 1-second 160×120 MP4 with AV1 video and no audio.
+    /// </summary>
+    public static string Av1Video => Combine("video-av1.mp4");
+
+    /// <summary>
+    /// Gets an MP4 with an AAC audio track and no video track.
+    /// </summary>
+    public static string AudioOnlyMp4 => Combine("audio-only.mp4");
 
     /// <summary>
     /// Gets a PNG with the visible text "Invoice 2026-10-29" and "Счёт на оплату", for OCR.

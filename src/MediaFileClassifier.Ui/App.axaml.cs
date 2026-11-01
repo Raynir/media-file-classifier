@@ -51,6 +51,11 @@ public partial class App : Application
             mainWindow.DataContext = services.GetRequiredService<MainWindowViewModel>();
             desktop.MainWindow = mainWindow;
         }
+        else if (services is not null && ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+        {
+            // Android (E20) shows the shell without a window.
+            singleView.MainView = new MainView { DataContext = services.GetRequiredService<MainWindowViewModel>() };
+        }
 
         base.OnFrameworkInitializationCompleted();
     }

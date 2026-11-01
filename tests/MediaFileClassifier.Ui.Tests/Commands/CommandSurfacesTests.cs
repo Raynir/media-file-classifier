@@ -37,7 +37,7 @@ public sealed class CommandSurfacesTests
         Dispatcher.UIThread.RunJobs();
         var menuItem = (MenuItem)viewMenu.ContainerFromItem(command)!;
 
-        var navigationPanel = window.FindControl<Border>("NavigationPanel")!;
+        var navigationPanel = window.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "NavigationPanel");
         navigationPanel.ContextMenu!.Open(navigationPanel);
         Dispatcher.UIThread.RunJobs();
         var contextItem = (MenuItem)navigationPanel.ContextMenu.ContainerFromItem(command)!;

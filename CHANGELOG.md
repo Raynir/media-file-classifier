@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Settings window (Tools → Settings…, Ctrl+,): settings registered by features, with generated controls per category, search by name, reset per category or for all, and app or library scope shown on each setting; the theme choice is now saved, and `settings.json` moves to schema version 2 (E17-S01).
+
 ## M0 — 2026-11-01
 
 ### Added

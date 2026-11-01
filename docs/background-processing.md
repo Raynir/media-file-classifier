@@ -6,7 +6,7 @@ The job system (E05-S01) runs every long operation: import stages, AI analysis, 
 
 - **Job** (`ProcessingJob`): a type, a description, a target (library, folder or item set), a priority and a state. States follow `ProcessingJobStateTransitions`: `Queued → Running → Completed`, or `Failed`, `Cancelled`, and `WaitingForModel` (E06-S12). `Paused` is reserved for E05-S05.
 - **Work item** (`WorkItem`): one stage for one media item, or for the job's whole target, e.g. `thumbnail` for one item. It has a resource pool, the job's priority, a state (`WorkItemStateTransitions`), an attempt count, the last error and an optional JSON payload.
-- **Storage:** both are rows in the library database (`processing_job`, `work_item`, schema version 3), written through the serialized writer (D072). So unfinished work survives a crash or a restart.
+- **Storage:** both are rows in the library database (`processing_job`, `work_item`, schema version 4), written through the serialized writer (D072). So unfinished work survives a crash or a restart.
 - **Job outcome:** when a job's last work item finishes, the job is `Completed` if any item completed, even when others failed (they keep their error for a retry, E05-S04), and `Failed` only if they all failed.
 
 ## Using it from another Epic

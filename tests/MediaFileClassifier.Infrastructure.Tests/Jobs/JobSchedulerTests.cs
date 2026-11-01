@@ -81,14 +81,14 @@ public sealed class JobSchedulerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task FailingHandler_FailsTheWorkItemWithItsMessage_AndTheJob()
+    public async Task FailingHandler_FailsTheWorkItemWithItsMessage_AndTheJobStillCompletes()
     {
         var handler = new TestStageHandler("stage", ResourcePool.Io, (context, _) =>
             context.WorkItem.Payload == "bad" ? throw new InvalidDataException("corrupt file") : Task.CompletedTask);
         Start([handler]);
 
         var jobId = await scheduler!.EnqueueJobAsync(Job(JobPriority.Import, [new WorkItemRequest("stage", Payload: "bad"), new WorkItemRequest("stage")]), Token);
-        await WaitForJobAsync(jobId, ProcessingJobState.Failed);
+        await WaitForJobAsync(jobId, ProcessingJobState.Completed);
 
         var items = await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token);
         var bad = items.Single(item => item.Payload == "bad");
@@ -173,6 +173,55 @@ public sealed class JobSchedulerTests : IAsyncLifetime
         {
             gate.Release(1000);
         }
+    }
+
+    [Fact]
+    public async Task CancelJobAsync_DuringAnalysis_StopsWithinSeconds_AndKeepsFinishedResults()
+    {
+        // An AI stage that commits one write at the end, like a real analysis stage.
+        var media = Enumerable.Range(0, 4).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(media, Token);
+        var handler = new TestStageHandler("analyze", ResourcePool.Ai, async (context, token) =>
+        {
+            if (context.WorkItem.Payload != "fast")
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1), token);
+            }
+
+            var item = (await context.Library.Items.GetAsync(context.WorkItem.ItemId!.Value, token))!;
+            item.SetFavorite(true, DateTimeOffset.UtcNow);
+            await context.Library.Items.UpdateAsync(item, token);
+        });
+        Start([handler], ai: 1);
+        var jobId = await scheduler!.EnqueueJobAsync(
+            Job(JobPriority.AiAnalysis, media.Select((item, index) => new WorkItemRequest("analyze", item.Id, index == 0 ? "fast" : null))),
+            Token);
+        await WaitUntilAsync(() => handler.Started.Count == 2);
+
+        var stopwatch = Stopwatch.StartNew();
+        Assert.True(await scheduler.CancelJobAsync(jobId, Token));
+        await WaitUntilAsync(() => scheduler.GetRunningCount(ResourcePool.Ai) == 0);
+        stopwatch.Stop();
+
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Cancelling took {stopwatch.Elapsed}.");
+        Assert.Equal(2, handler.Started.Count);
+        Assert.Equal(ProcessingJobState.Cancelled, (await bed.Library.Jobs.GetJobAsync(jobId, Token))!.State);
+        var states = (await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token)).ToDictionary(item => item.ItemId!.Value, item => item.State);
+        Assert.Equal(WorkItemState.Completed, states[media[0].Id]);
+        Assert.All(media.Skip(1), item => Assert.Equal(WorkItemState.Cancelled, states[item.Id]));
+        Assert.True((await bed.Library.Items.GetAsync(media[0].Id, Token))!.IsFavorite);
+        Assert.All(media.Skip(1), item => Assert.False(bed.Library.Items.GetAsync(item.Id, Token).Result!.IsFavorite));
+    }
+
+    [Fact]
+    public async Task CancelJobAsync_UnknownOrFinishedJob_ReturnsFalse()
+    {
+        Start([new TestStageHandler("stage", ResourcePool.Cpu)]);
+        var jobId = await scheduler!.EnqueueJobAsync(Job(JobPriority.Import, [new WorkItemRequest("stage")]), Token);
+        await WaitForJobAsync(jobId, ProcessingJobState.Completed);
+
+        Assert.False(await scheduler.CancelJobAsync(jobId, Token));
+        Assert.False(await scheduler.CancelJobAsync(Id<ProcessingJob>.New(), Token));
     }
 
     internal static JobRequest Job(JobPriority priority, IEnumerable<WorkItemRequest> workItems) =>

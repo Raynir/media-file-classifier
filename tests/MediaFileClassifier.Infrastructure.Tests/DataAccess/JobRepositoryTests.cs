@@ -85,7 +85,7 @@ public sealed class JobRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task FinishAsync_LastItemAfterAFailure_FailsTheJob()
+    public async Task FinishAsync_SomeItemsFailed_CompletesTheJob_AndKeepsTheErrors()
     {
         var (job, items) = NewJob(2);
         await bed.Library.Jobs.AddJobAsync(job, items, Token);
@@ -95,8 +95,24 @@ public sealed class JobRepositoryTests : IAsyncLifetime
         var second = await bed.Library.Jobs.StartAsync(items[1], Now, Token);
         var finished = await bed.Library.Jobs.FinishAsync(second!.ChangeState(WorkItemState.Completed, Now), Now, Token);
 
-        Assert.Equal(ProcessingJobState.Failed, finished.State);
+        Assert.Equal(ProcessingJobState.Completed, finished.State);
         Assert.Equal("corrupt", (await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token))[0].LastError);
+    }
+
+    [Fact]
+    public async Task FinishAsync_EveryItemFailed_FailsTheJob()
+    {
+        var (job, items) = NewJob(2);
+        await bed.Library.Jobs.AddJobAsync(job, items, Token);
+        ProcessingJob? finished = null;
+
+        foreach (var item in items)
+        {
+            var running = await bed.Library.Jobs.StartAsync(item, Now, Token);
+            finished = await bed.Library.Jobs.FinishAsync(running!.ChangeState(WorkItemState.Failed, Now, "corrupt"), Now, Token);
+        }
+
+        Assert.Equal(ProcessingJobState.Failed, finished!.State);
     }
 
     [Fact]

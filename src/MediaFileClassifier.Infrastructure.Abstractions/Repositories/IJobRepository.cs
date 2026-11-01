@@ -93,8 +93,9 @@ public interface IJobRepository
 
     /// <summary>
     /// Stores the new state of a running work item. When it was the job's last pending work item, the job finishes in
-    /// the same write: <see cref="ProcessingJobState.Failed"/> if any of its items failed, otherwise
-    /// <see cref="ProcessingJobState.Completed"/>. A cancelled job stays cancelled.
+    /// the same write: <see cref="ProcessingJobState.Completed"/> if any of its items completed, even when others
+    /// failed (they keep their error for a retry), and <see cref="ProcessingJobState.Failed"/> if they all failed.
+    /// A cancelled job stays cancelled.
     /// </summary>
     /// <param name="workItem">The work item in its new state: completed, failed, cancelled, or queued again.</param>
     /// <param name="now">Current time.</param>

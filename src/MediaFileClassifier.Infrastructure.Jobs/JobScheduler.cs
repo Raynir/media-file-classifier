@@ -25,9 +25,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private readonly ILogger logger;
     private readonly Lock gate = new();
     private readonly Dictionary<ResourcePool, PoolState> pools;
-    private readonly Dictionary<Id<WorkItem>, Task> running = [];
+    private readonly Dictionary<Id<WorkItem>, RunningWork> running = [];
+    private readonly HashSet<Id<ProcessingJob>> cancelledJobs = [];
     private readonly Channel<bool> wake = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropWrite });
     private readonly CancellationTokenSource stopping = new();
+    private readonly CancellationTokenSource aborting = new();
     private HashSet<Id<MediaItem>> boosted = [];
     private bool boostChanged;
     private Task loop = Task.CompletedTask;
@@ -115,8 +117,42 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+    public async Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default)
+    {
+        // Mark the job first, so its running work items end as Cancelled, not queued again.
+        List<CancellationTokenSource> toCancel;
+        lock (gate)
+        {
+            cancelledJobs.Add(jobId);
+        }
+
+        if (!await Library.Jobs.CancelJobAsync(jobId, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false))
+        {
+            lock (gate)
+            {
+                cancelledJobs.Remove(jobId);
+            }
+
+            return false;
+        }
+
+        lock (gate)
+        {
+            foreach (var pool in pools.Values)
+            {
+                pool.Buffer.RemoveAll(item => item.JobId == jobId);
+            }
+
+            toCancel = [.. running.Values.Where(work => work.JobId == jobId).Select(work => work.Cancellation)];
+        }
+
+        foreach (var cancellation in toCancel)
+        {
+            await cancellation.CancelAsync().ConfigureAwait(false);
+        }
+
+        return true;
+    }
 
     /// <inheritdoc />
     public void Boost(IReadOnlyCollection<Id<MediaItem>> itemIds)
@@ -180,6 +216,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     {
         await StopAsync().ConfigureAwait(false);
         stopping.Dispose();
+        aborting.Dispose();
     }
 
     /// <summary>
@@ -248,7 +285,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     {
         lock (gate)
         {
-            return [.. running.Values];
+            return [.. running.Values.Select(work => work.Task)];
         }
     }
 
@@ -391,10 +428,12 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private void StartWorkItem(WorkItem workItem, PoolState pool)
     {
         pool.Running++;
-        running[workItem.Id] = Task.Run(() => RunWorkItemAsync(workItem, pool));
+        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(aborting.Token);
+        var task = Task.Run(() => RunWorkItemAsync(workItem, pool, cancellation));
+        running[workItem.Id] = new RunningWork(task, cancellation, workItem.JobId);
     }
 
-    private async Task RunWorkItemAsync(WorkItem queued, PoolState pool)
+    private async Task RunWorkItemAsync(WorkItem queued, PoolState pool, CancellationTokenSource cancellation)
     {
         try
         {
@@ -404,7 +443,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                 return;
             }
 
-            var finished = await HandleAsync(workItem, CancellationToken.None).ConfigureAwait(false);
+            var finished = await HandleAsync(workItem, cancellation.Token).ConfigureAwait(false);
             await Library.Jobs.FinishAsync(finished, clock.GetUtcNow(), CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -418,6 +457,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                 running.Remove(queued.Id);
                 pool.Running--;
             }
+
+            cancellation.Dispose();
 
             Wake();
         }
@@ -438,6 +479,17 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             await handler.HandleAsync(new WorkItemContext(workItem, this), token).ConfigureAwait(false);
             return workItem.ChangeState(WorkItemState.Completed, clock.GetUtcNow());
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Cancelled with its job, or stopped because the library is closing: then it runs again next time.
+            bool jobCancelled;
+            lock (gate)
+            {
+                jobCancelled = cancelledJobs.Contains(workItem.JobId);
+            }
+
+            return workItem.ChangeState(jobCancelled ? WorkItemState.Cancelled : WorkItemState.Queued, clock.GetUtcNow());
+        }
         catch (Exception exception)
         {
             LogWorkItemFailed(exception, workItem.Id.ToString(), workItem.Stage);
@@ -453,6 +505,14 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The job dispatcher stopped after an error")]
     private partial void LogDispatcherFailed(Exception exception);
+
+    /// <summary>
+    /// A running work item: its task, and how to cancel it.
+    /// </summary>
+    /// <param name="Task">Runs the work item and records its result.</param>
+    /// <param name="Cancellation">Cancels the handler.</param>
+    /// <param name="JobId">The work item's job.</param>
+    private sealed record RunningWork(Task Task, CancellationTokenSource Cancellation, Id<ProcessingJob> JobId);
 
     /// <summary>
     /// A resource pool: its limit, its running count, and its read-ahead buffer.

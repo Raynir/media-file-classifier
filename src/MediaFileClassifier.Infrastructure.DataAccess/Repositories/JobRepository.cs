@@ -199,8 +199,8 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                     .ConfigureAwait(false);
                 if (job.State == ProcessingJobState.Running && !states.Any(WorkItemStateTransitions.IsPending))
                 {
-                    var finished = states.Contains(WorkItemState.Failed)
-                        ? job.ChangeState(ProcessingJobState.Failed, now, "Some work items failed.")
+                    var finished = states.Contains(WorkItemState.Failed) && !states.Contains(WorkItemState.Completed)
+                        ? job.ChangeState(ProcessingJobState.Failed, now, "Every work item failed.")
                         : job.ChangeState(ProcessingJobState.Completed, now);
                     db.Entry(job).CurrentValues.SetValues(finished);
                     await db.SaveChangesAsync(token).ConfigureAwait(false);

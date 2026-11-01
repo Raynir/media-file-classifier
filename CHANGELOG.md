@@ -4,6 +4,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+## M0 — 2026-11-01
+
 ### Added
 
 - Layered solution structure, shared build configuration and code style rules (E01-S01).

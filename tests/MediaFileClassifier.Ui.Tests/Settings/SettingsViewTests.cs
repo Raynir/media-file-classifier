@@ -86,6 +86,7 @@ public sealed class SettingsViewTests
         .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
         .AddSingleton<Infrastructure.Abstractions.Paths.IAppPaths>(new Commands.FakeAppPaths())
         .AddSingleton<Platform.ICapabilityGate>(new Commands.FakeCapabilityGate())
+        .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
         .AddUseCases()
         .AddUi()
         .BuildServiceProvider();

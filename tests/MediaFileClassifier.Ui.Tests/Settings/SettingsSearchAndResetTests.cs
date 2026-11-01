@@ -20,6 +20,7 @@ public sealed class SettingsSearchAndResetTests : IDisposable
     {
         services = new ServiceCollection()
             .AddSingleton<ISettingsStore>(store)
+            .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
             .AddUseCases()
             .AddUi()
             .BuildServiceProvider();

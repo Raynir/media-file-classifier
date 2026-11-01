@@ -21,12 +21,12 @@ namespace MediaFileClassifier.Ui.Tests.Libraries;
 public sealed class CreateLibraryFlowTests : IAsyncDisposable
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
-    private readonly FakePlatform platform;
+    private readonly Commands.FakePlatformServices platform;
     private readonly ServiceProvider services;
 
     public CreateLibraryFlowTests()
     {
-        platform = new FakePlatform(new AppPaths(Path.Combine(root, "app")));
+        platform = new Commands.FakePlatformServices(new AppPaths(Path.Combine(root, "app")));
         services = new ServiceCollection()
             .AddLogging()
             .AddSingleton<IAppPaths>(platform.Paths)
@@ -103,6 +103,38 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
         Assert.Null(services.GetRequiredService<ShellRegions>().Browser);
     }
 
+    [Fact]
+    public async Task Startup_ReopensTheLastLibrary()
+    {
+        var sender = services.GetRequiredService<MediatR.ISender>();
+        var session = services.GetRequiredService<ILibrarySession>();
+        await sender.Send(new UseCases.Libraries.CreateLibrary.CreateLibraryCommand("Family", root), TestContext.Current.CancellationToken);
+        await session.SetCurrentAsync(null);
+
+        await services.GetRequiredService<LibraryOpener>().OpenLastAsync();
+
+        Assert.Equal(Path.Combine(root, "Family.mfc"), session.Current?.Layout.RootDirectory);
+    }
+
+    [Fact]
+    public async Task Startup_MissingLastLibrary_ExplainsOnTheWelcomeScreen()
+    {
+        var sender = services.GetRequiredService<MediatR.ISender>();
+        await sender.Send(new UseCases.Libraries.CreateLibrary.CreateLibraryCommand("Family", root), TestContext.Current.CancellationToken);
+        await services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
+        Directory.Move(Path.Combine(root, "Family.mfc"), Path.Combine(root, "Moved.mfc"));
+        await TestApp.RunAsync(() => services.GetRequiredService<LibraryShell>());
+        var welcome = services.GetRequiredService<WelcomeViewModel>();
+
+        await services.GetRequiredService<LibraryOpener>().OpenLastAsync();
+        await welcome.RefreshAsync();
+
+        Assert.Equal("Family couldn't be opened. The library folder or its database is missing.", welcome.Message);
+        var recent = Assert.Single(welcome.Recent);
+        Assert.False(recent.IsAvailable);
+        Assert.False(recent.OpenCommand.CanExecute(null));
+    }
+
     public async ValueTask DisposeAsync()
     {
         await services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
@@ -111,24 +143,5 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
         {
             Directory.Delete(root, recursive: true);
         }
-    }
-
-    private sealed class FakePlatform(IAppPaths paths) : IPlatformServices
-    {
-        public Queue<FolderHandle> Folders { get; } = [];
-
-        public IAppPaths Paths { get; } = paths;
-
-        public bool CanRevealInFileExplorer => false;
-
-        public Task<FolderHandle?> PickFolderAsync(string title, CancellationToken cancellationToken = default)
-            => Task.FromResult(Folders.TryDequeue(out var folder) ? folder : null);
-
-        public Task<IReadOnlyList<FileLocation>> PickFilesAsync(FilePickerRequest request, CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<FileLocation>>([]);
-
-        public Task RevealInFileExplorerAsync(FileLocation location, CancellationToken cancellationToken = default) => Task.CompletedTask;
-
-        public Task OpenWithDefaultAppAsync(FileLocation location, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

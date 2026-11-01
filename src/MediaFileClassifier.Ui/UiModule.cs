@@ -57,6 +57,7 @@ public static class UiModule
         services.AddTransient<CreateLibraryViewModel>();
         services.AddSingleton<Func<CreateLibraryViewModel>>(provider => provider.GetRequiredService<CreateLibraryViewModel>);
         services.AddSingleton<LibraryDialogs>();
+        services.AddSingleton<LibraryOpener>();
         services.AddSingleton<WelcomeViewModel>();
         services.AddSingleton<LibraryShell>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());

@@ -40,7 +40,7 @@ public partial class App : Application
         {
             DataTemplates.Add(services.GetRequiredService<ViewLocator>());
             services.GetRequiredService<ThemeService>().Apply();
-            services.GetRequiredService<LibraryShell>();
+            services.GetRequiredService<LibraryShell>().Start();
         }
     }
 

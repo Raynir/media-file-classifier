@@ -9,6 +9,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Main window layout: navigation, toolbar, media browser and details areas that features fill; side panels that resize with splitters, collapse to a rail or strip, and hide (`Ctrl+1`, `Ctrl+2`, `Ctrl+Shift+1`, `Ctrl+Shift+2`, View menu, Reset layout); the panel layout and the window placement for each monitor setup are saved across restarts (E13-S01).
 - Settings window (Tools → Settings…, Ctrl+,): settings registered by features, with generated controls per category, search by name, reset per category or for all, and app or library scope shown on each setting; the theme choice is now saved, and `settings.json` moves to schema version 2 (E17-S01).
 - Welcome screen and create-library dialog: a first launch offers to create a library in `%USERPROFILE%\Media File Classifier` or another checked location, opens it, and asks for the folders to index; Library → New library… does the same later (E02-S01).
+- Opening libraries: Library → Open library…, a recent-libraries list on the welcome screen that marks unreachable libraries and lets you remove them, the last library reopening on startup (General → Open the last library on startup), clear messages for libraries in use, missing or from a newer app, and a progress window while an older library is updated, with an offer to restore its backup if the update fails (E02-S02).
 
 ## M0 — 2026-11-01
 

@@ -136,6 +136,7 @@ public sealed class ShellViewTests
             .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
             .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
+            .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
             .AddUseCases()
             .AddUi()
             .BuildServiceProvider();

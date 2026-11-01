@@ -16,6 +16,7 @@ Sources of truth:
 dotnet build                                          # warnings are errors
 dotnet test                                           # Microsoft.Testing.Platform (global.json)
 dotnet run --project src/MediaFileClassifier.Desktop  # add -- --simulate-crash to test exception logging
+dotnet build src/MediaFileClassifier.App.Android -t:Run  # Android head: needs the android workload, see docs/development-workflow.md
 ```
 
 - **Logs:** `%LOCALAPPDATA%\MediaFileClassifier\logs`.

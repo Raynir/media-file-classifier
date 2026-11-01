@@ -32,4 +32,9 @@
       </Template>
     </Setter>
   </Style>
+
+  <!-- Fluent caps menu popups at 456 wide, which clips longer translations and pseudo-localised labels next to a shortcut. -->
+  <Style Selector="Menu.Commands MenuItem /template/ Border, ContextMenu.Commands MenuItem /template/ Border">
+    <Setter Property="MaxWidth" Value="720" />
+  </Style>
 </Styles>

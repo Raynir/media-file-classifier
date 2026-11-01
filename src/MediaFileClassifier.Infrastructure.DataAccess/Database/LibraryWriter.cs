@@ -10,25 +10,28 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Database;
 /// Reads don't go through the writer; with WAL they run in parallel with it.
 /// A write must not wait for another write of the same library: it would wait for itself. The writer rejects such a
 /// write instead of deadlocking.
+/// Commits don't checkpoint the WAL; a <see cref="WalCheckpointer"/> does it in the background (MFC-982).
 /// </summary>
 internal sealed class LibraryWriter : IAsyncDisposable
 {
     private static readonly AsyncLocal<LibraryWriter?> Running = new();
 
     private readonly SqliteConnection connection;
+    private readonly WalCheckpointer checkpointer;
     private readonly Channel<Func<Task>> queue = Channel.CreateUnbounded<Func<Task>>(
         new UnboundedChannelOptions { SingleReader = true, AllowSynchronousContinuations = false });
 
     private readonly Task loop;
 
-    private LibraryWriter(SqliteConnection connection)
+    private LibraryWriter(SqliteConnection connection, WalCheckpointer checkpointer)
     {
         this.connection = connection;
+        this.checkpointer = checkpointer;
         loop = Task.Run(RunAsync);
     }
 
     /// <summary>
-    /// Opens the write connection and starts the writer.
+    /// Opens the write connection, turns off its automatic checkpoint, and starts the writer and its checkpointer.
     /// </summary>
     /// <param name="connections">Connection factory of the library.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -36,7 +39,22 @@ internal sealed class LibraryWriter : IAsyncDisposable
     public static async Task<LibraryWriter> StartAsync(LibraryConnectionFactory connections, CancellationToken cancellationToken)
     {
         var connection = await connections.OpenAsync(cancellationToken).ConfigureAwait(false);
-        return new LibraryWriter(connection);
+        try
+        {
+            await using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "PRAGMA wal_autocheckpoint = 0;";
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            var checkpointer = await WalCheckpointer.StartAsync(connections, cancellationToken).ConfigureAwait(false);
+            return new LibraryWriter(connection, checkpointer);
+        }
+        catch
+        {
+            await connection.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
     }
 
     /// <summary>
@@ -85,13 +103,14 @@ internal sealed class LibraryWriter : IAsyncDisposable
             cancellationToken);
 
     /// <summary>
-    /// Stops taking writes, waits for the queued ones, and closes the write connection.
+    /// Stops taking writes, waits for the queued ones, stops the checkpointer, and closes the write connection.
     /// </summary>
     /// <returns>A task that completes when the writer has stopped.</returns>
     public async ValueTask DisposeAsync()
     {
         queue.Writer.TryComplete();
         await loop.ConfigureAwait(false);
+        await checkpointer.DisposeAsync().ConfigureAwait(false);
         await connection.DisposeAsync().ConfigureAwait(false);
     }
 
@@ -163,6 +182,7 @@ internal sealed class LibraryWriter : IAsyncDisposable
         {
             // Each work item reports its own result; nothing escapes to stop the loop.
             await work().ConfigureAwait(false);
+            checkpointer.Request();
         }
     }
 }

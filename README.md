@@ -23,7 +23,7 @@ The product backlog lives in Jira (project MFC). The decisions behind it (D001, 
   dotnet new install Avalonia.Templates
   ```
 
-- **Android workload:** not needed yet. It's added after the Android smoke test (E01-SP02).
+- **Android (optional):** only for the Android head, `src/MediaFileClassifier.App.Android`, which `dotnet build` skips. See [Android development](docs/development-workflow.md#android-development).
 
 ### Build, run and test
 

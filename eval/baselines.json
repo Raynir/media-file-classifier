@@ -1,0 +1,6 @@
+{
+  "note": "Empty until E06-SP01 (MFC-53) records the first values. Search thresholds are minimums, OCR thresholds are maximums.",
+  "recallAt10": { "en": null, "ru": null },
+  "mrr": { "en": null, "ru": null },
+  "ocrCer": { "latin": null, "cyrillic": null, "mixed": null }
+}

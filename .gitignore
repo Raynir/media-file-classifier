@@ -483,3 +483,8 @@ $RECYCLE.BIN/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Evaluation corpus (E01-S10): the fetched media, private data sets and the release zip
+eval/corpus/
+eval/private/
+eval-corpus-*.zip

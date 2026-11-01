@@ -766,6 +766,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("camera_model");
 
+                    b.Property<string>("ColorSpace")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("color_space");
+
                     b.Property<string>("ContainerFormat")
                         .HasColumnType("TEXT")
                         .HasColumnName("container_format");
@@ -777,6 +781,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<long?>("DateTakenOffset")
                         .HasColumnType("INTEGER")
                         .HasColumnName("date_taken_offset");
+
+                    b.Property<int?>("DateTakenSource")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("date_taken_source");
 
                     b.Property<long?>("Duration")
                         .HasColumnType("INTEGER")
@@ -794,6 +802,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("REAL")
                         .HasColumnName("frame_rate");
 
+                    b.Property<bool?>("HasAudio")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("has_audio");
+
                     b.Property<int?>("Height")
                         .HasColumnType("INTEGER")
                         .HasColumnName("height");
@@ -801,6 +813,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<string>("LensModel")
                         .HasColumnType("TEXT")
                         .HasColumnName("lens_model");
+
+                    b.Property<int?>("LoopCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("loop_count");
 
                     b.Property<string>("MimeType")
                         .HasColumnType("TEXT")
@@ -817,6 +833,11 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<string>("VideoCodec")
                         .HasColumnType("TEXT")
                         .HasColumnName("video_codec");
+
+                    b.Property<string>("Warnings")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("warnings");
 
                     b.Property<int?>("Width")
                         .HasColumnType("INTEGER")

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
@@ -39,6 +40,7 @@ public partial class App : Application
         {
             DataTemplates.Add(services.GetRequiredService<ViewLocator>());
             services.GetRequiredService<ThemeService>().Apply();
+            services.GetRequiredService<LibraryShell>();
         }
     }
 

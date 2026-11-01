@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Libraries"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Libraries.WelcomeView"
+             x:DataType="vm:WelcomeViewModel">
+  <!-- Provisional welcome screen (D095). E02-S01-T00 designs the real one. -->
+  <StackPanel HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              MaxWidth="480"
+              Margin="{DynamicResource Padding.Panel}"
+              Spacing="{DynamicResource Space.M}">
+    <PathIcon Classes="Large" Data="{StaticResource Icon.Library}" Foreground="{DynamicResource Brush.Text.Tertiary}" />
+    <TextBlock Classes="Title" Text="{l:Loc Welcome_Title}" HorizontalAlignment="Center" TextWrapping="Wrap" />
+    <TextBlock Classes="Secondary" Text="{l:Loc Welcome_Hint}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+    <StackPanel x:Name="Actions" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="{DynamicResource Space.S}">
+      <Button Classes="accent" Content="{l:Loc Welcome_CreateLibrary}" Command="{Binding CreateLibraryCommand}" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

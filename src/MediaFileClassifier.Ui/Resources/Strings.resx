@@ -301,4 +301,96 @@
   <data name="Settings_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="Command_NewLibrary" xml:space="preserve">
+    <value>_New library…</value>
+  </data>
+  <data name="Welcome_Title" xml:space="preserve">
+    <value>Welcome to Media File Classifier</value>
+  </data>
+  <data name="Welcome_Hint" xml:space="preserve">
+    <value>Create a library for your photos and videos, or open one you already have.</value>
+  </data>
+  <data name="Welcome_CreateLibrary" xml:space="preserve">
+    <value>Create library…</value>
+  </data>
+  <data name="CreateLibrary_Title" xml:space="preserve">
+    <value>Create library</value>
+  </data>
+  <data name="CreateLibrary_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="CreateLibrary_NamePlaceholder" xml:space="preserve">
+    <value>For example, Family photos</value>
+  </data>
+  <data name="CreateLibrary_Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="CreateLibrary_LocationHint" xml:space="preserve">
+    <value>The library is a folder with this name and the .mfc extension. Your media stays where it is.</value>
+  </data>
+  <data name="CreateLibrary_Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
+  <data name="CreateLibrary_PickLocation" xml:space="preserve">
+    <value>Choose where to create the library</value>
+  </data>
+  <data name="CreateLibrary_Create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="CreateLibrary_FoldersTitle" xml:space="preserve">
+    <value>Add folders to index</value>
+  </data>
+  <data name="CreateLibrary_FoldersHint" xml:space="preserve">
+    <value>Choose the folders with your photos and videos. You can add more later.</value>
+  </data>
+  <data name="CreateLibrary_AddFolder" xml:space="preserve">
+    <value>Add folder…</value>
+  </data>
+  <data name="CreateLibrary_PickFolder" xml:space="preserve">
+    <value>Choose a folder to index</value>
+  </data>
+  <data name="CreateLibrary_Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="LibraryLocationError_NameMissing" xml:space="preserve">
+    <value>Enter a name for the library.</value>
+  </data>
+  <data name="LibraryLocationError_NameInvalid" xml:space="preserve">
+    <value>A library name can't contain &lt; &gt; : " / \ </value>
+    <comment> ? * or end with a dot.</comment>
+  </data>
+  <data name="LibraryLocationError_LocationMissing" xml:space="preserve">
+    <value>Choose a folder for the library.</value>
+  </data>
+  <data name="LibraryLocationError_InsideLibrary" xml:space="preserve">
+    <value>This folder is inside another library. Choose a folder outside it.</value>
+  </data>
+  <data name="LibraryLocationError_AlreadyExists" xml:space="preserve">
+    <value>A library with this name already exists here. Choose another name or location.</value>
+  </data>
+  <data name="LibraryLocationError_NotWritable" xml:space="preserve">
+    <value>The app can't create files in this folder. Choose another location.</value>
+  </data>
+  <data name="LibraryLocationError_NotEnoughSpace" xml:space="preserve">
+    <value>This drive has less than {0} free. Free some space or choose another drive.</value>
+    <comment>{0} is a file size, such as 1 GB.</comment>
+  </data>
+  <data name="LibraryOpenError_NotFound" xml:space="preserve">
+    <value>The library folder or its database is missing.</value>
+  </data>
+  <data name="LibraryOpenError_AlreadyExists" xml:space="preserve">
+    <value>A library with this name already exists here. Choose another name or location.</value>
+  </data>
+  <data name="LibraryOpenError_InUse" xml:space="preserve">
+    <value>This library is open in another window of the app.</value>
+  </data>
+  <data name="LibraryOpenError_NewerVersion" xml:space="preserve">
+    <value>This library was made by a newer version of the app. Update the app to open it.</value>
+  </data>
+  <data name="LibraryOpenError_NotALibrary" xml:space="preserve">
+    <value>This folder isn't a Media File Classifier library.</value>
+  </data>
+  <data name="LibraryOpenError_NotWritable" xml:space="preserve">
+    <value>The app can't write to this library's folder. Check that the drive is connected and not read-only.</value>
+  </data>
 </root>

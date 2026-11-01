@@ -1,12 +1,15 @@
 using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
+using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.UseCases.Settings;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,7 +30,9 @@ public static class UiModule
     public static IServiceCollection AddUi(this IServiceCollection services)
     {
         services.AddSingleton(new ViewLocator()
-            .Register<SettingsViewModel, SettingsView>());
+            .Register<SettingsViewModel, SettingsView>()
+            .Register<WelcomeViewModel, WelcomeView>()
+            .Register<CreateLibraryViewModel, CreateLibraryView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -47,6 +52,14 @@ public static class UiModule
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<SettingsWindowPresenter>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, SettingsCommands>());
+
+        // Libraries (E02).
+        services.AddTransient<CreateLibraryViewModel>();
+        services.AddSingleton<Func<CreateLibraryViewModel>>(provider => provider.GetRequiredService<CreateLibraryViewModel>);
+        services.AddSingleton<LibraryDialogs>();
+        services.AddSingleton<WelcomeViewModel>();
+        services.AddSingleton<LibraryShell>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Libraries"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Libraries.CreateLibraryView"
+             x:DataType="vm:CreateLibraryViewModel">
+  <!-- Provisional two-step dialog (D095): name and location, then folders. E02-S01-T00 designs the real one. -->
+  <Panel Margin="{DynamicResource Padding.Panel}">
+    <!-- Step 1: name and location -->
+    <DockPanel IsVisible="{Binding IsDetailsStep}">
+      <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+        <Button Classes="accent" Content="{l:Loc CreateLibrary_Create}" Command="{Binding CreateCommand}" IsDefault="True" />
+        <Button Content="{l:Loc Settings_Cancel}" Command="{Binding CloseCommand}" IsCancel="True" />
+      </StackPanel>
+      <StackPanel Spacing="{DynamicResource Space.S}">
+        <TextBlock Classes="Title" Text="{l:Loc CreateLibrary_Title}" />
+        <TextBlock Classes="Label" Text="{l:Loc CreateLibrary_Name}" />
+        <TextBox x:Name="NameBox"
+                 Text="{Binding Name}"
+                 PlaceholderText="{l:Loc CreateLibrary_NamePlaceholder}"
+                 AutomationProperties.Name="{l:Loc CreateLibrary_Name}" />
+        <TextBlock Classes="Label" Text="{l:Loc CreateLibrary_Location}" />
+        <DockPanel>
+          <Button DockPanel.Dock="Right"
+                  Margin="{DynamicResource Padding.Compact}"
+                  Content="{l:Loc CreateLibrary_Browse}"
+                  Command="{Binding BrowseCommand}" />
+          <TextBox Text="{Binding Location}" AutomationProperties.Name="{l:Loc CreateLibrary_Location}" />
+        </DockPanel>
+        <TextBlock Classes="Secondary" Text="{l:Loc CreateLibrary_LocationHint}" TextWrapping="Wrap" />
+        <TextBlock Foreground="{DynamicResource Brush.Status.Error.Foreground}"
+                   Text="{Binding Error}"
+                   IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+    </DockPanel>
+
+    <!-- Step 2: folders to index -->
+    <DockPanel IsVisible="{Binding IsFoldersStep}">
+      <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+        <Button Classes="accent" Content="{l:Loc CreateLibrary_Done}" Command="{Binding CloseCommand}" />
+      </StackPanel>
+      <StackPanel DockPanel.Dock="Top" Spacing="{DynamicResource Space.S}">
+        <TextBlock Classes="Title" Text="{l:Loc CreateLibrary_FoldersTitle}" />
+        <TextBlock Classes="Secondary" Text="{l:Loc CreateLibrary_FoldersHint}" TextWrapping="Wrap" />
+        <Button Content="{l:Loc CreateLibrary_AddFolder}" Command="{Binding AddFolderCommand}" />
+      </StackPanel>
+      <ScrollViewer Margin="{DynamicResource Padding.Compact}">
+        <ItemsControl ItemsSource="{Binding Folders}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <DockPanel Margin="{DynamicResource Padding.Compact}">
+                <PathIcon DockPanel.Dock="Left" Classes="Small" Data="{StaticResource Icon.FolderOpen}" Margin="{DynamicResource Padding.Compact}" />
+                <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </DockPanel>
+  </Panel>
+</UserControl>

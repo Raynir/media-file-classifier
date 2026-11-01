@@ -7,7 +7,9 @@ Requirements: Python 3, Pillow, and ffmpeg on PATH. The OCR image uses Arial fro
 the Windows fonts folder.
 
 Usage (from the repository root):
-    python tools/sample-media/generate_sample_media.py tests/SampleMedia
+    python tools/sample-media/generate_sample_media.py tests/SampleMedia [file ...]
+
+Name files to regenerate only those; the others stay byte-for-byte as committed.
 """
 
 import argparse
@@ -76,6 +78,11 @@ def png_with_alpha(path: Path) -> None:
 
 def webp(path: Path) -> None:
     gradient(320, 240).save(path, "WEBP", quality=75)
+
+
+def animated_webp(path: Path) -> None:
+    frames = [gif_frame(i, 6).convert("RGB") for i in range(6)]
+    frames[0].save(path, "WEBP", save_all=True, append_images=frames[1:], duration=120, loop=0, quality=60)
 
 
 def gif_frame(index: int, count: int, size: int = 96) -> Image.Image:
@@ -147,6 +154,7 @@ GENERATORS = {
     "webp.webp": webp,
     "gif-static.gif": static_gif,
     "gif-animated.gif": animated_gif,
+    "webp-animated.webp": animated_webp,
     "video-short.mp4": short_video,
     "ocr-text.png": ocr_text,
     "corrupt.jpg": corrupt_jpeg,
@@ -158,9 +166,15 @@ GENERATORS = {
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("output", type=Path, help="Folder to write the corpus to.")
+    parser.add_argument("names", nargs="*", help="Files to generate; all of them when omitted.")
     args = parser.parse_args()
+    unknown = set(args.names) - GENERATORS.keys()
+    if unknown:
+        parser.error(f"unknown files: {', '.join(sorted(unknown))}")
     args.output.mkdir(parents=True, exist_ok=True)
     for name, generate in GENERATORS.items():
+        if args.names and name not in args.names:
+            continue
         generate(args.output / name)
         print(f"{name}: {(args.output / name).stat().st_size} bytes")
     return 0

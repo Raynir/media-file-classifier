@@ -37,6 +37,11 @@ public static class SampleMedia
     public static string AnimatedGif => Combine("gif-animated.gif");
 
     /// <summary>
+    /// Gets a looping animated WebP with 6 frames of 120 ms.
+    /// </summary>
+    public static string AnimatedWebP => Combine("webp-animated.webp");
+
+    /// <summary>
     /// Gets a 2-second 320×240 MP4 with H.264 video and an AAC tone.
     /// </summary>
     public static string ShortVideo => Combine("video-short.mp4");

@@ -25,6 +25,9 @@ public sealed class WebPFormatHandler : IMediaFormatHandler
         => header.Length >= 12 && header.StartsWith("RIFF"u8) && header[8..12].SequenceEqual("WEBP"u8);
 
     /// <inheritdoc />
-    public ValueTask<FormatInspection> InspectAsync(Stream content, CancellationToken cancellationToken)
-        => ValueTask.FromResult(FormatInspection.Supported(MediaType.Image));
+    public async ValueTask<FormatInspection> InspectAsync(Stream content, CancellationToken cancellationToken)
+    {
+        var frames = await WebPStructure.CountFramesAsync(content, limit: 2, cancellationToken);
+        return FormatInspection.Supported(frames > 1 ? MediaType.AnimatedImage : MediaType.Image);
+    }
 }

@@ -83,6 +83,16 @@ public sealed class MediaFormatRegistryTests
     }
 
     [Fact]
+    public async Task DetectAsync_AnimatedGifNamedWebP_KeepsItsMediaType()
+    {
+        var detection = await DetectFileAsync(SampleMedia.AnimatedGif, "anim.webp");
+
+        Assert.Equal("gif", detection.Handler?.FormatId);
+        Assert.Equal(MediaType.AnimatedImage, detection.MediaType);
+        Assert.Equal(MediaFormatIssues.ExtensionMismatch, Assert.Single(detection.Warnings).Code);
+    }
+
+    [Fact]
     public async Task DetectAsync_TextNamedJpg_IsRejected()
     {
         var detection = await DetectBytesAsync("This is not a photo.\r\n"u8.ToArray(), "photo.jpg");
@@ -137,6 +147,8 @@ public sealed class MediaFormatRegistryTests
     }
 
     [Theory]
+    [InlineData("gif-animated.gif", MediaType.AnimatedImage)]
+    [InlineData("webp-animated.webp", MediaType.AnimatedImage)]
     [InlineData("video-short.mp4", MediaType.Video)]
     [InlineData("jpeg-exif.jpg", MediaType.Image)]
     public async Task DetectAsync_StreamThatCannotSeek_GivesTheSameResult(string sample, MediaType mediaType)

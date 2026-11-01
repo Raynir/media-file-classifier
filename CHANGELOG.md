@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Job system: persisted jobs and work items (library schema version 3), a scheduler with I/O, CPU and AI pools and priorities, "visible first" boosting, cancellation, restart recovery, a clean stop when the library closes, and a confirmation when quitting while work is pending (E05-S01).
+
 ## M0 — 2026-11-01
 
 ### Added

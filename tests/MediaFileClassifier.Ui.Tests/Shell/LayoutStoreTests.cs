@@ -31,6 +31,21 @@ public sealed class LayoutStoreTests
     }
 
     [Fact]
+    public void StatusBarVisibility_IsSavedAndRestored()
+    {
+        using (var store = new LayoutStore(settings, layout, time))
+        {
+            layout.IsStatusBarVisible = false;
+            store.Flush();
+        }
+
+        var restored = new ShellLayout();
+        using var again = new LayoutStore(settings, restored, time);
+
+        Assert.False(restored.IsStatusBarVisible);
+    }
+
+    [Fact]
     public void LayoutChanges_AreSavedOnceAfterTheDelay()
     {
         using var store = new LayoutStore(settings, layout, time);

@@ -1,5 +1,6 @@
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.StatusBar;
 
 namespace MediaFileClassifier.Ui.ViewModels;
 
@@ -16,12 +17,15 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <param name="regions">What the areas show.</param>
     /// <param name="commands">The command registry, for binding buttons and menus by command ID.</param>
     /// <param name="menu">The main menu.</param>
-    public MainWindowViewModel(ShellLayout layout, ShellRegions regions, CommandRegistry commands, MainMenuViewModel menu)
+    /// <param name="statusBar">The status bar.</param>
+    public MainWindowViewModel(
+        ShellLayout layout, ShellRegions regions, CommandRegistry commands, MainMenuViewModel menu, StatusBarViewModel statusBar)
     {
         Layout = layout;
         Regions = regions;
         Commands = commands;
         Menu = menu;
+        StatusBar = statusBar;
         NavigationContextMenu =
         [
             commands[ShellCommands.CollapseNavigation],
@@ -36,6 +40,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             new MenuSeparator(),
             commands[ShellCommands.ResetLayout],
         ];
+        StatusBarContextMenu = [commands[ShellCommands.ToggleStatusBar]];
     }
 
     /// <summary>
@@ -59,6 +64,11 @@ public sealed class MainWindowViewModel : ViewModelBase
     public MainMenuViewModel Menu { get; }
 
     /// <summary>
+    /// Gets the status bar.
+    /// </summary>
+    public StatusBarViewModel StatusBar { get; }
+
+    /// <summary>
     /// Gets the entries of the navigation panel's context menu.
     /// </summary>
     public IReadOnlyList<IMenuEntry> NavigationContextMenu { get; }
@@ -67,4 +77,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// Gets the entries of the details panel's context menu.
     /// </summary>
     public IReadOnlyList<IMenuEntry> DetailsContextMenu { get; }
+
+    /// <summary>
+    /// Gets the entries of the status bar's context menu.
+    /// </summary>
+    public IReadOnlyList<IMenuEntry> StatusBarContextMenu { get; }
 }

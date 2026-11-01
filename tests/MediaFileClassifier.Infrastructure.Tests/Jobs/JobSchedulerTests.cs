@@ -66,8 +66,9 @@ public sealed class JobSchedulerTests : IAsyncLifetime
     [Fact]
     public async Task HigherPriorityWork_RunsFirst()
     {
+        // One at a time, so the start order is the run order.
         var handler = new TestStageHandler("stage", ResourcePool.Cpu);
-        Start([handler], startPaused: true);
+        Start([handler], cpu: 1, startPaused: true);
 
         var maintenance = await scheduler!.EnqueueJobAsync(Job(JobPriority.Maintenance, [new WorkItemRequest("stage")]), Token);
         var hashing = await scheduler.EnqueueJobAsync(Job(JobPriority.FullHashing, [new WorkItemRequest("stage")]), Token);
@@ -192,11 +193,12 @@ public sealed class JobSchedulerTests : IAsyncLifetime
             item.SetFavorite(true, DateTimeOffset.UtcNow);
             await context.Library.Items.UpdateAsync(item, token);
         });
-        Start([handler], ai: 1);
+        // All four run at once: the fast one finishes, the other three are mid-analysis when the job is cancelled.
+        Start([handler], ai: 4);
         var jobId = await scheduler!.EnqueueJobAsync(
             Job(JobPriority.AiAnalysis, media.Select((item, index) => new WorkItemRequest("analyze", item.Id, index == 0 ? "fast" : null))),
             Token);
-        await WaitUntilAsync(() => handler.Started.Count == 2);
+        await WaitUntilAsync(() => handler.Started.Count == 4 && scheduler.GetRunningCount(ResourcePool.Ai) == 3);
 
         var stopwatch = Stopwatch.StartNew();
         Assert.True(await scheduler.CancelJobAsync(jobId, Token));
@@ -204,7 +206,6 @@ public sealed class JobSchedulerTests : IAsyncLifetime
         stopwatch.Stop();
 
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Cancelling took {stopwatch.Elapsed}.");
-        Assert.Equal(2, handler.Started.Count);
         Assert.Equal(ProcessingJobState.Cancelled, (await bed.Library.Jobs.GetJobAsync(jobId, Token))!.State);
         var states = (await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token)).ToDictionary(item => item.ItemId!.Value, item => item.State);
         Assert.Equal(WorkItemState.Completed, states[media[0].Id]);

@@ -148,6 +148,42 @@ def short_video(path: Path) -> None:
     )
 
 
+def encode_video(path: Path, inputs: list[str], codec: list[str]) -> None:
+    subprocess.run(
+        [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+            *inputs,
+            *codec,
+            "-map_metadata", "-1", "-fflags", "+bitexact", "-flags:v", "+bitexact", "-flags:a", "+bitexact",
+            "-movflags", "+faststart",
+            str(path),
+        ],
+        check=True,
+    )
+
+
+def hevc_video(path: Path) -> None:
+    # hvc1 is the sample entry Apple devices write; FFmpeg defaults to hev1.
+    encode_video(
+        path,
+        ["-f", "lavfi", "-i", "testsrc=size=160x120:rate=10:duration=1"],
+        ["-c:v", "libx265", "-preset", "medium", "-crf", "35", "-pix_fmt", "yuv420p", "-tag:v", "hvc1",
+         "-x265-params", "log-level=error"],
+    )
+
+
+def av1_video(path: Path) -> None:
+    encode_video(
+        path,
+        ["-f", "lavfi", "-i", "testsrc=size=160x120:rate=10:duration=1"],
+        ["-c:v", "libaom-av1", "-cpu-used", "8", "-crf", "50", "-pix_fmt", "yuv420p"],
+    )
+
+
+def audio_only_mp4(path: Path) -> None:
+    encode_video(path, ["-f", "lavfi", "-i", "sine=frequency=440:duration=1"], ["-c:a", "aac", "-b:a", "32k"])
+
+
 GENERATORS = {
     "jpeg-exif.jpg": jpeg_with_exif,
     "png-alpha.png": png_with_alpha,
@@ -156,6 +192,9 @@ GENERATORS = {
     "gif-animated.gif": animated_gif,
     "webp-animated.webp": animated_webp,
     "video-short.mp4": short_video,
+    "video-hevc.mp4": hevc_video,
+    "video-av1.mp4": av1_video,
+    "audio-only.mp4": audio_only_mp4,
     "ocr-text.png": ocr_text,
     "corrupt.jpg": corrupt_jpeg,
     "zero-byte.png": zero_byte,

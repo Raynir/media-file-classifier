@@ -2,13 +2,14 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Shortcuts;
 
 namespace MediaFileClassifier.Ui.Tests.Shortcuts;
 
 /// <summary>
-/// Tests for running shortcuts in a window (E16-S01-T01): physical keys and focus scopes.
+/// Tests for running shortcuts in a window (E16-S01-T01, T02): physical keys, focus scopes and text fields.
 /// </summary>
 public sealed class ShortcutHandlerTests
 {
@@ -34,6 +35,33 @@ public sealed class ShortcutHandlerTests
         window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.None);
 
         Assert.Equal(["browser.select", "global.accept"], ran);
+    });
+
+    [Fact]
+    public Task TextField_KeepsSingleKeysAndEditingChords() => RunAsync((window, _, _) =>
+    {
+        var search = window.GetVisualDescendants().OfType<TextBox>().Single();
+        search.Focus();
+
+        window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.None);
+        window.KeyPressQwerty(PhysicalKey.Slash, RawInputModifiers.Shift);
+        window.KeyPressQwerty(PhysicalKey.Z, RawInputModifiers.Control);
+        Assert.Empty(ran);
+
+        // Other chords and function keys still work from the text field.
+        window.KeyPressQwerty(PhysicalKey.F, RawInputModifiers.Control);
+        window.KeyPressQwerty(PhysicalKey.F1, RawInputModifiers.None);
+        Assert.Equal(["find", "help"], ran);
+    });
+
+    [Fact]
+    public Task TextField_PassesEscOnWhenItDoesNotUseIt() => RunAsync((window, _, _) =>
+    {
+        window.GetVisualDescendants().OfType<TextBox>().Single().Focus();
+
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+
+        Assert.Equal(["cancel"], ran);
     });
 
     [Fact]

@@ -7,7 +7,9 @@ namespace MediaFileClassifier.Ui.Shortcuts;
 
 /// <summary>
 /// Runs commands from key presses in a window (E16-S01-T01, T02). It looks at the physical key (D049) before
-/// the focused control sees it, and tries the scopes around the focused element and then the global scope.
+/// the focused control sees it, tries the scopes around the focused element and then the global scope, and
+/// leaves text editing keys to a focused text field. Esc in a text field reaches shortcuts only if the field
+/// doesn't handle it.
 /// </summary>
 public sealed class ShortcutHandler
 {
@@ -32,6 +34,7 @@ public sealed class ShortcutHandler
     public void Attach(TopLevel topLevel)
     {
         topLevel.AddHandler(InputElement.KeyDownEvent, OnKeyDownBeforeFocusedControl, RoutingStrategies.Tunnel);
+        topLevel.AddHandler(InputElement.KeyDownEvent, OnKeyDownAfterFocusedControl, RoutingStrategies.Bubble);
     }
 
     private static Control? FocusedElement(object? sender)
@@ -46,9 +49,21 @@ public sealed class ShortcutHandler
     private void OnKeyDownBeforeFocusedControl(object? sender, KeyEventArgs e)
     {
         var chord = new KeyChord(e.PhysicalKey, e.KeyModifiers);
-        if (!e.Handled)
+        var focused = FocusedElement(sender);
+        if (e.Handled || (focused is TextBox && TextInputRules.IsReservedForText(chord)))
         {
-            Run(chord, FocusedElement(sender), e);
+            return;
+        }
+
+        Run(chord, focused, e);
+    }
+
+    private void OnKeyDownAfterFocusedControl(object? sender, KeyEventArgs e)
+    {
+        var focused = FocusedElement(sender);
+        if (!e.Handled && e.PhysicalKey == PhysicalKey.Escape && focused is TextBox)
+        {
+            Run(new KeyChord(e.PhysicalKey, e.KeyModifiers), focused, e);
         }
     }
 

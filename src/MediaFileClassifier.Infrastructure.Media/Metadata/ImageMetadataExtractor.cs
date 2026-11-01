@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Formats;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using MetadataExtractor.Formats.Gif;
@@ -18,7 +20,8 @@ namespace MediaFileClassifier.Infrastructure.Media.Metadata;
 
 /// <summary>
 /// Reads image metadata (EXIF, IPTC, XMP, ICC) with MetadataExtractor: dimensions, orientation, date taken, camera,
-/// GPS and color space. Everything it finds goes into the raw JSON.
+/// GPS and color space. Everything it finds goes into the raw JSON. For animated GIF and WebP files it also reads the
+/// frame count, the total duration and the loop count from the frame structure.
 /// </summary>
 /// <param name="timeProvider">Clock for the extraction time.</param>
 /// <param name="logger">Logger.</param>
@@ -52,12 +55,18 @@ public sealed partial class ImageMetadataExtractor(TimeProvider timeProvider, IL
         var subIfd = directories.OfType<ExifSubIfdDirectory>().FirstOrDefault();
         var (width, height) = ReadDimensions(directories);
         var (dateTaken, dateTakenOffset) = ReadDateTaken(subIfd, warnings);
+        var animation = format.MediaType == MediaType.AnimatedImage
+            ? await ReadAnimationAsync(content, format, warnings, cancellationToken)
+            : null;
 
         return MetadataFactory.Create(content, format, timeProvider) with
         {
             Width = width,
             Height = height,
             Orientation = ReadOrientation(ifd0),
+            FrameCount = animation?.FrameCount,
+            Duration = animation?.Duration,
+            LoopCount = animation?.LoopCount,
             DateTaken = dateTaken,
             DateTakenOffset = dateTakenOffset,
             DateTakenSource = dateTaken is null ? null : DateTakenSource.ExifDateTimeOriginal,
@@ -84,6 +93,30 @@ public sealed partial class ImageMetadataExtractor(TimeProvider timeProvider, IL
         await stream.CopyToAsync(buffer, cancellationToken);
         buffer.Position = 0;
         return ImageMetadataReader.ReadMetadata(buffer);
+    }
+
+    private async Task<AnimationInfo?> ReadAnimationAsync(
+        MediaContent content,
+        MediaFormatDetection format,
+        List<ExtractionWarning> warnings,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var stream = await content.OpenReadAsync(cancellationToken);
+            return format.Handler?.FormatId switch
+            {
+                "gif" => await GifStructure.ReadAsync(stream, int.MaxValue, cancellationToken),
+                "webp" => await WebPStructure.ReadAsync(stream, int.MaxValue, cancellationToken),
+                _ => null,
+            };
+        }
+        catch (IOException ex)
+        {
+            LogUnreadable(logger, content.ItemId.Value, ex);
+            warnings.Add(new(MetadataWarnings.MetadataUnreadable, ex.Message));
+            return null;
+        }
     }
 
     private static (int? Width, int? Height) ReadDimensions(IReadOnlyList<MetadataDirectory> directories)

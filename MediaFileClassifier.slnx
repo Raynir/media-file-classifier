@@ -1,0 +1,36 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/MediaFileClassifier.Benchmarks/MediaFileClassifier.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/prototypes/">
+    <Project Path="prototypes/MediaFileClassifier.Prototypes.Playback/MediaFileClassifier.Prototypes.Playback.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <!-- Needs the android workload, so a plain `dotnet build` skips it; CI builds it in its own job (MFC-18). -->
+    <Project Path="src/MediaFileClassifier.App.Android/MediaFileClassifier.App.Android.csproj">
+      <Build Project="false" />
+    </Project>
+    <Project Path="src/MediaFileClassifier.Desktop/MediaFileClassifier.Desktop.csproj" />
+    <Project Path="src/MediaFileClassifier.Domain/MediaFileClassifier.Domain.csproj" />
+    <Project Path="src/MediaFileClassifier.Infrastructure.Abstractions/MediaFileClassifier.Infrastructure.Abstractions.csproj" />
+    <Project Path="src/MediaFileClassifier.Infrastructure.AI/MediaFileClassifier.Infrastructure.AI.csproj" />
+    <Project Path="src/MediaFileClassifier.Infrastructure.DataAccess/MediaFileClassifier.Infrastructure.DataAccess.csproj" />
+    <Project Path="src/MediaFileClassifier.Infrastructure.Jobs/MediaFileClassifier.Infrastructure.Jobs.csproj" />
+    <Project Path="src/MediaFileClassifier.Infrastructure.Search/MediaFileClassifier.Infrastructure.Search.csproj" />
+    <Project Path="src/MediaFileClassifier.Infrastructure/MediaFileClassifier.Infrastructure.csproj" />
+    <Project Path="src/MediaFileClassifier.Ui/MediaFileClassifier.Ui.csproj" />
+    <Project Path="src/MediaFileClassifier.UseCases.Common/MediaFileClassifier.UseCases.Common.csproj" />
+    <Project Path="src/MediaFileClassifier.UseCases/MediaFileClassifier.UseCases.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MediaFileClassifier.Domain.Tests/MediaFileClassifier.Domain.Tests.csproj" />
+    <Project Path="tests/MediaFileClassifier.Evaluation.Tests/MediaFileClassifier.Evaluation.Tests.csproj" />
+    <Project Path="tests/MediaFileClassifier.Infrastructure.Tests/MediaFileClassifier.Infrastructure.Tests.csproj" />
+    <Project Path="tests/MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
+    <Project Path="tests/MediaFileClassifier.Ui.Tests/MediaFileClassifier.Ui.Tests.csproj" />
+    <Project Path="tests/MediaFileClassifier.UseCases.Tests/MediaFileClassifier.UseCases.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/MediaFileClassifier.Evaluation/MediaFileClassifier.Evaluation.csproj" />
+  </Folder>
+</Solution>

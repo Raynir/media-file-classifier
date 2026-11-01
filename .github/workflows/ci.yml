@@ -1,0 +1,106 @@
+# Builds and tests the solution (E01-S11). The repository is private on GitHub Free, so the
+# triggers are narrow to save Actions minutes: long-lived branches, pull requests, and a manual run.
+name: CI
+
+on:
+  push:
+    branches: [develop, main, 'release/**', 'hotfix/**']
+    paths-ignore: ['**.md', 'docs/**']
+  pull_request:
+    branches: [develop, main]
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  build-test:
+    name: Build and test (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - run: dotnet restore
+
+      - run: dotnet build --configuration Release --no-restore
+
+      - run: dotnet test --configuration Release --no-build --report-xunit-trx
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: TestResults/
+          retention-days: 5
+
+  # Shared projects must stay cross-platform for the Android app (D028), so build them on Linux.
+  # Pull requests only, to save minutes. Tests run on Windows only.
+  build-shared-linux:
+    name: Build shared projects (Linux)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Build everything except the platform heads
+        shell: bash
+        run: |
+          for project in $(find src tests -name '*.csproj' ! -name 'MediaFileClassifier.Desktop.csproj' ! -name 'MediaFileClassifier.App.Android.csproj' | sort); do
+            dotnet build "$project" --configuration Release
+          done
+
+  # The Android head (E20) needs the android workload, which the runners don't have, so the solution build skips it
+  # and this job builds it on its own. Pull requests only, to save minutes; Linux minutes cost half of Windows ones.
+  build-android:
+    name: Build Android head
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-android-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-android-${{ runner.os }}-
+
+      - run: dotnet workload install android
+
+      - run: dotnet build src/MediaFileClassifier.App.Android --configuration Release

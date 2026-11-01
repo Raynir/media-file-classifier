@@ -1,0 +1,39 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:MediaFileClassifier.Prototypes.Playback"
+        x:Class="MediaFileClassifier.Prototypes.Playback.MainWindow"
+        x:DataType="local:MainWindow"
+        Title="Playback spike (MFC-54)"
+        Width="1280"
+        Height="800">
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="8">
+      <ComboBox x:Name="EngineBox" MinWidth="320" />
+      <CheckBox x:Name="OverlayBox" Content="Overlay on the video" IsChecked="True" />
+      <TextBlock x:Name="StatusText" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,Auto,Auto" Margin="8" ColumnSpacing="12">
+      <Button x:Name="PlayButton" Grid.Column="0" Content="Pause" MinWidth="80" />
+      <Slider x:Name="PositionSlider" Grid.Column="1" Minimum="0" Maximum="1" VerticalAlignment="Center" />
+      <TextBlock x:Name="TimeText" Grid.Column="2" VerticalAlignment="Center" FontFamily="Consolas" Text="00:00:00.000 / 00:00:00" />
+      <Button x:Name="ExternalButton" Grid.Column="3" Content="Open in default app (D026)" />
+    </Grid>
+
+    <ListBox x:Name="FileList" DockPanel.Dock="Left" Width="280" />
+
+    <Grid Background="Black">
+      <ContentControl x:Name="PlayerHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+      <!-- The airspace test: with a native video view this Border is hidden under the video window. -->
+      <Border x:Name="Overlay"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Bottom"
+              Margin="16"
+              Padding="10,6"
+              CornerRadius="6"
+              Background="#B0202020">
+        <TextBlock x:Name="OverlayText" Foreground="White" FontSize="18" Text="Overlay" />
+      </Border>
+    </Grid>
+  </DockPanel>
+</Window>

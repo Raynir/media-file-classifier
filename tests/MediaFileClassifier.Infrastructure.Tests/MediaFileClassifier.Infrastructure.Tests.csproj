@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure/MediaFileClassifier.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.DataAccess/MediaFileClassifier.Infrastructure.DataAccess.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

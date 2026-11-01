@@ -1,0 +1,6 @@
+{
+  "note": "Set by E06-SP01 (MFC-53) for siglip2-base-patch16-256 with lower-cased queries: the measured values minus about 0.02 (report eval/reports/*_siglip2-base-patch16-256-lowercase). Search thresholds are minimums, OCR thresholds are maximums; OCR stays empty until E06-SP04.",
+  "recallAt10": { "en": 0.94, "ru": 0.79 },
+  "mrr": { "en": 0.96, "ru": 0.81 },
+  "ocrCer": { "latin": null, "cyrillic": null, "mixed": null }
+}

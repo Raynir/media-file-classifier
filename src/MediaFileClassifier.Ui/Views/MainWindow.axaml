@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        xmlns:v="using:MediaFileClassifier.Ui.Views"
+        x:Class="MediaFileClassifier.Ui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{l:Loc App_Title}"
+        Width="1280"
+        Height="800"
+        MinWidth="720"
+        MinHeight="480"
+        WindowStartupLocation="CenterScreen">
+  <!-- The shell is shared with the single-view platforms (Android, E20); see MainView. -->
+  <v:MainView />
+</Window>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- Workstation GC keeps the memory numbers close to what the desktop app sees. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- CA2100: every SQL string comes from LibrarySchema or the checks; no user input reaches SQL. -->
+    <NoWarn>$(NoWarn);CA2100</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <!-- The package's contentFiles add an auto-generated helper; the harness loads vec0 itself. -->
+    <PackageReference Include="sqlite-vec" ExcludeAssets="contentFiles" />
+    <PackageReference Include="System.Numerics.Tensors" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Playback spike prototype (MFC-54, E14-SP01). Not referenced by the app; see README.md. -->
+  <PropertyGroup>
+    <!-- A console app, so `measure` prints its report; the window opens next to the console. -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
+    <IsPackable>false</IsPackable>
+    <!-- The frame callbacks hand native buffers to Avalonia as spans. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Labs.AnimatedImage" />
+    <PackageReference Include="LibVLCSharp" />
+    <PackageReference Include="LibVLCSharp.Avalonia" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" />
+  </ItemGroup>
+
+  <!--
+    LibVLC trimmed to local playback: win-x64 only, and only the plugins that MP4, MKV, WebM, AVI and Ogg
+    files need. It also leaves out the GPL plugins, e.g. the x264 encoder (docs/spikes/media-playback.md).
+  -->
+  <PropertyGroup>
+    <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
+    <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <VlcWindowsX64IncludeFiles Include="libvlc.dll;libvlccore.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\access\libfilesystem_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\demux\libmp4_plugin.dll;plugins\demux\libmkv_plugin.dll;plugins\demux\libavi_plugin.dll;plugins\demux\libogg_plugin.dll;plugins\demux\libts_plugin.dll;plugins\demux\libps_plugin.dll;plugins\demux\libes_plugin.dll;plugins\demux\libwav_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\packetizer\%2A;plugins\video_chroma\%2A;plugins\audio_mixer\%2A;plugins\stream_filter\%2A" />
+    <!-- Format conversion, resampling and downmixing only: dolby_surround_decoder and headphone_channel_mixer are GPL. -->
+    <VlcWindowsX64IncludeFiles Include="plugins\audio_filter\libaudio_format_plugin.dll;plugins\audio_filter\libremap_plugin.dll;plugins\audio_filter\libscaletempo_plugin.dll;plugins\audio_filter\libsimple_channel_mixer_plugin.dll;plugins\audio_filter\libtrivial_channel_mixer_plugin.dll;plugins\audio_filter\libspeex_resampler_plugin.dll;plugins\audio_filter\libugly_resampler_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\codec\libavcodec_plugin.dll;plugins\codec\libdav1d_plugin.dll;plugins\codec\libd3d11va_plugin.dll;plugins\codec\libdxva2_plugin.dll;plugins\codec\libopus_plugin.dll;plugins\codec\libvorbis_plugin.dll;plugins\codec\libflac_plugin.dll;plugins\codec\libmpg123_plugin.dll;plugins\codec\liblpcm_plugin.dll;plugins\codec\libaraw_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\video_output\libdirect3d11_plugin.dll;plugins\video_output\libvmem_plugin.dll;plugins\video_output\libdrawable_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\audio_output\libmmdevice_plugin.dll;plugins\audio_output\libwasapi_plugin.dll;plugins\audio_output\libdirectsound_plugin.dll" />
+  </ItemGroup>
+
+</Project>

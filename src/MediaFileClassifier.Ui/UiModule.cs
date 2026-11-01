@@ -1,0 +1,41 @@
+using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.Theming;
+using MediaFileClassifier.Ui.ViewModels;
+using MediaFileClassifier.Ui.Views;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace MediaFileClassifier.Ui;
+
+/// <summary>
+/// Registers the shared UI: windows, view models, the view locator, the localizer, the theme and the commands.
+/// </summary>
+public static class UiModule
+{
+    /// <summary>
+    /// Adds the shared UI services.
+    /// </summary>
+    /// <param name="services">Service collection.</param>
+    /// <returns>The same service collection, for chaining.</returns>
+    public static IServiceCollection AddUi(this IServiceCollection services)
+    {
+        services.AddSingleton(new ViewLocator());
+        services.AddSingleton(Localizer.Current);
+        services.AddSingleton<ThemeService>();
+        services.AddSingleton<ShellLayout>();
+
+        // Commands (E13-S05). Commands follow the capability flags that AddInfrastructure registers.
+        services.TryAddSingleton<ICapabilityGate, CapabilityServiceGate>();
+        services.TryAddSingleton<IFolderLauncher, AvaloniaFolderLauncher>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ShellCommands>());
+        services.AddSingleton<CommandRegistry>();
+        services.AddSingleton<MainMenuViewModel>();
+
+        services.AddTransient<MainWindowViewModel>();
+        services.AddTransient<MainWindow>();
+        return services;
+    }
+}

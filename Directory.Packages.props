@@ -1,0 +1,45 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- UI -->
+    <PackageVersion Include="Avalonia" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Android" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <!-- Use cases. MediatR stays on 12.5.0, the last Apache-2.0 release (D063). -->
+    <PackageVersion Include="MediatR" Version="12.5.0" />
+    <PackageVersion Include="Riok.Mapperly" Version="4.3.1" />
+    <!-- Hosting and logging -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+    <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    <!-- Data -->
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+    <!-- EF Core with the SQLite provider (D071). Design is for `dotnet ef migrations add` only. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14" />
+    <!-- Vector search spike (MFC-17): benchmarks only until D067 is settled. -->
+    <PackageVersion Include="sqlite-vec" Version="0.1.7-alpha.2.1" />
+    <PackageVersion Include="System.Numerics.Tensors" Version="10.0.14" />
+    <!-- Android smoke test (MFC-18): the App.Android head only, with a provisional model until MFC-53. -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" />
+    <PackageVersion Include="Microsoft.ML.Tokenizers" Version="2.0.1" />
+    <!-- Playback spike (MFC-54): prototype only until D070 is settled. -->
+    <PackageVersion Include="Avalonia.Labs.AnimatedImage" Version="12.1.0" />
+    <PackageVersion Include="LibVLCSharp" Version="3.10.2" />
+    <PackageVersion Include="LibVLCSharp.Avalonia" Version="3.10.2" />
+    <PackageVersion Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+    <!-- Analyzers -->
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+    <!-- Testing -->
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="Avalonia.Headless" Version="12.1.4" />
+  </ItemGroup>
+</Project>

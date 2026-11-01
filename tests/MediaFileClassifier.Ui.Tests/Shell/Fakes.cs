@@ -16,6 +16,12 @@ internal sealed class FakeSettingsService : ISettingsService
         Current = settings;
         SaveCount++;
     }
+
+    public AppSettings Update(Func<AppSettings, AppSettings> change)
+    {
+        Save(change(Current));
+        return Current;
+    }
 }
 
 /// <summary>

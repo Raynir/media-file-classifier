@@ -165,4 +165,140 @@
     <value>{0} TB</value>
     <comment>{0} is a number, formatted for the current culture.</comment>
   </data>
+  <data name="SettingsCategory_General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="SettingsCategory_Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="SettingsCategory_Library" xml:space="preserve">
+    <value>Library</value>
+  </data>
+  <data name="SettingsCategory_AiModels" xml:space="preserve">
+    <value>AI &amp; Models</value>
+  </data>
+  <data name="SettingsCategory_Processing" xml:space="preserve">
+    <value>Processing</value>
+  </data>
+  <data name="Setting_Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Setting_Theme_Help" xml:space="preserve">
+    <value>Follow the system's light or dark mode, or always use one of them.</value>
+  </data>
+  <data name="Setting_Theme_System" xml:space="preserve">
+    <value>Use system setting</value>
+  </data>
+  <data name="Setting_Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Setting_Theme_Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Setting_OpenAiCompatibleEndpoint" xml:space="preserve">
+    <value>OpenAI-compatible server</value>
+  </data>
+  <data name="Setting_OpenAiCompatibleEndpoint_Help" xml:space="preserve">
+    <value>Base URL of a local server such as LM Studio or Ollama. Leave it empty if you don't use one.</value>
+  </data>
+  <data name="Setting_OpenAiCompatibleEndpoint_Placeholder" xml:space="preserve">
+    <value>http://localhost:1234/v1</value>
+  </data>
+  <data name="Setting_AnalyzeAutomatically" xml:space="preserve">
+    <value>Analyse new items automatically</value>
+  </data>
+  <data name="Setting_AnalyzeAutomatically_Help" xml:space="preserve">
+    <value>Describe and tag items as soon as they're imported. When off, start analysis yourself.</value>
+  </data>
+  <data name="Setting_RetainedPreviousRuns" xml:space="preserve">
+    <value>Previous analysis results to keep</value>
+  </data>
+  <data name="Setting_RetainedPreviousRuns_Help" xml:space="preserve">
+    <value>Older results kept for each item, so you can compare them or go back. Each one adds about 5 KB per item.</value>
+  </data>
+  <data name="SettingError_Range" xml:space="preserve">
+    <value>Enter a whole number from {0} to {1}.</value>
+    <comment>{0} and {1} are the smallest and largest allowed numbers.</comment>
+  </data>
+  <data name="SettingError_HttpUrl" xml:space="preserve">
+    <value>Enter a URL that starts with http:// or https://, or leave it empty.</value>
+  </data>
+  <data name="SettingError_UnknownOption" xml:space="preserve">
+    <value>Choose one of the options.</value>
+  </data>
+  <data name="SettingError_NoLibrary" xml:space="preserve">
+    <value>Open a library to change library settings.</value>
+  </data>
+  <data name="Command_Settings" xml:space="preserve">
+    <value>_Settings…</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Settings_Categories" xml:space="preserve">
+    <value>Settings categories</value>
+  </data>
+  <data name="Settings_ScopeApp" xml:space="preserve">
+    <value>App</value>
+  </data>
+  <data name="Settings_ScopeApp_ToolTip" xml:space="preserve">
+    <value>Stored on this computer and used for every library.</value>
+  </data>
+  <data name="Settings_ScopeLibrary" xml:space="preserve">
+    <value>Library</value>
+  </data>
+  <data name="Settings_ScopeLibrary_ToolTip" xml:space="preserve">
+    <value>Stored in the open library, so it moves with the library to another computer.</value>
+  </data>
+  <data name="Settings_ApplyRestart" xml:space="preserve">
+    <value>Takes effect after a restart</value>
+  </data>
+  <data name="Settings_ApplyReindex" xml:space="preserve">
+    <value>Re-index to update existing items</value>
+  </data>
+  <data name="Settings_LibraryNote" xml:space="preserve">
+    <value>Open a library to change library settings. Until then they show their defaults.</value>
+  </data>
+  <data name="Settings_EmptyCategory" xml:space="preserve">
+    <value>There are no settings here yet.</value>
+  </data>
+  <data name="Settings_On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Settings_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Settings_Search_Placeholder" xml:space="preserve">
+    <value>Search settings</value>
+  </data>
+  <data name="Settings_SearchResults" xml:space="preserve">
+    <value>Results for “{0}”</value>
+    <comment>{0} is the search text.</comment>
+  </data>
+  <data name="Settings_NoResults" xml:space="preserve">
+    <value>No settings match “{0}”.</value>
+    <comment>{0} is the search text.</comment>
+  </data>
+  <data name="Settings_ResetCategory" xml:space="preserve">
+    <value>Reset to defaults</value>
+  </data>
+  <data name="Settings_ResetCategory_Confirm" xml:space="preserve">
+    <value>Reset all {0} settings to their defaults?</value>
+    <comment>{0} is the category name, such as Appearance.</comment>
+  </data>
+  <data name="Settings_ResetAll" xml:space="preserve">
+    <value>Reset all settings</value>
+  </data>
+  <data name="Settings_ResetAll_Confirm" xml:space="preserve">
+    <value>Reset every setting to its default?</value>
+  </data>
+  <data name="Settings_ResetAll_NoLibrary" xml:space="preserve">
+    <value>Library settings stay as they are, because no library is open.</value>
+  </data>
+  <data name="Settings_Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Settings_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
 </root>

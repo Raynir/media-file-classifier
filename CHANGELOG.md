@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Media identity: quick fingerprints and full content hashes (XxHash128), perceptual hashes for images, a near-match search, and a file matching service with four tiers and confidence levels; a robustness test set of re-encoded, resized and converted copies (E01-S06).
+
 ## M0 — 2026-11-01
 
 ### Added

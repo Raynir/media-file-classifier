@@ -13,7 +13,7 @@ The third-party libraries, native binaries and AI models that Media File Classif
 | Avalonia (`Avalonia`, `.Desktop`, `.Skia`, `.Win32`, `.Themes.Fluent`, `.HarfBuzz`, `.Remote.Protocol`, `.Native`, `.X11`, `.FreeDesktop`, `.FreeDesktop.AtSpi`) | 12.1.4 | MIT | https://github.com/AvaloniaUI/Avalonia | UI framework |
 | Avalonia.Fonts.Inter (Inter typeface) | 12.1.4 | MIT (package), SIL OFL 1.1 (font) | https://github.com/rsms/inter | |
 | Avalonia.Angle.Windows.Natives (ANGLE) | 2.1.27548 | BSD-3-Clause | https://chromium.googlesource.com/angle/angle | Native, Windows |
-| SkiaSharp, SkiaSharp.NativeAssets.Win32 (Skia) | 3.119.4 | MIT (SkiaSharp), BSD-3-Clause (Skia) | https://github.com/mono/SkiaSharp | Native; see the dependency matrix |
+| SkiaSharp, SkiaSharp.NativeAssets.Win32 (Skia) | 3.119.4 | MIT (SkiaSharp), BSD-3-Clause (Skia) | https://github.com/mono/SkiaSharp | Native; see the dependency matrix. Also decodes images for the perceptual hash (E01-S06) |
 | HarfBuzzSharp, HarfBuzzSharp.NativeAssets.Win32 (HarfBuzz) | 8.3.1.3 | MIT (HarfBuzzSharp), Old MIT (HarfBuzz) | https://github.com/mono/SkiaSharp | Native |
 | MicroCom.Runtime | 0.11.6 | MIT | https://github.com/kekekeks/MicroCom | |
 | Tmds.DBus.Protocol | 0.94.1 | MIT | https://github.com/tmds/Tmds.DBus | Used on Linux only |
@@ -31,6 +31,7 @@ The third-party libraries, native binaries and AI models that Media File Classif
 | AndroidX and Kotlin bindings (`Xamarin.AndroidX.*`, `Xamarin.Kotlin.*`, `Xamarin.Google.*`), transitive through Avalonia.Android | per package | Apache-2.0 | https://github.com/dotnet/android-libraries | Android head only |
 | ONNX Runtime (`Microsoft.ML.OnnxRuntime`, `.Managed`) | 1.31.1 | MIT | https://github.com/microsoft/onnxruntime | Native. Android head only so far (MFC-18); its telemetry provider and network permissions are stripped (D081) |
 | Microsoft.ML.Tokenizers | 2.0.1 | MIT | https://github.com/dotnet/machinelearning | Android head only so far (MFC-18) |
+| System.IO.Hashing | 10.0.14 | MIT | https://github.com/dotnet/runtime | XxHash128 fingerprints and content hashes (E01-S06) |
 | System.Numerics.Tensors | 10.0.14 | MIT | https://github.com/dotnet/runtime | Android head (MFC-18); vector search (D067) |
 
 ## Build and test only (not shipped)

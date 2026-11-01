@@ -137,6 +137,44 @@ public sealed class JobSchedulerTests : IAsyncLifetime
         release.Release(10);
     }
 
+    [Fact]
+    public async Task Boost_RunsWorkForOnScreenItemsFirst_AsTheViewScrolls()
+    {
+        // A large unprocessed library: thumbnails for 300 items, one at a time.
+        using var gate = new SemaphoreSlim(0);
+        var handler = new TestStageHandler("thumbnail", ResourcePool.Cpu, (_, token) => gate.WaitAsync(token));
+        Start([handler], cpu: 1, startPaused: true);
+        var media = Enumerable.Range(0, 300).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(media, Token);
+        var user = await scheduler!.EnqueueJobAsync(Job(JobPriority.UserAction, [new WorkItemRequest("thumbnail", media[0].Id)]), Token);
+        await scheduler.EnqueueJobAsync(Job(JobPriority.Import, media.Select(item => new WorkItemRequest("thumbnail", item.Id))), Token);
+
+        try
+        {
+            var firstScreen = media.Skip(250).Take(10).Select(item => item.Id).ToList();
+            scheduler.Boost(firstScreen);
+            scheduler.Resume();
+            gate.Release(11);
+            await WaitUntilAsync(() => handler.Started.Count == 12);
+
+            var started = handler.Started.ToList();
+            Assert.Equal(user, started[0].JobId);
+            Assert.Equivalent(firstScreen, started.Skip(1).Take(10).Select(item => item.ItemId!.Value));
+
+            // Scrolling: the next screen replaces the boost, and runs as soon as the running work item finishes.
+            var secondScreen = media.Skip(120).Take(10).Select(item => item.Id).ToList();
+            scheduler.Boost(secondScreen);
+            gate.Release(10);
+            await WaitUntilAsync(() => handler.Started.Count == 22);
+
+            Assert.Equivalent(secondScreen, handler.Started.Skip(12).Take(10).Select(item => item.ItemId!.Value));
+        }
+        finally
+        {
+            gate.Release(1000);
+        }
+    }
+
     internal static JobRequest Job(JobPriority priority, IEnumerable<WorkItemRequest> workItems) =>
         new("test", "Test job", priority, [.. workItems]);
 

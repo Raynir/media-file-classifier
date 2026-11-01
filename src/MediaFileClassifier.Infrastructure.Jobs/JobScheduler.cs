@@ -235,6 +235,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             foreach (var pool in pools.Values)
             {
                 pool.Exhausted = false;
+                pool.Stale = true;
             }
         }
 
@@ -323,7 +324,6 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         {
             while (!token.IsCancellationRequested && !paused)
             {
-                WorkItem? next;
                 List<Id<WorkItem>> excluding;
                 lock (gate)
                 {
@@ -332,24 +332,27 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                         break;
                     }
 
-                    next = TakeNext(pool);
-                    if (next is not null)
+                    if (!pool.Stale && (pool.Buffer.Count > 0 || pool.Exhausted))
                     {
+                        var next = TakeNext(pool);
+                        if (next is null)
+                        {
+                            break;
+                        }
+
                         StartWorkItem(next, pool);
                         continue;
                     }
 
-                    if (pool.Exhausted)
-                    {
-                        break;
-                    }
-
+                    pool.Stale = false;
                     excluding = [.. running.Keys];
                 }
 
                 var page = await Library.Jobs.GetQueuedAsync(resource, PageSize, excluding, token).ConfigureAwait(false);
                 lock (gate)
                 {
+                    // The page replaces the read-ahead, so it stays small; boosted work read by LoadBoostedAsync stays.
+                    pool.Buffer.RemoveAll(item => Rank(item) != 1);
                     pool.Buffer.AddRange(page.Where(item => !running.ContainsKey(item.Id) && !pool.Buffer.Any(buffered => buffered.Id == item.Id)));
                     pool.Exhausted = page.Count == 0;
                 }
@@ -467,5 +470,10 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         /// Gets or sets whether the last read found nothing queued, so the pool waits for new work before reading again.
         /// </summary>
         public bool Exhausted { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether work was added since the last read, so the buffer may miss work that should run first.
+        /// </summary>
+        public bool Stale { get; set; } = true;
     }
 }

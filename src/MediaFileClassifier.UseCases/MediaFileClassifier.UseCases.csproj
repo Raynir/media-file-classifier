@@ -5,6 +5,7 @@
     <ProjectReference Include="../MediaFileClassifier.Infrastructure.Abstractions/MediaFileClassifier.Infrastructure.Abstractions.csproj" />
     <ProjectReference Include="../MediaFileClassifier.UseCases.Common/MediaFileClassifier.UseCases.Common.csproj" />
     <PackageReference Include="MediatR" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <!-- Mapperly is a source generator; its attributes aren't needed at run time. -->
     <PackageReference Include="Riok.Mapperly" ExcludeAssets="runtime" PrivateAssets="all" />

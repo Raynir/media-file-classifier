@@ -37,6 +37,11 @@ public sealed record AppSettings
     public string? LastLibraryPath { get; init; }
 
     /// <summary>
+    /// Recently created or opened libraries, most recent first, or <c>null</c> if none (E02-S02).
+    /// </summary>
+    public IReadOnlyList<RecentLibrary>? RecentLibraries { get; init; }
+
+    /// <summary>
     /// Values of the registered app-scope settings (E17-S01). Read and write them through <see cref="ISettingsStore"/>.
     /// </summary>
     /// <remarks>

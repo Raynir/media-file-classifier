@@ -13,7 +13,8 @@ namespace MediaFileClassifier.Infrastructure.Media.Metadata;
 
 /// <summary>
 /// Reads video metadata with FFprobe, through FFMpegCore (D068): duration, resolution, frame rate, codecs, the audio
-/// track and the container's creation time. Without FFmpeg (the Video analysis capability is off, E01-S07-T03) a video
+/// track, the container's creation time, and the display rotation as an orientation, so a portrait phone video stored
+/// landscape reports portrait display dimensions. Without FFmpeg (the Video analysis capability is off, E01-S07-T03) a video
 /// keeps its file-level metadata and an <see cref="MetadataWarnings.FfmpegUnavailable"/> warning.
 /// </summary>
 /// <param name="capabilities">Capability flags, for Video analysis.</param>
@@ -66,6 +67,7 @@ public sealed partial class VideoMetadataExtractor(
         {
             Width = video is { Width: > 0 } ? video.Width : null,
             Height = video is { Height: > 0 } ? video.Height : null,
+            Orientation = video is null ? ImageOrientation.Normal : ToOrientation(video.Rotation),
             Duration = analysis.Duration > TimeSpan.Zero ? analysis.Duration : null,
             FrameRate = video is not null && double.IsFinite(video.AvgFrameRate) && video.AvgFrameRate > 0 ? video.AvgFrameRate : null,
             VideoCodec = video?.CodecName,
@@ -80,6 +82,21 @@ public sealed partial class VideoMetadataExtractor(
             Warnings = warnings,
         };
     }
+
+    /// <summary>
+    /// Maps FFprobe's display rotation, in degrees counter-clockwise (a phone held upright records −90), to the EXIF-style
+    /// orientation. Angles that aren't a quarter turn count as none.
+    /// </summary>
+    /// <param name="counterClockwiseDegrees">The rotation FFprobe reports.</param>
+    /// <returns>The orientation.</returns>
+    internal static ImageOrientation ToOrientation(int counterClockwiseDegrees)
+        => (((-counterClockwiseDegrees % 360) + 360) % 360) switch
+        {
+            90 => ImageOrientation.Rotate90,
+            180 => ImageOrientation.Rotate180,
+            270 => ImageOrientation.Rotate270,
+            _ => ImageOrientation.Normal,
+        };
 
     /// <summary>
     /// Runs FFprobe on the file's path when it has one, since an MP4 with its index at the end can't be read from a

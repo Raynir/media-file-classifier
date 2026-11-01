@@ -20,6 +20,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// </summary>
     private const int PageSize = 64;
 
+    /// <summary>
+    /// How long running work may take to finish when the library closes, before it's cancelled.
+    /// </summary>
+    public static readonly TimeSpan StopGracePeriod = TimeSpan.FromSeconds(2);
+
     private readonly IReadOnlyDictionary<string, IStageHandler> handlers;
     private readonly TimeProvider clock;
     private readonly ILogger logger;
@@ -198,14 +203,21 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     }
 
     /// <summary>
-    /// Stops the scheduler: no new work starts, and the call waits for the running work to finish.
+    /// Stops the scheduler before the library closes (E05-S01-T06): no new work starts, running work gets
+    /// <see cref="StopGracePeriod"/> to finish, and what's still running then is cancelled and put back in the queue.
     /// </summary>
-    /// <returns>A task that completes when no work is running.</returns>
+    /// <returns>A task that completes when no work is running and nothing more will be written.</returns>
     public async Task StopAsync()
     {
         await stopping.CancelAsync().ConfigureAwait(false);
         await loop.ConfigureAwait(false);
-        await Task.WhenAll(RunningTasks()).ConfigureAwait(false);
+        var all = Task.WhenAll(RunningTasks());
+        if (await Task.WhenAny(all, Task.Delay(StopGracePeriod, clock)).ConfigureAwait(false) != all)
+        {
+            await aborting.CancelAsync().ConfigureAwait(false);
+        }
+
+        await all.ConfigureAwait(false);
     }
 
     /// <summary>

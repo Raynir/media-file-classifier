@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
@@ -97,6 +99,46 @@ public sealed class JobSystemTests : IAsyncLifetime
 
         Assert.Null(system.Current);
         Assert.Equal(0, await system.CountPendingAsync(Token));
+    }
+
+    [Fact]
+    public async Task StopAsync_DuringHeavyProcessing_StopsWithinSeconds_AndResumesWithoutLosingWork()
+    {
+        // Every third item is slow, like an AI call; the others are quick. Each commits one write at the end.
+        var media = Enumerable.Range(0, 120).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(media, Token);
+        async Task Work(WorkItemContext context, CancellationToken token)
+        {
+            await Task.Delay(int.Parse(context.WorkItem.Payload!, CultureInfo.InvariantCulture) % 3 == 0 ? 60_000 : 20, token);
+            var item = (await context.Library.Items.GetAsync(context.WorkItem.ItemId!.Value, token))!;
+            item.SetFavorite(true, DateTimeOffset.UtcNow);
+            await context.Library.Items.UpdateAsync(item, token);
+        }
+
+        system = CreateSystem(new TestStageHandler("work", ResourcePool.Cpu, Work));
+        var scheduler = await system.StartAsync(bed.Library, Token);
+        var jobId = await scheduler.EnqueueJobAsync(
+            JobSchedulerTests.Job(JobPriority.Import, media.Select((item, index) => new WorkItemRequest("work", item.Id, $"{index}"))),
+            Token);
+        await Task.Delay(300, Token);
+
+        var stopwatch = Stopwatch.StartNew();
+        await system.StopAsync();
+        stopwatch.Stop();
+        await bed.ReopenAsync();
+
+        Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, TimeSpan.FromSeconds(4));
+        Assert.True((await bed.Library.Maintenance.CheckIntegrityAsync(Token)).IsOk);
+        var stored = await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token);
+        Assert.DoesNotContain(stored, item => item.State == WorkItemState.Running);
+        foreach (var workItem in stored)
+        {
+            // Completed work has its result; work that was stopped left none.
+            var item = await bed.Library.Items.GetAsync(workItem.ItemId!.Value, Token);
+            Assert.Equal(workItem.State == WorkItemState.Completed, item!.IsFavorite);
+        }
+
+        Assert.Contains(stored, item => item.State == WorkItemState.Queued);
     }
 
     [Fact]

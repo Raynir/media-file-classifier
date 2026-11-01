@@ -95,6 +95,35 @@ internal sealed class ItemIdListComparer()
         ids => ids.ToArray());
 
 /// <summary>
+/// Stores a list of extraction warnings as a JSON array of codes and details.
+/// </summary>
+internal sealed class ExtractionWarningListConverter()
+    : ValueConverter<IReadOnlyList<ExtractionWarning>, string>(warnings => ToJson(warnings), json => FromJson(json))
+{
+    private static string ToJson(IReadOnlyList<ExtractionWarning> warnings) => JsonSerializer.Serialize(
+        warnings.Select(warning => new ExtractionWarningJson(warning.Code, warning.Detail)).ToArray(),
+        DataAccessJsonContext.Default.ExtractionWarningJsonArray);
+
+    private static IReadOnlyList<ExtractionWarning> FromJson(string json) =>
+        [.. (JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.ExtractionWarningJsonArray) ?? [])
+            .Select(warning => new ExtractionWarning(warning.Code, warning.Detail))];
+}
+
+/// <summary>
+/// Compares lists of extraction warnings by content.
+/// </summary>
+internal sealed class ExtractionWarningListComparer()
+    : ValueComparer<IReadOnlyList<ExtractionWarning>>(
+        (left, right) => left == null ? right == null : right != null && left.SequenceEqual(right),
+        warnings => warnings.Aggregate(0, (hash, warning) => HashCode.Combine(hash, warning)),
+        warnings => warnings.ToArray());
+
+/// <summary>
+/// Stored shape of <see cref="ExtractionWarning"/>.
+/// </summary>
+internal sealed record ExtractionWarningJson(string Code, string? Detail);
+
+/// <summary>
 /// Stored shape of <see cref="FolderRules"/>.
 /// </summary>
 internal sealed record FolderRulesJson(bool IncludeSubfolders, string[] IncludePatterns, string[] ExcludePatterns);
@@ -111,6 +140,7 @@ internal sealed record LibrarySettingsJson(bool AnalyzeAutomatically, Guid? Acti
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(Guid[]))]
+[JsonSerializable(typeof(ExtractionWarningJson[]))]
 [JsonSerializable(typeof(FolderRulesJson))]
 [JsonSerializable(typeof(LibrarySettingsJson))]
 internal sealed partial class DataAccessJsonContext : JsonSerializerContext;

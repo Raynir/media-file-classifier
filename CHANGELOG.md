@@ -7,6 +7,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Added
 
 - Settings window (Tools → Settings…, Ctrl+,): settings registered by features, with generated controls per category, search by name, reset per category or for all, and app or library scope shown on each setting; the theme choice is now saved, and `settings.json` moves to schema version 2 (E17-S01).
+- Supported format registry: JPEG, PNG, WebP, GIF and MP4 are detected from their content rather than their extension; GIF and WebP files are told apart as still or animated, MP4 files need a video track, and other files are skipped with a reason (E03-S01).
+- Technical metadata extraction: image EXIF, IPTC, XMP and ICC data (dimensions, orientation, date taken, camera, lens, GPS, color space) through MetadataExtractor; frame count, duration and loop count of animated GIF and WebP files; video duration, resolution, frame rate, codecs, audio track, creation time and rotation through FFprobe, with file-level metadata only when FFmpeg is missing. The date taken falls back from EXIF to the video creation time to the file modification time and records its source; damaged metadata gives partial results and warnings (library schema version 3, E03-S03).
 
 ## M0 — 2026-11-01
 

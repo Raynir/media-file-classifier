@@ -199,4 +199,43 @@
   <data name="SettingError_NoLibrary" xml:space="preserve">
     <value>Open a library to change library settings.</value>
   </data>
+  <data name="Command_Settings" xml:space="preserve">
+    <value>_Settings…</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Settings_Categories" xml:space="preserve">
+    <value>Settings categories</value>
+  </data>
+  <data name="Settings_ScopeApp" xml:space="preserve">
+    <value>App</value>
+  </data>
+  <data name="Settings_ScopeApp_ToolTip" xml:space="preserve">
+    <value>Stored on this computer and used for every library.</value>
+  </data>
+  <data name="Settings_ScopeLibrary" xml:space="preserve">
+    <value>Library</value>
+  </data>
+  <data name="Settings_ScopeLibrary_ToolTip" xml:space="preserve">
+    <value>Stored in the open library, so it moves with the library to another computer.</value>
+  </data>
+  <data name="Settings_ApplyRestart" xml:space="preserve">
+    <value>Takes effect after a restart</value>
+  </data>
+  <data name="Settings_ApplyReindex" xml:space="preserve">
+    <value>Re-index to update existing items</value>
+  </data>
+  <data name="Settings_LibraryNote" xml:space="preserve">
+    <value>Open a library to change library settings. Until then they show their defaults.</value>
+  </data>
+  <data name="Settings_EmptyCategory" xml:space="preserve">
+    <value>There are no settings here yet.</value>
+  </data>
+  <data name="Settings_On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Settings_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
 </root>

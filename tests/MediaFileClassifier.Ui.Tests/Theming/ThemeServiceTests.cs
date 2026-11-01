@@ -61,4 +61,18 @@ public sealed class ThemeServiceTests
         Assert.Equal(ThemeMode.Light, mode);
         Assert.Equal(ThemeMode.System, service.Mode);
     });
+
+    [Fact]
+    public Task Override_AppliesWithoutStoring() => TestApp.RunAsync(() =>
+    {
+        var store = new InMemorySettingsStore();
+        var service = new ThemeService(store);
+
+        service.Override(ThemeMode.Dark);
+        var variant = Application.Current!.RequestedThemeVariant;
+        service.Override(ThemeMode.System);
+
+        Assert.Equal(ThemeVariant.Dark, variant);
+        Assert.Equal(0, store.WriteCount);
+    });
 }

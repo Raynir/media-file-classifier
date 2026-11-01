@@ -1,0 +1,15 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Settings"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Settings.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="{l:Loc Settings_Title}"
+        Width="960"
+        Height="640"
+        MinWidth="640"
+        MinHeight="420"
+        WindowStartupLocation="CenterOwner">
+  <!-- Hosts the shared settings page on the desktop; the view locator maps the view model to SettingsView. -->
+  <ContentControl Content="{Binding}" />
+</Window>

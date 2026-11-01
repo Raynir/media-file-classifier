@@ -8,6 +8,7 @@ using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Ui.Tests.Commands;
@@ -26,6 +27,7 @@ public sealed class CommandSurfacesTests
             .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
             .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
+            .AddUseCases()
             .AddUi()
             .BuildServiceProvider();
         var viewModel = services.GetRequiredService<MainWindowViewModel>();

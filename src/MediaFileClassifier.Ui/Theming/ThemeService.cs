@@ -21,6 +21,7 @@ public sealed partial class ThemeService : ObservableObject
     };
 
     private readonly ISettingsStore settings;
+    private bool isOverriding;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ThemeService"/> class.
@@ -58,6 +59,23 @@ public sealed partial class ThemeService : ObservableObject
     };
 
     /// <summary>
+    /// Switches to a mode for this session only, without storing it, as the <c>--theme=</c> switch does.
+    /// </summary>
+    /// <param name="mode">Theme mode.</param>
+    public void Override(ThemeMode mode)
+    {
+        isOverriding = true;
+        try
+        {
+            Mode = mode;
+        }
+        finally
+        {
+            isOverriding = false;
+        }
+    }
+
+    /// <summary>
     /// Applies <see cref="Mode"/> to the running application, if there is one.
     /// </summary>
     public void Apply()
@@ -73,6 +91,9 @@ public sealed partial class ThemeService : ObservableObject
         Apply();
 
         // The store ignores an unchanged value, so this doesn't loop with the Changed handler.
-        settings.SetValue(ThemeSetting, value);
+        if (!isOverriding)
+        {
+            settings.SetValue(ThemeSetting, value);
+        }
     }
 }

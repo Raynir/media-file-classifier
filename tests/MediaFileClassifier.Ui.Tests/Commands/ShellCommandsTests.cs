@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Resources;
+using System.Windows.Input;
 using System.Xml.Linq;
 using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Ui.Commands;
@@ -105,15 +106,17 @@ public sealed class ShellCommandsTests
     }
 
     [Fact]
-    public async Task ThemeCommands_SetTheModeAndCheckOnlyTheActiveOne()
+    public Task ThemeCommands_SetTheModeAndCheckOnlyTheActiveOne() => TestApp.RunAsync(() =>
     {
-        await registry[ShellCommands.ThemeDark].ExecuteAsync();
+        // The theme applies to the running app, which only the UI thread may change.
+        ((ICommand)registry[ShellCommands.ThemeDark]).Execute(null);
 
         Assert.Equal(ThemeMode.Dark, theme.Mode);
         Assert.True(registry[ShellCommands.ThemeDark].IsChecked);
         Assert.False(registry[ShellCommands.ThemeSystem].IsChecked);
         Assert.False(registry[ShellCommands.ThemeLight].IsChecked);
-    }
+        theme.Mode = ThemeMode.System;
+    });
 
     [Fact]
     public async Task PseudoLocalization_TogglesAndRelabelsTheMenu()

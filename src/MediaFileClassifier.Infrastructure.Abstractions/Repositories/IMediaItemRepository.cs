@@ -35,6 +35,22 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItem>> FindByContentHashAsync(UInt128 contentHash, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the items with a quick fingerprint and size, e.g. a moved or renamed file (E01-S06).
+    /// </summary>
+    /// <param name="fingerprint">The fingerprint.</param>
+    /// <param name="sizeBytes">The file size in bytes; a fingerprint is only meaningful with it.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The items, in ID order.</returns>
+    Task<IReadOnlyList<MediaItem>> FindByFingerprintAsync(UInt128 fingerprint, long sizeBytes, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the identity facts of every item, for file matching to compare in memory (E01-S06-T05).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The facts, in ID order.</returns>
+    Task<IReadOnlyList<MediaItemIdentity>> GetIdentitiesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets items whose full content hash isn't computed yet, for the background hashing job (E01-S06-T02).
     /// </summary>
     /// <param name="limit">Maximum number of items to return.</param>

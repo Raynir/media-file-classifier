@@ -29,4 +29,9 @@ public sealed record AppSettings
     /// AI provider configuration.
     /// </summary>
     public ProviderSettings Providers { get; init; } = new();
+
+    /// <summary>
+    /// Background processing: pool sizes, resuming, and the quit confirmation (E05-S01).
+    /// </summary>
+    public ProcessingSettings Processing { get; init; } = new();
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
 
@@ -47,6 +48,14 @@ public sealed class CommandRegistry
     public AppCommand this[string id] => commands.TryGetValue(id, out var command)
         ? command
         : throw new KeyNotFoundException($"No command is registered with the ID '{id}'.");
+
+    /// <summary>
+    /// Gets a command by ID, if it's registered.
+    /// </summary>
+    /// <param name="id">Command ID.</param>
+    /// <param name="command">The command, or <c>null</c>.</param>
+    /// <returns>Whether a command has the ID.</returns>
+    public bool TryGet(string id, [NotNullWhen(true)] out AppCommand? command) => commands.TryGetValue(id, out command);
 
     /// <summary>
     /// Adds a command.

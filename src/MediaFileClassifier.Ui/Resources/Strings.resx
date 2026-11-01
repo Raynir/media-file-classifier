@@ -77,6 +77,9 @@
   <data name="Splitter_Details" xml:space="preserve">
     <value>Resize details panel</value>
   </data>
+  <data name="Command_KeyboardShortcuts" xml:space="preserve">
+    <value>_Keyboard shortcuts</value>
+  </data>
   <data name="Menu_Library" xml:space="preserve">
     <value>_Library</value>
   </data>

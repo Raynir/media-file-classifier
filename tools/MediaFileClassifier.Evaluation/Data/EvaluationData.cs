@@ -43,6 +43,15 @@ public sealed record EvaluationData
             throw new FileNotFoundException($"No {ManifestFile} in {root}.", manifest);
         }
 
+        // Without it a private set would be checked as the public one, with misleading licence and size errors.
+        var info = Path.Combine(root, DataSetFile);
+        if (!File.Exists(info))
+        {
+            throw new FileNotFoundException(
+                $"No {DataSetFile} in {root}. A private set needs one, e.g. {{ \"name\": \"home\", \"mediaRoot\": \"D:\\\\Photos\", \"private\": true }}; init-private writes it.",
+                info);
+        }
+
         var hashes = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (var name in new[] { ManifestFile, QueriesFile, OcrTruthFile, BaselinesFile })
         {
@@ -57,7 +66,7 @@ public sealed record EvaluationData
         return new EvaluationData
         {
             Directory = root,
-            Info = ReadOptional(root, DataSetFile, new DataSetInfo()),
+            Info = EvaluationJson.Read<DataSetInfo>(info),
             Items = EvaluationJson.Read<List<CorpusItem>>(manifest),
             Queries = ReadOptional(root, QueriesFile, new List<EvalQuery>()),
             OcrTruth = ReadOptional(root, OcrTruthFile, new List<OcrTruthEntry>()),

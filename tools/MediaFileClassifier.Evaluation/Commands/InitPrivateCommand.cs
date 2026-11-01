@@ -18,7 +18,7 @@ internal static class InitPrivateCommand
 
     public static int Run(CommandOptions options, TextWriter output)
     {
-        if (options.Media is null)
+        if (options.Media is null || !options.DataGiven)
         {
             throw new ArgumentException("init-private needs --media <folder> and --data <folder>.");
         }
@@ -31,21 +31,35 @@ internal static class InitPrivateCommand
         }
 
         WarnIfTracked(options.Data, output);
-        var files = Directory.EnumerateFiles(options.Media, "*", SearchOption.AllDirectories)
+        // Personal folders often hold folders that can't be read (System Volume Information, other users'): skip them.
+        var scan = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System };
+        var files = Directory.EnumerateFiles(options.Media, "*", scan)
             .Where(f => KindByExtension.ContainsKey(Path.GetExtension(f)))
             .Order(StringComparer.Ordinal)
             .ToList();
-        var items = files.Select((path, index) =>
+        var items = new List<CorpusItem>();
+        foreach (var path in files)
         {
-            using var stream = File.OpenRead(path);
-            return new CorpusItem
+            string hash;
+            try
             {
-                Id = $"p-{index + 1:0000}",
+                using var stream = File.OpenRead(path);
+                hash = Convert.ToHexStringLower(SHA256.HashData(stream));
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                output.WriteLine($"Skipped {path}: {exception.Message}");
+                continue;
+            }
+
+            items.Add(new CorpusItem
+            {
+                Id = $"p-{items.Count + 1:0000}",
                 Kind = KindByExtension[Path.GetExtension(path)],
                 File = Path.GetRelativePath(options.Media, path).Replace('\\', '/'),
-                Sha256 = Convert.ToHexStringLower(SHA256.HashData(stream)),
-            };
-        });
+                Sha256 = hash,
+            });
+        }
 
         Directory.CreateDirectory(options.Data);
         EvaluationJson.WriteLines(manifest, items);
@@ -54,7 +68,7 @@ internal static class InitPrivateCommand
             System.Text.Json.JsonSerializer.Serialize(new DataSetInfo { Name = "private", MediaRoot = options.Media, Private = true }, EvaluationJson.Options) + "\n");
         CreateIfMissing(Path.Combine(options.Data, EvaluationData.QueriesFile));
         CreateIfMissing(Path.Combine(options.Data, EvaluationData.OcrTruthFile));
-        output.WriteLine($"Listed {files.Count} files in {manifest}. Add queries to {EvaluationData.QueriesFile}, then run evaluate with --data {options.Data}.");
+        output.WriteLine($"Listed {items.Count} files in {manifest}. Add queries to {EvaluationData.QueriesFile}, then run evaluate with --data {options.Data}.");
         return 0;
     }
 
@@ -73,7 +87,7 @@ internal static class InitPrivateCommand
             if (Directory.Exists(Path.Combine(directory.FullName, ".git")) || File.Exists(Path.Combine(directory.FullName, ".git")))
             {
                 var relative = Path.GetRelativePath(directory.FullName, data).Replace('\\', '/');
-                if (!relative.StartsWith("eval/private", StringComparison.Ordinal))
+                if (!relative.StartsWith("eval/private/", StringComparison.Ordinal) && relative != "eval/private")
                 {
                     output.WriteLine($"Warning: {data} is inside a Git repository but not under eval/private/, so Git may track it.");
                 }

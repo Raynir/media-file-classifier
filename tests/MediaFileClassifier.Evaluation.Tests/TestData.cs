@@ -56,12 +56,11 @@ internal static class TestData
     };
 
     /// <summary>
-    /// Writes the data set, a results file and a dataset.json to a new temporary folder.
+    /// Writes the data set, a results file and a dataset.json to the folder and returns it.
     /// </summary>
-    public static string WriteFolder()
+    public static string WriteFolder(TemporaryFolder temporary)
     {
-        var folder = Path.Combine(Path.GetTempPath(), "mfc-eval-tests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(folder);
+        var folder = temporary.Path;
         EvaluationJson.WriteLines(Path.Combine(folder, EvaluationData.ManifestFile), Items);
         EvaluationJson.WriteLines(Path.Combine(folder, EvaluationData.QueriesFile), Queries);
         EvaluationJson.WriteLines(Path.Combine(folder, EvaluationData.OcrTruthFile), OcrTruth);

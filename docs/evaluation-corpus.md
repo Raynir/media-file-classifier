@@ -102,7 +102,7 @@ dotnet run --project tools/MediaFileClassifier.Evaluation -- evaluate --results 
 - `evaluate` writes `eval/reports/<yyyy-MM-dd_HHmmss>_<system>.json` and `.md`. The report shows each metric, the change from the previous report of the same system, the baseline and its status, scores per category, and the weakest queries. If the labels changed since the previous run, the report says so, because the deltas then compare different questions.
 - `--fail-below-baseline` exits with code 3 when a metric is worse than its baseline, for CI later.
 
-Commit the reports of public runs, so the next run compares against a shared history.
+Commit the reports of public runs, so the next run compares against a shared history. A second run of the same system within the same second gets a `-2` suffix instead of replacing the first report.
 
 ## Baselines
 
@@ -118,7 +118,7 @@ Personal media never goes into the repository. To measure on your own photos:
    dotnet run --project tools/MediaFileClassifier.Evaluation -- init-private --media "D:\Photos" --data eval/private/home
    ```
 
-   This lists the media into `manifest.json` (IDs `p-0001`…, paths relative to the media folder, checksums) and writes `dataset.json` with `"private": true` and the media folder. Nothing is copied.
+   This lists the media into `manifest.json` (IDs `p-0001`…, paths relative to the media folder, checksums) and writes `dataset.json` with `"private": true` and the media folder. Nothing is copied. Both `--media` and `--data` are required. Folders and files it can't read are skipped with a message. Every data folder needs a `dataset.json`; without it the runner stops rather than checking a private set as the public one.
 
 2. Add queries to `queries.json`, and OCR text to `ocr-truth.json` if wanted, in the formats above. A private set has no minimum sizes and no licence checks.
 3. Produce a results file with the system under test, then run:

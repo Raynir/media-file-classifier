@@ -71,11 +71,16 @@ public sealed class ReportComparerTests
     [Fact]
     public async Task Store_FindsTheLatestEarlierReportOfTheSameSystem()
     {
-        var folder = Path.Combine(Path.GetTempPath(), "mfc-eval-tests", Guid.NewGuid().ToString("N"));
+        using var temporary = new TemporaryFolder();
+        var folder = temporary.Path;
         var first = await Evaluate(TestData.Results);
         var other = (await Evaluate(TestData.Results with { System = "Other" })) with { CreatedAt = TestData.FirstRun.AddMinutes(30) };
         ReportStore.Write(folder, first);
         ReportStore.Write(folder, other);
+        File.WriteAllText(Path.Combine(folder, "notes.json"), """{ "x": 1 }""");
+        File.WriteAllText(Path.Combine(folder, "list.json"), "[]");
+        File.WriteAllText(Path.Combine(folder, "empty.json"), "null");
+        File.WriteAllText(Path.Combine(folder, "broken.json"), "{");
 
         var found = ReportStore.FindPrevious(folder, first.System, TestData.FirstRun.AddHours(1));
 

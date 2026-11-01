@@ -50,7 +50,7 @@ internal static class Program
             Console.Error.WriteLine(Usage);
             return 2;
         }
-        catch (Exception exception) when (exception is IOException or InvalidDataException or System.Text.Json.JsonException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or System.Text.Json.JsonException)
         {
             Console.Error.WriteLine(exception.Message);
             return 1;

@@ -10,6 +10,11 @@ internal sealed record CommandOptions
     /// </summary>
     public string Data { get; init; } = Path.GetFullPath("eval");
 
+    /// <summary>
+    /// True when <c>--data</c> was given, rather than defaulting to the public set.
+    /// </summary>
+    public bool DataGiven { get; init; }
+
     public string? Results { get; init; }
 
     public string? Out { get; init; }
@@ -28,7 +33,7 @@ internal sealed record CommandOptions
             var name = args[i];
             options = name switch
             {
-                "--data" => options with { Data = Path.GetFullPath(Value(args, ref i, name)) },
+                "--data" => options with { Data = Path.GetFullPath(Value(args, ref i, name)), DataGiven = true },
                 "--results" => options with { Results = Path.GetFullPath(Value(args, ref i, name)) },
                 "--out" => options with { Out = Path.GetFullPath(Value(args, ref i, name)) },
                 "--media" => options with { Media = Path.GetFullPath(Value(args, ref i, name)) },

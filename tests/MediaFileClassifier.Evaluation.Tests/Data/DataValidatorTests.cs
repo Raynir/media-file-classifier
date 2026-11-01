@@ -63,7 +63,8 @@ public sealed class DataValidatorTests
     [Fact]
     public void Validate_WithFiles_ReportsMissingFilesAndWrongChecksums()
     {
-        var folder = TestData.WriteFolder();
+        using var temporary = new TemporaryFolder();
+        var folder = TestData.WriteFolder(temporary);
         var media = Path.Combine(folder, "media");
         Directory.CreateDirectory(media);
         File.WriteAllText(Path.Combine(media, "cat-1.jpg"), "not the original");

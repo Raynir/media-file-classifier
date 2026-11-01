@@ -27,4 +27,9 @@ public sealed class LibraryOpenException : Exception
     /// Gets the library folder.
     /// </summary>
     public string LibraryDirectory { get; }
+
+    /// <summary>
+    /// Gets the database backup taken before a failed migration, or <c>null</c>.
+    /// </summary>
+    public string? BackupPath { get; init; }
 }

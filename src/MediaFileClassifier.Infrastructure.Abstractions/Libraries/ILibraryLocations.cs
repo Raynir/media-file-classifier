@@ -19,6 +19,13 @@ public interface ILibraryLocations
     /// <param name="libraryName">The new library's name, a valid folder name.</param>
     /// <returns>What was found.</returns>
     LibraryLocationInfo Inspect(string parentDirectory, string libraryName);
+
+    /// <summary>
+    /// Checks whether a library folder and its database are reachable, e.g. its drive is connected.
+    /// </summary>
+    /// <param name="libraryDirectory">The <c>&lt;name&gt;.mfc</c> folder.</param>
+    /// <returns><c>true</c> if the database exists.</returns>
+    bool IsAvailable(string libraryDirectory);
 }
 
 /// <summary>

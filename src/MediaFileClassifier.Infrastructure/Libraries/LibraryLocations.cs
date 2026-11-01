@@ -33,6 +33,10 @@ public sealed class LibraryLocations : ILibraryLocations
             LibraryExists: Directory.Exists(library) && Directory.EnumerateFileSystemEntries(library).Any());
     }
 
+    /// <inheritdoc />
+    public bool IsAvailable(string libraryDirectory)
+        => File.Exists(Path.Combine(libraryDirectory, LibraryLayout.DatabaseFileName));
+
     private static string? NearestExisting(string path)
     {
         for (var current = path; current is not null; current = Path.GetDirectoryName(current))

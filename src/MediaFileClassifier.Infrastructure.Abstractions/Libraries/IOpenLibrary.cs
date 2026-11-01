@@ -43,4 +43,12 @@ public interface IOpenLibrary : IAsyncDisposable
     /// Gets the integrity check, backup and optimization services.
     /// </summary>
     ILibraryMaintenance Maintenance { get; }
+
+    /// <summary>
+    /// Saves changes to the library record, such as its settings.
+    /// </summary>
+    /// <param name="library">The changed library record, with the same ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the change is written.</returns>
+    Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default);
 }

@@ -79,6 +79,19 @@ internal sealed class OpenLibrary : IOpenLibrary
         return new OpenLibrary(layout, library, connections, writer, heldLock, timeProvider);
     }
 
+    /// <inheritdoc />
+    public Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+        return writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                db.Libraries.Update(library);
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+            },
+            cancellationToken);
+    }
+
     /// <summary>
     /// Waits for the queued writes, closes every connection, which checkpoints the WAL into the database file, and
     /// releases the lock.

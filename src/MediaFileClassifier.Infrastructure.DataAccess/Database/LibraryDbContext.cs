@@ -59,6 +59,8 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
 
     public DbSet<ProcessingJob> ProcessingJobs => Set<ProcessingJob>();
 
+    public DbSet<WorkItem> WorkItems => Set<WorkItem>();
+
     /// <summary>
     /// Converts a PascalCase name to snake_case, e.g. <c>AcceptedFrom_RunId</c> to <c>accepted_from_run_id</c>.
     /// </summary>
@@ -95,6 +97,7 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
         configurationBuilder.Properties<Id<Collection>>().HaveConversion<IdConverter<Collection>>();
         configurationBuilder.Properties<Id<SavedSearch>>().HaveConversion<IdConverter<SavedSearch>>();
         configurationBuilder.Properties<Id<ProcessingJob>>().HaveConversion<IdConverter<ProcessingJob>>();
+        configurationBuilder.Properties<Id<WorkItem>>().HaveConversion<IdConverter<WorkItem>>();
 
         configurationBuilder.Properties<DateTimeOffset>().HaveConversion<UnixMillisecondsConverter>();
         configurationBuilder.Properties<DateTime>().HaveConversion<WallClockMillisecondsConverter>();

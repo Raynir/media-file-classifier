@@ -40,6 +40,11 @@ public interface IOpenLibrary : IAsyncDisposable
     IModelRegistrationRepository Models { get; }
 
     /// <summary>
+    /// Gets the processing jobs and their work items (E05-S01).
+    /// </summary>
+    IJobRepository Jobs { get; }
+
+    /// <summary>
     /// Gets the integrity check, backup and optimization services.
     /// </summary>
     ILibraryMaintenance Maintenance { get; }

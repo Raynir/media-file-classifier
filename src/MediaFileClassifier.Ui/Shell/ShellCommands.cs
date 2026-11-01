@@ -125,7 +125,12 @@ public sealed class ShellCommands : ICommandContributor
 
     private static void ExitApp()
     {
-        if (Application.Current?.ApplicationLifetime is IControlledApplicationLifetime lifetime)
+        // TryShutdown closes the windows the normal way, so the quit confirmation (D027) can still ask.
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.TryShutdown();
+        }
+        else if (Application.Current?.ApplicationLifetime is IControlledApplicationLifetime lifetime)
         {
             lifetime.Shutdown();
         }

@@ -22,7 +22,7 @@ public static class UiModule
     /// <returns>The same service collection, for chaining.</returns>
     public static IServiceCollection AddUi(this IServiceCollection services)
     {
-        services.AddSingleton(new ViewLocator());
+        services.AddSingleton(new ViewLocator().Register<QuitConfirmationViewModel, QuitConfirmationView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSingleton<ShellLayout>();
@@ -34,6 +34,7 @@ public static class UiModule
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<MainMenuViewModel>();
 
+        services.AddSingleton<QuitGuard>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
         return services;

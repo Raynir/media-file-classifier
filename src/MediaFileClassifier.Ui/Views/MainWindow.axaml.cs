@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Shell;
 
 namespace MediaFileClassifier.Ui.Views;
 
@@ -28,7 +29,8 @@ public partial class MainWindow : Window
     /// </summary>
     /// <param name="settingsService">App settings.</param>
     /// <param name="commands">The commands, whose shortcuts the window binds.</param>
-    public MainWindow(ISettingsService settingsService, CommandRegistry commands)
+    /// <param name="quitGuard">Asks before closing while work is pending, and stops the jobs (D027).</param>
+    public MainWindow(ISettingsService settingsService, CommandRegistry commands, QuitGuard quitGuard)
         : this()
     {
         this.settingsService = settingsService;
@@ -42,6 +44,7 @@ public partial class MainWindow : Window
         SizeChanged += (_, _) => RememberNormalBounds();
         Opened += (_, _) => KeepOnScreen();
         Closing += (_, _) => SavePlacement();
+        quitGuard.Attach(this);
     }
 
     private void RestorePlacement(WindowPlacement? placement)

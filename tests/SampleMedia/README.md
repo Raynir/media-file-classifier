@@ -7,6 +7,7 @@ All files are synthetic, so they hold no personal data. The larger labelled corp
 | File | `SampleMedia` property | Contents |
 |------|------------------------|----------|
 | `jpeg-exif.jpg` | `JpegWithExif` | 640×480 JPEG. EXIF: Make `MFC Test Camera Co.`, Model `Sample 1`, DateTimeOriginal `2026:10:29 12:34:56`, Orientation 6 (rotate 90° clockwise), GPS 55°58'48" S 67°17'21" W (Cape Horn; southern and western hemisphere refs). |
+| `jpeg-icc-offset.jpg` | `JpegWithIccAndOffset` | 200×100 JPEG with an embedded sRGB ICC profile ("sRGB built-in"). EXIF: Make `MFC Test Camera Co.`, Model `Sample 2`, LensModel `MFC Lens 35mm`, DateTimeOriginal `2026:06:15 08:30:00`, OffsetTimeOriginal `+03:00`, SubSecTimeOriginal `25`, ColorSpace 1 (sRGB). |
 | `png-alpha.png` | `PngWithAlpha` | 256×256 RGBA PNG, transparent outside a circle. |
 | `webp.webp` | `WebP` | 320×240 lossy WebP. |
 | `gif-static.gif` | `StaticGif` | 96×96 single-frame GIF (GIF87a). |

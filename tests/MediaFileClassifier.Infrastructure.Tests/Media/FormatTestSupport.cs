@@ -1,6 +1,9 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Media;
+using MediaFileClassifier.Infrastructure.Media.Metadata;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Media;
 
@@ -12,8 +15,21 @@ internal static class FormatTestSupport
     /// <summary>
     /// Creates the registry the app uses, with the MVP handlers.
     /// </summary>
-    public static IMediaFormatRegistry CreateRegistry()
-        => new ServiceCollection().AddMedia().BuildServiceProvider().GetRequiredService<IMediaFormatRegistry>();
+    public static IMediaFormatRegistry CreateRegistry() => CreateServices().GetRequiredService<IMediaFormatRegistry>();
+
+    /// <summary>
+    /// Creates the media services, with logging switched off.
+    /// </summary>
+    public static ServiceProvider CreateServices()
+        => new ServiceCollection()
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddMedia()
+            .BuildServiceProvider();
+
+    /// <summary>
+    /// Creates the image metadata extractor.
+    /// </summary>
+    public static ImageMetadataExtractor ImageExtractor() => new(TimeProvider.System, NullLogger<ImageMetadataExtractor>.Instance);
 
     /// <summary>
     /// Detects a file's format, under another name when <paramref name="fileName"/> is given.

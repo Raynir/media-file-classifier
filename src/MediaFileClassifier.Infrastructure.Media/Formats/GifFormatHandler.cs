@@ -1,12 +1,15 @@
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Metadata;
 
 namespace MediaFileClassifier.Infrastructure.Media.Formats;
 
 /// <summary>
 /// GIF images: a still image with one frame, an animated image with more.
 /// </summary>
-public sealed class GifFormatHandler : IMediaFormatHandler
+/// <param name="metadataExtractor">Reads the metadata.</param>
+public sealed class GifFormatHandler(ImageMetadataExtractor metadataExtractor) : IMediaFormatHandler
 {
     /// <inheritdoc />
     public string FormatId => "gif";
@@ -16,6 +19,9 @@ public sealed class GifFormatHandler : IMediaFormatHandler
 
     /// <inheritdoc />
     public IReadOnlyList<string> Extensions { get; } = [".gif"];
+
+    /// <inheritdoc />
+    public IMediaMetadataExtractor MetadataExtractor => metadataExtractor;
 
     /// <inheritdoc />
     public int SignatureLength => 6;

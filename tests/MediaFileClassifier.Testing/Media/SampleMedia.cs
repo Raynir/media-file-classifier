@@ -17,6 +17,11 @@ public static class SampleMedia
     public static string JpegWithExif => Combine("jpeg-exif.jpg");
 
     /// <summary>
+    /// Gets a 200×100 JPEG with an sRGB ICC profile, and EXIF with a lens, a time zone offset and subseconds.
+    /// </summary>
+    public static string JpegWithIccAndOffset => Combine("jpeg-icc-offset.jpg");
+
+    /// <summary>
     /// Gets a 256×256 PNG with an alpha channel.
     /// </summary>
     public static string PngWithAlpha => Combine("png-alpha.png");

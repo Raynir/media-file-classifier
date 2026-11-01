@@ -1,12 +1,15 @@
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Metadata;
 
 namespace MediaFileClassifier.Infrastructure.Media.Formats;
 
 /// <summary>
 /// JPEG images, recognised by the start-of-image marker followed by another marker.
 /// </summary>
-public sealed class JpegFormatHandler : IMediaFormatHandler
+/// <param name="metadataExtractor">Reads the metadata.</param>
+public sealed class JpegFormatHandler(ImageMetadataExtractor metadataExtractor) : IMediaFormatHandler
 {
     /// <inheritdoc />
     public string FormatId => "jpeg";
@@ -16,6 +19,9 @@ public sealed class JpegFormatHandler : IMediaFormatHandler
 
     /// <inheritdoc />
     public IReadOnlyList<string> Extensions { get; } = [".jpg", ".jpeg"];
+
+    /// <inheritdoc />
+    public IMediaMetadataExtractor MetadataExtractor => metadataExtractor;
 
     /// <inheritdoc />
     public int SignatureLength => 3;

@@ -149,6 +149,10 @@ GitHub Actions runs `.github/workflows/ci.yml`. The repository is private on Git
 
 Minutes used are under **Settings → Billing and licensing → Usage** on GitHub.
 
+## Evaluation corpus
+
+Search and OCR quality are measured on a labelled corpus of 351 media files with English and Russian queries. `pwsh tools/eval-corpus/fetch-corpus.ps1` fetches it, and `tools/MediaFileClassifier.Evaluation` scores a system's results. See [docs/evaluation-corpus.md](docs/evaluation-corpus.md), which also explains private runs on your own media.
+
 ## Contributing
 
 Branching and commit rules are in [docs/development-workflow.md](docs/development-workflow.md).

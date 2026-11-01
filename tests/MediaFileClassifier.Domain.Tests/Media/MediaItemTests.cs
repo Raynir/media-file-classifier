@@ -45,6 +45,59 @@ public sealed class MediaItemTests
         Assert.Equal(ReviewStatus.Unreviewed, item.ReviewStatus);
         Assert.Equal("jpg", item.FileFormat);
         Assert.Equal(Start, item.ImportedAt);
+        Assert.Null(item.ReviewStatusChangedAt);
+        Assert.Null(item.FavoriteChangedAt);
+    }
+
+    [Fact]
+    public void SetFavorite_RecordsChangeTime()
+    {
+        var item = CreateItem();
+
+        item.SetFavorite(true, Start.AddMinutes(1));
+
+        Assert.True(item.IsFavorite);
+        Assert.Equal(Start.AddMinutes(1), item.FavoriteChangedAt);
+    }
+
+    [Fact]
+    public void SetFavorite_SameValue_KeepsChangeTime()
+    {
+        var item = CreateItem();
+
+        item.SetFavorite(false, Start.AddMinutes(1));
+        Assert.Null(item.FavoriteChangedAt);
+
+        item.SetFavorite(true, Start.AddMinutes(2));
+        item.SetFavorite(true, Start.AddMinutes(3));
+        Assert.Equal(Start.AddMinutes(2), item.FavoriteChangedAt);
+    }
+
+    [Fact]
+    public void MarkReviewedAndUnreviewed_RecordChangeTime()
+    {
+        var item = CreateItem();
+
+        item.MarkReviewed(Start.AddMinutes(1));
+        Assert.Equal(ReviewStatus.Reviewed, item.ReviewStatus);
+        Assert.Equal(Start.AddMinutes(1), item.ReviewStatusChangedAt);
+
+        item.MarkUnreviewed(Start.AddMinutes(2));
+        Assert.Equal(ReviewStatus.Unreviewed, item.ReviewStatus);
+        Assert.Equal(Start.AddMinutes(2), item.ReviewStatusChangedAt);
+    }
+
+    [Fact]
+    public void MarkReviewedAndUnreviewed_SameValue_KeepChangeTime()
+    {
+        var item = CreateItem();
+
+        item.MarkUnreviewed(Start.AddMinutes(1));
+        Assert.Null(item.ReviewStatusChangedAt);
+
+        item.MarkReviewed(Start.AddMinutes(2));
+        item.MarkReviewed(Start.AddMinutes(3));
+        Assert.Equal(Start.AddMinutes(2), item.ReviewStatusChangedAt);
     }
 
     [Fact]

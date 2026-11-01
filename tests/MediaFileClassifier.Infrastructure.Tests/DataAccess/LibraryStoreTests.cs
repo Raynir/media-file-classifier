@@ -1,4 +1,5 @@
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.DataAccess;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
@@ -237,8 +238,8 @@ public sealed class LibraryStoreTests
     [Fact]
     public async Task OpenAsync_LibraryAtEachOlderVersion_BacksUpAndUpgradesKeepingData()
     {
-        // Runs for every older schema version. With a single migration there's none yet (N-1 = 0 has no library
-        // record); the loop starts checking real upgrades when the second migration is added.
+        // Runs for every older schema version (N-1 = 0 has no library record, so it starts at 1). After the
+        // upgrade the columns must match a new library's, and the item must keep its values and save new ones.
         using var probe = new DesignTimeLibraryDbContextFactory().CreateDbContext([]);
         var migrations = probe.Database.GetMigrations().ToList();
 
@@ -246,8 +247,11 @@ public sealed class LibraryStoreTests
         {
             await using var bed = await LibraryTestBed.CreateAsync();
             var item = bed.NewItem(1);
+            item.SetFavorite(true, bed.Clock.Tick());
+            item.MarkReviewed(bed.Clock.Tick());
             await bed.Library.Items.AddAsync(item, Token);
             await bed.Library.DisposeAsync();
+            var newColumns = ReadColumns(bed.Temporary);
             await using (var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token))
             {
                 await db.GetService<IMigrator>().MigrateAsync(migrations[version - 1], cancellationToken: Token);
@@ -259,7 +263,17 @@ public sealed class LibraryStoreTests
 
             Assert.Single(Directory.GetFiles(bed.Library.Layout.BackupsDirectory, $"library-v{version}-*.db"));
             Assert.Equal(Library.CurrentSchemaVersion, bed.Library.Library.SchemaVersion);
-            Assert.NotNull(await bed.Library.Items.GetAsync(item.Id, Token));
+            Assert.Equal(newColumns, ReadColumns(bed.Temporary));
+
+            var upgraded = await bed.Library.Items.GetAsync(item.Id, Token);
+            Assert.NotNull(upgraded);
+            Assert.True(upgraded.IsFavorite);
+            Assert.Equal(ReviewStatus.Reviewed, upgraded.ReviewStatus);
+
+            upgraded.SetFavorite(false, bed.Clock.Tick());
+            upgraded.MarkUnreviewed(bed.Clock.Tick());
+            await bed.Library.Items.UpdateAsync(upgraded, Token);
+            Assert.Equivalent(upgraded, await bed.Library.Items.GetAsync(item.Id, Token));
         }
     }
 
@@ -269,5 +283,25 @@ public sealed class LibraryStoreTests
         using var provider = new ServiceCollection().AddLogging().AddDataAccess().BuildServiceProvider();
 
         Assert.IsType<LibraryStore>(provider.GetRequiredService<ILibraryStore>());
+    }
+
+    private static List<string> ReadColumns(TemporaryLibrary temporary)
+    {
+        using var connection = temporary.OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT m.name || '.' || c.name || ' ' || c.type || iif(c."notnull", ' NOT NULL', '')
+            FROM sqlite_master AS m, pragma_table_info(m.name) AS c
+            WHERE m.type = 'table'
+            ORDER BY 1
+            """;
+        using var reader = command.ExecuteReader();
+        var columns = new List<string>();
+        while (reader.Read())
+        {
+            columns.Add(reader.GetString(0));
+        }
+
+        return columns;
     }
 }

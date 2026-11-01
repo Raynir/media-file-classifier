@@ -21,6 +21,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Library package format specification: contents, SQLite container, versioning, and draft import and merge rules (E01-S09).
 - Library storage: `<name>.mfc` folders with a SQLite database, a thumbnail cache and a lock file; schema migrations with a backup on open; repositories; integrity check and online backup (E01-S03).
 - Android app head with the shared shell and an Android smoke-test page for SQLite, ONNX Runtime, folder access and vector search; CI builds it on pull requests (E01-SP02).
+- Media items record when their favorite mark and review status last changed, so library package merges can keep the newer change (library schema version 2, E01-S02).
 
 ### Changed
 

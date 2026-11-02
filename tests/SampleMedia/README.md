@@ -23,6 +23,24 @@ All files are synthetic, so they hold no personal data. The larger labelled corp
 | `zero-byte.png` | `ZeroByteFile` | Empty file with an image extension. |
 | `фото с пробелом.jpg` | `NonAsciiName` | Valid 160×120 JPEG with a Cyrillic name that contains spaces. |
 
+## Robustness test set
+
+`robustness/` checks file matching (E01-S06-T06); `SampleMedia.RobustnessDirectory` points to it. There are four synthetic photo-like originals, `photo-a.jpg` to `photo-d.jpg` (640×480, 1/f noise with shapes). Each has these copies:
+
+| Copy | Expected match |
+|------|----------------|
+| `moved/deeper/renamed-<name>.jpg`: byte-identical, renamed and moved | content hash |
+| `<name>-q50.jpg`, `<name>-q20.jpg`: re-encoded JPEG | perceptual |
+| `<name>-half.jpg`: resized to 50 % | perceptual |
+| `<name>-thumb.jpg`: a 160×120 thumbnail | perceptual |
+| `<name>.webp`: lossy WebP | perceptual |
+| `<name>.png`: PNG | perceptual |
+| `<name>-screenshot.png`: the image at 75 % in an app window on a desktop | none |
+
+Two more copies are `photo-a-exif-rotated.jpg` (pixels stored rotated, with EXIF orientation 6), and `gif-animated.webp` (the animated GIF sample as an animated WebP). Both are expected to match perceptually.
+
+`expected.json` lists every copy with its original and the expected match. On this set, perceptual copies are 0 to 2 bits from their original, and screenshots 32 to 34. That's what the threshold of 8 bits in `PerceptualHash.SamePictureThreshold` is based on.
+
 ## Regenerating
 
 The files come from `tools/sample-media/generate_sample_media.py`, which needs Python 3, Pillow and ffmpeg on `PATH`. The output is deterministic on the same tool versions.
@@ -34,3 +52,9 @@ python tools/sample-media/generate_sample_media.py tests/SampleMedia
 To add or change some files without touching the others, name them after the folder, e.g. `... tests/SampleMedia video-av1.mp4`.
 
 When you add or change a file, update this table and `SampleMedia.cs`.
+
+The robustness test set needs only Python 3 and Pillow, and reads `gif-animated.gif`:
+
+```powershell
+python tools/sample-media/generate_robustness_set.py tests/SampleMedia/robustness
+```

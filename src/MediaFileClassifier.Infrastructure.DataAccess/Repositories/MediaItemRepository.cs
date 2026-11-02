@@ -37,6 +37,57 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> FindByContentHashAsync(UInt128 contentHash, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems
+                .Where(item => item.Hashes.ContentHash == contentHash)
+                .OrderBy(item => item.Id)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> FindByFingerprintAsync(UInt128 fingerprint, long sizeBytes, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems
+                .Where(item => item.Hashes.Fingerprint == fingerprint && item.SizeBytes == sizeBytes)
+                .OrderBy(item => item.Id)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItemIdentity>> GetIdentitiesAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<MediaItemIdentity>>(
+            async (db, token) =>
+            {
+                var rows = await db.MediaItems
+                    .OrderBy(item => item.Id)
+                    .Select(item => new { item.Id, item.Path, item.MediaType, item.SizeBytes, item.FileModifiedAt, item.Hashes.PerceptualHash })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                return rows
+                    .Select(row => new MediaItemIdentity(row.Id, row.Path.FileName, row.MediaType, row.SizeBytes, row.FileModifiedAt, row.PerceptualHash))
+                    .ToList();
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> GetWithoutContentHashAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+
+        return connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems
+                .Where(item => item.Hashes.ContentHash == null)
+                .OrderBy(item => item.Id)
+                .Take(limit)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<MediaItem>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset);

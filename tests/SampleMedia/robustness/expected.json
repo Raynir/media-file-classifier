@@ -1,0 +1,206 @@
+[
+  {
+    "file": "moved/deeper/renamed-photo-a.jpg",
+    "original": "photo-a.jpg",
+    "expected": "content-hash",
+    "note": "byte-identical copy, renamed and moved"
+  },
+  {
+    "file": "photo-a-q50.jpg",
+    "original": "photo-a.jpg",
+    "expected": "perceptual",
+    "note": "re-encoded JPEG, quality 50"
+  },
+  {
+    "file": "photo-a-q20.jpg",
+    "original": "photo-a.jpg",
+    "expected": "perceptual",
+    "note": "re-encoded JPEG, quality 20"
+  },
+  {
+    "file": "photo-a-half.jpg",
+    "original": "photo-a.jpg",
+    "expected": "perceptual",
+    "note": "resized to 50 %"
+  },
+  {
+    "file": "photo-a-thumb.jpg",
+    "original": "photo-a.jpg",
+    "expected": "perceptual",
+    "note": "160x120 thumbnail"
+  },
+  {
+    "file": "photo-a.webp",
+    "original": "photo-a.jpg",
+    "expected": "perceptual",
+    "note": "converted to lossy WebP"
+  },
+  {
+    "file": "photo-a.png",
+    "original": "photo-a.jpg",
+    "expected": "perceptual",
+    "note": "converted to PNG"
+  },
+  {
+    "file": "photo-a-screenshot.png",
+    "original": "photo-a.jpg",
+    "expected": "none",
+    "note": "screenshot of the image in an app window"
+  },
+  {
+    "file": "moved/deeper/renamed-photo-b.jpg",
+    "original": "photo-b.jpg",
+    "expected": "content-hash",
+    "note": "byte-identical copy, renamed and moved"
+  },
+  {
+    "file": "photo-b-q50.jpg",
+    "original": "photo-b.jpg",
+    "expected": "perceptual",
+    "note": "re-encoded JPEG, quality 50"
+  },
+  {
+    "file": "photo-b-q20.jpg",
+    "original": "photo-b.jpg",
+    "expected": "perceptual",
+    "note": "re-encoded JPEG, quality 20"
+  },
+  {
+    "file": "photo-b-half.jpg",
+    "original": "photo-b.jpg",
+    "expected": "perceptual",
+    "note": "resized to 50 %"
+  },
+  {
+    "file": "photo-b-thumb.jpg",
+    "original": "photo-b.jpg",
+    "expected": "perceptual",
+    "note": "160x120 thumbnail"
+  },
+  {
+    "file": "photo-b.webp",
+    "original": "photo-b.jpg",
+    "expected": "perceptual",
+    "note": "converted to lossy WebP"
+  },
+  {
+    "file": "photo-b.png",
+    "original": "photo-b.jpg",
+    "expected": "perceptual",
+    "note": "converted to PNG"
+  },
+  {
+    "file": "photo-b-screenshot.png",
+    "original": "photo-b.jpg",
+    "expected": "none",
+    "note": "screenshot of the image in an app window"
+  },
+  {
+    "file": "moved/deeper/renamed-photo-c.jpg",
+    "original": "photo-c.jpg",
+    "expected": "content-hash",
+    "note": "byte-identical copy, renamed and moved"
+  },
+  {
+    "file": "photo-c-q50.jpg",
+    "original": "photo-c.jpg",
+    "expected": "perceptual",
+    "note": "re-encoded JPEG, quality 50"
+  },
+  {
+    "file": "photo-c-q20.jpg",
+    "original": "photo-c.jpg",
+    "expected": "perceptual",
+    "note": "re-encoded JPEG, quality 20"
+  },
+  {
+    "file": "photo-c-half.jpg",
+    "original": "photo-c.jpg",
+    "expected": "perceptual",
+    "note": "resized to 50 %"
+  },
+  {
+    "file": "photo-c-thumb.jpg",
+    "original": "photo-c.jpg",
+    "expected": "perceptual",
+    "note": "160x120 thumbnail"
+  },
+  {
+    "file": "photo-c.webp",
+    "original": "photo-c.jpg",
+    "expected": "perceptual",
+    "note": "converted to lossy WebP"
+  },
+  {
+    "file": "photo-c.png",
+    "original": "photo-c.jpg",
+    "expected": "perceptual",
+    "note": "converted to PNG"
+  },
+  {
+    "file": "photo-c-screenshot.png",
+    "original": "photo-c.jpg",
+    "expected": "none",
+    "note": "screenshot of the image in an app window"
+  },
+  {
+    "file": "moved/deeper/renamed-photo-d.jpg",
+    "original": "photo-d.jpg",
+    "expected": "content-hash",
+    "note": "byte-identical copy, renamed and moved"
+  },
+  {
+    "file": "photo-d-q50.jpg",
+    "original": "photo-d.jpg",
+    "expected": "perceptual",
+    "note": "re-encoded JPEG, quality 50"
+  },
+  {
+    "file": "photo-d-q20.jpg",
+    "original": "photo-d.jpg",
+    "expected": "perceptual",
+    "note": "re-encoded JPEG, quality 20"
+  },
+  {
+    "file": "photo-d-half.jpg",
+    "original": "photo-d.jpg",
+    "expected": "perceptual",
+    "note": "resized to 50 %"
+  },
+  {
+    "file": "photo-d-thumb.jpg",
+    "original": "photo-d.jpg",
+    "expected": "perceptual",
+    "note": "160x120 thumbnail"
+  },
+  {
+    "file": "photo-d.webp",
+    "original": "photo-d.jpg",
+    "expected": "perceptual",
+    "note": "converted to lossy WebP"
+  },
+  {
+    "file": "photo-d.png",
+    "original": "photo-d.jpg",
+    "expected": "perceptual",
+    "note": "converted to PNG"
+  },
+  {
+    "file": "photo-d-screenshot.png",
+    "original": "photo-d.jpg",
+    "expected": "none",
+    "note": "screenshot of the image in an app window"
+  },
+  {
+    "file": "photo-a-exif-rotated.jpg",
+    "original": "photo-a.jpg",
+    "expected": "perceptual",
+    "note": "pixels stored rotated, EXIF orientation 6"
+  },
+  {
+    "file": "gif-animated.webp",
+    "original": "../gif-animated.gif",
+    "expected": "perceptual",
+    "note": "the animated GIF sample as an animated WebP"
+  }
+]

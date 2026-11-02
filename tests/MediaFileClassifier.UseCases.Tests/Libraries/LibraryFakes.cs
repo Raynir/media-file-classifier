@@ -148,5 +148,8 @@ internal sealed class FakeSettingsService : ISettingsService
 
     public void Save(AppSettings settings) => Current = settings;
 
-    public AppSettings Update(Func<AppSettings, AppSettings> change) => Current = change(Current);
+    public Exception? UpdateFailure { get; set; }
+
+    public AppSettings Update(Func<AppSettings, AppSettings> change)
+        => UpdateFailure is { } failure ? throw failure : Current = change(Current);
 }

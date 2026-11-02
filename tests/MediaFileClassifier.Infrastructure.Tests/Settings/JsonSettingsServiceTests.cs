@@ -39,6 +39,19 @@ public sealed class JsonSettingsServiceTests : IDisposable
         Assert.Equal("{ not json", File.ReadAllText(appPaths.SettingsFile + ".corrupt"));
     }
 
+    [Theory]
+    [InlineData("""{ "schemaVersion": 1.5 }""")]
+    [InlineData("""{ "schemaVersion": 1, "providers": "x" }""")]
+    public void Current_MalformedOldFile_ReturnsDefaults(string json)
+    {
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(appPaths.SettingsFile, json);
+
+        var service = CreateService();
+
+        Assert.Equal(new AppSettings(), service.Current with { SchemaVersion = AppSettings.CurrentSchemaVersion });
+    }
+
     [Fact]
     public void Save_ThenLoadInNewService_RoundTripsValues()
     {

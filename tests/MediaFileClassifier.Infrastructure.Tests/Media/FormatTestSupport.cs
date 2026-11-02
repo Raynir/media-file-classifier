@@ -3,6 +3,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Capabilities;
 using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Media.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Thumbnails;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,6 +34,11 @@ internal static class FormatTestSupport
     /// Creates the image metadata extractor.
     /// </summary>
     public static ImageMetadataExtractor ImageExtractor() => new(TimeProvider.System, NullLogger<ImageMetadataExtractor>.Instance);
+
+    /// <summary>
+    /// Creates the still image thumbnailer.
+    /// </summary>
+    public static ImageThumbnailer ImageThumbnails() => new(NullLogger<ImageThumbnailer>.Instance);
 
     /// <summary>
     /// Detects a file's format, under another name when <paramref name="fileName"/> is given.

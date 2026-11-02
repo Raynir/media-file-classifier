@@ -116,6 +116,13 @@ def animated_gif(path: Path) -> None:
     frames[0].save(path, "GIF", save_all=True, append_images=frames[1:], duration=100, loop=0)
 
 
+def gif_blank_first_frame(path: Path) -> None:
+    # Like a GIF that fades in from an empty canvas: the first frame is one flat colour.
+    blank = Image.new("RGB", (96, 96), (255, 255, 255)).convert("P", palette=Image.Palette.ADAPTIVE, colors=16)
+    frames = [blank] + [gif_frame(i, 5) for i in range(5)]
+    frames[0].save(path, "GIF", save_all=True, append_images=frames[1:], duration=100, loop=0, optimize=False)
+
+
 def ocr_text(path: Path) -> None:
     font_path = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "arial.ttf"
     font = ImageFont.truetype(str(font_path), 40)
@@ -216,6 +223,17 @@ def portrait_video(path: Path) -> None:
     landscape.unlink()
 
 
+def black_intro_video(path: Path) -> None:
+    # 4 s with a 1.5 s black intro: the frames at 10% (0.4 s) and 25% (1 s) are black, the one at 50% isn't.
+    encode_video(
+        path,
+        ["-f", "lavfi", "-i", "color=black:size=160x120:rate=10:duration=1.5",
+         "-f", "lavfi", "-i", "testsrc=size=160x120:rate=10:duration=2.5",
+         "-filter_complex", "[0:v][1:v]concat=n=2:v=1[v]", "-map", "[v]"],
+        ["-c:v", "libx264", "-preset", "veryslow", "-crf", "35", "-pix_fmt", "yuv420p"],
+    )
+
+
 def audio_only_mp4(path: Path) -> None:
     encode_video(path, ["-f", "lavfi", "-i", "sine=frequency=440:duration=1"], ["-c:a", "aac", "-b:a", "32k"])
 
@@ -228,10 +246,12 @@ GENERATORS = {
     "gif-static.gif": static_gif,
     "gif-animated.gif": animated_gif,
     "webp-animated.webp": animated_webp,
+    "gif-blank-first-frame.gif": gif_blank_first_frame,
     "video-short.mp4": short_video,
     "video-hevc.mp4": hevc_video,
     "video-av1.mp4": av1_video,
     "video-portrait.mp4": portrait_video,
+    "video-black-intro.mp4": black_intro_video,
     "audio-only.mp4": audio_only_mp4,
     "ocr-text.png": ocr_text,
     "corrupt.jpg": corrupt_jpeg,

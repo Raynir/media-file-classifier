@@ -57,7 +57,7 @@ public sealed class CommandSurfacesTests
         Assert.Equal(command.Label, menuItem.Header);
         Assert.Equal(command.Label, contextItem.Header);
         Assert.Equal(command.Gesture, menuItem.InputGesture);
-        Assert.Equal(command.PlainLabel, ToolTip.GetTip(button));
+        Assert.Equal($"{command.PlainLabel} (Ctrl+Shift+1)", ToolTip.GetTip(button));
         Assert.Equal(command.PlainLabel, Avalonia.Automation.AutomationProperties.GetName(button));
 
         // Running it from any surface updates them all.

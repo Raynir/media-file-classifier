@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 
 namespace MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 
@@ -10,7 +11,7 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 /// &lt;name&gt;.mfc/
 ///   library.db        SQLite database; library.db-wal and library.db-shm appear while it's open (WAL mode)
 ///   library.lock      held open by the app instance that has the library open
-///   thumbnails/xx/    thumbnail cache; xx is the last two hex digits of the item ID
+///   thumbnails/xx/    thumbnail cache, &lt;item-id&gt;-256.webp and -512.webp; xx is the last two hex digits of the item ID
 ///   backups/          database copies, e.g. the one taken before a schema migration
 /// </code>
 /// </summary>
@@ -35,6 +36,11 @@ public sealed record LibraryLayout
     /// Folder name of the thumbnail cache.
     /// </summary>
     public const string ThumbnailsFolderName = "thumbnails";
+
+    /// <summary>
+    /// File extension of the thumbnails, which are WebP.
+    /// </summary>
+    public const string ThumbnailFileExtension = ".webp";
 
     /// <summary>
     /// Folder name of the database backups.
@@ -100,17 +106,16 @@ public sealed record LibraryLayout
     }
 
     /// <summary>
-    /// Gets the thumbnail path of an item (D078). Thumbnails are sharded into 256 folders by the last two hex digits of the
-    /// item ID, which are random in a UUIDv7; its first digits are a timestamp and would cluster.
+    /// Gets the path of an item's thumbnail in one size (D078), e.g. <c>thumbnails/a7/&lt;item-id&gt;-256.webp</c>.
+    /// Thumbnails are sharded into 256 folders by the last two hex digits of the item ID, which are random in a UUIDv7;
+    /// its first digits are a timestamp and would cluster.
     /// </summary>
     /// <param name="itemId">The item.</param>
-    /// <param name="extension">File extension, with or without the dot, e.g. <c>webp</c>.</param>
+    /// <param name="size">The thumbnail size.</param>
     /// <returns>The full path of the thumbnail file.</returns>
-    public string GetThumbnailPath(Id<MediaItem> itemId, string extension)
+    public string GetThumbnailPath(Id<MediaItem> itemId, ThumbnailSize size)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(extension);
-
         var id = itemId.Value.ToString();
-        return Path.Combine(ThumbnailsDirectory, id[^2..], id + "." + extension.TrimStart('.'));
+        return Path.Combine(ThumbnailsDirectory, id[^2..], FormattableString.Invariant($"{id}-{(int)size}{ThumbnailFileExtension}"));
     }
 }

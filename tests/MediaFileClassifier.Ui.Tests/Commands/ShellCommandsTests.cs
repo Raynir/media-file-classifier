@@ -7,6 +7,7 @@ using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.Shortcuts;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
 
@@ -140,6 +141,8 @@ public sealed class ShellCommandsTests
     [Fact]
     public void PanelShortcuts_FollowTheDefaultKeymap()
     {
+        _ = new Keymap(registry);
+
         Assert.Equal(new KeyGesture(Key.D1, KeyModifiers.Control), registry[ShellCommands.ToggleNavigation].Gesture);
         Assert.Equal(new KeyGesture(Key.D2, KeyModifiers.Control), registry[ShellCommands.ToggleDetails].Gesture);
         Assert.Equal(new KeyGesture(Key.D1, KeyModifiers.Control | KeyModifiers.Shift), registry[ShellCommands.CollapseNavigation].Gesture);

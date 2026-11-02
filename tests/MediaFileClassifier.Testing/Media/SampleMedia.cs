@@ -42,6 +42,16 @@ public static class SampleMedia
     public static string AnimatedGif => Combine("gif-animated.gif");
 
     /// <summary>
+    /// Gets a 96×96 animated GIF whose first frame is plain white.
+    /// </summary>
+    public static string GifWithBlankFirstFrame => Combine("gif-blank-first-frame.gif");
+
+    /// <summary>
+    /// Gets a 4 s video whose first 1.5 s are black.
+    /// </summary>
+    public static string BlackIntroVideo => Combine("video-black-intro.mp4");
+
+    /// <summary>
     /// Gets a looping animated WebP with 6 frames of 120 ms.
     /// </summary>
     public static string AnimatedWebP => Combine("webp-animated.webp");
@@ -91,6 +101,12 @@ public static class SampleMedia
     /// Gets a valid JPEG with a Cyrillic file name that contains spaces.
     /// </summary>
     public static string NonAsciiName => Combine("фото с пробелом.jpg");
+
+    /// <summary>
+    /// Gets the folder of the media identity robustness test set (E01-S06-T06). Its <c>expected.json</c> lists every
+    /// derived file with its original and the match tier expected for it.
+    /// </summary>
+    public static string RobustnessDirectory => Combine("robustness");
 
     private static string Combine(string fileName) => Path.Combine(Directory, fileName);
 }

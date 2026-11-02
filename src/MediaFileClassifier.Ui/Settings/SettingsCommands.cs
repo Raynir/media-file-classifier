@@ -1,4 +1,3 @@
-using Avalonia.Input;
 using MediaFileClassifier.Ui.Commands;
 
 namespace MediaFileClassifier.Ui.Settings;
@@ -18,7 +17,6 @@ public sealed class SettingsCommands(SettingsWindowPresenter presenter) : IComma
         registry.Add(new AppCommand(OpenSettings, CommandGroups.Tools, 100, "Command_Settings", presenter.Show)
         {
             IconKey = "Icon.Settings",
-            Gesture = new KeyGesture(Key.OemComma, KeyModifiers.Control),
             IsVisible = SettingsWindowPresenter.IsSupported,
         });
     }

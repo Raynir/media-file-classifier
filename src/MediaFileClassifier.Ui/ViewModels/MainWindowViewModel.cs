@@ -1,5 +1,6 @@
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.Shortcuts;
 using MediaFileClassifier.Ui.StatusBar;
 
 namespace MediaFileClassifier.Ui.ViewModels;
@@ -18,14 +19,22 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <param name="commands">The command registry, for binding buttons and menus by command ID.</param>
     /// <param name="menu">The main menu.</param>
     /// <param name="statusBar">The status bar.</param>
+    /// <param name="shortcuts">The shortcut reference. Taking it also builds the keymap, which gives the
+    /// commands their shortcuts.</param>
     public MainWindowViewModel(
-        ShellLayout layout, ShellRegions regions, CommandRegistry commands, MainMenuViewModel menu, StatusBarViewModel statusBar)
+        ShellLayout layout,
+        ShellRegions regions,
+        CommandRegistry commands,
+        MainMenuViewModel menu,
+        StatusBarViewModel statusBar,
+        ShortcutReferenceViewModel shortcuts)
     {
         Layout = layout;
         Regions = regions;
         Commands = commands;
         Menu = menu;
         StatusBar = statusBar;
+        Shortcuts = shortcuts;
         NavigationContextMenu =
         [
             commands[ShellCommands.CollapseNavigation],
@@ -67,6 +76,11 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// Gets the status bar.
     /// </summary>
     public StatusBarViewModel StatusBar { get; }
+
+    /// <summary>
+    /// Gets the shortcut reference overlay.
+    /// </summary>
+    public ShortcutReferenceViewModel Shortcuts { get; }
 
     /// <summary>
     /// Gets the entries of the navigation panel's context menu.

@@ -3,6 +3,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Infrastructure.Files;
+using MediaFileClassifier.Ui.Platform;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -24,6 +25,7 @@ internal static class DesktopPlatformModule
         services.TryAddSingleton<IMediaFileSource, FileSystemMediaFileSource>();
         services.TryAddSingleton<IHardwareDetector, WindowsHardwareDetector>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, SkiaSharpProbe>());
+        services.TryAddSingleton<IKeyboardLayout, WindowsKeyboardLayout>();
         return services;
     }
 }

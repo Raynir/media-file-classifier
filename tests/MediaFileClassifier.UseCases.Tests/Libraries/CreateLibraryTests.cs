@@ -107,6 +107,17 @@ public sealed class CreateLibraryTests
     }
 
     [Fact]
+    public async Task Create_RecentListNotSaved_StillSucceeds()
+    {
+        settings.UpdateFailure = new IOException("The settings file is locked.");
+
+        var result = await CreateAsync("Family");
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(session.Current);
+    }
+
+    [Fact]
     public async Task AddFolders_AddsNewFoldersOnce()
     {
         await CreateAsync("Family");

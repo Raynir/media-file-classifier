@@ -23,12 +23,18 @@ public sealed class LibrarySession : ILibrarySession, IAsyncDisposable
         }
 
         Current = library;
-        if (previous is not null)
+        try
         {
-            await previous.DisposeAsync().ConfigureAwait(false);
+            if (previous is not null)
+            {
+                await previous.DisposeAsync().ConfigureAwait(false);
+            }
         }
-
-        CurrentChanged?.Invoke(this, EventArgs.Empty);
+        finally
+        {
+            // Current has changed even if closing the previous library failed.
+            CurrentChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     /// <summary>

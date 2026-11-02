@@ -51,14 +51,14 @@ public sealed class FolderRuleMatcher
     private static string[]? Compile(string pattern)
     {
         var segments = Split(pattern.Trim());
-        if (segments.Length == 0)
-        {
-            return null;
-        }
 
         // A bare name matches at any depth; a pattern with a separator matches from the root.
-        var trimmed = pattern.Trim().Replace('\\', '/').Trim('/');
-        return trimmed.Contains('/', StringComparison.Ordinal) ? segments : ["**", .. segments];
+        return segments.Length switch
+        {
+            0 => null,
+            1 => ["**", .. segments],
+            _ => segments,
+        };
     }
 
     private static string[] Split(string path) => path.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);

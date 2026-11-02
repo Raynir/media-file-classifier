@@ -72,6 +72,12 @@ internal sealed class SafMediaFileSource(AndroidContentResolver contentResolver)
         {
             var (documentId, path) = pending.Pop();
             var (children, error) = await Task.Run(() => TryQueryChildren(treeUri, documentId, cancellationToken), cancellationToken);
+            if (children is null && path.Length == 0)
+            {
+                // The grant was revoked or the folder deleted: the folder is offline, as on desktop.
+                throw new DirectoryNotFoundException($"The folder '{folder.DisplayName}' can't be read: {error}");
+            }
+
             if (children is null)
             {
                 yield return FolderScanEntry.ForUnreadableFolder(path, error!);

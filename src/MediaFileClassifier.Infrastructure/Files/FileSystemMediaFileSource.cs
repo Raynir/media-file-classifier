@@ -100,11 +100,15 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
                         IsCloudPlaceholder = (entry.Attributes & CloudPlaceholderAttributes) != 0,
                     });
                 }
+                else if (!options.IncludeSubfolders || !(options.ShouldEnterFolder?.Invoke(relativePath) ?? true))
+                {
+                    continue;
+                }
                 else if (IsLink(entry, Path.Combine(fullPath, entry.Name)))
                 {
                     yield return FolderScanEntry.ForSkippedLink(relativePath);
                 }
-                else if (options.IncludeSubfolders && (options.ShouldEnterFolder?.Invoke(relativePath) ?? true))
+                else
                 {
                     subfolders.Add(relativePath);
                 }

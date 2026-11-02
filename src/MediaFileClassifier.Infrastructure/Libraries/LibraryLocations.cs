@@ -30,7 +30,20 @@ public sealed class LibraryLocations : ILibraryLocations
             IsWritable: existing is not null && CanWrite(existing),
             FreeBytes: existing is not null ? FreeBytes(existing) : null,
             IsInsideLibrary: IsInsideLibrary(full),
-            LibraryExists: Directory.Exists(library) && Directory.EnumerateFileSystemEntries(library).Any());
+            LibraryExists: Directory.Exists(library) && HasEntries(library));
+    }
+
+    // A folder that can't be listed can't become a library either, so it counts as taken.
+    private static bool HasEntries(string directory)
+    {
+        try
+        {
+            return Directory.EnumerateFileSystemEntries(directory).Any();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return true;
+        }
     }
 
     private static string? NearestExisting(string path)

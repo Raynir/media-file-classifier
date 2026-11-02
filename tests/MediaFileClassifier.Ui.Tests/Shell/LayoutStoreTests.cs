@@ -32,6 +32,21 @@ public sealed class LayoutStoreTests
     }
 
     [Fact]
+    public void StatusBarVisibility_IsSavedAndRestored()
+    {
+        using (var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance))
+        {
+            layout.IsStatusBarVisible = false;
+            store.Flush();
+        }
+
+        var restored = new ShellLayout();
+        using var again = new LayoutStore(settings, restored, time, NullLogger<LayoutStore>.Instance);
+
+        Assert.False(restored.IsStatusBarVisible);
+    }
+
+    [Fact]
     public void Constructor_IgnoresASavedLayoutWithAPanelMissing()
     {
         settings.Save(new AppSettings { MainWindowLayout = new MainWindowLayout(new PanelLayout(true, true, 300), null!) });

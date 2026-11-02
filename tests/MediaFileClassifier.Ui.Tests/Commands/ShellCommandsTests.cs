@@ -150,13 +150,29 @@ public sealed class ShellCommandsTests
         layout.Navigation.IsVisible = false;
         layout.Details.ResizeTo(500, double.PositiveInfinity);
         layout.Details.IsCollapsed = true;
+        layout.IsStatusBarVisible = false;
 
         await registry[ShellCommands.ResetLayout].ExecuteAsync();
+
+        Assert.True(layout.IsStatusBarVisible);
 
         Assert.True(layout.Navigation.IsExpanded);
         Assert.True(layout.Details.IsExpanded);
         Assert.Equal(layout.Details.DefaultWidth, layout.Details.Width);
         Assert.True(registry[ShellCommands.NavigationExpanded].IsChecked);
+    }
+
+    [Fact]
+    public async Task ToggleStatusBar_HidesAndShowsIt()
+    {
+        var toggle = registry[ShellCommands.ToggleStatusBar];
+        Assert.True(toggle.IsChecked);
+
+        await toggle.ExecuteAsync();
+
+        Assert.False(layout.IsStatusBarVisible);
+        Assert.False(toggle.IsChecked);
+        Assert.Null(toggle.Gesture);
     }
 
     [Fact]
@@ -170,9 +186,10 @@ public sealed class ShellCommandsTests
             [ShellCommands.NavigationExpanded, ShellCommands.NavigationCollapsed, ShellCommands.NavigationHidden, null, ShellCommands.ToggleNavigation, ShellCommands.CollapseNavigation],
             navigation.Items.Select(entry => (entry as AppCommand)?.Id));
         Assert.IsType<MenuSubmenu>(view.Items[1]);
-        Assert.Same(registry[ShellCommands.ResetLayout], view.Items[2]);
-        Assert.IsType<MenuSeparator>(view.Items[3]);
-        Assert.Same(registry[ShellCommands.ThemeSystem], view.Items[4]);
+        Assert.Same(registry[ShellCommands.ToggleStatusBar], view.Items[2]);
+        Assert.Same(registry[ShellCommands.ResetLayout], view.Items[3]);
+        Assert.IsType<MenuSeparator>(view.Items[4]);
+        Assert.Same(registry[ShellCommands.ThemeSystem], view.Items[5]);
     }
 
     [Fact]

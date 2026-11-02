@@ -3,6 +3,7 @@
              xmlns:vm="using:MediaFileClassifier.Ui.ViewModels"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              xmlns:sh="using:MediaFileClassifier.Ui.Shell"
+             xmlns:v="using:MediaFileClassifier.Ui.Views"
              x:Class="MediaFileClassifier.Ui.Views.MainView"
              x:DataType="vm:MainWindowViewModel">
   <!--
@@ -27,6 +28,13 @@
 
   <DockPanel>
     <Menu x:Name="MainMenu" DockPanel.Dock="Top" Classes="Commands" ItemsSource="{Binding Menu.Groups}" />
+
+    <Panel x:Name="StatusBarHost" DockPanel.Dock="Bottom" IsVisible="{Binding Layout.IsStatusBarVisible}">
+      <Panel.ContextMenu>
+        <ContextMenu Classes="Commands" ItemsSource="{Binding StatusBarContextMenu}" />
+      </Panel.ContextMenu>
+      <v:StatusBarView DataContext="{Binding StatusBar}" />
+    </Panel>
 
     <Grid x:Name="ShellGrid" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,*">
       <!-- Navigation -->

@@ -7,6 +7,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Added
 
 - Main window layout: navigation, toolbar, media browser and details areas that features fill; side panels that resize with splitters, collapse to a rail or strip, and hide (`Ctrl+1`, `Ctrl+2`, `Ctrl+Shift+1`, `Ctrl+Shift+2`, View menu, Reset layout); the panel layout and the window placement for each monitor setup are saved across restarts (E13-S01).
+- A status bar under the main window, with segments that features add without changing it, and a View › Status bar toggle saved with the layout (E13-S04).
 - Supported format registry: JPEG, PNG, WebP, GIF and MP4 are detected from their content rather than their extension; GIF and WebP files are told apart as still or animated, MP4 files need a video track, and other files are skipped with a reason (E03-S01).
 - Technical metadata extraction: image EXIF, IPTC, XMP and ICC data (dimensions, orientation, date taken, camera, lens, GPS, color space) through MetadataExtractor; frame count, duration and loop count of animated GIF and WebP files; video duration, resolution, frame rate, codecs, audio track, creation time and rotation through FFprobe, with file-level metadata only when FFmpeg is missing. The date taken falls back from EXIF to the video creation time to the file modification time and records its source; damaged metadata gives partial results and warnings (library schema version 3, E03-S03).
 

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 
 namespace MediaFileClassifier.Ui.Shell;
@@ -7,7 +8,7 @@ namespace MediaFileClassifier.Ui.Shell;
 /// The main window's panel layout (E13-S01), shared by the window and the commands that change it.
 /// The sizes follow the Figma screens and are provisional (D095).
 /// </summary>
-public sealed class ShellLayout
+public sealed partial class ShellLayout : ObservableObject
 {
     /// <summary>
     /// The narrowest the media browser gets when a side panel is resized.
@@ -39,19 +40,26 @@ public sealed class ShellLayout
     public SidePanel Details { get; } = new(defaultWidth: 320, minWidth: 260, maxWidth: 560);
 
     /// <summary>
-    /// Restores the default layout of every panel.
+    /// Gets or sets a value indicating whether the status bar is shown (E13-S04).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsStatusBarVisible { get; set; } = true;
+
+    /// <summary>
+    /// Restores the default layout of every panel and the status bar.
     /// </summary>
     public void Reset()
     {
         Navigation.Reset();
         Details.Reset();
+        IsStatusBarVisible = true;
     }
 
     /// <summary>
     /// Gets the layout to save.
     /// </summary>
     /// <returns>The layout.</returns>
-    public MainWindowLayout ToSettings() => new(Navigation.ToLayout(), Details.ToLayout());
+    public MainWindowLayout ToSettings() => new(Navigation.ToLayout(), Details.ToLayout(), IsStatusBarVisible);
 
     /// <summary>
     /// Restores a saved layout.
@@ -61,7 +69,10 @@ public sealed class ShellLayout
     {
         Navigation.Apply(layout.Navigation);
         Details.Apply(layout.Details);
+        IsStatusBarVisible = layout.IsStatusBarVisible;
     }
+
+    partial void OnIsStatusBarVisibleChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
 
     private void OnPanelChanged(object? sender, PropertyChangedEventArgs e) => Changed?.Invoke(this, EventArgs.Empty);
 }

@@ -74,7 +74,8 @@ public sealed class ImageThumbnailerTests
                 canvas.DrawRect(0, 0, 4000, 3000, paint);
             }
 
-            await File.WriteAllBytesAsync(path, large.Encode(SKEncodedImageFormat.Jpeg, 90).ToArray(), TestContext.Current.CancellationToken);
+            using var encoded = large.Encode(SKEncodedImageFormat.Jpeg, 90);
+            await File.WriteAllBytesAsync(path, encoded.ToArray(), TestContext.Current.CancellationToken);
         }
 
         try
@@ -102,13 +103,10 @@ public sealed class ImageThumbnailerTests
 
         var thumbnails = await thumbnailer.GenerateAsync(content, format, Metadata(content), TestContext.Current.CancellationToken);
 
-        // A truncated JPEG may decode in part, like in a browser; it must never throw.
-        if (!thumbnails.HasImages)
-        {
-            Assert.Equal(ThumbnailWarnings.ThumbnailFailed, Assert.Single(thumbnails.Warnings).Code);
-        }
-
-        Assert.True(sample != "zero-byte.png" || !thumbnails.HasImages);
+        Assert.False(thumbnails.HasImages);
+        var warning = Assert.Single(thumbnails.Warnings);
+        Assert.Equal(ThumbnailWarnings.ThumbnailFailed, warning.Code);
+        Assert.False(string.IsNullOrEmpty(warning.Detail));
     }
 
     [Fact]

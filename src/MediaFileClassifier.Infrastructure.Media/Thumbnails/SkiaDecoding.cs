@@ -9,19 +9,26 @@ namespace MediaFileClassifier.Infrastructure.Media.Thumbnails;
 internal static class SkiaDecoding
 {
     /// <summary>
-    /// Reads a file into memory for the decoder, which needs to seek. Content streams, as on Android, may not.
+    /// Reads a file for the decoder, which needs to seek: straight from disk when it has a local path, otherwise into
+    /// memory, since content streams, as on Android, may not seek.
     /// </summary>
     /// <param name="content">The file.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The file's bytes.</returns>
     public static async Task<SKData> ReadAsync(MediaContent content, CancellationToken cancellationToken)
     {
+        if (content.LocalPath is { } path)
+        {
+            return SKData.Create(path) ?? throw new InvalidDataException("The file can't be read.");
+        }
+
         var stream = await content.OpenReadAsync(cancellationToken).ConfigureAwait(false);
         await using (stream.ConfigureAwait(false))
         {
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
-            return SKData.CreateCopy(buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
+            buffer.Position = 0;
+            return SKData.Create(buffer);
         }
     }
 

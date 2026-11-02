@@ -25,6 +25,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// </summary>
     public static readonly TimeSpan StopGracePeriod = TimeSpan.FromSeconds(2);
 
+    /// <summary>
+    /// How long the dispatcher waits after an error before it reads the queue again.
+    /// </summary>
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(1);
+
     private readonly IReadOnlyDictionary<string, IStageHandler> handlers;
     private readonly TimeProvider clock;
     private readonly ILogger logger;
@@ -326,22 +331,37 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         {
             while (!token.IsCancellationRequested)
             {
-                if (!paused)
+                try
                 {
-                    await LoadBoostedAsync(token).ConfigureAwait(false);
-                    await DispatchAsync(token).ConfigureAwait(false);
-                }
+                    if (!paused)
+                    {
+                        await LoadBoostedAsync(token).ConfigureAwait(false);
+                        await DispatchAsync(token).ConfigureAwait(false);
+                    }
 
-                await wake.Reader.ReadAsync(token).ConfigureAwait(false);
+                    await wake.Reader.ReadAsync(token).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (!token.IsCancellationRequested)
+                {
+                    // E.g. a passing database error: read everything again after a pause.
+                    LogDispatcherFailed(exception);
+                    lock (gate)
+                    {
+                        boostChanged = true;
+                        foreach (var pool in pools.Values)
+                        {
+                            pool.Exhausted = false;
+                            pool.Stale = true;
+                        }
+                    }
+
+                    await Task.Delay(RetryDelay, clock, token).ConfigureAwait(false);
+                }
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             // Stopping.
-        }
-        catch (Exception exception)
-        {
-            LogDispatcherFailed(exception);
         }
     }
 
@@ -533,7 +553,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     [LoggerMessage(Level = LogLevel.Error, Message = "The state of work item {WorkItemId} ({Stage}) couldn't be recorded")]
     private partial void LogWorkItemNotRecorded(Exception exception, string workItemId, string stage);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "The job dispatcher stopped after an error")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "The job dispatcher failed, and retries in a second")]
     private partial void LogDispatcherFailed(Exception exception);
 
     /// <summary>

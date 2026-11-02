@@ -3,6 +3,7 @@ using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.ViewModels.Settings;
@@ -47,6 +48,9 @@ public static class UiModule
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<SettingsWindowPresenter>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, SettingsCommands>());
+
+        // Status bar (E13-S04). Features add segments through IStatusBarContributor.
+        services.AddSingleton<StatusBarViewModel>();
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

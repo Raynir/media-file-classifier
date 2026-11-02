@@ -135,6 +135,24 @@ public sealed class JsonSettingsServiceTests : IDisposable
         Assert.True(CreateService().Current.Values["x"].GetBoolean());
     }
 
+    [Fact]
+    public void Current_LayoutSavedBeforeTheStatusBar_ShowsTheStatusBar()
+    {
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(
+            appPaths.SettingsFile,
+            """
+            {
+              "mainWindowLayout": {
+                "navigation": { "isVisible": true, "isCollapsed": false, "width": 240 },
+                "details": { "isVisible": true, "isCollapsed": false, "width": 320 }
+              }
+            }
+            """);
+
+        Assert.True(CreateService().Current.MainWindowLayout!.IsStatusBarVisible);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(dataDirectory))

@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sb="using:MediaFileClassifier.Ui.StatusBar"
+             x:Class="MediaFileClassifier.Ui.Views.StatusBarView"
+             x:DataType="sb:StatusBarViewModel">
+  <!--
+    The status bar (E13-S04): segments from IStatusBarContributor, at the left and right ends. A segment shows
+    its icon and text as a flat button, or its own view when it sets Content. Provisional, as Figma has no
+    status bar (D095).
+  -->
+  <UserControl.DataTemplates>
+    <DataTemplate x:DataType="sb:StatusBarSegment">
+      <Panel IsVisible="{Binding IsVisible}">
+        <ContentControl Content="{Binding Content}"
+                        IsVisible="{Binding Content, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <Button Classes="StatusSegment"
+                IsVisible="{Binding Content, Converter={x:Static ObjectConverters.IsNull}}"
+                Command="{Binding Command}"
+                IsHitTestVisible="{Binding IsClickable}"
+                Focusable="{Binding IsClickable}"
+                ToolTip.Tip="{Binding ToolTip}"
+                AutomationProperties.Name="{Binding AccessibleName}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+            <PathIcon Classes="Small"
+                      Data="{Binding Icon}"
+                      IsVisible="{Binding Icon, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            <TextBlock Text="{Binding Text}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </Panel>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <Border Classes="Panel" Height="{DynamicResource Size.StatusBar}" BorderThickness="0,1,0,0">
+    <DockPanel>
+      <ItemsControl x:Name="RightSegments" DockPanel.Dock="Right" ItemsSource="{Binding Right}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+      <ItemsControl x:Name="LeftSegments" ItemsSource="{Binding Left}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+    </DockPanel>
+  </Border>
+</UserControl>

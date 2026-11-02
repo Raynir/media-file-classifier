@@ -12,15 +12,42 @@ using MediaFileClassifier.Ui.Theming;
 namespace MediaFileClassifier.Ui.Shell;
 
 /// <summary>
-/// The app shell's own commands (E13): panels, theme, pseudo-localisation, the log folder and exit.
+/// The app shell's own commands (E13): panels and layout, theme, pseudo-localisation, the log folder and exit.
 /// </summary>
 public sealed class ShellCommands : ICommandContributor
 {
-    /// <summary>Command ID: expand or collapse the navigation panel.</summary>
+    /// <summary>Command ID: show or hide the navigation panel.</summary>
     public const string ToggleNavigation = "view.toggle-navigation";
+
+    /// <summary>Command ID: collapse or expand the navigation panel.</summary>
+    public const string CollapseNavigation = "view.collapse-navigation";
+
+    /// <summary>Command ID: show the navigation panel expanded.</summary>
+    public const string NavigationExpanded = "view.navigation-expanded";
+
+    /// <summary>Command ID: show the navigation panel collapsed to its icon rail.</summary>
+    public const string NavigationCollapsed = "view.navigation-collapsed";
+
+    /// <summary>Command ID: hide the navigation panel.</summary>
+    public const string NavigationHidden = "view.navigation-hidden";
 
     /// <summary>Command ID: show or hide the details panel.</summary>
     public const string ToggleDetails = "view.toggle-details";
+
+    /// <summary>Command ID: collapse or expand the details panel.</summary>
+    public const string CollapseDetails = "view.collapse-details";
+
+    /// <summary>Command ID: show the details panel expanded.</summary>
+    public const string DetailsExpanded = "view.details-expanded";
+
+    /// <summary>Command ID: show the details panel collapsed to a strip.</summary>
+    public const string DetailsCollapsed = "view.details-collapsed";
+
+    /// <summary>Command ID: hide the details panel.</summary>
+    public const string DetailsHidden = "view.details-hidden";
+
+    /// <summary>Command ID: restore the default panel layout.</summary>
+    public const string ResetLayout = "view.reset-layout";
 
     /// <summary>Command ID: follow the system theme.</summary>
     public const string ThemeSystem = "view.theme-system";
@@ -72,26 +99,18 @@ public sealed class ShellCommands : ICommandContributor
             IsVisible = Application.Current?.ApplicationLifetime is IControlledApplicationLifetime,
         });
 
-        var toggleNavigation = registry.Add(new AppCommand(
-            ToggleNavigation, CommandGroups.View, 100, "Command_ToggleNavigation", () => layout.IsNavigationExpanded = !layout.IsNavigationExpanded)
+        AppCommand[] layoutCommands =
+        [
+            .. AddPanelCommands(registry, layout.Navigation, 100, "Navigation", Key.D1, "Icon.PanelLeftOpen", "Icon.Menu"),
+            .. AddPanelCommands(registry, layout.Details, 110, "Details", Key.D2, "Icon.PanelRightOpen", "Icon.PanelRightClose"),
+        ];
+        registry.Add(new AppCommand(ResetLayout, CommandGroups.View, 150, "Command_ResetLayout", layout.Reset));
+        layout.Changed += (_, _) =>
         {
-            IconKey = "Icon.Menu",
-            Gesture = new KeyGesture(Key.D1, KeyModifiers.Control),
-            ToggleType = MenuItemToggleType.CheckBox,
-            IsCheckedRule = () => layout.IsNavigationExpanded,
-        });
-        var toggleDetails = registry.Add(new AppCommand(
-            ToggleDetails, CommandGroups.View, 110, "Command_ToggleDetails", () => layout.IsDetailsPanelOpen = !layout.IsDetailsPanelOpen)
-        {
-            IconKey = "Icon.PanelRightOpen",
-            Gesture = new KeyGesture(Key.D2, KeyModifiers.Control),
-            ToggleType = MenuItemToggleType.CheckBox,
-            IsCheckedRule = () => layout.IsDetailsPanelOpen,
-        });
-        layout.PropertyChanged += (_, _) =>
-        {
-            toggleNavigation.Refresh();
-            toggleDetails.Refresh();
+            foreach (var command in layoutCommands)
+            {
+                command.Refresh();
+            }
         };
 
         var themeCommands = new[]
@@ -129,6 +148,43 @@ public sealed class ShellCommands : ICommandContributor
         {
             lifetime.Shutdown();
         }
+    }
+
+    // Each side panel gets: show or hide (Ctrl+N), collapse or expand (Ctrl+Shift+N), and a choice of
+    // Expanded, Collapsed and Hidden, all in the panel's View submenu. IDs and keys follow the panel's name,
+    // e.g. view.toggle-navigation, Command_ToggleNavigation and Menu_NavigationPanel.
+    private static AppCommand[] AddPanelCommands(
+        CommandRegistry registry, SidePanel panel, int order, string name, Key key, string toggleIcon, string collapseIcon)
+    {
+        var id = name.ToLowerInvariant();
+        var submenu = $"Menu_{name}Panel";
+
+        AppCommand Add(string commandId, int offset, string labelKey, Action execute, Func<bool> isChecked)
+            => registry.Add(new AppCommand(commandId, CommandGroups.View, order + offset, labelKey, execute)
+            {
+                Submenu = submenu,
+                ToggleType = MenuItemToggleType.Radio,
+                IsCheckedRule = isChecked,
+            });
+
+        return
+        [
+            Add($"view.{id}-expanded", 0, "Command_PanelExpanded", panel.Expand, () => panel.IsExpanded),
+            Add($"view.{id}-collapsed", 1, "Command_PanelCollapsed", panel.Collapse, () => panel.IsVisible && panel.IsCollapsed),
+            Add($"view.{id}-hidden", 2, "Command_PanelHidden", () => panel.IsVisible = false, () => !panel.IsVisible),
+            registry.Add(new AppCommand($"view.toggle-{id}", CommandGroups.View, order + 5, $"Command_Toggle{name}", panel.ToggleVisible)
+            {
+                Submenu = submenu,
+                IconKey = toggleIcon,
+                Gesture = new KeyGesture(key, KeyModifiers.Control),
+            }),
+            registry.Add(new AppCommand($"view.collapse-{id}", CommandGroups.View, order + 6, $"Command_Collapse{name}", panel.ToggleCollapsed)
+            {
+                Submenu = submenu,
+                IconKey = collapseIcon,
+                Gesture = new KeyGesture(key, KeyModifiers.Control | KeyModifiers.Shift),
+            }),
+        ];
     }
 
     private AppCommand AddThemeCommand(CommandRegistry registry, string id, int order, string labelKey, string iconKey, ThemeMode mode)

@@ -8,13 +8,16 @@ using MediaFileClassifier.Ui.Shell;
 namespace MediaFileClassifier.Ui.Views;
 
 /// <summary>
-/// The main application window. Restores and saves its placement through <see cref="ISettingsService"/>.
+/// The main application window. Restores and saves its placement for the current monitor setup through
+/// <see cref="LayoutStore"/> (E13-S01-T03).
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly ISettingsService? settingsService;
+    private readonly LayoutStore? layoutStore;
+    private readonly Size defaultSize;
     private PixelPoint normalPosition;
     private Size normalSize;
+    private bool isPlacementRestored;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class. Used by the XAML designer only.
@@ -22,29 +25,44 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        defaultSize = new Size(Width, Height);
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
     /// </summary>
-    /// <param name="settingsService">App settings.</param>
+    /// <param name="layoutStore">Saves and restores the layout.</param>
     /// <param name="commands">The commands, whose shortcuts the window binds.</param>
     /// <param name="quitGuard">Asks before closing while work is pending, and stops the jobs (D027).</param>
-    public MainWindow(ISettingsService settingsService, CommandRegistry commands, QuitGuard quitGuard)
+    public MainWindow(LayoutStore layoutStore, CommandRegistry commands, QuitGuard quitGuard)
         : this()
     {
-        this.settingsService = settingsService;
+        this.layoutStore = layoutStore;
         foreach (var command in commands.All.Where(command => command.Gesture is not null))
         {
             KeyBindings.Add(new KeyBinding { Gesture = command.Gesture!, Command = command });
         }
 
-        RestorePlacement(settingsService.Current.MainWindow);
-        PositionChanged += (_, _) => RememberNormalBounds();
-        SizeChanged += (_, _) => RememberNormalBounds();
-        Opened += (_, _) => KeepOnScreen();
-        Closing += (_, _) => SavePlacement();
+        RestorePlacement(layoutStore.PlacementFor(CurrentMonitorSetup()));
+        PositionChanged += (_, _) => RememberPlacement();
+        SizeChanged += (_, _) => RememberPlacement();
+        Opened += (_, _) => OnOpened();
+        Closing += (_, _) =>
+        {
+            RememberPlacement();
+            layoutStore.Flush();
+        };
         quitGuard.Attach(this);
+    }
+
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == WindowStateProperty)
+        {
+            RememberPlacement();
+        }
     }
 
     private void RestorePlacement(WindowPlacement? placement)
@@ -66,38 +84,60 @@ public partial class MainWindow : Window
         }
     }
 
-    // A saved position can be off-screen after a monitor was disconnected.
-    private void KeepOnScreen()
-    {
-        if (Screens.ScreenFromPoint(Position) is null && Screens.Primary is { } primary)
-        {
-            Position = primary.WorkingArea.TopLeft;
-        }
-    }
-
-    private void RememberNormalBounds()
+    private void OnOpened()
     {
         if (WindowState == WindowState.Normal)
         {
             normalPosition = Position;
             normalSize = new Size(Width, Height);
         }
+
+        KeepOnScreen();
+        isPlacementRestored = true;
+        RememberPlacement();
     }
 
-    private void SavePlacement()
+    // A saved position can be off-screen after a monitor was disconnected: fall back to the default placement.
+    private void KeepOnScreen()
     {
-        if (settingsService is null)
+        var placement = CurrentPlacement();
+        if (Screens.Primary is not { } primary || MonitorSetup.IsReachable(placement, primary.Scaling, Screens.All.Select(screen => screen.WorkingArea)))
         {
             return;
         }
 
-        RememberNormalBounds();
-        var placement = new WindowPlacement(
-            normalPosition.X,
-            normalPosition.Y,
-            normalSize.Width,
-            normalSize.Height,
-            WindowState == WindowState.Maximized);
-        settingsService.Save(settingsService.Current with { MainWindow = placement });
+        var size = new Size(
+            Math.Min(defaultSize.Width, primary.WorkingArea.Width / primary.Scaling),
+            Math.Min(defaultSize.Height, primary.WorkingArea.Height / primary.Scaling));
+        Width = size.Width;
+        Height = size.Height;
+        Position = primary.WorkingArea.CenterRect(PixelRect.FromRect(new Rect(size), primary.Scaling)).Position;
+        normalPosition = Position;
+        normalSize = size;
     }
+
+    private void RememberPlacement()
+    {
+        if (layoutStore is null || !isPlacementRestored)
+        {
+            return;
+        }
+
+        if (WindowState == WindowState.Normal)
+        {
+            normalPosition = Position;
+            normalSize = new Size(Width, Height);
+        }
+
+        layoutStore.RememberPlacement(CurrentMonitorSetup(), CurrentPlacement());
+    }
+
+    private WindowPlacement CurrentPlacement() => new(
+        normalPosition.X,
+        normalPosition.Y,
+        normalSize.Width,
+        normalSize.Height,
+        WindowState == WindowState.Maximized);
+
+    private string CurrentMonitorSetup() => MonitorSetup.Fingerprint(Screens.All.Select(screen => (screen.Bounds, screen.Scaling)));
 }

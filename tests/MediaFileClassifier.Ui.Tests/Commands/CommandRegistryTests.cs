@@ -35,12 +35,12 @@ public sealed class CommandRegistryTests
         var registry = CreateRegistry();
         var command = registry.Add(new AppCommand("help.test", CommandGroups.Help, 1, "Command_ToggleNavigation", () => { }));
 
-        Assert.Equal("Toggle _navigation panel", command.Label);
-        Assert.Equal("Toggle navigation panel", command.PlainLabel);
+        Assert.Equal("_Show or hide navigation panel", command.Label);
+        Assert.Equal("Show or hide navigation panel", command.PlainLabel);
 
         localizer.IsPseudoLocalized = true;
 
-        Assert.Equal(PseudoLocalizer.Transform("Toggle _navigation panel"), command.Label);
+        Assert.Equal(PseudoLocalizer.Transform("_Show or hide navigation panel"), command.Label);
     }
 
     [Fact]

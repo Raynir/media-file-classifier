@@ -11,7 +11,8 @@ public sealed record DiscoveryResult
     public int FoldersScanned { get; init; }
 
     /// <summary>
-    /// Gets the number of supported media files found, new or already in the library.
+    /// Gets the number of supported media files found, new or already in the library. A file already in the library
+    /// counts without its content being read again.
     /// </summary>
     public int FilesFound { get; init; }
 
@@ -19,6 +20,18 @@ public sealed record DiscoveryResult
     /// Gets the number of new items registered with status Discovered.
     /// </summary>
     public int ItemsRegistered { get; init; }
+
+    /// <summary>
+    /// Gets the number of files already in the library with the same size and modification time. They were skipped
+    /// without being read.
+    /// </summary>
+    public int Unchanged { get; init; }
+
+    /// <summary>
+    /// Gets the number of files already in the library whose size or modification time differs. They were skipped
+    /// without being read; updating them is the rescan's job (E02-S04).
+    /// </summary>
+    public int Changed { get; init; }
 
     /// <summary>
     /// Gets the number of files with a supported extension whose content isn't a supported format.

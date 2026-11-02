@@ -5,6 +5,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Infrastructure.Discovery;
@@ -51,7 +52,8 @@ public sealed partial class FolderDiscovery(
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(folder);
 
-        var run = new Run(this, library, folder, progress);
+        var known = await library.Items.GetFileStatesAsync(folder.Id, cancellationToken).ConfigureAwait(false);
+        var run = new Run(this, library, folder, known, progress);
         await run.ScanAsync(cancellationToken).ConfigureAwait(false);
         return run.ToResult();
     }
@@ -70,13 +72,15 @@ public sealed partial class FolderDiscovery(
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Discovery in {Folder} finished: {FoldersScanned} folders, {FilesFound} media files, {ItemsRegistered} new, "
-            + "{Unsupported} unsupported, {UnreadableFiles} unreadable files, {UnreadableFolders} unreadable folders, {SkippedLinks} links skipped")]
+        Message = "Discovery in {Folder} finished: {FoldersScanned} folders, {FilesFound} media files, {ItemsRegistered} new, {Unchanged} unchanged, "
+            + "{Changed} changed, {Unsupported} unsupported, {UnreadableFiles} unreadable files, {UnreadableFolders} unreadable folders, {SkippedLinks} links skipped")]
     private partial void LogFinished(
         string folder,
         int foldersScanned,
         int filesFound,
         int itemsRegistered,
+        int unchanged,
+        int changed,
         int unsupported,
         int unreadableFiles,
         int unreadableFolders,
@@ -85,8 +89,15 @@ public sealed partial class FolderDiscovery(
     /// <summary>
     /// The state of one scan.
     /// </summary>
-    private sealed class Run(FolderDiscovery owner, IOpenLibrary library, IndexedFolder folder, IProgress<DiscoveryProgress>? progress)
+    private sealed class Run(
+        FolderDiscovery owner,
+        IOpenLibrary library,
+        IndexedFolder folder,
+        IReadOnlyList<MediaItemFileState> known,
+        IProgress<DiscoveryProgress>? progress)
     {
+        // Paths compare as stored: the scan reports a file's name the same way each time.
+        private readonly Dictionary<string, MediaItemFileState> knownFiles = known.ToDictionary(state => state.Path.Value, StringComparer.Ordinal);
         private readonly FolderHandle handle = new(folder.PlatformHandle, folder.DisplayPath);
         private readonly FolderRuleMatcher rules = new(folder.Rules);
         private readonly List<MediaItem> pending = new(BatchSize);
@@ -96,6 +107,8 @@ public sealed partial class FolderDiscovery(
         private int foldersScanned;
         private int filesFound;
         private int itemsRegistered;
+        private int unchanged;
+        private int changed;
         private int unsupported;
         private int unreadableFiles;
 
@@ -141,6 +154,8 @@ public sealed partial class FolderDiscovery(
                 foldersScanned,
                 filesFound,
                 itemsRegistered,
+                unchanged,
+                changed,
                 unsupported,
                 unreadableFiles,
                 unreadableFolders.Count,
@@ -152,6 +167,8 @@ public sealed partial class FolderDiscovery(
             FoldersScanned = foldersScanned,
             FilesFound = filesFound,
             ItemsRegistered = itemsRegistered,
+            Unchanged = unchanged,
+            Changed = changed,
             Unsupported = unsupported,
             UnreadableFiles = unreadableFiles,
             UnreadableFolders = unreadableFolders,
@@ -162,6 +179,22 @@ public sealed partial class FolderDiscovery(
         {
             if (!owner.formats.IsCandidate(file.RelativePath) || !rules.IsIncluded(file.RelativePath))
             {
+                return;
+            }
+
+            // A file already in the library isn't read: unchanged ones are done, changed ones are the rescan's (E02-S04).
+            if (knownFiles.TryGetValue(file.RelativePath, out var state))
+            {
+                filesFound++;
+                if (state.SizeBytes == file.Length && state.FileModifiedAt == ToStoredPrecision(file.LastModifiedUtc))
+                {
+                    unchanged++;
+                }
+                else
+                {
+                    changed++;
+                }
+
                 return;
             }
 
@@ -234,6 +267,10 @@ public sealed partial class FolderDiscovery(
             pending.Clear();
             Report();
         }
+
+        // Times are stored as Unix milliseconds (D071), so the file's time is cut to match before comparing.
+        private static DateTimeOffset ToStoredPrecision(DateTimeOffset time) =>
+            DateTimeOffset.FromUnixTimeMilliseconds(time.ToUnixTimeMilliseconds());
 
         private void Report() => progress?.Report(new DiscoveryProgress(foldersScanned, filesFound, itemsRegistered));
     }

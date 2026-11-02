@@ -27,6 +27,15 @@ public interface IMediaItemRepository
     Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the path, size and modification time of every item in a folder, without loading the items, so discovery
+    /// can skip unchanged files (E03-S02-T03).
+    /// </summary>
+    /// <param name="folderId">The folder.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The facts, in no particular order.</returns>
+    Task<IReadOnlyList<MediaItemFileState>> GetFileStatesAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a page of items in ID order, which follows creation time to the millisecond (UUIDv7).
     /// </summary>
     /// <param name="offset">Number of items to skip.</param>

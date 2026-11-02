@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Discovery;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
@@ -18,6 +19,7 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
     private readonly List<string> links = [];
+    private readonly CountingFileSource source = new(new FileSystemMediaFileSource());
     private LibraryTestBed bed = null!;
     private FolderDiscovery discovery = null!;
 
@@ -28,7 +30,7 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
         Directory.CreateDirectory(root);
         bed = await LibraryTestBed.CreateAsync();
         discovery = new FolderDiscovery(
-            new FileSystemMediaFileSource(),
+            source,
             FormatTestSupport.CreateRegistry(),
             bed.Clock,
             NullLogger<FolderDiscovery>.Instance)
@@ -176,6 +178,54 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task DiscoverAsync_UnchangedFolder_RegistersNothingAndReadsNoFile()
+    {
+        for (var i = 0; i < 120; i++)
+        {
+            Copy(SampleMedia.JpegWithExif, $"album/IMG_{i:D4}.jpg");
+        }
+
+        var folder = await AddFolderAsync(new FolderRules());
+        await discovery.DiscoverAsync(bed.Library, folder, cancellationToken: Token);
+        source.Opened = 0;
+
+        var result = await discovery.DiscoverAsync(bed.Library, folder, cancellationToken: Token);
+
+        Assert.Equal(0, result.ItemsRegistered);
+        Assert.Equal(120, result.Unchanged);
+        Assert.Equal(120, result.FilesFound);
+        Assert.Equal(0, result.Changed);
+        Assert.Equal(0, source.Opened);
+        Assert.Equal(120, await bed.Library.Items.CountAsync(Token));
+    }
+
+    [Fact]
+    public async Task DiscoverAsync_Rescan_RegistersOnlyNewFiles_AndCountsChangedOnes()
+    {
+        Copy(SampleMedia.JpegWithExif, "same.jpg");
+        var touched = Copy(SampleMedia.JpegWithExif, "touched.jpg");
+        var grown = Copy(SampleMedia.JpegWithExif, "grown.jpg");
+        var folder = await AddFolderAsync(new FolderRules());
+        await discovery.DiscoverAsync(bed.Library, folder, cancellationToken: Token);
+        var before = await ItemsAsync(folder);
+        File.SetLastWriteTimeUtc(touched, File.GetLastWriteTimeUtc(touched).AddMilliseconds(5));
+        await File.AppendAllTextAsync(grown, "more", Token);
+        File.SetLastWriteTimeUtc(grown, File.GetLastWriteTimeUtc(touched));
+        Copy(SampleMedia.PngWithAlpha, "new.png");
+        source.Opened = 0;
+
+        var result = await discovery.DiscoverAsync(bed.Library, folder, cancellationToken: Token);
+
+        Assert.Equal(1, result.ItemsRegistered);
+        Assert.Equal(1, result.Unchanged);
+        Assert.Equal(2, result.Changed);
+        Assert.Equal(1, source.Opened);
+        var after = await ItemsAsync(folder);
+        Assert.Equal(["grown.jpg", "new.png", "same.jpg", "touched.jpg"], after.Select(item => item.Path.Value).Order(StringComparer.Ordinal));
+        Assert.Equivalent(before, after.Where(item => item.Path.Value != "new.png"));
+    }
+
+    [Fact]
     public async Task DiscoverAsync_MissingFolder_Throws()
     {
         var folder = IndexedFolder.Create(bed.Library.Library.Id, root, Path.Combine(root, "missing"), bed.Clock.Tick());
@@ -221,6 +271,33 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
         var path = Path.Combine(root, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, content);
+    }
+
+    /// <summary>
+    /// Counts the files opened, to show which files discovery reads.
+    /// </summary>
+    /// <param name="inner">The real source.</param>
+    private sealed class CountingFileSource(IMediaFileSource inner) : IMediaFileSource
+    {
+        public int Opened { get; set; }
+
+        public IAsyncEnumerable<MediaFileStat> EnumerateFilesAsync(
+            FolderHandle folder,
+            string relativeDirectory = "",
+            CancellationToken cancellationToken = default) =>
+            inner.EnumerateFilesAsync(folder, relativeDirectory, cancellationToken);
+
+        public IAsyncEnumerable<FolderScanEntry> ScanAsync(FolderHandle folder, FolderScanOptions options, CancellationToken cancellationToken = default) =>
+            inner.ScanAsync(folder, options, cancellationToken);
+
+        public Task<Stream> OpenReadAsync(FileLocation file, CancellationToken cancellationToken = default)
+        {
+            Opened++;
+            return inner.OpenReadAsync(file, cancellationToken);
+        }
+
+        public Task<MediaFileStat?> GetStatAsync(FileLocation file, CancellationToken cancellationToken = default) =>
+            inner.GetStatAsync(file, cancellationToken);
     }
 
     /// <summary>

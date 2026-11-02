@@ -21,24 +21,22 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(workItems);
 
-        var first = true;
-        foreach (var batch in workItems.Count == 0 ? [[]] : workItems.Chunk(MediaItemRepository.BatchSize))
-        {
-            var withJob = first;
-            await writer.ExecuteAsync(
-                (db, token) =>
-                {
-                    db.ChangeTracker.AutoDetectChangesEnabled = false;
-                    if (withJob)
-                    {
-                        db.ProcessingJobs.Add(job);
-                    }
+        var first = workItems.Take(MediaItemRepository.BatchSize).ToList();
+        await writer.ExecuteAsync(
+            (db, token) =>
+            {
+                db.ChangeTracker.AutoDetectChangesEnabled = false;
+                db.ProcessingJobs.Add(job);
+                db.WorkItems.AddRange(first);
+                return db.SaveChangesAsync(token);
+            },
+            cancellationToken).ConfigureAwait(false);
 
-                    db.WorkItems.AddRange(batch);
-                    return db.SaveChangesAsync(token);
-                },
-                cancellationToken).ConfigureAwait(false);
-            first = false;
+        // The first batch may already run and finish the job before the rest is written, so the rest is added like
+        // later work, which queues a finished job again.
+        if (workItems.Count > first.Count)
+        {
+            await AddWorkItemsAsync(job.Id, [.. workItems.Skip(first.Count)], job.CreatedAt, cancellationToken).ConfigureAwait(false);
         }
     }
 

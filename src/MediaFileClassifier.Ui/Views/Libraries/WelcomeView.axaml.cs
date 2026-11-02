@@ -1,0 +1,17 @@
+using Avalonia.Controls;
+
+namespace MediaFileClassifier.Ui.Views.Libraries;
+
+/// <summary>
+/// The welcome screen shown while no library is open.
+/// </summary>
+public partial class WelcomeView : UserControl
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WelcomeView"/> class.
+    /// </summary>
+    public WelcomeView()
+    {
+        InitializeComponent();
+    }
+}

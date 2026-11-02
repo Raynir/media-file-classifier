@@ -19,6 +19,7 @@ public static class UseCasesModule
     {
         services.AddMediatR(config => config.RegisterServicesFromAssembly(typeof(UseCasesModule).Assembly));
 
+        services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<SettingRegistry>();
         services.AddSetting(KnownSettings.OpenAiCompatibleEndpoint);
         services.AddSetting(KnownSettings.AnalyzeAutomatically);

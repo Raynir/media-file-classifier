@@ -44,6 +44,22 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 - **Errors:** a lock held by another instance gives `InUse`. A lock file that can't be written, e.g. in a read-only folder, gives `NotWritable`.
 - **Limitation:** locking over SMB or NFS shares isn't reliable.
 
+## Creating a library (E02-S01-T04)
+
+A new library is the folder `<location>\<name>.mfc`. The create-library dialog suggests `%USERPROFILE%\Media File Classifier` as the location: it's easy to find and back up, and it's outside Documents, which OneDrive often syncs, a risk for an open SQLite database. The folder is created if it doesn't exist. Android picks its own default with E20.
+
+`LibraryLocationRules` checks the name and location in this order and reports the first problem:
+
+1. **Name missing:** the trimmed name is empty.
+2. **Name invalid:** it contains a character a Windows folder name can't have (`< > : " / \ | ? *` or a control character), ends with a dot, or is only dots.
+3. **Location missing:** no location, or not a full path.
+4. **Inside a library:** the location is a `.mfc` folder, or inside one, or a folder with a `library.db`.
+5. **Already exists:** `<name>.mfc` exists there and isn't empty.
+6. **Not writable:** the app can't create a file in the location, or in its nearest existing parent if it doesn't exist yet. This covers read-only folders and drives, missing permissions and failed disks.
+7. **Not enough space:** the drive has less than 1 GB free, which is room for the database, thumbnails and migration backups of a few thousand items.
+
+The dialog runs the same checks as the user types, and creating the library runs them again.
+
 ## Connections and pragmas
 
 `LibraryConnectionFactory` opens every connection with these settings:

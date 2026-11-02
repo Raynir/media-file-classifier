@@ -131,13 +131,24 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             cancelledJobs.Add(jobId);
         }
 
-        if (!await Library.Jobs.CancelJobAsync(jobId, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false))
+        var cancelled = false;
+        try
         {
-            lock (gate)
+            cancelled = await Library.Jobs.CancelJobAsync(jobId, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (!cancelled)
             {
-                cancelledJobs.Remove(jobId);
+                lock (gate)
+                {
+                    cancelledJobs.Remove(jobId);
+                }
             }
+        }
 
+        if (!cancelled)
+        {
             return false;
         }
 
@@ -153,7 +164,14 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 
         foreach (var cancellation in toCancel)
         {
-            await cancellation.CancelAsync().ConfigureAwait(false);
+            try
+            {
+                await cancellation.CancelAsync().ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                // The work item finished in the meantime.
+            }
         }
 
         return true;

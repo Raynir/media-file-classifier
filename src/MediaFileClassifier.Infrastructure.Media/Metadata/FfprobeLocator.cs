@@ -1,7 +1,7 @@
 namespace MediaFileClassifier.Infrastructure.Media.Metadata;
 
 /// <summary>
-/// Finds the folder of the <c>ffprobe</c> executable, in the same places as the FFmpeg startup probe: an
+/// Finds the folders of the <c>ffprobe</c> and <c>ffmpeg</c> executables, in the same places as the FFmpeg startup probe: an
 /// <c>ffmpeg</c> folder next to the app, then <c>PATH</c> (D068).
 /// </summary>
 /// <param name="searchDirectories">Folders to look in, in order.</param>

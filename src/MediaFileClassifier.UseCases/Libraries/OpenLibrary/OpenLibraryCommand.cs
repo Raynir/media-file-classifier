@@ -69,7 +69,16 @@ public sealed class OpenLibraryCommandHandler(
 
         logger.LogInformation("Opened library {Library}", library.Layout.RootDirectory);
         await session.SetCurrentAsync(library).ConfigureAwait(false);
-        RecentLibraries.Record(settings, library, timeProvider.GetUtcNow());
+        try
+        {
+            RecentLibraries.Record(settings, library, timeProvider.GetUtcNow());
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The library is open; only the recent list misses it.
+            logger.LogWarning(ex, "Couldn't add library {Library} to the recent libraries", library.Layout.RootDirectory);
+        }
+
         return new OpenLibraryResult(library.Layout.RootDirectory, Error: null);
     }
 }

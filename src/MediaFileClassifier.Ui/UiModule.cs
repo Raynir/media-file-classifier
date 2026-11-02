@@ -33,7 +33,7 @@ public static class UiModule
     {
         services.AddSingleton(new ViewLocator()
             .Register<SettingsViewModel, SettingsView>()
-            .Register<QuitConfirmationViewModel, QuitConfirmationView>())
+            .Register<QuitConfirmationViewModel, QuitConfirmationView>()
             .Register<WelcomeViewModel, WelcomeView>()
             .Register<CreateLibraryViewModel, CreateLibraryView>());
         services.AddSingleton(Localizer.Current);

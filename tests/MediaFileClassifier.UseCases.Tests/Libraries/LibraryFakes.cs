@@ -87,6 +87,8 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IModelRegistrationRepository Models => throw new NotSupportedException();
 
+    public IJobRepository Jobs => throw new NotSupportedException();
+
     public ILibraryMaintenance Maintenance => throw new NotSupportedException();
 
     public bool IsDisposed { get; private set; }

@@ -5,6 +5,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Ui.Tests.Shell;
 
@@ -93,7 +94,7 @@ public sealed class QuitGuardTests
     private QuitGuard Guard()
     {
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-        return new QuitGuard(jobs, settings, TestLocalizer.Create());
+        return new QuitGuard(jobs, settings, TestLocalizer.Create(), NullLogger<QuitGuard>.Instance);
     }
 
     private sealed class FakeJobSystem : IJobSystem

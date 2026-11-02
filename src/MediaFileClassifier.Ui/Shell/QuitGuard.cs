@@ -3,6 +3,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels;
+using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Ui.Shell;
 
@@ -14,7 +15,8 @@ namespace MediaFileClassifier.Ui.Shell;
 /// <param name="jobs">The job system.</param>
 /// <param name="settings">App settings, for "Don't ask again".</param>
 /// <param name="localizer">UI strings.</param>
-public sealed class QuitGuard(IJobSystem jobs, ISettingsService settings, Localizer localizer)
+/// <param name="logger">Logger.</param>
+public sealed partial class QuitGuard(IJobSystem jobs, ISettingsService settings, Localizer localizer, ILogger<QuitGuard> logger)
 {
     private bool readyToClose;
 
@@ -84,10 +86,25 @@ public sealed class QuitGuard(IJobSystem jobs, ISettingsService settings, Locali
 
     private async Task CloseWhenReadyAsync(Window window)
     {
-        if (await ConfirmAndStopAsync(confirmation => ShowDialogAsync(window, confirmation, localizer["QuitConfirmation_Title"])).ConfigureAwait(true))
+        bool quit;
+        try
+        {
+            quit = await ConfirmAndStopAsync(confirmation => ShowDialogAsync(window, confirmation, localizer["QuitConfirmation_Title"])).ConfigureAwait(true);
+        }
+        catch (Exception exception)
+        {
+            // The app must still close; interrupted work is queued again when the library opens (E05-S01-T05).
+            LogStopFailed(exception);
+            quit = true;
+        }
+
+        if (quit)
         {
             readyToClose = true;
             window.Close();
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The jobs couldn't be stopped before quitting")]
+    private partial void LogStopFailed(Exception exception);
 }

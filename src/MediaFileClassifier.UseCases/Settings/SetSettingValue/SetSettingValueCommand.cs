@@ -27,6 +27,11 @@ public sealed record SetSettingValueResult(SettingValidationError? Error)
     public static SetSettingValueResult Unavailable { get; } = new(new SettingValidationError("SettingError_NoLibrary"));
 
     /// <summary>
+    /// Gets the result of a value that couldn't be written to its storage.
+    /// </summary>
+    public static SetSettingValueResult SaveFailed { get; } = new(new SettingValidationError("SettingError_SaveFailed"));
+
+    /// <summary>
     /// Gets a value indicating whether the value was stored.
     /// </summary>
     public bool Succeeded => Error is null;

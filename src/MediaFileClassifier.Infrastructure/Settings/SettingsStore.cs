@@ -70,7 +70,16 @@ public sealed class SettingsStore : ISettingsStore
             return;
         }
 
-        Write(new Dictionary<SettingDefinition, JsonElement?> { [setting] = setting.Serialize(value) });
+        try
+        {
+            Write(new Dictionary<SettingDefinition, JsonElement?> { [setting] = setting.Serialize(value) });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogError(ex, "Couldn't save setting {Key}", setting.Key);
+            throw;
+        }
+
         logger.LogInformation("Setting {Key} changed", setting.Key);
         Changed?.Invoke(this, new SettingChangedEventArgs(setting));
     }

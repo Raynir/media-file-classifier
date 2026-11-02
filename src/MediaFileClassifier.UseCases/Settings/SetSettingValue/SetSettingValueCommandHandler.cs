@@ -22,7 +22,15 @@ public sealed class SetSettingValueCommandHandler(ISettingsStore store) : IReque
             return Task.FromResult(new SetSettingValueResult(error));
         }
 
-        store.SetValue(request.Setting, request.Value);
+        try
+        {
+            store.SetValue(request.Setting, request.Value);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return Task.FromResult(SetSettingValueResult.SaveFailed);
+        }
+
         return Task.FromResult(SetSettingValueResult.Stored);
     }
 }

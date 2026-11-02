@@ -43,6 +43,17 @@ public sealed class SettingsCommandTests
     }
 
     [Fact]
+    public async Task SetValue_WriteFails_ReturnsSaveFailed()
+    {
+        store.WriteFailure = new IOException("The file is locked.");
+
+        var result = await SetAsync(General, true);
+
+        Assert.Same(SetSettingValueResult.SaveFailed, result);
+        Assert.False(store.Get(General));
+    }
+
+    [Fact]
     public async Task Reset_Category_ResetsOnlyThatCategory()
     {
         store.SetValue(General, true);

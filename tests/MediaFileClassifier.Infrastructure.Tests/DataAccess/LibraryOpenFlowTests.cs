@@ -91,6 +91,25 @@ public sealed class LibraryOpenFlowTests
         await session.SetCurrentAsync(null);
     }
 
+    [Fact]
+    public async Task LibrarySettings_FailedWrite_KeepsTheStoredValue()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        var session = new LibrarySession();
+        var values = new OpenLibrarySettingValues(session, bed.Clock);
+        await session.SetCurrentAsync(bed.Library);
+
+        // A closed library can't be written to.
+        await bed.Library.DisposeAsync();
+
+        Assert.Throws<IOException>(() => values.Apply(new Dictionary<string, System.Text.Json.JsonElement?>
+        {
+            [KnownSettings.RetainedPreviousRuns.Key] = KnownSettings.RetainedPreviousRuns.Serialize(4),
+        }));
+        Assert.True(values.TryGet(KnownSettings.RetainedPreviousRuns.Key, out var stored));
+        Assert.Equal(1, stored.GetInt32());
+    }
+
     // Drops the latest migration from the history but keeps its changes, so applying it again fails.
     private static void BreakLatestMigration(string databasePath)
     {

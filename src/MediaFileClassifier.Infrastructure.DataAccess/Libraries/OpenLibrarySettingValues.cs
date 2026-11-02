@@ -75,10 +75,12 @@ public sealed class OpenLibrarySettingValues : ILibrarySettingValues
     {
         var open = session.Current ?? throw new InvalidOperationException("No library is open.");
         Library changed;
+        LibrarySettings previous;
         lock (syncRoot)
         {
             changed = library ?? open.Library;
-            var settings = changed.Settings;
+            previous = changed.Settings;
+            var settings = previous;
             foreach (var (key, json) in changes)
             {
                 if (!Mappings.TryGetValue(key, out var mapping))
@@ -95,7 +97,20 @@ public sealed class OpenLibrarySettingValues : ILibrarySettingValues
         }
 
         // Settings are saved as they change; the write is small and queued behind other writes.
-        Task.Run(() => open.UpdateLibraryAsync(changed)).GetAwaiter().GetResult();
+        try
+        {
+            Task.Run(() => open.UpdateLibraryAsync(changed)).GetAwaiter().GetResult();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Keep reading what the library file still holds, and report it as a storage failure like the app settings.
+            lock (syncRoot)
+            {
+                changed.ChangeSettings(previous, timeProvider.GetUtcNow());
+            }
+
+            throw new IOException("Couldn't save the library settings.", ex);
+        }
     }
 
     private sealed record Mapping(Func<LibrarySettings, JsonElement> Read, Func<LibrarySettings, JsonElement, LibrarySettings> Write);

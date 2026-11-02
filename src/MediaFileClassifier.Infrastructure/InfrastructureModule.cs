@@ -1,12 +1,16 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
+using MediaFileClassifier.Infrastructure.Abstractions.Matching;
 using MediaFileClassifier.Infrastructure.Abstractions.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Capabilities;
 using MediaFileClassifier.Infrastructure.Discovery;
 using MediaFileClassifier.Infrastructure.Hardware;
+using MediaFileClassifier.Infrastructure.Hashing;
+using MediaFileClassifier.Infrastructure.Matching;
 using MediaFileClassifier.Infrastructure.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
@@ -38,6 +42,10 @@ public static class InfrastructureModule
             _ => new FfmpegProbe(FfmpegProbe.GetDefaultSearchDirectories())));
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IFolderDiscovery, FolderDiscovery>();
+        services.TryAddSingleton<IFileHasher, XxHashFileHasher>();
+        services.TryAddSingleton<IPerceptualHasher, SkiaPerceptualHasher>();
+        services.TryAddSingleton<IMediaHasher, MediaHasher>();
+        services.TryAddSingleton<IFileMatcherFactory, FileMatcherFactory>();
         return services;
     }
 }

@@ -165,6 +165,8 @@ public sealed class JobSystemTests : IAsyncLifetime
         public AppSettings Current { get; set; } = new();
 
         public void Save(AppSettings settings) => Current = settings;
+
+        public AppSettings Update(Func<AppSettings, AppSettings> change) => Current = change(Current);
     }
 
     private sealed class TestHardware(int parallelism) : IHardwareInfo

@@ -122,5 +122,7 @@ public sealed class QuitGuardTests
         public AppSettings Current { get; private set; } = new();
 
         public void Save(AppSettings settings) => Current = settings;
+
+        public AppSettings Update(Func<AppSettings, AppSettings> change) => Current = change(Current);
     }
 }

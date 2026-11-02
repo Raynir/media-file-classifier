@@ -58,6 +58,55 @@ internal sealed class SafMediaFileSource(AndroidContentResolver contentResolver)
     }
 
     /// <inheritdoc />
+    public async IAsyncEnumerable<FolderScanEntry> ScanAsync(
+        FolderHandle folder,
+        FolderScanOptions options,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        var treeUri = AndroidUri.Parse(folder.Id)!;
+        var pending = new Stack<(string DocumentId, string RelativePath)>();
+        pending.Push((DocumentsContract.GetTreeDocumentId(treeUri)!, string.Empty));
+        while (pending.Count > 0)
+        {
+            var (documentId, path) = pending.Pop();
+            var (children, error) = await Task.Run(() => TryQueryChildren(treeUri, documentId, cancellationToken), cancellationToken);
+            if (children is null && path.Length == 0)
+            {
+                // The grant was revoked or the folder deleted: the folder is offline, as on desktop.
+                throw new DirectoryNotFoundException($"The folder '{folder.DisplayName}' can't be read: {error}");
+            }
+
+            if (children is null)
+            {
+                yield return FolderScanEntry.ForUnreadableFolder(path, error!);
+                continue;
+            }
+
+            var subfolders = new List<(string DocumentId, string RelativePath)>();
+            foreach (var child in children.Where(child => options.IncludeHidden || !child.Name.StartsWith('.')))
+            {
+                var childPath = path.Length == 0 ? child.Name : path + "/" + child.Name;
+                if (!child.IsDirectory)
+                {
+                    yield return FolderScanEntry.ForFile(new MediaFileStat(childPath, child.Length, child.LastModifiedUtc));
+                }
+                else if (options.IncludeSubfolders && (options.ShouldEnterFolder?.Invoke(childPath) ?? true))
+                {
+                    subfolders.Add((child.DocumentId, childPath));
+                }
+            }
+
+            yield return FolderScanEntry.ForFolder(path);
+            for (var i = subfolders.Count - 1; i >= 0; i--)
+            {
+                pending.Push(subfolders[i]);
+            }
+        }
+    }
+
+    /// <inheritdoc />
     public Task<Stream> OpenReadAsync(FileLocation file, CancellationToken cancellationToken = default)
         => Task.Run(
             () =>
@@ -102,6 +151,19 @@ internal sealed class SafMediaFileSource(AndroidContentResolver contentResolver)
         }
 
         return current;
+    }
+
+    // SAF has no links, but a provider can refuse a folder, e.g. when the grant was revoked.
+    private (List<Document>? Children, string? Error) TryQueryChildren(AndroidUri treeUri, string documentId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (QueryChildren(treeUri, documentId, cancellationToken), null);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return (null, exception.Message);
+        }
     }
 
     private List<Document> QueryChildren(AndroidUri treeUri, string documentId, CancellationToken cancellationToken)

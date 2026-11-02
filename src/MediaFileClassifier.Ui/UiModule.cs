@@ -1,19 +1,23 @@
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Shortcuts;
 using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
+using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.Ui.Views.Settings;
+using MediaFileClassifier.UseCases.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace MediaFileClassifier.Ui;
 
 /// <summary>
-/// Registers the shared UI: windows, view models, the view locator, the localizer, the theme and the commands.
+/// Registers the shared UI: windows, view models, the view locator, the localizer, the theme, the commands and the settings window.
 /// </summary>
 public static class UiModule
 {
@@ -24,9 +28,12 @@ public static class UiModule
     /// <returns>The same service collection, for chaining.</returns>
     public static IServiceCollection AddUi(this IServiceCollection services)
     {
-        services.AddSingleton(new ViewLocator().Register<QuitConfirmationViewModel, QuitConfirmationView>());
+        services.AddSingleton(new ViewLocator()
+            .Register<SettingsViewModel, SettingsView>()
+            .Register<QuitConfirmationViewModel, QuitConfirmationView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
+        services.AddSetting(ThemeService.ThemeSetting);
         services.AddSingleton<ShellLayout>();
         services.AddSingleton<ShellRegions>();
         services.TryAddSingleton(TimeProvider.System);
@@ -40,6 +47,10 @@ public static class UiModule
         services.AddSingleton<MainMenuViewModel>();
 
         services.AddSingleton<QuitGuard>();
+        // Settings window (E17-S01).
+        services.AddSingleton<SettingsViewModel>();
+        services.AddSingleton<SettingsWindowPresenter>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, SettingsCommands>());
 
         // Shortcuts (E16-S01): one keymap, bound to physical keys.
         services.AddSingleton<ShortcutReferenceState>();

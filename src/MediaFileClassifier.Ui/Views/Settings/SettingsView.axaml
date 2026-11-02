@@ -1,0 +1,259 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Settings"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Settings.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <!-- Provisional layout (D095): a category sidebar and a list of generated controls. E17-S01-T00 designs the real one. -->
+  <UserControl.Styles>
+    <Style Selector="Border.SettingRow">
+      <Setter Property="Padding" Value="{DynamicResource Padding.Header}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Divider}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+    <Style Selector="Border.Tag">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Badge}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.Tag TextBlock">
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+    </Style>
+    <Style Selector="Border.Note">
+      <Setter Property="Background" Value="{DynamicResource Brush.Status.Offline.Background}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+    </Style>
+    <Style Selector="TextBlock.Error">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+    </Style>
+    <Style Selector="ContentControl.Editor">
+      <Setter Property="DockPanel.Dock" Value="Right" />
+      <Setter Property="Width" Value="{DynamicResource Size.SettingControl}" />
+      <Setter Property="Margin" Value="{DynamicResource Padding.Header}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- In a narrow window the control goes under the texts, so the label keeps its width. -->
+    <ContainerQuery Name="SettingsContent" Query="max-width:640">
+      <Style Selector="ContentControl.Editor">
+        <Setter Property="DockPanel.Dock" Value="Bottom" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="{DynamicResource Padding.Compact}" />
+      </Style>
+    </ContainerQuery>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <!-- Categories -->
+    <Border DockPanel.Dock="Left"
+            Classes="Panel"
+            Width="{DynamicResource Size.Navigation.Expanded}"
+            BorderThickness="0,0,1,0">
+      <DockPanel Margin="{DynamicResource Padding.Header}">
+        <TextBox x:Name="SearchBox"
+                 DockPanel.Dock="Top"
+                 Classes="clearButton"
+                 Margin="{DynamicResource Padding.Compact}"
+                 Text="{Binding SearchText}"
+                 PlaceholderText="{l:Loc Settings_Search_Placeholder}"
+                 AutomationProperties.Name="{l:Loc Settings_Search_Placeholder}">
+          <TextBox.InnerLeftContent>
+            <PathIcon Classes="Small" Data="{StaticResource Icon.Search}" Margin="{DynamicResource Padding.Compact}" />
+          </TextBox.InnerLeftContent>
+        </TextBox>
+
+        <Button x:Name="ResetAllButton"
+                DockPanel.Dock="Bottom"
+                HorizontalAlignment="Stretch"
+                Margin="{DynamicResource Padding.Compact}"
+                Content="{l:Loc Settings_ResetAll}">
+          <Button.Flyout>
+            <Flyout Placement="TopEdgeAlignedLeft">
+              <StackPanel MaxWidth="320" Spacing="{DynamicResource Space.M}">
+                <TextBlock Text="{Binding ResetAllQuestion}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+                  <Button Classes="accent"
+                          Content="{l:Loc Settings_Reset}"
+                          Command="{Binding ResetAllCommand}"
+                          Click="OnResetAllAnswered" />
+                  <Button Content="{l:Loc Settings_Cancel}" Click="OnResetAllAnswered" />
+                </StackPanel>
+              </StackPanel>
+            </Flyout>
+          </Button.Flyout>
+        </Button>
+
+        <ListBox x:Name="CategoryList"
+                 ItemsSource="{Binding Categories}"
+                 SelectedItem="{Binding SelectedCategory}"
+                 Background="Transparent"
+                 AutomationProperties.Name="{l:Loc Settings_Categories}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:SettingsCategoryViewModel">
+              <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- Settings of the selected category -->
+    <Border Classes="Content" Container.Name="SettingsContent" Container.Sizing="Width">
+      <DockPanel Margin="{DynamicResource Padding.Panel}">
+        <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Compact}">
+          <Button x:Name="ResetCategoryButton"
+                  DockPanel.Dock="Right"
+                  VerticalAlignment="Center"
+                  IsVisible="{Binding !IsSearching}"
+                  IsEnabled="{Binding CanResetCategory}"
+                  Content="{l:Loc Settings_ResetCategory}">
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <StackPanel MaxWidth="320" Spacing="{DynamicResource Space.M}">
+                  <TextBlock Text="{Binding ResetCategoryQuestion}" TextWrapping="Wrap" />
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+                    <Button Classes="accent"
+                            Content="{l:Loc Settings_Reset}"
+                            Command="{Binding ResetCategoryCommand}"
+                            Click="OnResetCategoryAnswered" />
+                    <Button Content="{l:Loc Settings_Cancel}" Click="OnResetCategoryAnswered" />
+                  </StackPanel>
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+          <TextBlock Classes="Title" Text="{Binding Heading}" VerticalAlignment="Center" TextWrapping="Wrap" />
+        </DockPanel>
+
+        <Border DockPanel.Dock="Top"
+                Classes="Note"
+                Margin="{DynamicResource Padding.Compact}"
+                IsVisible="{Binding ShowsLibraryNote}">
+          <DockPanel>
+            <PathIcon DockPanel.Dock="Left"
+                      Classes="Small"
+                      Data="{StaticResource Icon.Info}"
+                      Margin="{DynamicResource Padding.Compact}" />
+            <TextBlock Text="{l:Loc Settings_LibraryNote}" VerticalAlignment="Center" TextWrapping="Wrap" />
+          </DockPanel>
+        </Border>
+
+        <TextBlock DockPanel.Dock="Top"
+                   Classes="Tertiary"
+                   Margin="{DynamicResource Padding.Header}"
+                   IsVisible="{Binding IsEmpty}"
+                   Text="{Binding EmptyMessage}"
+                   TextWrapping="Wrap" />
+
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding VisibleEntries}">
+            <ItemsControl.DataTemplates>
+              <!-- A generated setting: label, tags, help and error on the left; the control on the right. -->
+              <DataTemplate DataType="vm:SettingItemViewModel">
+                <Border Classes="SettingRow">
+                  <DockPanel>
+                    <ContentControl Classes="Editor"
+                                    Content="{Binding}"
+                                    IsEnabled="{Binding IsEditable}">
+                      <ContentControl.DataTemplates>
+                        <DataTemplate DataType="vm:BooleanSettingItemViewModel">
+                          <ToggleSwitch IsChecked="{Binding Value}"
+                                        HorizontalAlignment="Right"
+                                        OnContent="{l:Loc Settings_On}"
+                                        OffContent="{l:Loc Settings_Off}"
+                                        AutomationProperties.Name="{Binding Label}" />
+                        </DataTemplate>
+                        <DataTemplate DataType="vm:IntegerSettingItemViewModel">
+                          <NumericUpDown Value="{Binding Value}"
+                                         Minimum="{Binding Minimum}"
+                                         Maximum="{Binding Maximum}"
+                                         Increment="1"
+                                         FormatString="0"
+                                         ParsingNumberStyle="Integer"
+                                         AutomationProperties.Name="{Binding Label}" />
+                        </DataTemplate>
+                        <DataTemplate DataType="vm:TextSettingItemViewModel">
+                          <TextBox Text="{Binding Text}"
+                                   PlaceholderText="{Binding Placeholder}"
+                                   AutomationProperties.Name="{Binding Label}">
+                            <TextBox.KeyBindings>
+                              <KeyBinding Gesture="Enter" Command="{Binding CommitCommand}" />
+                            </TextBox.KeyBindings>
+                          </TextBox>
+                        </DataTemplate>
+                        <DataTemplate DataType="vm:ChoiceSettingItemViewModel">
+                          <ComboBox ItemsSource="{Binding Options}"
+                                    SelectedItem="{Binding Selected}"
+                                    HorizontalAlignment="Stretch"
+                                    AutomationProperties.Name="{Binding Label}">
+                            <ComboBox.ItemTemplate>
+                              <DataTemplate x:DataType="vm:ChoiceOptionViewModel">
+                                <TextBlock Text="{Binding Label}" />
+                              </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                          </ComboBox>
+                        </DataTemplate>
+                      </ContentControl.DataTemplates>
+                    </ContentControl>
+
+                    <StackPanel Spacing="{DynamicResource Space.XS}" VerticalAlignment="Center">
+                      <!-- Search results name their category. -->
+                      <TextBlock Classes="Tertiary Caption"
+                                 Text="{Binding CategoryLabel}"
+                                 IsVisible="{Binding ShowsCategory}"
+                                 Margin="{DynamicResource Padding.Compact}" />
+                      <WrapPanel>
+                        <TextBlock Classes="Subtitle"
+                                   Text="{Binding Label}"
+                                   Margin="{DynamicResource Padding.Compact}"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="Wrap" />
+                        <Border Classes="Tag" ToolTip.Tip="{Binding ScopeToolTip}" Margin="{DynamicResource Padding.Compact}">
+                          <TextBlock Text="{Binding ScopeLabel}" />
+                        </Border>
+                        <Border Classes="Tag"
+                                IsVisible="{Binding ApplyModeNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                Margin="{DynamicResource Padding.Compact}">
+                          <TextBlock Text="{Binding ApplyModeNote}" />
+                        </Border>
+                      </WrapPanel>
+                      <TextBlock Classes="Secondary"
+                                 Text="{Binding Help}"
+                                 IsVisible="{Binding Help, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                 Margin="{DynamicResource Padding.Compact}"
+                                 TextWrapping="Wrap" />
+                      <TextBlock Classes="Error"
+                                 Text="{Binding Error}"
+                                 IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                 Margin="{DynamicResource Padding.Compact}"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+
+              <!-- A hand-built section, shown with the view the view locator maps to its view model. -->
+              <DataTemplate DataType="vm:CustomSettingsSectionViewModel">
+                <Border Classes="SettingRow">
+                  <StackPanel Spacing="{DynamicResource Space.S}">
+                    <TextBlock Classes="Tertiary Caption"
+                               Text="{Binding CategoryLabel}"
+                               IsVisible="{Binding ShowsCategory}"
+                               Margin="{DynamicResource Padding.Compact}" />
+                    <TextBlock Classes="Subtitle"
+                               Text="{Binding Label}"
+                               Margin="{DynamicResource Padding.Compact}"
+                               TextWrapping="Wrap" />
+                    <ContentControl Content="{Binding Content}" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.DataTemplates>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+  </DockPanel>
+</UserControl>

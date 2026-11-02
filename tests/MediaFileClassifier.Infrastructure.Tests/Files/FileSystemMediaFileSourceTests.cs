@@ -72,7 +72,8 @@ public sealed class FileSystemMediaFileSourceTests : IDisposable
 
         var stat = await source.GetStatAsync(new FileLocation(folder, "top.jpg"), TestContext.Current.CancellationToken);
 
-        Assert.Equal(new MediaFileStat("top.jpg", 3, new DateTimeOffset(lastWrite)), stat);
+        Assert.Equal(new MediaFileStat("top.jpg", 3, new DateTimeOffset(lastWrite)), stat! with { CreatedUtc = null });
+        Assert.NotNull(stat.CreatedUtc);
     }
 
     [Fact]

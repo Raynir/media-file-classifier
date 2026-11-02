@@ -4,11 +4,14 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Ui.Tests.StatusBar;
@@ -86,6 +89,8 @@ public sealed class StatusBarViewTests
             .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
             .AddSingleton<IStatusBarContributor>(segments)
+            .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
+            .AddUseCases()
             .AddUi()
             .BuildServiceProvider();
         var locator = services.GetRequiredService<ViewLocator>().Register<IndicatorViewModel, IndicatorView>();

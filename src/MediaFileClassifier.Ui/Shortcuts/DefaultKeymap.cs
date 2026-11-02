@@ -1,4 +1,5 @@
 using Avalonia.Input;
+using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 
 namespace MediaFileClassifier.Ui.Shortcuts;
@@ -20,6 +21,9 @@ public static class DefaultKeymap
         Bind(ShellCommands.ToggleDetails, PhysicalKey.Digit2, KeyModifiers.Control),
         Bind(ShellCommands.CollapseNavigation, PhysicalKey.Digit1, KeyModifiers.Control | KeyModifiers.Shift),
         Bind(ShellCommands.CollapseDetails, PhysicalKey.Digit2, KeyModifiers.Control | KeyModifiers.Shift),
+
+        // Tools (E17-S01)
+        Bind(SettingsCommands.OpenSettings, PhysicalKey.Comma, KeyModifiers.Control),
 
         // Help (E16-S01): F1, or ? on a US keyboard.
         Bind(ShortcutCommands.ShowReference, PhysicalKey.F1),

@@ -93,9 +93,15 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
     public string? Submenu { get; init; }
 
     /// <summary>
-    /// Gets the default shortcut (E16-S02), or <c>null</c>.
+    /// Gets the shortcut shown in menus, or <c>null</c>. The keymap sets it from its first binding for the
+    /// command (E16-S01); commands never declare their own.
     /// </summary>
-    public KeyGesture? Gesture { get; init; }
+    public KeyGesture? Gesture { get; private set; }
+
+    /// <summary>
+    /// Gets the shortcut as tooltips write it, e.g. <c>Ctrl+1</c>, or <c>null</c>.
+    /// </summary>
+    public string? GestureText { get; private set; }
 
     /// <summary>
     /// Gets the ID of a capability the command needs (E01-S07-T03). Without it, the command is disabled,
@@ -154,9 +160,10 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
     public string? DisabledReason { get; private set; }
 
     /// <summary>
-    /// Gets the tooltip: why the command is disabled, or else its label.
+    /// Gets the tooltip: why the command is disabled, or else its label and shortcut, e.g.
+    /// <c>Show or hide navigation panel (Ctrl+1)</c>.
     /// </summary>
-    public string ToolTip => DisabledReason ?? PlainLabel;
+    public string ToolTip => DisabledReason ?? (GestureText is null ? PlainLabel : $"{PlainLabel} ({GestureText})");
 
     /// <summary>
     /// Gets a value indicating whether the command is checked.
@@ -205,6 +212,18 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
 
     /// <inheritdoc />
     async void ICommand.Execute(object? parameter) => await ExecuteAsync();
+
+    /// <summary>
+    /// Sets the shortcut shown in menus and tooltips. Called by the keymap.
+    /// </summary>
+    /// <param name="gesture">The gesture for menus.</param>
+    /// <param name="text">The text for tooltips.</param>
+    internal void SetShortcut(KeyGesture gesture, string text)
+    {
+        Gesture = gesture;
+        GestureText = text;
+        OnPropertyChanged(string.Empty);
+    }
 
     /// <summary>
     /// Connects the command to the services its state depends on. Called by <see cref="CommandRegistry"/>.

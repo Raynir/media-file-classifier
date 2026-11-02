@@ -1,11 +1,11 @@
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Settings;
+using MediaFileClassifier.Ui.Shortcuts;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.UseCases;
@@ -67,10 +67,11 @@ public sealed class SettingsViewTests
     {
         using var services = CreateServices();
 
+        _ = services.GetRequiredService<Keymap>();
         var command = services.GetRequiredService<CommandRegistry>()[SettingsCommands.OpenSettings];
 
         Assert.Equal(CommandGroups.Tools, command.Group);
-        Assert.Equal(new KeyGesture(Key.OemComma, KeyModifiers.Control), command.Gesture);
+        Assert.Equal("Ctrl+,", command.GestureText);
         Assert.Equal("Icon.Settings", command.IconKey);
     }
 

@@ -1,4 +1,5 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 
 namespace MediaFileClassifier.Infrastructure.Abstractions.Formats;
 
@@ -7,8 +8,8 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Formats;
 /// media it holds. Adding a format means registering another handler; the import pipeline doesn't change.
 /// </summary>
 /// <remarks>
-/// A handler also owns the components that process its format, such as its <see cref="MetadataExtractor"/>. The
-/// Stories that introduce the others add them as properties: the thumbnail generator and the analysis frame provider.
+/// A handler also owns the components that process its format (D098): its <see cref="MetadataExtractor"/> and
+/// <see cref="ThumbnailGenerator"/>. The analysis frame provider is added as a property by its Story.
 /// </remarks>
 public interface IMediaFormatHandler
 {
@@ -32,6 +33,11 @@ public interface IMediaFormatHandler
     /// Gets the component that reads the format's technical metadata (E03-S03).
     /// </summary>
     IMediaMetadataExtractor MetadataExtractor { get; }
+
+    /// <summary>
+    /// Gets the component that makes the format's thumbnails (E03-S04).
+    /// </summary>
+    IThumbnailGenerator ThumbnailGenerator { get; }
 
     /// <summary>
     /// Gets the number of leading bytes <see cref="MatchesSignature"/> needs.

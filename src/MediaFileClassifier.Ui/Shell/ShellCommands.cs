@@ -46,6 +46,9 @@ public sealed class ShellCommands : ICommandContributor
     /// <summary>Command ID: hide the details panel.</summary>
     public const string DetailsHidden = "view.details-hidden";
 
+    /// <summary>Command ID: show or hide the status bar.</summary>
+    public const string ToggleStatusBar = "view.toggle-status-bar";
+
     /// <summary>Command ID: restore the default panel layout.</summary>
     public const string ResetLayout = "view.reset-layout";
 
@@ -103,6 +106,11 @@ public sealed class ShellCommands : ICommandContributor
         [
             .. AddPanelCommands(registry, layout.Navigation, 100, "Navigation", Key.D1, "Icon.PanelLeftOpen", "Icon.Menu"),
             .. AddPanelCommands(registry, layout.Details, 110, "Details", Key.D2, "Icon.PanelRightOpen", "Icon.PanelRightClose"),
+            registry.Add(new AppCommand(ToggleStatusBar, CommandGroups.View, 140, "Command_ToggleStatusBar", () => layout.IsStatusBarVisible = !layout.IsStatusBarVisible)
+            {
+                ToggleType = MenuItemToggleType.CheckBox,
+                IsCheckedRule = () => layout.IsStatusBarVisible,
+            }),
         ];
         registry.Add(new AppCommand(ResetLayout, CommandGroups.View, 150, "Command_ResetLayout", layout.Reset));
         layout.Changed += (_, _) =>

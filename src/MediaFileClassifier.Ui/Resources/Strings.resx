@@ -59,6 +59,9 @@
   <data name="Command_PanelHidden" xml:space="preserve">
     <value>_Hidden</value>
   </data>
+  <data name="Command_ToggleStatusBar" xml:space="preserve">
+    <value>Status _bar</value>
+  </data>
   <data name="Command_ResetLayout" xml:space="preserve">
     <value>_Reset layout</value>
   </data>

@@ -32,6 +32,16 @@ public sealed class LayoutStoreTests
     }
 
     [Fact]
+    public void Constructor_IgnoresASavedLayoutWithAPanelMissing()
+    {
+        settings.Save(new AppSettings { MainWindowLayout = new MainWindowLayout(new PanelLayout(true, true, 300), null!) });
+
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
+
+        Assert.True(layout.Navigation is { IsCollapsed: false, Width: 240 });
+    }
+
+    [Fact]
     public void LayoutChanges_AreSavedOnceAfterTheDelay()
     {
         using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);

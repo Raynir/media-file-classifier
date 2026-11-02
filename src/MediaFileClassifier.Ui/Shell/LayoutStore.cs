@@ -43,7 +43,8 @@ public sealed class LayoutStore : IDisposable
         this.layout = layout;
         this.logger = logger;
         timer = time.CreateTimer(_ => Flush(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-        if (settings.Current.MainWindowLayout is { } saved)
+        // A hand-edited file can leave a panel out, and JSON fills the missing parameter with null.
+        if (settings.Current.MainWindowLayout is { Navigation: not null, Details: not null } saved)
         {
             layout.Apply(saved);
         }

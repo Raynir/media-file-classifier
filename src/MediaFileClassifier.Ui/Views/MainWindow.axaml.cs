@@ -1,9 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
-using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.Shortcuts;
 
 namespace MediaFileClassifier.Ui.Views;
 
@@ -32,16 +31,13 @@ public partial class MainWindow : Window
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
     /// </summary>
     /// <param name="layoutStore">Saves and restores the layout.</param>
-    /// <param name="commands">The commands, whose shortcuts the window binds.</param>
+    /// <param name="shortcuts">Runs commands from the keymap's shortcuts (E16-S01).</param>
     /// <param name="quitGuard">Asks before closing while work is pending, and stops the jobs (D027).</param>
-    public MainWindow(LayoutStore layoutStore, CommandRegistry commands, QuitGuard quitGuard)
+    public MainWindow(LayoutStore layoutStore, ShortcutHandler shortcuts, QuitGuard quitGuard)
         : this()
     {
         this.layoutStore = layoutStore;
-        foreach (var command in commands.All.Where(command => command.Gesture is not null))
-        {
-            KeyBindings.Add(new KeyBinding { Gesture = command.Gesture!, Command = command });
-        }
+        shortcuts.Attach(this);
 
         RestorePlacement(layoutStore.PlacementFor(CurrentMonitorSetup()));
         PositionChanged += (_, _) => RememberPlacement();

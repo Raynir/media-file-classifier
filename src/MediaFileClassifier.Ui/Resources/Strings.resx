@@ -77,6 +77,30 @@
   <data name="Splitter_Details" xml:space="preserve">
     <value>Resize details panel</value>
   </data>
+  <data name="Command_KeyboardShortcuts" xml:space="preserve">
+    <value>_Keyboard shortcuts</value>
+  </data>
+  <data name="Shortcuts_Title" xml:space="preserve">
+    <value>Keyboard shortcuts</value>
+  </data>
+  <data name="Shortcuts_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Shortcuts_Scope_Global" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Shortcuts_Scope_Browser" xml:space="preserve">
+    <value>Media browser</value>
+  </data>
+  <data name="Shortcuts_Scope_Editor" xml:space="preserve">
+    <value>Metadata editor</value>
+  </data>
+  <data name="Shortcuts_Scope_Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Shortcuts_Scope_Viewer" xml:space="preserve">
+    <value>Viewer</value>
+  </data>
   <data name="Menu_Library" xml:space="preserve">
     <value>_Library</value>
   </data>

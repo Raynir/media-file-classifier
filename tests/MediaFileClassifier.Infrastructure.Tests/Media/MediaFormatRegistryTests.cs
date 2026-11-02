@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Media.Formats;
 using MediaFileClassifier.Testing.Media;
 using static MediaFileClassifier.Infrastructure.Tests.Media.FormatTestSupport;
@@ -40,7 +41,7 @@ public sealed class MediaFormatRegistryTests
     [Fact]
     public void Constructor_DuplicateFormat_Throws()
     {
-        var exception = Assert.Throws<InvalidOperationException>(() => new MediaFormatRegistry([new JpegFormatHandler(ImageExtractor()), new JpegFormatHandler(ImageExtractor())]));
+        var exception = Assert.Throws<InvalidOperationException>(() => new MediaFormatRegistry([new JpegFormatHandler(ImageExtractor(), ImageThumbnails()), new JpegFormatHandler(ImageExtractor(), ImageThumbnails())]));
 
         Assert.Contains("jpeg", exception.Message, StringComparison.Ordinal);
     }
@@ -49,7 +50,7 @@ public sealed class MediaFormatRegistryTests
     public void Constructor_SharedExtension_Throws()
     {
         var exception = Assert.Throws<InvalidOperationException>(
-            () => new MediaFormatRegistry([new JpegFormatHandler(ImageExtractor()), new FakeFormatHandler("fake", ".jpg")]));
+            () => new MediaFormatRegistry([new JpegFormatHandler(ImageExtractor(), ImageThumbnails()), new FakeFormatHandler("fake", ".jpg")]));
 
         Assert.Contains(".jpg", exception.Message, StringComparison.Ordinal);
     }
@@ -164,7 +165,7 @@ public sealed class MediaFormatRegistryTests
     public async Task DetectAsync_NewHandler_IsDetectedWithoutOtherChanges()
     {
         // Spec 1.11: a new format is one more handler.
-        var registry = new MediaFormatRegistry([new JpegFormatHandler(ImageExtractor()), new FakeFormatHandler("fake", ".fak")]);
+        var registry = new MediaFormatRegistry([new JpegFormatHandler(ImageExtractor(), ImageThumbnails()), new FakeFormatHandler("fake", ".fak")]);
 
         var detection = await registry.DetectAsync(new MemoryStream("FAKE content"u8.ToArray()), "x.fak", TestContext.Current.CancellationToken);
 
@@ -182,6 +183,8 @@ public sealed class MediaFormatRegistryTests
         public IReadOnlyList<string> Extensions => [extension];
 
         public IMediaMetadataExtractor MetadataExtractor => ImageExtractor();
+
+        public IThumbnailGenerator ThumbnailGenerator => ImageThumbnails();
 
         public int SignatureLength => 4;
 

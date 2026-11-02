@@ -209,6 +209,12 @@ public sealed partial class FolderDiscovery(
                 return;
             }
 
+            var path = ToRelativePath(file.RelativePath);
+            if (path is null)
+            {
+                return;
+            }
+
             var mediaType = await DetectAsync(file, cancellationToken).ConfigureAwait(false);
             if (mediaType is null)
             {
@@ -218,7 +224,7 @@ public sealed partial class FolderDiscovery(
             filesFound++;
             pending.Add(MediaItem.Discover(
                 folder.Id,
-                RelativePath.From(file.RelativePath),
+                path,
                 mediaType.Value,
                 file.Length,
                 file.CreatedUtc ?? file.LastModifiedUtc,
@@ -233,6 +239,21 @@ public sealed partial class FolderDiscovery(
             if (pending.Count >= BatchSize)
             {
                 await FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        // A name the library can't store, such as a blank one, is skipped rather than stopping the scan.
+        private RelativePath? ToRelativePath(string relativePath)
+        {
+            try
+            {
+                return RelativePath.From(relativePath);
+            }
+            catch (ArgumentException exception)
+            {
+                unsupported++;
+                owner.LogUnsupported(folder.DisplayPath, relativePath, exception.Message);
+                return null;
             }
         }
 

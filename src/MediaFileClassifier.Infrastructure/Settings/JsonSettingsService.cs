@@ -62,11 +62,17 @@ public sealed class JsonSettingsService : ISettingsService
     /// <param name="root">The file's root object; changed in place.</param>
     internal static void Migrate(JsonObject root)
     {
-        var version = root["schemaVersion"]?.GetValueKind() == JsonValueKind.Number ? root["schemaVersion"]!.GetValue<int>() : 1;
+        // A malformed value is left for deserialization to reject, so Load treats the file as corrupt.
+        var version = root["schemaVersion"] is JsonValue schemaVersion
+            && schemaVersion.GetValueKind() == JsonValueKind.Number
+            && schemaVersion.TryGetValue<int>(out var number)
+                ? number
+                : 1;
         if (version < 2)
         {
             // Version 1 had providers.openAiCompatibleEndpoint; version 2 keeps it with the other registered settings.
-            if (root["providers"]?["openAiCompatibleEndpoint"] is JsonValue endpoint
+            if (root["providers"] is JsonObject providers
+                && providers["openAiCompatibleEndpoint"] is JsonValue endpoint
                 && endpoint.GetValueKind() == JsonValueKind.String
                 && endpoint.GetValue<string>().Length > 0)
             {

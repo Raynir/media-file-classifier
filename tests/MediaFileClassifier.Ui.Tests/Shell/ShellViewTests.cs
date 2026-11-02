@@ -5,11 +5,14 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Ui.Tests.Shell;
@@ -132,6 +135,8 @@ public sealed class ShellViewTests
             .AddSingleton<IAppPaths>(new FakeAppPaths())
             .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
+            .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
+            .AddUseCases()
             .AddUi()
             .BuildServiceProvider();
         var locator = services.GetRequiredService<ViewLocator>().Register<PlaceholderViewModel, PlaceholderView>();

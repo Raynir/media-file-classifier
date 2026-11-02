@@ -2,6 +2,7 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.Shortcuts;
 using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
@@ -37,6 +38,14 @@ public static class UiModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ShellCommands>());
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<MainMenuViewModel>();
+
+        // Shortcuts (E16-S01): one keymap, bound to physical keys.
+        services.AddSingleton<ShortcutReferenceState>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ShortcutCommands>());
+        services.AddSingleton<Keymap>();
+        services.AddSingleton<ShortcutHandler>();
+        services.AddSingleton<ShortcutReferenceViewModel>();
+        services.TryAddSingleton<IKeyboardLayout, QwertyKeyboardLayout>();
 
         // Status bar (E13-S04). Features add segments through IStatusBarContributor.
         services.AddSingleton<StatusBarViewModel>();

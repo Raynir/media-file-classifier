@@ -3,10 +3,12 @@
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
              x:Class="MediaFileClassifier.Ui.Views.ShortcutReferenceView"
-             x:DataType="sc:ShortcutReferenceViewModel">
+             x:DataType="sc:ShortcutReferenceViewModel"
+             KeyboardNavigation.TabNavigation="Cycle">
   <!--
     The shortcut reference (E16-S01-T03): a dimmed overlay over the main window with every active shortcut,
-    grouped by scope. Esc, the close button or a click on the dimmed area closes it. Provisional (D095).
+    grouped by scope. Esc, the close button or a click on the dimmed area closes it. Tab stays inside the card.
+    Provisional (D095).
   -->
   <Panel>
     <Border x:Name="Scrim" Background="{DynamicResource Brush.Scrim}" PointerPressed="OnScrimPressed" />

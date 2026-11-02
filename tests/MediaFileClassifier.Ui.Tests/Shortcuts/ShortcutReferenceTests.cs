@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -48,6 +49,23 @@ public sealed class ShortcutReferenceTests
         Dispatcher.UIThread.RunJobs();
 
         Assert.False(overlay.IsVisible);
+    });
+
+    [Fact]
+    public Task Tab_StaysInsideTheOverlay() => RunAsync((window, viewModel, _) =>
+    {
+        var overlay = window.GetVisualDescendants().OfType<ShortcutReferenceView>().Single();
+        viewModel.Shortcuts.State.IsOpen = true;
+        Dispatcher.UIThread.RunJobs();
+
+        for (var press = 0; press < 3; press++)
+        {
+            window.KeyPressQwerty(PhysicalKey.Tab, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            var focused = Assert.IsAssignableFrom<Visual>(window.FocusManager?.GetFocusedElement());
+            Assert.True(overlay.IsVisualAncestorOf(focused));
+        }
     });
 
     [Fact]

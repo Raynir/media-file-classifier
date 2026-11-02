@@ -54,4 +54,15 @@ public sealed record AppSettings
     }
 
     = SettingValues.Empty;
+
+    /// <summary>
+    /// Background processing: pool sizes, resuming, and the quit confirmation (E05-S01).
+    /// </summary>
+    public ProcessingSettings Processing
+    {
+        get;
+        init => field = value ?? new();
+    }
+
+    = new();
 }

@@ -5,8 +5,8 @@ using MediaFileClassifier.Domain.Media;
 namespace MediaFileClassifier.Domain.Jobs;
 
 /// <summary>
-/// Record of a background job, such as an import or a re-analysis. Structure only: the queue, scheduling and
-/// state transitions live in E05.
+/// Record of a background job, such as an import or a re-analysis (E05-S01). Its work is split into
+/// <see cref="WorkItem"/>s, and its state follows <see cref="ProcessingJobStateTransitions"/>.
 /// </summary>
 /// <remarks>
 /// The target is the whole library when neither <see cref="FolderId"/> nor <see cref="ItemIds"/> is set.
@@ -38,7 +38,7 @@ public sealed record ProcessingJob
     public ProcessingJobState State { get; init; } = ProcessingJobState.Queued;
 
     /// <summary>
-    /// Gets the priority. Higher runs first.
+    /// Gets the priority, a <see cref="JobPriority"/> value. Higher runs first.
     /// </summary>
     public int Priority { get; init; }
 
@@ -51,4 +51,29 @@ public sealed record ProcessingJob
     public DateTimeOffset? StartedAt { get; init; }
 
     public DateTimeOffset? FinishedAt { get; init; }
+
+    /// <summary>
+    /// Returns the job in a new state. Starting records the start time once; finishing records the finish time,
+    /// and going back to <see cref="ProcessingJobState.Queued"/> clears it.
+    /// </summary>
+    /// <param name="state">New state.</param>
+    /// <param name="now">Current time.</param>
+    /// <param name="error">Error message, when it fails.</param>
+    /// <returns>The changed job.</returns>
+    /// <exception cref="InvalidOperationException">The change isn't allowed by <see cref="ProcessingJobStateTransitions"/>.</exception>
+    public ProcessingJob ChangeState(ProcessingJobState state, DateTimeOffset now, string? error = null)
+    {
+        if (!ProcessingJobStateTransitions.IsAllowed(State, state))
+        {
+            throw new InvalidOperationException($"Processing job state can't change from {State} to {state}.");
+        }
+
+        return this with
+        {
+            State = state,
+            StartedAt = state == ProcessingJobState.Running ? StartedAt ?? now : StartedAt,
+            FinishedAt = ProcessingJobStateTransitions.IsFinished(state) ? now : null,
+            LastError = state == ProcessingJobState.Failed ? error : LastError,
+        };
+    }
 }

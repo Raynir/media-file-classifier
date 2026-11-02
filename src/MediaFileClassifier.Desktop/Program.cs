@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.DataAccess;
+using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Ui;
@@ -50,6 +51,7 @@ internal static class Program
                 .AddDesktopPlatform()
                 .AddInfrastructure()
                 .AddDataAccess()
+                .AddJobs()
                 .AddMedia()
                 .AddUseCases()
                 .AddUi()

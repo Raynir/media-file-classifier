@@ -32,7 +32,8 @@ public partial class MainWindow : Window
     /// </summary>
     /// <param name="layoutStore">Saves and restores the layout.</param>
     /// <param name="shortcuts">Runs commands from the keymap's shortcuts (E16-S01).</param>
-    public MainWindow(LayoutStore layoutStore, ShortcutHandler shortcuts)
+    /// <param name="quitGuard">Asks before closing while work is pending, and stops the jobs (D027).</param>
+    public MainWindow(LayoutStore layoutStore, ShortcutHandler shortcuts, QuitGuard quitGuard)
         : this()
     {
         this.layoutStore = layoutStore;
@@ -47,6 +48,7 @@ public partial class MainWindow : Window
             RememberPlacement();
             layoutStore.Flush();
         };
+        quitGuard.Attach(this);
     }
 
     /// <inheritdoc />

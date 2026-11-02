@@ -33,6 +33,7 @@ public static class UiModule
     {
         services.AddSingleton(new ViewLocator()
             .Register<SettingsViewModel, SettingsView>()
+            .Register<QuitConfirmationViewModel, QuitConfirmationView>())
             .Register<WelcomeViewModel, WelcomeView>()
             .Register<CreateLibraryViewModel, CreateLibraryView>());
         services.AddSingleton(Localizer.Current);
@@ -50,6 +51,7 @@ public static class UiModule
         services.AddSingleton<CommandRegistry>();
         services.AddSingleton<MainMenuViewModel>();
 
+        services.AddSingleton<QuitGuard>();
         // Settings window (E17-S01).
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<SettingsWindowPresenter>();

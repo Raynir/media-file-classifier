@@ -192,6 +192,25 @@
     <value>{0} TB</value>
     <comment>{0} is a number, formatted for the current culture.</comment>
   </data>
+  <data name="QuitConfirmation_Title" xml:space="preserve">
+    <value>Quit while processing?</value>
+  </data>
+  <data name="QuitConfirmation_Message" xml:space="preserve">
+    <value>{0} items are still processing. They will continue the next time you open this library.</value>
+    <comment>{0} is a number of work items, formatted for the current culture. Shown when it isn't 1.</comment>
+  </data>
+  <data name="QuitConfirmation_MessageOne" xml:space="preserve">
+    <value>1 item is still processing. It will continue the next time you open this library.</value>
+  </data>
+  <data name="QuitConfirmation_DontAskAgain" xml:space="preserve">
+    <value>Don't ask again</value>
+  </data>
+  <data name="QuitConfirmation_Quit" xml:space="preserve">
+    <value>Quit</value>
+  </data>
+  <data name="QuitConfirmation_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
   <data name="SettingsCategory_General" xml:space="preserve">
     <value>General</value>
   </data>

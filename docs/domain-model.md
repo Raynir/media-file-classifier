@@ -39,6 +39,8 @@ erDiagram
     COLLECTION |o..o{ COLLECTION : "parent (reserved)"
     PROCESSING_JOB }o..o| INDEXED_FOLDER : targets
     PROCESSING_JOB }o..o{ MEDIA_ITEM : targets
+    PROCESSING_JOB ||--o{ WORK_ITEM : "split into"
+    MEDIA_ITEM |o..o{ WORK_ITEM : "work for"
 
     LIBRARY {
         uuid Id PK
@@ -182,6 +184,16 @@ erDiagram
         int Priority
         int AttemptCount
     }
+    WORK_ITEM {
+        uuid Id PK
+        uuid JobId FK
+        uuid ItemId FK
+        string Stage
+        enum Pool
+        int Priority
+        enum State
+        int AttemptCount
+    }
 ```
 
 ## Entities
@@ -270,7 +282,7 @@ Extended filters (E10-S05) can use duration, camera, location and codecs, which 
 | E02 Library management | `Library`, `IndexedFolder` (add, remove, relink, offline), statuses for statistics, `Excluded` items keep user values (S10) | Backup is a file operation |
 | E03 Media ingestion | `MediaItem.Discover`, `TechnicalMetadata`, fingerprint at discovery | Thumbnails are cache files, not entities |
 | E04 Folder monitoring | `Relocate` keeps identity on move or rename, `Missing` status, folder online or offline | — |
-| E05 Background processing | `ProcessingJob` record and states | Work items and stages: E05-S01 defines the tables |
+| E05 Background processing | `ProcessingJob` and `WorkItem` (one stage for one item), their states and transitions, priorities and resource pools (E05-S01) | Pause (S05, Later) |
 | E06 AI analysis | `AnalysisRun`, `AiFieldValue`, AI tags, `Embedding` per model and keyframe, `Keyframe`, active search model | Per-frame OCR results (E06-S02) are stored as item-level OCR text for now; faces and person clusters (S10, Later) |
 | E07 Metadata management | Three layers, user origins, tag assignments and tombstones, provenance for display (S11) | Custom fields (S06) and edit history (S07) are Later and need their own tables |
 | E08 Review workflow | `ReviewStatus`, `AcceptAll`, `RejectActiveRun`, suggestion flag, previous runs for comparison (S06) | — |

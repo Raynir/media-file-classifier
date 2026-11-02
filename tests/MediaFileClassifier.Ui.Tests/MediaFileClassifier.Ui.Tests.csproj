@@ -8,6 +8,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/MediaFileClassifier.Ui/MediaFileClassifier.Ui.csproj" />
     <ProjectReference Include="../MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
+    <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure/MediaFileClassifier.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.DataAccess/MediaFileClassifier.Infrastructure.DataAccess.csproj" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Avalonia.Headless" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />

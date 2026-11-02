@@ -116,9 +116,9 @@ public sealed class AndroidApp : AvaloniaAndroidApplication<UiApp>
         {
             Services.GetRequiredService<ViewLocator>().Register<SpikeViewModel, SpikeView>();
             var layout = Services.GetRequiredService<ShellLayout>();
-            layout.IsNavigationExpanded = false;
-            layout.IsDetailsPanelOpen = false;
-            shell.CurrentPage = Services.GetRequiredService<SpikeViewModel>();
+            layout.Navigation.IsCollapsed = true;
+            layout.Details.IsVisible = false;
+            shell.Regions.Browser = Services.GetRequiredService<SpikeViewModel>();
         }
 
         StartupClock.Mark("Shell shown");

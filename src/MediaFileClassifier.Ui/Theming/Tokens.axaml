@@ -110,6 +110,8 @@
   <!-- A collapsed panel's strip: Padding.Compact across, level with Padding.Header vertically. -->
   <Thickness x:Key="Padding.Strip">4,16</Thickness>
   <Thickness x:Key="Padding.Badge">6,1</Thickness>
+  <!-- A status bar segment: Space.S across, the bar's full height. -->
+  <Thickness x:Key="Padding.StatusSegment">8,0</Thickness>
 
   <!-- Corner radii -->
   <CornerRadius x:Key="Radius.None">0</CornerRadius>
@@ -142,6 +144,8 @@
   <x:Double x:Key="Size.DetailsPanel.Collapsed">42</x:Double>
   <!-- Hit area of the panel splitters, over the 1px divider. -->
   <x:Double x:Key="Size.Splitter">6</x:Double>
+  <!-- Not in Figma: the status bar (E13-S04), as high as a small control. -->
+  <x:Double x:Key="Size.StatusBar">24</x:Double>
   <x:Double x:Key="Size.Toolbar">72</x:Double>
   <x:Double x:Key="Size.ContentHeader">60</x:Double>
   <x:Double x:Key="Size.Control">34</x:Double>

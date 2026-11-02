@@ -70,6 +70,35 @@
     <Setter Property="Background" Value="{DynamicResource Brush.Border.Control}" />
   </Style>
 
+  <!--
+    Status bar segments (E13-S04): flat buttons the bar's full height. A segment without a command isn't
+    hit-testable, so it shows no hover.
+  -->
+  <Style Selector="Button.StatusSegment">
+    <Setter Property="Height" Value="{DynamicResource Size.StatusBar}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.StatusSegment}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.None}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.StatusSegment:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.State.Hover}" />
+  </Style>
+  <Style Selector="Button.StatusSegment:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.State.Pressed}" />
+  </Style>
+  <!-- A segment without a command counts as disabled in Fluent; it should still look like plain text. -->
+  <Style Selector="Button.StatusSegment:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <Style Selector="Button.StatusSegment TextBlock">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+  </Style>
+
   <!-- Icon-only buttons, e.g. panel toggles -->
   <Style Selector="Button.Icon">
     <Setter Property="Width" Value="{DynamicResource Size.Control}" />

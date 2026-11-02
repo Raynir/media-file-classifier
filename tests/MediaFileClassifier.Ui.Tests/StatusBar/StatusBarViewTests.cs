@@ -88,6 +88,7 @@ public sealed class StatusBarViewTests
             .AddSingleton<IAppPaths>(new FakeAppPaths())
             .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
+            .AddSingleton<MediaFileClassifier.Infrastructure.Abstractions.Platform.IPlatformServices>(new FakePlatformServices())
             .AddSingleton<IStatusBarContributor>(segments)
             .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
             .AddUseCases()

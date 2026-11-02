@@ -1,4 +1,5 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -19,6 +20,9 @@ public static class DataAccessModule
     {
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<ILibraryStore, LibraryStore>();
+
+        // Library settings live in the open library (E02-S02); this replaces the "no library" storage of AddInfrastructure.
+        services.Replace(ServiceDescriptor.Singleton<ILibrarySettingValues, OpenLibrarySettingValues>());
         return services;
     }
 }

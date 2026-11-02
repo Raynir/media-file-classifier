@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
@@ -61,12 +62,15 @@ public sealed partial class SettingsViewModel : ViewModelBase
         };
         store.AvailabilityChanged += (_, _) =>
         {
-            foreach (var item in Items)
+            // Libraries open and close on background threads.
+            if (Dispatcher.UIThread.CheckAccess())
             {
-                item.Refresh();
+                OnAvailabilityChanged();
             }
-
-            NotifyContentChanged();
+            else
+            {
+                Dispatcher.UIThread.Post(OnAvailabilityChanged);
+            }
         };
         localizer.Changed += (_, _) =>
         {
@@ -222,6 +226,16 @@ public sealed partial class SettingsViewModel : ViewModelBase
         else if (!IsSearching && SelectedCategory is null)
         {
             SelectedCategory = categoryBeforeSearch ?? Categories[0];
+        }
+
+        NotifyContentChanged();
+    }
+
+    private void OnAvailabilityChanged()
+    {
+        foreach (var item in Items)
+        {
+            item.Refresh();
         }
 
         NotifyContentChanged();

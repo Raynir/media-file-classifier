@@ -120,6 +120,8 @@ public sealed class LibraryLocationsTests : IDisposable
 
         public ILibraryMaintenance Maintenance => throw new NotSupportedException();
 
+        public Task UpdateLibraryAsync(Domain.Libraries.Library library, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public ValueTask DisposeAsync()
         {
             IsDisposed = true;

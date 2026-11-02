@@ -21,6 +21,7 @@ public sealed class SettingsViewModelTests : IDisposable
     {
         services = new ServiceCollection()
             .AddSingleton<ISettingsStore>(store)
+            .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
             .AddUseCases()
             .AddUi()
             .AddSingleton(new CustomSettingsSection(SettingCategories.AiModels, "Setting_Theme", () => new FakeSectionViewModel()) { Order = 50 })
@@ -70,7 +71,7 @@ public sealed class SettingsViewModelTests : IDisposable
         Assert.Equal(SettingCategories.All, viewModel.Categories.Select(category => category.Category));
         Assert.Same(viewModel.Categories[0], viewModel.SelectedCategory);
         Assert.Equal("General", viewModel.Heading);
-        Assert.True(viewModel.IsEmpty);
+        Assert.True(viewModel.Categories.Single(category => category.Category == SettingCategories.Processing).Entries.Count == 0);
     }
 
     [Fact]

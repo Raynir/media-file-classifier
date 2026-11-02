@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Libraries.LibraryProgressWindow"
+        Title="{l:Loc MigrationProgress_Title}"
+        Width="420"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- Provisional migration progress (D095). E02-S02-T00 designs the real one. -->
+  <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.M}">
+    <TextBlock Classes="Subtitle" Text="{l:Loc MigrationProgress_Title}" />
+    <TextBlock Classes="Secondary" Text="{l:Loc MigrationProgress_Hint}" TextWrapping="Wrap" />
+    <ProgressBar IsIndeterminate="True" />
+  </StackPanel>
+</Window>

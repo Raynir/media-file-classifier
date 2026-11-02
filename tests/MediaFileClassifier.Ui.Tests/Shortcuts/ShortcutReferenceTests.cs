@@ -100,6 +100,7 @@ public sealed class ShortcutReferenceTests
             .AddSingleton<IAppPaths>(new FakeAppPaths())
             .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
+            .AddSingleton<MediaFileClassifier.Infrastructure.Abstractions.Platform.IPlatformServices>(new FakePlatformServices())
             .AddSingleton<MediaFileClassifier.Infrastructure.Abstractions.Settings.ISettingsStore>(new MediaFileClassifier.Testing.Settings.InMemorySettingsStore())
             .AddUseCases()
             .AddUi()

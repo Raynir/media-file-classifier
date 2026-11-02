@@ -15,7 +15,11 @@ internal sealed class FakeLibraryLocations : ILibraryLocations
 
     public LibraryLocationInfo Info { get; set; } = new(IsWritable: true, FreeBytes: 10L << 30, IsInsideLibrary: false, LibraryExists: false);
 
+    public HashSet<string> Missing { get; } = [];
+
     public LibraryLocationInfo Inspect(string parentDirectory, string libraryName) => Info;
+
+    public bool IsAvailable(string libraryDirectory) => !Missing.Contains(libraryDirectory);
 }
 
 /// <summary>
@@ -38,8 +42,30 @@ internal sealed class FakeLibraryStore : ILibraryStore
         return Task.FromResult<IOpenLibrary>(new FakeOpenLibrary(LibraryLayout.For(parentDirectory, name), name));
     }
 
+    public List<string> Opened { get; } = [];
+
+    public List<(string Library, string Backup)> Restored { get; } = [];
+
     public Task<IOpenLibrary> OpenAsync(string libraryDirectory, CancellationToken cancellationToken = default)
-        => throw new NotSupportedException();
+        => OpenAsync(libraryDirectory, progress: null, cancellationToken);
+
+    public Task<IOpenLibrary> OpenAsync(string libraryDirectory, IProgress<LibraryOpenStage>? progress, CancellationToken cancellationToken = default)
+    {
+        if (Failure is not null)
+        {
+            return Task.FromException<IOpenLibrary>(Failure);
+        }
+
+        Opened.Add(libraryDirectory);
+        var layout = LibraryLayout.FromDirectory(libraryDirectory);
+        return Task.FromResult<IOpenLibrary>(new FakeOpenLibrary(layout, Path.GetFileNameWithoutExtension(layout.RootDirectory)));
+    }
+
+    public Task RestoreBackupAsync(string libraryDirectory, string backupPath, CancellationToken cancellationToken = default)
+    {
+        Restored.Add((libraryDirectory, backupPath));
+        return Task.CompletedTask;
+    }
 }
 
 /// <summary>
@@ -64,6 +90,8 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
     public ILibraryMaintenance Maintenance => throw new NotSupportedException();
 
     public bool IsDisposed { get; private set; }
+
+    public Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public ValueTask DisposeAsync()
     {

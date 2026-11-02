@@ -25,7 +25,27 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
 
     /// <inheritdoc />
     public Task<IOpenLibrary> OpenAsync(string libraryDirectory, CancellationToken cancellationToken = default) =>
-        Task.Run(() => OpenCoreAsync(libraryDirectory, cancellationToken), cancellationToken);
+        OpenAsync(libraryDirectory, progress: null, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IOpenLibrary> OpenAsync(string libraryDirectory, IProgress<LibraryOpenStage>? progress, CancellationToken cancellationToken = default) =>
+        Task.Run(() => OpenCoreAsync(libraryDirectory, progress, cancellationToken), cancellationToken);
+
+    /// <inheritdoc />
+    public Task RestoreBackupAsync(string libraryDirectory, string backupPath, CancellationToken cancellationToken = default) =>
+        Task.Run(
+            () =>
+            {
+                var layout = LibraryLayout.FromDirectory(libraryDirectory);
+                using var heldLock = LibraryLock.Acquire(layout, timeProvider.GetUtcNow());
+
+                // The WAL files belong to the failed database; left behind, SQLite would replay them onto the backup.
+                File.Delete(layout.DatabasePath + "-wal");
+                File.Delete(layout.DatabasePath + "-shm");
+                File.Copy(backupPath, layout.DatabasePath, overwrite: true);
+                LogRestored(layout.RootDirectory, backupPath);
+            },
+            cancellationToken);
 
     private async Task<IOpenLibrary> CreateCoreAsync(string parentDirectory, string name, CancellationToken cancellationToken)
     {
@@ -70,7 +90,7 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
         }
     }
 
-    private async Task<IOpenLibrary> OpenCoreAsync(string libraryDirectory, CancellationToken cancellationToken)
+    private async Task<IOpenLibrary> OpenCoreAsync(string libraryDirectory, IProgress<LibraryOpenStage>? progress, CancellationToken cancellationToken)
     {
         var layout = LibraryLayout.FromDirectory(libraryDirectory);
         if (!File.Exists(layout.DatabasePath))
@@ -86,7 +106,7 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
             Library library;
             await using (var db = await connections.CreateContextAsync(tracking: false, cancellationToken).ConfigureAwait(false))
             {
-                await MigrateAsync(db, layout, cancellationToken).ConfigureAwait(false);
+                await MigrateAsync(db, layout, progress, cancellationToken).ConfigureAwait(false);
                 library = await db.Libraries.SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false)
                     ?? throw new LibraryOpenException(LibraryOpenError.NotALibrary, layout.RootDirectory);
             }
@@ -176,7 +196,7 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
         }
     }
 
-    private async Task MigrateAsync(LibraryDbContext db, LibraryLayout layout, CancellationToken cancellationToken)
+    private async Task MigrateAsync(LibraryDbContext db, LibraryLayout layout, IProgress<LibraryOpenStage>? progress, CancellationToken cancellationToken)
     {
         var applied = (await db.Database.GetAppliedMigrationsAsync(cancellationToken).ConfigureAwait(false)).ToList();
         var known = db.Database.GetMigrations().ToList();
@@ -197,11 +217,19 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
             var backupPath = Path.Combine(
                 layout.BackupsDirectory,
                 string.Create(CultureInfo.InvariantCulture, $"library-v{applied.Count}-{timeProvider.GetUtcNow():yyyyMMdd-HHmmss-fff}.db"));
+            progress?.Report(LibraryOpenStage.Migrating);
             await SqliteBackup.VacuumIntoAsync((SqliteConnection)db.Database.GetDbConnection(), backupPath, cancellationToken)
                 .ConfigureAwait(false);
             LogBackedUp(layout.RootDirectory, applied.Count, backupPath);
 
-            await db.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await db.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException and not LibraryOpenException)
+            {
+                throw new LibraryOpenException(LibraryOpenError.MigrationFailed, layout.RootDirectory, exception) { BackupPath = backupPath };
+            }
             LogMigrated(layout.RootDirectory, applied.Count, known.Count);
         }
 
@@ -223,4 +251,7 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Migrated library {Directory} from schema version {From} to {To}")]
     private partial void LogMigrated(string directory, int from, int to);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Restored library {Directory} from {BackupPath} after a failed migration")]
+    private partial void LogRestored(string directory, string backupPath);
 }

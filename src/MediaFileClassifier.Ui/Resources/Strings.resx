@@ -442,4 +442,64 @@
   <data name="LibraryOpenError_NotWritable" xml:space="preserve">
     <value>The app can't write to this library's folder. Check that the drive is connected and not read-only.</value>
   </data>
+  <data name="Command_OpenLibrary" xml:space="preserve">
+    <value>_Open library…</value>
+  </data>
+  <data name="Welcome_OpenLibrary" xml:space="preserve">
+    <value>Open library…</value>
+  </data>
+  <data name="Welcome_Recent" xml:space="preserve">
+    <value>Recent libraries</value>
+  </data>
+  <data name="Welcome_LastOpened" xml:space="preserve">
+    <value>Last opened {0}</value>
+    <comment>{0} is a date.</comment>
+  </data>
+  <data name="Welcome_Unavailable" xml:space="preserve">
+    <value>Unavailable: the folder can't be found. Is its drive connected?</value>
+  </data>
+  <data name="Welcome_RemoveRecent" xml:space="preserve">
+    <value>Remove {0} from the list</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="OpenLibrary_Pick" xml:space="preserve">
+    <value>Choose a library folder (.mfc)</value>
+  </data>
+  <data name="OpenLibrary_Failed" xml:space="preserve">
+    <value>{0} couldn't be opened. {1}</value>
+    <comment>{0} is a library name; {1} is the reason, a full sentence.</comment>
+  </data>
+  <data name="MigrationProgress_Title" xml:space="preserve">
+    <value>Updating library…</value>
+  </data>
+  <data name="MigrationProgress_Hint" xml:space="preserve">
+    <value>This library was made by an older version of the app. A backup was taken first. This can take a few minutes.</value>
+  </data>
+  <data name="MigrationFailed_Question" xml:space="preserve">
+    <value>{0} couldn't be updated to this version of the app. Restore it from the backup taken just before?</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="MigrationFailed_Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="MigrationFailed_Keep" xml:space="preserve">
+    <value>Keep as is</value>
+  </data>
+  <data name="MigrationFailed_Restored" xml:space="preserve">
+    <value>{0} couldn't be updated, so it was restored from its backup and is unchanged. Report the problem with the log files from Help → Open log folder.</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="MigrationFailed_RestoreFailed" xml:space="preserve">
+    <value>{0} couldn't be updated or restored. Its backup is in the library's backups folder.</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="LibraryOpenError_MigrationFailed" xml:space="preserve">
+    <value>It couldn't be updated to this version of the app.</value>
+  </data>
+  <data name="Setting_OpenLastLibrary" xml:space="preserve">
+    <value>Open the last library on startup</value>
+  </data>
+  <data name="Setting_OpenLastLibrary_Help" xml:space="preserve">
+    <value>When off, the app starts on the welcome screen.</value>
+  </data>
 </root>

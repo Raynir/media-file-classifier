@@ -36,4 +36,10 @@ public enum LibraryOpenError
     /// An open library needs to write its lock file and database.
     /// </summary>
     NotWritable,
+
+    /// <summary>
+    /// Updating an older library to the current schema failed. <see cref="LibraryOpenException.BackupPath"/> has the
+    /// copy taken just before, which <see cref="ILibraryStore.RestoreBackupAsync"/> can put back.
+    /// </summary>
+    MigrationFailed,
 }

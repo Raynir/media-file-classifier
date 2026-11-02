@@ -73,7 +73,7 @@ public sealed partial class FolderDiscovery(
     [LoggerMessage(
         Level = LogLevel.Information,
         Message = "Discovery in {Folder} finished: {FoldersScanned} folders, {FilesFound} media files, {ItemsRegistered} new, {Unchanged} unchanged, "
-            + "{Changed} changed, {Unsupported} unsupported, {UnreadableFiles} unreadable files, {UnreadableFolders} unreadable folders, {SkippedLinks} links skipped")]
+            + "{Changed} changed, {CloudPlaceholdersSkipped} cloud placeholders skipped, {Unsupported} unsupported, {UnreadableFiles} unreadable files, {UnreadableFolders} unreadable folders, {SkippedLinks} links skipped")]
     private partial void LogFinished(
         string folder,
         int foldersScanned,
@@ -81,6 +81,7 @@ public sealed partial class FolderDiscovery(
         int itemsRegistered,
         int unchanged,
         int changed,
+        int cloudPlaceholdersSkipped,
         int unsupported,
         int unreadableFiles,
         int unreadableFolders,
@@ -109,6 +110,7 @@ public sealed partial class FolderDiscovery(
         private int itemsRegistered;
         private int unchanged;
         private int changed;
+        private int cloudPlaceholdersSkipped;
         private int unsupported;
         private int unreadableFiles;
 
@@ -156,6 +158,7 @@ public sealed partial class FolderDiscovery(
                 itemsRegistered,
                 unchanged,
                 changed,
+                cloudPlaceholdersSkipped,
                 unsupported,
                 unreadableFiles,
                 unreadableFolders.Count,
@@ -169,6 +172,7 @@ public sealed partial class FolderDiscovery(
             ItemsRegistered = itemsRegistered,
             Unchanged = unchanged,
             Changed = changed,
+            CloudPlaceholdersSkipped = cloudPlaceholdersSkipped,
             Unsupported = unsupported,
             UnreadableFiles = unreadableFiles,
             UnreadableFolders = unreadableFolders,
@@ -195,6 +199,13 @@ public sealed partial class FolderDiscovery(
                     changed++;
                 }
 
+                return;
+            }
+
+            // Reading a placeholder downloads it, so it's skipped unless the folder includes them (E03-S02-T04).
+            if (file.IsCloudPlaceholder && !folder.Rules.IncludeCloudPlaceholders)
+            {
+                cloudPlaceholdersSkipped++;
                 return;
             }
 

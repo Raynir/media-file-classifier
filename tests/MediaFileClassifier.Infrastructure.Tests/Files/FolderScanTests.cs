@@ -66,6 +66,19 @@ public sealed class FolderScanTests : IDisposable
     }
 
     [Fact]
+    public async Task ScanAsync_FileNotStoredLocally_IsReportedAsCloudPlaceholder()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "File attributes for cloud files exist only on Windows.");
+        File.SetAttributes(Path.Combine(root, "raw", "b.jpg"), FileAttributes.Offline);
+
+        var entries = await ScanAsync(new FolderScanOptions());
+
+        var files = entries.Where(entry => entry.Kind == FolderScanEntryKind.File).ToDictionary(entry => entry.RelativePath, entry => entry.File!);
+        Assert.True(files["raw/b.jpg"].IsCloudPlaceholder);
+        Assert.False(files["top.jpg"].IsCloudPlaceholder);
+    }
+
+    [Fact]
     public async Task ScanAsync_IncludeHidden_ListsHiddenFiles()
     {
         var entries = await ScanAsync(new FolderScanOptions { IncludeHidden = true });

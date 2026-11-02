@@ -34,6 +34,12 @@ public sealed record DiscoveryResult
     public int Changed { get; init; }
 
     /// <summary>
+    /// Gets the number of new cloud placeholders that were skipped without being read, because the folder doesn't
+    /// include them.
+    /// </summary>
+    public int CloudPlaceholdersSkipped { get; init; }
+
+    /// <summary>
     /// Gets the number of files with a supported extension whose content isn't a supported format.
     /// </summary>
     public int Unsupported { get; init; }

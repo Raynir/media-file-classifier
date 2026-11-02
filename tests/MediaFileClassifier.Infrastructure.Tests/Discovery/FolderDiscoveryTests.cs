@@ -226,6 +226,34 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task DiscoverAsync_CloudPlaceholder_IsSkippedWithoutBeingRead()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "File attributes for cloud files exist only on Windows.");
+        Copy(SampleMedia.JpegWithExif, "local.jpg");
+        File.SetAttributes(Copy(SampleMedia.JpegWithExif, "online-only.jpg"), FileAttributes.Offline);
+        var folder = await AddFolderAsync(new FolderRules());
+
+        var result = await discovery.DiscoverAsync(bed.Library, folder, cancellationToken: Token);
+
+        Assert.Equal(1, result.CloudPlaceholdersSkipped);
+        Assert.Equal(1, source.Opened);
+        Assert.Equal(["local.jpg"], (await ItemsAsync(folder)).Select(item => item.Path.Value));
+    }
+
+    [Fact]
+    public async Task DiscoverAsync_FolderIncludingCloudPlaceholders_RegistersThem()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "File attributes for cloud files exist only on Windows.");
+        File.SetAttributes(Copy(SampleMedia.JpegWithExif, "online-only.jpg"), FileAttributes.Offline);
+        var folder = await AddFolderAsync(new FolderRules { IncludeCloudPlaceholders = true });
+
+        var result = await discovery.DiscoverAsync(bed.Library, folder, cancellationToken: Token);
+
+        Assert.Equal(0, result.CloudPlaceholdersSkipped);
+        Assert.Equal(["online-only.jpg"], (await ItemsAsync(folder)).Select(item => item.Path.Value));
+    }
+
+    [Fact]
     public async Task DiscoverAsync_MissingFolder_Throws()
     {
         var folder = IndexedFolder.Create(bed.Library.Library.Id, root, Path.Combine(root, "missing"), bed.Clock.Tick());

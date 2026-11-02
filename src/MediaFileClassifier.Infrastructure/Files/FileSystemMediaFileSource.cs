@@ -12,6 +12,11 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
 {
     private const int BufferSize = 81920;
 
+    // Attributes of a file whose content isn't stored locally (cloud files API): reading it recalls it from the cloud.
+    // .NET doesn't name the recall attributes, FILE_ATTRIBUTE_RECALL_ON_OPEN and FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS.
+    // They're read from the directory listing, so the file is never opened. Other platforms never set them.
+    private const FileAttributes CloudPlaceholderAttributes = FileAttributes.Offline | (FileAttributes)0x00040000 | (FileAttributes)0x00400000;
+
     private static readonly EnumerationOptions EnumerationOptions = new()
     {
         RecurseSubdirectories = true,
@@ -89,7 +94,11 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
                 var relativePath = directory.Length == 0 ? entry.Name : directory + "/" + entry.Name;
                 if (!entry.IsDirectory)
                 {
-                    yield return FolderScanEntry.ForFile(new MediaFileStat(relativePath, entry.Length, entry.LastModifiedUtc) { CreatedUtc = entry.CreatedUtc });
+                    yield return FolderScanEntry.ForFile(new MediaFileStat(relativePath, entry.Length, entry.LastModifiedUtc)
+                    {
+                        CreatedUtc = entry.CreatedUtc,
+                        IsCloudPlaceholder = (entry.Attributes & CloudPlaceholderAttributes) != 0,
+                    });
                 }
                 else if (IsLink(entry, Path.Combine(fullPath, entry.Name)))
                 {
@@ -139,6 +148,7 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
         => new(LocalFolder.GetRelativePath(folder, file.FullName), file.Length, new DateTimeOffset(file.LastWriteTimeUtc, TimeSpan.Zero))
         {
             CreatedUtc = new DateTimeOffset(file.CreationTimeUtc, TimeSpan.Zero),
+            IsCloudPlaceholder = (file.Attributes & CloudPlaceholderAttributes) != 0,
         };
 
     // Lists one folder completely, so a listing error is caught here rather than in the middle of yielding entries.

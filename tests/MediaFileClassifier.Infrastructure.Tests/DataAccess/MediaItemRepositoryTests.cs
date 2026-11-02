@@ -115,7 +115,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     {
         var folder = await bed.Library.Folders.GetAsync(bed.Folder.Id, Token);
         Assert.NotNull(folder);
-        folder.ChangeRules(new FolderRules { IncludeSubfolders = false, ExcludePatterns = ["**/.thumbnails/**"], IncludeHidden = true });
+        folder.ChangeRules(new FolderRules { IncludeSubfolders = false, ExcludePatterns = ["**/.thumbnails/**"], IncludeHidden = true, IncludeCloudPlaceholders = true });
         folder.Relink(@"E:\Photos", @"E:\Photos", bed.Clock.Tick());
         folder.MarkOffline(bed.Clock.Tick());
 
@@ -149,6 +149,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
         var rules = (FolderRules)converter.ConvertFromProvider("""{"includeSubfolders":true,"includePatterns":[],"excludePatterns":["raw"]}""")!;
 
         Assert.False(rules.IncludeHidden);
+        Assert.False(rules.IncludeCloudPlaceholders);
         Assert.Equal(["raw"], rules.ExcludePatterns);
     }
 

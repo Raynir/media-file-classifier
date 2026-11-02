@@ -12,4 +12,10 @@ public sealed record MediaFileStat(string RelativePath, long Length, DateTimeOff
     /// Gets the creation time, in UTC, or <see langword="null"/> when the platform doesn't report it.
     /// </summary>
     public DateTimeOffset? CreatedUtc { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the file is a cloud placeholder, such as a OneDrive Files On-Demand file that
+    /// is only online. Reading it would download it, so discovery skips it unless the folder allows it.
+    /// </summary>
+    public bool IsCloudPlaceholder { get; init; }
 }

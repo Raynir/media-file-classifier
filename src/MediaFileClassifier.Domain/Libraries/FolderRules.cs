@@ -31,4 +31,10 @@ public sealed record FolderRules
     /// Gets a value indicating whether hidden and system files and folders are included. They're skipped by default.
     /// </summary>
     public bool IncludeHidden { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether cloud placeholders, such as OneDrive files that are only online, are imported.
+    /// They're skipped by default, because reading one downloads it.
+    /// </summary>
+    public bool IncludeCloudPlaceholders { get; init; }
 }

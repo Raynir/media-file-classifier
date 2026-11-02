@@ -73,6 +73,23 @@ public sealed class JsonSettingsServiceTests : IDisposable
     }
 
     [Fact]
+    public void Save_ThenLoad_RoundTripsTheMainWindowLayout()
+    {
+        var layout = new MainWindowLayout(new PanelLayout(true, true, 300), new PanelLayout(false, false, 420));
+        MonitorPlacement[] placements =
+        [
+            new("0,0,2560x1440@1.5", new WindowPlacement(10, 20, 1200, 700, IsMaximized: true)),
+            new("0,0,1920x1080@1", new WindowPlacement(0, 0, 1280, 800, IsMaximized: false)),
+        ];
+
+        CreateService().Save(new AppSettings { MainWindowLayout = layout, MainWindowPlacements = placements });
+        var loaded = CreateService().Current;
+
+        Assert.Equal(layout, loaded.MainWindowLayout);
+        Assert.Equal(placements, loaded.MainWindowPlacements);
+    }
+
+    [Fact]
     public void Current_Version1File_MovesTheEndpointIntoValues()
     {
         Directory.CreateDirectory(dataDirectory);

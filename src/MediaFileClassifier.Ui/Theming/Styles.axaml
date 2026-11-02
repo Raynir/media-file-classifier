@@ -2,7 +2,8 @@
   Shared styles built only from the tokens in Tokens.axaml (E13-S06-T02). See docs/design-tokens.md.
 -->
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sh="using:MediaFileClassifier.Ui.Shell">
 
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Window}" />
@@ -57,6 +58,16 @@
   </Style>
   <Style Selector="Border.Content">
     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Content}" />
+  </Style>
+
+  <!-- Panel splitters: an invisible hit area over the panel's divider, shown on hover and keyboard focus. -->
+  <Style Selector="sh|PanelSplitter">
+    <Setter Property="Width" Value="{DynamicResource Size.Splitter}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Cursor" Value="SizeWestEast" />
+  </Style>
+  <Style Selector="sh|PanelSplitter:pointerover, sh|PanelSplitter:focus-visible">
+    <Setter Property="Background" Value="{DynamicResource Brush.Border.Control}" />
   </Style>
 
   <!-- Icon-only buttons, e.g. panel toggles -->

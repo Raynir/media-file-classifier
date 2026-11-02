@@ -32,6 +32,9 @@ public static class UiModule
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
         services.AddSingleton<ShellLayout>();
+        services.AddSingleton<ShellRegions>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<LayoutStore>();
 
         // Commands (E13-S05). Commands follow the capability flags that AddInfrastructure registers.
         services.TryAddSingleton<ICapabilityGate, CapabilityServiceGate>();

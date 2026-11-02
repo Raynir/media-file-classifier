@@ -39,10 +39,40 @@
     <value>Select an item to see its details.</value>
   </data>
   <data name="Command_ToggleNavigation" xml:space="preserve">
-    <value>Toggle _navigation panel</value>
+    <value>_Show or hide navigation panel</value>
   </data>
   <data name="Command_ToggleDetails" xml:space="preserve">
-    <value>Toggle _details panel</value>
+    <value>_Show or hide details panel</value>
+  </data>
+  <data name="Command_CollapseNavigation" xml:space="preserve">
+    <value>Collapse or e_xpand navigation panel</value>
+  </data>
+  <data name="Command_CollapseDetails" xml:space="preserve">
+    <value>Collapse or e_xpand details panel</value>
+  </data>
+  <data name="Command_PanelExpanded" xml:space="preserve">
+    <value>_Expanded</value>
+  </data>
+  <data name="Command_PanelCollapsed" xml:space="preserve">
+    <value>_Collapsed</value>
+  </data>
+  <data name="Command_PanelHidden" xml:space="preserve">
+    <value>_Hidden</value>
+  </data>
+  <data name="Command_ResetLayout" xml:space="preserve">
+    <value>_Reset layout</value>
+  </data>
+  <data name="Menu_NavigationPanel" xml:space="preserve">
+    <value>_Navigation panel</value>
+  </data>
+  <data name="Menu_DetailsPanel" xml:space="preserve">
+    <value>_Details panel</value>
+  </data>
+  <data name="Splitter_Navigation" xml:space="preserve">
+    <value>Resize navigation panel</value>
+  </data>
+  <data name="Splitter_Details" xml:space="preserve">
+    <value>Resize details panel</value>
   </data>
   <data name="Menu_Library" xml:space="preserve">
     <value>_Library</value>

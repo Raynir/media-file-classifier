@@ -15,7 +15,7 @@ namespace MediaFileClassifier.Ui.Commands;
 /// Register commands through an <see cref="ICommandContributor"/>, and bind surfaces to them by ID through
 /// <see cref="CommandRegistry"/>.
 /// </summary>
-public sealed class AppCommand : ObservableObject, ICommand
+public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
 {
     private readonly Func<Task> execute;
     private Localizer? localizer;
@@ -84,6 +84,13 @@ public sealed class AppCommand : ObservableObject, ICommand
     /// Gets the resource key of the icon in <c>Theming/Icons.axaml</c>, e.g. <c>Icon.FolderOpen</c>.
     /// </summary>
     public string? IconKey { get; init; }
+
+    /// <summary>
+    /// Gets the resource key of the submenu header that the command is listed under in the main menu, e.g.
+    /// <c>Menu_NavigationPanel</c>, or <c>null</c> to list it in its group directly. The submenu takes the
+    /// position of its first command.
+    /// </summary>
+    public string? Submenu { get; init; }
 
     /// <summary>
     /// Gets the default shortcut (E16-S02), or <c>null</c>.
@@ -186,6 +193,12 @@ public sealed class AppCommand : ObservableObject, ICommand
     /// </summary>
     /// <returns>A task that completes when the handler has finished.</returns>
     public Task ExecuteAsync() => IsEnabled ? execute() : Task.CompletedTask;
+
+    /// <inheritdoc />
+    ICommand? IMenuEntry.Command => this;
+
+    /// <inheritdoc />
+    IReadOnlyList<IMenuEntry>? IMenuEntry.Items => null;
 
     /// <inheritdoc />
     bool ICommand.CanExecute(object? parameter) => IsEnabled;

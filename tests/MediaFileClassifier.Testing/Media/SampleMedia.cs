@@ -102,5 +102,11 @@ public static class SampleMedia
     /// </summary>
     public static string NonAsciiName => Combine("фото с пробелом.jpg");
 
+    /// <summary>
+    /// Gets the folder of the media identity robustness test set (E01-S06-T06). Its <c>expected.json</c> lists every
+    /// derived file with its original and the match tier expected for it.
+    /// </summary>
+    public static string RobustnessDirectory => Combine("robustness");
+
     private static string Combine(string fileName) => Path.Combine(Directory, fileName);
 }

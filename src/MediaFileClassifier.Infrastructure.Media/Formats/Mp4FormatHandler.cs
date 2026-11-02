@@ -1,7 +1,9 @@
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Media.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Thumbnails;
 
 namespace MediaFileClassifier.Infrastructure.Media.Formats;
 
@@ -11,7 +13,8 @@ namespace MediaFileClassifier.Infrastructure.Media.Formats;
 /// relatives that share the container (QuickTime, 3GPP, HEIF) are skipped (D010).
 /// </summary>
 /// <param name="metadataExtractor">Reads the metadata.</param>
-public sealed class Mp4FormatHandler(VideoMetadataExtractor metadataExtractor) : IMediaFormatHandler
+/// <param name="thumbnailGenerator">Makes the thumbnails.</param>
+public sealed class Mp4FormatHandler(VideoMetadataExtractor metadataExtractor, ImageThumbnailer thumbnailGenerator) : IMediaFormatHandler
 {
     /// <summary>
     /// Major brands of ISO base media files that aren't MP4 video, by prefix.
@@ -45,6 +48,9 @@ public sealed class Mp4FormatHandler(VideoMetadataExtractor metadataExtractor) :
 
     /// <inheritdoc />
     public IMediaMetadataExtractor MetadataExtractor => metadataExtractor;
+
+    /// <inheritdoc />
+    public IThumbnailGenerator ThumbnailGenerator => thumbnailGenerator;
 
     /// <inheritdoc />
     public int SignatureLength => 8;

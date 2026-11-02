@@ -1,6 +1,7 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Media.Formats;
 using MediaFileClassifier.Infrastructure.Media.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Thumbnails;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -12,8 +13,8 @@ namespace MediaFileClassifier.Infrastructure.Media;
 public static class MediaModule
 {
     /// <summary>
-    /// Adds the format registry, a handler for each MVP format (D010) and the metadata extractors. A new format is
-    /// another <see cref="IMediaFormatHandler"/> registration here. Video metadata needs the capability service of
+    /// Adds the format registry, a handler for each MVP format (D010) and the metadata extractors and the thumbnail generators. A new format is
+    /// another <see cref="IMediaFormatHandler"/> registration here. Video metadata and thumbnails need the capability service of
     /// <c>AddInfrastructure</c>.
     /// </summary>
     /// <param name="services">Service collection.</param>
@@ -24,6 +25,7 @@ public static class MediaModule
         services.TryAddSingleton<ImageMetadataExtractor>();
         services.TryAddSingleton(_ => new FfprobeLocator(FfprobeLocator.GetDefaultSearchDirectories()));
         services.TryAddSingleton<VideoMetadataExtractor>();
+        services.TryAddSingleton<ImageThumbnailer>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, JpegFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, PngFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, WebPFormatHandler>());

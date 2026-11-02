@@ -28,6 +28,8 @@
     <!-- Media metadata (E03-S03). FFMpegCore calls the local ffprobe (D068). -->
     <PackageVersion Include="FFMpegCore" Version="5.5.0" />
     <PackageVersion Include="MetadataExtractor" Version="2.9.3" />
+    <!-- Thumbnails (E03-S04): the SkiaSharp that Avalonia ships; keep it in step with Avalonia.Skia. -->
+    <PackageVersion Include="SkiaSharp" Version="3.119.4" />
     <!-- Vector search spike (MFC-17): benchmarks only until D067 is settled. -->
     <PackageVersion Include="sqlite-vec" Version="0.1.7-alpha.2.1" />
     <PackageVersion Include="System.Numerics.Tensors" Version="10.0.14" />

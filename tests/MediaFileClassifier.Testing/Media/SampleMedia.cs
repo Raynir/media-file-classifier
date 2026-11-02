@@ -42,6 +42,16 @@ public static class SampleMedia
     public static string AnimatedGif => Combine("gif-animated.gif");
 
     /// <summary>
+    /// Gets a 96×96 animated GIF whose first frame is plain white.
+    /// </summary>
+    public static string GifWithBlankFirstFrame => Combine("gif-blank-first-frame.gif");
+
+    /// <summary>
+    /// Gets a 4 s video whose first 1.5 s are black.
+    /// </summary>
+    public static string BlackIntroVideo => Combine("video-black-intro.mp4");
+
+    /// <summary>
     /// Gets a looping animated WebP with 6 frames of 120 ms.
     /// </summary>
     public static string AnimatedWebP => Combine("webp-animated.webp");

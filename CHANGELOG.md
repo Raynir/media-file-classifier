@@ -7,6 +7,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Added
 
 - Main window layout: navigation, toolbar, media browser and details areas that features fill; side panels that resize with splitters, collapse to a rail or strip, and hide (`Ctrl+1`, `Ctrl+2`, `Ctrl+Shift+1`, `Ctrl+Shift+2`, View menu, Reset layout); the panel layout and the window placement for each monitor setup are saved across restarts (E13-S01).
+- Settings window (Tools → Settings…, Ctrl+,): settings registered by features, with generated controls per category, search by name, reset per category or for all, and app or library scope shown on each setting; the theme choice is now saved, and `settings.json` moves to schema version 2 (E17-S01).
 - A status bar under the main window, with segments that features add without changing it, and a View › Status bar toggle saved with the layout (E13-S04).
 - Keyboard shortcuts from one keymap, bound to physical keys so they work the same on English and Russian layouts, with focus scopes, text fields that keep their typing and editing keys, and a shortcut reference (`F1` or `?`, Help › Keyboard shortcuts) (E16-S01).
 - Supported format registry: JPEG, PNG, WebP, GIF and MP4 are detected from their content rather than their extension; GIF and WebP files are told apart as still or animated, MP4 files need a video track, and other files are skipped with a reason (E03-S01).

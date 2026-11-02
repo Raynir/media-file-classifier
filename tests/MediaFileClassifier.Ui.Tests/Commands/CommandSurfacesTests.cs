@@ -2,10 +2,13 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Ui.Tests.Commands;
@@ -23,6 +26,8 @@ public sealed class CommandSurfacesTests
             .AddSingleton<IAppPaths>(new FakeAppPaths())
             .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
+            .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
+            .AddUseCases()
             .AddUi()
             .BuildServiceProvider();
         var viewModel = services.GetRequiredService<MainWindowViewModel>();

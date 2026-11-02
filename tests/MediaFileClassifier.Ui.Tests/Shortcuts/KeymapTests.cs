@@ -4,6 +4,7 @@ using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Shortcuts;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.Theming;
+using MediaFileClassifier.Testing.Settings;
 
 namespace MediaFileClassifier.Ui.Tests.Shortcuts;
 
@@ -20,8 +21,9 @@ public sealed class KeymapTests
         var localizer = TestLocalizer.Create();
         var registry = new CommandRegistry(
             [
-                new ShellCommands(new ShellLayout(), new ThemeService(), localizer, new FakeAppPaths(), new FakeFolderLauncher()),
+                new ShellCommands(new ShellLayout(), new ThemeService(new InMemorySettingsStore()), localizer, new FakeAppPaths(), new FakeFolderLauncher()),
                 new ShortcutCommands(new ShortcutReferenceState()),
+                new Contributor(new AppCommand(MediaFileClassifier.Ui.Settings.SettingsCommands.OpenSettings, CommandGroups.Tools, 100, "Command_Settings", () => Task.CompletedTask)),
             ],
             localizer,
             new FakeCapabilityGate());

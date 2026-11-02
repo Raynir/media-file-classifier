@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.UseCases;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Shortcuts;
@@ -28,7 +29,7 @@ public sealed class ShortcutReferenceTests
 
         var group = Assert.Single(viewModel.Shortcuts.Groups);
         Assert.Equal("General", group.Name);
-        Assert.Equal(keymap.Bindings.Select(binding => binding.CommandId).Distinct().Count(), group.Rows.Count);
+        Assert.Equal(keymap.Bindings.Select(binding => binding.CommandId).Distinct().Count(id => viewModel.Commands[id].IsVisible), group.Rows.Count);
         var help = viewModel.Commands[ShortcutCommands.ShowReference];
         Assert.Contains(group.Rows, row => row.Label == help.PlainLabel && row.Keys == "F1, Shift+/");
     });
@@ -99,6 +100,8 @@ public sealed class ShortcutReferenceTests
             .AddSingleton<IAppPaths>(new FakeAppPaths())
             .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
+            .AddSingleton<MediaFileClassifier.Infrastructure.Abstractions.Settings.ISettingsStore>(new MediaFileClassifier.Testing.Settings.InMemorySettingsStore())
+            .AddUseCases()
             .AddUi()
             .BuildServiceProvider();
         var viewModel = services.GetRequiredService<MainWindowViewModel>();

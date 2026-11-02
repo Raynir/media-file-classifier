@@ -1,3 +1,4 @@
+using System.IO.Enumeration;
 using System.Runtime.CompilerServices;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 
@@ -18,6 +19,15 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
         AttributesToSkip = FileAttributes.Hidden | FileAttributes.System,
     };
 
+    // One folder at a time, skipping nothing: ScanAsync filters hidden entries itself, and reports errors.
+    private static readonly EnumerationOptions ScanOptions = new()
+    {
+        RecurseSubdirectories = false,
+        IgnoreInaccessible = false,
+        AttributesToSkip = 0,
+        ReturnSpecialDirectories = false,
+    };
+
     /// <inheritdoc />
     public async IAsyncEnumerable<MediaFileStat> EnumerateFilesAsync(
         FolderHandle folder,
@@ -34,6 +44,70 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
         {
             cancellationToken.ThrowIfCancellationRequested();
             yield return ToStat(folder, file);
+        }
+
+        await Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<FolderScanEntry> ScanAsync(
+        FolderHandle folder,
+        FolderScanOptions options,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        var root = LocalFolder.GetFullPath(folder, string.Empty);
+        if (!Directory.Exists(root))
+        {
+            throw new DirectoryNotFoundException($"The folder '{root}' doesn't exist.");
+        }
+
+        var skipped = options.IncludeHidden ? 0 : FileAttributes.Hidden | FileAttributes.System;
+        var pending = new Stack<string>();
+        pending.Push(string.Empty);
+        while (pending.Count > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var directory = pending.Pop();
+            var fullPath = directory.Length == 0 ? root : LocalFolder.GetFullPath(folder, directory);
+            var (entries, error) = ListFolder(fullPath);
+            if (entries is null)
+            {
+                yield return FolderScanEntry.ForUnreadableFolder(directory, error!);
+                continue;
+            }
+
+            var subfolders = new List<string>();
+            foreach (var entry in entries)
+            {
+                if ((entry.Attributes & skipped) != 0)
+                {
+                    continue;
+                }
+
+                var relativePath = directory.Length == 0 ? entry.Name : directory + "/" + entry.Name;
+                if (!entry.IsDirectory)
+                {
+                    yield return FolderScanEntry.ForFile(new MediaFileStat(relativePath, entry.Length, entry.LastModifiedUtc) { CreatedUtc = entry.CreatedUtc });
+                }
+                else if (IsLink(entry, Path.Combine(fullPath, entry.Name)))
+                {
+                    yield return FolderScanEntry.ForSkippedLink(relativePath);
+                }
+                else if (options.IncludeSubfolders && (options.ShouldEnterFolder?.Invoke(relativePath) ?? true))
+                {
+                    subfolders.Add(relativePath);
+                }
+            }
+
+            yield return FolderScanEntry.ForFolder(directory);
+
+            // Reversed, so subfolders are scanned in the order they were listed.
+            for (var i = subfolders.Count - 1; i >= 0; i--)
+            {
+                pending.Push(subfolders[i]);
+            }
         }
 
         await Task.CompletedTask;
@@ -62,5 +136,57 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
     }
 
     private static MediaFileStat ToStat(FolderHandle folder, FileInfo file)
-        => new(LocalFolder.GetRelativePath(folder, file.FullName), file.Length, new DateTimeOffset(file.LastWriteTimeUtc, TimeSpan.Zero));
+        => new(LocalFolder.GetRelativePath(folder, file.FullName), file.Length, new DateTimeOffset(file.LastWriteTimeUtc, TimeSpan.Zero))
+        {
+            CreatedUtc = new DateTimeOffset(file.CreationTimeUtc, TimeSpan.Zero),
+        };
+
+    // Lists one folder completely, so a listing error is caught here rather than in the middle of yielding entries.
+    // The folder may also have vanished since its parent was listed.
+    private static (List<ScannedEntry>? Entries, string? Error) ListFolder(string fullPath)
+    {
+        try
+        {
+            return ([.. new FileSystemEnumerable<ScannedEntry>(fullPath, ToScannedEntry, ScanOptions)], null);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return (null, exception.Message);
+        }
+    }
+
+    private static ScannedEntry ToScannedEntry(ref FileSystemEntry entry) => new(
+        entry.FileName.ToString(),
+        entry.IsDirectory,
+        entry.Attributes,
+        entry.IsDirectory ? 0 : entry.Length,
+        entry.CreationTimeUtc,
+        entry.LastWriteTimeUtc);
+
+    // Cloud-sync folders such as OneDrive are reparse points too, so only real links (symbolic links and junctions,
+    // which have a target) are skipped. A link that can't be read is skipped as well.
+    private static bool IsLink(ScannedEntry entry, string fullPath)
+    {
+        if ((entry.Attributes & FileAttributes.ReparsePoint) == 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            return new DirectoryInfo(fullPath).LinkTarget is not null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return true;
+        }
+    }
+
+    private sealed record ScannedEntry(
+        string Name,
+        bool IsDirectory,
+        FileAttributes Attributes,
+        long Length,
+        DateTimeOffset CreatedUtc,
+        DateTimeOffset LastModifiedUtc);
 }

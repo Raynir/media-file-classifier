@@ -6,4 +6,10 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Files;
 /// <param name="RelativePath">Path inside the folder with <c>/</c> separators.</param>
 /// <param name="Length">Size in bytes.</param>
 /// <param name="LastModifiedUtc">Last write time, in UTC.</param>
-public sealed record MediaFileStat(string RelativePath, long Length, DateTimeOffset LastModifiedUtc);
+public sealed record MediaFileStat(string RelativePath, long Length, DateTimeOffset LastModifiedUtc)
+{
+    /// <summary>
+    /// Gets the creation time, in UTC, or <see langword="null"/> when the platform doesn't report it.
+    /// </summary>
+    public DateTimeOffset? CreatedUtc { get; init; }
+}

@@ -20,6 +20,20 @@ public interface IMediaFileSource
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Scans a folder for file discovery (E03-S02). It lists one folder at a time, so memory stays flat on large trees.
+    /// Folders that can't be listed are reported and skipped, and links to folders are reported and never followed.
+    /// </summary>
+    /// <param name="folder">Granted folder.</param>
+    /// <param name="options">What to list.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The files, with paths relative to <paramref name="folder"/>, and an entry for each folder listed or skipped.</returns>
+    /// <exception cref="DirectoryNotFoundException">The folder doesn't exist.</exception>
+    IAsyncEnumerable<FolderScanEntry> ScanAsync(
+        FolderHandle folder,
+        FolderScanOptions options,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Opens a file for reading. The caller disposes the stream.
     /// </summary>
     /// <param name="file">File to open.</param>

@@ -33,7 +33,7 @@ internal sealed class FolderRulesConverter()
     : ValueConverter<FolderRules, string>(rules => ToJson(rules), json => FromJson(json))
 {
     private static string ToJson(FolderRules rules) => JsonSerializer.Serialize(
-        new FolderRulesJson(rules.IncludeSubfolders, [.. rules.IncludePatterns], [.. rules.ExcludePatterns]),
+        new FolderRulesJson(rules.IncludeSubfolders, [.. rules.IncludePatterns], [.. rules.ExcludePatterns], rules.IncludeHidden),
         DataAccessJsonContext.Default.FolderRulesJson);
 
     private static FolderRules FromJson(string json)
@@ -45,6 +45,7 @@ internal sealed class FolderRulesConverter()
             IncludeSubfolders = stored.IncludeSubfolders,
             IncludePatterns = stored.IncludePatterns,
             ExcludePatterns = stored.ExcludePatterns,
+            IncludeHidden = stored.IncludeHidden,
         };
     }
 }
@@ -124,9 +125,10 @@ internal sealed class ExtractionWarningListComparer()
 internal sealed record ExtractionWarningJson(string Code, string? Detail);
 
 /// <summary>
-/// Stored shape of <see cref="FolderRules"/>.
+/// Stored shape of <see cref="FolderRules"/>. Fields added later are optional, so folders stored before them read
+/// as the defaults.
 /// </summary>
-internal sealed record FolderRulesJson(bool IncludeSubfolders, string[] IncludePatterns, string[] ExcludePatterns);
+internal sealed record FolderRulesJson(bool IncludeSubfolders, string[] IncludePatterns, string[] ExcludePatterns, bool IncludeHidden = false);
 
 /// <summary>
 /// Stored shape of <see cref="LibrarySettings"/>.

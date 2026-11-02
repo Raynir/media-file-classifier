@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.DataAccess.Database.Conversions;
 using MediaFileClassifier.Infrastructure.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -113,7 +114,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     {
         var folder = await bed.Library.Folders.GetAsync(bed.Folder.Id, Token);
         Assert.NotNull(folder);
-        folder.ChangeRules(new FolderRules { IncludeSubfolders = false, ExcludePatterns = ["**/.thumbnails/**"] });
+        folder.ChangeRules(new FolderRules { IncludeSubfolders = false, ExcludePatterns = ["**/.thumbnails/**"], IncludeHidden = true });
         folder.Relink(@"E:\Photos", @"E:\Photos", bed.Clock.Tick());
         folder.MarkOffline(bed.Clock.Tick());
 
@@ -121,6 +122,17 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
 
         var loaded = Assert.Single(await bed.Library.Folders.GetAllAsync(Token));
         Assert.Equivalent(folder, loaded);
+    }
+
+    [Fact]
+    public void FolderRules_StoredBeforeHiddenSetting_ReadAsDefaults()
+    {
+        var converter = new FolderRulesConverter();
+
+        var rules = (FolderRules)converter.ConvertFromProvider("""{"includeSubfolders":true,"includePatterns":[],"excludePatterns":["raw"]}""")!;
+
+        Assert.False(rules.IncludeHidden);
+        Assert.Equal(["raw"], rules.ExcludePatterns);
     }
 
     [Fact]

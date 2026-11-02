@@ -69,6 +69,22 @@ public sealed class ShortcutReferenceTests
     });
 
     [Fact]
+    public Task Closing_GivesFocusBack() => RunAsync((window, _, _) =>
+    {
+        var button = window.GetVisualDescendants().OfType<Button>().First(button => button.IsEffectivelyVisible && button.Focusable);
+        button.Focus();
+
+        window.KeyPressQwerty(PhysicalKey.F1, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+        Assert.NotSame(button, window.FocusManager?.GetFocusedElement());
+
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Same(button, window.FocusManager?.GetFocusedElement());
+    });
+
+    [Fact]
     public Task HelpMenu_OpensTheOverlay() => RunAsync((window, viewModel, _) =>
     {
         var help = viewModel.Menu.Groups.Single(group => group.Group == CommandGroups.Help);

@@ -27,6 +27,15 @@ public interface IMediaItemRepository
     Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the path, size and modification time of every item in a folder, without loading the items, so discovery
+    /// can skip unchanged files (E03-S02-T03).
+    /// </summary>
+    /// <param name="folderId">The folder.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The facts, in no particular order.</returns>
+    Task<IReadOnlyList<MediaItemFileState>> GetFileStatesAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the items with a full content hash, e.g. byte-identical copies (E01-S06, E12).
     /// </summary>
     /// <param name="contentHash">The content hash.</param>

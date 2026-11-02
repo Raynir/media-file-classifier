@@ -12,6 +12,7 @@ All files are synthetic, so they hold no personal data. The larger labelled corp
 | `webp.webp` | `WebP` | 320×240 lossy WebP. |
 | `gif-static.gif` | `StaticGif` | 96×96 single-frame GIF (GIF87a). |
 | `gif-animated.gif` | `AnimatedGif` | 96×96 GIF, 8 frames of 100 ms, looping. |
+| `gif-blank-first-frame.gif` | `GifWithBlankFirstFrame` | 96×96 GIF, 6 frames of 100 ms, looping; the first frame is plain white, the others like `gif-animated.gif`. |
 | `webp-animated.webp` | `AnimatedWebP` | 96×96 animated WebP, 6 frames of 120 ms, looping. |
 | `video-short.mp4` | `ShortVideo` | 2 s, 320×240, 15 fps H.264, with a 440 Hz AAC tone. |
 | `video-hevc.mp4` | `HevcVideo` | 1 s, 160×120, 10 fps HEVC (`hvc1`), no audio. |

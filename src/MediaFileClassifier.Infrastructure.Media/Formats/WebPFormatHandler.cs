@@ -12,7 +12,7 @@ namespace MediaFileClassifier.Infrastructure.Media.Formats;
 /// </summary>
 /// <param name="metadataExtractor">Reads the metadata.</param>
 /// <param name="thumbnailGenerator">Makes the thumbnails.</param>
-public sealed class WebPFormatHandler(ImageMetadataExtractor metadataExtractor, ImageThumbnailer thumbnailGenerator) : IMediaFormatHandler
+public sealed class WebPFormatHandler(ImageMetadataExtractor metadataExtractor, AnimatedImageThumbnailer thumbnailGenerator) : IMediaFormatHandler
 {
     /// <inheritdoc />
     public string FormatId => "webp";

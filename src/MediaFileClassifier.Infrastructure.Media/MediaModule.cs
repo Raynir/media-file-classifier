@@ -26,6 +26,7 @@ public static class MediaModule
         services.TryAddSingleton(_ => new FfprobeLocator(FfprobeLocator.GetDefaultSearchDirectories()));
         services.TryAddSingleton<VideoMetadataExtractor>();
         services.TryAddSingleton<ImageThumbnailer>();
+        services.TryAddSingleton<AnimatedImageThumbnailer>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, JpegFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, PngFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, WebPFormatHandler>());

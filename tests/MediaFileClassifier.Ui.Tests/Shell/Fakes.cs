@@ -11,8 +11,15 @@ internal sealed class FakeSettingsService : ISettingsService
 
     public int SaveCount { get; private set; }
 
+    public Exception? SaveError { get; set; }
+
     public void Save(AppSettings settings)
     {
+        if (SaveError is not null)
+        {
+            throw SaveError;
+        }
+
         Current = settings;
         SaveCount++;
     }

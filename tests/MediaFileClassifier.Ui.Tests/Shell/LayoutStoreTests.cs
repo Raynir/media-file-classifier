@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Ui.Shell;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Ui.Tests.Shell;
 
@@ -23,7 +24,7 @@ public sealed class LayoutStoreTests
             MainWindowLayout = new MainWindowLayout(new PanelLayout(true, true, 300), new PanelLayout(false, false, 400)),
         });
 
-        using var store = new LayoutStore(settings, layout, time);
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
 
         Assert.True(layout.Navigation is { IsCollapsed: true, Width: 300 });
         Assert.True(layout.Details is { IsVisible: false, Width: 400 });
@@ -33,22 +34,32 @@ public sealed class LayoutStoreTests
     [Fact]
     public void StatusBarVisibility_IsSavedAndRestored()
     {
-        using (var store = new LayoutStore(settings, layout, time))
+        using (var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance))
         {
             layout.IsStatusBarVisible = false;
             store.Flush();
         }
 
         var restored = new ShellLayout();
-        using var again = new LayoutStore(settings, restored, time);
+        using var again = new LayoutStore(settings, restored, time, NullLogger<LayoutStore>.Instance);
 
         Assert.False(restored.IsStatusBarVisible);
     }
 
     [Fact]
+    public void Constructor_IgnoresASavedLayoutWithAPanelMissing()
+    {
+        settings.Save(new AppSettings { MainWindowLayout = new MainWindowLayout(new PanelLayout(true, true, 300), null!) });
+
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
+
+        Assert.True(layout.Navigation is { IsCollapsed: false, Width: 240 });
+    }
+
+    [Fact]
     public void LayoutChanges_AreSavedOnceAfterTheDelay()
     {
-        using var store = new LayoutStore(settings, layout, time);
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
 
         layout.Navigation.ResizeTo(250, double.PositiveInfinity);
         time.Advance(LayoutStore.SaveDelay / 2);
@@ -66,7 +77,7 @@ public sealed class LayoutStoreTests
     [Fact]
     public void Flush_SavesAtOnceAndOnlyWhenSomethingChanged()
     {
-        using var store = new LayoutStore(settings, layout, time);
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
 
         store.Flush();
         Assert.Equal(0, settings.SaveCount);
@@ -80,10 +91,28 @@ public sealed class LayoutStoreTests
     }
 
     [Fact]
+    public void FailedSave_IsRetriedWithTheNextOne()
+    {
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
+        settings.SaveError = new IOException("The file is locked.");
+
+        layout.Details.IsVisible = false;
+        time.Advance(LayoutStore.SaveDelay);
+
+        Assert.Equal(0, settings.SaveCount);
+
+        settings.SaveError = null;
+        store.Flush();
+
+        Assert.Equal(1, settings.SaveCount);
+        Assert.False(settings.Current.MainWindowLayout!.Details.IsVisible);
+    }
+
+    [Fact]
     public void Save_KeepsTheOtherSettings()
     {
         settings.Save(new AppSettings { LastLibraryPath = @"D:\Media" });
-        using var store = new LayoutStore(settings, layout, time);
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
 
         layout.Reset();
         layout.Details.Collapse();
@@ -95,7 +124,7 @@ public sealed class LayoutStoreTests
     [Fact]
     public void Placement_IsKeptPerMonitorSetup()
     {
-        using var store = new LayoutStore(settings, layout, time);
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
 
         store.RememberPlacement("laptop", Laptop);
         store.Flush();
@@ -110,7 +139,7 @@ public sealed class LayoutStoreTests
     [Fact]
     public void Placement_OnAnUnknownSetup_FallsBackToTheLastOne()
     {
-        using var store = new LayoutStore(settings, layout, time);
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
         Assert.Null(store.PlacementFor("laptop"));
 
         store.RememberPlacement("laptop", Laptop);
@@ -123,7 +152,7 @@ public sealed class LayoutStoreTests
     [Fact]
     public void Placement_KeepsTheMostRecentSetupsOnly()
     {
-        using var store = new LayoutStore(settings, layout, time);
+        using var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance);
 
         for (var setup = 0; setup < LayoutStore.MaxMonitorSetups + 2; setup++)
         {

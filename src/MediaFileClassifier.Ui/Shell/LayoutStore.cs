@@ -1,4 +1,5 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Ui.Shell;
 
@@ -7,6 +8,7 @@ namespace MediaFileClassifier.Ui.Shell;
 /// same on every monitor setup; the window placement is kept for each of the last
 /// <see cref="MaxMonitorSetups"/> monitor setups. Changes are saved <see cref="SaveDelay"/> after the last one,
 /// and at once by <see cref="Flush"/> when the window closes, so a crash loses at most that last second.
+/// A save that fails, e.g. while another program locks the settings file, is logged and retried with the next one.
 /// </summary>
 public sealed class LayoutStore : IDisposable
 {
@@ -23,6 +25,7 @@ public sealed class LayoutStore : IDisposable
     private readonly ISettingsService settings;
     private readonly ShellLayout layout;
     private readonly ITimer timer;
+    private readonly ILogger<LayoutStore> logger;
     private readonly Lock syncRoot = new();
     private MainWindowLayout? pendingLayout;
     private MonitorPlacement? pendingPlacement;
@@ -33,10 +36,12 @@ public sealed class LayoutStore : IDisposable
     /// <param name="settings">App settings.</param>
     /// <param name="layout">The panel layout to restore and watch.</param>
     /// <param name="time">Clock for the save delay.</param>
-    public LayoutStore(ISettingsService settings, ShellLayout layout, TimeProvider time)
+    /// <param name="logger">Logs failed saves.</param>
+    public LayoutStore(ISettingsService settings, ShellLayout layout, TimeProvider time, ILogger<LayoutStore> logger)
     {
         this.settings = settings;
         this.layout = layout;
+        this.logger = logger;
         timer = time.CreateTimer(_ => Flush(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         if (settings.Current.MainWindowLayout is { } saved)
         {
@@ -100,7 +105,17 @@ public sealed class LayoutStore : IDisposable
                 };
             }
 
-            settings.Save(updated);
+            try
+            {
+                settings.Save(updated);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Keep the pending changes for the next save. The timer thread must not throw: it would end the app.
+                logger.LogWarning(ex, "Couldn't save the main window layout, will retry with the next change");
+                return;
+            }
+
             pendingLayout = null;
             pendingPlacement = null;
         }

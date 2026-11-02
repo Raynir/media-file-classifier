@@ -22,6 +22,8 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
     /// Limits generations running at once to half the cores, so imports leave the UI and other work room until the
     /// job system (E05) schedules them.
     /// </summary>
+    private static readonly TimeSpan FileTimeResolution = TimeSpan.FromSeconds(2);
+
     private readonly SemaphoreSlim gate = new(MaxConcurrency, MaxConcurrency);
 
     /// <summary>
@@ -65,8 +67,10 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
                 return new(IsStored: false, thumbnails.Warnings);
             }
 
-            // Stamped no earlier than the item's file, so a file time in the future doesn't leave the thumbnail stale.
-            var stamp = Max(timeProvider.GetUtcNow(), content.LastModifiedUtc).UtcDateTime;
+            // Stamped no earlier than the item's file, so a file time in the future doesn't leave the thumbnail stale. A
+            // future time gets a margin, since FAT volumes round file times to 2 seconds.
+            var now = timeProvider.GetUtcNow();
+            var stamp = (content.LastModifiedUtc > now ? content.LastModifiedUtc + FileTimeResolution : now).UtcDateTime;
             foreach (var (size, image) in thumbnails.Images)
             {
                 await WriteAsync(library.GetThumbnailPath(content.ItemId, size), image, stamp, cancellationToken).ConfigureAwait(false);
@@ -74,7 +78,7 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
 
             return new(IsStored: true, thumbnails.Warnings);
         }
-        catch (IOException ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             LogWriteFailed(logger, content.ItemId.Value, ex);
             Invalidate(library, content.ItemId);
@@ -107,8 +111,6 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
 
     /// <inheritdoc />
     public void Dispose() => gate.Dispose();
-
-    private static DateTimeOffset Max(DateTimeOffset first, DateTimeOffset second) => first >= second ? first : second;
 
     /// <summary>
     /// Writes a thumbnail through a temporary file, so a reader never sees half a file.

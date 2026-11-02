@@ -31,7 +31,8 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 - **Sharding:** there's one level of 256 folders, named by the last two hex digits of the item ID (`LibraryLayout.GetThumbnailPath`). That's about 400 files per folder at 100k items.
   - The tail of a UUIDv7 is random, so the files spread evenly.
   - Its head is a timestamp and would cluster.
-- **Keyed by item:** deleting or regenerating an item's thumbnail touches only its own file. Duplicates get separate thumbnails.
+- **Keyed by item:** deleting or regenerating an item's thumbnail touches only its own files. Duplicates get separate thumbnails.
+- **Two sizes:** each item has `<item-id>-256.webp` and `<item-id>-512.webp`, WebP at quality 80, 256 and 512 pixels on the longest edge, never upscaled (E03-S04). `IThumbnailCache` finds, writes and deletes them; see `docs/thumbnails.md`.
 
 ### Lock file (D077)
 

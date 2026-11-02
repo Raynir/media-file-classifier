@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Input;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Ui.Commands;
@@ -45,6 +44,9 @@ public sealed class ShellCommands : ICommandContributor
 
     /// <summary>Command ID: hide the details panel.</summary>
     public const string DetailsHidden = "view.details-hidden";
+
+    /// <summary>Command ID: show or hide the status bar.</summary>
+    public const string ToggleStatusBar = "view.toggle-status-bar";
 
     /// <summary>Command ID: restore the default panel layout.</summary>
     public const string ResetLayout = "view.reset-layout";
@@ -101,8 +103,13 @@ public sealed class ShellCommands : ICommandContributor
 
         AppCommand[] layoutCommands =
         [
-            .. AddPanelCommands(registry, layout.Navigation, 100, "Navigation", Key.D1, "Icon.PanelLeftOpen", "Icon.Menu"),
-            .. AddPanelCommands(registry, layout.Details, 110, "Details", Key.D2, "Icon.PanelRightOpen", "Icon.PanelRightClose"),
+            .. AddPanelCommands(registry, layout.Navigation, 100, "Navigation", "Icon.PanelLeftOpen", "Icon.Menu"),
+            .. AddPanelCommands(registry, layout.Details, 110, "Details", "Icon.PanelRightOpen", "Icon.PanelRightClose"),
+            registry.Add(new AppCommand(ToggleStatusBar, CommandGroups.View, 140, "Command_ToggleStatusBar", () => layout.IsStatusBarVisible = !layout.IsStatusBarVisible)
+            {
+                ToggleType = MenuItemToggleType.CheckBox,
+                IsCheckedRule = () => layout.IsStatusBarVisible,
+            }),
         ];
         registry.Add(new AppCommand(ResetLayout, CommandGroups.View, 150, "Command_ResetLayout", layout.Reset));
         layout.Changed += (_, _) =>
@@ -150,11 +157,11 @@ public sealed class ShellCommands : ICommandContributor
         }
     }
 
-    // Each side panel gets: show or hide (Ctrl+N), collapse or expand (Ctrl+Shift+N), and a choice of
-    // Expanded, Collapsed and Hidden, all in the panel's View submenu. IDs and keys follow the panel's name,
+    // Each side panel gets: show or hide, collapse or expand, and a choice of Expanded, Collapsed and Hidden,
+    // all in the panel's View submenu. Their shortcuts are in DefaultKeymap. IDs and keys follow the panel's name,
     // e.g. view.toggle-navigation, Command_ToggleNavigation and Menu_NavigationPanel.
     private static AppCommand[] AddPanelCommands(
-        CommandRegistry registry, SidePanel panel, int order, string name, Key key, string toggleIcon, string collapseIcon)
+        CommandRegistry registry, SidePanel panel, int order, string name, string toggleIcon, string collapseIcon)
     {
         var id = name.ToLowerInvariant();
         var submenu = $"Menu_{name}Panel";
@@ -176,13 +183,11 @@ public sealed class ShellCommands : ICommandContributor
             {
                 Submenu = submenu,
                 IconKey = toggleIcon,
-                Gesture = new KeyGesture(key, KeyModifiers.Control),
             }),
             registry.Add(new AppCommand($"view.collapse-{id}", CommandGroups.View, order + 6, $"Command_Collapse{name}", panel.ToggleCollapsed)
             {
                 Submenu = submenu,
                 IconKey = collapseIcon,
-                Gesture = new KeyGesture(key, KeyModifiers.Control | KeyModifiers.Shift),
             }),
         ];
     }

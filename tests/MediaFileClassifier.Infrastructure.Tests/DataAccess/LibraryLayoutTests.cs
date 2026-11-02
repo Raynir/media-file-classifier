@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 
 namespace MediaFileClassifier.Infrastructure.Tests.DataAccess;
 
@@ -33,9 +34,9 @@ public sealed class LibraryLayoutTests
         var layout = LibraryLayout.For(@"D:\Media", "Family");
         var id = new Id<MediaItem>(Guid.Parse("019a3b2c-0000-7000-8000-0000000000a7"));
 
-        var path = layout.GetThumbnailPath(id, ".webp");
+        var path = layout.GetThumbnailPath(id, ThumbnailSize.Small);
 
-        Assert.Equal(@"D:\Media\Family.mfc\thumbnails\a7\019a3b2c-0000-7000-8000-0000000000a7.webp", path);
+        Assert.Equal(@"D:\Media\Family.mfc\thumbnails\a7\019a3b2c-0000-7000-8000-0000000000a7-256.webp", path);
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public sealed class LibraryLayoutTests
         var layout = LibraryLayout.For(@"D:\Media", "Family");
 
         var shards = Enumerable.Range(0, 2000)
-            .Select(_ => Path.GetFileName(Path.GetDirectoryName(layout.GetThumbnailPath(Id<MediaItem>.New(), "webp"))))
+            .Select(_ => Path.GetFileName(Path.GetDirectoryName(layout.GetThumbnailPath(Id<MediaItem>.New(), ThumbnailSize.Large))))
             .Distinct()
             .Count();
 

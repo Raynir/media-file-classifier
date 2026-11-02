@@ -37,6 +37,16 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItemFileState>> GetFileStatesAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<MediaItemFileState>>(
+            async (db, token) => await db.MediaItems
+                .Where(item => item.FolderId == folderId)
+                .Select(item => new MediaItemFileState(item.Path, item.SizeBytes, item.FileModifiedAt))
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<MediaItem>> FindByContentHashAsync(UInt128 contentHash, CancellationToken cancellationToken = default) =>
         connections.ReadAsync<IReadOnlyList<MediaItem>>(
             async (db, token) => await db.MediaItems

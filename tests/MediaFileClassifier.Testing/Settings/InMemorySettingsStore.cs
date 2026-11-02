@@ -34,6 +34,11 @@ public sealed class InMemorySettingsStore : ISettingsStore
     /// </summary>
     public int WriteCount { get; private set; }
 
+    /// <summary>
+    /// Gets or sets an exception that writes throw, as when the settings file can't be written.
+    /// </summary>
+    public Exception? WriteFailure { get; set; }
+
     /// <inheritdoc />
     public bool IsAvailable(SettingScope scope) => scope == SettingScope.App || IsLibraryOpen;
 
@@ -62,6 +67,11 @@ public sealed class InMemorySettingsStore : ISettingsStore
         if (Equals(GetValue(setting), value))
         {
             return;
+        }
+
+        if (WriteFailure is { } failure)
+        {
+            throw failure;
         }
 
         values[setting] = value;

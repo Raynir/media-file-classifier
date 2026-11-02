@@ -199,6 +199,9 @@
   <data name="SettingError_NoLibrary" xml:space="preserve">
     <value>Open a library to change library settings.</value>
   </data>
+  <data name="SettingError_SaveFailed" xml:space="preserve">
+    <value>The setting couldn't be saved. Try again.</value>
+  </data>
   <data name="Command_Settings" xml:space="preserve">
     <value>_Settings…</value>
   </data>

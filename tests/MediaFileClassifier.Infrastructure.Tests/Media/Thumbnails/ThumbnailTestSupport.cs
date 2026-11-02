@@ -7,6 +7,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Capabilities;
 using MediaFileClassifier.Infrastructure.Media;
+using MediaFileClassifier.Infrastructure.Media.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -23,6 +24,13 @@ internal static class ThumbnailTestSupport
     /// Gets the file modification time the tests use.
     /// </summary>
     public static DateTimeOffset Modified { get; } = new(2025, 3, 4, 5, 6, 7, TimeSpan.Zero);
+
+    /// <summary>
+    /// Gets a value indicating whether FFmpeg is installed on this machine.
+    /// </summary>
+    public static bool HasFfmpeg { get; } = new FfprobeLocator(FfprobeLocator.GetDefaultSearchDirectories()) is var locator
+        && locator.FindFolder() is not null
+        && locator.FindFfmpegFolder() is not null;
 
     /// <summary>
     /// Creates the media services, with FFmpeg reported as available or not.
@@ -73,6 +81,17 @@ internal static class ThumbnailTestSupport
         var content = Content(path, withPath);
         var (format, metadata) = await InspectAsync(services, content, Path.GetFileName(path));
         return await format.Handler!.ThumbnailGenerator.GenerateAsync(content, format, metadata, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Skips the test where FFmpeg isn't installed, such as on CI.
+    /// </summary>
+    public static void RequireFfmpeg()
+    {
+        if (!HasFfmpeg)
+        {
+            Assert.Skip("FFmpeg isn't installed on this machine.");
+        }
     }
 
     /// <summary>

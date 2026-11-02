@@ -27,6 +27,7 @@ public static class MediaModule
         services.TryAddSingleton<VideoMetadataExtractor>();
         services.TryAddSingleton<ImageThumbnailer>();
         services.TryAddSingleton<AnimatedImageThumbnailer>();
+        services.TryAddSingleton<VideoThumbnailer>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, JpegFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, PngFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, WebPFormatHandler>());

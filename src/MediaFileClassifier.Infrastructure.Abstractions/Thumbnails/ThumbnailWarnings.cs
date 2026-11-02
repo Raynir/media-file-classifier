@@ -10,4 +10,9 @@ public static class ThumbnailWarnings
     /// The thumbnail couldn't be made, e.g. because the file can't be decoded. Detail: the error.
     /// </summary>
     public const string ThumbnailFailed = nameof(ThumbnailFailed);
+
+    /// <summary>
+    /// FFmpeg isn't available, so a video has no thumbnail (D068). Regenerating after FFmpeg is installed makes one.
+    /// </summary>
+    public const string ThumbnailFfmpegUnavailable = nameof(ThumbnailFfmpegUnavailable);
 }

@@ -18,6 +18,7 @@ All files are synthetic, so they hold no personal data. The larger labelled corp
 | `video-hevc.mp4` | `HevcVideo` | 1 s, 160×120, 10 fps HEVC (`hvc1`), no audio. |
 | `video-av1.mp4` | `Av1Video` | 1 s, 160×120, 10 fps AV1 (`av01`), no audio. |
 | `video-portrait.mp4` | `PortraitVideo` | 1 s, 160×90 H.264 stored landscape with a display matrix rotation of −90° (shown portrait, 90×160, like a phone held upright); container `creation_time` `2026-07-01T10:20:30Z`. |
+| `video-black-intro.mp4` | `BlackIntroVideo` | 4 s, 160×120, 10 fps H.264, no audio: 1.5 s of black, then a test pattern. The frames at 10% and 25% of the duration are black. |
 | `audio-only.mp4` | `AudioOnlyMp4` | 1 s 440 Hz AAC tone in an MP4 container, with no video track. |
 | `ocr-text.png` | `ImageWithText` | Black text on white: "Invoice 2026-10-29" and "Счёт на оплату". |
 | `corrupt.jpg` | `CorruptJpeg` | 500 bytes: the start of a valid JPEG, then junk, with no end-of-image marker. |

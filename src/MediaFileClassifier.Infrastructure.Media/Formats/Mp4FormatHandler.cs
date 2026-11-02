@@ -14,7 +14,7 @@ namespace MediaFileClassifier.Infrastructure.Media.Formats;
 /// </summary>
 /// <param name="metadataExtractor">Reads the metadata.</param>
 /// <param name="thumbnailGenerator">Makes the thumbnails.</param>
-public sealed class Mp4FormatHandler(VideoMetadataExtractor metadataExtractor, ImageThumbnailer thumbnailGenerator) : IMediaFormatHandler
+public sealed class Mp4FormatHandler(VideoMetadataExtractor metadataExtractor, VideoThumbnailer thumbnailGenerator) : IMediaFormatHandler
 {
     /// <summary>
     /// Major brands of ISO base media files that aren't MP4 video, by prefix.

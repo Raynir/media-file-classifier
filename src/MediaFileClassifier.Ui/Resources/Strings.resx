@@ -502,4 +502,28 @@
   <data name="Setting_OpenLastLibrary_Help" xml:space="preserve">
     <value>When off, the app starts on the welcome screen.</value>
   </data>
+  <data name="Browser_TileSize" xml:space="preserve">
+    <value>Thumbnail size</value>
+  </data>
+  <data name="Browser_Empty" xml:space="preserve">
+    <value>This library has no media yet. Add a folder to start indexing.</value>
+  </data>
+  <data name="Tile_Badge_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Tile_Badge_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Tile_Animated" xml:space="preserve">
+    <value>Animated</value>
+  </data>
+  <data name="Command_LargerThumbnails" xml:space="preserve">
+    <value>Larger thumbnails</value>
+  </data>
+  <data name="Command_SmallerThumbnails" xml:space="preserve">
+    <value>Smaller thumbnails</value>
+  </data>
+  <data name="Command_OpenItem" xml:space="preserve">
+    <value>Open</value>
+  </data>
 </root>

@@ -1,0 +1,156 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Browser"
+             xmlns:views="using:MediaFileClassifier.Ui.Views.Browser"
+             xmlns:controls="using:MediaFileClassifier.Ui.Controls"
+             xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Browser.ThumbnailGridView"
+             x:DataType="vm:ThumbnailGridViewModel"
+             sc:Shortcuts.Scope="browser">
+  <!--
+    Virtualised thumbnail grid (E14-S01). Provisional layout after the Figma tile (node 26:1127, D095) until the
+    E14-S01-T00 design. The size slider sits above the grid until the toolbar slot exists (E13-S03).
+  -->
+  <UserControl.Styles>
+    <Style Selector="views|ThumbnailRowPanel">
+      <Setter Property="Spacing" Value="{DynamicResource Space.L}" />
+      <Setter Property="Margin" Value="{DynamicResource Padding.TileRow}" />
+    </Style>
+    <Style Selector="Border.ThumbnailTile">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Tile}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Tile}" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="Focusable" Value="True" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Border.ThumbnailTile:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Hover}" />
+    </Style>
+    <Style Selector="Border.ThumbnailTile:focus-visible">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Focus}" />
+    </Style>
+    <Style Selector="Border.TileMarker">
+      <Setter Property="Background" Value="{DynamicResource Brush.Overlay.Background}" />
+      <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Overlay.Foreground}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Badge}" />
+      <Setter Property="Margin" Value="{DynamicResource Padding.Compact}" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="VerticalAlignment" Value="Bottom" />
+    </Style>
+    <!-- Icons in tiles are plain Paths: a PathIcon's template costs too much at hundreds of tiles. -->
+    <Style Selector="views|TileBadgeStrip > Border.StatusBadge">
+      <Setter Property="Padding" Value="{DynamicResource Padding.Badge}" />
+    </Style>
+    <Style Selector="Border.TileMarker Path, views|TileBadgeStrip Path">
+      <Setter Property="Width" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Height" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Stretch" Value="Uniform" />
+    </Style>
+    <Style Selector="Border.TileMarker Path">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Overlay.Foreground}" />
+    </Style>
+    <Style Selector="Border.StatusBadge.Pending Path">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Status.Pending.Foreground}" />
+    </Style>
+    <Style Selector="Border.StatusBadge.Error Path">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <DataTemplate x:Key="ThumbnailTileTemplate" x:DataType="vm:ThumbnailTileViewModel">
+      <Border Classes="ThumbnailTile"
+              Width="{Binding Width}"
+              AutomationProperties.Name="{Binding FileName}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Bottom"
+                      Height="32"
+                      Margin="{DynamicResource Padding.TileInfo}"
+                      VerticalAlignment="Center">
+            <TextBlock Text="{Binding FileName}"
+                       FontSize="{DynamicResource FontSize.Body}"
+                       FontWeight="{DynamicResource FontWeight.Title}"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Classes="Secondary"
+                       Text="{Binding Details}"
+                       FontSize="{DynamicResource FontSize.Caption}"
+                       TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <Panel Height="{Binding ImageHeight}">
+            <controls:MediaThumbnail Source="{Binding Thumbnail}"
+                                     MediaType="{Binding MediaType}"
+                                     IsFailed="{Binding IsThumbnailFailed}"
+                                     CornerRadius="{DynamicResource Radius.None}" />
+            <!-- Badge slot: status badges now, Favorite (E11-S01) and Offline/Missing (E14-S07) later. -->
+            <views:TileBadgeStrip Badges="{Binding Badges}"
+                                  Orientation="Horizontal"
+                                  Spacing="{DynamicResource Space.XS}"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Top"
+                                  Margin="{DynamicResource Padding.Compact}" />
+            <Border Classes="TileMarker" IsVisible="{Binding DurationText, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <TextBlock Text="{Binding DurationText}" FontSize="{DynamicResource FontSize.Caption}" />
+            </Border>
+            <Border Classes="TileMarker"
+                    IsVisible="{Binding IsAnimated}"
+                    ToolTip.Tip="{l:Loc Tile_Animated}"
+                    AutomationProperties.Name="{l:Loc Tile_Animated}">
+              <Path Data="{StaticResource Icon.Media.AnimatedImage}" />
+            </Border>
+          </Panel>
+        </DockPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Margin="{DynamicResource Padding.Header}"
+                Spacing="{DynamicResource Space.S}">
+      <PathIcon Classes="Small" Data="{StaticResource Icon.Media.Image}" VerticalAlignment="Center" />
+      <!-- The range and step are ThumbnailGridViewModel.MinTileSize, MaxTileSize and TileSizeStep. -->
+      <Slider x:Name="SizeSlider"
+              Width="160"
+              VerticalAlignment="Center"
+              Minimum="96"
+              Maximum="384"
+              SmallChange="32"
+              LargeChange="32"
+              TickFrequency="32"
+              IsSnapToTickEnabled="True"
+              Value="{Binding TileSize}"
+              ToolTip.Tip="{l:Loc Browser_TileSize}"
+              AutomationProperties.Name="{l:Loc Browser_TileSize}" />
+      <PathIcon Data="{StaticResource Icon.Media.Image}" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <Panel>
+      <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Disabled">
+        <views:ThumbnailRowsControl x:Name="RowsControl"
+                                    ItemsSource="{Binding Rows}"
+                                    TileTemplate="{StaticResource ThumbnailTileTemplate}"
+                                    Margin="{DynamicResource Padding.Grid}">
+          <views:ThumbnailRowsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <VirtualizingStackPanel />
+            </ItemsPanelTemplate>
+          </views:ThumbnailRowsControl.ItemsPanel>
+        </views:ThumbnailRowsControl>
+      </ScrollViewer>
+
+      <TextBlock Classes="Secondary"
+                 IsVisible="{Binding IsEmpty}"
+                 Text="{l:Loc Browser_Empty}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 TextWrapping="Wrap"
+                 MaxWidth="480" />
+    </Panel>
+  </DockPanel>
+</UserControl>

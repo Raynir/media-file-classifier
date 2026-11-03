@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Libraries"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Libraries.IndexedFoldersWindow"
+        x:DataType="vm:IndexedFoldersViewModel"
+        Title="{l:Loc Folders_Title}"
+        Width="720"
+        Height="620"
+        MinWidth="480"
+        MinHeight="480"
+        CanResize="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- Hosts the shared folders view on the desktop; the view locator maps the view model to IndexedFoldersView. -->
+  <ContentControl Content="{Binding}" />
+</Window>

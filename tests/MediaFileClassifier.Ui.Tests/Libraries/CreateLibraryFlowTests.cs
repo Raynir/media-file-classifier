@@ -32,6 +32,7 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
             .AddSingleton<IAppPaths>(platform.Paths)
             .AddSingleton<IPlatformServices>(platform)
             .AddSingleton<Platform.ICapabilityGate>(new Commands.FakeCapabilityGate())
+            .AddSingleton<IMediaFileSource, Infrastructure.Files.FileSystemMediaFileSource>()
             .AddInfrastructure()
             .AddDataAccess()
             .AddUseCases()

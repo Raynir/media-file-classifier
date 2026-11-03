@@ -82,6 +82,12 @@ public sealed partial class CreateLibraryViewModel : ViewModelBase
     public bool IsDetailsStep => !IsFoldersStep;
 
     /// <summary>
+    /// Gets why the last picked folder wasn't added, or <c>null</c>.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? FolderMessage { get; private set; }
+
+    /// <summary>
     /// Gets the folders added to the new library.
     /// </summary>
     public ObservableCollection<string> Folders { get; } = [];
@@ -145,10 +151,19 @@ public sealed partial class CreateLibraryViewModel : ViewModelBase
     {
         if (await platform.PickFolderAsync(localizer.Get("CreateLibrary_PickFolder")) is { } folder)
         {
-            foreach (var added in await sender.Send(new AddLibraryFoldersCommand([folder])))
+            // Overlaps are handled as in the folders dialog, without asking: the library is new and empty (E02-S03-T02).
+            var result = await sender.Send(new AddLibraryFoldersCommand([folder]));
+            foreach (var merged in result.Merged)
+            {
+                Folders.Remove(merged.DisplayPath);
+            }
+
+            foreach (var added in result.Added)
             {
                 Folders.Add(added.DisplayPath);
             }
+
+            FolderMessage = result.Refused.Count == 0 ? null : localizer.Format("Folders_InsideIndexed", folder.Id, result.Refused[0].CoveredBy.DisplayPath);
         }
     }
 

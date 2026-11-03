@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +22,9 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     /// throughput (stress test of E01-S03-T04).
     /// </summary>
     public const int BatchSize = 100;
+
+    /// <inheritdoc />
+    public event EventHandler? Changed;
 
     /// <inheritdoc />
     public Task<MediaItem?> GetAsync(Id<MediaItem> id, CancellationToken cancellationToken = default) =>
@@ -109,21 +113,73 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(int offset, int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+
+        return connections.ReadAsync<IReadOnlyList<MediaItemSummary>>(
+            async (db, token) =>
+            {
+                var rows = await (
+                    from item in db.MediaItems.OrderByDescending(item => item.Id).Skip(offset).Take(limit)
+                    join metadata in db.TechnicalMetadata on item.Id equals metadata.ItemId into found
+                    from metadata in found.DefaultIfEmpty()
+                    orderby item.Id descending
+                    select new
+                    {
+                        item.Id,
+                        item.Path,
+                        item.MediaType,
+                        item.SizeBytes,
+                        item.FileModifiedAt,
+                        item.Status,
+                        item.StatusReason,
+                        Duration = metadata == null ? null : metadata.Duration,
+                        Warnings = metadata == null ? null : metadata.Warnings,
+                    }).ToListAsync(token).ConfigureAwait(false);
+                return [.. rows.Select(row => new MediaItemSummary(
+                    row.Id,
+                    row.Path.FileName,
+                    row.Path.Extension,
+                    row.MediaType,
+                    row.SizeBytes,
+                    row.FileModifiedAt,
+                    row.Status,
+                    row.StatusReason,
+                    row.Duration,
+                    row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false))];
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<int> CountNewerAsync(Id<MediaItem> id, CancellationToken cancellationToken = default)
+    {
+        // IDs are stored as lower-case UUIDv7 text, which sorts by creation time. Id<T> has no comparison for LINQ.
+        var text = id.Value.ToString();
+        return connections.ReadAsync(
+            (db, token) => db.Database.SqlQuery<int>($"SELECT COUNT(*) AS \"Value\" FROM media_item WHERE id > {text}").SingleAsync(token),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync((db, token) => db.MediaItems.CountAsync(token), cancellationToken);
 
     /// <inheritdoc />
-    public Task AddAsync(MediaItem item, CancellationToken cancellationToken = default)
+    public async Task AddAsync(MediaItem item, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        return writer.ExecuteAsync(
+        await writer.ExecuteAsync(
             (db, token) =>
             {
                 db.MediaItems.Add(item);
                 return db.SaveChangesAsync(token);
             },
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        RaiseChanged();
     }
 
     /// <inheritdoc />
@@ -141,26 +197,38 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
                     return db.SaveChangesAsync(token);
                 },
                 cancellationToken).ConfigureAwait(false);
+            RaiseChanged();
         }
     }
 
     /// <inheritdoc />
-    public Task UpdateAsync(MediaItem item, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(MediaItem item, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        return writer.ExecuteAsync(
+        await writer.ExecuteAsync(
             (db, token) =>
             {
                 db.MediaItems.Update(item);
                 return db.SaveChangesAsync(token);
             },
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        RaiseChanged();
     }
 
     /// <inheritdoc />
-    public Task<bool> DeleteAsync(Id<MediaItem> id, CancellationToken cancellationToken = default) =>
-        writer.ExecuteAsync(
+    public async Task<bool> DeleteAsync(Id<MediaItem> id, CancellationToken cancellationToken = default)
+    {
+        var deleted = await writer.ExecuteAsync(
             async (db, token) => await db.MediaItems.Where(item => item.Id == id).ExecuteDeleteAsync(token).ConfigureAwait(false) > 0,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        if (deleted)
+        {
+            RaiseChanged();
+        }
+
+        return deleted;
+    }
+
+    private void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
 }

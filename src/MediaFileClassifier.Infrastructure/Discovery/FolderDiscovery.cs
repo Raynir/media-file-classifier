@@ -47,13 +47,14 @@ public sealed partial class FolderDiscovery(
         IOpenLibrary library,
         IndexedFolder folder,
         IProgress<DiscoveryProgress>? progress = null,
+        Func<IReadOnlyList<MediaItem>, CancellationToken, Task>? registered = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(folder);
 
         var known = await library.Items.GetFileStatesAsync(folder.Id, cancellationToken).ConfigureAwait(false);
-        var run = new Run(this, library, folder, known, progress);
+        var run = new Run(this, library, folder, known, progress, registered);
         await run.ScanAsync(cancellationToken).ConfigureAwait(false);
         return run.ToResult();
     }
@@ -95,7 +96,8 @@ public sealed partial class FolderDiscovery(
         IOpenLibrary library,
         IndexedFolder folder,
         IReadOnlyList<MediaItemFileState> known,
-        IProgress<DiscoveryProgress>? progress)
+        IProgress<DiscoveryProgress>? progress,
+        Func<IReadOnlyList<MediaItem>, CancellationToken, Task>? registered)
     {
         // Paths compare as stored: the scan reports a file's name the same way each time.
         private readonly Dictionary<string, MediaItemFileState> knownFiles = known.ToDictionary(state => state.Path.Value, StringComparer.Ordinal);
@@ -294,10 +296,15 @@ public sealed partial class FolderDiscovery(
                 return;
             }
 
-            await library.Items.AddRangeAsync([.. pending], cancellationToken).ConfigureAwait(false);
-            itemsRegistered += pending.Count;
+            MediaItem[] batch = [.. pending];
+            await library.Items.AddRangeAsync(batch, cancellationToken).ConfigureAwait(false);
+            itemsRegistered += batch.Length;
             pending.Clear();
             Report();
+            if (registered is not null)
+            {
+                await registered(batch, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         // Times are stored as Unix milliseconds (D071), so the file's time is cut to match before comparing.

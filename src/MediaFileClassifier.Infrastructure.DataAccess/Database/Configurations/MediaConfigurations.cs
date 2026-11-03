@@ -38,6 +38,12 @@ internal sealed class MediaItemConfiguration : IEntityTypeConfiguration<MediaIte
             hashes.Property(value => value.ContentHash);
             hashes.Property(value => value.PerceptualHash);
         });
+        builder.ComplexProperty(item => item.Error, error =>
+        {
+            error.Property(value => value.Stage);
+            error.Property(value => value.ExceptionType);
+            error.Property(value => value.IsPermanent);
+        });
 
         // Removing a folder's items is an explicit step (E02), never a side effect.
         builder.HasOne<IndexedFolder>().WithMany().HasForeignKey(item => item.FolderId).OnDelete(DeleteBehavior.Restrict);

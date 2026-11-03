@@ -130,6 +130,34 @@ public sealed class MediaItemTests
         Assert.Equal("Corrupt file", item.StatusReason);
     }
 
+    [Fact]
+    public void MarkFailed_KeepsTheErrorUntilTheStatusChanges()
+    {
+        var item = CreateItem();
+        var error = new MediaItemError("import.media", null, IsPermanent: true);
+
+        item.MarkFailed(error, "The file is damaged.", Start.AddMinutes(1));
+
+        Assert.Equal(MediaItemStatus.Error, item.Status);
+        Assert.Equal("The file is damaged.", item.StatusReason);
+        Assert.Equal(error, item.Error);
+
+        item.ChangeStatus(MediaItemStatus.Pending, Start.AddMinutes(2));
+
+        Assert.Null(item.Error);
+        Assert.Null(item.StatusReason);
+    }
+
+    [Fact]
+    public void MarkFailed_FromExcluded_IsRejected()
+    {
+        var item = CreateItem();
+        item.ChangeStatus(MediaItemStatus.Excluded, Start);
+
+        Assert.Throws<InvalidOperationException>(() => item.MarkFailed(new MediaItemError("import.media", null, false), "x", Start));
+        Assert.Null(item.Error);
+    }
+
     [Theory]
     [InlineData(MediaItemStatus.Missing, MediaItemStatus.Indexed, true)]
     [InlineData(MediaItemStatus.Error, MediaItemStatus.Pending, true)]

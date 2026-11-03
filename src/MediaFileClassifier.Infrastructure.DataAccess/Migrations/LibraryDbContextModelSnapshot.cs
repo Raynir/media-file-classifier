@@ -518,6 +518,22 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("status_reason");
 
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Error", "MediaFileClassifier.Domain.Media.MediaItem.Error#MediaItemError", b1 =>
+                        {
+                            b1.Property<string>("ExceptionType")
+                                .HasColumnType("TEXT")
+                                .HasColumnName("error_exception_type");
+
+                            b1.Property<bool>("IsPermanent")
+                                .HasColumnType("INTEGER")
+                                .HasColumnName("error_is_permanent");
+
+                            b1.Property<string>("Stage")
+                                .IsRequired()
+                                .HasColumnType("TEXT")
+                                .HasColumnName("error_stage");
+                        });
+
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Hashes", "MediaFileClassifier.Domain.Media.MediaItem.Hashes#FileHashes", b1 =>
                         {
                             b1.IsRequired();

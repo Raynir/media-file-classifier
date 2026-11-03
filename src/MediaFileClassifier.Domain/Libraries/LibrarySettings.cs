@@ -8,7 +8,13 @@ namespace MediaFileClassifier.Domain.Libraries;
 /// </summary>
 public sealed record LibrarySettings
 {
+    /// <summary>
+    /// The default thumbnail tile width in the media browser, in device-independent pixels.
+    /// </summary>
+    public const int DefaultThumbnailTileSize = 160;
+
     private readonly int retainedPreviousRuns = 1;
+    private readonly int thumbnailTileSize = DefaultThumbnailTileSize;
 
     /// <summary>
     /// Gets a value indicating whether new items are analyzed automatically after import (spec 1.4).
@@ -36,6 +42,20 @@ public sealed record LibrarySettings
         {
             ArgumentOutOfRangeException.ThrowIfNegative(value);
             retainedPreviousRuns = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the media browser's last thumbnail tile width, in device-independent pixels. The grid remembers it per
+    /// library, and there's no separate default setting (D050). The grid keeps it within its own range.
+    /// </summary>
+    public int ThumbnailTileSize
+    {
+        get => thumbnailTileSize;
+        init
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+            thumbnailTileSize = value;
         }
     }
 }

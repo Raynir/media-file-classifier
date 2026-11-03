@@ -68,6 +68,33 @@ public sealed class MediaItemSummaryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetIdsAsync_PagesNewestFirst_FromTheNewestGiven()
+    {
+        var items = Enumerable.Range(0, 30).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(items, Token);
+        var order = items.Select(item => item.Id.ToString()).Order(StringComparer.Ordinal).Reverse().ToList();
+
+        var page = await bed.Library.Items.GetIdsAsync(10, 5, cancellationToken: Token);
+        var upTo = await bed.Library.Items.GetIdsAsync(2, 100, Domain.Identity.Id<MediaItem>.Parse(order[20]), Token);
+
+        Assert.Equal(order.Skip(10).Take(5), page.Select(id => id.ToString()));
+        Assert.Equal(order.Skip(22), upTo.Select(id => id.ToString()));
+    }
+
+    [Fact]
+    public async Task GetExistingIdsAsync_FindsOnlyStoredItems()
+    {
+        var items = Enumerable.Range(0, 3).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(items, Token);
+        var missing = bed.NewItem(9).Id;
+
+        var existing = await bed.Library.Items.GetExistingIdsAsync([items[0].Id, items[2].Id, missing], Token);
+
+        Assert.Equal(new[] { items[0].Id, items[2].Id }.ToHashSet(), existing.ToHashSet());
+        Assert.Empty(await bed.Library.Items.GetExistingIdsAsync([], Token));
+    }
+
+    [Fact]
     public async Task CountNewerAsync_IsThePositionInNewestFirstOrder()
     {
         var items = Enumerable.Range(0, 10).Select(bed.NewItem).ToList();

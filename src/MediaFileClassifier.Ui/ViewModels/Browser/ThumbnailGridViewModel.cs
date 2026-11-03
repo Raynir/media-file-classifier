@@ -17,7 +17,7 @@ namespace MediaFileClassifier.Ui.ViewModels.Browser;
 /// The virtualised thumbnail grid of the media browser (E14-S01). Rows of tiles are virtualised by the view's
 /// panel, results are paged by <see cref="ResultPageCache"/>, thumbnails come from the thumbnail cache through
 /// <see cref="ThumbnailLoader"/>, and the items on screen without a thumbnail are boosted in the job system (D150).
-/// Use it on the UI thread.
+/// Clicks and keys change the shared <see cref="SelectionModel"/> (E14-S03). Use it on the UI thread.
 /// </summary>
 public sealed partial class ThumbnailGridViewModel : ViewModelBase
 {
@@ -56,6 +56,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     private readonly IJobSystem jobs;
     private readonly ISender sender;
     private readonly ResultPageCache pages;
+    private readonly SelectionModel selection;
     private readonly HashSet<ThumbnailRowViewModel> attached = [];
     private readonly DispatcherTimer refreshTimer;
     private readonly DispatcherTimer boostTimer;
@@ -78,7 +79,9 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <param name="opener">Opens an item.</param>
     /// <param name="jobs">The job system, for the visible-first boost.</param>
     /// <param name="sender">Sends the tile size requests.</param>
-    public ThumbnailGridViewModel(IMediaResultSource source, ThumbnailLoader loader, IItemOpener opener, IJobSystem jobs, ISender sender)
+    /// <param name="selection">The selection.</param>
+    public ThumbnailGridViewModel(
+        IMediaResultSource source, ThumbnailLoader loader, IItemOpener opener, IJobSystem jobs, ISender sender, SelectionModel selection)
     {
         this.source = source;
         this.loader = loader;
@@ -87,6 +90,9 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         this.sender = sender;
         pages = new ResultPageCache(source);
         pages.PageLoaded += (_, page) => OnPageLoaded(page);
+        this.selection = selection;
+        selection.KnownId = index => pages.Get(index)?.Id;
+        selection.Changed += (_, _) => UpdateTileStates();
         Rows = new ThumbnailRowList(CreateRow);
         refreshTimer = new DispatcherTimer { Interval = RefreshDelay };
         refreshTimer.Tick += (_, _) =>
@@ -118,6 +124,18 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// Gets the rows.
     /// </summary>
     public ThumbnailRowList Rows { get; }
+
+    /// <summary>
+    /// Gets the selection.
+    /// </summary>
+    public SelectionModel Selection => selection;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the focused tile shows its focus border: after keyboard navigation,
+    /// until the next click (E14-S03-T02).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsFocusVisible { get; set; }
 
     /// <summary>
     /// Gets the number of results.
@@ -158,12 +176,6 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// Gets the stored thumbnail size the tiles load at this tile width and screen scaling.
     /// </summary>
     public ThumbnailSize ThumbnailSize { get; private set; } = ThumbnailSize.Small;
-
-    /// <summary>
-    /// Gets or sets how to find the tile with keyboard focus, which Enter opens. The view sets it; asking when needed
-    /// stays right after the focused tile view was reused for another item.
-    /// </summary>
-    public Func<ThumbnailTileViewModel?>? FocusedTile { get; set; }
 
     /// <summary>
     /// Gets the result pages, for tests and measurements.
@@ -218,6 +230,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         boosted = [];
         pages.Invalidate(0);
         Count = 0;
+        selection.Reset(0);
         Rows.Reset(0);
     }
 
@@ -251,11 +264,91 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     [RelayCommand]
     public async Task OpenAsync(ThumbnailTileViewModel? tile)
     {
-        if ((tile ?? FocusedTile?.Invoke())?.Item is { } item)
+        if ((tile?.Item?.Id ?? selection.FocusedId) is { } id)
         {
-            await opener.OpenAsync(item.Id);
+            await opener.OpenAsync(id);
         }
     }
+
+    /// <summary>
+    /// Selects with the mouse (E14-S03-T02): a click, Ctrl+click or Shift+click on a tile.
+    /// </summary>
+    /// <param name="index">The tile's result position.</param>
+    /// <param name="gesture">What the click does.</param>
+    /// <returns>A task that completes when the selection changed.</returns>
+    public Task ClickAsync(int index, SelectionGesture gesture)
+    {
+        IsFocusVisible = false;
+        return selection.ApplyAsync(index, gesture);
+    }
+
+    /// <summary>
+    /// Moves the focus with the keyboard (E14-S03-T02), as in Windows Explorer: the focused item is selected; with
+    /// Shift the selection runs from the anchor, and with Ctrl only the focus moves (Ctrl+Shift adds the range).
+    /// The grid scrolls to keep the focused tile on screen.
+    /// </summary>
+    /// <param name="move">Where to move.</param>
+    /// <param name="extend">Whether Shift is down.</param>
+    /// <param name="keepSelection">Whether Ctrl is down.</param>
+    /// <returns>A task that completes when the selection changed.</returns>
+    public async Task MoveAsync(GridMove move, bool extend, bool keepSelection)
+    {
+        if (Count == 0)
+        {
+            return;
+        }
+
+        var current = selection.FocusIndex;
+        var page = Math.Max(1, (int)Math.Floor(viewportHeight / RowHeight)) * Columns;
+        var target = current < 0 ? 0 : move switch
+        {
+            GridMove.Left => current - 1,
+            GridMove.Right => current + 1,
+            GridMove.Up => current - Columns,
+            GridMove.Down => current + Columns,
+            GridMove.PageUp => current - page,
+            GridMove.PageDown => current + page,
+            GridMove.Home => 0,
+            _ => Count - 1,
+        };
+        if (move is GridMove.Up or GridMove.Down && (target < 0 || target >= Count))
+        {
+            // Up from the first row or down from the last stays put, except down into a shorter last row.
+            target = move == GridMove.Down && current / Columns < RowCount() - 1 ? Count - 1 : current;
+        }
+
+        target = Math.Clamp(target, 0, Count - 1);
+        IsFocusVisible = true;
+        var gesture = extend
+            ? keepSelection ? SelectionGesture.AddRange : SelectionGesture.Range
+            : keepSelection ? SelectionGesture.FocusOnly : SelectionGesture.Replace;
+        BringIntoView(target);
+        await selection.ApplyAsync(target, gesture);
+    }
+
+    /// <summary>
+    /// Selects the focused item with Space, or toggles it with Ctrl+Space.
+    /// </summary>
+    /// <param name="toggle">Whether Ctrl is down.</param>
+    /// <returns>A task that completes when the selection changed.</returns>
+    public Task SelectFocusedAsync(bool toggle)
+    {
+        IsFocusVisible = true;
+        var index = Math.Max(0, selection.FocusIndex);
+        BringIntoView(index);
+        return selection.ApplyAsync(index, toggle ? SelectionGesture.Toggle : SelectionGesture.Replace);
+    }
+
+    /// <summary>
+    /// Selects all results, without loading them (E14-S03-T01).
+    /// </summary>
+    /// <returns>A task that completes when the selection changed.</returns>
+    public Task SelectAllAsync() => selection.SelectAllAsync();
+
+    /// <summary>
+    /// Deselects everything.
+    /// </summary>
+    public void ClearSelection() => selection.Clear();
 
     /// <summary>
     /// Makes the tiles one step larger.
@@ -358,7 +451,48 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         var first = row.Index * Columns;
         for (var column = 0; column < row.Tiles.Count; column++)
         {
-            row.Tiles[column].Show(first + column, pages.Get(first + column), ThumbnailSize);
+            var tile = row.Tiles[column];
+            tile.Show(first + column, pages.Get(first + column), ThumbnailSize);
+            UpdateTileState(tile);
+        }
+    }
+
+    private void UpdateTileStates()
+    {
+        foreach (var row in attached)
+        {
+            foreach (var tile in row.Tiles)
+            {
+                UpdateTileState(tile);
+            }
+        }
+    }
+
+    private void UpdateTileState(ThumbnailTileViewModel tile)
+    {
+        tile.IsSelected = tile.Item is { } item && selection.IsSelected(item.Id);
+        tile.IsFocused = IsFocusVisible && tile.Index == selection.FocusIndex;
+    }
+
+    partial void OnIsFocusVisibleChanged(bool value) => UpdateTileStates();
+
+    private void BringIntoView(int index)
+    {
+        var top = index / Columns * RowHeight;
+        var offset = viewportOffset;
+        if (top < viewportOffset)
+        {
+            offset = top;
+        }
+        else if (top + RowHeight > viewportOffset + viewportHeight)
+        {
+            offset = Math.Max(0, top + RowHeight - viewportHeight);
+        }
+
+        if (offset != viewportOffset)
+        {
+            viewportOffset = offset;
+            ScrollRequested?.Invoke(this, offset);
         }
     }
 
@@ -483,6 +617,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         }
 
         pages.Invalidate(resetScroll ? 0 : shift);
+        var moved = count != Count || shift != 0;
         if (count != Count || resetScroll)
         {
             Count = count;
@@ -497,6 +632,17 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         }
 
         RequestVisiblePages();
+
+        // The selection keeps the items still in the results, and its focus follows its item. A refresh that only
+        // changed item states, e.g. thumbnails arriving, leaves it alone.
+        if (resetScroll)
+        {
+            selection.Reset(count);
+        }
+        else if (moved)
+        {
+            await selection.RefreshAsync(count);
+        }
     }
 
     private void Boost()

@@ -72,6 +72,18 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
     public partial IImage? Thumbnail { get; private set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the item is selected (E14-S03).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsSelected { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the tile shows the keyboard focus (E14-S03).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsFocused { get; set; }
+
+    /// <summary>
     /// Gets a value indicating whether the item's page is still loading.
     /// </summary>
     public bool IsLoading => Item is null;

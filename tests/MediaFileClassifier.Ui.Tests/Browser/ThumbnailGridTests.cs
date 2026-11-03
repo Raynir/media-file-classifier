@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Domain.Libraries;
@@ -141,17 +143,99 @@ public sealed class ThumbnailGridTests
     });
 
     [Fact]
-    public Task Open_OpensTheFocusedTilesItem() => TestApp.RunAsync(() =>
+    public Task Open_OpensTheFocusedItem() => TestApp.RunAsync(() =>
     {
         var opener = new FakeItemOpener();
         var (grid, _, source, _) = Create(Count, opener: opener);
-        var (window, view) = Show(grid);
+        var (window, _) = Show(grid);
 
-        var border = view.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("ThumbnailTile"));
-        border.Focus();
+        grid.ClickAsync(3, SelectionGesture.Replace).GetAwaiter().GetResult();
         grid.OpenAsync(null).GetAwaiter().GetResult();
 
-        Assert.Equal([source.Ids[0]], opener.Opened);
+        Assert.Equal([source.Ids[3]], opener.Opened);
+        window.Close();
+    });
+
+    [Fact]
+    public Task Keys_MoveTheFocusAndSelect_LikeExplorer() => TestApp.RunAsync(() =>
+    {
+        var (grid, _, source, _) = Create(Count);
+        var (window, view) = Show(grid);
+        var columns = grid.Columns;
+        Scroller(view).Focus();
+
+        window.KeyPressQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+        Assert.Equal((0, 1), (grid.Selection.FocusIndex, grid.Selection.Count));
+        window.KeyPressQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+        window.KeyPressQwerty(PhysicalKey.ArrowDown, RawInputModifiers.Shift);
+        Assert.Equal((1 + columns, columns + 1), (grid.Selection.FocusIndex, grid.Selection.Count));
+        window.KeyPressQwerty(PhysicalKey.ArrowRight, RawInputModifiers.Control);
+        window.KeyPressQwerty(PhysicalKey.Space, RawInputModifiers.Control);
+        Assert.Equal(columns + 2, grid.Selection.Count);
+        Settle();
+        Assert.Contains(Tiles(view), tile => tile.Index == 2 + columns && tile.IsFocused && tile.IsSelected);
+        Assert.Contains(Tiles(view), tile => tile.Index == 1 && tile.IsSelected && !tile.IsFocused);
+
+        window.KeyPressQwerty(PhysicalKey.End, RawInputModifiers.None);
+        Settle();
+        Assert.Equal((Count - 1, 1), (grid.Selection.FocusIndex, grid.Selection.Count));
+        Assert.Contains(Tiles(view), tile => tile.Index == Count - 1 && tile.IsSelected && tile.Item?.Id == source.Ids[Count - 1]);
+
+        // Ctrl+A and Esc are keymap commands (KeymapTests); here the commands themselves.
+        grid.SelectAllAsync().GetAwaiter().GetResult();
+        Assert.Equal(Count, grid.Selection.Count);
+        grid.ClearSelection();
+        Assert.Equal(0, grid.Selection.Count);
+        window.Close();
+    });
+
+    [Fact]
+    public Task Clicks_Select_CtrlToggles_ShiftExtends_AndEmptySpaceClears() => TestApp.RunAsync(() =>
+    {
+        var (grid, _, _, _) = Create(Count);
+        var (window, view) = Show(grid);
+        var tiles = view.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("ThumbnailTile") && b.IsEffectivelyVisible).ToList();
+        Point Center(int index) => tiles.Single(b => ((ThumbnailTileViewModel)b.DataContext!).Index == index)
+            .TranslatePoint(new Point(20, 20), window)!.Value;
+
+        window.MouseDown(Center(1), MouseButton.Left);
+        window.MouseUp(Center(1), MouseButton.Left);
+        window.MouseDown(Center(4), MouseButton.Left, RawInputModifiers.Shift);
+        window.MouseUp(Center(4), MouseButton.Left, RawInputModifiers.Shift);
+        Assert.Equal(4, grid.Selection.Count);
+        window.MouseDown(Center(2), MouseButton.Left, RawInputModifiers.Control);
+        window.MouseUp(Center(2), MouseButton.Left, RawInputModifiers.Control);
+        Assert.Equal(3, grid.Selection.Count);
+        Settle();
+        Assert.Contains(Tiles(view), tile => tile.Index == 3 && tile.IsSelected);
+        Assert.Contains(Tiles(view), tile => tile.Index == 2 && !tile.IsSelected);
+        Assert.Contains("Selected", tiles.Single(b => ((ThumbnailTileViewModel)b.DataContext!).Index == 3).Classes);
+
+        // The gap between the first two tiles.
+        var gap = Center(0) + new Point(grid.TileSize - 20 + (ThumbnailGridViewModel.Gap / 2), 0);
+        window.MouseDown(gap, MouseButton.Left);
+        window.MouseUp(gap, MouseButton.Left);
+        Assert.Equal(0, grid.Selection.Count);
+        window.Close();
+    });
+
+    [Fact]
+    public Task Selection_SurvivesARefresh_AndClearsWhenTheLibraryCloses() => TestApp.RunAsync(() =>
+    {
+        var (grid, _, source, _) = Create(50);
+        var (window, _) = Show(grid);
+        grid.ClickAsync(5, SelectionGesture.Replace).GetAwaiter().GetResult();
+        var selected = source.Ids[5];
+
+        source.InsertAtTop(3);
+        Settle();
+        grid.RunPendingWorkAsync().GetAwaiter().GetResult();
+
+        Assert.True(grid.Selection.IsSelected(selected));
+        Assert.Equal((1, 8), (grid.Selection.Count, grid.Selection.FocusIndex));
+
+        grid.Deactivate();
+        Assert.Equal((0, -1), (grid.Selection.Count, grid.Selection.FocusIndex));
         window.Close();
     });
 
@@ -162,7 +246,7 @@ public sealed class ThumbnailGridTests
         var sender = new FakeTileSizeSender { StoredSize = storedSize };
         var jobs = new FakeJobSystem();
         var loader = new ThumbnailLoader(new FakeBrowserSession(), new FakeThumbnailCache(), new ThumbnailBitmapCache());
-        return (new ThumbnailGridViewModel(source, loader, opener ?? new FakeItemOpener(), jobs, sender), sender, source, jobs);
+        return (new ThumbnailGridViewModel(source, loader, opener ?? new FakeItemOpener(), jobs, sender, new SelectionModel(() => source)), sender, source, jobs);
     }
 
     private static (Window Window, ThumbnailGridView View) Show(ThumbnailGridViewModel grid)
@@ -182,6 +266,8 @@ public sealed class ThumbnailGridTests
             Dispatcher.UIThread.RunJobs();
         }
     }
+
+    private static ScrollViewer Scroller(ThumbnailGridView view) => view.GetVisualDescendants().OfType<ScrollViewer>().First();
 
     private static List<ThumbnailTileViewModel> Tiles(ThumbnailGridView view) =>
         [.. view.GetVisualDescendants().OfType<Border>()

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Avalonia.Threading;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.StatusBar;
@@ -40,7 +41,18 @@ public sealed class ResultCountStatusSegment(Func<ThumbnailGridViewModel> grid, 
         ArgumentNullException.ThrowIfNull(statusBar);
 
         segment = statusBar.Add(new StatusBarSegment(SegmentId, StatusBarSide.Left, 0));
-        session.CurrentChanged += (_, _) => Show();
+        session.CurrentChanged += (_, _) =>
+        {
+            // Libraries open on background threads.
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                Show();
+            }
+            else
+            {
+                Dispatcher.UIThread.Post(Show);
+            }
+        };
         localizer.Changed += (_, _) => Show();
         Show();
     }

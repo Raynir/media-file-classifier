@@ -7,13 +7,15 @@ using MediatR;
 namespace MediaFileClassifier.UseCases.Browsing.LibraryItems;
 
 /// <summary>
-/// The M1 result source (E14-S01-T02): every item of the open library, newest first. It follows the session, so it
-/// reports a change when a library opens or closes and whenever the open library's items change.
+/// The M1 result source (E14-S01-T02): the open library's items in the selected <see cref="Scope"/> (E13-S02), newest
+/// first. It follows the session, so it reports a change when a library opens or closes, when the scope changes, and
+/// whenever the open library's items change. Excluded items aren't shown (D048).
 /// </summary>
 public sealed class LibraryItemsSource : IMediaResultSource
 {
     private readonly ISender sender;
     private readonly ILibrarySession session;
+    private readonly TimeProvider clock;
     private readonly Lock syncRoot = new();
     private IMediaItemRepository? watched;
 
@@ -22,10 +24,12 @@ public sealed class LibraryItemsSource : IMediaResultSource
     /// </summary>
     /// <param name="sender">Sends the queries.</param>
     /// <param name="session">Holds the open library.</param>
-    public LibraryItemsSource(ISender sender, ILibrarySession session)
+    /// <param name="clock">The clock, for Recently imported.</param>
+    public LibraryItemsSource(ISender sender, ILibrarySession session, TimeProvider clock)
     {
         this.sender = sender;
         this.session = session;
+        this.clock = clock;
         session.CurrentChanged += (_, _) => Watch();
         Watch();
     }
@@ -33,16 +37,40 @@ public sealed class LibraryItemsSource : IMediaResultSource
     /// <inheritdoc />
     public event EventHandler? Changed;
 
+    /// <summary>
+    /// Gets or sets the scope the results come from: the selected navigation entry (E13-S02). Changing it raises
+    /// <see cref="Changed"/>.
+    /// </summary>
+    public BrowseScope Scope
+    {
+        get;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    = BrowseScope.All;
+
+    private MediaItemFilter Filter => Scope.ToFilter(clock.GetUtcNow());
+
     /// <inheritdoc />
-    public Task<int> CountAsync(CancellationToken cancellationToken) => sender.Send(new CountLibraryItemsQuery(), cancellationToken);
+    public Task<int> CountAsync(CancellationToken cancellationToken) => sender.Send(new CountLibraryItemsQuery(Filter), cancellationToken);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<MediaItemSummary>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken) =>
-        sender.Send(new GetLibraryItemsPageQuery(offset, limit), cancellationToken);
+        sender.Send(new GetLibraryItemsPageQuery(offset, limit, Filter), cancellationToken);
 
     /// <inheritdoc />
     public Task<int> PositionOfAsync(Id<MediaItem> itemId, CancellationToken cancellationToken) =>
-        sender.Send(new GetLibraryItemPositionQuery(itemId), cancellationToken);
+        sender.Send(new GetLibraryItemPositionQuery(itemId, Filter), cancellationToken);
 
     private void Watch()
     {

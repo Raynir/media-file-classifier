@@ -135,7 +135,7 @@ public interface IMediaItemRepository
 
     /// <summary>
     /// Counts the items added after an item, which is its position in the newest-first order of
-    /// <see cref="GetSummariesAsync"/>. It still works after the item was deleted.
+    /// <see cref="GetSummariesAsync(int, int, CancellationToken)"/>. It still works after the item was deleted.
     /// </summary>
     /// <param name="id">Item ID.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -148,6 +148,44 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of items.</returns>
     Task<int> CountAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a page of tile summaries of the items a filter shows, newest first, as <see cref="GetSummariesAsync(int, int, CancellationToken)"/>.
+    /// </summary>
+    /// <param name="filter">Which items to show (E13-S02).</param>
+    /// <param name="offset">Number of items to skip.</param>
+    /// <param name="limit">Maximum number of items to return.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The summaries.</returns>
+    Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(MediaItemFilter filter, int offset, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the items a filter shows that were added after an item: its position in
+    /// <see cref="GetSummariesAsync(MediaItemFilter, int, int, CancellationToken)"/>.
+    /// </summary>
+    /// <param name="filter">Which items to show.</param>
+    /// <param name="id">Item ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of newer items.</returns>
+    Task<int> CountNewerAsync(MediaItemFilter filter, Id<MediaItem> id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the items a filter shows.
+    /// </summary>
+    /// <param name="filter">Which items to show.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of items.</returns>
+    Task<int> CountAsync(MediaItemFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the subfolders of a folder's subfolder that hold items, from the items' paths, with the number of items
+    /// in each, the ones inside it included (E13-S02-T03). Excluded items don't count.
+    /// </summary>
+    /// <param name="folderId">The indexed folder.</param>
+    /// <param name="subfolder">The subfolder whose subfolders to list, with <c>/</c> separators; empty for the folder itself.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The subfolders' names and item counts, by name.</returns>
+    Task<IReadOnlyList<(string Name, int Count)>> GetSubfoldersAsync(Id<IndexedFolder> folderId, string subfolder, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds an item.

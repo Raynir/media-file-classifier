@@ -1,3 +1,4 @@
+using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
@@ -121,16 +122,39 @@ public sealed class CreateLibraryTests
     public async Task AddFolders_AddsNewFoldersOnce()
     {
         await CreateAsync("Family");
-        var handler = new AddLibraryFoldersCommandHandler(session, TimeProvider.System);
+        var handler = AddFoldersHandler();
         FolderHandle photos = new(@"E:\Photos", "Photos");
 
         var first = await handler.Handle(new AddLibraryFoldersCommand([photos, photos]), CancellationToken.None);
         var second = await handler.Handle(new AddLibraryFoldersCommand([photos, new FolderHandle(@"E:\Videos", "Videos")]), CancellationToken.None);
 
-        Assert.Equal(@"E:\Photos", Assert.Single(first).DisplayPath);
-        Assert.Equal(@"E:\Videos", Assert.Single(second).PlatformHandle);
+        Assert.Equal(@"E:\Photos", Assert.Single(first.Added).DisplayPath);
+        Assert.Equal(@"E:\Videos", Assert.Single(second.Added).PlatformHandle);
+        Assert.Equal(photos, Assert.Single(second.Refused).Folder);
         Assert.Equal(2, ((FakeOpenLibrary)session.Current!).FolderList.Folders.Count);
     }
+
+    [Fact]
+    public async Task AddFolders_RefusesAChildAndMergesIntoAParent()
+    {
+        await CreateAsync("Family");
+        var handler = AddFoldersHandler();
+        var photos = Assert.Single((await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\Photos", "Photos")]), CancellationToken.None)).Added);
+        photos.ChangeRules(new FolderRules { ExcludePatterns = [FolderRules.ForSubfolder("raw"), "*.tmp"] });
+
+        var child = await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\Photos\2024", "2024")]), CancellationToken.None);
+        var parent = await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\", "E:")]), CancellationToken.None);
+
+        Assert.Empty(child.Added);
+        Assert.Same(photos, Assert.Single(child.Refused).CoveredBy);
+        Assert.Same(photos, Assert.Single(parent.Merged));
+        var drive = Assert.Single(((FakeOpenLibrary)session.Current!).FolderList.Folders);
+        Assert.Same(Assert.Single(parent.Added), drive);
+        Assert.Equal(["/Photos/raw", "/Photos/**/*.tmp"], drive.Rules.ExcludePatterns);
+    }
+
+    private AddLibraryFoldersCommandHandler AddFoldersHandler()
+        => new(session, new FakeFolderSource(), TimeProvider.System, NullLogger<AddLibraryFoldersCommandHandler>.Instance);
 
     private Task<CreateLibraryResult> CreateAsync(string name)
         => new CreateLibraryCommandHandler(store, locations, session, settings, TimeProvider.System, NullLogger<CreateLibraryCommandHandler>.Instance)

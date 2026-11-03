@@ -61,9 +61,9 @@ public sealed class ImportUseCaseTests
         var session = new FakeLibrarySession();
         await session.SetCurrentAsync(new FakeOpenLibrary(Infrastructure.Abstractions.Libraries.LibraryLayout.For(Path.GetTempPath(), "x"), "x"));
         var sender = new RecordingSender();
-        var handler = new AddLibraryFoldersCommandHandler(session, TimeProvider.System, sender);
+        var handler = new AddLibraryFoldersCommandHandler(session, new FakeFolderSource(), TimeProvider.System, NullLogger<AddLibraryFoldersCommandHandler>.Instance, sender);
 
-        var added = await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\Photos", "Photos")]), CancellationToken.None);
+        var added = (await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\Photos", "Photos")]), CancellationToken.None)).Added;
         await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\Photos", "Photos")]), CancellationToken.None);
 
         var import = Assert.IsType<ImportFoldersCommand>(Assert.Single(sender.Sent));
@@ -73,7 +73,7 @@ public sealed class ImportUseCaseTests
     [Fact]
     public async Task ImportFolders_WithoutBackgroundProcessing_QueuesNothing()
     {
-        var handler = new ImportFoldersCommandHandler(NullLogger<ImportFoldersCommandHandler>.Instance);
+        var handler = new ImportFoldersCommandHandler(NullLogger<ImportFoldersCommandHandler>.Instance, TimeProvider.System);
 
         var started = await handler.Handle(new ImportFoldersCommand([Id<IndexedFolder>.New()]), CancellationToken.None);
 

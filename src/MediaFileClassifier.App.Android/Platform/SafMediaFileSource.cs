@@ -137,6 +137,20 @@ internal sealed class SafMediaFileSource(AndroidContentResolver contentResolver)
             cancellationToken);
 
     // SAF has no lookup by path, so a relative path is resolved one segment at a time: one query per folder level.
+    /// <inheritdoc />
+    public async Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+
+        var treeUri = AndroidUri.Parse(folder.Id)!;
+        var (children, _) = await Task.Run(() => TryQueryChildren(treeUri, DocumentsContract.GetTreeDocumentId(treeUri)!, cancellationToken), cancellationToken);
+        return children is not null;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>Tree URIs of different grants aren't compared yet, so overlapping folders aren't found (E20).</remarks>
+    public string? GetPathInside(FolderHandle folder, FolderHandle parent) => folder.Id == parent.Id ? string.Empty : null;
+
     private Document? Resolve(AndroidUri treeUri, string relativePath, CancellationToken cancellationToken)
     {
         Document? current = new(DocumentsContract.GetTreeDocumentId(treeUri)!, string.Empty, true, 0, DateTimeOffset.UnixEpoch);

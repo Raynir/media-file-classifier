@@ -1,5 +1,8 @@
 using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
@@ -87,7 +90,7 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IModelRegistrationRepository Models => throw new NotSupportedException();
 
-    public IJobRepository Jobs => throw new NotSupportedException();
+    public IJobRepository Jobs { get; } = new FakeJobRepository();
 
     public ILibraryMaintenance Maintenance => throw new NotSupportedException();
 
@@ -122,6 +125,15 @@ internal sealed class FakeFolderRepository : IFolderRepository
     }
 
     public Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task<int> MergeIntoAsync(IndexedFolder parent, Id<IndexedFolder> childId, string relativePath, CancellationToken cancellationToken = default)
+    {
+        Folders.RemoveAll(folder => folder.Id == childId);
+        return Task.FromResult(0);
+    }
+
+    public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
+        => Task.FromResult(Folders.RemoveAll(folder => folder.Id == id) > 0);
 }
 
 /// <summary>
@@ -154,4 +166,63 @@ internal sealed class FakeSettingsService : ISettingsService
 
     public AppSettings Update(Func<AppSettings, AppSettings> change)
         => UpdateFailure is { } failure ? throw failure : Current = change(Current);
+}
+
+/// <summary>
+/// A job repository with no jobs.
+/// </summary>
+internal sealed class FakeJobRepository : IJobRepository
+{
+    public Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<ProcessingJob?> GetJobAsync(Id<ProcessingJob> id, CancellationToken cancellationToken = default) => Task.FromResult<ProcessingJob?>(null);
+
+    public Task<IReadOnlyList<ProcessingJob>> GetUnfinishedJobsAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ProcessingJob>>([]);
+
+    public Task<IReadOnlyList<WorkItem>> GetQueuedAsync(ResourcePool pool, int limit, IReadOnlyCollection<Id<WorkItem>> excluding, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<WorkItem>> GetQueuedForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
+
+    public Task<WorkItem?> StartAsync(WorkItem workItem, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<ProcessingJob> FinishAsync(WorkItem workItem, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+}
+
+/// <summary>
+/// A file source that only compares Windows-style folder paths, and reaches every folder not in <see cref="Unavailable"/>.
+/// </summary>
+internal sealed class FakeFolderSource : IMediaFileSource
+{
+    public HashSet<string> Unavailable { get; } = [];
+
+    public IAsyncEnumerable<MediaFileStat> EnumerateFilesAsync(FolderHandle folder, string relativeDirectory = "", CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public IAsyncEnumerable<FolderScanEntry> ScanAsync(FolderHandle folder, FolderScanOptions options, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<Stream> OpenReadAsync(FileLocation file, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<MediaFileStat?> GetStatAsync(FileLocation file, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) => Task.FromResult(!Unavailable.Contains(folder.Id));
+
+    public string? GetPathInside(FolderHandle folder, FolderHandle parent)
+    {
+        if (string.Equals(folder.Id, parent.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        var prefix = parent.Id.TrimEnd('\\') + "\\";
+        return folder.Id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? folder.Id[prefix.Length..].Replace('\\', '/') : null;
+    }
 }

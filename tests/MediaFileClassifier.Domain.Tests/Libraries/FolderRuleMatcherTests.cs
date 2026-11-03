@@ -1,7 +1,6 @@
 using MediaFileClassifier.Domain.Libraries;
-using MediaFileClassifier.Infrastructure.Discovery;
 
-namespace MediaFileClassifier.Infrastructure.Tests.Discovery;
+namespace MediaFileClassifier.Domain.Tests.Libraries;
 
 /// <summary>
 /// Tests for <see cref="FolderRuleMatcher"/>.
@@ -83,5 +82,36 @@ public sealed class FolderRuleMatcherTests
         var matcher = new FolderRuleMatcher(new FolderRules { IncludePatterns = [" "], ExcludePatterns = [string.Empty, "/"] });
 
         Assert.True(matcher.IsIncluded("a.jpg"));
+    }
+
+    [Theory]
+    [InlineData("/raw", "raw/a.jpg", false)]
+    [InlineData("/raw", "2024/raw/a.jpg", true)]
+    [InlineData("/2024/raw", "2024/raw/a.jpg", false)]
+    [InlineData("raw", "2024/raw/a.jpg", false)]
+    public void LeadingSlash_AnchorsAPatternAtTheRoot(string pattern, string path, bool included)
+    {
+        var matcher = new FolderRuleMatcher(new FolderRules { ExcludePatterns = [pattern] });
+
+        Assert.Equal(included, matcher.IsIncluded(path));
+    }
+
+    [Fact]
+    public void ForSubfolder_IsARootAnchoredPattern()
+    {
+        Assert.Equal("/2024/raw", FolderRules.ForSubfolder(@"2024\raw\"));
+    }
+
+    [Fact]
+    public void ExcludePatternsUnder_ExcludeTheSameFilesInTheParent()
+    {
+        var child = new FolderRules { ExcludePatterns = ["/raw", "2024/tmp", "*.tmp", " "] };
+        var parent = new FolderRuleMatcher(new FolderRules { ExcludePatterns = child.ExcludePatternsUnder("photos/child") });
+
+        Assert.Equal(["/photos/child/raw", "/photos/child/2024/tmp", "/photos/child/**/*.tmp"], child.ExcludePatternsUnder("photos/child"));
+        Assert.False(parent.IsIncluded("photos/child/raw/a.jpg"));
+        Assert.False(parent.IsIncluded("photos/child/x/b.tmp"));
+        Assert.True(parent.IsIncluded("photos/raw/a.jpg"));
+        Assert.True(parent.IsIncluded("other/b.tmp"));
     }
 }

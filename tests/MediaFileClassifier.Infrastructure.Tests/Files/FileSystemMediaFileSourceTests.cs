@@ -82,6 +82,28 @@ public sealed class FileSystemMediaFileSourceTests : IDisposable
         Assert.Null(await source.GetStatAsync(new FileLocation(folder, "missing.jpg"), TestContext.Current.CancellationToken));
     }
 
+    [Theory]
+    [InlineData(@"C:\Photos", @"C:\Photos", "")]
+    [InlineData(@"C:\Photos\2024\trip", @"C:\Photos", "2024/trip")]
+    [InlineData(@"C:\photos\2024\", @"C:\Photos\", "2024")]
+    [InlineData(@"C:\Photos2", @"C:\Photos", null)]
+    [InlineData(@"C:\Photos", @"C:\Photos\2024", null)]
+    [InlineData(@"D:\Photos", @"C:\Photos", null)]
+    [InlineData("content://tree/primary%3ADCIM", @"C:\Photos", null)]
+    public void GetPathInside_ComparesFullPaths(string path, string parent, string? expected)
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The paths are Windows paths.");
+
+        Assert.Equal(expected, source.GetPathInside(new FolderHandle(path, path), new FolderHandle(parent, parent)));
+    }
+
+    [Fact]
+    public async Task IsAvailableAsync_IsTrueOnlyForAFolderThatCanBeListed()
+    {
+        Assert.True(await source.IsAvailableAsync(folder, TestContext.Current.CancellationToken));
+        Assert.False(await source.IsAvailableAsync(LocalFolder.ToHandle(Path.Combine(root, "unplugged")), TestContext.Current.CancellationToken));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(root))

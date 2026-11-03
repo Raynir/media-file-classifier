@@ -149,6 +149,22 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<WorkItemCount>> CountUnfinishedWorkAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<WorkItemCount>>(
+            async (db, token) =>
+            {
+                var groups = await db.WorkItems
+                    .Where(item => db.ProcessingJobs.Any(job => job.Id == item.JobId
+                        && job.State != ProcessingJobState.Completed && job.State != ProcessingJobState.Failed && job.State != ProcessingJobState.Cancelled))
+                    .GroupBy(item => new { item.JobId, item.Stage, item.State, IsWholeTarget = item.ItemId == null })
+                    .Select(group => new { group.Key.JobId, group.Key.Stage, group.Key.State, group.Key.IsWholeTarget, Count = group.Count() })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                return [.. groups.Select(group => new WorkItemCount(group.JobId, group.Stage, group.State, group.IsWholeTarget, group.Count))];
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
     public Task<WorkItem?> StartAsync(WorkItem workItem, DateTimeOffset now, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workItem);

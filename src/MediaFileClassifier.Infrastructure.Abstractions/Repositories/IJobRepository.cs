@@ -83,6 +83,14 @@ public interface IJobRepository
     Task<int> CountPendingAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Counts the work items of the unfinished jobs by job, stage and state, e.g. to seed the progress counters when
+    /// a library opens (E05-S02-T01).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The counts, in no particular order.</returns>
+    Task<IReadOnlyList<WorkItemCount>> CountUnfinishedWorkAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Marks a queued work item as running, and its job too if it's queued. Both changes are one write.
     /// </summary>
     /// <param name="workItem">The work item, in <see cref="WorkItemState.Queued"/> state.</param>

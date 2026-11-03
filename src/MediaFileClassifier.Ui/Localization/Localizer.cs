@@ -88,6 +88,17 @@ public sealed class Localizer
     }
 
     /// <summary>
+    /// Gets the string with the given key, if there is one, e.g. for an optional display name.
+    /// </summary>
+    /// <param name="key">Resource key.</param>
+    /// <returns>The string, or <see langword="null"/> when it's missing.</returns>
+    public string? Find(string key)
+    {
+        var value = resources.GetString(key, culture ?? CultureInfo.CurrentUICulture);
+        return value is null ? null : Get(key);
+    }
+
+    /// <summary>
     /// Gets a composite format string and fills in its placeholders, formatting the arguments
     /// for <see cref="CultureInfo.CurrentCulture"/>.
     /// </summary>

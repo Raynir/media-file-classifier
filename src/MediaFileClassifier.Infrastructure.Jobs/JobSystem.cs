@@ -15,12 +15,14 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// <param name="handlers">The registered stage handlers.</param>
 /// <param name="settings">App settings, for the pool limits and the resume mode.</param>
 /// <param name="hardware">Hardware facts, for the default CPU pool limit.</param>
+/// <param name="progress">The progress counters of the open library (E05-S02).</param>
 /// <param name="clock">Clock.</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class JobSystem(
     IEnumerable<IStageHandler> handlers,
     ISettingsService settings,
     IHardwareInfo hardware,
+    JobProgressTracker progress,
     TimeProvider clock,
     ILogger<JobSystem> logger) : IJobSystem, IDisposable
 {
@@ -74,7 +76,10 @@ public sealed partial class JobSystem(
             var pending = await library.Jobs.CountPendingAsync(cancellationToken).ConfigureAwait(false);
             var processing = settings.Current.Processing;
             var startPaused = pending > 0 && processing.ResumeOnOpen == ResumeMode.Ask;
-            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), clock, logger);
+            progress.Reset(
+                await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false),
+                await library.Jobs.CountUnfinishedWorkAsync(cancellationToken).ConfigureAwait(false));
+            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger);
             scheduler.Start(startPaused);
             current = scheduler;
             LogStarted(library.Layout.RootDirectory, pending, requeued, startPaused);
@@ -115,6 +120,7 @@ public sealed partial class JobSystem(
         {
             current = null;
             await scheduler.DisposeAsync().ConfigureAwait(false);
+            progress.Clear();
             LogStopped(scheduler.Library.Layout.RootDirectory);
         }
     }

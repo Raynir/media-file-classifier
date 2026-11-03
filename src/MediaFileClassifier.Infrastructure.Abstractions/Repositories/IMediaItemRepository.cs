@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Metadata;
 
 namespace MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 
@@ -74,6 +75,31 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItem>> GetWithoutContentHashAsync(int limit, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the items with a status, e.g. the ones an import still has to process, or the failed ones to retry (E03-S07).
+    /// </summary>
+    /// <param name="status">Status to look for.</param>
+    /// <param name="folderId">Folder to look in, or <c>null</c> for the whole library.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The items, in ID order.</returns>
+    Task<IReadOnlyList<MediaItem>> GetByStatusAsync(MediaItemStatus status, Id<IndexedFolder>? folderId = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the exact duplicate candidates: groups of items that share a full content hash (E03-S07-T06). Duplicate
+    /// review and resolution build on them (E12).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The groups of two or more items, in content hash order, each with its items in ID order.</returns>
+    Task<IReadOnlyList<ExactDuplicateGroup>> GetExactDuplicatesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets an item's technical metadata (E03-S03).
+    /// </summary>
+    /// <param name="itemId">Item ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The metadata, or <c>null</c> if it isn't extracted yet.</returns>
+    Task<TechnicalMetadata?> GetTechnicalMetadataAsync(Id<MediaItem> itemId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a page of items in ID order, which follows creation time to the millisecond (UUIDv7).
     /// </summary>
     /// <param name="offset">Number of items to skip.</param>
@@ -132,6 +158,16 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when the changes are stored.</returns>
     Task UpdateAsync(MediaItem item, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores the changes made to an item together with its technical metadata, in one transaction, replacing any
+    /// metadata stored before.
+    /// </summary>
+    /// <param name="item">The changed item.</param>
+    /// <param name="metadata">The item's technical metadata.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when both are stored.</returns>
+    Task UpdateAsync(MediaItem item, TechnicalMetadata metadata, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes an item with everything that belongs to it: metadata, runs, tags, keyframes, embeddings and

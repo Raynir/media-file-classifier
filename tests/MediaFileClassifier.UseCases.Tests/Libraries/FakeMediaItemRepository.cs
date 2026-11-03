@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 
 namespace MediaFileClassifier.UseCases.Tests.Libraries;
@@ -42,6 +43,14 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
     public Task<IReadOnlyList<MediaItem>> GetWithoutContentHashAsync(int limit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<MediaItem>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<MediaItem>> GetByStatusAsync(MediaItemStatus status, Id<IndexedFolder>? folderId = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<ExactDuplicateGroup>> GetExactDuplicatesAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<TechnicalMetadata?> GetTechnicalMetadataAsync(Id<MediaItem> itemId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task UpdateAsync(MediaItem item, TechnicalMetadata metadata, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task AddAsync(MediaItem item, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

@@ -15,6 +15,7 @@ public sealed class JobSchedulerTests : IAsyncLifetime
 {
     private LibraryTestBed bed = null!;
     private JobScheduler? scheduler;
+    private JobProgressTracker progress = null!;
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -225,6 +226,44 @@ public sealed class JobSchedulerTests : IAsyncLifetime
         Assert.False(await scheduler.CancelJobAsync(Id<ProcessingJob>.New(), Token));
     }
 
+    [Fact]
+    public async Task Progress_FollowsTheWorkItems_AndForgetsTheFinishedJob()
+    {
+        using var gate = new SemaphoreSlim(0);
+        var handler = new TestStageHandler("stage", ResourcePool.Cpu, async (context, token) =>
+        {
+            if (context.WorkItem.Payload == "bad")
+            {
+                throw new InvalidDataException("corrupt file");
+            }
+
+            await gate.WaitAsync(token);
+        });
+        Start([handler], cpu: 3, startPaused: true);
+
+        var jobId = await scheduler!.EnqueueJobAsync(Job(JobPriority.Import, [new WorkItemRequest("stage", Payload: "bad"), new WorkItemRequest("stage"), new WorkItemRequest("stage")]), Token);
+        Assert.Equal(new StageProgress("stage", 3, 0, 0, true), Assert.Single(progress.Current.Jobs).Stages[0]);
+
+        scheduler.Resume();
+        await WaitUntilAsync(() => progress.Current.Jobs is [{ Failed: 1 }]);
+        Assert.Equal(2, progress.Current.PendingItems);
+
+        gate.Release(2);
+        await WaitForJobAsync(jobId, ProcessingJobState.Completed);
+        await WaitUntilAsync(() => progress.Current.ActiveJobCount == 0);
+    }
+
+    [Fact]
+    public async Task Progress_ForgetsACancelledJob()
+    {
+        Start([new TestStageHandler("stage", ResourcePool.Cpu)], startPaused: true);
+        var jobId = await scheduler!.EnqueueJobAsync(Job(JobPriority.Import, [new WorkItemRequest("stage")]), Token);
+
+        await scheduler.CancelJobAsync(jobId, Token);
+
+        Assert.Same(ProgressSummary.Empty, progress.Current);
+    }
+
     internal static JobRequest Job(JobPriority priority, IEnumerable<WorkItemRequest> workItems) =>
         new("test", "Test job", priority, [.. workItems]);
 
@@ -241,7 +280,7 @@ public sealed class JobSchedulerTests : IAsyncLifetime
     private void Start(IEnumerable<IStageHandler> handlers, int io = 4, int cpu = 2, int ai = 1, bool startPaused = false)
     {
         var limits = new Dictionary<ResourcePool, int> { [ResourcePool.Io] = io, [ResourcePool.Cpu] = cpu, [ResourcePool.Ai] = ai };
-        scheduler = new JobScheduler(bed.Library, handlers, limits, TimeProvider.System, NullLogger.Instance);
+        scheduler = new JobScheduler(bed.Library, handlers, limits, progress = new JobProgressTracker(TimeProvider.System), TimeProvider.System, NullLogger.Instance);
         scheduler.Start(startPaused);
     }
 

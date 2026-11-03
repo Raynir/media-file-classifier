@@ -12,7 +12,7 @@ How the app finds the media in an indexed folder (E03-S02). The service is `IFol
 4. **Cloud placeholders.** A file whose content isn't stored locally (see below) is skipped and counted, unless `FolderRules.IncludeCloudPlaceholders` is on.
 5. **Content.** The file is opened and `IMediaFormatRegistry.DetectAsync` reads its first bytes. The content decides the format (E03-S01); a file whose content isn't supported is counted and skipped.
 
-New files become `MediaItem`s with status Discovered. The quick fingerprint isn't computed here yet; the import pipeline adds it (MFC-69, with MFC-70's hasher).
+New files become `MediaItem`s with status Discovered. The quick fingerprint isn't computed here; the import pipeline adds it (`docs/import-pipeline.md`), and gets each written batch through the `registered` callback.
 
 ## Links, unreadable folders and errors
 

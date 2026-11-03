@@ -104,6 +104,7 @@ public sealed class ShortcutReferenceTests
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
             .AddSingleton<MediaFileClassifier.Infrastructure.Abstractions.Platform.IPlatformServices>(new FakePlatformServices())
             .AddSingleton<MediaFileClassifier.Infrastructure.Abstractions.Settings.ISettingsStore>(new MediaFileClassifier.Testing.Settings.InMemorySettingsStore())
+            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
             .AddUseCases()
             .AddUi()
             .BuildServiceProvider();

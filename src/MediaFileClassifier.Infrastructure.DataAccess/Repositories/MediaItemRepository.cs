@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
@@ -102,6 +103,48 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> GetByStatusAsync(MediaItemStatus status, Id<IndexedFolder>? folderId = null, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems
+                .Where(item => item.Status == status && (folderId == null || item.FolderId == folderId))
+                .OrderBy(item => item.Id)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    public Task<IReadOnlyList<ExactDuplicateGroup>> GetExactDuplicatesAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<ExactDuplicateGroup>>(
+            async (db, token) =>
+            {
+                // The content hash column is indexed, so the shared hashes are found without reading every item.
+                var shared = await db.MediaItems
+                    .Where(item => item.Hashes.ContentHash != null)
+                    .GroupBy(item => item.Hashes.ContentHash)
+                    .Where(group => group.Count() > 1)
+                    .Select(group => group.Key)
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                if (shared.Count == 0)
+                {
+                    return [];
+                }
+
+                var items = await db.MediaItems
+                    .Where(item => shared.Contains(item.Hashes.ContentHash))
+                    .Select(item => new { item.Id, item.Hashes.ContentHash })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                return items
+                    .GroupBy(item => item.ContentHash!.Value)
+                    .OrderBy(group => group.Key)
+                    .Select(group => new ExactDuplicateGroup(group.Key, [.. group.Select(item => item.Id).OrderBy(id => id.ToString(), StringComparer.Ordinal)]))
+                    .ToList();
+            },
+            cancellationToken);
+
+    public Task<TechnicalMetadata?> GetTechnicalMetadataAsync(Id<MediaItem> itemId, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync((db, token) => db.TechnicalMetadata.SingleOrDefaultAsync(metadata => metadata.ItemId == itemId, token), cancellationToken);
+
     public Task<IReadOnlyList<MediaItem>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
@@ -211,6 +254,36 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
             {
                 db.MediaItems.Update(item);
                 return db.SaveChangesAsync(token);
+            },
+            cancellationToken).ConfigureAwait(false);
+        RaiseChanged();
+    }
+
+    /// <inheritdoc />
+    /// <inheritdoc />
+    public async Task UpdateAsync(MediaItem item, TechnicalMetadata metadata, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(metadata);
+        if (metadata.ItemId != item.Id)
+        {
+            throw new ArgumentException("The metadata belongs to another item.", nameof(metadata));
+        }
+
+        await writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                db.MediaItems.Update(item);
+                if (await db.TechnicalMetadata.AnyAsync(existing => existing.ItemId == item.Id, token).ConfigureAwait(false))
+                {
+                    db.TechnicalMetadata.Update(metadata);
+                }
+                else
+                {
+                    db.TechnicalMetadata.Add(metadata);
+                }
+
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
             },
             cancellationToken).ConfigureAwait(false);
         RaiseChanged();

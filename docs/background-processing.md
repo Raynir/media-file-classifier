@@ -67,7 +67,17 @@ Whoever opens and closes libraries (E02) calls the `IJobSystem`:
 - **Before closing:** `StopAsync()`. No new work starts, running work gets 2 seconds to finish, and the rest is cancelled and put back in the queue. Nothing is written to the library after it returns.
 - **Quitting (D027):** `QuitGuard` handles the main window's closing. If work is pending it asks first ("340 items are still processing…", with "Don't ask again"), then stops the jobs and closes. **Library › Exit** closes the window the same way.
 
+## Progress (E05-S02)
+
+Producers report nothing: `IJobProgress` derives each job's progress from its work items. `JobProgressTracker` (in `Infrastructure.Jobs`) is seeded from the library when it opens and kept up to date by the scheduler, so reading it never touches the database.
+
+- **Counters** are per job and stage, in work items: total, done and failed. Cancelled work items leave the total.
+- **Current stage:** the per-item stage with the most pending work, i.e. the one furthest behind. A whole-target stage (no `ItemId`) is shown only when nothing else is pending.
+- **Growing totals:** while a job has a whole-target work item queued or running (e.g. `import.discover`), its total is shown as "so far", and it gets no estimate.
+- **Estimate:** pending work items divided by the throughput of the last 30 seconds (shorter right after the start), once 10 work items finished and 5 seconds passed. The summary uses all jobs' throughput together.
+- **To the UI:** `ProgressFeed` (Ui) samples a fresh snapshot on the UI thread at most every 500 ms, coalescing everything in between, and every 500 ms while jobs are active. `ProcessingStatusSegment` shows it in the status bar; name a stage with a `Stage_<key>` string in `Strings.resx`, otherwise the job's description is used.
+
 ## Not here yet
 
-- Progress, the processing panel, retries and pausing are E05-S02 to S05.
-- The import pipeline (E03-S07) and the maintenance commands (E02) are the first users of this API.
+- The processing panel, retries and pausing are E05-S03 to S05.
+- The import pipeline (E03-S07, `docs/import-pipeline.md`) is the first user of this API; the maintenance commands (E02) come next.

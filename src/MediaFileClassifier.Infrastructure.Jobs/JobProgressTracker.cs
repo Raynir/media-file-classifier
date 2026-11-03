@@ -207,7 +207,8 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
                     break;
             }
 
-            if (ProcessingJobStateTransitions.IsFinished(job.State))
+            // Work being added to the job right now is already counted, and reopens the job.
+            if (ProcessingJobStateTransitions.IsFinished(job.State) && !counters.HasPending)
             {
                 jobs.Remove(counters);
             }
@@ -253,6 +254,8 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
         public Throughput Throughput { get; } = new(since);
 
         public bool IsEmpty => stages.All(stage => stage.Total == 0);
+
+        public bool HasPending => stages.Any(stage => stage.Total > stage.Done + stage.Failed);
 
         public StageCounters Stage(string stage, bool isWholeTarget)
         {
@@ -325,6 +328,7 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
     {
         private readonly List<(long Second, int Count)> buckets = [];
         private int finished;
+        private DateTimeOffset? firstFinished;
 
         public void Record(DateTimeOffset now)
         {
@@ -339,12 +343,14 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
             }
 
             finished++;
+            firstFinished ??= now;
             Trim(now);
         }
 
         public TimeSpan? Estimate(int pending, DateTimeOffset now)
         {
-            var elapsed = now - since;
+            // From the first finished item, so time spent waiting, e.g. paused after opening, doesn't slow the rate.
+            var elapsed = now - (firstFinished is { } first && first > since ? first : since);
             if (pending <= 0 || finished < MinimumFinishedForEstimate || elapsed < MinimumElapsedForEstimate)
             {
                 return null;

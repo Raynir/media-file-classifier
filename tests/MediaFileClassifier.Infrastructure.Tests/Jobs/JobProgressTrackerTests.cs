@@ -55,6 +55,31 @@ public sealed class JobProgressTrackerTests
     }
 
     [Fact]
+    public void FinishedJob_GettingNewWorkAtTheSameTime_IsKept()
+    {
+        var job = NewJob();
+        var first = Items(job, "hash", 1);
+        tracker.AddWork(job, first);
+        tracker.AddWork(job, Items(job, "hash", 1));
+
+        // The last stored item finished before the new one was written, so the job was Completed for a moment.
+        Finish(job with { State = ProcessingJobState.Completed }, first[0], WorkItemState.Completed);
+
+        Assert.Equal(1, Assert.Single(tracker.Current.Jobs).Pending);
+    }
+
+    [Fact]
+    public void Estimate_IgnoresTheWaitBeforeTheFirstItemFinished()
+    {
+        var job = NewJob();
+        tracker.AddWork(job, []);
+        clock.Advance(TimeSpan.FromMinutes(10));
+        RunSteadily(job, "stage", count: 100, perSecond: 10, left: 100);
+
+        Assert.InRange(tracker.Current.Jobs[0].TimeRemaining!.Value.TotalSeconds, 9, 11);
+    }
+
+    [Fact]
     public void PendingWholeTargetWork_MeansTheTotalStillGrows_AndHidesTheEstimate()
     {
         var job = NewJob();

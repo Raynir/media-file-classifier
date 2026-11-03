@@ -239,7 +239,7 @@ public sealed class JobSchedulerTests : IAsyncLifetime
 
             await gate.WaitAsync(token);
         });
-        Start([handler], cpu: 2, startPaused: true);
+        Start([handler], cpu: 3, startPaused: true);
 
         var jobId = await scheduler!.EnqueueJobAsync(Job(JobPriority.Import, [new WorkItemRequest("stage", Payload: "bad"), new WorkItemRequest("stage"), new WorkItemRequest("stage")]), Token);
         Assert.Equal(new StageProgress("stage", 3, 0, 0, true), Assert.Single(progress.Current.Jobs).Stages[0]);

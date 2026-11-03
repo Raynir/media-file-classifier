@@ -84,7 +84,9 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IFolderRepository Folders => FolderList;
 
-    public IMediaItemRepository Items => throw new NotSupportedException();
+    public FakeMediaItemRepository ItemList { get; } = new();
+
+    public IMediaItemRepository Items => ItemList;
 
     public IItemMetadataRepository Metadata => throw new NotSupportedException();
 
@@ -96,7 +98,13 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public bool IsDisposed { get; private set; }
 
-    public Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public int LibraryUpdates { get; private set; }
+
+    public Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default)
+    {
+        LibraryUpdates++;
+        return Task.CompletedTask;
+    }
 
     public ValueTask DisposeAsync()
     {
@@ -188,6 +196,8 @@ internal sealed class FakeJobRepository : IJobRepository
     public Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
+
+    public Task<IReadOnlyList<WorkItemCount>> CountUnfinishedWorkAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<WorkItemCount>>([]);
 
     public Task<WorkItem?> StartAsync(WorkItem workItem, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

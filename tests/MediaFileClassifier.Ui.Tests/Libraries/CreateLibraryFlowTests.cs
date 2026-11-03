@@ -5,9 +5,12 @@ using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.DataAccess;
+using MediaFileClassifier.Infrastructure.Jobs;
+using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +38,10 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
             .AddSingleton<IMediaFileSource, Infrastructure.Files.FileSystemMediaFileSource>()
             .AddInfrastructure()
             .AddDataAccess()
+            .AddSingleton<Infrastructure.Abstractions.Files.IMediaFileSource, Infrastructure.Files.FileSystemMediaFileSource>()
+            .AddJobs()
+            .AddMedia()
+            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
             .AddUseCases()
             .AddUi()
             .BuildServiceProvider();
@@ -94,14 +101,14 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task OpeningALibrary_ReplacesTheWelcomeScreen()
+    public async Task OpeningALibrary_ShowsTheThumbnailGridInsteadOfTheWelcomeScreen()
     {
         await TestApp.RunAsync(() => services.GetRequiredService<LibraryShell>());
         var library = await services.GetRequiredService<ILibraryStore>().CreateAsync(root, "Family", TestContext.Current.CancellationToken);
 
         await TestApp.RunAsync(() => services.GetRequiredService<ILibrarySession>().SetCurrentAsync(library).GetAwaiter().GetResult());
 
-        Assert.Null(services.GetRequiredService<ShellRegions>().Browser);
+        Assert.IsType<ThumbnailGridViewModel>(services.GetRequiredService<ShellRegions>().Browser);
     }
 
     [Fact]
@@ -140,9 +147,18 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
     {
         await services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
         await services.DisposeAsync();
-        if (Directory.Exists(root))
+
+        // The thumbnail grid's first reads may still be finishing on the thread pool after the library closed.
+        for (var attempt = 1; Directory.Exists(root); attempt++)
         {
-            Directory.Delete(root, recursive: true);
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException) when (attempt < 20)
+            {
+                await Task.Delay(50);
+            }
         }
     }
 }

@@ -20,6 +20,9 @@
       <SolidColorBrush x:Key="Brush.Surface.Tooltip" Color="#1A1A1A" />
       <!-- Not in Figma: dims the window behind an overlay such as the shortcut reference. -->
       <SolidColorBrush x:Key="Brush.Scrim" Color="#99000000" />
+      <!-- Markers drawn over a thumbnail, e.g. a video's duration (E14-S01): light on dark in both themes. -->
+      <SolidColorBrush x:Key="Brush.Overlay.Background" Color="#B3000000" />
+      <SolidColorBrush x:Key="Brush.Overlay.Foreground" Color="#FFFFFF" />
       <!-- Borders -->
       <SolidColorBrush x:Key="Brush.Border.Divider" Color="#404040" />
       <SolidColorBrush x:Key="Brush.Border.Control" Color="#606060" />
@@ -66,6 +69,9 @@
       <SolidColorBrush x:Key="Brush.Surface.Input" Color="#FFFFFF" />
       <SolidColorBrush x:Key="Brush.Surface.Tooltip" Color="#FFFFFF" />
       <SolidColorBrush x:Key="Brush.Scrim" Color="#66000000" />
+      <!-- Markers drawn over a thumbnail, e.g. a video's duration (E14-S01): light on dark in both themes. -->
+      <SolidColorBrush x:Key="Brush.Overlay.Background" Color="#B3000000" />
+      <SolidColorBrush x:Key="Brush.Overlay.Foreground" Color="#FFFFFF" />
       <SolidColorBrush x:Key="Brush.Border.Divider" Color="#E0E0E0" />
       <SolidColorBrush x:Key="Brush.Border.Control" Color="#C4C4C4" />
       <SolidColorBrush x:Key="Brush.Border.Selected" Color="#8A8A8A" />
@@ -118,6 +124,13 @@
   <!-- Lists in dialogs and overlays: space under a group, and around a row. -->
   <Thickness x:Key="Padding.Group">0,0,0,16</Thickness>
   <Thickness x:Key="Padding.Row">0,2</Thickness>
+  <!--
+    Thumbnail grid (E14-S01), after Figma: 24 at the sides, 16 between tiles (Space.L) and rows. The grid's scroll
+    math uses the same values (ThumbnailGridViewModel.Gap and InfoStripHeight), so change them together.
+  -->
+  <Thickness x:Key="Padding.Grid">24,0</Thickness>
+  <Thickness x:Key="Padding.TileRow">0,0,0,16</Thickness>
+  <Thickness x:Key="Padding.TileInfo">8,2</Thickness>
 
   <!-- Corner radii -->
   <CornerRadius x:Key="Radius.None">0</CornerRadius>

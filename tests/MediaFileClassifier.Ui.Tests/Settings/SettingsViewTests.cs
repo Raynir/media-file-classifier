@@ -88,6 +88,7 @@ public sealed class SettingsViewTests
         .AddSingleton<Infrastructure.Abstractions.Paths.IAppPaths>(new Commands.FakeAppPaths())
         .AddSingleton<Platform.ICapabilityGate>(new Commands.FakeCapabilityGate())
         .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
+        .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
         .AddUseCases()
         .AddUi()
         .BuildServiceProvider();

@@ -137,6 +137,7 @@ public sealed class ShellViewTests
             .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
             .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
             .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
+            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
             .AddUseCases()
             .AddUi()
             .BuildServiceProvider();

@@ -1,4 +1,5 @@
 using Avalonia.Input;
+using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 
@@ -21,6 +22,11 @@ public static class DefaultKeymap
         Bind(ShellCommands.ToggleDetails, PhysicalKey.Digit2, KeyModifiers.Control),
         Bind(ShellCommands.CollapseNavigation, PhysicalKey.Digit1, KeyModifiers.Control | KeyModifiers.Shift),
         Bind(ShellCommands.CollapseDetails, PhysicalKey.Digit2, KeyModifiers.Control | KeyModifiers.Shift),
+
+        // Media browser (E14-S01): thumbnail size while the grid has focus (D046), and opening the focused item.
+        Bind(BrowserCommands.LargerThumbnails, PhysicalKey.Equal, scope: ShortcutScopes.Browser),
+        Bind(BrowserCommands.SmallerThumbnails, PhysicalKey.Minus, scope: ShortcutScopes.Browser),
+        Bind(BrowserCommands.OpenItem, PhysicalKey.Enter, scope: ShortcutScopes.Browser),
 
         // Tools (E17-S01)
         Bind(SettingsCommands.OpenSettings, PhysicalKey.Comma, KeyModifiers.Control),

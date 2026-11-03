@@ -22,6 +22,7 @@ public sealed class SettingsViewModelTests : IDisposable
         services = new ServiceCollection()
             .AddSingleton<ISettingsStore>(store)
             .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
+            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
             .AddUseCases()
             .AddUi()
             .AddSingleton(new CustomSettingsSection(SettingCategories.AiModels, "Setting_Theme", () => new FakeSectionViewModel()) { Order = 50 })

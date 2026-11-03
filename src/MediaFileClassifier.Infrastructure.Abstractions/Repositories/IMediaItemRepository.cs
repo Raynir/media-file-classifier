@@ -11,6 +11,12 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 public interface IMediaItemRepository
 {
     /// <summary>
+    /// Raised after items were added, changed or deleted, e.g. so the media browser reloads (E14-S01-T02). It's
+    /// raised on the writing thread, once per write or batch.
+    /// </summary>
+    event EventHandler? Changed;
+
+    /// <summary>
     /// Gets an item.
     /// </summary>
     /// <param name="id">Item ID.</param>
@@ -116,6 +122,25 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The items.</returns>
     Task<IReadOnlyList<MediaItem>> GetPageAsync(int offset, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a page of tile summaries, newest first (E14-S01-T02). Newest means the latest ID, which follows the time
+    /// the item was added (UUIDv7).
+    /// </summary>
+    /// <param name="offset">Number of items to skip.</param>
+    /// <param name="limit">Maximum number of items to return.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The summaries.</returns>
+    Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(int offset, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the items added after an item, which is its position in the newest-first order of
+    /// <see cref="GetSummariesAsync"/>. It still works after the item was deleted.
+    /// </summary>
+    /// <param name="id">Item ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of newer items.</returns>
+    Task<int> CountNewerAsync(Id<MediaItem> id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Counts the items.

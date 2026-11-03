@@ -1,16 +1,20 @@
+using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Shortcuts;
 using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
+using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.Ui.Views.Browser;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.UseCases.Settings;
@@ -36,6 +40,7 @@ public static class UiModule
             .Register<QuitConfirmationViewModel, QuitConfirmationView>()
             .Register<WelcomeViewModel, WelcomeView>()
             .Register<CreateLibraryViewModel, CreateLibraryView>()
+            .Register<ThumbnailGridViewModel, ThumbnailGridView>()
             .Register<IndexedFoldersViewModel, IndexedFoldersView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
@@ -69,6 +74,14 @@ public static class UiModule
         services.AddSingleton<LibraryShell>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
 
+        // Media browser (E14-S01).
+        services.AddSingleton<ThumbnailBitmapCache>();
+        services.AddSingleton<ThumbnailLoader>();
+        services.TryAddSingleton<IItemOpener, DefaultAppItemOpener>();
+        services.AddSingleton<ThumbnailGridViewModel>();
+        services.AddSingleton<Func<ThumbnailGridViewModel>>(provider => provider.GetRequiredService<ThumbnailGridViewModel>);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, BrowserCommands>());
+
         // Shortcuts (E16-S01): one keymap, bound to physical keys.
         services.AddSingleton<ShortcutReferenceState>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ShortcutCommands>());
@@ -79,6 +92,10 @@ public static class UiModule
 
         // Status bar (E13-S04). Features add segments through IStatusBarContributor.
         services.AddSingleton<StatusBarViewModel>();
+
+        // Processing indicator (E05-S02).
+        services.AddSingleton<ProgressFeed>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingStatusSegment>());
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

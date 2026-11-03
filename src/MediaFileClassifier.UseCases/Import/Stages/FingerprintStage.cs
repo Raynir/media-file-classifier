@@ -34,6 +34,13 @@ public sealed class FingerprintStage(IMediaHasher hasher, TimeProvider clock, IL
             await context.Library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
         }
 
+        // Run again after an interruption that came after the next stage was queued: it's queued once.
+        var queued = await context.Library.Jobs.GetQueuedForItemsAsync([item.Id], cancellationToken).ConfigureAwait(false);
+        if (queued.Any(workItem => workItem.JobId == context.WorkItem.JobId && workItem.Stage == ImportStages.Media))
+        {
+            return;
+        }
+
         await context.Scheduler.EnqueueWorkAsync(context.WorkItem.JobId, [new WorkItemRequest(ImportStages.Media, item.Id)], cancellationToken).ConfigureAwait(false);
     }
 }

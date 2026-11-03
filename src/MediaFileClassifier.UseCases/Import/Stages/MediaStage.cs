@@ -26,7 +26,7 @@ namespace MediaFileClassifier.UseCases.Import.Stages;
 /// <param name="publisher">Publishes <see cref="MediaItemRegistered"/>.</param>
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
-public sealed class MediaStage(
+public sealed partial class MediaStage(
     IMediaFileSource files,
     IMediaFormatRegistry formats,
     IThumbnailCache thumbnails,
@@ -82,8 +82,19 @@ public sealed class MediaStage(
         item.ChangeStatus(MediaItemStatus.Pending, Clock.GetUtcNow());
         await context.Library.Items.UpdateAsync(item, metadata, cancellationToken).ConfigureAwait(false);
 
-        // Stored: from here on the item is imported, and it isn't marked as failed if what follows is cancelled.
-        await publisher.Publish(new MediaItemRegistered(item.Id, item.FolderId), CancellationToken.None).ConfigureAwait(false);
-        await hashJobs.EnqueueAsync(context.Scheduler, folder, [item.Id], CancellationToken.None).ConfigureAwait(false);
+        // Stored: from here on the item is imported, so nothing that follows marks it as failed. An item whose full hash
+        // isn't queued is still found by IMediaItemRepository.GetWithoutContentHashAsync.
+        try
+        {
+            await publisher.Publish(new MediaItemRegistered(item.Id, item.FolderId), CancellationToken.None).ConfigureAwait(false);
+            await hashJobs.EnqueueAsync(context.Scheduler, folder, [item.Id], CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            LogAfterRegistrationFailed(exception, item.Path.Value);
+        }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Path} is imported, but announcing it or queueing its full hash failed")]
+    private partial void LogAfterRegistrationFailed(Exception exception, string path);
 }

@@ -66,4 +66,15 @@ $env:MFC_IMPORT_BENCHMARK_DIR = "D:\bench"
 dotnet test --project tests/MediaFileClassifier.Infrastructure.Tests -- --filter-class "*ImportBenchmarkTests"
 ```
 
-BENCHMARK_RESULTS
+Measured on 2026-11-03 on a Windows 11 laptop (Intel Core i7-14700HX, 28 logical cores, NVMe SSD), Debug build, Microsoft Defender on, the photos (125 KB each) in the OS file cache. "Registered" is the time until every item is Pending; full hashing finished within the same 50 ms polling step each time, because it runs on the I/O pool while the CPU pool works.
+
+| CPU pool | Registered | Files/s |
+|---------:|-----------:|--------:|
+| 1 | 87.7 s | 23 |
+| 2 | 54.2 s | 37 |
+| 4 | 32.6 s | 61 |
+| 8 (the default cap) | 19.2 s | 104 |
+
+- **Where the time goes:** `import.media` takes about 43 ms a photo on one core, most of it the two thumbnails (`docs/thumbnails.md`). Discovery and fingerprints are a few seconds of the total.
+- **Scaling:** 4.5 times faster on 8 workers than on 1. The serialized writer is the likely limit (not profiled): each item costs about eight writes before the hash stage: start and finish of two work items, queueing each next stage, the fingerprint, and the item with its metadata.
+- **10k files** at the default settings take about 1.6 minutes at this rate. Videos are slower: their thumbnails start FFmpeg up to four times.

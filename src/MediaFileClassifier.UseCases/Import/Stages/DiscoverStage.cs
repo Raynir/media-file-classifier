@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
@@ -55,6 +56,12 @@ public sealed partial class DiscoverStage(IFolderDiscovery discovery, TimeProvid
             folder.MarkOffline(clock.GetUtcNow());
             await library.Folders.UpdateAsync(folder, CancellationToken.None).ConfigureAwait(false);
             throw;
+        }
+
+        if (folder.Status == FolderStatus.Offline)
+        {
+            folder.MarkOnline(clock.GetUtcNow());
+            await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
         }
 
         var queued = (await library.Jobs.GetWorkItemsAsync(jobId, cancellationToken).ConfigureAwait(false))

@@ -15,7 +15,7 @@ namespace MediaFileClassifier.UseCases.Import.Stages;
 /// <param name="hasher">Computes the hashes.</param>
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
-public sealed partial class ContentHashStage(IMediaHasher hasher, TimeProvider clock, ILogger<ContentHashStage> logger) : ItemStage(clock, logger)
+public sealed class ContentHashStage(IMediaHasher hasher, TimeProvider clock, ILogger<ContentHashStage> logger) : ItemStage(clock, logger)
 {
     /// <inheritdoc />
     public override string Stage => ImportStages.ContentHash;
@@ -31,7 +31,7 @@ public sealed partial class ContentHashStage(IMediaHasher hasher, TimeProvider c
 
         // An item that failed here before is retried; one that failed in another stage isn't hashed.
         var retried = item.Status == MediaItemStatus.Error && item.Error?.Stage == Stage;
-        if ((item.Hashes.ContentHash is not null && !retried) || (item.Status == MediaItemStatus.Error && !retried))
+        if (!retried && (item.Hashes.ContentHash is not null || item.Status == MediaItemStatus.Error))
         {
             return;
         }
@@ -46,14 +46,5 @@ public sealed partial class ContentHashStage(IMediaHasher hasher, TimeProvider c
         }
 
         await context.Library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
-
-        var copies = await context.Library.Items.FindByContentHashAsync(hashes.ContentHash!.Value, CancellationToken.None).ConfigureAwait(false);
-        if (copies.Count > 1)
-        {
-            LogDuplicate(item.Path.Value, copies.Count - 1);
-        }
     }
-
-    [LoggerMessage(Level = LogLevel.Debug, Message = "{Path} has the same content as {Copies} other item(s): an exact duplicate candidate")]
-    private partial void LogDuplicate(string path, int copies);
 }

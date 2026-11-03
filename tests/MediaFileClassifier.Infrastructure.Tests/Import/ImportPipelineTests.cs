@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
 using MediaFileClassifier.Testing.Media;
@@ -101,13 +102,18 @@ public sealed class ImportPipelineTests : IAsyncLifetime
     public async Task Import_WhileOneIsUnfinished_IsNotQueuedTwice()
     {
         bed.WriteDistinctPhotos(5);
-        bed.Jobs.Current!.SetPoolLimit(Domain.Jobs.ResourcePool.Io, 1);
         await bed.ImportAsync();
 
+        // Reopened with processing paused, so the first import is certainly still unfinished.
+        bed.Settings.Current = bed.Settings.Current with { Processing = bed.Settings.Current.Processing with { ResumeOnOpen = ResumeMode.Ask } };
+        await bed.RestartAsync();
         var started = await bed.Sender.Send(new UseCases.Import.ImportFolders.ImportFoldersCommand([bed.Folder.Id]), Token);
 
+        Assert.True(bed.Jobs.Current!.IsPaused);
         Assert.Empty(started);
+        bed.Jobs.Current.Resume();
         await bed.WaitUntilIdleAsync();
+        Assert.Equal(5, (await bed.ItemsAsync()).Count);
     }
 
     [Fact]

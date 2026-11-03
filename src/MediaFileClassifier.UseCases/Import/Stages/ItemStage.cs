@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.UseCases.Libraries;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.UseCases.Import.Stages;
@@ -80,8 +81,8 @@ public abstract partial class ItemStage(TimeProvider clock, ILogger logger) : IS
         var library = context.Library;
         var item = await library.Items.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
 
-        // Removed, excluded or gone since the work was queued: there's nothing to do.
-        if (item is null || item.Status is MediaItemStatus.Missing or MediaItemStatus.Excluded)
+        // Removed or gone since the work was queued: there's nothing to do.
+        if (item is null || item.Status is MediaItemStatus.Missing)
         {
             return;
         }
@@ -90,6 +91,13 @@ public abstract partial class ItemStage(TimeProvider clock, ILogger logger) : IS
         {
             var folder = await library.Folders.GetAsync(item.FolderId, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The item's folder isn't in the library.");
+
+            // An excluded item is imported again only once its folder's rules include it (E02-S03-T03).
+            if (item.Status == MediaItemStatus.Excluded && !IndexedFolders.IsBackInRules(item, new FolderRuleMatcher(folder.Rules)))
+            {
+                return;
+            }
+
             await ProcessAsync(context, item, folder, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)

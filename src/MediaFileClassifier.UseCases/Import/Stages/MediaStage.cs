@@ -48,8 +48,9 @@ public sealed partial class MediaStage(
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(folder);
 
-        // Registered already, e.g. the work item ran again after an interruption.
-        if (item.Status is not (MediaItemStatus.Discovered or MediaItemStatus.Error))
+        // Registered already, e.g. the work item ran again after an interruption. An excluded item that reaches this
+        // stage is back in its folder's rules, and gets its thumbnails again.
+        if (item.Status is not (MediaItemStatus.Discovered or MediaItemStatus.Error or MediaItemStatus.Excluded))
         {
             return;
         }

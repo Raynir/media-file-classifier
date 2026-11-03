@@ -31,6 +31,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(1);
 
     private readonly IReadOnlyDictionary<string, IStageHandler> handlers;
+    private readonly JobProgressTracker progress;
     private readonly TimeProvider clock;
     private readonly ILogger logger;
     private readonly Lock gate = new();
@@ -51,17 +52,20 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// <param name="library">The open library.</param>
     /// <param name="handlers">The registered stage handlers.</param>
     /// <param name="limits">Concurrency limit of each pool.</param>
+    /// <param name="progress">The progress counters, kept up to date as work is added and finishes.</param>
     /// <param name="clock">Clock.</param>
     /// <param name="logger">Logger.</param>
     public JobScheduler(
         IOpenLibrary library,
         IEnumerable<IStageHandler> handlers,
         IReadOnlyDictionary<ResourcePool, int> limits,
+        JobProgressTracker progress,
         TimeProvider clock,
         ILogger logger)
     {
         Library = library;
         this.handlers = handlers.ToDictionary(handler => handler.Stage, StringComparer.Ordinal);
+        this.progress = progress;
         this.clock = clock;
         this.logger = logger;
         pools = Enum.GetValues<ResourcePool>().ToDictionary(pool => pool, pool => new PoolState(Math.Max(1, limits.GetValueOrDefault(pool, 1))));
@@ -100,7 +104,20 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             Priority = (int)request.Priority,
             CreatedAt = now,
         };
-        await Library.Jobs.AddJobAsync(job, CreateWorkItems(job.Id, job.Priority, request.WorkItems, now), cancellationToken).ConfigureAwait(false);
+        var workItems = CreateWorkItems(job.Id, job.Priority, request.WorkItems, now);
+
+        // Counted first, so a work item can't finish before its job is tracked.
+        progress.AddWork(job, workItems);
+        try
+        {
+            await Library.Jobs.AddJobAsync(job, workItems, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            progress.RemoveWork(job.Id, workItems);
+            throw;
+        }
+
         OnNewWork();
         return job.Id;
     }
@@ -117,7 +134,21 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         }
 
         var now = clock.GetUtcNow();
-        var added = await Library.Jobs.AddWorkItemsAsync(jobId, CreateWorkItems(jobId, job.Priority, workItems, now), now, cancellationToken).ConfigureAwait(false);
+        var created = CreateWorkItems(jobId, job.Priority, workItems, now);
+        progress.AddWork(job, created);
+        var added = false;
+        try
+        {
+            added = await Library.Jobs.AddWorkItemsAsync(jobId, created, now, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (!added)
+            {
+                progress.RemoveWork(jobId, created);
+            }
+        }
+
         if (added)
         {
             OnNewWork();
@@ -156,6 +187,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         {
             return false;
         }
+
+        progress.RemoveJob(jobId);
 
         lock (gate)
         {
@@ -494,7 +527,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             }
 
             var finished = await HandleAsync(workItem, cancellation.Token).ConfigureAwait(false);
-            await Library.Jobs.FinishAsync(finished, clock.GetUtcNow(), CancellationToken.None).ConfigureAwait(false);
+            var job = await Library.Jobs.FinishAsync(finished, clock.GetUtcNow(), CancellationToken.None).ConfigureAwait(false);
+            progress.Finished(finished, job);
         }
         catch (Exception exception)
         {

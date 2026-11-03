@@ -34,6 +34,7 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
             .AddSingleton<Platform.ICapabilityGate>(new Commands.FakeCapabilityGate())
             .AddInfrastructure()
             .AddDataAccess()
+            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
             .AddUseCases()
             .AddUi()
             .BuildServiceProvider();

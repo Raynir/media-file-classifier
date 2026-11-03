@@ -21,6 +21,7 @@ public sealed class SettingsSearchAndResetTests : IDisposable
         services = new ServiceCollection()
             .AddSingleton<ISettingsStore>(store)
             .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
+            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
             .AddUseCases()
             .AddUi()
             .BuildServiceProvider();

@@ -20,6 +20,8 @@ public sealed class JobSystemTests : IAsyncLifetime
     private LibraryTestBed bed = null!;
     private JobSystem? system;
 
+    private JobProgressTracker Progress { get; } = new(TimeProvider.System);
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync() => bed = await LibraryTestBed.CreateAsync();
@@ -142,6 +144,28 @@ public sealed class JobSystemTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task StartAsync_SeedsTheProgressFromTheLibrary_AndStopAsyncClearsIt()
+    {
+        var job = new ProcessingJob { Id = Id<ProcessingJob>.New(), Type = "import", Description = "Import", Priority = (int)JobPriority.Import, CreatedAt = LibraryTestBed.Start };
+        var items = Enumerable.Range(0, 5).Select(i => WorkItem.Create(job.Id, null, "stage", ResourcePool.Cpu, job.Priority, null, LibraryTestBed.Start)).ToList();
+        await bed.Library.Jobs.AddJobAsync(job, items, Token);
+        var done = await bed.Library.Jobs.StartAsync(items[0], LibraryTestBed.Start, Token);
+        await bed.Library.Jobs.FinishAsync(done!.ChangeState(WorkItemState.Completed, LibraryTestBed.Start), LibraryTestBed.Start, Token);
+        settings.Current = new AppSettings { Processing = new ProcessingSettings { ResumeOnOpen = ResumeMode.Ask } };
+
+        system = CreateSystem(new TestStageHandler("stage", ResourcePool.Cpu));
+        await system.StartAsync(bed.Library, Token);
+
+        var progress = Assert.Single(Progress.Current.Jobs);
+        Assert.Equal(job.Id, progress.JobId);
+        Assert.Equal(new StageProgress("stage", 5, 1, 0, true), Assert.Single(progress.Stages));
+
+        await system.StopAsync();
+
+        Assert.Same(ProgressSummary.Empty, Progress.Current);
+    }
+
+    [Fact]
     public void GetPoolLimits_UsesSettingsOrDefaults()
     {
         var hardware = new TestHardware(6);
@@ -158,7 +182,7 @@ public sealed class JobSystemTests : IAsyncLifetime
     }
 
     private JobSystem CreateSystem(params IStageHandler[] handlers) =>
-        new(handlers, settings, new TestHardware(2), TimeProvider.System, NullLogger<JobSystem>.Instance);
+        new(handlers, settings, new TestHardware(2), Progress, TimeProvider.System, NullLogger<JobSystem>.Instance);
 
     private sealed class TestSettings : ISettingsService
     {

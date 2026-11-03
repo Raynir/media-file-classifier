@@ -4,7 +4,7 @@ How the app imports an indexed folder (E03-S07): it finds the files, fingerprint
 
 ## Jobs and stages
 
-Adding folders to a library (`AddLibraryFoldersCommand`) sends `ImportFoldersCommand`, which queues one `import` job per folder. A folder whose import is still unfinished isn't queued again.
+Adding folders to a library (`AddLibraryFoldersCommand`, `docs/indexed-folders.md`) sends `ImportFoldersCommand`, which queues one `import` job per folder. A folder whose import is still unfinished, or that's being removed, isn't queued again, and a folder that can't be reached is marked Offline instead of being queued.
 
 | Stage | Pool | Per | Job | What it does |
 |-------|------|-----|-----|--------------|
@@ -45,7 +45,7 @@ What happens to each problem file in the sample corpus:
 | `audio-only.mp4` (no video track) | Not registered: skipped as unsupported (`NoVideoTrack`) |
 | A file locked when discovery reads it | Not registered: counted as unreadable; the next import finds it again |
 | A file locked later | Error in its stage, transient; a retry succeeds once it's unlocked |
-| A missing folder | The job fails and the folder is marked offline |
+| A missing folder | Not queued: the folder is marked Offline (a folder that goes missing during its import fails the job and is marked Offline too) |
 
 ## Resume, cancel and re-import
 

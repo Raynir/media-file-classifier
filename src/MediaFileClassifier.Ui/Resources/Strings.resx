@@ -577,4 +577,26 @@
   <data name="Stage_hash.content" xml:space="preserve">
     <value>Hashing</value>
   </data>
+  <data name="StatusBar_Items_One" xml:space="preserve">
+    <value>{0} item</value>
+    <comment>Status bar result count when there is one result. {0} is the number.</comment>
+  </data>
+  <data name="StatusBar_Items_Other" xml:space="preserve">
+    <value>{0} items</value>
+    <comment>Status bar result count. {0} is the number.</comment>
+  </data>
+  <data name="StatusBar_Items_ToolTip" xml:space="preserve">
+    <value>Items in this view</value>
+  </data>
+  <data name="StatusBar_FoldersOffline_One" xml:space="preserve">
+    <value>{0} folder offline</value>
+    <comment>Status bar notice when one indexed folder can't be reached. {0} is the number.</comment>
+  </data>
+  <data name="StatusBar_FoldersOffline_Other" xml:space="preserve">
+    <value>{0} folders offline</value>
+    <comment>Status bar notice when several indexed folders can't be reached. {0} is the number.</comment>
+  </data>
+  <data name="StatusBar_FoldersOffline_ToolTip" xml:space="preserve">
+    <value>Some indexed folders can't be reached. Their items stay in the library.</value>
+  </data>
 </root>

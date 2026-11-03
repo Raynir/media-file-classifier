@@ -18,6 +18,8 @@ public static class JobsModule
     {
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IJobSystem, JobSystem>();
+        services.TryAddSingleton<JobProgressTracker>();
+        services.TryAddSingleton<IJobProgress>(provider => provider.GetRequiredService<JobProgressTracker>());
         return services;
     }
 }

@@ -80,6 +80,9 @@ public static class UiModule
         services.AddSingleton<ThumbnailGridViewModel>();
         services.AddSingleton<Func<ThumbnailGridViewModel>>(provider => provider.GetRequiredService<ThumbnailGridViewModel>);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, BrowserCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ItemCommands>());
+        services.TryAddSingleton<ITextClipboard, AvaloniaTextClipboard>();
+        services.AddSingleton<BrowserContextMenu>();
 
         // Shortcuts (E16-S01): one keymap, bound to physical keys.
         services.AddSingleton<ShortcutReferenceState>();

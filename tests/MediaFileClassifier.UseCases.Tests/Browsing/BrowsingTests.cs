@@ -107,6 +107,29 @@ public sealed class BrowsingTests : IDisposable
         Assert.Null(await Sender.Send(new GetItemFilePathQuery(Domain.Identity.Id<MediaItem>.New()), Token));
     }
 
+    [Fact]
+    public async Task ItemLocations_GiveThePathAndAvailability_InTheOrderAsked()
+    {
+        var library = await OpenLibraryWithItemsAsync(3);
+        var items = library.ItemList.Items;
+        items[1].ChangeStatus(MediaItemStatus.Missing, Now);
+        var drive = IndexedFolder.Create(library.Library.Id, @"E:\Trip", @"E:\Trip", Now);
+        drive.MarkOffline(Now);
+        library.FolderList.Folders.Add(drive);
+        var away = MediaItem.Discover(drive.Id, RelativePath.From("beach.jpg"), MediaType.Image, 100, Now, Now, null, Now);
+        library.ItemList.Items.Add(away);
+
+        var locations = await Sender.Send(
+            new GetItemLocationsQuery([away.Id, items[1].Id, Domain.Identity.Id<MediaItem>.New(), items[0].Id]), Token);
+
+        Assert.Equal([away.Id, items[1].Id, items[0].Id], locations.Select(location => location.ItemId));
+        Assert.Equal(
+            [ItemAvailability.Offline, ItemAvailability.Missing, ItemAvailability.Available],
+            locations.Select(location => location.Availability));
+        Assert.Equal(Path.Combine(@"D:\Photos", "album", "IMG_0.jpg"), locations[2].FullPath);
+        Assert.Equal((@"E:\Trip", "beach.jpg", @"E:\Trip"), (locations[0].Location.Folder.Id, locations[0].Location.RelativePath, locations[0].FolderName));
+    }
+
     private async Task<FakeOpenLibrary> OpenLibraryWithItemsAsync(int count)
     {
         var library = new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "browse"), "browse");

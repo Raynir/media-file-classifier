@@ -1,0 +1,213 @@
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Ui.Browser;
+using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Tests.Commands;
+using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediaFileClassifier.UseCases.Browsing.Selection;
+using MediatR;
+
+namespace MediaFileClassifier.Ui.Tests.Browser;
+
+/// <summary>
+/// Tests for the media browser's context menu and its item commands (E14-S04): only applicable entries, disabled
+/// entries with a reason for missing and offline files (D025), and Open, Reveal and Copy file path.
+/// </summary>
+public sealed class ItemCommandsTests
+{
+    [Fact]
+    public async Task Menu_WithNothingSelected_IsEmpty()
+    {
+        var bed = new Bed(10);
+
+        await bed.Selection.ApplyAsync(2, SelectionGesture.FocusOnly);
+
+        Assert.Empty(bed.Menu.Build());
+    }
+
+    [Fact]
+    public async Task Menu_ForAnAvailableItem_OffersOpenRevealAndCopy_InBands()
+    {
+        var bed = new Bed(10);
+
+        await bed.SelectAsync(2);
+
+        var entries = bed.Menu.Build();
+        Assert.Equal(
+            [ItemCommands.OpenInDefaultApp, ItemCommands.Reveal, "-", ItemCommands.CopyPath],
+            entries.Select(entry => (entry as AppCommand)?.Id ?? "-"));
+        Assert.All(entries.OfType<AppCommand>(), command => Assert.True(command.IsEnabled));
+    }
+
+    [Theory]
+    [InlineData(ItemAvailability.Missing, "The file is missing from its folder.")]
+    [InlineData(ItemAvailability.Offline, "The folder Photos is offline. Connect the drive to use the file.")]
+    public async Task Menu_ForAnUnavailableFile_DisablesOpenAndReveal_WithTheReason(ItemAvailability availability, string reason)
+    {
+        var bed = new Bed(10);
+        bed.Availability[bed.Source.Ids[3]] = availability;
+
+        await bed.SelectAsync(3);
+
+        var commands = bed.Menu.Build().OfType<AppCommand>().ToDictionary(command => command.Id);
+        Assert.Equal((false, reason), (commands[ItemCommands.OpenInDefaultApp].IsEnabled, commands[ItemCommands.OpenInDefaultApp].DisabledReason));
+        Assert.Equal((false, reason), (commands[ItemCommands.Reveal].IsEnabled, commands[ItemCommands.Reveal].ToolTip));
+        Assert.True(commands[ItemCommands.CopyPath].IsEnabled);
+    }
+
+    [Fact]
+    public async Task Menu_WhereFilesCantBeRevealed_LeavesRevealOut()
+    {
+        var bed = new Bed(10, canReveal: false);
+
+        await bed.SelectAsync(1);
+
+        Assert.DoesNotContain(bed.Menu.Build().OfType<AppCommand>(), command => command.Id == ItemCommands.Reveal);
+    }
+
+    [Fact]
+    public async Task OpenAndReveal_ActOnTheFocusedItem_AndSkipUnavailableFiles()
+    {
+        var bed = new Bed(10);
+        await bed.SelectAsync(1);
+        await bed.Selection.ApplyAsync(4, SelectionGesture.AddRange);
+
+        await bed.Registry[ItemCommands.OpenInDefaultApp].ExecuteAsync();
+        await bed.Registry[ItemCommands.Reveal].ExecuteAsync();
+        bed.Availability[bed.Source.Ids[4]] = ItemAvailability.Missing;
+        await bed.Registry[ItemCommands.OpenInDefaultApp].ExecuteAsync();
+
+        Assert.Equal([$"IMG_{4}.jpg"], bed.Platform.Opened);
+        Assert.Equal([$"IMG_{4}.jpg"], bed.Platform.Revealed);
+    }
+
+    [Fact]
+    public async Task CopyPath_CopiesEverySelectedPath_OnePerLine()
+    {
+        var bed = new Bed(10);
+        await bed.SelectAsync(1);
+        await bed.Selection.ApplyAsync(3, SelectionGesture.Range);
+
+        await bed.Registry[ItemCommands.CopyPath].ExecuteAsync();
+
+        var lines = bed.Clipboard.Text!.Split(Environment.NewLine);
+        Assert.Equal(
+            new[] { 1, 2, 3 }.Select(index => Path.Combine(@"D:\Photos", $"IMG_{index}.jpg")).Order(),
+            lines.Order());
+    }
+
+    /// <summary>
+    /// A selection over fake results, with the item commands and the context menu around it.
+    /// </summary>
+    private sealed class Bed
+    {
+        public Bed(int count, bool canReveal = true)
+        {
+            Source = new FakeResultSource(count);
+            Selection = new SelectionModel(() => Source);
+            Selection.KnownId = index => index >= 0 && index < Source.Ids.Count ? Source.Ids[index] : null;
+            Selection.Reset(count);
+            Platform = new RecordingPlatform(canReveal);
+            Commands = new ItemCommands(Selection, new LocationSender(this), Platform, Clipboard, Localizer.Current);
+            Registry = new CommandRegistry([Commands], Localizer.Current, new FakeCapabilityGate());
+            Menu = new BrowserContextMenu(Registry, Localizer.Current);
+        }
+
+        public FakeResultSource Source { get; }
+
+        public SelectionModel Selection { get; }
+
+        public RecordingPlatform Platform { get; }
+
+        public RecordingClipboard Clipboard { get; } = new();
+
+        public ItemCommands Commands { get; }
+
+        public CommandRegistry Registry { get; }
+
+        public BrowserContextMenu Menu { get; }
+
+        public Dictionary<Id<MediaItem>, ItemAvailability> Availability { get; } = [];
+
+        public async Task SelectAsync(int index)
+        {
+            await Selection.ApplyAsync(index, SelectionGesture.Replace);
+            await Commands.Loading;
+        }
+
+        public ItemLocation Locate(Id<MediaItem> id)
+        {
+            var index = Source.Ids.ToList().IndexOf(id);
+            return new ItemLocation(
+                id,
+                new FileLocation(new FolderHandle(@"D:\Photos", "Photos"), $"IMG_{index}.jpg"),
+                Path.Combine(@"D:\Photos", $"IMG_{index}.jpg"),
+                "Photos",
+                Availability.GetValueOrDefault(id));
+        }
+
+        public IReadOnlyList<Id<MediaItem>> Resolve(ItemSelection selection) => [.. Source.Ids.Where(selection.Contains)];
+    }
+
+    private sealed class LocationSender(Bed bed) : ISender
+    {
+        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) => request switch
+        {
+            GetItemLocationsQuery query => Task.FromResult((TResponse)(object)query.ItemIds.Select(bed.Locate).ToList()),
+            ResolveItemSelectionQuery query => Task.FromResult((TResponse)bed.Resolve(query.Selection)),
+            _ => throw new NotSupportedException(),
+        };
+
+        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
+            where TRequest : IRequest => throw new NotSupportedException();
+
+        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private sealed class RecordingPlatform(bool canReveal) : IPlatformServices
+    {
+        public List<string> Opened { get; } = [];
+
+        public List<string> Revealed { get; } = [];
+
+        public IAppPaths Paths => throw new NotSupportedException();
+
+        public bool CanRevealInFileExplorer => canReveal;
+
+        public Task<FolderHandle?> PickFolderAsync(string title, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<FileLocation>> PickFilesAsync(FilePickerRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task RevealInFileExplorerAsync(FileLocation location, CancellationToken cancellationToken = default)
+        {
+            Revealed.Add(location.RelativePath);
+            return Task.CompletedTask;
+        }
+
+        public Task OpenWithDefaultAppAsync(FileLocation location, CancellationToken cancellationToken = default)
+        {
+            Opened.Add(location.RelativePath);
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class RecordingClipboard : ITextClipboard
+    {
+        public string? Text { get; private set; }
+
+        public Task SetTextAsync(string text)
+        {
+            Text = text;
+            return Task.CompletedTask;
+        }
+    }
+}

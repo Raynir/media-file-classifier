@@ -30,6 +30,11 @@ public static class DefaultKeymap
         Bind(BrowserCommands.SelectAll, PhysicalKey.A, KeyModifiers.Control, ShortcutScopes.Browser),
         Bind(BrowserCommands.SelectNone, PhysicalKey.Escape, scope: ShortcutScopes.Browser),
 
+        // Item commands (E14-S04): Ctrl+O anywhere (E16-S02); Copy file path as in File Explorer.
+        Bind(ItemCommands.OpenInDefaultApp, PhysicalKey.O, KeyModifiers.Control),
+        Bind(ItemCommands.Reveal, PhysicalKey.R, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
+        Bind(ItemCommands.CopyPath, PhysicalKey.C, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
+
         // Tools (E17-S01)
         Bind(SettingsCommands.OpenSettings, PhysicalKey.Comma, KeyModifiers.Control),
 

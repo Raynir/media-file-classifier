@@ -95,6 +95,20 @@ public sealed class MediaItemSummaryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetPathsAsync_ReadsFolderPathAndStatus_OfExistingItems()
+    {
+        var items = Enumerable.Range(0, 3).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(items, Token);
+
+        var paths = await bed.Library.Items.GetPathsAsync([items[2].Id, items[0].Id, bed.NewItem(9).Id], Token);
+
+        Assert.Equal(
+            new[] { items[0], items[2] }.Select(item => (item.Id, item.FolderId, item.Path, item.Status)).OrderBy(row => row.Id.Value),
+            paths.Select(path => (path.Id, path.FolderId, path.Path, path.Status)).OrderBy(row => row.Id.Value));
+        Assert.Empty(await bed.Library.Items.GetPathsAsync([], Token));
+    }
+
+    [Fact]
     public async Task CountNewerAsync_IsThePositionInNewestFirstOrder()
     {
         var items = Enumerable.Range(0, 10).Select(bed.NewItem).ToList();

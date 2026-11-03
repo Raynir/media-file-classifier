@@ -526,6 +526,21 @@
   <data name="Command_OpenItem" xml:space="preserve">
     <value>Open</value>
   </data>
+  <data name="Command_OpenInDefaultApp" xml:space="preserve">
+    <value>Open in default _app</value>
+  </data>
+  <data name="Command_RevealInExplorer" xml:space="preserve">
+    <value>Reveal in File _Explorer</value>
+  </data>
+  <data name="Command_CopyPath" xml:space="preserve">
+    <value>Copy file _path</value>
+  </data>
+  <data name="Item_Unavailable_Missing" xml:space="preserve">
+    <value>The file is missing from its folder.</value>
+  </data>
+  <data name="Item_Unavailable_Offline" xml:space="preserve">
+    <value>The folder {0} is offline. Connect the drive to use the file.</value>
+  </data>
   <data name="Command_SelectAll" xml:space="preserve">
     <value>Select _all</value>
   </data>

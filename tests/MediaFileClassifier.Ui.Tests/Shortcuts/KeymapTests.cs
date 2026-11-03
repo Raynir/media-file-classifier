@@ -26,6 +26,12 @@ public sealed class KeymapTests
                 new ShortcutCommands(new ShortcutReferenceState()),
                 new Contributor(new AppCommand(MediaFileClassifier.Ui.Settings.SettingsCommands.OpenSettings, CommandGroups.Tools, 100, "Command_Settings", () => Task.CompletedTask)),
                 new BrowserCommands(() => throw new InvalidOperationException("No grid in this test.")),
+                new ItemCommands(
+                    new SelectionModel(() => throw new InvalidOperationException("No results in this test.")),
+                    null!,
+                    new FakePlatformServices(),
+                    null!,
+                    localizer),
             ],
             localizer,
             new FakeCapabilityGate());

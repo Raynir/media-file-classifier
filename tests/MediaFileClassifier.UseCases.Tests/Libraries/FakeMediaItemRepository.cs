@@ -28,6 +28,15 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
     public Task<int> CountNewerAsync(Id<MediaItem> id, CancellationToken cancellationToken = default) =>
         Task.FromResult(Items.Count - 1 - Items.FindIndex(item => item.Id == id));
 
+    public Task<IReadOnlyList<Id<MediaItem>>> GetIdsAsync(int offset, int limit, Id<MediaItem>? newest = null, CancellationToken cancellationToken = default)
+    {
+        var start = newest is { } id ? Items.Count - 1 - Items.FindIndex(item => item.Id == id) : 0;
+        return Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. Enumerable.Reverse(Items).Skip(start + offset).Take(limit).Select(item => item.Id)]);
+    }
+
+    public Task<IReadOnlySet<Id<MediaItem>>> GetExistingIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlySet<Id<MediaItem>>>(Items.Select(item => item.Id).Where(ids.Contains).ToHashSet());
+
     public Task<int> CountAsync(CancellationToken cancellationToken = default) => Task.FromResult(Items.Count);
 
     public Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default) => throw new NotSupportedException();

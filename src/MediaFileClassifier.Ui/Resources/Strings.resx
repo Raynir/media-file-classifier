@@ -526,6 +526,24 @@
   <data name="Command_OpenItem" xml:space="preserve">
     <value>Open</value>
   </data>
+  <data name="Command_SelectAll" xml:space="preserve">
+    <value>Select _all</value>
+  </data>
+  <data name="Command_SelectNone" xml:space="preserve">
+    <value>Select _none</value>
+  </data>
+  <data name="Browser_Grid" xml:space="preserve">
+    <value>Media items</value>
+  </data>
+  <data name="StatusBar_Selected_One" xml:space="preserve">
+    <value>{0} selected</value>
+  </data>
+  <data name="StatusBar_Selected_Other" xml:space="preserve">
+    <value>{0} selected</value>
+  </data>
+  <data name="StatusBar_Selected_ToolTip" xml:space="preserve">
+    <value>Selected items. Esc deselects them.</value>
+  </data>
   <data name="Progress_Count" xml:space="preserve">
     <value>{0}: {1} of {2}</value>
     <comment>Processing indicator for one job. {0} is a stage name or job description, {1} the work items finished, {2} the total.</comment>

@@ -30,7 +30,8 @@ public sealed class M1StatusSegmentsTests
             new ThumbnailLoader(session, new FakeThumbnailCache(), new ThumbnailBitmapCache()),
             new FakeItemOpener(),
             new FakeJobSystem(),
-            new FakeTileSizeSender());
+            new FakeTileSizeSender(),
+            new SelectionModel(() => source));
         var statusBar = new StatusBarViewModel([new ResultCountStatusSegment(() => grid, session, Localizer.Current)]);
         var segment = Assert.Single(statusBar.Left);
         Assert.Equal(ResultCountStatusSegment.SegmentId, segment.Id);

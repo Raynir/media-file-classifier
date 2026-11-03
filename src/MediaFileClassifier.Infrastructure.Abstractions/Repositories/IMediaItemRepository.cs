@@ -119,6 +119,25 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(int offset, int limit, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets item IDs in the newest-first order of <see cref="GetSummariesAsync"/>, without loading the items
+    /// (E14-S03): for range selection and for resolving Select all.
+    /// </summary>
+    /// <param name="offset">Number of IDs to skip, counted from <paramref name="newest"/> when it's given.</param>
+    /// <param name="limit">Maximum number of IDs to return.</param>
+    /// <param name="newest">If given, only this item and older ones, so items added later are left out.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The IDs.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> GetIdsAsync(int offset, int limit, Id<MediaItem>? newest = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Finds which of the given items still exist (E14-S03), e.g. to keep a selection across a refresh.
+    /// </summary>
+    /// <param name="ids">The item IDs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The IDs that exist.</returns>
+    Task<IReadOnlySet<Id<MediaItem>>> GetExistingIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Counts the items added after an item, which is its position in the newest-first order of
     /// <see cref="GetSummariesAsync"/>. It still works after the item was deleted.
     /// </summary>

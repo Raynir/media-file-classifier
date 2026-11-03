@@ -44,6 +44,14 @@ public sealed class LibraryItemsSource : IMediaResultSource
     public Task<int> PositionOfAsync(Id<MediaItem> itemId, CancellationToken cancellationToken) =>
         sender.Send(new GetLibraryItemPositionQuery(itemId), cancellationToken);
 
+    /// <inheritdoc />
+    public Task<IReadOnlyList<Id<MediaItem>>> GetIdsAsync(int offset, int limit, Id<MediaItem>? newest, CancellationToken cancellationToken) =>
+        sender.Send(new GetLibraryItemIdsQuery(offset, limit, newest), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlySet<Id<MediaItem>>> GetExistingIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken) =>
+        sender.Send(new GetExistingLibraryItemsQuery(ids), cancellationToken);
+
     private void Watch()
     {
         lock (syncRoot)

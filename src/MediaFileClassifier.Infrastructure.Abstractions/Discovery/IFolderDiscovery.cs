@@ -1,4 +1,5 @@
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 
 namespace MediaFileClassifier.Infrastructure.Abstractions.Discovery;
@@ -16,6 +17,10 @@ public interface IFolderDiscovery
     /// <param name="library">The open library the folder belongs to.</param>
     /// <param name="folder">The folder to scan.</param>
     /// <param name="progress">Receives the counts after each listed folder and each written batch.</param>
+    /// <param name="registered">
+    /// Called with each batch of new items once it's written, before the scan goes on; the import pipeline queues their
+    /// next stage here (E03-S07).
+    /// </param>
     /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>
     /// <returns>What the scan found.</returns>
     /// <exception cref="DirectoryNotFoundException">The folder doesn't exist, e.g. its drive isn't connected.</exception>
@@ -23,5 +28,6 @@ public interface IFolderDiscovery
         IOpenLibrary library,
         IndexedFolder folder,
         IProgress<DiscoveryProgress>? progress = null,
+        Func<IReadOnlyList<MediaItem>, CancellationToken, Task>? registered = null,
         CancellationToken cancellationToken = default);
 }

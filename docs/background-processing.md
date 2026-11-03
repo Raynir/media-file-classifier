@@ -69,5 +69,5 @@ Whoever opens and closes libraries (E02) calls the `IJobSystem`:
 
 ## Not here yet
 
-- Progress, the processing panel, retries and pausing are E05-S02 to S05.
-- The import pipeline (E03-S07) and the maintenance commands (E02) are the first users of this API.
+- Progress, the processing panel, automatic retries and pausing are E05-S02 to S05.
+- The import pipeline (E03-S07, `docs/import-pipeline.md`) is the first user of this API; the maintenance commands (E02) come next.

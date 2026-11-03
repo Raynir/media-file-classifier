@@ -116,6 +116,12 @@ public sealed class MediaItem
 
     public DateTimeOffset StatusChangedAt { get; private set; }
 
+    /// <summary>
+    /// Gets the failed stage and the kind of failure while the status is <see cref="MediaItemStatus.Error"/> and the
+    /// failure came from processing (E03-S07-T02); otherwise <c>null</c>.
+    /// </summary>
+    public MediaItemError? Error { get; private set; }
+
     public ReviewStatus ReviewStatus { get; private set; }
 
     /// <summary>
@@ -192,6 +198,22 @@ public sealed class MediaItem
 
         Status = status;
         StatusReason = reason;
+        Error = null;
+    }
+
+    /// <summary>
+    /// Marks the item as failed in a processing stage.
+    /// </summary>
+    /// <param name="error">The stage that failed and the kind of failure.</param>
+    /// <param name="message">What went wrong, shown to the user.</param>
+    /// <param name="now">Current time.</param>
+    /// <exception cref="InvalidOperationException">The status can't change to <see cref="MediaItemStatus.Error"/>.</exception>
+    public void MarkFailed(MediaItemError error, string message, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+
+        ChangeStatus(MediaItemStatus.Error, now, message);
+        Error = error;
     }
 
     /// <summary>

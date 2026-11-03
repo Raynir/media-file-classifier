@@ -10,6 +10,7 @@
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.DataAccess/MediaFileClassifier.Infrastructure.DataAccess.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Jobs/MediaFileClassifier.Infrastructure.Jobs.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Media/MediaFileClassifier.Infrastructure.Media.csproj" />
+    <ProjectReference Include="../../src/MediaFileClassifier.UseCases/MediaFileClassifier.UseCases.csproj" />
     <ProjectReference Include="../MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="xunit.v3" />

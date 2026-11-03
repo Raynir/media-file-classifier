@@ -121,6 +121,17 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
     public Func<bool>? IsCheckedRule { get; init; }
 
     /// <summary>
+    /// Gets a rule that tells whether the command applies to the current context, e.g. the selection, or
+    /// <see langword="null"/> when it always does. Context menus leave out commands that don't apply (E14-S04).
+    /// </summary>
+    public Func<bool>? AppliesTo { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the command applies to the current context.
+    /// </summary>
+    public bool IsApplicable => AppliesTo?.Invoke() ?? true;
+
+    /// <summary>
     /// Gets how the command shows its checked state in menus.
     /// </summary>
     public MenuItemToggleType ToggleType { get; init; }

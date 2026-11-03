@@ -7,6 +7,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
+using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.ThumbnailTileSize;
 using MediatR;
@@ -57,6 +58,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     private readonly ISender sender;
     private readonly ResultPageCache pages;
     private readonly SelectionModel selection;
+    private readonly BrowserContextMenu? contextMenu;
     private readonly HashSet<ThumbnailRowViewModel> attached = [];
     private readonly DispatcherTimer refreshTimer;
     private readonly DispatcherTimer boostTimer;
@@ -80,8 +82,15 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <param name="jobs">The job system, for the visible-first boost.</param>
     /// <param name="sender">Sends the tile size requests.</param>
     /// <param name="selection">The selection.</param>
+    /// <param name="contextMenu">Builds the context menu, or <see langword="null"/> for none.</param>
     public ThumbnailGridViewModel(
-        IMediaResultSource source, ThumbnailLoader loader, IItemOpener opener, IJobSystem jobs, ISender sender, SelectionModel selection)
+        IMediaResultSource source,
+        ThumbnailLoader loader,
+        IItemOpener opener,
+        IJobSystem jobs,
+        ISender sender,
+        SelectionModel selection,
+        BrowserContextMenu? contextMenu = null)
     {
         this.source = source;
         this.loader = loader;
@@ -91,6 +100,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         pages = new ResultPageCache(source);
         pages.PageLoaded += (_, page) => OnPageLoaded(page);
         this.selection = selection;
+        this.contextMenu = contextMenu;
         selection.KnownId = index => pages.Get(index)?.Id;
         selection.Changed += (_, _) => UpdateTileStates();
         Rows = new ThumbnailRowList(CreateRow);
@@ -338,6 +348,12 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         BringIntoView(index);
         return selection.ApplyAsync(index, toggle ? SelectionGesture.Toggle : SelectionGesture.Replace);
     }
+
+    /// <summary>
+    /// Builds the context menu for the selection (E14-S04).
+    /// </summary>
+    /// <returns>The entries; empty when nothing applies.</returns>
+    public IReadOnlyList<IMenuEntry> BuildContextMenu() => contextMenu?.Build() ?? [];
 
     /// <summary>
     /// Selects all results, without loading them (E14-S03-T01).

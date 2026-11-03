@@ -33,6 +33,7 @@ public partial class ThumbnailGridView : UserControl
         Scroller.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         Scroller.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
         Scroller.LostFocus += (_, _) => viewModel?.IsFocusVisible = false;
+        Scroller.AddHandler(ContextRequestedEvent, OnContextRequested, RoutingStrategies.Tunnel);
     }
 
     /// <inheritdoc />
@@ -125,6 +126,22 @@ public partial class ThumbnailGridView : UserControl
         }
 
         Scroller.Focus(NavigationMethod.Pointer);
+        if (point.Properties.IsRightButtonPressed)
+        {
+            // As in Windows Explorer: an unselected tile becomes the selection, a selected one keeps it, and the
+            // space between tiles deselects, so the context menu then has nothing to show.
+            if (TileOf(e.Source) is { Index: >= 0 } target)
+            {
+                _ = viewModel.ClickAsync(target.Index, target.IsSelected ? SelectionGesture.FocusOnly : SelectionGesture.Replace);
+            }
+            else
+            {
+                viewModel.ClearSelection();
+            }
+
+            return;
+        }
+
         if (!point.Properties.IsLeftButtonPressed)
         {
             return;
@@ -150,6 +167,14 @@ public partial class ThumbnailGridView : UserControl
             viewModel.IsFocusVisible = false;
             viewModel.ClearSelection();
         }
+    }
+
+    private void OnContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        // Right-click or the Menu key: fill the menu before it opens, and keep it shut when nothing applies.
+        var entries = viewModel?.BuildContextMenu() ?? [];
+        ItemMenu.ItemsSource = entries;
+        e.Handled = entries.Count == 0;
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)

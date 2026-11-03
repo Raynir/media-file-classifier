@@ -35,7 +35,7 @@ public sealed class LibraryCommands(LibraryDialogs dialogs, LibraryOpener opener
             IconKey = "Icon.FolderOpen",
             IsVisible = LibraryDialogs.IsSupported,
         });
-        var folders = registry.Add(new AppCommand(ManageFolders, CommandGroups.Library, 120, "Command_ManageFolders", dialogs.ShowIndexedFoldersAsync)
+        var folders = registry.Add(new AppCommand(ManageFolders, CommandGroups.Library, 120, "Command_ManageFolders", () => dialogs.ShowIndexedFoldersAsync())
         {
             IconKey = "Icon.FolderOpen",
             IsVisible = LibraryDialogs.IsSupported,

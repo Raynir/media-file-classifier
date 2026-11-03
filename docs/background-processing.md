@@ -80,4 +80,4 @@ Producers report nothing: `IJobProgress` derives each job's progress from its wo
 ## Not here yet
 
 - The processing panel, retries and pausing are E05-S03 to S05.
-- The import pipeline (E03-S07) and the maintenance commands (E02) are the first users of this API.
+- The import pipeline (E03-S07, `docs/import-pipeline.md`) is the first user of this API; the maintenance commands (E02) come next.

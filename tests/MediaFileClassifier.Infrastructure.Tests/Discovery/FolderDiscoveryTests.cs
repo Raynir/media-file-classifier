@@ -106,7 +106,7 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
         var folder = await AddFolderAsync(new FolderRules());
         var progress = new RecordingProgress();
 
-        var result = await discovery.DiscoverAsync(bed.Library, folder, progress, Token);
+        var result = await discovery.DiscoverAsync(bed.Library, folder, progress, cancellationToken: Token);
 
         Assert.Equal(250, result.ItemsRegistered);
         Assert.Equal([100, 200, 250], progress.Reports.Select(report => report.ItemsRegistered).Distinct().Where(count => count > 0));
@@ -134,7 +134,7 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
             FlushInterval = TimeSpan.Zero,
         };
 
-        await eager.DiscoverAsync(bed.Library, folder, progress, Token);
+        await eager.DiscoverAsync(bed.Library, folder, progress, cancellationToken: Token);
 
         Assert.Equal([1, 2, 3], progress.Reports.Select(report => report.ItemsRegistered).Distinct().Where(count => count > 0));
     }
@@ -157,7 +157,7 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
             }
         });
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => discovery.DiscoverAsync(bed.Library, folder, progress, cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => discovery.DiscoverAsync(bed.Library, folder, progress, cancellationToken: cancellation.Token));
 
         Assert.Equal(100, await bed.Library.Items.CountAsync(Token));
     }

@@ -91,6 +91,7 @@ public sealed class StatusBarViewTests
             .AddSingleton<MediaFileClassifier.Infrastructure.Abstractions.Platform.IPlatformServices>(new FakePlatformServices())
             .AddSingleton<IStatusBarContributor>(segments)
             .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
+            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
             .AddUseCases()
             .AddUi()
             .BuildServiceProvider();

@@ -2,6 +2,7 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Shortcuts;
@@ -76,6 +77,10 @@ public static class UiModule
 
         // Status bar (E13-S04). Features add segments through IStatusBarContributor.
         services.AddSingleton<StatusBarViewModel>();
+
+        // Processing indicator (E05-S02).
+        services.AddSingleton<ProgressFeed>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingStatusSegment>());
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

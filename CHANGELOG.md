@@ -17,6 +17,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Job system: persisted jobs and work items (library schema version 4), a scheduler with I/O, CPU and AI pools and priorities, "visible first" boosting, cancellation, restart recovery, a clean stop when the library closes, and a confirmation when quitting while work is pending (E05-S01).
 - Thumbnails in two sizes (256 and 512 pixels, WebP) for images, animated images and videos: EXIF and video rotation applied, blank first frames and black video intros skipped, videos read through FFmpeg with a placeholder and a warning when it is missing. Thumbnails are stored per item in the library's sharded cache, and a thumbnail cell shows a media type placeholder while a thumbnail is pending or after it failed (E03-S04).
 - Media identity: quick fingerprints and full content hashes (XxHash128), perceptual hashes for images, a near-match search, and a file matching service with four tiers and confidence levels; a robustness test set of re-encoded, resized and converted copies (E01-S06).
+- Progress reporting: counts per job and stage taken from the job system's work items, totals marked "so far" while a job is still finding work, an estimated time left from the last 30 seconds of throughput, and a status bar indicator ("Fingerprinting: 120 of 340 · 12 min left") updated at most twice a second (E05-S02).
 
 ## M0 — 2026-11-01
 

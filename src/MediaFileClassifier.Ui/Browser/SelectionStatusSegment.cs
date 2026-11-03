@@ -15,7 +15,7 @@ public sealed class SelectionStatusSegment(SelectionModel selection, Localizer l
     /// <summary>
     /// The segment ID.
     /// </summary>
-    public const string SegmentId = "browser.selection";
+    public const string SegmentId = ResultCountStatusSegment.SelectionSegmentId;
 
     private StatusBarSegment? segment;
 
@@ -24,8 +24,7 @@ public sealed class SelectionStatusSegment(SelectionModel selection, Localizer l
     {
         ArgumentNullException.ThrowIfNull(statusBar);
 
-        // Order 1: right after the result count (order 0).
-        segment = statusBar.Add(new StatusBarSegment(SegmentId, StatusBarSide.Left, 1));
+        segment = statusBar.Add(new StatusBarSegment(SegmentId, StatusBarSide.Left, ResultCountStatusSegment.SelectionOrder));
         selection.PropertyChanged += OnSelectionChanged;
         localizer.Changed += (_, _) => Show();
         Show();

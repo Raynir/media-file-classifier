@@ -82,13 +82,13 @@ internal sealed class FakeThumbnailCache : IThumbnailCache
 }
 
 /// <summary>
-/// A session with an open library that only has a layout.
+/// A session with an open library that only has a layout, or with none.
 /// </summary>
-internal sealed class FakeBrowserSession : ILibrarySession
+internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
 {
     public event EventHandler? CurrentChanged;
 
-    public IOpenLibrary? Current { get; private set; } = new LayoutOnlyLibrary();
+    public IOpenLibrary? Current { get; private set; } = open ? new LayoutOnlyLibrary() : null;
 
     public Task SetCurrentAsync(IOpenLibrary? library)
     {

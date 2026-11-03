@@ -1,3 +1,4 @@
+using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
@@ -9,9 +10,11 @@ using MediaFileClassifier.Ui.Shortcuts;
 using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
+using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.Ui.Views.Browser;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.UseCases.Settings;
@@ -36,7 +39,8 @@ public static class UiModule
             .Register<SettingsViewModel, SettingsView>()
             .Register<QuitConfirmationViewModel, QuitConfirmationView>()
             .Register<WelcomeViewModel, WelcomeView>()
-            .Register<CreateLibraryViewModel, CreateLibraryView>());
+            .Register<CreateLibraryViewModel, CreateLibraryView>()
+            .Register<ThumbnailGridViewModel, ThumbnailGridView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -66,6 +70,14 @@ public static class UiModule
         services.AddSingleton<WelcomeViewModel>();
         services.AddSingleton<LibraryShell>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
+
+        // Media browser (E14-S01).
+        services.AddSingleton<ThumbnailBitmapCache>();
+        services.AddSingleton<ThumbnailLoader>();
+        services.TryAddSingleton<IItemOpener, DefaultAppItemOpener>();
+        services.AddSingleton<ThumbnailGridViewModel>();
+        services.AddSingleton<Func<ThumbnailGridViewModel>>(provider => provider.GetRequiredService<ThumbnailGridViewModel>);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, BrowserCommands>());
 
         // Shortcuts (E16-S01): one keymap, bound to physical keys.
         services.AddSingleton<ShortcutReferenceState>();

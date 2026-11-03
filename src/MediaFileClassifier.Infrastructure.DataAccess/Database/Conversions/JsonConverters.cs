@@ -58,7 +58,7 @@ internal sealed class LibrarySettingsConverter()
     : ValueConverter<LibrarySettings, string>(settings => ToJson(settings), json => FromJson(json))
 {
     private static string ToJson(LibrarySettings settings) => JsonSerializer.Serialize(
-        new LibrarySettingsJson(settings.AnalyzeAutomatically, settings.ActiveSearchModelId?.Value, settings.RetainedPreviousRuns),
+        new LibrarySettingsJson(settings.AnalyzeAutomatically, settings.ActiveSearchModelId?.Value, settings.RetainedPreviousRuns, settings.ThumbnailTileSize),
         DataAccessJsonContext.Default.LibrarySettingsJson);
 
     private static LibrarySettings FromJson(string json)
@@ -70,6 +70,7 @@ internal sealed class LibrarySettingsConverter()
             AnalyzeAutomatically = stored.AnalyzeAutomatically,
             ActiveSearchModelId = stored.ActiveSearchModelId is { } id ? new Id<ModelRegistration>(id) : null,
             RetainedPreviousRuns = stored.RetainedPreviousRuns,
+            ThumbnailTileSize = stored.ThumbnailTileSize is > 0 and var size ? size : LibrarySettings.DefaultThumbnailTileSize,
         };
     }
 }
@@ -134,9 +135,10 @@ internal sealed record FolderRulesJson(bool IncludeSubfolders, string[] IncludeP
     bool IncludeCloudPlaceholders = false);
 
 /// <summary>
-/// Stored shape of <see cref="LibrarySettings"/>.
+/// Stored shape of <see cref="LibrarySettings"/>. Fields added later are optional, so libraries stored before them read
+/// as the defaults.
 /// </summary>
-internal sealed record LibrarySettingsJson(bool AnalyzeAutomatically, Guid? ActiveSearchModelId, int RetainedPreviousRuns);
+internal sealed record LibrarySettingsJson(bool AnalyzeAutomatically, Guid? ActiveSearchModelId, int RetainedPreviousRuns, int? ThumbnailTileSize = null);
 
 /// <summary>
 /// Source-generated JSON serialization, which needs no reflection and so trims safely on Android (D004).

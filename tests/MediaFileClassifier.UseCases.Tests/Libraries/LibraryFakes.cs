@@ -81,7 +81,9 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IFolderRepository Folders => FolderList;
 
-    public IMediaItemRepository Items => throw new NotSupportedException();
+    public FakeMediaItemRepository ItemList { get; } = new();
+
+    public IMediaItemRepository Items => ItemList;
 
     public IItemMetadataRepository Metadata => throw new NotSupportedException();
 
@@ -93,7 +95,13 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public bool IsDisposed { get; private set; }
 
-    public Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public int LibraryUpdates { get; private set; }
+
+    public Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default)
+    {
+        LibraryUpdates++;
+        return Task.CompletedTask;
+    }
 
     public ValueTask DisposeAsync()
     {

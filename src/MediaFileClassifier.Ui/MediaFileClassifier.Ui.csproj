@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="MediaFileClassifier.Ui.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../MediaFileClassifier.UseCases/MediaFileClassifier.UseCases.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Fonts.Inter" />

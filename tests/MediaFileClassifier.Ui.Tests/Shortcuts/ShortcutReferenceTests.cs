@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.UseCases;
+using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Shortcuts;
@@ -27,11 +28,12 @@ public sealed class ShortcutReferenceTests
         var keymap = services.GetRequiredService<Keymap>();
         viewModel.Shortcuts.State.IsOpen = true;
 
-        var group = Assert.Single(viewModel.Shortcuts.Groups);
-        Assert.Equal("General", group.Name);
-        Assert.Equal(keymap.Bindings.Select(binding => binding.CommandId).Distinct().Count(id => viewModel.Commands[id].IsVisible), group.Rows.Count);
+        var groups = viewModel.Shortcuts.Groups;
+        Assert.Equal(["General", "Media browser"], groups.Select(group => group.Name));
+        Assert.Equal(keymap.Bindings.Select(binding => binding.CommandId).Distinct().Count(id => viewModel.Commands[id].IsVisible), groups.Sum(group => group.Rows.Count));
         var help = viewModel.Commands[ShortcutCommands.ShowReference];
-        Assert.Contains(group.Rows, row => row.Label == help.PlainLabel && row.Keys == "F1, Shift+/");
+        Assert.Contains(groups[0].Rows, row => row.Label == help.PlainLabel && row.Keys == "F1, Shift+/");
+        Assert.Contains(groups[1].Rows, row => row.Label == viewModel.Commands[BrowserCommands.LargerThumbnails].PlainLabel && row.Keys == "=");
     });
 
     [Fact]

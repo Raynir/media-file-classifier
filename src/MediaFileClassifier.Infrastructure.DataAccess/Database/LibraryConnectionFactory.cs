@@ -97,8 +97,19 @@ internal sealed class LibraryConnectionFactory(string databasePath)
         Task.Run(
             async () =>
             {
-                await using var db = await CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-                return await read(db, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await using var db = await CreateContextAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                    return await read(db, cancellationToken).ConfigureAwait(false);
+                }
+                finally
+                {
+                    // A read still running when the library closed returns its connection to the pool afterwards.
+                    if (closed)
+                    {
+                        Close();
+                    }
+                }
             },
             cancellationToken);
 

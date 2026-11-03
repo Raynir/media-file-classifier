@@ -24,12 +24,20 @@ internal sealed class FakeResultSource : IMediaResultSource
 {
     private static readonly DateTimeOffset Modified = new(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);
     private readonly List<Id<MediaItem>> ids = [];
+    private DateTimeOffset clock = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     public FakeResultSource(int count) => Resize(count);
 
     public event EventHandler? Changed;
 
     public int PageRequests { get; private set; }
+
+    public int IdRequests { get; private set; }
+
+    /// <summary>
+    /// Gets or sets a task the existence check waits for, to test gestures made while a refresh runs.
+    /// </summary>
+    public Task ExistingGate { get; set; } = Task.CompletedTask;
 
     public Func<int, MediaItemSummary>? Override { get; set; }
 
@@ -43,14 +51,23 @@ internal sealed class FakeResultSource : IMediaResultSource
     /// </summary>
     public void InsertAtTop(int count)
     {
-        ids.InsertRange(0, Enumerable.Range(0, count).Select(_ => Id<MediaItem>.New()));
+        ids.InsertRange(0, NewIds(count));
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public void Resize(int count)
     {
         ids.Clear();
-        ids.AddRange(Enumerable.Range(0, count).Select(_ => Id<MediaItem>.New()));
+        ids.AddRange(NewIds(count));
+    }
+
+    /// <summary>
+    /// Removes results, as deleting items does.
+    /// </summary>
+    public void Remove(params Id<MediaItem>[] removed)
+    {
+        ids.RemoveAll(removed.Contains);
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public Task<int> CountAsync(CancellationToken cancellationToken) => Task.FromResult(ids.Count);
@@ -63,6 +80,28 @@ internal sealed class FakeResultSource : IMediaResultSource
     }
 
     public Task<int> PositionOfAsync(Id<MediaItem> itemId, CancellationToken cancellationToken) => Task.FromResult(ids.IndexOf(itemId));
+
+    public Task<IReadOnlyList<Id<MediaItem>>> GetIdsAsync(int offset, int limit, Id<MediaItem>? newest, CancellationToken cancellationToken)
+    {
+        IdRequests++;
+        var start = newest is { } boundary ? ids.FindIndex(id => id.Value.CompareTo(boundary.Value) <= 0) : 0;
+        return Task.FromResult<IReadOnlyList<Id<MediaItem>>>(start < 0 ? [] : [.. ids.Skip(start + offset).Take(limit)]);
+    }
+
+    public async Task<IReadOnlySet<Id<MediaItem>>> GetExistingIdsAsync(IReadOnlyCollection<Id<MediaItem>> wanted, CancellationToken cancellationToken)
+    {
+        var existing = ids.Where(wanted.Contains).ToHashSet();
+        await ExistingGate;
+        return existing;
+    }
+
+    // Newest first, with UUIDv7 IDs a millisecond apart, so ID order is result order as in a library.
+    private List<Id<MediaItem>> NewIds(int count)
+    {
+        var created = Enumerable.Range(0, count).Select(_ => new Id<MediaItem>(Guid.CreateVersion7(clock = clock.AddMilliseconds(1)))).ToList();
+        created.Reverse();
+        return created;
+    }
 }
 
 /// <summary>

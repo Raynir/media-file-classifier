@@ -3,6 +3,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
+using MediaFileClassifier.Ui.ViewModels.Navigation;
 
 namespace MediaFileClassifier.Ui.Libraries;
 
@@ -17,6 +18,7 @@ public sealed class LibraryShell
     private readonly WelcomeViewModel welcome;
     private readonly LibraryOpener opener;
     private readonly Func<ThumbnailGridViewModel> grid;
+    private readonly NavigationPanelViewModel? navigation;
     private ThumbnailGridViewModel? shownGrid;
 
     /// <summary>
@@ -27,9 +29,11 @@ public sealed class LibraryShell
     /// <param name="welcome">The welcome screen.</param>
     /// <param name="opener">Opens libraries.</param>
     /// <param name="grid">Gets the thumbnail grid, once a library opens.</param>
-    public LibraryShell(ILibrarySession session, ShellRegions regions, WelcomeViewModel welcome, LibraryOpener opener, Func<ThumbnailGridViewModel> grid)
+    /// <param name="navigation">The navigation panel, shown while a library is open, or <c>null</c> for none.</param>
+    public LibraryShell(ILibrarySession session, ShellRegions regions, WelcomeViewModel welcome, LibraryOpener opener, Func<ThumbnailGridViewModel> grid, NavigationPanelViewModel? navigation = null)
     {
         this.grid = grid;
+        this.navigation = navigation;
         this.session = session;
         this.regions = regions;
         this.welcome = welcome;
@@ -60,12 +64,14 @@ public sealed class LibraryShell
         if (session.Current is null)
         {
             shownGrid?.Deactivate();
+            regions.Navigation = null;
             regions.Browser = welcome;
             _ = welcome.RefreshAsync();
         }
         else
         {
             welcome.Message = null;
+            regions.Navigation = navigation;
             shownGrid ??= grid();
             if (regions.Browser == welcome || regions.Browser is null)
             {

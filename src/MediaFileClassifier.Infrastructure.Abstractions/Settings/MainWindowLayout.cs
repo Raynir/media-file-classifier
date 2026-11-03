@@ -7,4 +7,5 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Settings;
 /// <param name="Navigation">The navigation panel on the left.</param>
 /// <param name="Details">The preview and details panel on the right.</param>
 /// <param name="IsStatusBarVisible">Whether the status bar is shown (E13-S04).</param>
-public sealed record MainWindowLayout(PanelLayout Navigation, PanelLayout Details, bool IsStatusBarVisible = true);
+/// <param name="CollapsedNavigationSections">The keys of the navigation panel's collapsed sections (E13-S02), or <c>null</c> for none.</param>
+public sealed record MainWindowLayout(PanelLayout Navigation, PanelLayout Details, bool IsStatusBarVisible = true, IReadOnlyList<string>? CollapsedNavigationSections = null);

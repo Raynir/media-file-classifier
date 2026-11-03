@@ -687,4 +687,19 @@
   <data name="Stage_hash.content" xml:space="preserve">
     <value>Hashing</value>
   </data>
+  <data name="Navigation_Panel" xml:space="preserve">
+    <value>Navigation</value>
+  </data>
+  <data name="Navigation_Library" xml:space="preserve">
+    <value>Library</value>
+  </data>
+  <data name="Navigation_AllMedia" xml:space="preserve">
+    <value>All media</value>
+  </data>
+  <data name="Navigation_RecentlyImported" xml:space="preserve">
+    <value>Recently imported</value>
+  </data>
+  <data name="Navigation_Folders" xml:space="preserve">
+    <value>Folders</value>
+  </data>
 </root>

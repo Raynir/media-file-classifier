@@ -27,6 +27,8 @@ public static class DefaultKeymap
         Bind(BrowserCommands.LargerThumbnails, PhysicalKey.Equal, scope: ShortcutScopes.Browser),
         Bind(BrowserCommands.SmallerThumbnails, PhysicalKey.Minus, scope: ShortcutScopes.Browser),
         Bind(BrowserCommands.OpenItem, PhysicalKey.Enter, scope: ShortcutScopes.Browser),
+        Bind(BrowserCommands.SelectAll, PhysicalKey.A, KeyModifiers.Control, ShortcutScopes.Browser),
+        Bind(BrowserCommands.SelectNone, PhysicalKey.Escape, scope: ShortcutScopes.Browser),
 
         // Tools (E17-S01)
         Bind(SettingsCommands.OpenSettings, PhysicalKey.Comma, KeyModifiers.Control),

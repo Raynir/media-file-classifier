@@ -23,13 +23,23 @@
       <Setter Property="BorderThickness" Value="2" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="ClipToBounds" Value="True" />
-      <Setter Property="Focusable" Value="True" />
       <Setter Property="Cursor" Value="Hand" />
     </Style>
     <Style Selector="Border.ThumbnailTile:pointerover">
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Hover}" />
     </Style>
-    <Style Selector="Border.ThumbnailTile:focus-visible">
+    <!--
+      Selection (E14-S03, provisional per D095): the Figma selected-item look, a white 10% fill and a #707070 border.
+      The grid itself holds keyboard focus; the focused tile shows the focus border after keyboard navigation.
+    -->
+    <Style Selector="Border.ThumbnailTile.Selected">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Selected}" />
+    </Style>
+    <Style Selector="Border.SelectionFill">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style Selector="ScrollViewer#Scroller:focus-within Border.ThumbnailTile.Focused">
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Focus}" />
     </Style>
     <Style Selector="Border.TileMarker">
@@ -64,45 +74,50 @@
   <UserControl.Resources>
     <DataTemplate x:Key="ThumbnailTileTemplate" x:DataType="vm:ThumbnailTileViewModel">
       <Border Classes="ThumbnailTile"
+              Classes.Selected="{Binding IsSelected}"
+              Classes.Focused="{Binding IsFocused}"
               Width="{Binding Width}"
               AutomationProperties.Name="{Binding FileName}">
-        <DockPanel>
-          <StackPanel DockPanel.Dock="Bottom"
-                      Height="32"
-                      Margin="{DynamicResource Padding.TileInfo}"
-                      VerticalAlignment="Center">
-            <TextBlock Text="{Binding FileName}"
-                       FontSize="{DynamicResource FontSize.Body}"
-                       FontWeight="{DynamicResource FontWeight.Title}"
-                       TextTrimming="CharacterEllipsis" />
-            <TextBlock Classes="Secondary"
-                       Text="{Binding Details}"
-                       FontSize="{DynamicResource FontSize.Caption}"
-                       TextTrimming="CharacterEllipsis" />
-          </StackPanel>
-          <Panel Height="{Binding ImageHeight}">
-            <controls:MediaThumbnail Source="{Binding Thumbnail}"
-                                     MediaType="{Binding MediaType}"
-                                     IsFailed="{Binding IsThumbnailFailed}"
-                                     CornerRadius="{DynamicResource Radius.None}" />
-            <!-- Badge slot: status badges now, Favorite (E11-S01) and Offline/Missing (E14-S07) later. -->
-            <views:TileBadgeStrip Badges="{Binding Badges}"
-                                  Orientation="Horizontal"
-                                  Spacing="{DynamicResource Space.XS}"
-                                  HorizontalAlignment="Left"
-                                  VerticalAlignment="Top"
-                                  Margin="{DynamicResource Padding.Compact}" />
-            <Border Classes="TileMarker" IsVisible="{Binding DurationText, Converter={x:Static ObjectConverters.IsNotNull}}">
-              <TextBlock Text="{Binding DurationText}" FontSize="{DynamicResource FontSize.Caption}" />
-            </Border>
-            <Border Classes="TileMarker"
-                    IsVisible="{Binding IsAnimated}"
-                    ToolTip.Tip="{l:Loc Tile_Animated}"
-                    AutomationProperties.Name="{l:Loc Tile_Animated}">
-              <Path Data="{StaticResource Icon.Media.AnimatedImage}" />
-            </Border>
-          </Panel>
-        </DockPanel>
+        <Panel>
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom"
+                        Height="32"
+                        Margin="{DynamicResource Padding.TileInfo}"
+                        VerticalAlignment="Center">
+              <TextBlock Text="{Binding FileName}"
+                         FontSize="{DynamicResource FontSize.Body}"
+                         FontWeight="{DynamicResource FontWeight.Title}"
+                         TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="Secondary"
+                         Text="{Binding Details}"
+                         FontSize="{DynamicResource FontSize.Caption}"
+                         TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Panel Height="{Binding ImageHeight}">
+              <controls:MediaThumbnail Source="{Binding Thumbnail}"
+                                       MediaType="{Binding MediaType}"
+                                       IsFailed="{Binding IsThumbnailFailed}"
+                                       CornerRadius="{DynamicResource Radius.None}" />
+              <!-- Badge slot: status badges now, Favorite (E11-S01) and Offline/Missing (E14-S07) later. -->
+              <views:TileBadgeStrip Badges="{Binding Badges}"
+                                    Orientation="Horizontal"
+                                    Spacing="{DynamicResource Space.XS}"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                    Margin="{DynamicResource Padding.Compact}" />
+              <Border Classes="TileMarker" IsVisible="{Binding DurationText, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <TextBlock Text="{Binding DurationText}" FontSize="{DynamicResource FontSize.Caption}" />
+              </Border>
+              <Border Classes="TileMarker"
+                      IsVisible="{Binding IsAnimated}"
+                      ToolTip.Tip="{l:Loc Tile_Animated}"
+                      AutomationProperties.Name="{l:Loc Tile_Animated}">
+                <Path Data="{StaticResource Icon.Media.AnimatedImage}" />
+              </Border>
+            </Panel>
+          </DockPanel>
+          <Border Classes="SelectionFill" IsVisible="{Binding IsSelected}" />
+        </Panel>
       </Border>
     </DataTemplate>
   </UserControl.Resources>
@@ -131,7 +146,11 @@
     </StackPanel>
 
     <Panel>
-      <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Disabled">
+      <ScrollViewer x:Name="Scroller"
+                    HorizontalScrollBarVisibility="Disabled"
+                    Focusable="True"
+                    Background="Transparent"
+                    AutomationProperties.Name="{l:Loc Browser_Grid}">
         <views:ThumbnailRowsControl x:Name="RowsControl"
                                     ItemsSource="{Binding Rows}"
                                     TileTemplate="{StaticResource ThumbnailTileTemplate}"

@@ -21,7 +21,7 @@ public sealed class MediaThumbnailTests
     {
         var thumbnail = Show(new MediaThumbnail { MediaType = mediaType });
 
-        var placeholder = Part<PathIcon>(thumbnail, "PART_PlaceholderIcon");
+        var placeholder = Part<Avalonia.Controls.Shapes.Path>(thumbnail, "PART_PlaceholderIcon");
         Assert.True(placeholder.IsVisible);
         Assert.True(Application.Current!.TryGetResource(icon, null, out var geometry));
         Assert.Same(geometry, placeholder.Data);
@@ -33,7 +33,7 @@ public sealed class MediaThumbnailTests
     {
         var thumbnail = Show(new MediaThumbnail { MediaType = MediaType.Video, IsFailed = true });
 
-        Assert.True(Part<PathIcon>(thumbnail, "PART_PlaceholderIcon").IsVisible);
+        Assert.True(Part<Avalonia.Controls.Shapes.Path>(thumbnail, "PART_PlaceholderIcon").IsVisible);
         Assert.True(Part<Border>(thumbnail, "PART_FailedBadge").IsVisible);
     });
 
@@ -46,7 +46,7 @@ public sealed class MediaThumbnailTests
         thumbnail.Source = bitmap;
 
         Assert.Same(bitmap, Part<Image>(thumbnail, "PART_Image").Source);
-        Assert.False(Part<PathIcon>(thumbnail, "PART_PlaceholderIcon").IsVisible);
+        Assert.False(Part<Avalonia.Controls.Shapes.Path>(thumbnail, "PART_PlaceholderIcon").IsVisible);
         Assert.False(Part<Border>(thumbnail, "PART_FailedBadge").IsVisible);
         ((Window)TopLevel.GetTopLevel(thumbnail)!).Close();
     });

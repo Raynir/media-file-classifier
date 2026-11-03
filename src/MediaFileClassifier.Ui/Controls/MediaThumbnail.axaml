@@ -1,6 +1,7 @@
 <!--
   Theme of the thumbnail cell (E03-S04-T05). The placeholder is a media type icon on a tile, with an error badge when
-  the thumbnail couldn't be made. Provisional until the media browser design (E14).
+  the thumbnail couldn't be made. Provisional until the media browser design (E14). The icons are plain Paths, not
+  PathIcons: the grid builds hundreds of cells while scrolling, and a PathIcon's own template doubled a tile's cost.
 -->
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -14,11 +15,13 @@
         <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True">
           <Panel>
             <Image Name="PART_Image" Source="{TemplateBinding Source}" Stretch="{TemplateBinding Stretch}" />
-            <PathIcon Name="PART_PlaceholderIcon"
-                      Classes="Large"
-                      IsVisible="False"
-                      Data="{StaticResource Icon.Media.Image}"
-                      Foreground="{TemplateBinding Foreground}" />
+            <Path Name="PART_PlaceholderIcon"
+                  Width="{DynamicResource Size.Icon.Large}"
+                  Height="{DynamicResource Size.Icon.Large}"
+                  Stretch="Uniform"
+                  IsVisible="False"
+                  Data="{StaticResource Icon.Media.Image}"
+                  Fill="{TemplateBinding Foreground}" />
             <Border Name="PART_FailedBadge"
                     IsVisible="False"
                     HorizontalAlignment="Right"
@@ -27,22 +30,24 @@
                     Padding="{DynamicResource Padding.Compact}"
                     CornerRadius="{DynamicResource Radius.Control}"
                     Background="{DynamicResource Brush.Status.Error.Background}">
-              <PathIcon Classes="Small"
-                        Data="{StaticResource Icon.Status.Error}"
-                        Foreground="{DynamicResource Brush.Status.Error.Foreground}" />
+              <Path Width="{DynamicResource Size.Icon.Small}"
+                    Height="{DynamicResource Size.Icon.Small}"
+                    Stretch="Uniform"
+                    Data="{StaticResource Icon.Status.Error}"
+                    Fill="{DynamicResource Brush.Status.Error.Foreground}" />
             </Border>
           </Panel>
         </Border>
       </ControlTemplate>
     </Setter>
 
-    <Style Selector="^:placeholder /template/ PathIcon#PART_PlaceholderIcon">
+    <Style Selector="^:placeholder /template/ Path#PART_PlaceholderIcon">
       <Setter Property="IsVisible" Value="True" />
     </Style>
-    <Style Selector="^:animated /template/ PathIcon#PART_PlaceholderIcon">
+    <Style Selector="^:animated /template/ Path#PART_PlaceholderIcon">
       <Setter Property="Data" Value="{StaticResource Icon.Media.AnimatedImage}" />
     </Style>
-    <Style Selector="^:video /template/ PathIcon#PART_PlaceholderIcon">
+    <Style Selector="^:video /template/ Path#PART_PlaceholderIcon">
       <Setter Property="Data" Value="{StaticResource Icon.Media.Video}" />
     </Style>
     <Style Selector="^:failed /template/ Border#PART_FailedBadge">

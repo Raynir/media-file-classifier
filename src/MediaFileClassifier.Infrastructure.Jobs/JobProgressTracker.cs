@@ -133,6 +133,9 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
                 jobs.Add(counters);
             }
 
+            // The new work reopens a job that was reported finished.
+            counters.IsJobFinished = false;
+
             foreach (var workItem in workItems)
             {
                 counters.Stage(workItem.Stage, workItem.ItemId is null).Add(WorkItemState.Queued, 1);
@@ -174,7 +177,8 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
     }
 
     /// <summary>
-    /// Counts a work item that stopped running, and forgets its job when the job is finished.
+    /// Counts a work item that stopped running, and forgets its job when the job was reported finished and has no
+    /// pending work left.
     /// </summary>
     /// <param name="workItem">The work item in its new state: completed, failed, cancelled, or queued again.</param>
     /// <param name="job">Its job after the change.</param>
@@ -207,8 +211,15 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
                     break;
             }
 
+            // Work items finishing together reach the tracker in any order, so an earlier item can report the job as still
+            // running after the last one reported it finished. A finished report is kept until new work reopens the job.
+            if (ProcessingJobStateTransitions.IsFinished(job.State))
+            {
+                counters.IsJobFinished = true;
+            }
+
             // Work being added to the job right now is already counted, and reopens the job.
-            if (ProcessingJobStateTransitions.IsFinished(job.State) && !counters.HasPending)
+            if (counters.IsJobFinished && !counters.HasPending)
             {
                 jobs.Remove(counters);
             }
@@ -252,6 +263,11 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
         public ProcessingJob Job { get; } = job;
 
         public Throughput Throughput { get; } = new(since);
+
+        /// <summary>
+        /// Gets or sets whether a finished work item reported the job finished since work was last added to it.
+        /// </summary>
+        public bool IsJobFinished { get; set; }
 
         public bool IsEmpty => stages.All(stage => stage.Total == 0);
 

@@ -2,6 +2,9 @@ using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Infrastructure.DataAccess.Database.Conversions;
 using MediaFileClassifier.Infrastructure.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -113,7 +116,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     {
         var folder = await bed.Library.Folders.GetAsync(bed.Folder.Id, Token);
         Assert.NotNull(folder);
-        folder.ChangeRules(new FolderRules { IncludeSubfolders = false, ExcludePatterns = ["**/.thumbnails/**"] });
+        folder.ChangeRules(new FolderRules { IncludeSubfolders = false, ExcludePatterns = ["**/.thumbnails/**"], IncludeHidden = true, IncludeCloudPlaceholders = true });
         folder.Relink(@"E:\Photos", @"E:\Photos", bed.Clock.Tick());
         folder.MarkOffline(bed.Clock.Tick());
 
@@ -121,6 +124,117 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
 
         var loaded = Assert.Single(await bed.Library.Folders.GetAllAsync(Token));
         Assert.Equivalent(folder, loaded);
+    }
+
+    [Fact]
+    public async Task GetFileStatesAsync_ReturnsTheFolderItemsFileFacts()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+        var otherFolder = IndexedFolder.Create(bed.Library.Library.Id, @"E:\Other", @"E:\Other", bed.Clock.Tick());
+        await bed.Library.Folders.AddAsync(otherFolder, Token);
+        await bed.Library.Items.AddAsync(
+            MediaItem.Discover(otherFolder.Id, item.Path, MediaType.Image, 1, bed.Clock.Tick(), bed.Clock.Tick(), null, bed.Clock.Tick()),
+            Token);
+
+        var states = await bed.Library.Items.GetFileStatesAsync(bed.Folder.Id, Token);
+
+        Assert.Equal([new MediaItemFileState(item.Path, item.SizeBytes, item.FileModifiedAt)], states);
+    }
+
+    [Fact]
+    public async Task GetByStatusAsync_FiltersByStatusAndFolder()
+    {
+        var other = IndexedFolder.Create(bed.Library.Library.Id, @"E:\Other", @"E:\Other", LibraryTestBed.Start);
+        await bed.Library.Folders.AddAsync(other, Token);
+        var discovered = bed.NewItem(1);
+        var pending = bed.NewItem(2);
+        pending.ChangeStatus(MediaItemStatus.Pending, LibraryTestBed.Start);
+        var elsewhere = MediaItem.Discover(other.Id, RelativePath.From("a.jpg"), MediaType.Image, 1, LibraryTestBed.Start, LibraryTestBed.Start, null, LibraryTestBed.Start);
+        await bed.Library.Items.AddRangeAsync([discovered, pending, elsewhere], Token);
+
+        var inFolder = await bed.Library.Items.GetByStatusAsync(MediaItemStatus.Discovered, bed.Folder.Id, Token);
+        var everywhere = await bed.Library.Items.GetByStatusAsync(MediaItemStatus.Discovered, cancellationToken: Token);
+
+        Assert.Equal([discovered.Id], inFolder.Select(item => item.Id));
+        Assert.Equal(new[] { discovered.Id, elsewhere.Id }.Select(id => id.ToString()).Order(StringComparer.Ordinal), everywhere.Select(item => item.Id.ToString()));
+    }
+
+    [Fact]
+    public async Task GetExactDuplicatesAsync_GroupsItemsThatShareAContentHash()
+    {
+        var items = Enumerable.Range(1, 5).Select(bed.NewItem).ToList();
+        UInt128?[] hashes = [10, 10, 20, 10, null];
+        for (var i = 0; i < items.Count; i++)
+        {
+            items[i].SetHashes(items[i].Hashes with { ContentHash = hashes[i] });
+        }
+
+        await bed.Library.Items.AddRangeAsync(items, Token);
+
+        var group = Assert.Single(await bed.Library.Items.GetExactDuplicatesAsync(Token));
+
+        Assert.Equal((UInt128)10, group.ContentHash);
+        Assert.Equal(new[] { items[0].Id, items[1].Id, items[3].Id }.Select(id => id.ToString()).Order(StringComparer.Ordinal), group.ItemIds.Select(id => id.ToString()));
+    }
+
+    [Fact]
+    public async Task GetExactDuplicatesAsync_NoSharedHash_ReturnsNothing()
+    {
+        await bed.Library.Items.AddAsync(bed.NewItem(1), Token);
+
+        Assert.Empty(await bed.Library.Items.GetExactDuplicatesAsync(Token));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithMetadata_StoresBothAndReplacesOlderMetadata()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+        Assert.Null(await bed.Library.Items.GetTechnicalMetadataAsync(item.Id, Token));
+
+        item.ChangeStatus(MediaItemStatus.Pending, LibraryTestBed.Start);
+        await bed.Library.Items.UpdateAsync(item, new TechnicalMetadata { ItemId = item.Id, Width = 640, ExtractedAt = LibraryTestBed.Start }, Token);
+        await bed.Library.Items.UpdateAsync(
+            item,
+            new TechnicalMetadata { ItemId = item.Id, Width = 800, Warnings = [new ExtractionWarning("ThumbnailFailed", "bad")], ExtractedAt = LibraryTestBed.Start },
+            Token);
+
+        Assert.Equal(MediaItemStatus.Pending, (await bed.Library.Items.GetAsync(item.Id, Token))!.Status);
+        var stored = await bed.Library.Items.GetTechnicalMetadataAsync(item.Id, Token);
+        Assert.Equal(800, stored!.Width);
+        Assert.Equal([new ExtractionWarning("ThumbnailFailed", "bad")], stored.Warnings);
+        await Assert.ThrowsAsync<ArgumentException>(() => bed.Library.Items.UpdateAsync(item, new TechnicalMetadata { ItemId = Id<MediaItem>.New(), ExtractedAt = LibraryTestBed.Start }, Token));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_FailedItem_StoresTheErrorUntilTheStatusChanges()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+
+        item.MarkFailed(new MediaItemError("import.media", nameof(IOException), IsPermanent: false), "Locked", LibraryTestBed.Start);
+        await bed.Library.Items.UpdateAsync(item, Token);
+        var failed = await bed.Library.Items.GetAsync(item.Id, Token);
+        var storedError = failed!.Error;
+        failed.ChangeStatus(MediaItemStatus.Pending, LibraryTestBed.Start);
+        await bed.Library.Items.UpdateAsync(failed, Token);
+
+        Assert.Equal(new MediaItemError("import.media", nameof(IOException), false), storedError);
+        Assert.Equal("Locked", item.StatusReason);
+        Assert.Null((await bed.Library.Items.GetAsync(item.Id, Token))!.Error);
+    }
+
+    [Fact]
+    public void FolderRules_StoredBeforeHiddenSetting_ReadAsDefaults()
+    {
+        var converter = new FolderRulesConverter();
+
+        var rules = (FolderRules)converter.ConvertFromProvider("""{"includeSubfolders":true,"includePatterns":[],"excludePatterns":["raw"]}""")!;
+
+        Assert.False(rules.IncludeHidden);
+        Assert.False(rules.IncludeCloudPlaceholders);
+        Assert.Equal(["raw"], rules.ExcludePatterns);
     }
 
     [Fact]

@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Libraries.LibraryMessageWindow"
+        Title="{l:Loc App_Title}"
+        Width="460"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- A question with two answers, e.g. restoring a backup after a failed migration (provisional, D095). -->
+  <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.L}">
+    <TextBlock x:Name="MessageText" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+      <Button x:Name="PrimaryButton" Classes="accent" IsDefault="True" Click="OnPrimary" />
+      <Button x:Name="SecondaryButton" IsCancel="True" Click="OnSecondary" />
+    </StackPanel>
+  </StackPanel>
+</Window>

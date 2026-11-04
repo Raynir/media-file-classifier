@@ -31,7 +31,8 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 - **Sharding:** there's one level of 256 folders, named by the last two hex digits of the item ID (`LibraryLayout.GetThumbnailPath`). That's about 400 files per folder at 100k items.
   - The tail of a UUIDv7 is random, so the files spread evenly.
   - Its head is a timestamp and would cluster.
-- **Keyed by item:** deleting or regenerating an item's thumbnail touches only its own file. Duplicates get separate thumbnails.
+- **Keyed by item:** deleting or regenerating an item's thumbnail touches only its own files. Duplicates get separate thumbnails.
+- **Two sizes:** each item has `<item-id>-256.webp` and `<item-id>-512.webp`, WebP at quality 80, 256 and 512 pixels on the longest edge, never upscaled (E03-S04). `IThumbnailCache` finds, writes and deletes them; see `docs/thumbnails.md`.
 
 ### Lock file (D077)
 
@@ -43,6 +44,22 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 - **Errors:** a lock held by another instance gives `InUse`. A lock file that can't be written, e.g. in a read-only folder, gives `NotWritable`.
 - **Limitation:** locking over SMB or NFS shares isn't reliable.
 
+## Creating a library (E02-S01-T04)
+
+A new library is the folder `<location>\<name>.mfc`. The create-library dialog suggests `%USERPROFILE%\Media File Classifier` as the location: it's easy to find and back up, and it's outside Documents, which OneDrive often syncs, a risk for an open SQLite database. The folder is created if it doesn't exist. Android picks its own default with E20.
+
+`LibraryLocationRules` checks the name and location in this order and reports the first problem:
+
+1. **Name missing:** the trimmed name is empty.
+2. **Name invalid:** it contains a character a Windows folder name can't have (`< > : " / \ | ? *` or a control character), ends with a dot, or is only dots.
+3. **Location missing:** no location, or not a full path.
+4. **Inside a library:** the location is a `.mfc` folder, or inside one, or a folder with a `library.db`.
+5. **Already exists:** `<name>.mfc` exists there and isn't empty.
+6. **Not writable:** the app can't create a file in the location, or in its nearest existing parent if it doesn't exist yet. This covers read-only folders and drives, missing permissions and failed disks.
+7. **Not enough space:** the drive has less than 1 GB free, which is room for the database, thumbnails and migration backups of a few thousand items.
+
+The dialog runs the same checks as the user types, and creating the library runs them again.
+
 ## Connections and pragmas
 
 `LibraryConnectionFactory` opens every connection with these settings:
@@ -53,6 +70,7 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 | `synchronous` | `NORMAL` | Safe with WAL; a power cut can lose the last commits but doesn't corrupt the database. |
 | `foreign_keys` | `ON` | SQLite leaves them off by default. |
 | `busy_timeout` | 5000 ms | A backstop; the app's own writes never collide (see below). |
+| `wal_autocheckpoint` | `0`, on the write connection only | Commits don't checkpoint; a background checkpointer does (see below). |
 
 **FTS5** is compiled into the SQLite build that `SQLitePCLRaw.bundle_e_sqlite3` ships (`sqlite_compileoption_used('ENABLE_FTS5')` returns 1). No extension is loaded (D067). Tests cover both the pragmas and FTS5.
 
@@ -73,6 +91,15 @@ SQLite allows one writer at a time, so all writes go through one `LibraryWriter`
   | Read, p99 | | under 30 ms |
 
   Throughput was the same for both batch sizes.
+- **Checkpoints:** SQLite's automatic checkpoint runs inside the commit that fills the WAL past 1000 pages. It copies the WAL into the database file and syncs it, and the write and every write queued behind it wait. On the CI runner (2 CPUs) that took 0.2–2 s, so an edit took up to 3.5 s (MFC-982). The writer turns the automatic checkpoint off. After each write, it asks `WalCheckpointer` for a checkpoint. That runs `PRAGMA wal_checkpoint(PASSIVE)` on its own connection, at most once every 500 ms, and never blocks readers or the writer. Closing the library still checkpoints the rest. Measured on the CI runner with the stress test, five runs before and three after:
+
+  | | Checkpoint in the commit | Checkpoint in the background |
+  |---|---|---|
+  | Batch, p99 | 195–1320 ms | 66–180 ms |
+  | Edit wait, max | 237–2082 ms | 110–315 ms |
+
+  Throughput was about the same.
+
 - **Rule for callers:** code running inside a write (e.g. the change passed to `IItemMetadataRepository.UpdateAsync`) must not wait for another library write. The writer rejects such a write with `InvalidOperationException` instead of deadlocking.
 - **Cancellation:** a queued write is dropped as soon as its token is cancelled. A started write is rolled back if it stops on the token.
 

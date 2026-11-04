@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using Microsoft.EntityFrameworkCore;
@@ -51,4 +52,33 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
             },
             cancellationToken);
     }
+
+    /// <inheritdoc />
+    public Task<int> MergeIntoAsync(IndexedFolder parent, Id<IndexedFolder> childId, string relativePath, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+
+        return writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var items = await db.MediaItems.Where(item => item.FolderId == childId).ToListAsync(token).ConfigureAwait(false);
+                foreach (var item in items)
+                {
+                    item.Relocate(parent.Id, RelativePath.From(relativePath + "/" + item.Path.Value));
+                }
+
+                db.Folders.Update(parent);
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                await db.Folders.Where(folder => folder.Id == childId).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                return items.Count;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default) =>
+        writer.ExecuteAsync(
+            async (db, token) => await db.Folders.Where(folder => folder.Id == id).ExecuteDeleteAsync(token).ConfigureAwait(false) > 0,
+            cancellationToken);
 }

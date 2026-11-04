@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
@@ -38,6 +39,19 @@ public sealed class JsonSettingsServiceTests : IDisposable
         Assert.Equal("{ not json", File.ReadAllText(appPaths.SettingsFile + ".corrupt"));
     }
 
+    [Theory]
+    [InlineData("""{ "schemaVersion": 1.5 }""")]
+    [InlineData("""{ "schemaVersion": 1, "providers": "x" }""")]
+    public void Current_MalformedOldFile_ReturnsDefaults(string json)
+    {
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(appPaths.SettingsFile, json);
+
+        var service = CreateService();
+
+        Assert.Equal(new AppSettings(), service.Current with { SchemaVersion = AppSettings.CurrentSchemaVersion });
+    }
+
     [Fact]
     public void Save_ThenLoadInNewService_RoundTripsValues()
     {
@@ -45,7 +59,9 @@ public sealed class JsonSettingsServiceTests : IDisposable
         {
             LastLibraryPath = @"D:\Media\Library",
             MainWindow = new WindowPlacement(100, 200, 1024, 768, IsMaximized: true),
-            Providers = new ProviderSettings { OpenAiCompatibleEndpoint = "http://localhost:1234/v1" },
+            Values = SettingValues.Empty
+                .With("ai.openAiCompatibleEndpoint", JsonSerializer.SerializeToElement("http://localhost:1234/v1"))
+                .With("library.retainedPreviousRuns", JsonSerializer.SerializeToElement(3)),
         };
 
         CreateService().Save(settings);
@@ -54,6 +70,87 @@ public sealed class JsonSettingsServiceTests : IDisposable
 
         Assert.Equal(settings, loaded);
         Assert.False(File.Exists(appPaths.SettingsFile + ".tmp"));
+    }
+
+    [Fact]
+    public void Save_ThenLoad_RoundTripsTheMainWindowLayout()
+    {
+        var layout = new MainWindowLayout(new PanelLayout(true, true, 300), new PanelLayout(false, false, 420));
+        MonitorPlacement[] placements =
+        [
+            new("0,0,2560x1440@1.5", new WindowPlacement(10, 20, 1200, 700, IsMaximized: true)),
+            new("0,0,1920x1080@1", new WindowPlacement(0, 0, 1280, 800, IsMaximized: false)),
+        ];
+
+        CreateService().Save(new AppSettings { MainWindowLayout = layout, MainWindowPlacements = placements });
+        var loaded = CreateService().Current;
+
+        Assert.Equal(layout, loaded.MainWindowLayout);
+        Assert.Equal(placements, loaded.MainWindowPlacements);
+    }
+
+    [Fact]
+    public void Current_Version1File_MovesTheEndpointIntoValues()
+    {
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(appPaths.SettingsFile, """
+            {
+              "schemaVersion": 1,
+              "lastLibraryPath": "D:\\Media",
+              "providers": { "openAiCompatibleEndpoint": "http://localhost:11434" }
+            }
+            """);
+
+        var settings = CreateService().Current;
+
+        Assert.Equal(@"D:\Media", settings.LastLibraryPath);
+        Assert.Equal("http://localhost:11434", settings.Values[KnownSettings.OpenAiCompatibleEndpoint.Key].GetString());
+    }
+
+    [Fact]
+    public void Save_WritesTheCurrentSchemaVersionWithoutProviders()
+    {
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(appPaths.SettingsFile, """{ "schemaVersion": 1, "providers": { "openAiCompatibleEndpoint": "" } }""");
+        var service = CreateService();
+
+        service.Save(service.Current);
+
+        var json = File.ReadAllText(appPaths.SettingsFile);
+        Assert.Contains("\"schemaVersion\": 2", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("providers", json, StringComparison.Ordinal);
+        Assert.Empty(CreateService().Current.Values);
+    }
+
+    [Fact]
+    public void Update_ChangesAndStoresTheCurrentSettings()
+    {
+        var service = CreateService();
+        service.Save(new AppSettings { LastLibraryPath = "a" });
+
+        var updated = service.Update(settings => settings with { Values = settings.Values.With("x", JsonSerializer.SerializeToElement(true)) });
+
+        Assert.Equal("a", updated.LastLibraryPath);
+        Assert.Same(updated, service.Current);
+        Assert.True(CreateService().Current.Values["x"].GetBoolean());
+    }
+
+    [Fact]
+    public void Current_LayoutSavedBeforeTheStatusBar_ShowsTheStatusBar()
+    {
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(
+            appPaths.SettingsFile,
+            """
+            {
+              "mainWindowLayout": {
+                "navigation": { "isVisible": true, "isCollapsed": false, "width": 240 },
+                "details": { "isVisible": true, "isCollapsed": false, "width": 320 }
+              }
+            }
+            """);
+
+        Assert.True(CreateService().Current.MainWindowLayout!.IsStatusBarVisible);
     }
 
     public void Dispose()

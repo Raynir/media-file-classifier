@@ -33,6 +33,7 @@ internal sealed class OpenLibrary : IOpenLibrary
         Items = new MediaItemRepository(connections, writer);
         Metadata = new ItemMetadataRepository(connections, writer, timeProvider);
         Models = new ModelRegistrationRepository(connections, writer);
+        Jobs = new JobRepository(connections, writer);
         Maintenance = new LibraryMaintenance(connections, writer);
     }
 
@@ -53,6 +54,9 @@ internal sealed class OpenLibrary : IOpenLibrary
 
     /// <inheritdoc />
     public IModelRegistrationRepository Models { get; }
+
+    /// <inheritdoc />
+    public IJobRepository Jobs { get; }
 
     /// <inheritdoc />
     public ILibraryMaintenance Maintenance { get; }
@@ -77,6 +81,19 @@ internal sealed class OpenLibrary : IOpenLibrary
     {
         var writer = await LibraryWriter.StartAsync(connections, cancellationToken).ConfigureAwait(false);
         return new OpenLibrary(layout, library, connections, writer, heldLock, timeProvider);
+    }
+
+    /// <inheritdoc />
+    public Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+        return writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                db.Libraries.Update(library);
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+            },
+            cancellationToken);
     }
 
     /// <summary>

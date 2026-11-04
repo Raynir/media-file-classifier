@@ -33,7 +33,7 @@ internal sealed class FolderRulesConverter()
     : ValueConverter<FolderRules, string>(rules => ToJson(rules), json => FromJson(json))
 {
     private static string ToJson(FolderRules rules) => JsonSerializer.Serialize(
-        new FolderRulesJson(rules.IncludeSubfolders, [.. rules.IncludePatterns], [.. rules.ExcludePatterns]),
+        new FolderRulesJson(rules.IncludeSubfolders, [.. rules.IncludePatterns], [.. rules.ExcludePatterns], rules.IncludeHidden, rules.IncludeCloudPlaceholders),
         DataAccessJsonContext.Default.FolderRulesJson);
 
     private static FolderRules FromJson(string json)
@@ -45,6 +45,8 @@ internal sealed class FolderRulesConverter()
             IncludeSubfolders = stored.IncludeSubfolders,
             IncludePatterns = stored.IncludePatterns,
             ExcludePatterns = stored.ExcludePatterns,
+            IncludeHidden = stored.IncludeHidden,
+            IncludeCloudPlaceholders = stored.IncludeCloudPlaceholders,
         };
     }
 }
@@ -56,7 +58,7 @@ internal sealed class LibrarySettingsConverter()
     : ValueConverter<LibrarySettings, string>(settings => ToJson(settings), json => FromJson(json))
 {
     private static string ToJson(LibrarySettings settings) => JsonSerializer.Serialize(
-        new LibrarySettingsJson(settings.AnalyzeAutomatically, settings.ActiveSearchModelId?.Value, settings.RetainedPreviousRuns),
+        new LibrarySettingsJson(settings.AnalyzeAutomatically, settings.ActiveSearchModelId?.Value, settings.RetainedPreviousRuns, settings.ThumbnailTileSize),
         DataAccessJsonContext.Default.LibrarySettingsJson);
 
     private static LibrarySettings FromJson(string json)
@@ -68,6 +70,7 @@ internal sealed class LibrarySettingsConverter()
             AnalyzeAutomatically = stored.AnalyzeAutomatically,
             ActiveSearchModelId = stored.ActiveSearchModelId is { } id ? new Id<ModelRegistration>(id) : null,
             RetainedPreviousRuns = stored.RetainedPreviousRuns,
+            ThumbnailTileSize = stored.ThumbnailTileSize is > 0 and var size ? size : LibrarySettings.DefaultThumbnailTileSize,
         };
     }
 }
@@ -95,14 +98,47 @@ internal sealed class ItemIdListComparer()
         ids => ids.ToArray());
 
 /// <summary>
-/// Stored shape of <see cref="FolderRules"/>.
+/// Stores a list of extraction warnings as a JSON array of codes and details.
 /// </summary>
-internal sealed record FolderRulesJson(bool IncludeSubfolders, string[] IncludePatterns, string[] ExcludePatterns);
+internal sealed class ExtractionWarningListConverter()
+    : ValueConverter<IReadOnlyList<ExtractionWarning>, string>(warnings => ToJson(warnings), json => FromJson(json))
+{
+    private static string ToJson(IReadOnlyList<ExtractionWarning> warnings) => JsonSerializer.Serialize(
+        warnings.Select(warning => new ExtractionWarningJson(warning.Code, warning.Detail)).ToArray(),
+        DataAccessJsonContext.Default.ExtractionWarningJsonArray);
+
+    private static IReadOnlyList<ExtractionWarning> FromJson(string json) =>
+        [.. (JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.ExtractionWarningJsonArray) ?? [])
+            .Select(warning => new ExtractionWarning(warning.Code, warning.Detail))];
+}
 
 /// <summary>
-/// Stored shape of <see cref="LibrarySettings"/>.
+/// Compares lists of extraction warnings by content.
 /// </summary>
-internal sealed record LibrarySettingsJson(bool AnalyzeAutomatically, Guid? ActiveSearchModelId, int RetainedPreviousRuns);
+internal sealed class ExtractionWarningListComparer()
+    : ValueComparer<IReadOnlyList<ExtractionWarning>>(
+        (left, right) => left == null ? right == null : right != null && left.SequenceEqual(right),
+        warnings => warnings.Aggregate(0, (hash, warning) => HashCode.Combine(hash, warning)),
+        warnings => warnings.ToArray());
+
+/// <summary>
+/// Stored shape of <see cref="ExtractionWarning"/>.
+/// </summary>
+internal sealed record ExtractionWarningJson(string Code, string? Detail);
+
+/// <summary>
+/// Stored shape of <see cref="FolderRules"/>. Fields added later are optional, so folders stored before them read
+/// as the defaults.
+/// </summary>
+internal sealed record FolderRulesJson(bool IncludeSubfolders, string[] IncludePatterns, string[] ExcludePatterns,
+    bool IncludeHidden = false,
+    bool IncludeCloudPlaceholders = false);
+
+/// <summary>
+/// Stored shape of <see cref="LibrarySettings"/>. Fields added later are optional, so libraries stored before them read
+/// as the defaults.
+/// </summary>
+internal sealed record LibrarySettingsJson(bool AnalyzeAutomatically, Guid? ActiveSearchModelId, int RetainedPreviousRuns, int? ThumbnailTileSize = null);
 
 /// <summary>
 /// Source-generated JSON serialization, which needs no reflection and so trims safely on Android (D004).
@@ -111,6 +147,7 @@ internal sealed record LibrarySettingsJson(bool AnalyzeAutomatically, Guid? Acti
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(Guid[]))]
+[JsonSerializable(typeof(ExtractionWarningJson[]))]
 [JsonSerializable(typeof(FolderRulesJson))]
 [JsonSerializable(typeof(LibrarySettingsJson))]
 internal sealed partial class DataAccessJsonContext : JsonSerializerContext;

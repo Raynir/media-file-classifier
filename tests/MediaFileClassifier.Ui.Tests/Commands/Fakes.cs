@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Resources;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
 
@@ -70,4 +72,31 @@ internal static class TestLocalizer
     {
         Culture = CultureInfo.GetCultureInfo("en-US"),
     };
+}
+
+/// <summary>
+/// Platform services whose folder picker returns the folders the test queued.
+/// </summary>
+internal sealed class FakePlatformServices(IAppPaths paths) : IPlatformServices
+{
+    public FakePlatformServices()
+        : this(new FakeAppPaths())
+    {
+    }
+
+    public Queue<FolderHandle> Folders { get; } = [];
+
+    public IAppPaths Paths { get; } = paths;
+
+    public bool CanRevealInFileExplorer => false;
+
+    public Task<FolderHandle?> PickFolderAsync(string title, CancellationToken cancellationToken = default)
+        => Task.FromResult(Folders.TryDequeue(out var folder) ? folder : null);
+
+    public Task<IReadOnlyList<FileLocation>> PickFilesAsync(FilePickerRequest request, CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<FileLocation>>([]);
+
+    public Task RevealInFileExplorerAsync(FileLocation location, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+    public Task OpenWithDefaultAppAsync(FileLocation location, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

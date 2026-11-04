@@ -1,8 +1,8 @@
 <!--
-  Binding helpers for menus (E13-S05-T01): a MenuItem whose data is an AppCommand gets its label, icon,
-  shortcut, checked state, enablement and disabled reason from the command. Use them with
+  Binding helpers for menus (E13-S05-T01): a MenuItem whose data is an IMenuEntry (a command, submenu or
+  separator) gets its label, icon, shortcut, checked state, enablement and disabled reason from it. Use them with
   <Menu Classes="Commands" ItemsSource="{Binding Menu.Groups}" /> for the main menu, and
-  <ContextMenu Classes="Commands" ItemsSource="{Binding SomeCommands}" /> for context menus.
+  <ContextMenu Classes="Commands" ItemsSource="{Binding SomeEntries}" /> for context menus.
 -->
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -14,9 +14,11 @@
     <Setter Property="ItemsSource" Value="{Binding Items}" />
   </Style>
 
-  <Style Selector="Menu.Commands > MenuItem > MenuItem, ContextMenu.Commands > MenuItem" x:DataType="c:AppCommand">
+  <Style Selector="Menu.Commands > MenuItem > MenuItem, Menu.Commands > MenuItem > MenuItem > MenuItem, ContextMenu.Commands > MenuItem, ContextMenu.Commands > MenuItem > MenuItem"
+         x:DataType="c:IMenuEntry">
     <Setter Property="Header" Value="{Binding Label}" />
-    <Setter Property="Command" Value="{Binding}" />
+    <Setter Property="Command" Value="{Binding Command}" />
+    <Setter Property="ItemsSource" Value="{Binding Items}" />
     <Setter Property="InputGesture" Value="{Binding Gesture}" />
     <Setter Property="ToggleType" Value="{Binding ToggleType}" />
     <Setter Property="IsChecked" Value="{Binding IsChecked, Mode=OneWay}" />
@@ -29,5 +31,10 @@
         <PathIcon Classes="Small" Data="{Binding Icon}" />
       </Template>
     </Setter>
+  </Style>
+
+  <!-- Fluent caps menu popups at 456 wide, which clips longer translations and pseudo-localised labels next to a shortcut. -->
+  <Style Selector="Menu.Commands MenuItem /template/ Border, ContextMenu.Commands MenuItem /template/ Border">
+    <Setter Property="MaxWidth" Value="720" />
   </Style>
 </Styles>

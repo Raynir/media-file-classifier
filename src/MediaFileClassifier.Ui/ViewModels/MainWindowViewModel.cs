@@ -1,33 +1,66 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.Shortcuts;
+using MediaFileClassifier.Ui.StatusBar;
 
 namespace MediaFileClassifier.Ui.ViewModels;
 
 /// <summary>
-/// View model of the main window. Navigation is view-model-first: setting
-/// <see cref="CurrentPage"/> shows the view that <see cref="ViewLocator"/> maps to it.
+/// View model of the main window (E13-S01). Navigation is view-model-first: features fill the areas through
+/// <see cref="Regions"/>, and the window shows the views that <see cref="ViewLocator"/> maps to them.
 /// </summary>
-public partial class MainWindowViewModel : ViewModelBase
+public sealed class MainWindowViewModel : ViewModelBase
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
     /// </summary>
-    /// <param name="layout">Which panels are shown.</param>
+    /// <param name="layout">Which panels are shown, and how wide.</param>
+    /// <param name="regions">What the areas show.</param>
     /// <param name="commands">The command registry, for binding buttons and menus by command ID.</param>
     /// <param name="menu">The main menu.</param>
-    public MainWindowViewModel(ShellLayout layout, CommandRegistry commands, MainMenuViewModel menu)
+    /// <param name="statusBar">The status bar.</param>
+    /// <param name="shortcuts">The shortcut reference. Taking it also builds the keymap, which gives the
+    /// commands their shortcuts.</param>
+    public MainWindowViewModel(
+        ShellLayout layout,
+        ShellRegions regions,
+        CommandRegistry commands,
+        MainMenuViewModel menu,
+        StatusBarViewModel statusBar,
+        ShortcutReferenceViewModel shortcuts)
     {
         Layout = layout;
+        Regions = regions;
         Commands = commands;
         Menu = menu;
-        NavigationContextMenu = [commands[ShellCommands.ToggleNavigation], commands[ShellCommands.ToggleDetails]];
+        StatusBar = statusBar;
+        Shortcuts = shortcuts;
+        NavigationContextMenu =
+        [
+            commands[ShellCommands.CollapseNavigation],
+            commands[ShellCommands.ToggleNavigation],
+            new MenuSeparator(),
+            commands[ShellCommands.ResetLayout],
+        ];
+        DetailsContextMenu =
+        [
+            commands[ShellCommands.CollapseDetails],
+            commands[ShellCommands.ToggleDetails],
+            new MenuSeparator(),
+            commands[ShellCommands.ResetLayout],
+        ];
+        StatusBarContextMenu = [commands[ShellCommands.ToggleStatusBar]];
     }
 
     /// <summary>
-    /// Gets which panels are shown.
+    /// Gets which panels are shown, and how wide.
     /// </summary>
     public ShellLayout Layout { get; }
+
+    /// <summary>
+    /// Gets what the navigation, toolbar, media browser and details areas show.
+    /// </summary>
+    public ShellRegions Regions { get; }
 
     /// <summary>
     /// Gets the command registry. Bind a surface with <c>{Binding Commands[view.toggle-navigation]}</c>.
@@ -40,13 +73,27 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainMenuViewModel Menu { get; }
 
     /// <summary>
-    /// Gets the commands of the navigation panel's context menu.
+    /// Gets the status bar.
     /// </summary>
-    public IReadOnlyList<AppCommand> NavigationContextMenu { get; }
+    public StatusBarViewModel StatusBar { get; }
 
     /// <summary>
-    /// The page shown in the main content area, or <c>null</c> for an empty window.
+    /// Gets the shortcut reference overlay.
     /// </summary>
-    [ObservableProperty]
-    public partial ViewModelBase? CurrentPage { get; set; }
+    public ShortcutReferenceViewModel Shortcuts { get; }
+
+    /// <summary>
+    /// Gets the entries of the navigation panel's context menu.
+    /// </summary>
+    public IReadOnlyList<IMenuEntry> NavigationContextMenu { get; }
+
+    /// <summary>
+    /// Gets the entries of the details panel's context menu.
+    /// </summary>
+    public IReadOnlyList<IMenuEntry> DetailsContextMenu { get; }
+
+    /// <summary>
+    /// Gets the entries of the status bar's context menu.
+    /// </summary>
+    public IReadOnlyList<IMenuEntry> StatusBarContextMenu { get; }
 }

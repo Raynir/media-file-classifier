@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.DataAccess.Database.Conversions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -37,6 +38,12 @@ internal sealed class MediaItemConfiguration : IEntityTypeConfiguration<MediaIte
             hashes.Property(value => value.ContentHash);
             hashes.Property(value => value.PerceptualHash);
         });
+        builder.ComplexProperty(item => item.Error, error =>
+        {
+            error.Property(value => value.Stage);
+            error.Property(value => value.ExceptionType);
+            error.Property(value => value.IsPermanent);
+        });
 
         // Removing a folder's items is an explicit step (E02), never a side effect.
         builder.HasOne<IndexedFolder>().WithMany().HasForeignKey(item => item.FolderId).OnDelete(DeleteBehavior.Restrict);
@@ -59,6 +66,7 @@ internal sealed class TechnicalMetadataConfiguration : IEntityTypeConfiguration<
             location.Property(value => value.Longitude);
             location.Property(value => value.AltitudeMeters);
         });
+        builder.Property(metadata => metadata.Warnings).HasConversion(new ExtractionWarningListConverter(), new ExtractionWarningListComparer());
         builder.HasOne<MediaItem>().WithOne().HasForeignKey<TechnicalMetadata>(metadata => metadata.ItemId).OnDelete(DeleteBehavior.Cascade);
     }
 }

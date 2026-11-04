@@ -1,10 +1,18 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
+using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Matching;
 using MediaFileClassifier.Infrastructure.Abstractions.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Capabilities;
+using MediaFileClassifier.Infrastructure.Discovery;
 using MediaFileClassifier.Infrastructure.Hardware;
+using MediaFileClassifier.Infrastructure.Hashing;
+using MediaFileClassifier.Infrastructure.Libraries;
+using MediaFileClassifier.Infrastructure.Matching;
 using MediaFileClassifier.Infrastructure.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
@@ -27,6 +35,10 @@ public static class InfrastructureModule
     {
         services.TryAddSingleton<IAppPaths, AppPaths>();
         services.TryAddSingleton<ISettingsService, JsonSettingsService>();
+        services.TryAddSingleton<ILibrarySettingValues, NoLibrarySettingValues>();
+        services.TryAddSingleton<ISettingsStore, SettingsStore>();
+        services.TryAddSingleton<ILibrarySession, LibrarySession>();
+        services.TryAddSingleton<ILibraryLocations, LibraryLocations>();
         services.TryAddSingleton<IHardwareDetector, PortableHardwareDetector>();
         services.TryAddSingleton<IHardwareInfo, HardwareInfo>();
         services.TryAddSingleton<ICapabilityService, CapabilityService>();
@@ -34,6 +46,12 @@ public static class InfrastructureModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICapabilityContributor, NativeDependencyCapabilityContributor>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, FfmpegProbe>(
             _ => new FfmpegProbe(FfmpegProbe.GetDefaultSearchDirectories())));
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<IFolderDiscovery, FolderDiscovery>();
+        services.TryAddSingleton<IFileHasher, XxHashFileHasher>();
+        services.TryAddSingleton<IPerceptualHasher, SkiaPerceptualHasher>();
+        services.TryAddSingleton<IMediaHasher, MediaHasher>();
+        services.TryAddSingleton<IFileMatcherFactory, FileMatcherFactory>();
         return services;
     }
 }

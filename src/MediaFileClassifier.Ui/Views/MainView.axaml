@@ -2,62 +2,116 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MediaFileClassifier.Ui.ViewModels"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:sh="using:MediaFileClassifier.Ui.Shell"
+             xmlns:v="using:MediaFileClassifier.Ui.Views"
              x:Class="MediaFileClassifier.Ui.Views.MainView"
              x:DataType="vm:MainWindowViewModel">
-  <!-- Provisional shell after the Figma skeleton: navigation, content, details. E13-S01 builds the real one. -->
+  <!--
+    The shell (E13-S01): navigation on the left, the toolbar over the media browser and details, and the
+    details panel on the right, after the Figma screens (D095). Features fill the areas through ShellRegions.
+    The side panels resize with their splitters, collapse to a rail or strip, and hide.
+  -->
   <UserControl.Styles>
-    <Style Selector="Border#NavigationPanel">
-      <Setter Property="Width" Value="{DynamicResource Size.Navigation.Expanded}" />
+    <Style Selector="Panel#NavigationHost" x:DataType="vm:MainWindowViewModel">
+      <Setter Property="Width" Value="{Binding Layout.Navigation.Width}" />
     </Style>
-    <Style Selector="Border#NavigationPanel.Collapsed">
+    <Style Selector="Panel#NavigationHost.Collapsed">
       <Setter Property="Width" Value="{DynamicResource Size.Navigation.Collapsed}" />
+    </Style>
+    <Style Selector="Panel#DetailsHost" x:DataType="vm:MainWindowViewModel">
+      <Setter Property="Width" Value="{Binding Layout.Details.Width}" />
+    </Style>
+    <Style Selector="Panel#DetailsHost.Collapsed">
+      <Setter Property="Width" Value="{DynamicResource Size.DetailsPanel.Collapsed}" />
     </Style>
   </UserControl.Styles>
 
+  <Panel>
   <DockPanel>
     <Menu x:Name="MainMenu" DockPanel.Dock="Top" Classes="Commands" ItemsSource="{Binding Menu.Groups}" />
 
-    <Grid ColumnDefinitions="Auto,*,Auto">
+    <Panel x:Name="StatusBarHost" DockPanel.Dock="Bottom" IsVisible="{Binding Layout.IsStatusBarVisible}">
+      <Panel.ContextMenu>
+        <ContextMenu Classes="Commands" ItemsSource="{Binding StatusBarContextMenu}" />
+      </Panel.ContextMenu>
+      <v:StatusBarView DataContext="{Binding StatusBar}" />
+    </Panel>
+
+    <Grid x:Name="ShellGrid" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,*">
       <!-- Navigation -->
-      <Border x:Name="NavigationPanel"
-              Grid.Column="0"
+      <Panel x:Name="NavigationHost"
+             Grid.RowSpan="2"
+             Grid.Column="0"
+             IsVisible="{Binding Layout.Navigation.IsVisible}"
+             Classes.Collapsed="{Binding Layout.Navigation.IsCollapsed}">
+        <Border x:Name="NavigationPanel" Classes="Panel" BorderThickness="0,0,1,0">
+          <Border.ContextMenu>
+            <ContextMenu Classes="Commands" ItemsSource="{Binding NavigationContextMenu}" />
+          </Border.ContextMenu>
+          <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Header}">
+              <Button DockPanel.Dock="Left"
+                      Classes="Icon"
+                      Command="{Binding Commands[view.collapse-navigation]}"
+                      ToolTip.Tip="{Binding Commands[view.collapse-navigation].ToolTip}"
+                      AutomationProperties.Name="{Binding Commands[view.collapse-navigation].PlainLabel}">
+                <PathIcon Data="{StaticResource Icon.Menu}" />
+              </Button>
+              <TextBlock Classes="Subtitle"
+                         Text="{l:Loc Navigation_Title}"
+                         IsVisible="{Binding Layout.Navigation.IsExpanded}"
+                         Margin="{DynamicResource Padding.Compact}"
+                         VerticalAlignment="Center"
+                         TextWrapping="Wrap" />
+            </DockPanel>
+            <!-- The navigation view shows its own icon rail while the panel is collapsed (D108). -->
+            <Panel>
+              <ContentControl Content="{Binding Regions.Navigation}" />
+              <Panel IsVisible="{Binding Layout.Navigation.IsExpanded}">
+                <TextBlock Classes="Tertiary"
+                           Text="{l:Loc Navigation_Empty}"
+                           IsVisible="{Binding Regions.Navigation, Converter={x:Static ObjectConverters.IsNull}}"
+                           Margin="{DynamicResource Padding.Panel}"
+                           TextWrapping="Wrap" />
+              </Panel>
+            </Panel>
+          </DockPanel>
+        </Border>
+        <sh:PanelSplitter x:Name="NavigationSplitter"
+                          HorizontalAlignment="Right"
+                          PanelSide="Left"
+                          Target="{Binding Layout.Navigation}"
+                          Browser="{Binding #BrowserArea}"
+                          AutomationProperties.Name="{l:Loc Splitter_Navigation}" />
+      </Panel>
+
+      <!-- Search and toolbar (E13-S03). Takes no space until a feature fills it. -->
+      <Border x:Name="ToolbarArea"
+              Grid.Row="0"
+              Grid.Column="1"
+              Grid.ColumnSpan="2"
               Classes="Panel"
-              Classes.Collapsed="{Binding !Layout.IsNavigationExpanded}"
-              BorderThickness="0,0,1,0">
-        <Border.ContextMenu>
-          <ContextMenu Classes="Commands" ItemsSource="{Binding NavigationContextMenu}" />
-        </Border.ContextMenu>
+              Height="{DynamicResource Size.Toolbar}"
+              BorderThickness="0,0,0,1"
+              IsVisible="{Binding Regions.Toolbar, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <ContentControl Content="{Binding Regions.Toolbar}" />
+      </Border>
+
+      <!-- Media browser -->
+      <Border x:Name="BrowserArea" Grid.Row="1" Grid.Column="1" Classes="Content">
         <DockPanel>
-          <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Header}">
+          <DockPanel DockPanel.Dock="Top" Height="{DynamicResource Size.ContentHeader}" Margin="{DynamicResource Padding.Header}">
             <Button DockPanel.Dock="Left"
                     Classes="Icon"
+                    IsVisible="{Binding !Layout.Navigation.IsVisible}"
                     Command="{Binding Commands[view.toggle-navigation]}"
                     ToolTip.Tip="{Binding Commands[view.toggle-navigation].ToolTip}"
                     AutomationProperties.Name="{Binding Commands[view.toggle-navigation].PlainLabel}">
-              <PathIcon Data="{StaticResource Icon.Menu}" />
+              <PathIcon Data="{StaticResource Icon.PanelLeftOpen}" />
             </Button>
-            <TextBlock Classes="Subtitle"
-                       Text="{l:Loc Navigation_Title}"
-                       IsVisible="{Binding Layout.IsNavigationExpanded}"
-                       Margin="{DynamicResource Padding.Compact}"
-                       VerticalAlignment="Center"
-                       TextWrapping="Wrap" />
-          </DockPanel>
-          <TextBlock Classes="Tertiary"
-                     Text="{l:Loc Navigation_Empty}"
-                     IsVisible="{Binding Layout.IsNavigationExpanded}"
-                     Margin="{DynamicResource Padding.Panel}"
-                     TextWrapping="Wrap" />
-        </DockPanel>
-      </Border>
-
-      <!-- Content -->
-      <Border Grid.Column="1" Classes="Content">
-        <DockPanel>
-          <DockPanel DockPanel.Dock="Top" Height="{DynamicResource Size.ContentHeader}" Margin="{DynamicResource Padding.Header}">
             <Button DockPanel.Dock="Right"
                     Classes="Icon"
-                    IsVisible="{Binding !Layout.IsDetailsPanelOpen}"
+                    IsVisible="{Binding !Layout.Details.IsVisible}"
                     Command="{Binding Commands[view.toggle-details]}"
                     ToolTip.Tip="{Binding Commands[view.toggle-details].ToolTip}"
                     AutomationProperties.Name="{Binding Commands[view.toggle-details].PlainLabel}">
@@ -66,8 +120,8 @@
             <Panel />
           </DockPanel>
           <Panel>
-            <ContentControl Content="{Binding CurrentPage}" />
-            <StackPanel IsVisible="{Binding CurrentPage, Converter={x:Static ObjectConverters.IsNull}}"
+            <ContentControl Content="{Binding Regions.Browser}" />
+            <StackPanel IsVisible="{Binding Regions.Browser, Converter={x:Static ObjectConverters.IsNull}}"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         MaxWidth="480"
@@ -89,32 +143,67 @@
         </DockPanel>
       </Border>
 
-      <!-- Details -->
-      <Border Grid.Column="2"
-              Classes="Panel"
-              Width="{DynamicResource Size.DetailsPanel}"
-              BorderThickness="1,0,0,0"
-              IsVisible="{Binding Layout.IsDetailsPanelOpen}">
-        <DockPanel>
-          <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Header}">
-            <Button DockPanel.Dock="Right"
+      <!-- Preview and details -->
+      <Panel x:Name="DetailsHost"
+             Grid.Row="1"
+             Grid.Column="2"
+             IsVisible="{Binding Layout.Details.IsVisible}"
+             Classes.Collapsed="{Binding Layout.Details.IsCollapsed}">
+        <Border x:Name="DetailsPanel" Classes="Panel" BorderThickness="1,0,0,0">
+          <Border.ContextMenu>
+            <ContextMenu Classes="Commands" ItemsSource="{Binding DetailsContextMenu}" />
+          </Border.ContextMenu>
+          <Panel>
+            <DockPanel IsVisible="{Binding Layout.Details.IsExpanded}">
+              <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Header}">
+                <Button DockPanel.Dock="Right"
+                        Classes="Icon"
+                        Command="{Binding Commands[view.collapse-details]}"
+                        ToolTip.Tip="{Binding Commands[view.collapse-details].ToolTip}"
+                        AutomationProperties.Name="{Binding Commands[view.collapse-details].PlainLabel}">
+                  <PathIcon Data="{StaticResource Icon.PanelRightClose}" />
+                </Button>
+                <TextBlock Classes="Title"
+                           Text="{l:Loc Details_Title}"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+              </DockPanel>
+              <Panel>
+                <ContentControl Content="{Binding Regions.Details}" />
+                <TextBlock Classes="Tertiary"
+                           Text="{l:Loc Details_Empty}"
+                           IsVisible="{Binding Regions.Details, Converter={x:Static ObjectConverters.IsNull}}"
+                           Margin="{DynamicResource Padding.Panel}"
+                           TextWrapping="Wrap" />
+              </Panel>
+            </DockPanel>
+            <!-- Collapsed: a strip with the expand button. -->
+            <Button x:Name="DetailsExpandButton"
                     Classes="Icon"
-                    Command="{Binding Commands[view.toggle-details]}"
-                    ToolTip.Tip="{Binding Commands[view.toggle-details].ToolTip}"
-                    AutomationProperties.Name="{Binding Commands[view.toggle-details].PlainLabel}">
-              <PathIcon Data="{StaticResource Icon.PanelRightClose}" />
+                    IsVisible="{Binding Layout.Details.IsCollapsed}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="{DynamicResource Padding.Strip}"
+                    Command="{Binding Commands[view.collapse-details]}"
+                    ToolTip.Tip="{Binding Commands[view.collapse-details].ToolTip}"
+                    AutomationProperties.Name="{Binding Commands[view.collapse-details].PlainLabel}">
+              <PathIcon Data="{StaticResource Icon.PanelRightOpen}" />
             </Button>
-            <TextBlock Classes="Title"
-                       Text="{l:Loc Details_Title}"
-                       VerticalAlignment="Center"
-                       TextWrapping="Wrap" />
-          </DockPanel>
-          <TextBlock Classes="Tertiary"
-                     Text="{l:Loc Details_Empty}"
-                     Margin="{DynamicResource Padding.Panel}"
-                     TextWrapping="Wrap" />
-        </DockPanel>
-      </Border>
+          </Panel>
+        </Border>
+        <sh:PanelSplitter x:Name="DetailsSplitter"
+                          HorizontalAlignment="Left"
+                          PanelSide="Right"
+                          Target="{Binding Layout.Details}"
+                          Browser="{Binding #BrowserArea}"
+                          AutomationProperties.Name="{l:Loc Splitter_Details}" />
+      </Panel>
     </Grid>
   </DockPanel>
+
+  <!-- Shortcut reference (E16-S01-T03), over everything. -->
+  <v:ShortcutReferenceView x:Name="ShortcutReference"
+                           DataContext="{Binding Shortcuts}"
+                           IsVisible="{Binding State.IsOpen}" />
+  </Panel>
 </UserControl>

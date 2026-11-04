@@ -1,0 +1,164 @@
+using MediaFileClassifier.Infrastructure;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Infrastructure.DataAccess;
+using MediaFileClassifier.Infrastructure.Jobs;
+using MediaFileClassifier.Infrastructure.Media;
+using MediaFileClassifier.Infrastructure.Paths;
+using MediaFileClassifier.Ui.Libraries;
+using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.ViewModels.Browser;
+using MediaFileClassifier.Ui.ViewModels.Libraries;
+using MediaFileClassifier.UseCases;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace MediaFileClassifier.Ui.Tests.Libraries;
+
+/// <summary>
+/// End-to-end tests of the welcome screen and the create-library dialog (E02-S01-T02, T03), with real library storage
+/// in a temporary folder.
+/// </summary>
+public sealed class CreateLibraryFlowTests : IAsyncDisposable
+{
+    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly Commands.FakePlatformServices platform;
+    private readonly ServiceProvider services;
+
+    public CreateLibraryFlowTests()
+    {
+        platform = new Commands.FakePlatformServices(new AppPaths(Path.Combine(root, "app")));
+        services = new ServiceCollection()
+            .AddLogging()
+            .AddSingleton<IAppPaths>(platform.Paths)
+            .AddSingleton<IPlatformServices>(platform)
+            .AddSingleton<Platform.ICapabilityGate>(new Commands.FakeCapabilityGate())
+            .AddSingleton<IMediaFileSource, Infrastructure.Files.FileSystemMediaFileSource>()
+            .AddInfrastructure()
+            .AddDataAccess()
+            .AddSingleton<Infrastructure.Abstractions.Files.IMediaFileSource, Infrastructure.Files.FileSystemMediaFileSource>()
+            .AddJobs()
+            .AddMedia()
+            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
+            .AddUseCases()
+            .AddUi()
+            .BuildServiceProvider();
+    }
+
+    [Fact]
+    public Task FirstLaunch_ShowsTheWelcomeScreen() => TestApp.RunAsync(() =>
+    {
+        services.GetRequiredService<LibraryShell>();
+
+        Assert.IsType<WelcomeViewModel>(services.GetRequiredService<ShellRegions>().Browser);
+    });
+
+    [Fact]
+    public async Task Dialog_CreatesTheLibraryAndHandsOverToAddingFolders()
+    {
+        var viewModel = services.GetRequiredService<CreateLibraryViewModel>();
+        var closed = false;
+        viewModel.CloseRequested += (_, _) => closed = true;
+        await viewModel.ValidateAsync();
+        Assert.Null(viewModel.Error);
+        Assert.False(viewModel.CreateCommand.CanExecute(null));
+
+        platform.Folders.Enqueue(new FolderHandle(Path.Combine(root, "libraries"), "libraries"));
+        await viewModel.BrowseCommand.ExecuteAsync(null);
+        viewModel.Name = "Family";
+        await viewModel.ValidateAsync();
+        await viewModel.CreateCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsFoldersStep, viewModel.Error);
+        var session = services.GetRequiredService<ILibrarySession>();
+        Assert.Equal(Path.Combine(root, "libraries", "Family.mfc"), session.Current?.Layout.RootDirectory);
+        Assert.Equal("Family", Assert.Single(services.GetRequiredService<ISettingsService>().Current.RecentLibraries!).Name);
+
+        var photos = Directory.CreateDirectory(Path.Combine(root, "Photos")).FullName;
+        platform.Folders.Enqueue(new FolderHandle(photos, "Photos"));
+        await viewModel.AddFolderCommand.ExecuteAsync(null);
+        viewModel.CloseCommand.Execute(null);
+
+        Assert.Equal([photos], viewModel.Folders);
+        Assert.Equal(photos, Assert.Single(await session.Current!.Folders.GetAllAsync(TestContext.Current.CancellationToken)).PlatformHandle);
+        Assert.True(closed);
+    }
+
+    [Fact]
+    public async Task Dialog_ShowsWhyALocationIsRejected()
+    {
+        var viewModel = services.GetRequiredService<CreateLibraryViewModel>();
+        Directory.CreateDirectory(Path.Combine(root, "Family.mfc", "thumbnails"));
+
+        viewModel.Location = Path.Combine(root, "Family.mfc");
+        viewModel.Name = "Trips";
+        await viewModel.ValidateAsync();
+
+        Assert.Equal("This folder is inside another library. Choose a folder outside it.", viewModel.Error);
+        Assert.False(viewModel.CreateCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task OpeningALibrary_ShowsTheThumbnailGridInsteadOfTheWelcomeScreen()
+    {
+        await TestApp.RunAsync(() => services.GetRequiredService<LibraryShell>());
+        var library = await services.GetRequiredService<ILibraryStore>().CreateAsync(root, "Family", TestContext.Current.CancellationToken);
+
+        await TestApp.RunAsync(() => services.GetRequiredService<ILibrarySession>().SetCurrentAsync(library).GetAwaiter().GetResult());
+
+        Assert.IsType<ThumbnailGridViewModel>(services.GetRequiredService<ShellRegions>().Browser);
+    }
+
+    [Fact]
+    public async Task Startup_ReopensTheLastLibrary()
+    {
+        var sender = services.GetRequiredService<MediatR.ISender>();
+        var session = services.GetRequiredService<ILibrarySession>();
+        await sender.Send(new UseCases.Libraries.CreateLibrary.CreateLibraryCommand("Family", root), TestContext.Current.CancellationToken);
+        await session.SetCurrentAsync(null);
+
+        await services.GetRequiredService<LibraryOpener>().OpenLastAsync();
+
+        Assert.Equal(Path.Combine(root, "Family.mfc"), session.Current?.Layout.RootDirectory);
+    }
+
+    [Fact]
+    public async Task Startup_MissingLastLibrary_ExplainsOnTheWelcomeScreen()
+    {
+        var sender = services.GetRequiredService<MediatR.ISender>();
+        await sender.Send(new UseCases.Libraries.CreateLibrary.CreateLibraryCommand("Family", root), TestContext.Current.CancellationToken);
+        await services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
+        Directory.Move(Path.Combine(root, "Family.mfc"), Path.Combine(root, "Moved.mfc"));
+        await TestApp.RunAsync(() => services.GetRequiredService<LibraryShell>());
+        var welcome = services.GetRequiredService<WelcomeViewModel>();
+
+        await services.GetRequiredService<LibraryOpener>().OpenLastAsync();
+        await welcome.RefreshAsync();
+
+        Assert.Equal("Family couldn't be opened. The library folder or its database is missing.", welcome.Message);
+        var recent = Assert.Single(welcome.Recent);
+        Assert.False(recent.IsAvailable);
+        Assert.False(recent.OpenCommand.CanExecute(null));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
+        await services.DisposeAsync();
+
+        // The thumbnail grid's first reads may still be finishing on the thread pool after the library closed.
+        for (var attempt = 1; Directory.Exists(root); attempt++)
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException) when (attempt < 20)
+            {
+                await Task.Delay(50);
+            }
+        }
+    }
+}

@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Libraries"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Libraries.WelcomeView"
+             x:DataType="vm:WelcomeViewModel">
+  <!-- Provisional welcome screen (D095). E02-S01-T00 and E02-S02-T00 design the real one. -->
+  <ScrollViewer>
+    <StackPanel HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                MaxWidth="560"
+                Margin="{DynamicResource Padding.Panel}"
+                Spacing="{DynamicResource Space.M}">
+      <PathIcon Classes="Large" Data="{StaticResource Icon.Library}" Foreground="{DynamicResource Brush.Text.Tertiary}" />
+      <TextBlock Classes="Title" Text="{l:Loc Welcome_Title}" HorizontalAlignment="Center" TextWrapping="Wrap" />
+      <TextBlock Classes="Secondary" Text="{l:Loc Welcome_Hint}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+
+      <!-- Why the last library didn't reopen, or why opening one failed. -->
+      <Border Classes="StatusBadge Error"
+              CornerRadius="{DynamicResource Radius.Control}"
+              IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+      </Border>
+
+      <StackPanel x:Name="Actions" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="{DynamicResource Space.S}">
+        <Button Classes="accent" Content="{l:Loc Welcome_CreateLibrary}" Command="{Binding CreateLibraryCommand}" />
+        <Button Content="{l:Loc Welcome_OpenLibrary}" Command="{Binding OpenLibraryCommand}" />
+      </StackPanel>
+
+      <TextBlock Classes="Subtitle"
+                 Text="{l:Loc Welcome_Recent}"
+                 Margin="{DynamicResource Padding.Compact}"
+                 IsVisible="{Binding Recent.Count}" />
+      <ItemsControl ItemsSource="{Binding Recent}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:RecentLibraryViewModel">
+            <DockPanel Margin="{DynamicResource Padding.Compact}">
+              <Button DockPanel.Dock="Right"
+                      Classes="Icon"
+                      Command="{Binding RemoveCommand}"
+                      ToolTip.Tip="{Binding RemoveLabel}"
+                      AutomationProperties.Name="{Binding RemoveLabel}">
+                <PathIcon Classes="Small" Data="{StaticResource Icon.Close}" />
+              </Button>
+              <Button HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Left"
+                      Background="Transparent"
+                      Command="{Binding OpenCommand}"
+                      ToolTip.Tip="{Binding Path}"
+                      AutomationProperties.Name="{Binding Name}">
+                <StackPanel>
+                  <TextBlock Classes="Subtitle" Text="{Binding Name}" />
+                  <TextBlock Classes="Tertiary Caption" Text="{Binding Path}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="Secondary Caption" Text="{Binding Details}" />
+                </StackPanel>
+              </Button>
+            </DockPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

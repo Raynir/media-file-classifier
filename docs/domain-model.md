@@ -39,6 +39,8 @@ erDiagram
     COLLECTION |o..o{ COLLECTION : "parent (reserved)"
     PROCESSING_JOB }o..o| INDEXED_FOLDER : targets
     PROCESSING_JOB }o..o{ MEDIA_ITEM : targets
+    PROCESSING_JOB ||--o{ WORK_ITEM : "split into"
+    MEDIA_ITEM |o..o{ WORK_ITEM : "work for"
 
     LIBRARY {
         uuid Id PK
@@ -182,6 +184,16 @@ erDiagram
         int Priority
         int AttemptCount
     }
+    WORK_ITEM {
+        uuid Id PK
+        uuid JobId FK
+        uuid ItemId FK
+        string Stage
+        enum Pool
+        int Priority
+        enum State
+        int AttemptCount
+    }
 ```
 
 ## Entities
@@ -192,8 +204,8 @@ Invariants are enforced in the constructors and methods, so an invalid entity ca
 |--------|-----------|------------|
 | `Library` | A searchable index of folders, with its schema version and per-library settings (`LibrarySettings`: auto-analysis, previous runs to keep, active search model). | Name not blank; schema version ≥ 1; modified ≥ created. |
 | `IndexedFolder` | A root folder. `PlatformHandle` is opaque: a path on Windows, a content URI on Android (E01-S07). Include and exclude globs, and an online or offline status. | Handle and display path not blank. |
-| `MediaItem` | One file: folder plus relative path, media type, size, file dates, import date, hashes (E01-S06), processing status, review status (D021), favorite flag, and when the review status and favorite flag last changed (null if never; for package merges, D076). | Size ≥ 0; status changes follow the table below; `RelativePath` is relative, `/`-separated, with no empty, `.` or `..` segment. |
-| `TechnicalMetadata` | Facts read from the file: dimensions, orientation, duration, frame count, frame rate, codecs, bit rate, date taken with its offset, camera, lens, GPS, and the full raw dump as JSON. One per item. | Coordinates in range. |
+| `MediaItem` | One file: folder plus relative path, media type, size, file dates, import date, hashes (E01-S06), processing status with the failed stage and kind of failure while it's Error (`MediaItemError`, E03-S07), review status (D021), favorite flag, and when the review status and favorite flag last changed (null if never; for package merges, D076). | Size ≥ 0; status changes follow the table below; `RelativePath` is relative, `/`-separated, with no empty, `.` or `..` segment. |
+| `TechnicalMetadata` | Facts read from the file: dimensions, orientation, duration, frame count, loop count, frame rate, codecs, whether a video has audio, bit rate, color space, date taken with its offset and its source (EXIF, video creation time or file modification time), camera, lens, GPS, the full raw dump as JSON, and the warnings of a partial read (E03-S03). One per item. | Coordinates in range. |
 | `Keyframe` | A frame sampled from a video or animated image (E06-S02). | Index and timestamp ≥ 0. |
 | `TechnicalFieldValue` | A descriptive value found in the file, such as an embedded title. | Value kind fits the field; never `Notes`. |
 | `AiFieldValue` | A descriptive value produced by a run, with its model and optional confidence. Belongs to the run. | Value kind fits the field; never `Notes`; confidence in 0–1. |
@@ -270,7 +282,7 @@ Extended filters (E10-S05) can use duration, camera, location and codecs, which 
 | E02 Library management | `Library`, `IndexedFolder` (add, remove, relink, offline), statuses for statistics, `Excluded` items keep user values (S10) | Backup is a file operation |
 | E03 Media ingestion | `MediaItem.Discover`, `TechnicalMetadata`, fingerprint at discovery | Thumbnails are cache files, not entities |
 | E04 Folder monitoring | `Relocate` keeps identity on move or rename, `Missing` status, folder online or offline | — |
-| E05 Background processing | `ProcessingJob` record and states | Work items and stages: E05-S01 defines the tables |
+| E05 Background processing | `ProcessingJob` and `WorkItem` (one stage for one item), their states and transitions, priorities and resource pools (E05-S01) | Pause (S05, Later) |
 | E06 AI analysis | `AnalysisRun`, `AiFieldValue`, AI tags, `Embedding` per model and keyframe, `Keyframe`, active search model | Per-frame OCR results (E06-S02) are stored as item-level OCR text for now; faces and person clusters (S10, Later) |
 | E07 Metadata management | Three layers, user origins, tag assignments and tombstones, provenance for display (S11) | Custom fields (S06) and edit history (S07) are Later and need their own tables |
 | E08 Review workflow | `ReviewStatus`, `AcceptAll`, `RejectActiveRun`, suggestion flag, previous runs for comparison (S06) | — |

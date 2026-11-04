@@ -17,6 +17,11 @@ public static class SampleMedia
     public static string JpegWithExif => Combine("jpeg-exif.jpg");
 
     /// <summary>
+    /// Gets a 200×100 JPEG with an sRGB ICC profile, and EXIF with a lens, a time zone offset and subseconds.
+    /// </summary>
+    public static string JpegWithIccAndOffset => Combine("jpeg-icc-offset.jpg");
+
+    /// <summary>
     /// Gets a 256×256 PNG with an alpha channel.
     /// </summary>
     public static string PngWithAlpha => Combine("png-alpha.png");
@@ -37,9 +42,45 @@ public static class SampleMedia
     public static string AnimatedGif => Combine("gif-animated.gif");
 
     /// <summary>
+    /// Gets a 96×96 animated GIF whose first frame is plain white.
+    /// </summary>
+    public static string GifWithBlankFirstFrame => Combine("gif-blank-first-frame.gif");
+
+    /// <summary>
+    /// Gets a 4 s video whose first 1.5 s are black.
+    /// </summary>
+    public static string BlackIntroVideo => Combine("video-black-intro.mp4");
+
+    /// <summary>
+    /// Gets a looping animated WebP with 6 frames of 120 ms.
+    /// </summary>
+    public static string AnimatedWebP => Combine("webp-animated.webp");
+
+    /// <summary>
     /// Gets a 2-second 320×240 MP4 with H.264 video and an AAC tone.
     /// </summary>
     public static string ShortVideo => Combine("video-short.mp4");
+
+    /// <summary>
+    /// Gets a 1-second 160×120 MP4 with HEVC video (<c>hvc1</c>) and no audio.
+    /// </summary>
+    public static string HevcVideo => Combine("video-hevc.mp4");
+
+    /// <summary>
+    /// Gets a 1-second 160×120 MP4 with AV1 video and no audio.
+    /// </summary>
+    public static string Av1Video => Combine("video-av1.mp4");
+
+    /// <summary>
+    /// Gets a 1-second MP4 stored 160×90 with a −90° display rotation, so it shows portrait, and a container
+    /// creation time of 2026-07-01 10:20:30 UTC.
+    /// </summary>
+    public static string PortraitVideo => Combine("video-portrait.mp4");
+
+    /// <summary>
+    /// Gets an MP4 with an AAC audio track and no video track.
+    /// </summary>
+    public static string AudioOnlyMp4 => Combine("audio-only.mp4");
 
     /// <summary>
     /// Gets a PNG with the visible text "Invoice 2026-10-29" and "Счёт на оплату", for OCR.
@@ -60,6 +101,12 @@ public static class SampleMedia
     /// Gets a valid JPEG with a Cyrillic file name that contains spaces.
     /// </summary>
     public static string NonAsciiName => Combine("фото с пробелом.jpg");
+
+    /// <summary>
+    /// Gets the folder of the media identity robustness test set (E01-S06-T06). Its <c>expected.json</c> lists every
+    /// derived file with its original and the match tier expected for it.
+    /// </summary>
+    public static string RobustnessDirectory => Combine("robustness");
 
     private static string Combine(string fileName) => Path.Combine(Directory, fileName);
 }

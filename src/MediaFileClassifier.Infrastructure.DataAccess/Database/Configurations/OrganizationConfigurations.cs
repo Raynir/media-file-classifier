@@ -51,7 +51,7 @@ internal sealed class SavedSearchConfiguration : IEntityTypeConfiguration<SavedS
 }
 
 /// <summary>
-/// Maps <see cref="ProcessingJob"/>. Its target items are a JSON array until E05 defines work-item tables.
+/// Maps <see cref="ProcessingJob"/>. Its target items are a JSON array; the work itself is in <see cref="WorkItem"/> rows.
 /// </summary>
 internal sealed class ProcessingJobConfiguration : IEntityTypeConfiguration<ProcessingJob>
 {
@@ -62,5 +62,25 @@ internal sealed class ProcessingJobConfiguration : IEntityTypeConfiguration<Proc
         builder.Property(job => job.ItemIds).HasConversion(new ItemIdListConverter(), new ItemIdListComparer());
         builder.HasOne<IndexedFolder>().WithMany().HasForeignKey(job => job.FolderId).OnDelete(DeleteBehavior.SetNull);
         builder.HasIndex(job => job.State);
+    }
+}
+
+/// <summary>
+/// Maps <see cref="WorkItem"/> (E05-S01-T01). The scheduler reads queued items by pool in priority order, so that
+/// order has an index of its own.
+/// </summary>
+internal sealed class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<WorkItem> builder)
+    {
+        builder.HasKey(item => item.Id);
+        builder.HasOne<ProcessingJob>().WithMany().HasForeignKey(item => item.JobId).OnDelete(DeleteBehavior.Cascade);
+
+        // Deleting a media item drops the work still planned for it.
+        builder.HasOne<MediaItem>().WithMany().HasForeignKey(item => item.ItemId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(item => new { item.State, item.Pool, item.Priority, item.CreatedAt });
+        builder.HasIndex(item => new { item.JobId, item.State });
+        builder.HasIndex(item => item.ItemId);
     }
 }

@@ -1,0 +1,42 @@
+using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
+using MediaFileClassifier.Infrastructure.Media.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Thumbnails;
+
+namespace MediaFileClassifier.Infrastructure.Media.Formats;
+
+/// <summary>
+/// PNG images. Animated PNG isn't an MVP format (D010), so an APNG counts as a still image of its first frame.
+/// </summary>
+/// <param name="metadataExtractor">Reads the metadata.</param>
+/// <param name="thumbnailGenerator">Makes the thumbnails.</param>
+public sealed class PngFormatHandler(ImageMetadataExtractor metadataExtractor, ImageThumbnailer thumbnailGenerator) : IMediaFormatHandler
+{
+    /// <inheritdoc />
+    public string FormatId => "png";
+
+    /// <inheritdoc />
+    public string MimeType => "image/png";
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> Extensions { get; } = [".png"];
+
+    /// <inheritdoc />
+    public IMediaMetadataExtractor MetadataExtractor => metadataExtractor;
+
+    /// <inheritdoc />
+    public IThumbnailGenerator ThumbnailGenerator => thumbnailGenerator;
+
+    /// <inheritdoc />
+    public int SignatureLength => 8;
+
+    /// <inheritdoc />
+    public bool MatchesSignature(ReadOnlySpan<byte> header)
+        => header.StartsWith((ReadOnlySpan<byte>)[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+    /// <inheritdoc />
+    public ValueTask<FormatInspection> InspectAsync(Stream content, CancellationToken cancellationToken)
+        => ValueTask.FromResult(FormatInspection.Supported(MediaType.Image));
+}

@@ -2,7 +2,8 @@
   Shared styles built only from the tokens in Tokens.axaml (E13-S06-T02). See docs/design-tokens.md.
 -->
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sh="using:MediaFileClassifier.Ui.Shell">
 
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Window}" />
@@ -57,6 +58,45 @@
   </Style>
   <Style Selector="Border.Content">
     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Content}" />
+  </Style>
+
+  <!-- Panel splitters: an invisible hit area over the panel's divider, shown on hover and keyboard focus. -->
+  <Style Selector="sh|PanelSplitter">
+    <Setter Property="Width" Value="{DynamicResource Size.Splitter}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Cursor" Value="SizeWestEast" />
+  </Style>
+  <Style Selector="sh|PanelSplitter:pointerover, sh|PanelSplitter:focus-visible">
+    <Setter Property="Background" Value="{DynamicResource Brush.Border.Control}" />
+  </Style>
+
+  <!--
+    Status bar segments (E13-S04): flat buttons the bar's full height. A segment without a command isn't
+    hit-testable, so it shows no hover.
+  -->
+  <Style Selector="Button.StatusSegment">
+    <Setter Property="Height" Value="{DynamicResource Size.StatusBar}" />
+    <Setter Property="Padding" Value="{DynamicResource Padding.StatusSegment}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.None}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.StatusSegment:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.State.Hover}" />
+  </Style>
+  <Style Selector="Button.StatusSegment:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.State.Pressed}" />
+  </Style>
+  <!-- A segment without a command counts as disabled in Fluent; it should still look like plain text. -->
+  <Style Selector="Button.StatusSegment:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <Style Selector="Button.StatusSegment TextBlock">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
   </Style>
 
   <!-- Icon-only buttons, e.g. panel toggles -->

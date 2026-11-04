@@ -22,9 +22,16 @@
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
     <!-- Data -->
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+    <!-- Media identity (E01-S06): XxHash128 fingerprints and content hashes, and SkiaSharp decoding for the
+         perceptual hash. SkiaSharp stays on the version Avalonia.Skia brings. -->
+    <PackageVersion Include="SkiaSharp" Version="3.119.4" />
+    <PackageVersion Include="System.IO.Hashing" Version="10.0.14" />
     <!-- EF Core with the SQLite provider (D071). Design is for `dotnet ef migrations add` only. -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14" />
+    <!-- Media metadata (E03-S03). FFMpegCore calls the local ffprobe (D068). -->
+    <PackageVersion Include="FFMpegCore" Version="5.5.0" />
+    <PackageVersion Include="MetadataExtractor" Version="2.9.3" />
     <!-- Vector search spike (MFC-17): benchmarks only until D067 is settled. -->
     <PackageVersion Include="sqlite-vec" Version="0.1.7-alpha.2.1" />
     <PackageVersion Include="System.Numerics.Tensors" Version="10.0.14" />

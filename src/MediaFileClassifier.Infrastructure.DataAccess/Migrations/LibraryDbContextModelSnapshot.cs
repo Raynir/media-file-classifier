@@ -278,6 +278,73 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.ToTable("processing_job");
                 });
 
+            modelBuilder.Entity("MediaFileClassifier.Domain.Jobs.WorkItem", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<long?>("FinishedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("ItemId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("item_id");
+
+                    b.Property<string>("JobId")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("job_id");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_error");
+
+                    b.Property<string>("Payload")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("payload");
+
+                    b.Property<int>("Pool")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("pool");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("priority");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("stage");
+
+                    b.Property<long?>("StartedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("started_at");
+
+                    b.Property<int>("State")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("state");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("JobId", "State");
+
+                    b.HasIndex("State", "Pool", "Priority", "CreatedAt");
+
+                    b.ToTable("work_item");
+                });
+
             modelBuilder.Entity("MediaFileClassifier.Domain.Libraries.IndexedFolder", b =>
                 {
                     b.Property<string>("Id")
@@ -450,6 +517,22 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<string>("StatusReason")
                         .HasColumnType("TEXT")
                         .HasColumnName("status_reason");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Error", "MediaFileClassifier.Domain.Media.MediaItem.Error#MediaItemError", b1 =>
+                        {
+                            b1.Property<string>("ExceptionType")
+                                .HasColumnType("TEXT")
+                                .HasColumnName("error_exception_type");
+
+                            b1.Property<bool>("IsPermanent")
+                                .HasColumnType("INTEGER")
+                                .HasColumnName("error_is_permanent");
+
+                            b1.Property<string>("Stage")
+                                .IsRequired()
+                                .HasColumnType("TEXT")
+                                .HasColumnName("error_stage");
+                        });
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Hashes", "MediaFileClassifier.Domain.Media.MediaItem.Hashes#FileHashes", b1 =>
                         {
@@ -699,6 +782,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("camera_model");
 
+                    b.Property<string>("ColorSpace")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("color_space");
+
                     b.Property<string>("ContainerFormat")
                         .HasColumnType("TEXT")
                         .HasColumnName("container_format");
@@ -710,6 +797,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<long?>("DateTakenOffset")
                         .HasColumnType("INTEGER")
                         .HasColumnName("date_taken_offset");
+
+                    b.Property<int?>("DateTakenSource")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("date_taken_source");
 
                     b.Property<long?>("Duration")
                         .HasColumnType("INTEGER")
@@ -727,6 +818,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("REAL")
                         .HasColumnName("frame_rate");
 
+                    b.Property<bool?>("HasAudio")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("has_audio");
+
                     b.Property<int?>("Height")
                         .HasColumnType("INTEGER")
                         .HasColumnName("height");
@@ -734,6 +829,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<string>("LensModel")
                         .HasColumnType("TEXT")
                         .HasColumnName("lens_model");
+
+                    b.Property<int?>("LoopCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("loop_count");
 
                     b.Property<string>("MimeType")
                         .HasColumnType("TEXT")
@@ -750,6 +849,11 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<string>("VideoCodec")
                         .HasColumnType("TEXT")
                         .HasColumnName("video_codec");
+
+                    b.Property<string>("Warnings")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("warnings");
 
                     b.Property<int?>("Width")
                         .HasColumnType("INTEGER")
@@ -932,6 +1036,20 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .WithMany()
                         .HasForeignKey("FolderId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("MediaFileClassifier.Domain.Jobs.WorkItem", b =>
+                {
+                    b.HasOne("MediaFileClassifier.Domain.Media.MediaItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("MediaFileClassifier.Domain.Jobs.ProcessingJob", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MediaFileClassifier.Domain.Libraries.IndexedFolder", b =>

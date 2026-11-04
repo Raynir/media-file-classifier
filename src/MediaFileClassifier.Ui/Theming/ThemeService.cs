@@ -1,17 +1,47 @@
 using Avalonia;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 
 namespace MediaFileClassifier.Ui.Theming;
 
 /// <summary>
 /// Switches between the light and dark themes (E13-S06-T01). The app follows the system theme
-/// unless <see cref="Mode"/> overrides it. Saving the choice comes with the settings screen (E17).
+/// unless <see cref="Mode"/> overrides it. The choice is the <see cref="ThemeSetting"/> setting (E17-S05).
 /// </summary>
 public sealed partial class ThemeService : ObservableObject
 {
     /// <summary>
-    /// Gets or sets the theme mode. Setting it applies the theme at once.
+    /// The theme setting.
+    /// </summary>
+    public static readonly ChoiceSetting<ThemeMode> ThemeSetting = new(
+        "appearance.theme", SettingScope.App, SettingCategories.Appearance, "Setting_Theme", ThemeMode.System)
+    {
+        HelpKey = "Setting_Theme_Help",
+    };
+
+    private readonly ISettingsStore settings;
+    private bool isOverriding;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ThemeService"/> class.
+    /// </summary>
+    /// <param name="settings">The setting values, where the mode is kept.</param>
+    public ThemeService(ISettingsStore settings)
+    {
+        this.settings = settings;
+        Mode = settings.Get(ThemeSetting);
+        settings.Changed += (_, e) =>
+        {
+            if (e.Setting == ThemeSetting)
+            {
+                Mode = settings.Get(ThemeSetting);
+            }
+        };
+    }
+
+    /// <summary>
+    /// Gets or sets the theme mode. Setting it applies the theme at once and stores the choice.
     /// </summary>
     [ObservableProperty]
     public partial ThemeMode Mode { get; set; }
@@ -29,6 +59,23 @@ public sealed partial class ThemeService : ObservableObject
     };
 
     /// <summary>
+    /// Switches to a mode for this session only, without storing it, as the <c>--theme=</c> switch does.
+    /// </summary>
+    /// <param name="mode">Theme mode.</param>
+    public void Override(ThemeMode mode)
+    {
+        isOverriding = true;
+        try
+        {
+            Mode = mode;
+        }
+        finally
+        {
+            isOverriding = false;
+        }
+    }
+
+    /// <summary>
     /// Applies <see cref="Mode"/> to the running application, if there is one.
     /// </summary>
     public void Apply()
@@ -39,5 +86,14 @@ public sealed partial class ThemeService : ObservableObject
         }
     }
 
-    partial void OnModeChanged(ThemeMode value) => Apply();
+    partial void OnModeChanged(ThemeMode value)
+    {
+        Apply();
+
+        // The store ignores an unchanged value, so this doesn't loop with the Changed handler.
+        if (!isOverriding)
+        {
+            settings.SetValue(ThemeSetting, value);
+        }
+    }
 }

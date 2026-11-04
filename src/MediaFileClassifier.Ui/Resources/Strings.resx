@@ -38,11 +38,248 @@
   <data name="Details_Empty" xml:space="preserve">
     <value>Select an item to see its details.</value>
   </data>
+  <data name="Details_SelectedCount" xml:space="preserve">
+    <value>{0} items selected</value>
+  </data>
+  <data name="Details_Tab_Overview" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="Details_Tab_Technical" xml:space="preserve">
+    <value>Technical</value>
+  </data>
+  <data name="Details_Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="Details_Preview_Toggle" xml:space="preserve">
+    <value>Show or hide the preview</value>
+  </data>
+  <data name="Details_Preview_Resize" xml:space="preserve">
+    <value>Resize the preview</value>
+  </data>
+  <data name="Details_Preview_Fit" xml:space="preserve">
+    <value>Fit</value>
+  </data>
+  <data name="Details_Preview_Fit_ToolTip" xml:space="preserve">
+    <value>Fit the whole image (double-click)</value>
+  </data>
+  <data name="Details_Preview_ActualSize" xml:space="preserve">
+    <value>1:1</value>
+  </data>
+  <data name="Details_Preview_ActualSize_ToolTip" xml:space="preserve">
+    <value>Show at 100% (double-click)</value>
+  </data>
+  <data name="Details_Preview_Zoom" xml:space="preserve">
+    <value>{0:0}%</value>
+  </data>
+  <data name="Details_Preview_Thumbnail_Offline" xml:space="preserve">
+    <value>Showing the thumbnail: the folder {0} is offline.</value>
+  </data>
+  <data name="Details_Preview_Thumbnail_Missing" xml:space="preserve">
+    <value>Showing the thumbnail: the file is missing.</value>
+  </data>
+  <data name="Details_Preview_Thumbnail_Failed" xml:space="preserve">
+    <value>Showing the thumbnail: the file couldn't be read.</value>
+  </data>
+  <data name="Details_Preview_None" xml:space="preserve">
+    <value>No preview yet.</value>
+  </data>
+  <data name="Details_Actions" xml:space="preserve">
+    <value>Item actions</value>
+  </data>
+  <data name="Details_Title_Label" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Details_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Details_Description_None" xml:space="preserve">
+    <value>No description.</value>
+  </data>
+  <data name="Details_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Details_Tags_None" xml:space="preserve">
+    <value>No tags.</value>
+  </data>
+  <data name="Details_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Details_MediaType_Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="Details_MediaType_AnimatedImage" xml:space="preserve">
+    <value>Animated image</value>
+  </data>
+  <data name="Details_MediaType_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="Details_Format" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="Details_Dimensions" xml:space="preserve">
+    <value>Dimensions</value>
+  </data>
+  <data name="Details_Dimensions_Value" xml:space="preserve">
+    <value>{0} × {1} px</value>
+  </data>
+  <data name="Details_FileSize" xml:space="preserve">
+    <value>File size</value>
+  </data>
+  <data name="Details_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Details_Status_Discovered" xml:space="preserve">
+    <value>Found</value>
+  </data>
+  <data name="Details_Status_Pending" xml:space="preserve">
+    <value>Pending analysis</value>
+  </data>
+  <data name="Details_Status_Indexed" xml:space="preserve">
+    <value>Indexed</value>
+  </data>
+  <data name="Details_Status_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Details_Status_Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="Details_Status_Excluded" xml:space="preserve">
+    <value>Excluded</value>
+  </data>
+  <data name="Details_Status_Offline" xml:space="preserve">
+    <value>Offline: {0}</value>
+  </data>
+  <data name="Details_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Details_DateTaken" xml:space="preserve">
+    <value>Date taken</value>
+  </data>
+  <data name="Details_DateTaken_Value" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Details_DateTakenSource_ExifDateTimeOriginal" xml:space="preserve">
+    <value>EXIF</value>
+  </data>
+  <data name="Details_DateTakenSource_VideoCreationTime" xml:space="preserve">
+    <value>video</value>
+  </data>
+  <data name="Details_DateTakenSource_FileModified" xml:space="preserve">
+    <value>file date</value>
+  </data>
+  <data name="Details_Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="Details_FrameRate" xml:space="preserve">
+    <value>Frame rate</value>
+  </data>
+  <data name="Details_FrameRate_Value" xml:space="preserve">
+    <value>{0} fps</value>
+  </data>
+  <data name="Details_Codecs" xml:space="preserve">
+    <value>Codecs</value>
+  </data>
+  <data name="Details_NoAudio" xml:space="preserve">
+    <value>no audio</value>
+  </data>
+  <data name="Details_Frames" xml:space="preserve">
+    <value>Frames</value>
+  </data>
+  <data name="Details_Loops" xml:space="preserve">
+    <value>Loops</value>
+  </data>
+  <data name="Details_Loops_Forever" xml:space="preserve">
+    <value>Forever</value>
+  </data>
+  <data name="Details_Camera" xml:space="preserve">
+    <value>Camera</value>
+  </data>
+  <data name="Details_Lens" xml:space="preserve">
+    <value>Lens</value>
+  </data>
+  <data name="Details_ColorSpace" xml:space="preserve">
+    <value>Color space</value>
+  </data>
+  <data name="Details_Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="Details_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Details_Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Details_Imported" xml:space="preserve">
+    <value>Imported</value>
+  </data>
+  <data name="Command_PreviousItem" xml:space="preserve">
+    <value>Previ_ous item</value>
+  </data>
+  <data name="Command_NextItem" xml:space="preserve">
+    <value>Ne_xt item</value>
+  </data>
   <data name="Command_ToggleNavigation" xml:space="preserve">
-    <value>Toggle _navigation panel</value>
+    <value>_Show or hide navigation panel</value>
   </data>
   <data name="Command_ToggleDetails" xml:space="preserve">
-    <value>Toggle _details panel</value>
+    <value>_Show or hide details panel</value>
+  </data>
+  <data name="Command_CollapseNavigation" xml:space="preserve">
+    <value>Collapse or e_xpand navigation panel</value>
+  </data>
+  <data name="Command_CollapseDetails" xml:space="preserve">
+    <value>Collapse or e_xpand details panel</value>
+  </data>
+  <data name="Command_PanelExpanded" xml:space="preserve">
+    <value>_Expanded</value>
+  </data>
+  <data name="Command_PanelCollapsed" xml:space="preserve">
+    <value>_Collapsed</value>
+  </data>
+  <data name="Command_PanelHidden" xml:space="preserve">
+    <value>_Hidden</value>
+  </data>
+  <data name="Command_ToggleStatusBar" xml:space="preserve">
+    <value>Status _bar</value>
+  </data>
+  <data name="Command_ResetLayout" xml:space="preserve">
+    <value>_Reset layout</value>
+  </data>
+  <data name="Menu_NavigationPanel" xml:space="preserve">
+    <value>_Navigation panel</value>
+  </data>
+  <data name="Menu_DetailsPanel" xml:space="preserve">
+    <value>_Details panel</value>
+  </data>
+  <data name="Splitter_Navigation" xml:space="preserve">
+    <value>Resize navigation panel</value>
+  </data>
+  <data name="Splitter_Details" xml:space="preserve">
+    <value>Resize details panel</value>
+  </data>
+  <data name="Command_KeyboardShortcuts" xml:space="preserve">
+    <value>_Keyboard shortcuts</value>
+  </data>
+  <data name="Shortcuts_Title" xml:space="preserve">
+    <value>Keyboard shortcuts</value>
+  </data>
+  <data name="Shortcuts_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Shortcuts_Scope_Global" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Shortcuts_Scope_Browser" xml:space="preserve">
+    <value>Media browser</value>
+  </data>
+  <data name="Shortcuts_Scope_Editor" xml:space="preserve">
+    <value>Metadata editor</value>
+  </data>
+  <data name="Shortcuts_Scope_Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Shortcuts_Scope_Viewer" xml:space="preserve">
+    <value>Preview and viewer</value>
   </data>
   <data name="Menu_Library" xml:space="preserve">
     <value>_Library</value>
@@ -134,5 +371,570 @@
   <data name="FileSize_Terabytes" xml:space="preserve">
     <value>{0} TB</value>
     <comment>{0} is a number, formatted for the current culture.</comment>
+  </data>
+  <data name="QuitConfirmation_Title" xml:space="preserve">
+    <value>Quit while processing?</value>
+  </data>
+  <data name="QuitConfirmation_Message" xml:space="preserve">
+    <value>{0} items are still processing. They will continue the next time you open this library.</value>
+    <comment>{0} is a number of work items, formatted for the current culture. Shown when it isn't 1.</comment>
+  </data>
+  <data name="QuitConfirmation_MessageOne" xml:space="preserve">
+    <value>1 item is still processing. It will continue the next time you open this library.</value>
+  </data>
+  <data name="QuitConfirmation_DontAskAgain" xml:space="preserve">
+    <value>Don't ask again</value>
+  </data>
+  <data name="QuitConfirmation_Quit" xml:space="preserve">
+    <value>Quit</value>
+  </data>
+  <data name="QuitConfirmation_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SettingsCategory_General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="SettingsCategory_Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="SettingsCategory_Library" xml:space="preserve">
+    <value>Library</value>
+  </data>
+  <data name="SettingsCategory_AiModels" xml:space="preserve">
+    <value>AI &amp; Models</value>
+  </data>
+  <data name="SettingsCategory_Processing" xml:space="preserve">
+    <value>Processing</value>
+  </data>
+  <data name="Setting_Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Setting_Theme_Help" xml:space="preserve">
+    <value>Follow the system's light or dark mode, or always use one of them.</value>
+  </data>
+  <data name="Setting_Theme_System" xml:space="preserve">
+    <value>Use system setting</value>
+  </data>
+  <data name="Setting_Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Setting_Theme_Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Setting_OpenAiCompatibleEndpoint" xml:space="preserve">
+    <value>OpenAI-compatible server</value>
+  </data>
+  <data name="Setting_OpenAiCompatibleEndpoint_Help" xml:space="preserve">
+    <value>Base URL of a local server such as LM Studio or Ollama. Leave it empty if you don't use one.</value>
+  </data>
+  <data name="Setting_OpenAiCompatibleEndpoint_Placeholder" xml:space="preserve">
+    <value>http://localhost:1234/v1</value>
+  </data>
+  <data name="Setting_AnalyzeAutomatically" xml:space="preserve">
+    <value>Analyse new items automatically</value>
+  </data>
+  <data name="Setting_AnalyzeAutomatically_Help" xml:space="preserve">
+    <value>Describe and tag items as soon as they're imported. When off, start analysis yourself.</value>
+  </data>
+  <data name="Setting_RetainedPreviousRuns" xml:space="preserve">
+    <value>Previous analysis results to keep</value>
+  </data>
+  <data name="Setting_RetainedPreviousRuns_Help" xml:space="preserve">
+    <value>Older results kept for each item, so you can compare them or go back. Each one adds about 5 KB per item.</value>
+  </data>
+  <data name="SettingError_Range" xml:space="preserve">
+    <value>Enter a whole number from {0} to {1}.</value>
+    <comment>{0} and {1} are the smallest and largest allowed numbers.</comment>
+  </data>
+  <data name="SettingError_HttpUrl" xml:space="preserve">
+    <value>Enter a URL that starts with http:// or https://, or leave it empty.</value>
+  </data>
+  <data name="SettingError_UnknownOption" xml:space="preserve">
+    <value>Choose one of the options.</value>
+  </data>
+  <data name="SettingError_NoLibrary" xml:space="preserve">
+    <value>Open a library to change library settings.</value>
+  </data>
+  <data name="SettingError_SaveFailed" xml:space="preserve">
+    <value>The setting couldn't be saved. Try again.</value>
+  </data>
+  <data name="Command_Settings" xml:space="preserve">
+    <value>_Settings…</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Settings_Categories" xml:space="preserve">
+    <value>Settings categories</value>
+  </data>
+  <data name="Settings_ScopeApp" xml:space="preserve">
+    <value>App</value>
+  </data>
+  <data name="Settings_ScopeApp_ToolTip" xml:space="preserve">
+    <value>Stored on this computer and used for every library.</value>
+  </data>
+  <data name="Settings_ScopeLibrary" xml:space="preserve">
+    <value>Library</value>
+  </data>
+  <data name="Settings_ScopeLibrary_ToolTip" xml:space="preserve">
+    <value>Stored in the open library, so it moves with the library to another computer.</value>
+  </data>
+  <data name="Settings_ApplyRestart" xml:space="preserve">
+    <value>Takes effect after a restart</value>
+  </data>
+  <data name="Settings_ApplyReindex" xml:space="preserve">
+    <value>Re-index to update existing items</value>
+  </data>
+  <data name="Settings_LibraryNote" xml:space="preserve">
+    <value>Open a library to change library settings. Until then they show their defaults.</value>
+  </data>
+  <data name="Settings_EmptyCategory" xml:space="preserve">
+    <value>There are no settings here yet.</value>
+  </data>
+  <data name="Settings_On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Settings_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Settings_Search_Placeholder" xml:space="preserve">
+    <value>Search settings</value>
+  </data>
+  <data name="Settings_SearchResults" xml:space="preserve">
+    <value>Results for “{0}”</value>
+    <comment>{0} is the search text.</comment>
+  </data>
+  <data name="Settings_NoResults" xml:space="preserve">
+    <value>No settings match “{0}”.</value>
+    <comment>{0} is the search text.</comment>
+  </data>
+  <data name="Settings_ResetCategory" xml:space="preserve">
+    <value>Reset to defaults</value>
+  </data>
+  <data name="Settings_ResetCategory_Confirm" xml:space="preserve">
+    <value>Reset all {0} settings to their defaults?</value>
+    <comment>{0} is the category name, such as Appearance.</comment>
+  </data>
+  <data name="Settings_ResetAll" xml:space="preserve">
+    <value>Reset all settings</value>
+  </data>
+  <data name="Settings_ResetAll_Confirm" xml:space="preserve">
+    <value>Reset every setting to its default?</value>
+  </data>
+  <data name="Settings_ResetAll_NoLibrary" xml:space="preserve">
+    <value>Library settings stay as they are, because no library is open.</value>
+  </data>
+  <data name="Settings_Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Settings_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Command_NewLibrary" xml:space="preserve">
+    <value>_New library…</value>
+  </data>
+  <data name="Welcome_Title" xml:space="preserve">
+    <value>Welcome to Media File Classifier</value>
+  </data>
+  <data name="Welcome_Hint" xml:space="preserve">
+    <value>Create a library for your photos and videos, or open one you already have.</value>
+  </data>
+  <data name="Welcome_CreateLibrary" xml:space="preserve">
+    <value>Create library…</value>
+  </data>
+  <data name="CreateLibrary_Title" xml:space="preserve">
+    <value>Create library</value>
+  </data>
+  <data name="CreateLibrary_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="CreateLibrary_NamePlaceholder" xml:space="preserve">
+    <value>For example, Family photos</value>
+  </data>
+  <data name="CreateLibrary_Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="CreateLibrary_LocationHint" xml:space="preserve">
+    <value>The library is a folder with this name and the .mfc extension. Your media stays where it is.</value>
+  </data>
+  <data name="CreateLibrary_Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
+  <data name="CreateLibrary_PickLocation" xml:space="preserve">
+    <value>Choose where to create the library</value>
+  </data>
+  <data name="CreateLibrary_Create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="CreateLibrary_FoldersTitle" xml:space="preserve">
+    <value>Add folders to index</value>
+  </data>
+  <data name="CreateLibrary_FoldersHint" xml:space="preserve">
+    <value>Choose the folders with your photos and videos. You can add more later.</value>
+  </data>
+  <data name="CreateLibrary_AddFolder" xml:space="preserve">
+    <value>Add folder…</value>
+  </data>
+  <data name="CreateLibrary_PickFolder" xml:space="preserve">
+    <value>Choose a folder to index</value>
+  </data>
+  <data name="CreateLibrary_Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="LibraryLocationError_NameMissing" xml:space="preserve">
+    <value>Enter a name for the library.</value>
+  </data>
+  <data name="LibraryLocationError_NameInvalid" xml:space="preserve">
+    <value>A library name can't contain &lt; &gt; : " / \ </value>
+    <comment> ? * or end with a dot.</comment>
+  </data>
+  <data name="LibraryLocationError_LocationMissing" xml:space="preserve">
+    <value>Choose a folder for the library.</value>
+  </data>
+  <data name="LibraryLocationError_InsideLibrary" xml:space="preserve">
+    <value>This folder is inside another library. Choose a folder outside it.</value>
+  </data>
+  <data name="LibraryLocationError_AlreadyExists" xml:space="preserve">
+    <value>A library with this name already exists here. Choose another name or location.</value>
+  </data>
+  <data name="LibraryLocationError_NotWritable" xml:space="preserve">
+    <value>The app can't create files in this folder. Choose another location.</value>
+  </data>
+  <data name="LibraryLocationError_NotEnoughSpace" xml:space="preserve">
+    <value>This drive has less than {0} free. Free some space or choose another drive.</value>
+    <comment>{0} is a file size, such as 1 GB.</comment>
+  </data>
+  <data name="LibraryOpenError_NotFound" xml:space="preserve">
+    <value>The library folder or its database is missing.</value>
+  </data>
+  <data name="LibraryOpenError_AlreadyExists" xml:space="preserve">
+    <value>A library with this name already exists here. Choose another name or location.</value>
+  </data>
+  <data name="LibraryOpenError_InUse" xml:space="preserve">
+    <value>This library is open in another window of the app.</value>
+  </data>
+  <data name="LibraryOpenError_NewerVersion" xml:space="preserve">
+    <value>This library was made by a newer version of the app. Update the app to open it.</value>
+  </data>
+  <data name="LibraryOpenError_NotALibrary" xml:space="preserve">
+    <value>This folder isn't a Media File Classifier library.</value>
+  </data>
+  <data name="LibraryOpenError_NotWritable" xml:space="preserve">
+    <value>The app can't write to this library's folder. Check that the drive is connected and not read-only.</value>
+  </data>
+  <data name="Command_OpenLibrary" xml:space="preserve">
+    <value>_Open library…</value>
+  </data>
+  <data name="Welcome_OpenLibrary" xml:space="preserve">
+    <value>Open library…</value>
+  </data>
+  <data name="Welcome_Recent" xml:space="preserve">
+    <value>Recent libraries</value>
+  </data>
+  <data name="Welcome_LastOpened" xml:space="preserve">
+    <value>Last opened {0}</value>
+    <comment>{0} is a date.</comment>
+  </data>
+  <data name="Welcome_Unavailable" xml:space="preserve">
+    <value>Unavailable: the folder can't be found. Is its drive connected?</value>
+  </data>
+  <data name="Welcome_RemoveRecent" xml:space="preserve">
+    <value>Remove {0} from the list</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="OpenLibrary_Pick" xml:space="preserve">
+    <value>Choose a library folder (.mfc)</value>
+  </data>
+  <data name="OpenLibrary_Failed" xml:space="preserve">
+    <value>{0} couldn't be opened. {1}</value>
+    <comment>{0} is a library name; {1} is the reason, a full sentence.</comment>
+  </data>
+  <data name="MigrationProgress_Title" xml:space="preserve">
+    <value>Updating library…</value>
+  </data>
+  <data name="MigrationProgress_Hint" xml:space="preserve">
+    <value>This library was made by an older version of the app. A backup was taken first. This can take a few minutes.</value>
+  </data>
+  <data name="MigrationFailed_Question" xml:space="preserve">
+    <value>{0} couldn't be updated to this version of the app. Restore it from the backup taken just before?</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="MigrationFailed_Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="MigrationFailed_Keep" xml:space="preserve">
+    <value>Keep as is</value>
+  </data>
+  <data name="MigrationFailed_Restored" xml:space="preserve">
+    <value>{0} couldn't be updated, so it was restored from its backup and is unchanged. Report the problem with the log files from Help → Open log folder.</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="MigrationFailed_RestoreFailed" xml:space="preserve">
+    <value>{0} couldn't be updated or restored. Its backup is in the library's backups folder.</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="LibraryOpenError_MigrationFailed" xml:space="preserve">
+    <value>It couldn't be updated to this version of the app.</value>
+  </data>
+  <data name="Setting_OpenLastLibrary" xml:space="preserve">
+    <value>Open the last library on startup</value>
+  </data>
+  <data name="Setting_OpenLastLibrary_Help" xml:space="preserve">
+    <value>When off, the app starts on the welcome screen.</value>
+  </data>
+  <data name="Command_ManageFolders" xml:space="preserve">
+    <value>Manage _folders…</value>
+  </data>
+  <data name="Command_NoLibraryOpen" xml:space="preserve">
+    <value>Open a library first.</value>
+  </data>
+  <data name="Folders_Title" xml:space="preserve">
+    <value>Indexed folders</value>
+  </data>
+  <data name="Folders_Hint" xml:space="preserve">
+    <value>The library indexes the media in these folders. Removing a folder removes its items from the library only: files on disk are never touched.</value>
+  </data>
+  <data name="Folders_Add" xml:space="preserve">
+    <value>Add folder…</value>
+  </data>
+  <data name="Folders_PickFolder" xml:space="preserve">
+    <value>Choose a folder to index</value>
+  </data>
+  <data name="Folders_Empty" xml:space="preserve">
+    <value>No folders yet. Add a folder to start indexing.</value>
+  </data>
+  <data name="Folders_State_Online" xml:space="preserve">
+    <value>Online</value>
+  </data>
+  <data name="Folders_State_Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Folders_State_Scanning" xml:space="preserve">
+    <value>Scanning</value>
+  </data>
+  <data name="Folders_Items" xml:space="preserve">
+    <value>{0} items</value>
+    <comment>{0} is a number of media items, formatted for the current culture. Shown when it isn't 1.</comment>
+  </data>
+  <data name="Folders_ItemsOne" xml:space="preserve">
+    <value>1 item</value>
+  </data>
+  <data name="Folders_ItemsExcluded" xml:space="preserve">
+    <value>{0}, {1} excluded</value>
+    <comment>{0} is Folders_Items or Folders_ItemsOne; {1} is a number of excluded items.</comment>
+  </data>
+  <data name="Folders_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Folders_RemoveConfirm" xml:space="preserve">
+    <value>Remove {0} from the library? {1} and their metadata are removed from the library. Files on disk aren't touched.</value>
+    <comment>{0} is a folder path; {1} is Folders_Items or Folders_ItemsOne.</comment>
+  </data>
+  <data name="Folders_Removing" xml:space="preserve">
+    <value>{0} is being removed from the library.</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Folders_MergeConfirm" xml:space="preserve">
+    <value>{0} contains folders that are indexed already: {1}. They'll be merged into it, keeping their items and metadata.</value>
+    <comment>{0} is the new folder; {1} is a list of folder paths.</comment>
+  </data>
+  <data name="Folders_Merge" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Folders_AlreadyIndexed" xml:space="preserve">
+    <value>{0} is indexed already.</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Folders_InsideIndexed" xml:space="preserve">
+    <value>{0} is inside {1}, which is indexed already.</value>
+    <comment>{0} and {1} are folder paths.</comment>
+  </data>
+  <data name="Folders_RulesTitle" xml:space="preserve">
+    <value>Rules for {0}</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Folders_IncludeHidden" xml:space="preserve">
+    <value>Include hidden files and folders</value>
+  </data>
+  <data name="Folders_IncludeCloud" xml:space="preserve">
+    <value>Include cloud files that aren't on this device (reading them downloads them)</value>
+  </data>
+  <data name="Folders_ExcludedSubfolders" xml:space="preserve">
+    <value>Excluded subfolders</value>
+  </data>
+  <data name="Folders_NoExclusions" xml:space="preserve">
+    <value>No subfolders are excluded.</value>
+  </data>
+  <data name="Folders_ExcludeSubfolder" xml:space="preserve">
+    <value>Exclude subfolder…</value>
+  </data>
+  <data name="Folders_PickSubfolder" xml:space="preserve">
+    <value>Choose a subfolder to exclude</value>
+  </data>
+  <data name="Folders_NotASubfolder" xml:space="preserve">
+    <value>Choose a folder inside {0}.</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Folders_RemoveExclusion" xml:space="preserve">
+    <value>Stop excluding {0}</value>
+    <comment>{0} is a subfolder path. Accessible name of the remove button.</comment>
+  </data>
+  <data name="Folders_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Folders_RulesApplied" xml:space="preserve">
+    <value>Rules saved: {0} items excluded, {1} brought back. The folder is scanned again.</value>
+    <comment>{0} and {1} are numbers of items.</comment>
+  </data>
+  <data name="Folders_SelectHint" xml:space="preserve">
+    <value>Select a folder to change its rules.</value>
+  </data>
+  <data name="Folders_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Browser_TileSize" xml:space="preserve">
+    <value>Thumbnail size</value>
+  </data>
+  <data name="Browser_Empty" xml:space="preserve">
+    <value>This library has no media yet. Add a folder to start indexing.</value>
+  </data>
+  <data name="Tile_Badge_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Tile_Badge_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Tile_Animated" xml:space="preserve">
+    <value>Animated</value>
+  </data>
+  <data name="Command_LargerThumbnails" xml:space="preserve">
+    <value>Larger thumbnails</value>
+  </data>
+  <data name="Command_SmallerThumbnails" xml:space="preserve">
+    <value>Smaller thumbnails</value>
+  </data>
+  <data name="Command_OpenItem" xml:space="preserve">
+    <value>Pre_view</value>
+  </data>
+  <data name="Command_OpenInDefaultApp" xml:space="preserve">
+    <value>Open in default _app</value>
+  </data>
+  <data name="Command_RevealInExplorer" xml:space="preserve">
+    <value>Reveal in File _Explorer</value>
+  </data>
+  <data name="Command_CopyPath" xml:space="preserve">
+    <value>Copy file _path</value>
+  </data>
+  <data name="Item_Unavailable_Missing" xml:space="preserve">
+    <value>The file is missing from its folder.</value>
+  </data>
+  <data name="Item_Unavailable_Offline" xml:space="preserve">
+    <value>The folder {0} is offline. Connect the drive to use the file.</value>
+  </data>
+  <data name="Command_SelectAll" xml:space="preserve">
+    <value>Select _all</value>
+  </data>
+  <data name="Command_SelectNone" xml:space="preserve">
+    <value>Select _none</value>
+  </data>
+  <data name="Browser_Grid" xml:space="preserve">
+    <value>Media items</value>
+  </data>
+  <data name="StatusBar_Selected_One" xml:space="preserve">
+    <value>{0} selected</value>
+  </data>
+  <data name="StatusBar_Selected_Other" xml:space="preserve">
+    <value>{0} selected</value>
+  </data>
+  <data name="StatusBar_Selected_ToolTip" xml:space="preserve">
+    <value>Selected items. Esc deselects them.</value>
+  </data>
+  <data name="Progress_Count" xml:space="preserve">
+    <value>{0}: {1} of {2}</value>
+    <comment>Processing indicator for one job. {0} is a stage name or job description, {1} the work items finished, {2} the total.</comment>
+  </data>
+  <data name="Progress_CountGrowing" xml:space="preserve">
+    <value>{0}: {1} of {2}+ so far</value>
+    <comment>Like Progress_Count, while the job is still finding more work, so the total grows.</comment>
+  </data>
+  <data name="Progress_Working" xml:space="preserve">
+    <value>{0}…</value>
+    <comment>Processing indicator while the job works on its whole target, e.g. finding files. {0} is a stage name or job description.</comment>
+  </data>
+  <data name="Progress_Jobs" xml:space="preserve">
+    <value>{0} jobs · {1} items left</value>
+    <comment>Processing indicator for several jobs. {0} is the number of jobs, {1} the work items still to do.</comment>
+  </data>
+  <data name="Progress_TimeLeft" xml:space="preserve">
+    <value>{0} · {1} left</value>
+    <comment>{0} is the processing indicator text, {1} an estimated time such as &quot;12 min&quot;.</comment>
+  </data>
+  <data name="Progress_LessThanAMinute" xml:space="preserve">
+    <value>less than a minute</value>
+  </data>
+  <data name="Progress_Minutes" xml:space="preserve">
+    <value>{0} min</value>
+    <comment>{0} is a number of minutes.</comment>
+  </data>
+  <data name="Progress_HoursMinutes" xml:space="preserve">
+    <value>{0} h {1} min</value>
+    <comment>{0} is a number of hours, {1} of minutes.</comment>
+  </data>
+  <data name="Progress_JobLine" xml:space="preserve">
+    <value>{0} — {1}</value>
+    <comment>Processing indicator tooltip, one line per job. {0} is the job description, {1} its progress like Progress_Count.</comment>
+  </data>
+  <data name="Progress_Failed" xml:space="preserve">
+    <value>{0}, {1} failed</value>
+    <comment>{0} is a tooltip line, {1} the number of failed work items.</comment>
+  </data>
+  <data name="Stage_import.discover" xml:space="preserve">
+    <value>Finding files</value>
+  </data>
+  <data name="Stage_import.fingerprint" xml:space="preserve">
+    <value>Fingerprinting</value>
+  </data>
+  <data name="Stage_import.media" xml:space="preserve">
+    <value>Reading metadata and thumbnails</value>
+  </data>
+  <data name="Stage_hash.content" xml:space="preserve">
+    <value>Hashing</value>
+  </data>
+  <data name="Navigation_Panel" xml:space="preserve">
+    <value>Navigation</value>
+  </data>
+  <data name="Navigation_Library" xml:space="preserve">
+    <value>Library</value>
+  </data>
+  <data name="Navigation_AllMedia" xml:space="preserve">
+    <value>All media</value>
+  </data>
+  <data name="Navigation_RecentlyImported" xml:space="preserve">
+    <value>Recently imported</value>
+  </data>
+  <data name="Navigation_Folders" xml:space="preserve">
+    <value>Folders</value>
+  </data>
+  <data name="StatusBar_Items_One" xml:space="preserve">
+    <value>{0} item</value>
+    <comment>Status bar result count when there is one result. {0} is the number.</comment>
+  </data>
+  <data name="StatusBar_Items_Other" xml:space="preserve">
+    <value>{0} items</value>
+    <comment>Status bar result count. {0} is the number.</comment>
+  </data>
+  <data name="StatusBar_Items_ToolTip" xml:space="preserve">
+    <value>Items in this view</value>
+  </data>
+  <data name="StatusBar_FoldersOffline_One" xml:space="preserve">
+    <value>{0} folder offline</value>
+    <comment>Status bar notice when one indexed folder can't be reached. {0} is the number.</comment>
+  </data>
+  <data name="StatusBar_FoldersOffline_Other" xml:space="preserve">
+    <value>{0} folders offline</value>
+    <comment>Status bar notice when several indexed folders can't be reached. {0} is the number.</comment>
+  </data>
+  <data name="StatusBar_FoldersOffline_ToolTip" xml:space="preserve">
+    <value>Some indexed folders can't be reached. Their items stay in the library.</value>
   </data>
 </root>

@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels"
+             x:Class="MediaFileClassifier.Ui.Views.QuitConfirmationView"
+             x:DataType="vm:QuitConfirmationViewModel"
+             MaxWidth="420">
+  <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.L}">
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+    <CheckBox Content="{l:Loc QuitConfirmation_DontAskAgain}" IsChecked="{Binding DontAskAgain}" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+      <Button Content="{l:Loc QuitConfirmation_Quit}" Command="{Binding QuitCommand}" IsDefault="True" Classes="accent" />
+      <Button Content="{l:Loc QuitConfirmation_Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

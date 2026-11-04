@@ -138,6 +138,7 @@ public sealed class ShellViewTests
             .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
             .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
             .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
+            .AddSingleton<Infrastructure.Abstractions.Libraries.ILibrarySession>(new Browser.FakeBrowserSession(open: false))
             .AddUseCases()
             .AddUi()
             .BuildServiceProvider();

@@ -25,9 +25,7 @@ public sealed class KeymapTests
                 new ShellCommands(new ShellLayout(), new ThemeService(new InMemorySettingsStore()), localizer, new FakeAppPaths(), new FakeFolderLauncher()),
                 new ShortcutCommands(new ShortcutReferenceState()),
                 new Contributor(new AppCommand(MediaFileClassifier.Ui.Settings.SettingsCommands.OpenSettings, CommandGroups.Tools, 100, "Command_Settings", () => Task.CompletedTask)),
-                new Contributor(new AppCommand(BrowserCommands.LargerThumbnails, CommandGroups.View, 300, "Command_LargerThumbnails", () => Task.CompletedTask)),
-                new Contributor(new AppCommand(BrowserCommands.SmallerThumbnails, CommandGroups.View, 310, "Command_SmallerThumbnails", () => Task.CompletedTask)),
-                new Contributor(new AppCommand(BrowserCommands.OpenItem, CommandGroups.Item, 10, "Command_OpenItem", () => Task.CompletedTask)),
+                new BrowserCommands(() => throw new InvalidOperationException("No grid in this test.")),
             ],
             localizer,
             new FakeCapabilityGate());

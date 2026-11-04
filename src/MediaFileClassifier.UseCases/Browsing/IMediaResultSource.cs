@@ -40,4 +40,22 @@ public interface IMediaResultSource
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Its position, or where it would be if it's gone.</returns>
     Task<int> PositionOfAsync(Id<MediaItem> itemId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets result IDs in result order without loading the items (E14-S03), for range selection and Select all.
+    /// </summary>
+    /// <param name="offset">Number of results to skip, counted from <paramref name="newest"/> when it's given.</param>
+    /// <param name="limit">Maximum number of IDs.</param>
+    /// <param name="newest">If given, only this result and the ones added before it.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The IDs.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> GetIdsAsync(int offset, int limit, Id<MediaItem>? newest, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Finds which of the given items are still in the results (E14-S03), so a selection survives a refresh.
+    /// </summary>
+    /// <param name="ids">The item IDs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The IDs still in the results.</returns>
+    Task<IReadOnlySet<Id<MediaItem>>> GetExistingIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken);
 }

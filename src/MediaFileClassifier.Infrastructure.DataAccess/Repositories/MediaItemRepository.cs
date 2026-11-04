@@ -237,6 +237,50 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<Id<MediaItem>>> GetIdsAsync(int offset, int limit, Id<MediaItem>? newest = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+
+        // Raw SQL for the same reason as CountNewerAsync: IDs compare as UUIDv7 text.
+        var upTo = newest?.Value.ToString() ?? "ffffffff-ffff-ffff-ffff-ffffffffffff";
+        return connections.ReadAsync<IReadOnlyList<Id<MediaItem>>>(
+            async (db, token) =>
+            {
+                var ids = await db.Database
+                    .SqlQuery<string>($"SELECT id AS \"Value\" FROM media_item WHERE id <= {upTo} ORDER BY id DESC LIMIT {limit} OFFSET {offset}")
+                    .ToListAsync(token).ConfigureAwait(false);
+                return [.. ids.Select(Id<MediaItem>.Parse)];
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlySet<Id<MediaItem>>> GetExistingIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count == 0)
+        {
+            return Task.FromResult<IReadOnlySet<Id<MediaItem>>>(new HashSet<Id<MediaItem>>());
+        }
+
+        return connections.ReadAsync<IReadOnlySet<Id<MediaItem>>>(
+            async (db, token) =>
+            {
+                var existing = new HashSet<Id<MediaItem>>();
+                // EF sends each batch as one JSON parameter, so batches can be large.
+                foreach (var batch in ids.Chunk(5000))
+                {
+                    var found = await db.MediaItems.Where(item => batch.Contains(item.Id)).Select(item => item.Id).ToListAsync(token).ConfigureAwait(false);
+                    existing.UnionWith(found);
+                }
+
+                return existing;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync((db, token) => db.MediaItems.CountAsync(token), cancellationToken);
 

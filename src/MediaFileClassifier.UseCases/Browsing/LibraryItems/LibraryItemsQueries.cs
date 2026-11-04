@@ -28,13 +28,29 @@ public sealed record GetLibraryItemsPageQuery(int Offset, int Limit, MediaItemFi
 public sealed record GetLibraryItemPositionQuery(Id<MediaItem> ItemId, MediaItemFilter? Filter = null) : IRequest<int>;
 
 /// <summary>
+/// Gets result IDs, newest first, without loading the items (E14-S03).
+/// </summary>
+/// <param name="Offset">Number of IDs to skip, counted from <paramref name="Newest"/> when it's given.</param>
+/// <param name="Limit">Maximum number of IDs.</param>
+/// <param name="Newest">If given, only this item and older ones.</param>
+public sealed record GetLibraryItemIdsQuery(int Offset, int Limit, Id<MediaItem>? Newest) : IRequest<IReadOnlyList<Id<MediaItem>>>;
+
+/// <summary>
+/// Finds which of the given items still exist (E14-S03).
+/// </summary>
+/// <param name="Ids">The item IDs.</param>
+public sealed record GetExistingLibraryItemsQuery(IReadOnlyCollection<Id<MediaItem>> Ids) : IRequest<IReadOnlySet<Id<MediaItem>>>;
+
+/// <summary>
 /// Handles the library item queries of the media browser.
 /// </summary>
 /// <param name="session">Holds the open library.</param>
 public sealed class LibraryItemsQueryHandlers(ILibrarySession session)
     : IRequestHandler<CountLibraryItemsQuery, int>,
       IRequestHandler<GetLibraryItemsPageQuery, IReadOnlyList<MediaItemSummary>>,
-      IRequestHandler<GetLibraryItemPositionQuery, int>
+      IRequestHandler<GetLibraryItemPositionQuery, int>,
+      IRequestHandler<GetLibraryItemIdsQuery, IReadOnlyList<Id<MediaItem>>>,
+      IRequestHandler<GetExistingLibraryItemsQuery, IReadOnlySet<Id<MediaItem>>>
 {
     /// <inheritdoc />
     public Task<int> Handle(CountLibraryItemsQuery request, CancellationToken cancellationToken) =>
@@ -53,4 +69,16 @@ public sealed class LibraryItemsQueryHandlers(ILibrarySession session)
         session.Current is not { } library ? Task.FromResult(0)
             : request.Filter is { } filter ? library.Items.CountNewerAsync(filter, request.ItemId, cancellationToken)
             : library.Items.CountNewerAsync(request.ItemId, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<Id<MediaItem>>> Handle(GetLibraryItemIdsQuery request, CancellationToken cancellationToken) =>
+        session.Current is { } library
+            ? library.Items.GetIdsAsync(request.Offset, request.Limit, request.Newest, cancellationToken)
+            : Task.FromResult<IReadOnlyList<Id<MediaItem>>>([]);
+
+    /// <inheritdoc />
+    public Task<IReadOnlySet<Id<MediaItem>>> Handle(GetExistingLibraryItemsQuery request, CancellationToken cancellationToken) =>
+        session.Current is { } library
+            ? library.Items.GetExistingIdsAsync(request.Ids, cancellationToken)
+            : Task.FromResult<IReadOnlySet<Id<MediaItem>>>(new HashSet<Id<MediaItem>>());
 }

@@ -20,6 +20,7 @@ using MediaFileClassifier.Ui.Views.Browser;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Navigation;
 using MediaFileClassifier.Ui.Views.Settings;
+using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -87,6 +88,7 @@ public static class UiModule
         services.AddSingleton<ThumbnailBitmapCache>();
         services.AddSingleton<ThumbnailLoader>();
         services.TryAddSingleton<IItemOpener, DefaultAppItemOpener>();
+        services.AddSingleton(provider => new SelectionModel(provider.GetRequiredService<IMediaResultSource>));
         services.AddSingleton<ThumbnailGridViewModel>();
         services.AddSingleton<Func<ThumbnailGridViewModel>>(provider => provider.GetRequiredService<ThumbnailGridViewModel>);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, BrowserCommands>());
@@ -105,6 +107,11 @@ public static class UiModule
         // Processing indicator (E05-S02).
         services.AddSingleton<ProgressFeed>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingStatusSegment>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, SelectionStatusSegment>());
+
+        // M1 segments (E13-S04-T02).
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ResultCountStatusSegment>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, OfflineFoldersStatusSegment>());
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

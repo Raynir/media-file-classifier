@@ -1,4 +1,5 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Previews;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Media.Formats;
 using MediaFileClassifier.Infrastructure.Media.Metadata;
@@ -30,6 +31,7 @@ public static class MediaModule
         services.TryAddSingleton<AnimatedImageThumbnailer>();
         services.TryAddSingleton<VideoThumbnailer>();
         services.TryAddSingleton<IThumbnailCache, ThumbnailCache>();
+        services.TryAddSingleton<IPreviewDecoder, SkiaPreviewDecoder>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, JpegFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, PngFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, WebPFormatHandler>());

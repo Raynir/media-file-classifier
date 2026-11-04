@@ -1,3 +1,5 @@
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
@@ -44,10 +46,22 @@ public sealed class ThumbnailLoader
     /// <param name="size">The preferred size.</param>
     /// <param name="cancellationToken">Cancellation token, e.g. when the tile scrolled away.</param>
     /// <returns>A lease on the bitmap, or <see langword="null"/> when the item has no thumbnail yet.</returns>
-    public async Task<ThumbnailLease?> LoadAsync(MediaItemSummary item, ThumbnailSize size, CancellationToken cancellationToken)
+    public Task<ThumbnailLease?> LoadAsync(MediaItemSummary item, ThumbnailSize size, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(item);
+        return LoadAsync(item.Id, item.FileModifiedAt, size, cancellationToken);
+    }
 
+    /// <summary>
+    /// Loads an item's thumbnail, falling back to the other size when the preferred one isn't there.
+    /// </summary>
+    /// <param name="itemId">The item.</param>
+    /// <param name="fileModifiedAt">When the item's file last changed, which versions its thumbnails.</param>
+    /// <param name="size">The preferred size.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A lease on the bitmap, or <see langword="null"/> when the item has no thumbnail yet.</returns>
+    public async Task<ThumbnailLease?> LoadAsync(Id<MediaItem> itemId, DateTimeOffset fileModifiedAt, ThumbnailSize size, CancellationToken cancellationToken)
+    {
         if (session.Current?.Layout is not { } layout)
         {
             return null;
@@ -59,7 +73,7 @@ public sealed class ThumbnailLoader
             {
                 try
                 {
-                    var path = thumbnails.Find(layout, item.Id, size, item.FileModifiedAt) ?? thumbnails.Find(layout, item.Id, other, item.FileModifiedAt);
+                    var path = thumbnails.Find(layout, itemId, size, fileModifiedAt) ?? thumbnails.Find(layout, itemId, other, fileModifiedAt);
                     return path is null ? default : (Path: path, Version: File.GetLastWriteTimeUtc(path).Ticks);
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- AI provider abstraction: capability interfaces (image description, OCR, transcription, image and text embedding) that any provider implements in part, base classes for ONNX, OpenAI-compatible (LM Studio, Ollama) and native-library providers, a provider registry with capability lookup and health checks (missing model, unreachable endpoint, native library that won't load), a JSON schema for LLM image descriptions with repair and one retry, a per-user model store with SHA-256-verified import and deletion that names the libraries using a model, a query for items left outdated by a model change, and deterministic fake providers for tests (E01-S05).
+
 ### Fixed
 
 - A finished job no longer stays in the progress summary and the status bar when its last work items finish at the same time (MFC-985).

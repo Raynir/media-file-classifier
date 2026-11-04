@@ -45,7 +45,7 @@ public sealed class LibrarySchemaTests
             Warnings = [new ExtractionWarning("MetadataPartlyUnreadable", "Bad IFD"), new ExtractionWarning("FfmpegUnavailable")],
             ExtractedAt = Now,
         };
-        var keyframe = new Keyframe(Id<Keyframe>.New(), item.Id, 0, TimeSpan.FromSeconds(1.5), 45);
+        var keyframe = new Keyframe(Id<Keyframe>.New(), item.Id, 0, TimeSpan.FromSeconds(1.5), 45, ulong.MaxValue);
         var embedding = Embedding.Create(item.Id, bed.Model, EmbeddingKind.Image, [0.5f, -0.25f, 0.125f, 1f], Now, keyframe.Id);
         var collection = Collection.Create("Trips", Now);
         var membership = new CollectionMembership(collection.Id, item.Id, Now);

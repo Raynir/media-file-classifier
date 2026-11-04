@@ -34,6 +34,7 @@ internal sealed class OpenLibrary : IOpenLibrary
         Metadata = new ItemMetadataRepository(connections, writer, timeProvider);
         Models = new ModelRegistrationRepository(connections, writer);
         Jobs = new JobRepository(connections, writer);
+        Keyframes = new KeyframeRepository(connections, writer);
         Maintenance = new LibraryMaintenance(connections, writer);
     }
 
@@ -57,6 +58,9 @@ internal sealed class OpenLibrary : IOpenLibrary
 
     /// <inheritdoc />
     public IJobRepository Jobs { get; }
+
+    /// <inheritdoc />
+    public IKeyframeRepository Keyframes { get; }
 
     /// <inheritdoc />
     public ILibraryMaintenance Maintenance { get; }

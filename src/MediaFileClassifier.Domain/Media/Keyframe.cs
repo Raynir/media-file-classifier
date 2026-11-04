@@ -17,7 +17,9 @@ public sealed record Keyframe
     /// <param name="index">Position of the keyframe among the item's keyframes, from 0.</param>
     /// <param name="timestamp">Position in the media. For animated images, the sum of the preceding frame delays.</param>
     /// <param name="frameNumber">Frame number in the media, when known.</param>
-    public Keyframe(Id<Keyframe> id, Id<MediaItem> itemId, int index, TimeSpan timestamp, int? frameNumber)
+    /// <param name="perceptualHash">64-bit perceptual hash of the frame, when computed. Re-sampling compares it to skip
+    /// unchanged frames, and near-duplicate detection can match videos by their frames.</param>
+    public Keyframe(Id<Keyframe> id, Id<MediaItem> itemId, int index, TimeSpan timestamp, int? frameNumber, ulong? perceptualHash = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfLessThan(timestamp, TimeSpan.Zero);
@@ -27,6 +29,7 @@ public sealed record Keyframe
         Index = index;
         Timestamp = timestamp;
         FrameNumber = frameNumber;
+        PerceptualHash = perceptualHash;
     }
 
     public Id<Keyframe> Id { get; }
@@ -38,4 +41,6 @@ public sealed record Keyframe
     public TimeSpan Timestamp { get; }
 
     public int? FrameNumber { get; }
+
+    public ulong? PerceptualHash { get; }
 }

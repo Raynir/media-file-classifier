@@ -45,6 +45,11 @@ public interface IOpenLibrary : IAsyncDisposable
     IJobRepository Jobs { get; }
 
     /// <summary>
+    /// Gets the keyframes sampled from videos and animated images (E06-S02).
+    /// </summary>
+    IKeyframeRepository Keyframes { get; }
+
+    /// <summary>
     /// Gets the integrity check, backup and optimization services.
     /// </summary>
     ILibraryMaintenance Maintenance { get; }

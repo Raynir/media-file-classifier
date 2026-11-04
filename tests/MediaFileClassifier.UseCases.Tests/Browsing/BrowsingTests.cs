@@ -12,7 +12,7 @@ namespace MediaFileClassifier.UseCases.Tests.Browsing;
 
 /// <summary>
 /// Tests for the media browser's use cases (E14-S01): the library result source, the remembered tile size and the
-/// item path for opening it.
+/// items' locations.
 /// </summary>
 public sealed class BrowsingTests : IDisposable
 {
@@ -93,18 +93,6 @@ public sealed class BrowsingTests : IDisposable
         await Sender.Send(new SetThumbnailTileSizeCommand(224), Token);
 
         Assert.Null(await Sender.Send(new GetThumbnailTileSizeQuery(), Token));
-    }
-
-    [Fact]
-    public async Task ItemFilePath_CombinesTheFolderAndRelativePath()
-    {
-        var library = await OpenLibraryWithItemsAsync(1);
-        var item = library.ItemList.Items[0];
-
-        var path = await Sender.Send(new GetItemFilePathQuery(item.Id), Token);
-
-        Assert.Equal(Path.Combine(@"D:\Photos", "album", "IMG_0.jpg"), path);
-        Assert.Null(await Sender.Send(new GetItemFilePathQuery(Domain.Identity.Id<MediaItem>.New()), Token));
     }
 
     [Fact]

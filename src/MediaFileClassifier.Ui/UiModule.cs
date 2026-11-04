@@ -1,5 +1,6 @@
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Navigation;
@@ -12,11 +13,13 @@ using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.ViewModels.Browser;
+using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
 using MediaFileClassifier.Ui.Views.Browser;
+using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Navigation;
 using MediaFileClassifier.Ui.Views.Settings;
@@ -46,7 +49,8 @@ public static class UiModule
             .Register<CreateLibraryViewModel, CreateLibraryView>()
             .Register<ThumbnailGridViewModel, ThumbnailGridView>()
             .Register<IndexedFoldersViewModel, IndexedFoldersView>()
-            .Register<NavigationPanelViewModel, NavigationPanelView>());
+            .Register<NavigationPanelViewModel, NavigationPanelView>()
+            .Register<DetailsPanelViewModel, DetailsPanelView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -87,7 +91,6 @@ public static class UiModule
         // Media browser (E14-S01).
         services.AddSingleton<ThumbnailBitmapCache>();
         services.AddSingleton<ThumbnailLoader>();
-        services.TryAddSingleton<IItemOpener, DefaultAppItemOpener>();
         services.AddSingleton(provider => new SelectionModel(provider.GetRequiredService<IMediaResultSource>));
         services.AddSingleton<ThumbnailGridViewModel>();
         services.AddSingleton<Func<ThumbnailGridViewModel>>(provider => provider.GetRequiredService<ThumbnailGridViewModel>);
@@ -95,6 +98,11 @@ public static class UiModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ItemCommands>());
         services.TryAddSingleton<ITextClipboard, AvaloniaTextClipboard>();
         services.AddSingleton<BrowserContextMenu>();
+
+        // Preview and details panel (E14-S05). Enter and double-click in the grid show the item there.
+        services.AddSingleton<PreviewLoader>();
+        services.AddSingleton<DetailsPanelViewModel>();
+        services.AddSingleton<IItemOpener>(provider => provider.GetRequiredService<DetailsPanelViewModel>());
 
         // Shortcuts (E16-S01): one keymap, bound to physical keys.
         services.AddSingleton<ShortcutReferenceState>();

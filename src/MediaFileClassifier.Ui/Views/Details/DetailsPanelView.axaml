@@ -1,0 +1,181 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Details"
+             xmlns:d="using:MediaFileClassifier.Ui.Details"
+             xmlns:v="using:MediaFileClassifier.Ui.Views.Details"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
+             x:Class="MediaFileClassifier.Ui.Views.Details.DetailsPanelView"
+             x:DataType="vm:DetailsPanelViewModel"
+             sc:Shortcuts.Scope="viewer">
+  <!--
+    Provisional details panel (D095), after the Figma "Viewer" component 29:2872: the preview, the file name, then
+    Overview and Technical tabs. The preview is taller than Figma's 200 px when dragged, and collapses; quick actions
+    sit in a row under the name, where later Stories add theirs. E14-S05-T00 designs the real one.
+  -->
+  <UserControl.Styles>
+    <Style Selector="TextBlock.FieldLabel">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TabItem">
+      <Setter Property="MinHeight" Value="{DynamicResource Size.Details.Tab}" />
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Subtitle}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Tab}" />
+    </Style>
+    <Style Selector="Border.PreviewOverlay">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Tooltip}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <!-- Preview: collapsible, and resizable with the thumb under it. -->
+    <DockPanel DockPanel.Dock="Top">
+      <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Compact}">
+        <Button DockPanel.Dock="Right"
+                Classes="Icon"
+                Command="{Binding TogglePreviewCommand}"
+                ToolTip.Tip="{l:Loc Details_Preview_Toggle}"
+                AutomationProperties.Name="{l:Loc Details_Preview_Toggle}">
+          <Panel>
+            <PathIcon Data="{StaticResource Icon.ChevronUp}" IsVisible="{Binding IsPreviewExpanded}" />
+            <PathIcon Data="{StaticResource Icon.ChevronDown}" IsVisible="{Binding !IsPreviewExpanded}" />
+          </Panel>
+        </Button>
+        <TextBlock Classes="FieldLabel" Text="{l:Loc Details_Preview}" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
+      </DockPanel>
+      <StackPanel IsVisible="{Binding IsPreviewExpanded}">
+        <Panel x:Name="PreviewArea"
+               Height="{Binding PreviewHeight}"
+               Background="{DynamicResource Brush.Surface.Tile}">
+          <v:ZoomImage x:Name="Preview"
+                       Source="{Binding PreviewBitmap}"
+                       Orientation="{Binding PreviewOrientation}"
+                       ImageSize="{Binding PreviewImageSize}"
+                       RenderOptions.BitmapInterpolationMode="HighQuality"
+                       AutomationProperties.Name="{l:Loc Details_Preview}" />
+          <TextBlock Classes="Tertiary"
+                     Text="{l:Loc Details_Preview_None}"
+                     IsVisible="{Binding PreviewBitmap, Converter={x:Static ObjectConverters.IsNull}}"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+          <!-- Zoom: the level, then Fit and 100%. -->
+          <Border Classes="PreviewOverlay"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  Margin="{DynamicResource Padding.Compact}"
+                  IsVisible="{Binding PreviewBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+              <TextBlock x:Name="ZoomText" Classes="Small" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
+              <Button x:Name="FitButton"
+                      Classes="Small"
+                      Content="{l:Loc Details_Preview_Fit}"
+                      ToolTip.Tip="{l:Loc Details_Preview_Fit_ToolTip}" />
+              <Button x:Name="ActualSizeButton"
+                      Classes="Small"
+                      Content="{l:Loc Details_Preview_ActualSize}"
+                      ToolTip.Tip="{l:Loc Details_Preview_ActualSize_ToolTip}" />
+            </StackPanel>
+          </Border>
+        </Panel>
+        <Thumb x:Name="PreviewResizer"
+               Height="{DynamicResource Size.Splitter}"
+               Cursor="SizeNorthSouth"
+               Background="Transparent"
+               AutomationProperties.Name="{l:Loc Details_Preview_Resize}" />
+        <TextBlock Classes="Tertiary Caption"
+                   Text="{Binding PreviewNote}"
+                   IsVisible="{Binding PreviewNote, Converter={x:Static ObjectConverters.IsNotNull}}"
+                   Margin="{DynamicResource Padding.Panel}"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+    </DockPanel>
+
+    <!-- Name, selection count and quick actions. -->
+    <StackPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.XS}">
+      <SelectableTextBlock Classes="Title" Text="{Binding Title}" TextWrapping="Wrap" />
+      <SelectableTextBlock Classes="Secondary" Text="{Binding FileName}" TextWrapping="Wrap" />
+      <TextBlock Classes="Secondary"
+                 Text="{Binding SelectedCountText}"
+                 IsVisible="{Binding SelectedCountText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      <!-- Quick actions (E14-S05): Open and Reveal now; Favorite, Find similar and Re-analyze join with their Stories. -->
+      <StackPanel x:Name="QuickActions"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource Space.XS}"
+                  AutomationProperties.Name="{l:Loc Details_Actions}">
+        <Button Classes="Icon"
+                Command="{Binding Commands[item.open-default-app]}"
+                IsVisible="{Binding Commands[item.open-default-app].IsApplicable}"
+                ToolTip.Tip="{Binding Commands[item.open-default-app].ToolTip}"
+                ToolTip.ShowOnDisabled="True"
+                AutomationProperties.Name="{Binding Commands[item.open-default-app].PlainLabel}">
+          <PathIcon Data="{StaticResource Icon.OpenExternal}" />
+        </Button>
+        <Button Classes="Icon"
+                Command="{Binding Commands[item.reveal]}"
+                IsVisible="{Binding Commands[item.reveal].IsApplicable}"
+                ToolTip.Tip="{Binding Commands[item.reveal].ToolTip}"
+                ToolTip.ShowOnDisabled="True"
+                AutomationProperties.Name="{Binding Commands[item.reveal].PlainLabel}">
+          <PathIcon Data="{StaticResource Icon.FolderOpen}" />
+        </Button>
+      </StackPanel>
+    </StackPanel>
+
+    <!-- Overview and Technical. -->
+    <TabControl SelectedIndex="{Binding SelectedTab}">
+      <TabItem Header="{l:Loc Details_Tab_Overview}">
+        <ScrollViewer>
+          <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.M}">
+            <StackPanel Spacing="{DynamicResource Space.XS}">
+              <TextBlock Classes="FieldLabel" Text="{l:Loc Details_Description}" />
+              <SelectableTextBlock Text="{Binding Description}"
+                                   Classes.Tertiary="{Binding !HasDescription}"
+                                   TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel Spacing="{DynamicResource Space.XS}">
+              <TextBlock Classes="FieldLabel" Text="{l:Loc Details_Tags}" />
+              <TextBlock Classes="Tertiary" Text="{l:Loc Details_Tags_None}" IsVisible="{Binding !HasTags}" />
+              <ItemsControl ItemsSource="{Binding Tags}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <Border Classes="Tag" Margin="{DynamicResource Padding.Compact}">
+                      <TextBlock Text="{Binding}" />
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="{l:Loc Details_Tab_Technical}">
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding TechnicalRows}" Margin="{DynamicResource Padding.Panel}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="d:DetailRow">
+                <Grid ColumnDefinitions="Auto,*" MinHeight="{DynamicResource Size.Details.Row}">
+                  <TextBlock Classes="FieldLabel"
+                             Width="{DynamicResource Size.Details.LabelColumn}"
+                             Text="{Binding Label}"
+                             VerticalAlignment="Center"
+                             TextWrapping="Wrap" />
+                  <SelectableTextBlock Grid.Column="1"
+                                       Text="{Binding Value}"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</UserControl>

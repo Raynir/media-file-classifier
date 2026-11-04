@@ -62,17 +62,30 @@ public sealed class GetItemLocationsQueryHandler(ILibrarySession session) : IReq
                 continue;
             }
 
-            var relative = path.Path.Value;
-            var fullPath = Path.IsPathFullyQualified(folder.PlatformHandle)
-                ? Path.Combine(folder.PlatformHandle, relative.Replace('/', Path.DirectorySeparatorChar))
-                : null;
-            var availability = folder.Status == FolderStatus.Offline ? ItemAvailability.Offline
-                : path.Status == MediaItemStatus.Missing ? ItemAvailability.Missing
-                : ItemAvailability.Available;
-            locations.Add(new ItemLocation(
-                id, new FileLocation(new FolderHandle(folder.PlatformHandle, folder.DisplayPath), relative), fullPath, folder.DisplayPath, availability));
+            locations.Add(Locate(id, path.Path, path.Status, folder));
         }
 
         return locations;
+    }
+
+    /// <summary>
+    /// Builds an item's location from its folder, path and status.
+    /// </summary>
+    /// <param name="id">The item.</param>
+    /// <param name="path">Its path within the folder.</param>
+    /// <param name="status">Its status, e.g. Missing.</param>
+    /// <param name="folder">Its folder.</param>
+    /// <returns>The location.</returns>
+    internal static ItemLocation Locate(Id<MediaItem> id, RelativePath path, MediaItemStatus status, IndexedFolder folder)
+    {
+        var relative = path.Value;
+        var fullPath = Path.IsPathFullyQualified(folder.PlatformHandle)
+            ? Path.Combine(folder.PlatformHandle, relative.Replace('/', Path.DirectorySeparatorChar))
+            : null;
+        var availability = folder.Status == FolderStatus.Offline ? ItemAvailability.Offline
+            : status == MediaItemStatus.Missing ? ItemAvailability.Missing
+            : ItemAvailability.Available;
+        return new ItemLocation(
+            id, new FileLocation(new FolderHandle(folder.PlatformHandle, folder.DisplayPath), relative), fullPath, folder.DisplayPath, availability);
     }
 }

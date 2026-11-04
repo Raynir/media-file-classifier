@@ -36,6 +36,7 @@ internal sealed class OpenLibrary : IOpenLibrary
         Metadata = new ItemMetadataRepository(connections, writer, timeProvider);
         Models = new ModelRegistrationRepository(connections, writer);
         Jobs = new JobRepository(connections, writer);
+        Embeddings = new EmbeddingRepository(connections, writer);
         Search = new SearchStore(connections, writer);
         Maintenance = new LibraryMaintenance(connections, writer);
     }
@@ -60,6 +61,9 @@ internal sealed class OpenLibrary : IOpenLibrary
 
     /// <inheritdoc />
     public IJobRepository Jobs { get; }
+
+    /// <inheritdoc />
+    public IEmbeddingRepository Embeddings { get; }
 
     /// <inheritdoc />
     public ISearchStore Search { get; }

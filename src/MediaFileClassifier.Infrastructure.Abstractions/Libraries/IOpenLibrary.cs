@@ -46,6 +46,11 @@ public interface IOpenLibrary : IAsyncDisposable
     IJobRepository Jobs { get; }
 
     /// <summary>
+    /// Gets the embeddings (D067). Write them only through it, so the vector index stays current.
+    /// </summary>
+    IEmbeddingRepository Embeddings { get; }
+
+    /// <summary>
     /// Gets the keyword index and the search filters (E01-S04). Search itself goes through <see cref="ISearchIndex"/>.
     /// </summary>
     ISearchStore Search { get; }

@@ -120,6 +120,8 @@ public sealed class LibraryLocationsTests : IDisposable
 
         public Abstractions.Repositories.IJobRepository Jobs => throw new NotSupportedException();
 
+        public Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
+
         public Abstractions.Search.ISearchStore Search => throw new NotSupportedException();
 
         public ILibraryMaintenance Maintenance => throw new NotSupportedException();

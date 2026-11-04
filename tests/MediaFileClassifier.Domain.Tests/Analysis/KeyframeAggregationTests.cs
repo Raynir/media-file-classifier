@@ -65,6 +65,18 @@ public sealed class KeyframeAggregationTests
         Assert.Equal(["dog"], KeyframeAggregation.MergeTags(frames, minShare: 0.75).Select(tag => tag.Name.Value));
     }
 
+    [Theory]
+    [InlineData(0.3, 10, 3)]
+    [InlineData(0.1, 30, 3)]
+    [InlineData(0.7, 10, 7)]
+    public void MergeTags_TagExactlyOnTheShare_IsKept(double share, int frameCount, int framesWithTag)
+    {
+        var frames = Enumerable.Range(0, frameCount).Select(index => index < framesWithTag ? Tags(("dog", 1)) : Tags()).ToArray();
+
+        Assert.Single(KeyframeAggregation.MergeTags(frames, share));
+        Assert.Empty(KeyframeAggregation.MergeTags(frames[1..], share));
+    }
+
     [Fact]
     public void MergeTags_NoFrames_IsEmpty()
     {

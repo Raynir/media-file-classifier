@@ -44,8 +44,10 @@ public static class KeyframeAggregation
             }
         }
 
+        // The tolerance keeps a tag exactly on the threshold, e.g. 3 of 10 frames at 0.3, where 0.3 * 10 is 3.0000000000000004.
+        var minFrames = Math.Max(1, (int)Math.Ceiling((minShare * frames.Count) - 1e-9));
         return [.. totals
-            .Where(total => total.Value.Frames >= minShare * frames.Count)
+            .Where(total => total.Value.Frames >= minFrames)
             .Select(total => new AggregatedTag(total.Key, total.Value.Sum / frames.Count, total.Value.Frames))
             .OrderByDescending(tag => tag.Confidence)
             .ThenBy(tag => tag.Name.Value, StringComparer.OrdinalIgnoreCase)];

@@ -1,11 +1,10 @@
-using FFMpegCore;
-using FFMpegCore.Pipes;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Media.Metadata;
+using MediaFileClassifier.Infrastructure.Media.Video;
 using Microsoft.Extensions.Logging;
 using SkiaSharp;
 
@@ -26,8 +25,6 @@ public sealed partial class VideoThumbnailer(ICapabilityService capabilities, Ff
     /// The positions tried, as fractions of the duration. The first frame comes last.
     /// </summary>
     internal static readonly double[] Positions = [0.10, 0.25, 0.50];
-
-    private static readonly TimeSpan FrameTimeout = TimeSpan.FromSeconds(30);
 
     /// <inheritdoc />
     public async Task<ThumbnailImages> GenerateAsync(MediaContent content, MediaFormatDetection format, TechnicalMetadata metadata, CancellationToken cancellationToken)
@@ -70,38 +67,9 @@ public sealed partial class VideoThumbnailer(ICapabilityService capabilities, Ff
         yield return TimeSpan.Zero;
     }
 
-    private static async Task<SKBitmap?> ReadFrameAsync(string folder, string path, TimeSpan position, CancellationToken cancellationToken)
-    {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(FrameTimeout);
-        using var output = new MemoryStream();
-
-        // Scale down to the decode size the image thumbnails use, never up; FFmpeg applies the rotation before the
-        // filter, so the limits are on the upright frame.
-        var edge = ThumbnailEncoder.SourceLongestEdge;
-        await FFMpegArguments
-            .FromFileInput(path, verifyExists: true, options => options.Seek(position))
-            .OutputToPipe(new StreamPipeSink(output), options => options
-                .WithFrameOutputCount(1)
-                .WithCustomArgument($"-vf \"scale='min({edge},iw)':'min({edge},ih)':force_original_aspect_ratio=decrease\"")
-                .WithVideoCodec("bmp")
-                .ForceFormat("image2pipe"))
-            .CancellableThrough(timeout.Token)
-            .ProcessAsynchronously(throwOnError: true, new FFOptions { BinaryFolder = folder })
-            .ConfigureAwait(false);
-        if (output.Length == 0)
-        {
-            return null;
-        }
-
-        using var data = SKData.CreateCopy(output.GetBuffer().AsSpan(0, (int)output.Length));
-        using var codec = SkiaDecoding.OpenCodec(data);
-        return SkiaDecoding.DecodeStill(codec, edge, edge);
-    }
-
     private async Task<SKBitmap> ReadRepresentativeFrameAsync(MediaContent content, string folder, TimeSpan? duration, CancellationToken cancellationToken)
     {
-        await using var file = await LocalCopy.CreateAsync(content, cancellationToken).ConfigureAwait(false);
+        await using var file = await LocalMediaFile.CreateAsync(content, cancellationToken).ConfigureAwait(false);
         SKBitmap? best = null;
         var bestLuma = double.MinValue;
         Exception? lastError = null;
@@ -110,7 +78,7 @@ public sealed partial class VideoThumbnailer(ICapabilityService capabilities, Ff
             SKBitmap? frame;
             try
             {
-                frame = await ReadFrameAsync(folder, file.Path, position, cancellationToken).ConfigureAwait(false);
+                frame = await FfmpegFrameReader.ReadFrameAsync(folder, file.Path, position, ThumbnailEncoder.SourceLongestEdge, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
@@ -151,60 +119,4 @@ public sealed partial class VideoThumbnailer(ICapabilityService capabilities, Ff
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "The frame of video item {ItemId} at {Position} is blank")]
     private static partial void LogBlankFrame(ILogger logger, Guid itemId, TimeSpan position);
-
-    /// <summary>
-    /// A file FFmpeg can open by path: the item's own file, or a temporary copy of a content stream, since FFmpeg
-    /// needs to seek in an MP4.
-    /// </summary>
-    private sealed class LocalCopy : IAsyncDisposable
-    {
-        private readonly bool isTemporary;
-
-        private LocalCopy(string path, bool isTemporary)
-        {
-            Path = path;
-            this.isTemporary = isTemporary;
-        }
-
-        public string Path { get; }
-
-        public static async Task<LocalCopy> CreateAsync(MediaContent content, CancellationToken cancellationToken)
-        {
-            if (content.LocalPath is { } path)
-            {
-                return new(path, isTemporary: false);
-            }
-
-            var temporary = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"mfc-video-{Guid.NewGuid():N}.mp4");
-            try
-            {
-                var source = await content.OpenReadAsync(cancellationToken).ConfigureAwait(false);
-                await using (source.ConfigureAwait(false))
-                {
-                    var target = File.Create(temporary);
-                    await using (target.ConfigureAwait(false))
-                    {
-                        await source.CopyToAsync(target, cancellationToken).ConfigureAwait(false);
-                    }
-                }
-
-                return new(temporary, isTemporary: true);
-            }
-            catch
-            {
-                File.Delete(temporary);
-                throw;
-            }
-        }
-
-        public ValueTask DisposeAsync()
-        {
-            if (isTemporary)
-            {
-                File.Delete(Path);
-            }
-
-            return ValueTask.CompletedTask;
-        }
-    }
 }

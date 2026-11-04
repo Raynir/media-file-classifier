@@ -13,4 +13,14 @@ public interface IPerceptualHasher
     /// <param name="content">The image file's content.</param>
     /// <returns>The hash, or <see langword="null"/> when the content isn't an image this platform can decode.</returns>
     ulong? Compute(Stream content);
+
+    /// <summary>
+    /// Computes the perceptual hash of decoded pixels, such as a sampled video frame (E06-S02).
+    /// </summary>
+    /// <param name="rgba">Unpremultiplied RGBA pixels, 8 bits per channel, row-major with no padding, upright.</param>
+    /// <param name="width">Width in pixels.</param>
+    /// <param name="height">Height in pixels.</param>
+    /// <returns>The hash.</returns>
+    /// <exception cref="ArgumentException">The buffer doesn't hold <c>width * height</c> pixels.</exception>
+    ulong ComputeFromPixels(ReadOnlySpan<byte> rgba, int width, int height);
 }

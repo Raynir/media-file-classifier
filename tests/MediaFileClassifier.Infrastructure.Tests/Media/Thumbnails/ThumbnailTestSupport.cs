@@ -3,9 +3,11 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Capabilities;
+using MediaFileClassifier.Infrastructure.Hashing;
 using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Media.Metadata;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +35,7 @@ internal static class ThumbnailTestSupport
         && locator.FindFfmpegFolder() is not null;
 
     /// <summary>
-    /// Creates the media services, with FFmpeg reported as available or not.
+    /// Creates the media services and the perceptual hasher, with FFmpeg reported as available or not.
     /// </summary>
     public static ServiceProvider CreateServices(bool videoAnalysis = true)
     {
@@ -46,6 +48,7 @@ internal static class ThumbnailTestSupport
         return new ServiceCollection()
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddSingleton<ICapabilityService>(capabilities)
+            .AddSingleton<IPerceptualHasher, SkiaPerceptualHasher>()
             .AddMedia()
             .BuildServiceProvider();
     }

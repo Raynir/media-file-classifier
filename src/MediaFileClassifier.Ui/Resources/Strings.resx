@@ -502,6 +502,116 @@
   <data name="Setting_OpenLastLibrary_Help" xml:space="preserve">
     <value>When off, the app starts on the welcome screen.</value>
   </data>
+  <data name="Command_ManageFolders" xml:space="preserve">
+    <value>Manage _folders…</value>
+  </data>
+  <data name="Command_NoLibraryOpen" xml:space="preserve">
+    <value>Open a library first.</value>
+  </data>
+  <data name="Folders_Title" xml:space="preserve">
+    <value>Indexed folders</value>
+  </data>
+  <data name="Folders_Hint" xml:space="preserve">
+    <value>The library indexes the media in these folders. Removing a folder removes its items from the library only: files on disk are never touched.</value>
+  </data>
+  <data name="Folders_Add" xml:space="preserve">
+    <value>Add folder…</value>
+  </data>
+  <data name="Folders_PickFolder" xml:space="preserve">
+    <value>Choose a folder to index</value>
+  </data>
+  <data name="Folders_Empty" xml:space="preserve">
+    <value>No folders yet. Add a folder to start indexing.</value>
+  </data>
+  <data name="Folders_State_Online" xml:space="preserve">
+    <value>Online</value>
+  </data>
+  <data name="Folders_State_Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Folders_State_Scanning" xml:space="preserve">
+    <value>Scanning</value>
+  </data>
+  <data name="Folders_Items" xml:space="preserve">
+    <value>{0} items</value>
+    <comment>{0} is a number of media items, formatted for the current culture. Shown when it isn't 1.</comment>
+  </data>
+  <data name="Folders_ItemsOne" xml:space="preserve">
+    <value>1 item</value>
+  </data>
+  <data name="Folders_ItemsExcluded" xml:space="preserve">
+    <value>{0}, {1} excluded</value>
+    <comment>{0} is Folders_Items or Folders_ItemsOne; {1} is a number of excluded items.</comment>
+  </data>
+  <data name="Folders_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Folders_RemoveConfirm" xml:space="preserve">
+    <value>Remove {0} from the library? {1} and their metadata are removed from the library. Files on disk aren't touched.</value>
+    <comment>{0} is a folder path; {1} is Folders_Items or Folders_ItemsOne.</comment>
+  </data>
+  <data name="Folders_Removing" xml:space="preserve">
+    <value>{0} is being removed from the library.</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Folders_MergeConfirm" xml:space="preserve">
+    <value>{0} contains folders that are indexed already: {1}. They'll be merged into it, keeping their items and metadata.</value>
+    <comment>{0} is the new folder; {1} is a list of folder paths.</comment>
+  </data>
+  <data name="Folders_Merge" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Folders_AlreadyIndexed" xml:space="preserve">
+    <value>{0} is indexed already.</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Folders_InsideIndexed" xml:space="preserve">
+    <value>{0} is inside {1}, which is indexed already.</value>
+    <comment>{0} and {1} are folder paths.</comment>
+  </data>
+  <data name="Folders_RulesTitle" xml:space="preserve">
+    <value>Rules for {0}</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Folders_IncludeHidden" xml:space="preserve">
+    <value>Include hidden files and folders</value>
+  </data>
+  <data name="Folders_IncludeCloud" xml:space="preserve">
+    <value>Include cloud files that aren't on this device (reading them downloads them)</value>
+  </data>
+  <data name="Folders_ExcludedSubfolders" xml:space="preserve">
+    <value>Excluded subfolders</value>
+  </data>
+  <data name="Folders_NoExclusions" xml:space="preserve">
+    <value>No subfolders are excluded.</value>
+  </data>
+  <data name="Folders_ExcludeSubfolder" xml:space="preserve">
+    <value>Exclude subfolder…</value>
+  </data>
+  <data name="Folders_PickSubfolder" xml:space="preserve">
+    <value>Choose a subfolder to exclude</value>
+  </data>
+  <data name="Folders_NotASubfolder" xml:space="preserve">
+    <value>Choose a folder inside {0}.</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Folders_RemoveExclusion" xml:space="preserve">
+    <value>Stop excluding {0}</value>
+    <comment>{0} is a subfolder path. Accessible name of the remove button.</comment>
+  </data>
+  <data name="Folders_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Folders_RulesApplied" xml:space="preserve">
+    <value>Rules saved: {0} items excluded, {1} brought back. The folder is scanned again.</value>
+    <comment>{0} and {1} are numbers of items.</comment>
+  </data>
+  <data name="Folders_SelectHint" xml:space="preserve">
+    <value>Select a folder to change its rules.</value>
+  </data>
+  <data name="Folders_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
   <data name="Browser_TileSize" xml:space="preserve">
     <value>Thumbnail size</value>
   </data>

@@ -112,6 +112,23 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
                 .ConfigureAwait(false),
             cancellationToken);
 
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> GetByFolderAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems.Where(item => item.FolderId == folderId).OrderBy(item => item.Id).ToListAsync(token).ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<FolderItemCount>>(
+            async (db, token) => (await db.MediaItems
+                    .GroupBy(item => new { item.FolderId, item.Status })
+                    .Select(group => new { group.Key.FolderId, group.Key.Status, Count = group.Count() })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false))
+                .ConvertAll(row => new FolderItemCount(row.FolderId, row.Status, row.Count)),
+            cancellationToken);
+
     public Task<IReadOnlyList<ExactDuplicateGroup>> GetExactDuplicatesAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync<IReadOnlyList<ExactDuplicateGroup>>(
             async (db, token) =>
@@ -304,6 +321,23 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public async Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        foreach (var batch in items.Chunk(BatchSize))
+        {
+            await writer.ExecuteAsync(
+                (db, token) =>
+                {
+                    db.MediaItems.UpdateRange(batch);
+                    return db.SaveChangesAsync(token);
+                },
+                cancellationToken).ConfigureAwait(false);
+            RaiseChanged();
+        }
+    }
+
     /// <inheritdoc />
     public async Task UpdateAsync(MediaItem item, TechnicalMetadata metadata, CancellationToken cancellationToken = default)
     {
@@ -348,4 +382,30 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     private void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+
+        var deleted = await writer.ExecuteAsync<IReadOnlyList<Id<MediaItem>>>(
+            async (db, token) =>
+            {
+                var ids = await db.MediaItems.Where(item => item.FolderId == folderId).OrderBy(item => item.Id).Select(item => item.Id)
+                    .Take(limit).ToListAsync(token).ConfigureAwait(false);
+                if (ids.Count > 0)
+                {
+                    await db.MediaItems.Where(item => ids.Contains(item.Id)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                }
+
+                return ids;
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (deleted.Count > 0)
+        {
+            RaiseChanged();
+        }
+
+        return deleted;
+    }
 }

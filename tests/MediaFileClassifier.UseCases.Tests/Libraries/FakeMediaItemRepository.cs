@@ -68,4 +68,13 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
     public Task UpdateAsync(MediaItem item, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<bool> DeleteAsync(Id<MediaItem> id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<MediaItem>> GetByFolderAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MediaItem>>([.. Items.Where(item => item.FolderId == folderId)]);
+
+    public Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }

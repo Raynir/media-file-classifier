@@ -41,7 +41,8 @@ public static class UiModule
             .Register<QuitConfirmationViewModel, QuitConfirmationView>()
             .Register<WelcomeViewModel, WelcomeView>()
             .Register<CreateLibraryViewModel, CreateLibraryView>()
-            .Register<ThumbnailGridViewModel, ThumbnailGridView>());
+            .Register<ThumbnailGridViewModel, ThumbnailGridView>()
+            .Register<IndexedFoldersViewModel, IndexedFoldersView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -66,6 +67,8 @@ public static class UiModule
         // Libraries (E02).
         services.AddTransient<CreateLibraryViewModel>();
         services.AddSingleton<Func<CreateLibraryViewModel>>(provider => provider.GetRequiredService<CreateLibraryViewModel>);
+        services.AddTransient<IndexedFoldersViewModel>();
+        services.AddSingleton<Func<IndexedFoldersViewModel>>(provider => provider.GetRequiredService<IndexedFoldersViewModel>);
         services.AddSingleton<LibraryDialogs>();
         services.AddSingleton<LibraryOpener>();
         services.AddSingleton<WelcomeViewModel>();

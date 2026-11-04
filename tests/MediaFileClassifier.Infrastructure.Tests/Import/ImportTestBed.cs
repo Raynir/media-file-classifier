@@ -98,6 +98,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
             .AddSingleton<IFileHasher, XxHashFileHasher>()
             .AddSingleton<IPerceptualHasher, SkiaPerceptualHasher>()
             .AddSingleton<IMediaHasher, MediaHasher>()
+            .AddSingleton<ILibrarySession>(new BedSession(library))
             .AddSingleton<RegisteredRecorder>()
             .AddSingleton<INotificationHandler<MediaItemRegistered>>(provider => provider.GetRequiredService<RegisteredRecorder>())
             .AddJobs()
@@ -175,6 +176,22 @@ internal sealed class ImportTestBed : IAsyncDisposable
             // A file may still be locked by a test; the temp folder is cleaned up eventually.
         }
     }
+}
+
+/// <summary>
+/// The bed's library as the open one, also after it's reopened.
+/// </summary>
+internal sealed class BedSession(LibraryTestBed library) : ILibrarySession
+{
+    public event EventHandler? CurrentChanged
+    {
+        add { }
+        remove { }
+    }
+
+    public IOpenLibrary? Current => library.Library;
+
+    public Task SetCurrentAsync(IOpenLibrary? library) => throw new NotSupportedException();
 }
 
 /// <summary>

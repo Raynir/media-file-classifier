@@ -1,4 +1,6 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Localization;
 
 namespace MediaFileClassifier.Ui.Libraries;
 
@@ -7,13 +9,18 @@ namespace MediaFileClassifier.Ui.Libraries;
 /// </summary>
 /// <param name="dialogs">Opens the library dialogs.</param>
 /// <param name="opener">Opens libraries.</param>
-public sealed class LibraryCommands(LibraryDialogs dialogs, LibraryOpener opener) : ICommandContributor
+/// <param name="localizer">UI strings.</param>
+/// <param name="session">Holds the open library, which the folder commands need, or <c>null</c> where there's none.</param>
+public sealed class LibraryCommands(LibraryDialogs dialogs, LibraryOpener opener, Localizer localizer, ILibrarySession? session = null) : ICommandContributor
 {
     /// <summary>Command ID: create a library.</summary>
     public const string NewLibrary = "library.new";
 
     /// <summary>Command ID: open a library.</summary>
     public const string OpenLibrary = "library.open";
+
+    /// <summary>Command ID: manage the open library's indexed folders.</summary>
+    public const string ManageFolders = "library.folders";
 
     /// <inheritdoc />
     public void Register(CommandRegistry registry)
@@ -28,5 +35,15 @@ public sealed class LibraryCommands(LibraryDialogs dialogs, LibraryOpener opener
             IconKey = "Icon.FolderOpen",
             IsVisible = LibraryDialogs.IsSupported,
         });
+        var folders = registry.Add(new AppCommand(ManageFolders, CommandGroups.Library, 120, "Command_ManageFolders", dialogs.ShowIndexedFoldersAsync)
+        {
+            IconKey = "Icon.FolderOpen",
+            IsVisible = LibraryDialogs.IsSupported,
+            WhyDisabled = () => session?.Current is null ? localizer.Get("Command_NoLibraryOpen") : null,
+        });
+        if (session is not null)
+        {
+            session.CurrentChanged += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(folders.Refresh);
+        }
     }
 }

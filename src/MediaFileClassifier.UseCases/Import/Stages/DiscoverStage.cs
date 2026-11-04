@@ -4,6 +4,7 @@ using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.UseCases.Libraries;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.UseCases.Import.Stages;
@@ -68,7 +69,12 @@ public sealed partial class DiscoverStage(IFolderDiscovery discovery, TimeProvid
             .Where(workItem => workItem.ItemId is not null)
             .Select(workItem => workItem.ItemId!.Value)
             .ToHashSet();
+        // Excluded items that the rules include again are imported again too (E02-S03-T03).
+        var matcher = new FolderRuleMatcher(folder.Rules);
+        var restored = (await library.Items.GetByStatusAsync(MediaItemStatus.Excluded, folder.Id, cancellationToken).ConfigureAwait(false))
+            .Where(item => IndexedFolders.IsBackInRules(item, matcher));
         List<Id<MediaItem>> leftOver = [.. (await library.Items.GetByStatusAsync(MediaItemStatus.Discovered, folder.Id, cancellationToken).ConfigureAwait(false))
+            .Concat(restored)
             .Select(item => item.Id)
             .Where(itemId => !queued.Contains(itemId))];
         await EnqueueAsync(context.Scheduler, jobId, leftOver, cancellationToken).ConfigureAwait(false);

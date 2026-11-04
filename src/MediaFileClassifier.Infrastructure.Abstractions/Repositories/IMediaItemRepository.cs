@@ -153,6 +153,15 @@ public interface IMediaItemRepository
     Task<IReadOnlySet<Id<MediaItem>>> GetExistingIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets where items are and their status, without loading them whole (E14-S04), e.g. to open, reveal or copy
+    /// the paths of the selected items.
+    /// </summary>
+    /// <param name="ids">The item IDs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The paths of the items that exist, in no particular order.</returns>
+    Task<IReadOnlyList<MediaItemPath>> GetPathsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Counts the items added after an item, which is its position in the newest-first order of
     /// <see cref="GetSummariesAsync(int, int, CancellationToken)"/>. It still works after the item was deleted.
     /// </summary>

@@ -281,6 +281,33 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItemPath>> GetPathsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyList<MediaItemPath>>([]);
+        }
+
+        return connections.ReadAsync<IReadOnlyList<MediaItemPath>>(
+            async (db, token) =>
+            {
+                var paths = new List<MediaItemPath>(ids.Count);
+                foreach (var batch in ids.Chunk(5000))
+                {
+                    var rows = await db.MediaItems
+                        .Where(item => batch.Contains(item.Id))
+                        .Select(item => new { item.Id, item.FolderId, item.Path, item.Status })
+                        .ToListAsync(token).ConfigureAwait(false);
+                    paths.AddRange(rows.Select(row => new MediaItemPath(row.Id, row.FolderId, row.Path, row.Status)));
+                }
+
+                return paths;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync((db, token) => db.MediaItems.CountAsync(token), cancellationToken);
 

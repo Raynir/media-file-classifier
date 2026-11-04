@@ -220,6 +220,34 @@ public sealed class ThumbnailGridTests
     });
 
     [Fact]
+    public Task RightClick_SelectsAnUnselectedTile_KeepsASelectedOne_AndClearsOnTheGap() => TestApp.RunAsync(() =>
+    {
+        var (grid, _, _, _) = Create(Count);
+        var (window, view) = Show(grid);
+        var tiles = view.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("ThumbnailTile") && b.IsEffectivelyVisible).ToList();
+        Point Center(int index) => tiles.Single(b => ((ThumbnailTileViewModel)b.DataContext!).Index == index)
+            .TranslatePoint(new Point(20, 20), window)!.Value;
+        void RightClick(Point point)
+        {
+            window.MouseDown(point, MouseButton.Right);
+            window.MouseUp(point, MouseButton.Right);
+        }
+
+        grid.ClickAsync(1, SelectionGesture.Replace).GetAwaiter().GetResult();
+        grid.ClickAsync(3, SelectionGesture.Range).GetAwaiter().GetResult();
+
+        RightClick(Center(2));
+        Assert.Equal((3, 2, 1), (grid.Selection.Count, grid.Selection.FocusIndex, grid.Selection.AnchorIndex));
+
+        RightClick(Center(5));
+        Assert.Equal((1, 5), (grid.Selection.Count, grid.Selection.FocusIndex));
+
+        RightClick(Center(0) + new Point(grid.TileSize - 20 + (ThumbnailGridViewModel.Gap / 2), 0));
+        Assert.Equal(0, grid.Selection.Count);
+        window.Close();
+    });
+
+    [Fact]
     public Task Selection_SurvivesARefresh_AndClearsWhenTheLibraryCloses() => TestApp.RunAsync(() =>
     {
         var (grid, _, source, _) = Create(50);

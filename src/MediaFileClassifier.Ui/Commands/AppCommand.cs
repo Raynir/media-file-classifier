@@ -121,6 +121,23 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
     public Func<bool>? IsCheckedRule { get; init; }
 
     /// <summary>
+    /// Gets a rule that tells whether the command applies to the current context, e.g. the selection, or
+    /// <see langword="null"/> when it always does. Context menus leave out commands that don't apply (E14-S04).
+    /// </summary>
+    public Func<bool>? AppliesTo { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the command applies to the current context.
+    /// </summary>
+    public bool IsApplicable => AppliesTo?.Invoke() ?? true;
+
+    /// <summary>
+    /// Gets a value indicating whether context menus list the command when it applies. Defaults to
+    /// <see langword="true"/>.
+    /// </summary>
+    public bool InContextMenu { get; init; } = true;
+
+    /// <summary>
     /// Gets how the command shows its checked state in menus.
     /// </summary>
     public MenuItemToggleType ToggleType { get; init; }
@@ -196,10 +213,10 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
     }
 
     /// <summary>
-    /// Runs the command if it's enabled.
+    /// Runs the command if it's enabled and applies, so a shortcut doesn't run what a menu would hide.
     /// </summary>
     /// <returns>A task that completes when the handler has finished.</returns>
-    public Task ExecuteAsync() => IsEnabled ? execute() : Task.CompletedTask;
+    public Task ExecuteAsync() => IsEnabled && IsApplicable ? execute() : Task.CompletedTask;
 
     /// <inheritdoc />
     ICommand? IMenuEntry.Command => this;

@@ -151,6 +151,10 @@
                     Focusable="True"
                     Background="Transparent"
                     AutomationProperties.Name="{l:Loc Browser_Grid}">
+        <ScrollViewer.ContextMenu>
+          <!-- Filled from the Item commands that apply when it opens (E14-S04). -->
+          <ContextMenu x:Name="ItemMenu" Classes="Commands" />
+        </ScrollViewer.ContextMenu>
         <views:ThumbnailRowsControl x:Name="RowsControl"
                                     ItemsSource="{Binding Rows}"
                                     TileTemplate="{StaticResource ThumbnailTileTemplate}"

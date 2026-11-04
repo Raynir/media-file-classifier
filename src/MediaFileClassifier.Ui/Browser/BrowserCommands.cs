@@ -40,7 +40,11 @@ public sealed class BrowserCommands : ICommandContributor
     {
         registry.Add(new AppCommand(LargerThumbnails, CommandGroups.View, 300, "Command_LargerThumbnails", () => grid().Larger()));
         registry.Add(new AppCommand(SmallerThumbnails, CommandGroups.View, 310, "Command_SmallerThumbnails", () => grid().Smaller()));
-        registry.Add(new AppCommand(OpenItem, CommandGroups.Item, 10, "Command_OpenItem", () => grid().OpenAsync(null)));
+        registry.Add(new AppCommand(OpenItem, CommandGroups.Item, 10, "Command_OpenItem", () => grid().OpenAsync(null))
+        {
+            // Enter's Open becomes the preview (E14-S05); the context menu's Open is "Open in default app".
+            InContextMenu = false,
+        });
         registry.Add(new AppCommand(SelectAll, CommandGroups.Edit, 100, "Command_SelectAll", () => grid().SelectAllAsync()));
         registry.Add(new AppCommand(SelectNone, CommandGroups.Edit, 110, "Command_SelectNone", () => grid().ClearSelection()));
     }

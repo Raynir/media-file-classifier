@@ -7,6 +7,9 @@ using Avalonia.VisualTree;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
+using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.Views.Browser;
 
@@ -153,6 +156,31 @@ public sealed class ThumbnailGridTests
         grid.OpenAsync(null).GetAwaiter().GetResult();
 
         Assert.Equal([source.Ids[3]], opener.Opened);
+        window.Close();
+    });
+
+    [Fact]
+    public Task PreviousAndNext_FollowTheResultOrder_AndTheGridTakesTheFocusBack() => TestApp.RunAsync(() =>
+    {
+        var (grid, _, _, _) = Create(Count);
+        var (window, view) = Show(grid);
+        var registry = new CommandRegistry([new BrowserCommands(() => grid)], Localizer.Current, new FakeCapabilityGate());
+        void Run(string id) => registry[id].ExecuteAsync().GetAwaiter().GetResult();
+
+        // A row ends at the last column; next goes on to the first item of the next row.
+        grid.ClickAsync(grid.Columns - 1, SelectionGesture.Replace).GetAwaiter().GetResult();
+        Run(BrowserCommands.NextItem);
+        Assert.Equal((grid.Columns, 1), (grid.Selection.FocusIndex, grid.Selection.Count));
+        Run(BrowserCommands.PreviousItem);
+        Run(BrowserCommands.PreviousItem);
+        Assert.Equal((grid.Columns - 2, 1), (grid.Selection.FocusIndex, grid.Selection.Count));
+
+        grid.ClickAsync(0, SelectionGesture.Replace).GetAwaiter().GetResult();
+        Run(BrowserCommands.PreviousItem);
+        Assert.Equal(0, grid.Selection.FocusIndex);
+
+        grid.RequestFocus();
+        Assert.True(Scroller(view).IsFocused);
         window.Close();
     });
 

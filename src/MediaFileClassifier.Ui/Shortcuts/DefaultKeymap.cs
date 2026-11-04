@@ -35,6 +35,11 @@ public static class DefaultKeymap
         Bind(ItemCommands.Reveal, PhysicalKey.R, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
         Bind(ItemCommands.CopyPath, PhysicalKey.C, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
 
+        // Preview and details panel (E14-S05): previous and next, and Enter opens the item in its default app.
+        Bind(BrowserCommands.PreviousItem, PhysicalKey.ArrowLeft, scope: ShortcutScopes.Viewer),
+        Bind(BrowserCommands.NextItem, PhysicalKey.ArrowRight, scope: ShortcutScopes.Viewer),
+        Bind(ItemCommands.OpenInDefaultApp, PhysicalKey.Enter, scope: ShortcutScopes.Viewer),
+
         // Tools (E17-S01)
         Bind(SettingsCommands.OpenSettings, PhysicalKey.Comma, KeyModifiers.Control),
 

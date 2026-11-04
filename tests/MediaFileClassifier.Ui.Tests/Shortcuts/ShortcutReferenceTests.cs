@@ -29,8 +29,11 @@ public sealed class ShortcutReferenceTests
         viewModel.Shortcuts.State.IsOpen = true;
 
         var groups = viewModel.Shortcuts.Groups;
-        Assert.Equal(["General", "Media browser"], groups.Select(group => group.Name));
-        Assert.Equal(keymap.Bindings.Select(binding => binding.CommandId).Distinct().Count(id => viewModel.Commands[id].IsVisible), groups.Sum(group => group.Rows.Count));
+        Assert.Equal(["General", "Media browser", "Preview and viewer"], groups.Select(group => group.Name));
+        // One row per command in each scope; Open in default app has keys in two scopes.
+        Assert.Equal(
+            keymap.Bindings.Where(binding => viewModel.Commands[binding.CommandId].IsVisible).Select(binding => (binding.Scope, binding.CommandId)).Distinct().Count(),
+            groups.Sum(group => group.Rows.Count));
         var help = viewModel.Commands[ShortcutCommands.ShowReference];
         Assert.Contains(groups[0].Rows, row => row.Label == help.PlainLabel && row.Keys == "F1, Shift+/");
         Assert.Contains(groups[1].Rows, row => row.Label == viewModel.Commands[BrowserCommands.LargerThumbnails].PlainLabel && row.Keys == "=");

@@ -19,7 +19,7 @@ public static class ShortcutScopes
     /// <summary>Review mode (E08).</summary>
     public const string Review = "review";
 
-    /// <summary>The full-screen viewer (E14).</summary>
+    /// <summary>The preview in the details panel (E14-S05) and the full-screen viewer (E14).</summary>
     public const string Viewer = "viewer";
 
     /// <summary>

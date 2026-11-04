@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Infrastructure.Abstractions.Search;
 
 namespace MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 
@@ -43,6 +44,11 @@ public interface IOpenLibrary : IAsyncDisposable
     /// Gets the processing jobs and their work items (E05-S01).
     /// </summary>
     IJobRepository Jobs { get; }
+
+    /// <summary>
+    /// Gets the keyword index and the search filters (E01-S04). Search itself goes through <see cref="ISearchIndex"/>.
+    /// </summary>
+    ISearchStore Search { get; }
 
     /// <summary>
     /// Gets the integrity check, backup and optimization services.

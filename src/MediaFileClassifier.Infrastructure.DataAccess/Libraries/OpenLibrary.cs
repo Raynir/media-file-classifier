@@ -1,8 +1,10 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using MediaFileClassifier.Infrastructure.DataAccess.Repositories;
+using MediaFileClassifier.Infrastructure.DataAccess.Search;
 
 namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 
@@ -34,6 +36,7 @@ internal sealed class OpenLibrary : IOpenLibrary
         Metadata = new ItemMetadataRepository(connections, writer, timeProvider);
         Models = new ModelRegistrationRepository(connections, writer);
         Jobs = new JobRepository(connections, writer);
+        Search = new SearchStore(connections, writer);
         Maintenance = new LibraryMaintenance(connections, writer);
     }
 
@@ -57,6 +60,9 @@ internal sealed class OpenLibrary : IOpenLibrary
 
     /// <inheritdoc />
     public IJobRepository Jobs { get; }
+
+    /// <inheritdoc />
+    public ISearchStore Search { get; }
 
     /// <inheritdoc />
     public ILibraryMaintenance Maintenance { get; }

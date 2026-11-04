@@ -19,9 +19,8 @@ public sealed class BrowserContextMenu(CommandRegistry commands, Localizer local
     /// <returns>The entries; empty when nothing applies, so the menu doesn't open.</returns>
     public IReadOnlyList<IMenuEntry> Build()
     {
-        // Enter's Open becomes the preview (E14-S05); the menu's Open is "Open in default app".
         var applicable = commands.InGroup(CommandGroups.Item)
-            .Where(command => command.Id != BrowserCommands.OpenItem && command.IsApplicable)
+            .Where(command => command.InContextMenu && command.IsApplicable)
             .ToList();
         foreach (var command in applicable)
         {

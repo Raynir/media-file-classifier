@@ -87,6 +87,60 @@ public sealed class ItemCommandsTests
     }
 
     [Fact]
+    public async Task Shortcuts_WithTheFocusKeptButNothingSelected_DoNothing()
+    {
+        var bed = new Bed(10);
+        await bed.SelectAsync(2);
+        bed.Selection.Clear();
+        await bed.Commands.Loading;
+
+        await bed.Registry[ItemCommands.OpenInDefaultApp].ExecuteAsync();
+        await bed.Registry[ItemCommands.Reveal].ExecuteAsync();
+        await bed.Registry[ItemCommands.CopyPath].ExecuteAsync();
+
+        Assert.Empty(bed.Platform.Opened);
+        Assert.Empty(bed.Platform.Revealed);
+        Assert.Null(bed.Clipboard.Text);
+    }
+
+    [Fact]
+    public async Task Menu_AfterTheFocusedFileGoesMissing_ShowsTheNewStateOnTheNextRightClick()
+    {
+        var bed = new Bed(10);
+        await bed.SelectAsync(3);
+        bed.Availability[bed.Source.Ids[3]] = ItemAvailability.Missing;
+
+        // A right-click on the selected tile only focuses it.
+        await bed.Selection.ApplyAsync(3, SelectionGesture.FocusOnly);
+        await bed.Commands.Loading;
+
+        var open = bed.Menu.Build().OfType<AppCommand>().Single(command => command.Id == ItemCommands.OpenInDefaultApp);
+        Assert.False(open.IsEnabled);
+    }
+
+    [Fact]
+    public async Task Open_WhenThePlatformFails_DoesNotThrow()
+    {
+        var bed = new Bed(10);
+        bed.Platform.Failure = new System.ComponentModel.Win32Exception("No app is associated with this file.");
+        await bed.SelectAsync(1);
+
+        await bed.Registry[ItemCommands.OpenInDefaultApp].ExecuteAsync();
+
+        Assert.Empty(bed.Platform.Opened);
+    }
+
+    [Fact]
+    public async Task Menu_LeavesOutCommandsNotForContextMenus()
+    {
+        var bed = new Bed(10, extra: new HiddenItemCommand());
+
+        await bed.SelectAsync(1);
+
+        Assert.DoesNotContain(bed.Menu.Build().OfType<AppCommand>(), command => command.Id == HiddenItemCommand.Id);
+    }
+
+    [Fact]
     public async Task CopyPath_CopiesEverySelectedPath_OnePerLine()
     {
         var bed = new Bed(10);
@@ -106,7 +160,7 @@ public sealed class ItemCommandsTests
     /// </summary>
     private sealed class Bed
     {
-        public Bed(int count, bool canReveal = true)
+        public Bed(int count, bool canReveal = true, ICommandContributor? extra = null)
         {
             Source = new FakeResultSource(count);
             Selection = new SelectionModel(() => Source);
@@ -114,7 +168,7 @@ public sealed class ItemCommandsTests
             Selection.Reset(count);
             Platform = new RecordingPlatform(canReveal);
             Commands = new ItemCommands(Selection, new LocationSender(this), Platform, Clipboard, Localizer.Current);
-            Registry = new CommandRegistry([Commands], Localizer.Current, new FakeCapabilityGate());
+            Registry = new CommandRegistry(extra is null ? [Commands] : [Commands, extra], Localizer.Current, new FakeCapabilityGate());
             Menu = new BrowserContextMenu(Registry, Localizer.Current);
         }
 
@@ -183,6 +237,8 @@ public sealed class ItemCommandsTests
 
         public bool CanRevealInFileExplorer => canReveal;
 
+        public Exception? Failure { get; set; }
+
         public Task<FolderHandle?> PickFolderAsync(string title, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<IReadOnlyList<FileLocation>> PickFilesAsync(FilePickerRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
@@ -195,6 +251,11 @@ public sealed class ItemCommandsTests
 
         public Task OpenWithDefaultAppAsync(FileLocation location, CancellationToken cancellationToken = default)
         {
+            if (Failure is not null)
+            {
+                return Task.FromException(Failure);
+            }
+
             Opened.Add(location.RelativePath);
             return Task.CompletedTask;
         }
@@ -209,5 +270,13 @@ public sealed class ItemCommandsTests
             Text = text;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class HiddenItemCommand : ICommandContributor
+    {
+        public const string Id = "item.hidden";
+
+        public void Register(CommandRegistry registry) =>
+            registry.Add(new AppCommand(Id, CommandGroups.Item, 10, "Command_OpenItem", () => { }) { InContextMenu = false });
     }
 }

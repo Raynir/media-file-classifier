@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
@@ -8,6 +9,8 @@ using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Ui.Browser;
 
@@ -17,7 +20,7 @@ namespace MediaFileClassifier.Ui.Browser;
 /// item and are disabled, with the reason, while its file is missing or its folder offline (D025). Copy file path
 /// copies the paths of all selected items, one per line.
 /// </summary>
-public sealed class ItemCommands : ICommandContributor
+public sealed partial class ItemCommands : ICommandContributor
 {
     /// <summary>Command ID: open the focused item in its default app.</summary>
     public const string OpenInDefaultApp = "item.open-default-app";
@@ -33,8 +36,9 @@ public sealed class ItemCommands : ICommandContributor
     private readonly IPlatformServices platform;
     private readonly ITextClipboard clipboard;
     private readonly Localizer localizer;
+    private readonly ILogger logger;
     private readonly List<AppCommand> commands = [];
-    private Id<MediaItem>? loadedFor;
+    private int loads;
     private ItemLocation? focused;
 
     /// <summary>
@@ -45,13 +49,21 @@ public sealed class ItemCommands : ICommandContributor
     /// <param name="platform">Opens and reveals files.</param>
     /// <param name="clipboard">Takes the copied paths.</param>
     /// <param name="localizer">UI strings, for the reasons a command is disabled.</param>
-    public ItemCommands(SelectionModel selection, ISender sender, IPlatformServices platform, ITextClipboard clipboard, Localizer localizer)
+    /// <param name="logger">Logs files that couldn't be opened or revealed.</param>
+    public ItemCommands(
+        SelectionModel selection,
+        ISender sender,
+        IPlatformServices platform,
+        ITextClipboard clipboard,
+        Localizer localizer,
+        ILogger<ItemCommands>? logger = null)
     {
         this.selection = selection;
         this.sender = sender;
         this.platform = platform;
         this.clipboard = clipboard;
         this.localizer = localizer;
+        this.logger = logger ?? NullLogger<ItemCommands>.Instance;
     }
 
     /// <summary>
@@ -92,16 +104,26 @@ public sealed class ItemCommands : ICommandContributor
 
     private async Task LoadFocusedAsync()
     {
+        // Every selection change reloads, even for the same item, so a right-click shows its current state, e.g.
+        // after its folder went offline. A newer load wins.
+        var load = ++loads;
         var id = selection.FocusedId;
-        if (id == loadedFor)
+        if (focused?.ItemId != id)
         {
-            return;
+            focused = null;
         }
 
-        loadedFor = id;
-        focused = null;
-        var location = id is { } item ? await LocateAsync(item) : null;
-        if (loadedFor != id)
+        ItemLocation? location = null;
+        try
+        {
+            location = id is { } item ? await LocateAsync(item) : null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogLocateFailed(logger, ex);
+        }
+
+        if (load != loads)
         {
             return;
         }
@@ -116,19 +138,25 @@ public sealed class ItemCommands : ICommandContributor
     private async Task<ItemLocation?> LocateAsync(Id<MediaItem> id) =>
         (await sender.Send(new GetItemLocationsQuery([id]))).FirstOrDefault();
 
-    private async Task OpenAsync()
-    {
-        if (selection.FocusedId is { } id && await LocateAsync(id) is { Availability: ItemAvailability.Available } location)
-        {
-            await RunAsync(() => platform.OpenWithDefaultAppAsync(location.Location));
-        }
-    }
+    private Task OpenAsync() => WithFocusedFileAsync(location => platform.OpenWithDefaultAppAsync(location));
 
-    private async Task RevealAsync()
+    private Task RevealAsync() => WithFocusedFileAsync(location => platform.RevealInFileExplorerAsync(location));
+
+    private async Task WithFocusedFileAsync(Func<FileLocation, Task> action)
     {
-        if (selection.FocusedId is { } id && await LocateAsync(id) is { Availability: ItemAvailability.Available } location)
+        if (selection.FocusedId is not { } id || await LocateAsync(id) is not { Availability: ItemAvailability.Available } location)
         {
-            await RunAsync(() => platform.RevealInFileExplorerAsync(location.Location));
+            return;
+        }
+
+        try
+        {
+            await action(location.Location);
+        }
+        catch (Exception ex) when (ex is IOException or Win32Exception or UnauthorizedAccessException)
+        {
+            // The file went away since the last scan, or no app handles it; the next scan marks a gone file Missing.
+            LogFileActionFailed(logger, location.FullPath ?? location.Location.RelativePath, ex);
         }
     }
 
@@ -145,15 +173,9 @@ public sealed class ItemCommands : ICommandContributor
         await clipboard.SetTextAsync(string.Join(Environment.NewLine, paths));
     }
 
-    private static async Task RunAsync(Func<Task> action)
-    {
-        try
-        {
-            await action();
-        }
-        catch (Exception ex) when (ex is IOException or Win32Exception or UnauthorizedAccessException)
-        {
-            // The file went away since the last scan; the next scan marks it Missing.
-        }
-    }
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't open or reveal {Path}")]
+    private static partial void LogFileActionFailed(ILogger logger, string path, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't locate the focused item")]
+    private static partial void LogLocateFailed(ILogger logger, Exception exception);
 }

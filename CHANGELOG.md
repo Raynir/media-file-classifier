@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Fixed
+
+- A finished job no longer stays in the progress summary and the status bar when its last work items finish at the same time (MFC-985).
+
 ## M1 — 2026-11-04
 
 ### Added

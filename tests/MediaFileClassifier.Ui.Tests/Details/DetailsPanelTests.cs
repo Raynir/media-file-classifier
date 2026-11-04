@@ -118,6 +118,11 @@ public sealed class DetailsPanelTests : IDisposable
         Assert.Equal(ImageOrientation.Normal, bed.Panel.PreviewOrientation);
         Assert.Equal(note, bed.Panel.PreviewNote);
         Assert.Equal(0, bed.Decoder.Decodes);
+
+        // Only the thumbnail shows, so 1:1 is the thumbnail's own pixels, also after a refresh.
+        Assert.Equal(default, bed.Panel.PreviewImageSize);
+        bed.Select(0, SelectionGesture.FocusOnly);
+        Assert.Equal(default, bed.Panel.PreviewImageSize);
     });
 
     [Fact]
@@ -146,7 +151,21 @@ public sealed class DetailsPanelTests : IDisposable
     });
 
     [Fact]
-    public Task Open_ShowsAHiddenOrCollapsedPanel_AndAsksForFocus() => TestApp.RunAsync(() =>
+    public Task SelectionRefresh_WhileTheOriginalDecodes_DoesNotStopIt() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+
+        // An import refreshes the selection while the item's original is still loading.
+        var first = bed.Selection.ApplyAsync(1, SelectionGesture.Replace);
+        bed.Wait(first);
+        bed.Wait(bed.Selection.ApplyAsync(1, SelectionGesture.FocusOnly));
+        Pump.Until(() => bed.Panel.PreviewKind == PreviewKind.FullResolution);
+
+        Assert.Equal(1, bed.Decoder.Decodes);
+    });
+
+    [Fact]
+    public Task Open_ShowsAHiddenOrCollapsedPanelAndPreview_AndAsksForFocus() => TestApp.RunAsync(() =>
     {
         var bed = new Bed(this, 3);
         var focusRequests = 0;
@@ -157,8 +176,10 @@ public sealed class DetailsPanelTests : IDisposable
         Assert.True(bed.Layout.Details.IsExpanded);
 
         bed.Layout.Details.Collapse();
+        bed.Layout.IsDetailsPreviewCollapsed = true;
         bed.Wait(bed.Panel.OpenAsync(bed.Source.Ids[0]));
         Assert.True(bed.Layout.Details.IsExpanded);
+        Assert.False(bed.Layout.IsDetailsPreviewCollapsed);
         Assert.Equal(2, focusRequests);
     });
 
@@ -199,6 +220,11 @@ public sealed class DetailsPanelTests : IDisposable
         view.FindControl<Button>("ActualSizeButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Assert.Equal(1, preview.Zoom, 6);
         view.FindControl<Button>("FitButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Assert.True(preview.Zoom < 1);
+
+        // The next item, as large as this one, starts fitted.
+        view.FindControl<Button>("ActualSizeButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        bed.Select(2, SelectionGesture.Replace);
         Assert.True(preview.Zoom < 1);
 
         var tabs = view.GetVisualDescendants().OfType<TabControl>().Single();

@@ -6,8 +6,7 @@
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
              x:Class="MediaFileClassifier.Ui.Views.Details.DetailsPanelView"
-             x:DataType="vm:DetailsPanelViewModel"
-             sc:Shortcuts.Scope="viewer">
+             x:DataType="vm:DetailsPanelViewModel">
   <!--
     Provisional details panel (D095), after the Figma "Viewer" component 29:2872: the preview, the file name, then
     Overview and Technical tabs. The preview is taller than Figma's 200 px when dragged, and collapses; quick actions
@@ -65,6 +64,7 @@
                        Orientation="{Binding PreviewOrientation}"
                        ImageSize="{Binding PreviewImageSize}"
                        RenderOptions.BitmapInterpolationMode="HighQuality"
+                       sc:Shortcuts.Scope="viewer"
                        AutomationProperties.Name="{l:Loc Details_Preview}" />
           <TextBlock Classes="Tertiary"
                      Text="{l:Loc Details_Preview_None}"

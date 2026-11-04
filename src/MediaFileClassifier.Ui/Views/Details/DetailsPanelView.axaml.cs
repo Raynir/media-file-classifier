@@ -1,8 +1,11 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels.Details;
 
@@ -15,6 +18,7 @@ namespace MediaFileClassifier.Ui.Views.Details;
 public partial class DetailsPanelView : UserControl
 {
     private DetailsPanelViewModel? viewModel;
+    private Id<MediaItem>? shownItem;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DetailsPanelView"/> class.
@@ -38,12 +42,14 @@ public partial class DetailsPanelView : UserControl
         if (viewModel is not null)
         {
             viewModel.FocusRequested -= OnFocusRequested;
+            viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
 
         viewModel = DataContext as DetailsPanelViewModel;
         if (viewModel is not null)
         {
             viewModel.FocusRequested += OnFocusRequested;
+            viewModel.PropertyChanged += OnViewModelPropertyChanged;
             ReportScreen();
             if (viewModel.IsFocusPending)
             {
@@ -69,6 +75,7 @@ public partial class DetailsPanelView : UserControl
         if (viewModel is not null)
         {
             viewModel.FocusRequested -= OnFocusRequested;
+            viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             viewModel = null;
         }
     }
@@ -86,6 +93,16 @@ public partial class DetailsPanelView : UserControl
                 }
             },
             DispatcherPriority.Loaded);
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Each item starts fitted, even when it's as large as the one before.
+        if (e.PropertyName == nameof(DetailsPanelViewModel.Item) && viewModel?.Item?.Id != shownItem)
+        {
+            shownItem = viewModel?.Item?.Id;
+            Preview.Fit();
+        }
+    }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {

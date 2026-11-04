@@ -45,9 +45,12 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private readonly Func<ThumbnailGridViewModel> grid;
     private readonly ILogger logger;
     private CancellationTokenSource? loading;
+    private CancellationTokenSource? previewLoading;
+    private ItemDetails? previewFor;
     private PreviewImage? preview;
     private bool loadingFullResolution;
     private int loads;
+    private int previewLoads;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DetailsPanelViewModel"/> class.
@@ -232,6 +235,9 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     public Task<bool> OpenAsync(Id<MediaItem> itemId)
     {
         layout.Details.Expand();
+
+        // Enter shows the preview, so a collapsed one opens; the arrow keys work while it has focus.
+        IsPreviewExpanded = true;
         IsFocusPending = true;
         FocusRequested?.Invoke(this, EventArgs.Empty);
         return Task.FromResult(true);
@@ -273,6 +279,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         layout.PropertyChanged -= OnLayoutChanged;
         loading?.Cancel();
         loading?.Dispose();
+        CancelPreview();
         SetPreview(null);
     }
 
@@ -321,14 +328,13 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
                 return;
             }
 
-            var previous = Item;
             Show(item);
-            if (item is null || (previous is not null && SamePreview(previous, item) && preview is not null))
-            {
-                return;
-            }
 
-            await LoadPreviewAsync(item, load, token);
+            // The same file again, e.g. the selection refreshed during an import: keep its preview, even one still loading.
+            if (item is not null && (previewFor is null || !SamePreview(previewFor, item)))
+            {
+                await LoadPreviewAsync(item);
+            }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -340,62 +346,74 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         }
     }
 
-    private async Task LoadPreviewAsync(ItemDetails item, int load, CancellationToken token)
+    private async Task LoadPreviewAsync(ItemDetails item)
     {
-        SetPreview(null);
-        var thumbnail = await previews.LoadThumbnailAsync(item, token);
-        if (load != loads)
-        {
-            thumbnail?.Dispose();
-            return;
-        }
-
-        SetPreview(thumbnail);
-        PreviewNote = item.Location.Availability switch
-        {
-            ItemAvailability.Offline => localizer.Format("Details_Preview_Thumbnail_Offline", item.Location.FolderName),
-            ItemAvailability.Missing => localizer.Get("Details_Preview_Thumbnail_Missing"),
-            _ => thumbnail is null && item.MediaType == MediaType.Video ? localizer.Get("Details_Preview_None") : null,
-        };
-        if (!PreviewLoader.CanShowOriginal(item))
-        {
-            return;
-        }
-
-        await Task.Delay(OriginalDelay, token);
-        PreviewImage original;
+        CancelPreview();
+        previewFor = item;
+        var load = ++previewLoads;
+        previewLoading = new CancellationTokenSource();
+        var token = previewLoading.Token;
         try
         {
-            original = await previews.LoadOriginalAsync(item, ScreenPixels, token);
+            SetPreview(null);
+            var canShowOriginal = PreviewLoader.CanShowOriginal(item);
+            if (!canShowOriginal)
+            {
+                // Only the thumbnail will show, so zoom in its own pixels rather than the original's.
+                PreviewImageSize = default;
+            }
+
+            var thumbnail = await previews.LoadThumbnailAsync(item, token);
+            if (load != previewLoads)
+            {
+                thumbnail?.Dispose();
+                return;
+            }
+
+            SetPreview(thumbnail);
+            PreviewNote = item.Location.Availability switch
+            {
+                ItemAvailability.Offline => localizer.Format("Details_Preview_Thumbnail_Offline", item.Location.FolderName),
+                ItemAvailability.Missing => localizer.Get("Details_Preview_Thumbnail_Missing"),
+                _ => thumbnail is null && item.MediaType == MediaType.Video ? localizer.Get("Details_Preview_None") : null,
+            };
+            if (!canShowOriginal)
+            {
+                return;
+            }
+
+            await Task.Delay(OriginalDelay, token);
+            var original = await previews.LoadOriginalAsync(item, ScreenPixels, token);
+            if (load != previewLoads)
+            {
+                original.Dispose();
+                return;
+            }
+
+            SetPreview(original);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Another item's preview took over.
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             LogOriginalFailed(logger, item.FileName, ex);
-            if (load == loads)
+            if (load == previewLoads)
             {
                 PreviewNote = localizer.Get("Details_Preview_Thumbnail_Failed");
             }
-
-            return;
         }
-
-        if (load != loads)
-        {
-            original.Dispose();
-            return;
-        }
-
-        SetPreview(original);
     }
 
     private async Task LoadFullResolutionAsync(ItemDetails item)
     {
         loadingFullResolution = true;
-        var load = loads;
+        var load = previewLoads;
         try
         {
-            var full = await previews.LoadOriginalAsync(item, maxLongestEdge: null, loading?.Token ?? default);
-            if (load != loads)
+            var full = await previews.LoadOriginalAsync(item, maxLongestEdge: null, previewLoading?.Token ?? default);
+            if (load != previewLoads)
             {
                 full.Dispose();
                 return;
@@ -405,7 +423,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         }
         catch (OperationCanceledException)
         {
-            // The item changed.
+            // Another item's preview took over.
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
@@ -417,6 +435,13 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         }
     }
 
+    private void CancelPreview()
+    {
+        previewLoading?.Cancel();
+        previewLoading?.Dispose();
+        previewLoading = null;
+    }
+
     private static bool SamePreview(ItemDetails shown, ItemDetails item) =>
         shown.Id == item.Id && shown.FileModifiedAt == item.FileModifiedAt && shown.Location.Availability == item.Location.Availability;
 
@@ -425,6 +450,9 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         if (item is null)
         {
             loading?.Cancel();
+            CancelPreview();
+            ++previewLoads;
+            previewFor = null;
             SetPreview(null);
             PreviewNote = null;
         }
@@ -432,13 +460,10 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         var sameItem = item is not null && Item?.Id == item.Id;
         Item = item;
         TechnicalRows = item is null ? [] : TechnicalRowBuilder.Build(item, localizer);
-        if (TechnicalRowBuilder.ShownSize(item?.Technical) is { } size)
+        if (!sameItem)
         {
-            PreviewImageSize = new Size(size.Width, size.Height);
-        }
-        else if (!sameItem)
-        {
-            PreviewImageSize = default;
+            // The same item keeps the size its preview set, e.g. a thumbnail's own for a video.
+            PreviewImageSize = TechnicalRowBuilder.ShownSize(item?.Technical) is { } size ? new Size(size.Width, size.Height) : default;
         }
         regions.Details = item is null ? null : this;
     }

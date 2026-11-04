@@ -52,6 +52,26 @@ public static class SampleMedia
     public static string BlackIntroVideo => Combine("video-black-intro.mp4");
 
     /// <summary>
+    /// Gets an 80 s video from a still camera: one scene with light noise and a small dot crossing it.
+    /// </summary>
+    public static string StaticCameraVideo => Combine("video-static-camera.mp4");
+
+    /// <summary>
+    /// Gets an 80 s video that cuts to an unrelated scene every 5 s.
+    /// </summary>
+    public static string ActionVideo => Combine("video-action.mp4");
+
+    /// <summary>
+    /// Gets a looping GIF with 13 frames over 4 s: frames 0, 1 and 12 last 1 s each, frames 2 to 11 100 ms each.
+    /// </summary>
+    public static string GifWithVariableDelays => Combine("gif-variable-delays.gif");
+
+    /// <summary>
+    /// Gets a looping GIF with 3 different frames of 200 ms.
+    /// </summary>
+    public static string GifWithThreeFrames => Combine("gif-three-frames.gif");
+
+    /// <summary>
     /// Gets a looping animated WebP with 6 frames of 120 ms.
     /// </summary>
     public static string AnimatedWebP => Combine("webp-animated.webp");

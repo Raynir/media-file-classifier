@@ -94,7 +94,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// Gets the shown item, or <see langword="null"/>.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Title), nameof(FileName), nameof(Description), nameof(Tags), nameof(HasDescription), nameof(HasTags))]
+    [NotifyPropertyChangedFor(nameof(Title), nameof(Subtitle), nameof(Description), nameof(Tags), nameof(HasDescription), nameof(HasTags))]
     public partial ItemDetails? Item { get; private set; }
 
     /// <summary>
@@ -103,9 +103,15 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     public string Title => Item?.Title ?? Item?.FileName ?? string.Empty;
 
     /// <summary>
-    /// Gets the file name, under the title.
+    /// Gets the file name under the title, when the item has a title; otherwise the title is the file name.
     /// </summary>
-    public string FileName => Item?.FileName ?? string.Empty;
+    public string? Subtitle => Item?.Title is null ? null : Item.FileName;
+
+    /// <summary>
+    /// Gets a value indicating whether the preview should take keyboard focus once it's shown, e.g. after Enter in
+    /// the grid while the panel was still empty.
+    /// </summary>
+    public bool IsFocusPending { get; private set; }
 
     /// <summary>
     /// Gets "N items selected" while several items are selected, or <see langword="null"/>.
@@ -226,9 +232,15 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     public Task<bool> OpenAsync(Id<MediaItem> itemId)
     {
         layout.Details.Expand();
+        IsFocusPending = true;
         FocusRequested?.Invoke(this, EventArgs.Empty);
         return Task.FromResult(true);
     }
+
+    /// <summary>
+    /// Records that the view gave the preview keyboard focus.
+    /// </summary>
+    public void OnFocused() => IsFocusPending = false;
 
     /// <summary>
     /// Gives the keyboard focus back to the grid, e.g. Esc in the panel.

@@ -56,7 +56,7 @@ public sealed class DetailsPanelTests : IDisposable
         Assert.Equal(bed.Source.Ids[2], bed.Panel.Item?.Id);
         Assert.Same(bed.Panel, bed.Regions.Details);
         Assert.Null(bed.Panel.SelectedCountText);
-        Assert.Equal("IMG_2.png", bed.Panel.Title);
+        Assert.Equal(("IMG_2.png", null), (bed.Panel.Title, bed.Panel.Subtitle));
 
         bed.Select(4, SelectionGesture.Range);
         Assert.Equal(bed.Source.Ids[4], bed.Panel.Item?.Id);
@@ -178,11 +178,14 @@ public sealed class DetailsPanelTests : IDisposable
     });
 
     [Fact]
-    public Task View_ShowsTheTabs_AndTheZoomButtonsSwitchBetweenFitAnd100Percent() => TestApp.RunAsync(() =>
+    public Task View_TakesTheFocus_ShowsTheTabs_AndTheZoomButtonsSwitchBetweenFitAnd100Percent() => TestApp.RunAsync(() =>
     {
         var bed = new Bed(this, 3);
         bed.Panel.ScreenPixels = 100;
         bed.Select(1, SelectionGesture.Replace);
+
+        // Enter in the grid before the view exists: the preview takes the focus once it's shown.
+        bed.Wait(bed.Panel.OpenAsync(bed.Source.Ids[1]));
         var view = new DetailsPanelView { DataContext = bed.Panel };
         var window = new Window { Width = 320, Height = 800, Content = view };
         window.Show();
@@ -190,6 +193,8 @@ public sealed class DetailsPanelTests : IDisposable
         Dispatcher.UIThread.RunJobs();
 
         var preview = view.GetVisualDescendants().OfType<ZoomImage>().Single();
+        Assert.True(preview.IsFocused);
+        Assert.False(bed.Panel.IsFocusPending);
         Assert.True(preview.Zoom < 1);
         view.FindControl<Button>("ActualSizeButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Assert.Equal(1, preview.Zoom, 6);

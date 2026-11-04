@@ -23,6 +23,17 @@
       <Setter Property="FontSize" Value="{DynamicResource FontSize.Subtitle}" />
       <Setter Property="Padding" Value="{DynamicResource Padding.Tab}" />
     </Style>
+    <!-- Tag chips, as in Figma 29:2900. -->
+    <Style Selector="Border.Chip">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Control}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Badge}" />
+    </Style>
+    <Style Selector="Border.Chip TextBlock">
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+    </Style>
     <Style Selector="Border.PreviewOverlay">
       <Setter Property="Background" Value="{DynamicResource Brush.Surface.Tooltip}" />
       <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
@@ -94,8 +105,11 @@
 
     <!-- Name, selection count and quick actions. -->
     <StackPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.XS}">
-      <SelectableTextBlock Classes="Title" Text="{Binding Title}" TextWrapping="Wrap" />
-      <SelectableTextBlock Classes="Secondary" Text="{Binding FileName}" TextWrapping="Wrap" />
+      <TextBlock Classes="Title" Text="{Binding Title}" TextWrapping="Wrap" />
+      <TextBlock Classes="Secondary"
+                 Text="{Binding Subtitle}"
+                 IsVisible="{Binding Subtitle, Converter={x:Static ObjectConverters.IsNotNull}}"
+                 TextWrapping="Wrap" />
       <TextBlock Classes="Secondary"
                  Text="{Binding SelectedCountText}"
                  IsVisible="{Binding SelectedCountText, Converter={x:Static ObjectConverters.IsNotNull}}" />
@@ -145,7 +159,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="x:String">
-                    <Border Classes="Tag" Margin="{DynamicResource Padding.Compact}">
+                    <Border Classes="Chip" Margin="{DynamicResource Padding.Compact}">
                       <TextBlock Text="{Binding}" />
                     </Border>
                   </DataTemplate>

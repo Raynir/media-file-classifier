@@ -63,7 +63,7 @@
     <value>Fit the whole image (double-click)</value>
   </data>
   <data name="Details_Preview_ActualSize" xml:space="preserve">
-    <value>100%</value>
+    <value>1:1</value>
   </data>
   <data name="Details_Preview_ActualSize_ToolTip" xml:space="preserve">
     <value>Show at 100% (double-click)</value>

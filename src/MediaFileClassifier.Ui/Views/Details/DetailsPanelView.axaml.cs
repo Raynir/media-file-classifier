@@ -45,6 +45,11 @@ public partial class DetailsPanelView : UserControl
         {
             viewModel.FocusRequested += OnFocusRequested;
             ReportScreen();
+            if (viewModel.IsFocusPending)
+            {
+                // Enter in the grid came before the panel had an item to show.
+                OnFocusRequested(this, EventArgs.Empty);
+            }
         }
     }
 
@@ -74,13 +79,10 @@ public partial class DetailsPanelView : UserControl
         Dispatcher.UIThread.Post(
             () =>
             {
-                if (Preview.IsEffectivelyVisible)
+                var focused = Preview.IsEffectivelyVisible ? Preview.Focus(NavigationMethod.Tab) : Focus(NavigationMethod.Tab);
+                if (focused)
                 {
-                    Preview.Focus(NavigationMethod.Tab);
-                }
-                else
-                {
-                    Focus(NavigationMethod.Tab);
+                    viewModel?.OnFocused();
                 }
             },
             DispatcherPriority.Loaded);

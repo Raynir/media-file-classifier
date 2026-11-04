@@ -34,15 +34,17 @@ public sealed class DecodedImage : IDisposable
     /// <param name="height">The decoded height.</param>
     /// <param name="rowBytes">The bytes per row.</param>
     /// <param name="pixels">The first pixel, valid until the image is disposed.</param>
-    /// <param name="isFullResolution">Whether the image wasn't scaled down.</param>
+    /// <param name="sourceWidth">The stored image's width.</param>
+    /// <param name="sourceHeight">The stored image's height.</param>
     /// <param name="owner">Owns the pixels.</param>
-    public DecodedImage(int width, int height, int rowBytes, nint pixels, bool isFullResolution, IDisposable owner)
+    public DecodedImage(int width, int height, int rowBytes, nint pixels, int sourceWidth, int sourceHeight, IDisposable owner)
     {
         Width = width;
         Height = height;
         RowBytes = rowBytes;
         Pixels = pixels;
-        IsFullResolution = isFullResolution;
+        SourceWidth = sourceWidth;
+        SourceHeight = sourceHeight;
         this.owner = owner;
     }
 
@@ -58,8 +60,14 @@ public sealed class DecodedImage : IDisposable
     /// <summary>Gets the first pixel, valid until the image is disposed.</summary>
     public nint Pixels { get; }
 
+    /// <summary>Gets the stored image's width, before any scaling.</summary>
+    public int SourceWidth { get; }
+
+    /// <summary>Gets the stored image's height, before any scaling.</summary>
+    public int SourceHeight { get; }
+
     /// <summary>Gets a value indicating whether the image wasn't scaled down.</summary>
-    public bool IsFullResolution { get; }
+    public bool IsFullResolution => Width == SourceWidth && Height == SourceHeight;
 
     /// <inheritdoc />
     public void Dispose() => Interlocked.Exchange(ref owner, null)?.Dispose();

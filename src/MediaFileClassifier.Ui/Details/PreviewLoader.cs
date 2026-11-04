@@ -25,13 +25,15 @@ public sealed class PreviewImage : IDisposable
     /// </summary>
     /// <param name="bitmap">The bitmap.</param>
     /// <param name="size">The bitmap's size in pixels.</param>
+    /// <param name="sourceSize">The stored image's size in pixels, which the bitmap may be scaled down from.</param>
     /// <param name="orientation">How the bitmap must be turned to show it upright.</param>
     /// <param name="kind">Where the bitmap comes from.</param>
     /// <param name="release">Releases the bitmap.</param>
-    public PreviewImage(Bitmap bitmap, PixelSize size, ImageOrientation orientation, PreviewKind kind, Action release)
+    public PreviewImage(Bitmap bitmap, PixelSize size, PixelSize sourceSize, ImageOrientation orientation, PreviewKind kind, Action release)
     {
         Bitmap = bitmap;
         Size = size;
+        SourceSize = sourceSize;
         Orientation = orientation;
         Kind = kind;
         this.release = release;
@@ -46,6 +48,11 @@ public sealed class PreviewImage : IDisposable
     /// Gets the bitmap's size in pixels, as decoded.
     /// </summary>
     public PixelSize Size { get; }
+
+    /// <summary>
+    /// Gets the stored image's size in pixels (orientation not applied), which the bitmap may be scaled down from.
+    /// </summary>
+    public PixelSize SourceSize { get; }
 
     /// <summary>
     /// Gets how the bitmap must be turned to show it upright. Thumbnails are already upright.
@@ -107,7 +114,7 @@ public sealed class PreviewLoader(ThumbnailLoader thumbnails, IMediaFileSource f
     {
         ArgumentNullException.ThrowIfNull(item);
         var lease = await thumbnails.LoadAsync(item.Id, item.FileModifiedAt, ThumbnailSize.Large, cancellationToken).ConfigureAwait(false);
-        return lease is null ? null : new PreviewImage(lease.Bitmap, lease.Bitmap.PixelSize, ImageOrientation.Normal, PreviewKind.Thumbnail, lease.Dispose);
+        return lease is null ? null : new PreviewImage(lease.Bitmap, lease.Bitmap.PixelSize, lease.Bitmap.PixelSize, ImageOrientation.Normal, PreviewKind.Thumbnail, lease.Dispose);
     }
 
     /// <summary>
@@ -135,6 +142,6 @@ public sealed class PreviewLoader(ThumbnailLoader thumbnails, IMediaFileSource f
             () => new Bitmap(PixelFormat.Bgra8888, AlphaFormat.Premul, decoded.Pixels, size, new Vector(96, 96), decoded.RowBytes),
             cancellationToken).ConfigureAwait(false);
         var kind = decoded.IsFullResolution ? PreviewKind.FullResolution : PreviewKind.ScreenSized;
-        return new PreviewImage(bitmap, size, item.Technical?.Orientation ?? ImageOrientation.Normal, kind, bitmap.Dispose);
+        return new PreviewImage(bitmap, size, new PixelSize(decoded.SourceWidth, decoded.SourceHeight), item.Technical?.Orientation ?? ImageOrientation.Normal, kind, bitmap.Dispose);
     }
 }

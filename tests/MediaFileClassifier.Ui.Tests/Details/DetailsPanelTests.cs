@@ -89,6 +89,21 @@ public sealed class DetailsPanelTests : IDisposable
         Assert.Equal(new PixelSize(400, 300), bed.Panel.PreviewBitmapSize);
     });
 
+    [Fact]
+    public Task Preview_WithoutExtractedDimensions_TakesTheOriginalsSize() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3) { WithoutTechnical = true };
+        bed.Panel.ScreenPixels = 100;
+
+        bed.Select(1, SelectionGesture.Replace);
+        Assert.Equal(new Size(400, 300), bed.Panel.PreviewImageSize);
+        bed.Wait(bed.Panel.OnZoomChangedAsync(1));
+        Assert.Equal(PreviewKind.FullResolution, bed.Panel.PreviewKind);
+
+        bed.Select(1, SelectionGesture.FocusOnly);
+        Assert.Equal(new Size(400, 300), bed.Panel.PreviewImageSize);
+    });
+
     [Theory]
     [InlineData(ItemAvailability.Offline, "Showing the thumbnail: the folder Photos is offline.")]
     [InlineData(ItemAvailability.Missing, "Showing the thumbnail: the file is missing.")]
@@ -245,6 +260,8 @@ public sealed class DetailsPanelTests : IDisposable
 
         public bool Corrupt { get; set; }
 
+        public bool WithoutTechnical { get; set; }
+
         public void Select(int index, SelectionGesture gesture)
         {
             Wait(Selection.ApplyAsync(index, gesture));
@@ -271,7 +288,7 @@ public sealed class DetailsPanelTests : IDisposable
                 ExtractedAt = DateTimeOffset.UnixEpoch,
             };
             var details = new ItemDetails(
-                query.ItemId, $"IMG_{index}.png", "png", MediaType.Image, 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, technical, null, null, []);
+                query.ItemId, $"IMG_{index}.png", "png", MediaType.Image, 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, WithoutTechnical ? null : technical, null, null, []);
             return Task.FromResult((TResponse)(object)details);
         }
 

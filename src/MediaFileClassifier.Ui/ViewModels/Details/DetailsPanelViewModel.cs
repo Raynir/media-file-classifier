@@ -243,14 +243,13 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <returns>A task that completes when the sharper bitmap is shown.</returns>
     public Task OnZoomChangedAsync(double zoom)
     {
-        if (preview is not { Kind: PreviewSource.ScreenSized } shown || loadingFullResolution || Item is not { } item
-            || item.Technical is not { Width: { } width, Height: { } height })
+        if (preview is not { Kind: PreviewSource.ScreenSized } shown || loadingFullResolution || Item is not { } item)
         {
             return Task.CompletedTask;
         }
 
         // Compare the longer sides, which don't depend on the orientation.
-        var needed = Math.Max(width, height) * zoom;
+        var needed = Math.Max(shown.SourceSize.Width, shown.SourceSize.Height) * zoom;
         var available = Math.Max(shown.Size.Width, shown.Size.Height);
         return needed > available ? LoadFullResolutionAsync(item) : Task.CompletedTask;
     }
@@ -418,9 +417,17 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             PreviewNote = null;
         }
 
+        var sameItem = item is not null && Item?.Id == item.Id;
         Item = item;
         TechnicalRows = item is null ? [] : TechnicalRowBuilder.Build(item, localizer);
-        PreviewImageSize = TechnicalRowBuilder.ShownSize(item?.Technical) is { } size ? new Size(size.Width, size.Height) : default;
+        if (TechnicalRowBuilder.ShownSize(item?.Technical) is { } size)
+        {
+            PreviewImageSize = new Size(size.Width, size.Height);
+        }
+        else if (!sameItem)
+        {
+            PreviewImageSize = default;
+        }
         regions.Details = item is null ? null : this;
     }
 
@@ -432,6 +439,12 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         PreviewOrientation = image?.Orientation ?? ImageOrientation.Normal;
         PreviewKind = image?.Kind;
         PreviewBitmapSize = image?.Size ?? default;
+        if (image is { Kind: not PreviewSource.Thumbnail } && PreviewImageSize == default)
+        {
+            // Without extracted dimensions, the original's own size keeps zooming in true pixels.
+            var source = image.SourceSize;
+            PreviewImageSize = image.Orientation >= ImageOrientation.Transpose ? new Size(source.Height, source.Width) : new Size(source.Width, source.Height);
+        }
         old?.Dispose();
     }
 

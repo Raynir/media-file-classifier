@@ -52,7 +52,7 @@ public sealed class SkiaPreviewDecoder : IPreviewDecoder
                 decoded = resized;
             }
 
-            return new DecodedImage(decoded.Width, decoded.Height, decoded.RowBytes, decoded.GetPixels(), target == size, decoded);
+            return new DecodedImage(decoded.Width, decoded.Height, decoded.RowBytes, decoded.GetPixels(), size.Width, size.Height, decoded);
         }
         catch
         {

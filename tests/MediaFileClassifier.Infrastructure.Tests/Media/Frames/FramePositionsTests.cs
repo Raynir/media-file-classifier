@@ -48,4 +48,51 @@ public sealed class FramePositionsTests
     {
         Assert.Equal([TimeSpan.Zero], FramePositions.ForVideo(seconds is { } value ? TimeSpan.FromSeconds(value) : null, Options));
     }
+
+    [Fact]
+    public void ForAnimation_VariableDelays_PicksTheFrameShownAtEachPosition()
+    {
+        // Like gif-variable-delays.gif: 1 s, 1 s, ten of 100 ms, 1 s. Positions 0.5, 1.5, 2.5 and 3.5 s.
+        var delays = Delays([1000, 1000, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 1000]);
+
+        Assert.Equal([0, 1, 7, 12], FramePositions.ForAnimation(delays, Options));
+    }
+
+    [Fact]
+    public void ForAnimation_LongFrameCoveringSeveralPositions_IsPickedOnce()
+    {
+        // 3.5 s, positions at 0.44, 1.31, 2.19 and 3.06 s: the first three all fall in frame 0.
+        var delays = Delays([3000, 100, 100, 100, 100, 100]);
+
+        Assert.Equal([0, 1], FramePositions.ForAnimation(delays, Options));
+    }
+
+    [Fact]
+    public void ForAnimation_FewerFramesThanTheMinimum_UsesEveryFrame()
+    {
+        Assert.Equal([0, 1, 2], FramePositions.ForAnimation(Delays([200, 200, 200]), Options));
+    }
+
+    [Fact]
+    public void ForAnimation_NoDelays_SpreadsByFrameIndex()
+    {
+        Assert.Equal([1, 3, 5, 7], FramePositions.ForAnimation(Delays([0, 0, 0, 0, 0, 0, 0, 0]), Options));
+    }
+
+    [Fact]
+    public void ForAnimation_NoFrameInfo_TakesTheFirstFrame()
+    {
+        Assert.Equal([0], FramePositions.ForAnimation([], Options));
+    }
+
+    [Fact]
+    public void StartOf_IsTheSumOfTheEarlierDelays()
+    {
+        var delays = Delays([1000, 1000, 100, 100, 100, 100, 100]);
+
+        Assert.Equal(TimeSpan.Zero, FramePositions.StartOf(delays, 0));
+        Assert.Equal(TimeSpan.FromMilliseconds(2500), FramePositions.StartOf(delays, 7));
+    }
+
+    private static TimeSpan[] Delays(int[] milliseconds) => [.. milliseconds.Select(value => TimeSpan.FromMilliseconds(value))];
 }

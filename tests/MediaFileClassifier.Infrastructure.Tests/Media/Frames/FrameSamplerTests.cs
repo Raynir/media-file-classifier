@@ -1,6 +1,9 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
+using MediaFileClassifier.Infrastructure.Hashing;
 using MediaFileClassifier.Infrastructure.Media.Frames;
 using MediaFileClassifier.Testing.Media;
 using Microsoft.Extensions.DependencyInjection;
@@ -89,6 +92,73 @@ public sealed class FrameSamplerTests
     }
 
     [Fact]
+    public async Task SampleAsync_GifWithVariableDelays_IsSampledEvenlyInTime()
+    {
+        // Positions 0.5, 1.5, 2.5 and 3.5 s fall in frames 0, 1, 7 and 12; by index it would be 1, 4, 7 and 10.
+        var sample = await SampleAsync(SampleMedia.GifWithVariableDelays);
+
+        Assert.Empty(sample.Warnings);
+        Assert.Equal([0, 1, 7, 12], sample.Frames.Select(frame => frame.FrameNumber));
+        Assert.Equal(
+            [TimeSpan.Zero, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2.5), TimeSpan.FromSeconds(3)],
+            sample.Frames.Select(frame => frame.Timestamp));
+    }
+
+    [Fact]
+    public async Task SampleAsync_AnimationShorterThanTheMinimum_UsesAllItsFrames()
+    {
+        var sample = await SampleAsync(SampleMedia.GifWithThreeFrames);
+
+        Assert.Equal([0, 1, 2], sample.Frames.Select(frame => frame.FrameNumber));
+        Assert.Equal(
+            [TimeSpan.Zero, TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(400)],
+            sample.Frames.Select(frame => frame.Timestamp));
+    }
+
+    [Fact]
+    public async Task SampleAsync_AnimatedWebP_IsSampled()
+    {
+        // 6 frames of 120 ms: positions 90, 270, 450 and 630 ms fall in frames 0, 2, 3 and 5.
+        var sample = await SampleAsync(SampleMedia.AnimatedWebP);
+
+        Assert.Empty(sample.Warnings);
+        Assert.Equal([0, 2, 3, 5], sample.Frames.Select(frame => frame.FrameNumber));
+        Assert.All(sample.Frames, frame => Assert.Equal((96, 96), (frame.Width, frame.Height)));
+    }
+
+    [Fact]
+    public async Task SampleAsync_BlankFirstFrame_IsDropped()
+    {
+        var sample = await SampleAsync(SampleMedia.GifWithBlankFirstFrame);
+
+        Assert.Equal(4, sample.FramesRead);
+        Assert.DoesNotContain(0, sample.Frames.Select(frame => frame.FrameNumber));
+    }
+
+    [Fact]
+    public async Task SampleAsync_FrameHash_MatchesTheHasherOnItsPixels()
+    {
+        var sample = await SampleAsync(SampleMedia.AnimatedGif);
+
+        var hasher = new SkiaPerceptualHasher();
+        Assert.All(sample.Frames, frame => Assert.Equal(hasher.ComputeFromPixels(frame.Pixels.Span, frame.Width, frame.Height), frame.PerceptualHash));
+    }
+
+    [Fact]
+    public async Task SampleAsync_UndecodableAnimation_GivesAFailureWarning()
+    {
+        using var services = CreateServices();
+        var content = Content(SampleMedia.CorruptJpeg);
+        var format = MediaFormatDetection.Supported(
+            services.GetRequiredService<IMediaFormatRegistry>().FindByFormatId("gif")!, MediaType.AnimatedImage, []);
+
+        var sample = await services.GetRequiredService<IFrameSampler>().SampleAsync(content, format, Metadata(content), FrameSamplingOptions.Default, Token);
+
+        Assert.Empty(sample.Frames);
+        Assert.Equal(FrameSamplingWarnings.FrameSamplingFailed, Assert.Single(sample.Warnings).Code);
+    }
+
+    [Fact]
     public async Task SampleAsync_StillImage_Throws()
     {
         using var services = CreateServices();
@@ -137,6 +207,9 @@ public sealed class FrameSamplerTests
         var (format, metadata) = await InspectAsync(services, content, Path.GetFileName(path));
         return await services.GetRequiredService<IFrameSampler>().SampleAsync(content, format, metadata, options ?? FrameSamplingOptions.Default, Token);
     }
+
+    private static TechnicalMetadata Metadata(Abstractions.Metadata.MediaContent content) =>
+        new() { ItemId = content.ItemId, ExtractedAt = Modified };
 
     private static IEnumerable<byte> Alphas(SampledFrame frame)
     {

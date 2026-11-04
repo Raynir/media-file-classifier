@@ -47,7 +47,7 @@ internal static class ThumbnailEncoder
     /// more than twice the target, so large reductions don't alias, then takes the last step with a Mitchell cubic.
     /// </summary>
     /// <returns>The scaled picture, or <see langword="null"/> when the picture already fits.</returns>
-    private static SKBitmap? ScaleDown(SKBitmap source, int longestEdge)
+    internal static SKBitmap? ScaleDown(SKBitmap source, int longestEdge)
     {
         if (Math.Max(source.Width, source.Height) <= longestEdge)
         {

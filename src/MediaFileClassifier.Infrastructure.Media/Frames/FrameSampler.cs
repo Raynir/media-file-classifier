@@ -14,8 +14,9 @@ using SkiaSharp;
 namespace MediaFileClassifier.Infrastructure.Media.Frames;
 
 /// <summary>
-/// Samples the keyframes of videos (E06-S02-T02). Video frames come from FFmpeg, one exact seek per position, so the
-/// cost doesn't grow with the duration. Without FFmpeg a video gets no frames and
+/// Samples the keyframes of videos and animated images (E06-S02-T02, T03). Video frames come from FFmpeg, one exact
+/// seek per position, so the cost doesn't grow with the duration; GIF and WebP frames are decoded with SkiaSharp and
+/// sampled by display time. Without FFmpeg a video gets no frames and
 /// <see cref="FrameSamplingWarnings.FrameSamplingFfmpegUnavailable"/>.
 /// </summary>
 /// <param name="capabilities">Tells whether FFmpeg was found at startup.</param>
@@ -47,6 +48,7 @@ public sealed partial class FrameSampler(
             return format.MediaType switch
             {
                 MediaType.Video => await SampleVideoAsync(content, metadata, options, cancellationToken).ConfigureAwait(false),
+                MediaType.AnimatedImage => await SampleAnimationAsync(content, metadata, options, cancellationToken).ConfigureAwait(false),
                 _ => throw new ArgumentException($"Frames are sampled from videos and animated images, not {format.MediaType}.", nameof(format)),
             };
         }
@@ -94,6 +96,36 @@ public sealed partial class FrameSampler(
         if (selector.Offered == 0)
         {
             return FrameSample.Failed(new(FrameSamplingWarnings.FrameSamplingFailed, lastError?.Message ?? "FFmpeg read no frame."));
+        }
+
+        return Result(selector);
+    }
+
+    private async Task<FrameSample> SampleAnimationAsync(MediaContent content, TechnicalMetadata metadata, FrameSamplingOptions options, CancellationToken cancellationToken)
+    {
+        using var data = await SkiaDecoding.ReadAsync(content, cancellationToken).ConfigureAwait(false);
+        using var codec = SkiaDecoding.OpenCodec(data);
+        var frames = codec.FrameInfo;
+        var delays = frames.Select(frame => TimeSpan.FromMilliseconds(frame.Duration)).ToArray();
+        var picks = FramePositions.ForAnimation(delays, options);
+        var selector = new FrameSelector<Candidate>(options);
+
+        // Frames build on earlier ones, so they are decoded in order onto one canvas, as they are shown.
+        using var canvas = new SKBitmap(SkiaDecoding.TargetInfo(codec.Info.Size));
+        var next = 0;
+        for (var frame = 0; frame <= picks[^1]; frame++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            AnimatedImageThumbnailer.DecodeFrame(codec, canvas, frame, frames.Length == 0 ? -1 : frames[frame].RequiredFrame);
+            if (frame != picks[next])
+            {
+                continue;
+            }
+
+            next++;
+            using var upright = OrientationTransform.Apply(canvas.Copy(), metadata.Orientation);
+            using var scaled = ThumbnailEncoder.ScaleDown(upright, options.MaxLongestEdge);
+            Offer(selector, scaled ?? upright, FramePositions.StartOf(delays, frame), frame);
         }
 
         return Result(selector);

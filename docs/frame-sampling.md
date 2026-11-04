@@ -7,6 +7,7 @@ How the app picks the keyframes of videos and animated images for analysis (E06-
 - **Count:** one position per 5 seconds of the duration, rounded down, at least 4 and at most 16. A 20-second clip gets 4, a 50-second clip 10, and anything from 80 seconds up 16.
 - **Where:** the midpoints of equal slices of the duration, so a fade at the very start or end isn't hit. A 20-second clip is read at 2.5, 7.5, 12.5 and 17.5 seconds.
 - **Unknown duration:** only the first frame.
+- **Animated images** are sampled by display time, not by frame index, because frame delays vary: each position takes the frame shown at that moment, and a frame covering several positions is read once. An animation with no more frames than positions uses every frame. If the delays add up to nothing, every frame counts as equally long.
 
 `FrameSamplingOptions` holds these values. The analysis profile will map onto it when it exists.
 
@@ -22,6 +23,7 @@ The kept frames are indexed from 0. On the sample media, the 80-second static-ca
 ## Reading frames
 
 - **Video:** FFmpeg reads each position with its own exact seek (`-ss` before the input), turns the frame upright by the display rotation, and scales it down. Without FFmpeg, a video gets no frames and the warning `FrameSamplingFfmpegUnavailable`.
+- **GIF and WebP:** SkiaSharp decodes the frames in order onto one canvas, as they are shown, up to the last frame needed. The item's orientation is applied, as for thumbnails.
 - **Failures:** a position FFmpeg can't read is skipped. If no frame can be read, the result has no frames and the warning `FrameSamplingFailed` with the error. Only a still image, or invalid options, throws.
 
 Measured on an i7-14700HX for 16 frames:

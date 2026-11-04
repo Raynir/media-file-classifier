@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Navigation"
+             xmlns:nav="using:MediaFileClassifier.Ui.Navigation"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Navigation.NavigationPanelView"
+             x:DataType="vm:NavigationPanelViewModel"
+             DragDrop.AllowDrop="True">
+  <!-- Provisional navigation panel (D095), after Figma 25:133 and the collapsed rail 30:3094. E13-S02-T00 designs the real one. -->
+  <UserControl.Styles>
+    <Style Selector="TreeViewItem" x:DataType="nav:NavigationNode">
+      <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+    </Style>
+    <Style Selector="Button.Rail">
+      <Setter Property="Width" Value="{DynamicResource Size.Control}" />
+      <Setter Property="Height" Value="{DynamicResource Size.Control}" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.Rail.Selected">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Selected}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <!-- Expanded: the sections as a tree. -->
+    <TreeView x:Name="Tree"
+              ItemsSource="{Binding Sections}"
+              SelectedItem="{Binding SelectedItem}"
+              IsVisible="{Binding !IsCollapsed}"
+              Padding="{DynamicResource Padding.StatusSegment}"
+              AutomationProperties.Name="{l:Loc Navigation_Panel}">
+      <TreeView.DataTemplates>
+        <TreeDataTemplate DataType="nav:NavigationSection" ItemsSource="{Binding Entries}">
+          <DockPanel HorizontalSpacing="{DynamicResource Space.S}">
+            <Button DockPanel.Dock="Right"
+                    Classes="Icon"
+                    IsVisible="{Binding HasAction}"
+                    Command="{Binding Action}"
+                    ToolTip.Tip="{Binding ActionLabel}"
+                    AutomationProperties.Name="{Binding ActionLabel}">
+              <PathIcon Classes="Small" Data="{Binding ActionIcon}" />
+            </Button>
+            <TextBlock Classes="Caption" Text="{Binding Title}" VerticalAlignment="Center" />
+          </DockPanel>
+        </TreeDataTemplate>
+        <TreeDataTemplate DataType="nav:NavigationEntry" ItemsSource="{Binding Children}">
+          <DockPanel HorizontalSpacing="{DynamicResource Space.S}" ToolTip.Tip="{Binding ToolTip}">
+            <PathIcon DockPanel.Dock="Left" Classes="Small" Data="{Binding Icon}" />
+            <TextBlock DockPanel.Dock="Right" Classes="Tertiary" Text="{Binding CountText}" VerticalAlignment="Center" />
+            <PathIcon DockPanel.Dock="Right"
+                      Classes="Small"
+                      Data="{StaticResource Icon.Status.Offline}"
+                      IsVisible="{Binding IsOffline}"
+                      AutomationProperties.Name="{l:Loc Folders_State_Offline}" />
+            <TextBlock Text="{Binding Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          </DockPanel>
+        </TreeDataTemplate>
+      </TreeView.DataTemplates>
+    </TreeView>
+
+    <!-- Collapsed: the 66px icon rail (D108), one icon per top-level entry, a divider between sections. -->
+    <ScrollViewer IsVisible="{Binding IsCollapsed}">
+      <ItemsControl ItemsSource="{Binding Sections}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="nav:NavigationSection">
+            <Border BorderBrush="{DynamicResource Brush.Border.Divider}" BorderThickness="0,0,0,1" Padding="{DynamicResource Padding.Compact}">
+              <ItemsControl ItemsSource="{Binding Entries}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Spacing="{DynamicResource Space.XS}" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="nav:NavigationEntry">
+                    <Button Classes="Icon Rail"
+                            Classes.Selected="{Binding IsSelected}"
+                            Command="{Binding $parent[UserControl].((vm:NavigationPanelViewModel)DataContext).SelectCommand}"
+                            CommandParameter="{Binding}"
+                            ToolTip.Tip="{Binding ToolTip}"
+                            AutomationProperties.Name="{Binding Label}">
+                      <Panel>
+                        <PathIcon Data="{Binding Icon}" />
+                        <PathIcon Classes="Small"
+                                  Data="{StaticResource Icon.Status.Offline}"
+                                  IsVisible="{Binding IsOffline}"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Bottom" />
+                      </Panel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Panel>
+</UserControl>

@@ -2,6 +2,7 @@ using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Navigation;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.Settings;
@@ -12,10 +13,12 @@ using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
+using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
 using MediaFileClassifier.Ui.Views.Browser;
 using MediaFileClassifier.Ui.Views.Libraries;
+using MediaFileClassifier.Ui.Views.Navigation;
 using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Settings;
@@ -41,7 +44,9 @@ public static class UiModule
             .Register<QuitConfirmationViewModel, QuitConfirmationView>()
             .Register<WelcomeViewModel, WelcomeView>()
             .Register<CreateLibraryViewModel, CreateLibraryView>()
-            .Register<ThumbnailGridViewModel, ThumbnailGridView>());
+            .Register<ThumbnailGridViewModel, ThumbnailGridView>()
+            .Register<IndexedFoldersViewModel, IndexedFoldersView>()
+            .Register<NavigationPanelViewModel, NavigationPanelView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -66,7 +71,14 @@ public static class UiModule
         // Libraries (E02).
         services.AddTransient<CreateLibraryViewModel>();
         services.AddSingleton<Func<CreateLibraryViewModel>>(provider => provider.GetRequiredService<CreateLibraryViewModel>);
+        services.AddTransient<IndexedFoldersViewModel>();
+        services.AddSingleton<Func<IndexedFoldersViewModel>>(provider => provider.GetRequiredService<IndexedFoldersViewModel>);
         services.AddSingleton<LibraryDialogs>();
+
+        // Navigation panel (E13-S02). Features add sections through INavigationContributor.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<INavigationContributor, LibraryNavigation>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<INavigationContributor, FolderNavigation>());
+        services.AddSingleton<NavigationPanelViewModel>();
         services.AddSingleton<LibraryOpener>();
         services.AddSingleton<WelcomeViewModel>();
         services.AddSingleton<LibraryShell>();

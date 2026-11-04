@@ -84,6 +84,21 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItem>> GetByStatusAsync(MediaItemStatus status, Id<IndexedFolder>? folderId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets every item of a folder, whatever its status, e.g. to apply changed folder rules (E02-S03-T03).
+    /// </summary>
+    /// <param name="folderId">The folder.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The items, in ID order.</returns>
+    Task<IReadOnlyList<MediaItem>> GetByFolderAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the items of each folder by status (E02-S03-T06). Folders without items aren't listed.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>One count per folder and status.</returns>
+    Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the exact duplicate candidates: groups of items that share a full content hash (E03-S07-T06). Duplicate
     /// review and resolution build on them (E12).
     /// </summary>
@@ -119,7 +134,7 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(int offset, int limit, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets item IDs in the newest-first order of <see cref="GetSummariesAsync"/>, without loading the items
+    /// Gets item IDs in the newest-first order of <see cref="GetSummariesAsync(int, int, CancellationToken)"/>, without loading the items
     /// (E14-S03): for range selection and for resolving Select all.
     /// </summary>
     /// <param name="offset">Number of IDs to skip, counted from <paramref name="newest"/> when it's given.</param>
@@ -148,7 +163,7 @@ public interface IMediaItemRepository
 
     /// <summary>
     /// Counts the items added after an item, which is its position in the newest-first order of
-    /// <see cref="GetSummariesAsync"/>. It still works after the item was deleted.
+    /// <see cref="GetSummariesAsync(int, int, CancellationToken)"/>. It still works after the item was deleted.
     /// </summary>
     /// <param name="id">Item ID.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -161,6 +176,44 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of items.</returns>
     Task<int> CountAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a page of tile summaries of the items a filter shows, newest first, as <see cref="GetSummariesAsync(int, int, CancellationToken)"/>.
+    /// </summary>
+    /// <param name="filter">Which items to show (E13-S02).</param>
+    /// <param name="offset">Number of items to skip.</param>
+    /// <param name="limit">Maximum number of items to return.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The summaries.</returns>
+    Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(MediaItemFilter filter, int offset, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the items a filter shows that were added after an item: its position in
+    /// <see cref="GetSummariesAsync(MediaItemFilter, int, int, CancellationToken)"/>.
+    /// </summary>
+    /// <param name="filter">Which items to show.</param>
+    /// <param name="id">Item ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of newer items.</returns>
+    Task<int> CountNewerAsync(MediaItemFilter filter, Id<MediaItem> id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the items a filter shows.
+    /// </summary>
+    /// <param name="filter">Which items to show.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of items.</returns>
+    Task<int> CountAsync(MediaItemFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the subfolders of a folder's subfolder that hold items, from the items' paths, with the number of items
+    /// in each, the ones inside it included (E13-S02-T03). Excluded items don't count.
+    /// </summary>
+    /// <param name="folderId">The indexed folder.</param>
+    /// <param name="subfolder">The subfolder whose subfolders to list, with <c>/</c> separators; empty for the folder itself.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The subfolders' names and item counts, by name.</returns>
+    Task<IReadOnlyList<(string Name, int Count)>> GetSubfoldersAsync(Id<IndexedFolder> folderId, string subfolder, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds an item.
@@ -188,6 +241,14 @@ public interface IMediaItemRepository
     Task UpdateAsync(MediaItem item, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Stores the changes made to many items, in batches like <see cref="AddRangeAsync"/>.
+    /// </summary>
+    /// <param name="items">The changed items.</param>
+    /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>
+    /// <returns>A task that completes when every change is stored.</returns>
+    Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Stores the changes made to an item together with its technical metadata, in one transaction, replacing any
     /// metadata stored before.
     /// </summary>
@@ -205,4 +266,14 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><c>true</c> if the item existed.</returns>
     Task<bool> DeleteAsync(Id<MediaItem> id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes up to <paramref name="limit"/> items of a folder, as <see cref="DeleteAsync"/> does, in one short write.
+    /// Removing a folder calls it until nothing is left (E02-S03-T04).
+    /// </summary>
+    /// <param name="folderId">The folder.</param>
+    /// <param name="limit">The most items to delete.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The deleted items, so the caller can delete their thumbnails; empty when the folder has none left.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default);
 }

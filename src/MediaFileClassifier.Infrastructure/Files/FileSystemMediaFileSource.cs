@@ -148,6 +148,54 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
         return Task.FromResult(info.Exists ? ToStat(file.Folder, info) : null);
     }
 
+    /// <inheritdoc />
+    public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+
+        // Reading the first entry is enough to know the folder can be listed; a disconnected share can take a while.
+        return Task.Run(
+            () =>
+            {
+                try
+                {
+                    var root = LocalFolder.GetFullPath(folder, string.Empty);
+                    using var entries = Directory.EnumerateFileSystemEntries(root).GetEnumerator();
+                    entries.MoveNext();
+                    return true;
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+                {
+                    return false;
+                }
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public string? GetPathInside(FolderHandle folder, FolderHandle parent)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        ArgumentNullException.ThrowIfNull(parent);
+
+        if (!Path.IsPathFullyQualified(folder.Id) || !Path.IsPathFullyQualified(parent.Id))
+        {
+            return null;
+        }
+
+        var relative = Path.GetRelativePath(
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(parent.Id)),
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder.Id)));
+        if (relative == ".")
+        {
+            return string.Empty;
+        }
+
+        // Outside the parent, or on another drive (an absolute path comes back).
+        var segments = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return Path.IsPathRooted(relative) || segments[0] == ".." ? null : string.Join('/', segments);
+    }
+
     private static MediaFileStat ToStat(FolderHandle folder, FileInfo file)
         => new(LocalFolder.GetRelativePath(folder, file.FullName), file.Length, new DateTimeOffset(file.LastWriteTimeUtc, TimeSpan.Zero))
         {

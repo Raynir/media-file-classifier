@@ -47,6 +47,25 @@ public sealed class LayoutStoreTests
     }
 
     [Fact]
+    public void CollapsedNavigationSections_AreSavedRestoredAndReset()
+    {
+        using (var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance))
+        {
+            layout.SetNavigationSectionCollapsed("folders", collapsed: true);
+            layout.SetNavigationSectionCollapsed("library", collapsed: true);
+            layout.SetNavigationSectionCollapsed("library", collapsed: false);
+            store.Flush();
+        }
+
+        var restored = new ShellLayout();
+        using var again = new LayoutStore(settings, restored, time, NullLogger<LayoutStore>.Instance);
+
+        Assert.Equal(["folders"], restored.CollapsedNavigationSections);
+        restored.Reset();
+        Assert.Empty(restored.CollapsedNavigationSections);
+    }
+
+    [Fact]
     public void Constructor_IgnoresASavedLayoutWithAPanelMissing()
     {
         settings.Save(new AppSettings { MainWindowLayout = new MainWindowLayout(new PanelLayout(true, true, 300), null!) });

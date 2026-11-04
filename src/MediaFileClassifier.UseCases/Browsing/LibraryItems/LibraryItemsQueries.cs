@@ -9,20 +9,23 @@ namespace MediaFileClassifier.UseCases.Browsing.LibraryItems;
 /// <summary>
 /// Counts the items of the open library (E14-S01-T02). 0 when no library is open.
 /// </summary>
-public sealed record CountLibraryItemsQuery : IRequest<int>;
+/// <param name="Filter">The items to count (E13-S02), or <c>null</c> for every item, the Excluded ones too.</param>
+public sealed record CountLibraryItemsQuery(MediaItemFilter? Filter = null) : IRequest<int>;
 
 /// <summary>
 /// Gets a page of the open library's items, newest first (E14-S01-T02). Empty when no library is open.
 /// </summary>
 /// <param name="Offset">Position of the first item.</param>
 /// <param name="Limit">Maximum number of items.</param>
-public sealed record GetLibraryItemsPageQuery(int Offset, int Limit) : IRequest<IReadOnlyList<MediaItemSummary>>;
+/// <param name="Filter">The items to show (E13-S02), or <c>null</c> for every item, the Excluded ones too.</param>
+public sealed record GetLibraryItemsPageQuery(int Offset, int Limit, MediaItemFilter? Filter = null) : IRequest<IReadOnlyList<MediaItemSummary>>;
 
 /// <summary>
 /// Finds an item's position in the newest-first order of <see cref="GetLibraryItemsPageQuery"/>.
 /// </summary>
 /// <param name="ItemId">The item.</param>
-public sealed record GetLibraryItemPositionQuery(Id<MediaItem> ItemId) : IRequest<int>;
+/// <param name="Filter">The items shown, or <c>null</c> for every item.</param>
+public sealed record GetLibraryItemPositionQuery(Id<MediaItem> ItemId, MediaItemFilter? Filter = null) : IRequest<int>;
 
 /// <summary>
 /// Gets result IDs, newest first, without loading the items (E14-S03).
@@ -51,17 +54,21 @@ public sealed class LibraryItemsQueryHandlers(ILibrarySession session)
 {
     /// <inheritdoc />
     public Task<int> Handle(CountLibraryItemsQuery request, CancellationToken cancellationToken) =>
-        session.Current is { } library ? library.Items.CountAsync(cancellationToken) : Task.FromResult(0);
+        session.Current is not { } library ? Task.FromResult(0)
+            : request.Filter is { } filter ? library.Items.CountAsync(filter, cancellationToken)
+            : library.Items.CountAsync(cancellationToken);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<MediaItemSummary>> Handle(GetLibraryItemsPageQuery request, CancellationToken cancellationToken) =>
-        session.Current is { } library
-            ? library.Items.GetSummariesAsync(request.Offset, request.Limit, cancellationToken)
-            : Task.FromResult<IReadOnlyList<MediaItemSummary>>([]);
+        session.Current is not { } library ? Task.FromResult<IReadOnlyList<MediaItemSummary>>([])
+            : request.Filter is { } filter ? library.Items.GetSummariesAsync(filter, request.Offset, request.Limit, cancellationToken)
+            : library.Items.GetSummariesAsync(request.Offset, request.Limit, cancellationToken);
 
     /// <inheritdoc />
     public Task<int> Handle(GetLibraryItemPositionQuery request, CancellationToken cancellationToken) =>
-        session.Current is { } library ? library.Items.CountNewerAsync(request.ItemId, cancellationToken) : Task.FromResult(0);
+        session.Current is not { } library ? Task.FromResult(0)
+            : request.Filter is { } filter ? library.Items.CountNewerAsync(filter, request.ItemId, cancellationToken)
+            : library.Items.CountNewerAsync(request.ItemId, cancellationToken);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<Id<MediaItem>>> Handle(GetLibraryItemIdsQuery request, CancellationToken cancellationToken) =>

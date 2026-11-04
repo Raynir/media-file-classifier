@@ -1,3 +1,4 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Testing.Settings;
@@ -31,6 +32,7 @@ public sealed class OpenLibraryTests : IDisposable
             .AddSingleton<ISettingsService>(settings)
             .AddSingleton<ILibraryLocations>(locations)
             .AddSingleton<ISettingsStore>(settingValues)
+            .AddSingleton<IMediaFileSource>(new FakeFolderSource())
             .BuildServiceProvider();
     }
 

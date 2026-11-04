@@ -38,4 +38,24 @@ public interface IFolderRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when the changes are stored.</returns>
     Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Merges a folder into a parent folder that contains it (E02-S03-T02), in one transaction: the child's items move
+    /// to the parent with their paths prefixed by <paramref name="relativePath"/>, keeping their IDs and metadata, the
+    /// parent's changes are stored, and the child is deleted.
+    /// </summary>
+    /// <param name="parent">The parent, already stored, with any changed rules.</param>
+    /// <param name="childId">The folder inside it.</param>
+    /// <param name="relativePath">The child's path relative to the parent, with <c>/</c> separators.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of items moved.</returns>
+    Task<int> MergeIntoAsync(IndexedFolder parent, Id<IndexedFolder> childId, string relativePath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a folder that has no items left (E02-S03-T04).
+    /// </summary>
+    /// <param name="id">Folder ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><c>true</c> if the folder existed.</returns>
+    Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default);
 }

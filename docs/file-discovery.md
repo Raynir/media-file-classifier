@@ -6,7 +6,7 @@ How the app finds the media in an indexed folder (E03-S02). The service is `IFol
 
 `DiscoverAsync(library, folder)` walks the folder through `IMediaFileSource.ScanAsync`, so the same code serves desktop paths and Android SAF folders. For each file it decides, in this order, without reading the file until the last step:
 
-1. **Folder rules.** Hidden and system files and folders are skipped unless `FolderRules.IncludeHidden` is on. Subfolders are skipped when `IncludeSubfolders` is off. Include and exclude patterns are matched by `FolderRuleMatcher`; an excluded subfolder is pruned without being listed. The pattern syntax is described on `FolderRules`.
+1. **Folder rules.** Hidden and system files and folders are skipped unless `FolderRules.IncludeHidden` is on. Subfolders are skipped when `IncludeSubfolders` is off. Include and exclude patterns are matched by `FolderRuleMatcher` (in `Domain/Libraries`, so the use cases apply the same rules to stored items); an excluded subfolder is pruned without being listed. The pattern syntax is described on `FolderRules`; a leading `/` anchors a pattern at the folder root, which is how excluded subfolders are stored (`docs/indexed-folders.md`).
 2. **Extension.** Only files with a registered extension go on (`IMediaFormatRegistry.IsCandidate`).
 3. **Already in the library.** The folder's items are loaded once per scan as path, size and modification time (`IMediaItemRepository.GetFileStatesAsync`). A file at a known path is never read: it counts as *unchanged* when size and time match to the stored millisecond, and as *changed* otherwise. Updating changed files is the rescan's job (E02-S04).
 4. **Cloud placeholders.** A file whose content isn't stored locally (see below) is skipped and counted, unless `FolderRules.IncludeCloudPlaceholders` is on.
@@ -19,7 +19,7 @@ New files become `MediaItem`s with status Discovered. The quick fingerprint isn'
 - **Links:** symbolic links and junctions to folders are never followed, so a link loop can't happen. Each one is logged and listed in `DiscoveryResult.SkippedLinks`. Cloud-sync folders such as OneDrive are reparse points too; only reparse points with a link target are skipped. Links to files are read like files.
 - **Unreadable folders:** a folder that can't be listed (permission denied, or deleted during the scan) is logged as a warning, listed in `DiscoveryResult.UnreadableFolders`, and the scan goes on.
 - **Unreadable files:** a file that can't be opened (locked, deleted since it was listed) is logged and counted in `UnreadableFiles`.
-- **Missing folder:** if the folder itself doesn't exist, `DiscoverAsync` throws `DirectoryNotFoundException`, so the caller can mark it offline.
+- **Missing folder:** if the folder itself doesn't exist, `DiscoverAsync` throws `DirectoryNotFoundException`, so the caller can mark it offline. Imports check the folder first (`docs/indexed-folders.md`).
 
 ## Registration and progress
 

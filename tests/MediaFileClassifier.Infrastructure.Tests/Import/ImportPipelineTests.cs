@@ -216,14 +216,13 @@ public sealed class ImportPipelineTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Import_MissingFolder_MarksTheFolderOfflineAndFailsTheJob()
+    public async Task Import_MissingFolder_MarksTheFolderOfflineAndQueuesNothing()
     {
         Directory.Delete(bed.Root, recursive: true);
 
-        var jobId = await bed.ImportAsync();
-        await bed.WaitUntilIdleAsync();
+        var started = await bed.Sender.Send(new UseCases.Import.ImportFolders.ImportFoldersCommand([bed.Folder.Id]), Token);
 
-        Assert.Equal(ProcessingJobState.Failed, (await bed.Library.Jobs.GetJobAsync(jobId, Token))!.State);
+        Assert.Empty(started);
         Assert.Equal(Domain.Libraries.FolderStatus.Offline, (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.Status);
     }
 

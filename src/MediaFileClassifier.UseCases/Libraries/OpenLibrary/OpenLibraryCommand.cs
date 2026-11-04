@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -7,7 +8,8 @@ namespace MediaFileClassifier.UseCases.Libraries.OpenLibrary;
 
 /// <summary>
 /// Opens a library: checks the folder, takes the lock, migrates an older schema after a backup, makes it the open
-/// library and puts it first in the recent list (E02-S02-T01).
+/// library and puts it first in the recent list (E02-S02-T01). Then its folders are checked, so the unreachable ones
+/// show as Offline (E02-S03-T05).
 /// </summary>
 /// <param name="LibraryDirectory">The <c>&lt;name&gt;.mfc</c> folder.</param>
 /// <param name="Progress">Told when a migration starts, or <c>null</c>.</param>
@@ -35,12 +37,14 @@ public sealed record OpenLibraryResult(string LibraryDirectory, LibraryOpenError
 /// <param name="settings">App settings, with the recent-libraries list.</param>
 /// <param name="timeProvider">The clock.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="sender">Checks the folders, or <c>null</c> to skip that.</param>
 public sealed class OpenLibraryCommandHandler(
     ILibraryStore store,
     ILibrarySession session,
     ISettingsService settings,
     TimeProvider timeProvider,
-    ILogger<OpenLibraryCommandHandler> logger) : IRequestHandler<OpenLibraryCommand, OpenLibraryResult>
+    ILogger<OpenLibraryCommandHandler> logger,
+    ISender? sender = null) : IRequestHandler<OpenLibraryCommand, OpenLibraryResult>
 {
     /// <inheritdoc />
     public async Task<OpenLibraryResult> Handle(OpenLibraryCommand request, CancellationToken cancellationToken)
@@ -77,6 +81,18 @@ public sealed class OpenLibraryCommandHandler(
         {
             // The library is open; only the recent list misses it.
             logger.LogWarning(ex, "Couldn't add library {Library} to the recent libraries", library.Layout.RootDirectory);
+        }
+
+        if (sender is not null)
+        {
+            try
+            {
+                await sender.Send(new CheckFolderAvailabilityCommand(), cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning(ex, "Couldn't check the folders of {Library}", library.Layout.RootDirectory);
+            }
         }
 
         return new OpenLibraryResult(library.Layout.RootDirectory, Error: null);

@@ -44,6 +44,9 @@
         <TextBlock Classes="Title" Text="{l:Loc CreateLibrary_FoldersTitle}" />
         <TextBlock Classes="Secondary" Text="{l:Loc CreateLibrary_FoldersHint}" TextWrapping="Wrap" />
         <Button Content="{l:Loc CreateLibrary_AddFolder}" Command="{Binding AddFolderCommand}" />
+        <TextBlock Text="{Binding FolderMessage}"
+                   TextWrapping="Wrap"
+                   IsVisible="{Binding FolderMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
       <ScrollViewer Margin="{DynamicResource Padding.Compact}">
         <ItemsControl ItemsSource="{Binding Folders}">

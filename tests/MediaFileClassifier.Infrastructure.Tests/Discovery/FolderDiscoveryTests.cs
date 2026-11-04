@@ -326,6 +326,11 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
 
         public Task<MediaFileStat?> GetStatAsync(FileLocation file, CancellationToken cancellationToken = default) =>
             inner.GetStatAsync(file, cancellationToken);
+
+        public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) =>
+            inner.IsAvailableAsync(folder, cancellationToken);
+
+        public string? GetPathInside(FolderHandle folder, FolderHandle parent) => inner.GetPathInside(folder, parent);
     }
 
     /// <summary>

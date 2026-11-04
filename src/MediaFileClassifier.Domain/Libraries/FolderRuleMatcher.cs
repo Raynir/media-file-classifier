@@ -1,6 +1,4 @@
-using MediaFileClassifier.Domain.Libraries;
-
-namespace MediaFileClassifier.Infrastructure.Discovery;
+namespace MediaFileClassifier.Domain.Libraries;
 
 /// <summary>
 /// Applies the include and exclude patterns of <see cref="FolderRules"/> to relative paths, with the glob syntax
@@ -50,13 +48,14 @@ public sealed class FolderRuleMatcher
 
     private static string[]? Compile(string pattern)
     {
-        var segments = Split(pattern.Trim());
+        var trimmed = pattern.Trim().Replace('\\', '/');
+        var segments = Split(trimmed);
 
-        // A bare name matches at any depth; a pattern with a separator matches from the root.
+        // A bare name matches at any depth; a pattern with a separator, a leading one included, matches from the root.
         return segments.Length switch
         {
             0 => null,
-            1 => ["**", .. segments],
+            1 when !trimmed.StartsWith('/') => ["**", .. segments],
             _ => segments,
         };
     }

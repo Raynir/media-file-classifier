@@ -131,6 +131,11 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     public event EventHandler<double>? ScrollRequested;
 
     /// <summary>
+    /// Raised when the grid should take keyboard focus, e.g. Esc in the details panel (E14-S05).
+    /// </summary>
+    public event EventHandler? FocusRequested;
+
+    /// <summary>
     /// Gets the rows.
     /// </summary>
     public ThumbnailRowList Rows { get; }
@@ -360,6 +365,15 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// </summary>
     /// <returns>A task that completes when the selection changed.</returns>
     public Task SelectAllAsync() => selection.SelectAllAsync();
+
+    /// <summary>
+    /// Asks the view to give the grid keyboard focus, showing the focused tile.
+    /// </summary>
+    public void RequestFocus()
+    {
+        IsFocusVisible = true;
+        FocusRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     /// <summary>
     /// Deselects everything.

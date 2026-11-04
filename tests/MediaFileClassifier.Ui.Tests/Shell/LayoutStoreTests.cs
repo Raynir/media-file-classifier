@@ -66,6 +66,29 @@ public sealed class LayoutStoreTests
     }
 
     [Fact]
+    public void DetailsSections_AreSavedRestoredClampedAndReset()
+    {
+        using (var store = new LayoutStore(settings, layout, time, NullLogger<LayoutStore>.Instance))
+        {
+            layout.DetailsPreviewHeight = 420;
+            layout.IsDetailsPreviewCollapsed = true;
+            layout.DetailsTab = DetailsTab.Technical;
+            store.Flush();
+        }
+
+        var restored = new ShellLayout();
+        using (new LayoutStore(settings, restored, time, NullLogger<LayoutStore>.Instance))
+        {
+            Assert.Equal((420d, true, DetailsTab.Technical), (restored.DetailsPreviewHeight, restored.IsDetailsPreviewCollapsed, restored.DetailsTab));
+            restored.Reset();
+            Assert.Equal((ShellLayout.DefaultPreviewHeight, false, DetailsTab.Overview), (restored.DetailsPreviewHeight, restored.IsDetailsPreviewCollapsed, restored.DetailsTab));
+        }
+
+        restored.Apply(restored.ToSettings() with { DetailsSections = new DetailsPanelSections(5, false, "unknown") });
+        Assert.Equal((ShellLayout.MinPreviewHeight, DetailsTab.Overview), (restored.DetailsPreviewHeight, restored.DetailsTab));
+    }
+
+    [Fact]
     public void Constructor_IgnoresASavedLayoutWithAPanelMissing()
     {
         settings.Save(new AppSettings { MainWindowLayout = new MainWindowLayout(new PanelLayout(true, true, 300), null!) });

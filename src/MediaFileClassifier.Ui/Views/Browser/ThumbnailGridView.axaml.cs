@@ -43,12 +43,14 @@ public partial class ThumbnailGridView : UserControl
         if (viewModel is not null)
         {
             viewModel.ScrollRequested -= OnScrollRequested;
+            viewModel.FocusRequested -= OnFocusRequested;
         }
 
         viewModel = DataContext as ThumbnailGridViewModel;
         if (viewModel is not null)
         {
             viewModel.ScrollRequested += OnScrollRequested;
+            viewModel.FocusRequested += OnFocusRequested;
             ReportViewport();
         }
     }
@@ -59,6 +61,8 @@ public partial class ThumbnailGridView : UserControl
         base.OnAttachedToVisualTree(e);
         ReportViewport();
     }
+
+    private void OnFocusRequested(object? sender, EventArgs e) => Scroller.Focus(NavigationMethod.Tab);
 
     private static ThumbnailTileViewModel? TileOf(object? source) =>
         (source as StyledElement)?.DataContext as ThumbnailTileViewModel;

@@ -122,6 +122,7 @@ public static class UiModule
         // Toolbar (E13-S03). Features fill its slots and add actions through IToolbarContributor.
         services.AddSingleton<ToolbarViewModel>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, BrowserToolbar>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, LibraryToolbar>());
 
         // Processing indicator (E05-S02).
         services.AddSingleton<ProgressFeed>();

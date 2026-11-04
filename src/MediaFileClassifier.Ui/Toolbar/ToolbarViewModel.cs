@@ -1,4 +1,6 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.ViewModels;
 
 namespace MediaFileClassifier.Ui.Toolbar;
@@ -12,12 +14,15 @@ namespace MediaFileClassifier.Ui.Toolbar;
 /// </summary>
 public sealed partial class ToolbarViewModel : ViewModelBase
 {
+    private readonly ObservableCollection<ToolbarAction> actions = [];
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ToolbarViewModel"/> class and collects the contributions.
     /// </summary>
     /// <param name="contributors">The features that fill slots and add actions.</param>
     public ToolbarViewModel(IEnumerable<IToolbarContributor> contributors)
     {
+        Actions = new ReadOnlyObservableCollection<ToolbarAction>(actions);
         foreach (var contributor in contributors)
         {
             contributor.Register(this);
@@ -49,4 +54,30 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     public partial ViewModelBase? View { get; set; }
+
+    /// <summary>
+    /// Gets the action buttons after the slots, left to right.
+    /// </summary>
+    public ReadOnlyObservableCollection<ToolbarAction> Actions { get; }
+
+    /// <summary>
+    /// Adds an action button that runs a command. A command the platform doesn't support
+    /// (<see cref="AppCommand.IsVisible"/> is <see langword="false"/>) gets no button.
+    /// </summary>
+    /// <param name="command">The command.</param>
+    /// <param name="order">Position among the actions, left to right in ascending order.</param>
+    /// <param name="priority">The lowest priority moves into the overflow menu first.</param>
+    /// <exception cref="InvalidOperationException">The command already has a button.</exception>
+    public void AddAction(AppCommand command, int order, int priority)
+    {
+        if (actions.Any(action => action.Command.Id == command.Id))
+        {
+            throw new InvalidOperationException($"The command '{command.Id}' already has a toolbar button.");
+        }
+
+        if (command.IsVisible)
+        {
+            actions.Insert(actions.Count(action => action.Order <= order), new ToolbarAction(command, order, priority));
+        }
+    }
 }

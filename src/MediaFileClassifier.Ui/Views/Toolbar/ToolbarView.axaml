@@ -10,6 +10,33 @@
     Search, Filter, Sort and View in that order at every width, then the action buttons. Each slot shows the view
     of the view model a feature puts in it. See docs/toolbar.md.
   -->
+  <UserControl.Styles>
+    <!-- Action buttons: a control-high button with an icon and a label (Figma 27:1742). -->
+    <Style Selector="Button.ToolbarAction">
+      <Setter Property="Height" Value="{DynamicResource Size.Control}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Control}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.ToolbarAction PathIcon">
+      <Setter Property="Width" Value="{DynamicResource Size.Control.Small}" />
+      <Setter Property="Height" Value="{DynamicResource Size.Control.Small}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Icon}" />
+    </Style>
+    <Style Selector="Button.ToolbarAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Hover}" />
+    </Style>
+    <Style Selector="Button.ToolbarAction:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Pressed}" />
+    </Style>
+    <Style Selector="Button.ToolbarAction:disabled">
+      <Setter Property="Opacity" Value="{DynamicResource Opacity.Disabled}" />
+    </Style>
+  </UserControl.Styles>
+
   <t:ToolbarLayoutPanel x:Name="Row" Spacing="{DynamicResource Space.M}" Margin="{DynamicResource Padding.Toolbar}">
     <ContentControl x:Name="SearchSlot"
                     t:ToolbarLayoutPanel.Role="Fill"
@@ -29,5 +56,30 @@
                     VerticalAlignment="Center"
                     IsVisible="{Binding View, Converter={x:Static ObjectConverters.IsNotNull}}"
                     Content="{Binding View}" />
+    <ItemsControl x:Name="Actions"
+                  t:ToolbarLayoutPanel.Role="Overflow"
+                  VerticalAlignment="Center"
+                  ItemsSource="{Binding Actions}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.DataTemplates>
+        <!-- An action runs its command: the label, icon, enablement and tooltip with the shortcut come from it. -->
+        <DataTemplate DataType="t:ToolbarAction">
+          <Button Classes="ToolbarAction"
+                  Command="{Binding Command}"
+                  ToolTip.Tip="{Binding Command.ToolTip}"
+                  ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="{Binding Command.PlainLabel}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+              <PathIcon Data="{Binding Command.Icon}" />
+              <TextBlock Text="{Binding Command.PlainLabel}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </DataTemplate>
+      </ItemsControl.DataTemplates>
+    </ItemsControl>
   </t:ToolbarLayoutPanel>
 </UserControl>

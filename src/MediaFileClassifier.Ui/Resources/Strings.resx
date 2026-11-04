@@ -682,6 +682,9 @@
   <data name="Setting_OpenLastLibrary_Help" xml:space="preserve">
     <value>When off, the app starts on the welcome screen.</value>
   </data>
+  <data name="Command_AddFolder" xml:space="preserve">
+    <value>_Add folder…</value>
+  </data>
   <data name="Command_ManageFolders" xml:space="preserve">
     <value>Manage _folders…</value>
   </data>

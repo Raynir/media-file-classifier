@@ -15,3 +15,13 @@ From left to right, in this order at every window width:
 
 - **Filling a slot:** a feature implements `IToolbarContributor`, registers it with `TryAddEnumerable` in its module, and in `Register` sets the slot (`toolbar.Search = ...`) to a view model. The toolbar shows the view that `ViewLocator` maps to it, so register the view there too. An empty slot takes no space, except Search, which is the free space.
 - **Layout:** `ToolbarLayoutPanel` lays the row out. Unlike a grid with auto columns, it offers the actions only the width the slots leave, so the actions move into the overflow menu instead of pushing the slots out of the window.
+
+## Actions
+
+After the slots come the action buttons. Each runs an application command (E13-S05), so its label, icon, enablement and tooltip match the menus: the tooltip gives the shortcut, e.g. "Add folder… (Ctrl+Shift+O)", or why the command can't run. A command the platform doesn't support (`AppCommand.IsVisible` false) gets no button.
+
+| Action | Command | Order | Priority | Added by |
+|--------|---------|-------|----------|----------|
+| Add folder… | `library.add-folder` (Ctrl+Shift+O): pick a folder, then the Indexed folders dialog opens with it added, as when a folder is dropped on the navigation panel | 100 | 100 | `LibraryToolbar` |
+
+- **Adding an action:** in an `IToolbarContributor`, call `toolbar.AddAction(commands[id], order, priority)`. Order places it left to right. Priority decides which actions move into the overflow menu first as the window narrows: the lowest. Analyze pending (E06-S06), Rescan (E02-S04) and Import files (E03-S05) come this way.

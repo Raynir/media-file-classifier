@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Frame sampling for videos and animated images: 4 to 16 keyframes, one per 5 seconds, at even positions (by display time for GIF and WebP), with blank frames and near duplicates dropped by perceptual hash; keyframes store their perceptual hash, and per-frame tags, OCR text and embeddings combine into item-level results (library schema version 6, E06-S02).
+
 ### Fixed
 
 - A finished job no longer stays in the progress summary and the status bar when its last work items finish at the same time (MFC-985).

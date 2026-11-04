@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Toolbar above the media browser and details panel while a library is open: slots for the search bar, filters, sort and view controls in a fixed order, with the thumbnail size slider now in the view slot; an Add folder… button (also Library › Add folder…, `Ctrl+Shift+O`) that picks a folder and opens the Indexed folders dialog with it added; and a More menu (⋯) that takes the actions that don't fit as the window narrows (E13-S03).
+
 ### Fixed
 
 - A finished job no longer stays in the progress summary and the status bar when its last work items finish at the same time (MFC-985).

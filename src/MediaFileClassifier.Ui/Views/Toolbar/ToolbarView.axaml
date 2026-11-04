@@ -8,7 +8,7 @@
   <!--
     The toolbar (E13-S03), provisional after the Figma screens (D095): one row, 30 from the sides, with the slots
     Search, Filter, Sort and View in that order at every width, then the action buttons. Each slot shows the view
-    of the view model a feature puts in it. See docs/toolbar.md.
+    of the view model a feature puts in it. Actions that don't fit move into the More menu. See docs/toolbar.md.
   -->
   <UserControl.Styles>
     <!-- Action buttons: a control-high button with an icon and a label (Figma 27:1742). -->
@@ -59,16 +59,19 @@
     <ItemsControl x:Name="Actions"
                   t:ToolbarLayoutPanel.Role="Overflow"
                   VerticalAlignment="Center"
-                  ItemsSource="{Binding Actions}">
+                  ItemsSource="{Binding Items}">
       <ItemsControl.ItemsPanel>
         <ItemsPanelTemplate>
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" />
+          <!-- Moves the actions that don't fit into the More menu (E13-S03-T03). -->
+          <t:ToolbarActionPanel Spacing="{DynamicResource Space.S}"
+                                OverflowButtonWidth="{DynamicResource Size.Control}" />
         </ItemsPanelTemplate>
       </ItemsControl.ItemsPanel>
       <ItemsControl.DataTemplates>
         <!-- An action runs its command: the label, icon, enablement and tooltip with the shortcut come from it. -->
         <DataTemplate DataType="t:ToolbarAction">
           <Button Classes="ToolbarAction"
+                  IsVisible="{Binding !IsOverflowed}"
                   Command="{Binding Command}"
                   ToolTip.Tip="{Binding Command.ToolTip}"
                   ToolTip.ShowOnDisabled="True"
@@ -77,6 +80,21 @@
               <PathIcon Data="{Binding Command.Icon}" />
               <TextBlock Text="{Binding Command.PlainLabel}" VerticalAlignment="Center" />
             </StackPanel>
+          </Button>
+        </DataTemplate>
+        <!-- The overflow menu: the actions that don't fit, as menu items bound to the same commands. -->
+        <DataTemplate DataType="t:ToolbarOverflowMenu">
+          <Button x:Name="OverflowButton"
+                  Classes="Icon"
+                  IsVisible="{Binding IsShown}"
+                  ToolTip.Tip="{l:Loc Toolbar_More}"
+                  AutomationProperties.Name="{l:Loc Toolbar_More}">
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight"
+                          FlyoutPresenterClasses="Commands"
+                          ItemsSource="{Binding Entries}" />
+            </Button.Flyout>
+            <PathIcon Data="{StaticResource Icon.More}" />
           </Button>
         </DataTemplate>
       </ItemsControl.DataTemplates>

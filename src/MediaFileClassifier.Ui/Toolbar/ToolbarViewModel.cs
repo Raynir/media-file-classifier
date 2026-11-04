@@ -15,6 +15,7 @@ namespace MediaFileClassifier.Ui.Toolbar;
 public sealed partial class ToolbarViewModel : ViewModelBase
 {
     private readonly ObservableCollection<ToolbarAction> actions = [];
+    private readonly ObservableCollection<ObservableObject> items = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ToolbarViewModel"/> class and collects the contributions.
@@ -23,6 +24,8 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     public ToolbarViewModel(IEnumerable<IToolbarContributor> contributors)
     {
         Actions = new ReadOnlyObservableCollection<ToolbarAction>(actions);
+        items.Add(Overflow);
+        Items = new ReadOnlyObservableCollection<ObservableObject>(items);
         foreach (var contributor in contributors)
         {
             contributor.Register(this);
@@ -61,6 +64,16 @@ public sealed partial class ToolbarViewModel : ViewModelBase
     public ReadOnlyObservableCollection<ToolbarAction> Actions { get; }
 
     /// <summary>
+    /// Gets the overflow menu with the actions that don't fit (E13-S03-T03).
+    /// </summary>
+    public ToolbarOverflowMenu Overflow { get; } = new();
+
+    /// <summary>
+    /// Gets what the action area shows, left to right: the actions, then the overflow menu's More button.
+    /// </summary>
+    public ReadOnlyObservableCollection<ObservableObject> Items { get; }
+
+    /// <summary>
     /// Adds an action button that runs a command. A command the platform doesn't support
     /// (<see cref="AppCommand.IsVisible"/> is <see langword="false"/>) gets no button.
     /// </summary>
@@ -75,9 +88,21 @@ public sealed partial class ToolbarViewModel : ViewModelBase
             throw new InvalidOperationException($"The command '{command.Id}' already has a toolbar button.");
         }
 
-        if (command.IsVisible)
+        if (!command.IsVisible)
         {
-            actions.Insert(actions.Count(action => action.Order <= order), new ToolbarAction(command, order, priority));
+            return;
         }
+
+        var action = new ToolbarAction(command, order, priority);
+        var index = actions.Count(existing => existing.Order <= order);
+        actions.Insert(index, action);
+        items.Insert(index, action);
+        action.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ToolbarAction.IsOverflowed))
+            {
+                Overflow.Update(actions);
+            }
+        };
     }
 }

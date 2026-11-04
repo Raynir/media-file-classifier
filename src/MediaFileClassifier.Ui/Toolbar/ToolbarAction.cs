@@ -27,4 +27,11 @@ public sealed partial class ToolbarAction(AppCommand command, int order, int pri
     /// Gets how long the button stays on the toolbar as the window narrows.
     /// </summary>
     public int Priority { get; } = priority;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the action doesn't fit on the toolbar and is in the overflow menu
+    /// instead. <see cref="ToolbarActionPanel"/> sets it.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsOverflowed { get; set; }
 }

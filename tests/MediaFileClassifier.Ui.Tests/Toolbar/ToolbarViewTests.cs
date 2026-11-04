@@ -22,7 +22,8 @@ namespace MediaFileClassifier.Ui.Tests.Toolbar;
 
 /// <summary>
 /// Tests for the toolbar in the main window (E13-S03): each slot shows the control a feature puts in it, in a
-/// fixed order at every window width (T01), and each action button runs its command and shows its shortcut (T02).
+/// fixed order at every window width (T01), each action button runs its command and shows its shortcut (T02), and
+/// actions that don't fit stay reachable through the More menu (T03).
 /// </summary>
 public sealed class ToolbarViewTests
 {
@@ -135,6 +136,101 @@ public sealed class ToolbarViewTests
         var view = window.GetVisualDescendants().OfType<PlaceholderView>().Single(view => view.Slot == "view");
         Assert.True(Left(buttons[0], window) > Left(view, window) + view.Bounds.Width);
     });
+
+    [Fact]
+    public Task WideWindow_ShowsEveryAction_AndNoMoreButton() => RunInWindowAsync(1440, (window, toolbar) =>
+    {
+        Assert.Equal(2, ActionButtons(window).Count());
+        Assert.All(toolbar.Actions, action => Assert.False(action.IsOverflowed));
+        Assert.False(toolbar.Overflow.IsShown);
+        Assert.False(MoreButton(window).IsEffectivelyVisible);
+    });
+
+    [Fact]
+    public Task MinimumWidth_KeepsEveryActionReachable_ThroughTheMoreMenu() => RunInWindowAsync(720, (window, toolbar) =>
+    {
+        Assert.True(toolbar.Overflow.IsShown);
+        var more = MoreButton(window);
+        Assert.True(more.IsEffectivelyVisible);
+        Assert.Equal("More actions", ToolTip.GetTip(more));
+        Assert.Equal("More actions", Avalonia.Automation.AutomationProperties.GetName(more));
+
+        // Each action is either a button on the toolbar or an item in the menu, never neither or both.
+        var onToolbar = ActionButtons(window).Select(Label).ToList();
+        var inMenu = OpenMenu(more).Select(item => (string?)item.Header).ToList();
+        Assert.Equal(
+            toolbar.Actions.Select(action => action.Command.PlainLabel).Order(),
+            onToolbar.Concat(inMenu.Select(header => header!.Replace("_", string.Empty, StringComparison.Ordinal))).Order());
+
+        // Everything still fits: the More button ends inside the toolbar.
+        var toolbarArea = Toolbar(window);
+        Assert.True(Left(more, window) + more.Bounds.Width <= Left(toolbarArea, window) + toolbarArea.Bounds.Width);
+    });
+
+    [Fact]
+    public Task MenuItems_RunTheirCommands_AndShowTheirShortcuts() => RunInWindowAsync(720, (window, _) =>
+    {
+        var viewModel = (MainWindowViewModel)window.DataContext!;
+        var items = OpenMenu(MoreButton(window));
+        var toggle = items.Single(item => (string?)item.Header == "_Show or hide details panel");
+        var disabled = items.Single(item => (string?)item.Header == "_New library…");
+        Assert.Equal(new Avalonia.Input.KeyGesture(Avalonia.Input.Key.D2, Avalonia.Input.KeyModifiers.Control), toggle.InputGesture);
+        Assert.False(disabled.IsEffectivelyEnabled);
+        Assert.Equal(TestCommands.DisabledReason, ToolTip.GetTip(disabled));
+
+        toggle.Command!.Execute(null);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(viewModel.Layout.Details.IsVisible);
+    });
+
+    [Fact]
+    public Task Widening_BringsTheActionsBack() => RunInWindowAsync(720, (window, toolbar) =>
+    {
+        Assert.True(toolbar.Overflow.IsShown);
+
+        window.Width = 1440;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(toolbar.Overflow.IsShown);
+        Assert.Empty(toolbar.Overflow.Entries);
+        Assert.Equal(2, ActionButtons(window).Count());
+    });
+
+    [Fact]
+    public Task Narrowing_MovesTheLowestPriorityFirst() => RunInWindowAsync(1440, (window, toolbar) =>
+    {
+        var search = window.GetVisualDescendants().OfType<PlaceholderView>().Single(view => view.Slot == "search");
+
+        // Take away just enough that both no longer fit, but the higher priority one does beside the More button.
+        window.Width -= search.Bounds.Width - 160 + 1;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal([TestCommands.DisabledId], toolbar.Actions.Where(action => action.IsOverflowed).Select(action => action.Command.Id));
+        Assert.Equal(["Show or hide details panel"], ActionButtons(window).Select(Label));
+    });
+
+    private static Button MoreButton(Window window)
+        => window.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "OverflowButton");
+
+    private static List<MenuItem> OpenMenu(Button more)
+    {
+        var flyout = (MenuFlyout)more.Flyout!;
+        flyout.ShowAt(more);
+        Dispatcher.UIThread.RunJobs();
+        // The flyout keeps its popup to itself.
+        const System.Reflection.BindingFlags Flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
+        var popup = typeof(Avalonia.Controls.Primitives.PopupFlyoutBase).GetProperties(Flags)
+            .Where(property => property.PropertyType == typeof(Avalonia.Controls.Primitives.Popup))
+            .Select(property => property.GetValue(flyout))
+            .Concat(typeof(Avalonia.Controls.Primitives.PopupFlyoutBase).GetFields(Flags)
+                .Where(field => field.FieldType == typeof(Avalonia.Controls.Primitives.Popup))
+                .Select(field => field.GetValue(flyout)))
+            .OfType<Avalonia.Controls.Primitives.Popup>()
+            .First();
+        // Left open: the items lose their command bindings when the menu closes. Closing the window closes it.
+        return [.. ((Control)popup.Child!).GetVisualDescendants().OfType<MenuItem>()];
+    }
 
     private static IEnumerable<Button> ActionButtons(Window window)
         => window.GetVisualDescendants().OfType<Button>()

@@ -20,7 +20,7 @@ public enum ToolbarLayoutRole
 
     /// <summary>
     /// The child is offered the width left after the fixed children and the fill child's minimum, and fits into
-    /// it by moving content into an overflow menu.
+    /// it by moving content into an overflow menu (<see cref="ToolbarActionPanel"/>).
     /// </summary>
     Overflow,
 }

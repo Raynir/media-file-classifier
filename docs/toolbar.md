@@ -25,3 +25,10 @@ After the slots come the action buttons. Each runs an application command (E13-S
 | Add folder… | `library.add-folder` (Ctrl+Shift+O): pick a folder, then the Indexed folders dialog opens with it added, as when a folder is dropped on the navigation panel | 100 | 100 | `LibraryToolbar` |
 
 - **Adding an action:** in an `IToolbarContributor`, call `toolbar.AddAction(commands[id], order, priority)`. Order places it left to right. Priority decides which actions move into the overflow menu first as the window narrows: the lowest. Analyze pending (E06-S06), Rescan (E02-S04) and Import files (E03-S05) come this way.
+
+## Overflow menu
+
+When the window narrows, the Search slot shrinks first, down to its minimum. Then the actions that no longer fit move into a More menu (⋯, "More actions") at the end of the row: the lowest priority first, and of equal priorities the rightmost first (`ToolbarOverflow.Fit`). The menu lists them in their toolbar order, as menu items bound to the same commands, with their shortcuts and disabled reasons. When the window widens, they come back. The slots never move into the menu, so no action becomes unreachable at the minimum window width (720).
+
+- **How:** `ToolbarActionPanel`, the action area's items panel, measures every button, decides what fits, and sets `ToolbarAction.IsOverflowed`. The view hides those buttons, and `ToolbarOverflowMenu` lists their commands. A hidden button measures as zero wide, so the panel remembers each button's width from when it was last shown.
+- **Responsive layout (E13-S07):** reuse `ToolbarOverflowMenu` and the panel; don't add a second menu.

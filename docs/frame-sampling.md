@@ -24,7 +24,7 @@ The kept frames are indexed from 0. On the sample media, the 80-second static-ca
 
 - **Video:** FFmpeg reads each position with its own exact seek (`-ss` before the input), turns the frame upright by the display rotation, and scales it down. Without FFmpeg, a video gets no frames and the warning `FrameSamplingFfmpegUnavailable`.
 - **GIF and WebP:** SkiaSharp decodes the frames in order onto one canvas, as they are shown, up to the last frame needed. The item's orientation is applied, as for thumbnails.
-- **Failures:** a position FFmpeg can't read is skipped. If no frame can be read, the result has no frames and the warning `FrameSamplingFailed` with the error. Only a still image, or invalid options, throws.
+- **Failures:** a position FFmpeg can't read is skipped. Each read has a 30-second timeout, and after two timeouts in a row the remaining positions are skipped. If no frame can be read, the result has no frames and the warning `FrameSamplingFailed` with the error. Only a still image, or invalid options, throws.
 
 Measured on an i7-14700HX for 16 frames:
 

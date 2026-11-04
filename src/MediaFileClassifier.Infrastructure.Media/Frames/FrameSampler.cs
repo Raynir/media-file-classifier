@@ -29,6 +29,11 @@ public sealed partial class FrameSampler(
     IPerceptualHasher hasher,
     ILogger<FrameSampler> logger) : IFrameSampler
 {
+    /// <summary>
+    /// After this many FFmpeg timeouts in a row, the remaining positions of a video are skipped.
+    /// </summary>
+    internal const int MaxConsecutiveTimeouts = 2;
+
     /// <inheritdoc />
     public async Task<FrameSample> SampleAsync(
         MediaContent content,
@@ -42,17 +47,18 @@ public sealed partial class FrameSampler(
         ArgumentNullException.ThrowIfNull(metadata);
         ArgumentNullException.ThrowIfNull(options);
         options.Validate();
+        if (format.MediaType is not (MediaType.Video or MediaType.AnimatedImage))
+        {
+            throw new ArgumentException($"Frames are sampled from videos and animated images, not {format.MediaType}.", nameof(format));
+        }
 
         try
         {
-            return format.MediaType switch
-            {
-                MediaType.Video => await SampleVideoAsync(content, metadata, options, cancellationToken).ConfigureAwait(false),
-                MediaType.AnimatedImage => await SampleAnimationAsync(content, metadata, options, cancellationToken).ConfigureAwait(false),
-                _ => throw new ArgumentException($"Frames are sampled from videos and animated images, not {format.MediaType}.", nameof(format)),
-            };
+            return format.MediaType is MediaType.Video
+                ? await SampleVideoAsync(content, metadata, options, cancellationToken).ConfigureAwait(false)
+                : await SampleAnimationAsync(content, metadata, options, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is not ArgumentException && (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested))
+        catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             LogFailed(logger, content.ItemId.Value, ex);
             return FrameSample.Failed(new(FrameSamplingWarnings.FrameSamplingFailed, ex.Message));
@@ -70,17 +76,25 @@ public sealed partial class FrameSampler(
         await using var file = await LocalMediaFile.CreateAsync(content, cancellationToken).ConfigureAwait(false);
         var selector = new FrameSelector<Candidate>(options);
         Exception? lastError = null;
+        var timeouts = 0;
         foreach (var position in FramePositions.ForVideo(metadata.Duration, options))
         {
             SKBitmap? frame;
             try
             {
                 frame = await FfmpegFrameReader.ReadFrameAsync(folder, file.Path, position, options.MaxLongestEdge, cancellationToken).ConfigureAwait(false);
+                timeouts = 0;
             }
             catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
-                // One unreadable position, e.g. a damaged stretch, doesn't lose the others.
+                // One unreadable position, e.g. a damaged stretch, doesn't lose the others. A file that makes FFmpeg
+                // hang twice in a row is given up on, so it doesn't hold a worker for every position's timeout.
                 lastError = ex;
+                if (ex is OperationCanceledException && ++timeouts >= MaxConsecutiveTimeouts)
+                {
+                    break;
+                }
+
                 continue;
             }
 
@@ -123,7 +137,8 @@ public sealed partial class FrameSampler(
             }
 
             next++;
-            using var upright = OrientationTransform.Apply(canvas.Copy(), metadata.Orientation);
+            var copy = canvas.Copy() ?? throw new InvalidOperationException("Not enough memory to copy the frame.");
+            using var upright = OrientationTransform.Apply(copy, metadata.Orientation);
             using var scaled = ThumbnailEncoder.ScaleDown(upright, options.MaxLongestEdge);
             Offer(selector, scaled ?? upright, FramePositions.StartOf(delays, frame), frame);
         }

@@ -4,7 +4,7 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.AI;
 /// A configured AI provider: one model behind one way of running it. A provider implements one or more capability
 /// interfaces (<see cref="IImageDescriber"/>, <see cref="IOcrProvider"/>, <see cref="ITranscriptionProvider"/>,
 /// <see cref="IImageEmbeddingProvider"/>, <see cref="ITextEmbeddingProvider"/>), and the pipeline finds it through
-/// the provider registry by capability, so a new provider needs no pipeline changes.
+/// <see cref="IAiProviderRegistry"/> by capability, so a new provider needs no pipeline changes.
 /// </summary>
 public interface IAiProvider
 {

@@ -55,6 +55,39 @@ public sealed class JobProgressTrackerTests
     }
 
     [Fact]
+    public void FinishedJob_ReportedBeforeAnEarlierItem_IsForgotten()
+    {
+        var job = NewJob();
+        var items = Items(job, "stage", 2);
+        tracker.AddWork(job, items);
+
+        // Two items finished together: the database saw the first one while the job ran and the last one complete it,
+        // but the threads reached the tracker in the other order.
+        Finish(job with { State = ProcessingJobState.Completed }, items[1], WorkItemState.Completed);
+        Finish(job with { State = ProcessingJobState.Running }, items[0], WorkItemState.Completed);
+
+        Assert.Same(ProgressSummary.Empty, tracker.Current);
+    }
+
+    [Fact]
+    public void FinishedJob_GettingNewWorkLater_IsKeptUntilTheNewWorkFinishes()
+    {
+        var job = NewJob();
+        var first = Items(job, "stage", 2);
+        tracker.AddWork(job, first);
+        Finish(job with { State = ProcessingJobState.Completed }, first[1], WorkItemState.Completed);
+
+        // New work reopens the job before the stale report of the earlier item arrives.
+        var more = Items(job, "stage", 1);
+        tracker.AddWork(job, more);
+        Finish(job with { State = ProcessingJobState.Running }, first[0], WorkItemState.Completed);
+        Assert.Equal(1, Assert.Single(tracker.Current.Jobs).Pending);
+
+        Finish(job with { State = ProcessingJobState.Completed }, more[0], WorkItemState.Completed);
+        Assert.Same(ProgressSummary.Empty, tracker.Current);
+    }
+
+    [Fact]
     public void FinishedJob_GettingNewWorkAtTheSameTime_IsKept()
     {
         var job = NewJob();

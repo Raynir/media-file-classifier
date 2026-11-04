@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Search index engine: keyword search over the effective title, description, tags, OCR text, transcript, other descriptive fields and file path (FTS5, case and diacritics ignored, every word as a prefix, path substrings through a trigram index), in-memory vector search over half-precision embeddings of one model at a time, hybrid ranking with Reciprocal Rank Fusion, filters for media type, format, date, resolution, favorite, status, review status, collection, user tags and folder on every path, and an index rebuild. Metadata edits are searchable as soon as they are saved; libraries move to schema version 6 and rebuild their keyword index once when opened (E01-S04).
+
 ### Fixed
 
 - A finished job no longer stays in the progress summary and the status bar when its last work items finish at the same time (MFC-985).

@@ -6,7 +6,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
 {
     /// <summary>
     /// Adds the keyword search index (E01-S04-T02): <c>search_document</c> maps items to stable integer document IDs,
-    /// <c>search_text</c> is the FTS5 index over the effective metadata values, and <c>search_filename</c> is a trigram
+    /// with an <c>excluded</c> flag mirrored from the item's status (5 = Excluded), so unfiltered searches needn't
+    /// read <c>media_item</c>; <c>search_text</c> is the FTS5 index over the effective metadata values, and <c>search_filename</c> is a trigram
     /// index for substring matches on the path. Triggers keep the documents and paths in step with <c>media_item</c>;
     /// the metadata columns are written by the metadata repository in the same transaction as the metadata.
     /// Hand-written: EF Core doesn't model FTS5 tables. <c>Search/SearchSchema.cs</c> holds the same DDL for rebuilds.
@@ -22,7 +23,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 """
                 CREATE TABLE "search_document" (
                     "doc_id" INTEGER PRIMARY KEY AUTOINCREMENT,
-                    "item_id" TEXT NOT NULL UNIQUE
+                    "item_id" TEXT NOT NULL UNIQUE,
+                    "excluded" INTEGER NOT NULL DEFAULT 0
                 );
                 """);
             migrationBuilder.Sql(
@@ -48,7 +50,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 """
                 CREATE TRIGGER "search_item_insert" AFTER INSERT ON "media_item"
                 BEGIN
-                    INSERT INTO "search_document" ("item_id") VALUES (new."id");
+                    INSERT INTO "search_document" ("item_id", "excluded") VALUES (new."id", new."status" = 5);
                     INSERT INTO "search_text" ("rowid", "file_name")
                         VALUES ((SELECT "doc_id" FROM "search_document" WHERE "item_id" = new."id"), replace(replace(new."path", 'ё', 'е'), 'Ё', 'Е'));
                     INSERT INTO "search_filename" ("rowid", "path")
@@ -67,6 +69,13 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 """);
             migrationBuilder.Sql(
                 """
+                CREATE TRIGGER "search_item_status" AFTER UPDATE OF "status" ON "media_item" WHEN (new."status" = 5) IS NOT (old."status" = 5)
+                BEGIN
+                    UPDATE "search_document" SET "excluded" = (new."status" = 5) WHERE "item_id" = new."id";
+                END;
+                """);
+            migrationBuilder.Sql(
+                """
                 CREATE TRIGGER "search_item_delete" AFTER DELETE ON "media_item"
                 BEGIN
                     DELETE FROM "search_text" WHERE "rowid" = (SELECT "doc_id" FROM "search_document" WHERE "item_id" = old."id");
@@ -77,7 +86,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
 
             // Existing items get their documents and paths here. Their metadata columns need the effective-value rules,
             // which live in C#, so the app rebuilds the index once after opening the library.
-            migrationBuilder.Sql("""INSERT INTO "search_document" ("item_id") SELECT "id" FROM "media_item" ORDER BY "id";""");
+            migrationBuilder.Sql("""INSERT INTO "search_document" ("item_id", "excluded") SELECT "id", "status" = 5 FROM "media_item" ORDER BY "id";""");
             migrationBuilder.Sql(
                 """
                 INSERT INTO "search_text" ("rowid", "file_name")
@@ -99,6 +108,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("""DROP TRIGGER "search_item_delete";""");
+            migrationBuilder.Sql("""DROP TRIGGER "search_item_status";""");
             migrationBuilder.Sql("""DROP TRIGGER "search_item_path";""");
             migrationBuilder.Sql("""DROP TRIGGER "search_item_insert";""");
             migrationBuilder.Sql("""DROP TABLE "search_state";""");

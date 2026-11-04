@@ -13,8 +13,9 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 public interface IEmbeddingRepository
 {
     /// <summary>
-    /// Raised after embeddings were written and committed, once per write or batch, on the writing thread. The
-    /// arguments carry the new vectors, so a listener needn't read them back.
+    /// Raised after embeddings were written and committed, once per write or batch, on the library's writer and in
+    /// commit order, before the next write starts. The arguments carry the new vectors, so a listener needn't read them
+    /// back. A listener must be quick and must not write to the library.
     /// </summary>
     event EventHandler<EmbeddingsChangedEventArgs>? Changed;
 
@@ -32,7 +33,8 @@ public interface IEmbeddingRepository
 
     /// <summary>
     /// Replaces the embeddings of many items, as <see cref="ReplaceAsync"/> does, in batches of 100 items, each its own
-    /// short write (D072). Items that no longer exist are skipped.
+    /// short write (D072). Items that no longer exist are skipped; when an item and model appear more than once, the
+    /// last entry wins.
     /// </summary>
     /// <param name="changes">The items, models and new embeddings.</param>
     /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>

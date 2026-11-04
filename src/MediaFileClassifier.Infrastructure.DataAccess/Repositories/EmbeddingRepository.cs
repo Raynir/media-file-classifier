@@ -30,13 +30,11 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
     {
         var change = new ItemEmbeddings(itemId, modelId, embeddings);
         Validate(change);
-        var committed = await writer.ExecuteAsync((db, token) => WriteAsync(db, [change], token), cancellationToken).ConfigureAwait(false);
+        var committed = await writer.ExecuteAsync((db, token) => WriteAsync(db, [change], token), RaiseChanged, cancellationToken).ConfigureAwait(false);
         if (committed.Count == 0)
         {
             throw new KeyNotFoundException($"Media item {itemId} doesn't exist.");
         }
-
-        Changed?.Invoke(this, new EmbeddingsChangedEventArgs(committed));
     }
 
     /// <inheritdoc />
@@ -48,13 +46,17 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
             Validate(change);
         }
 
-        foreach (var batch in changes.Chunk(MediaItemRepository.BatchSize))
+        // The last change of an item and model wins, as if they were written one after another.
+        var latest = changes
+            .Select((change, order) => (change, order))
+            .GroupBy(entry => (entry.change.ItemId, entry.change.ModelId))
+            .Select(group => group.MaxBy(entry => entry.order))
+            .OrderBy(entry => entry.order)
+            .Select(entry => entry.change)
+            .ToList();
+        foreach (var batch in latest.Chunk(MediaItemRepository.BatchSize))
         {
-            var committed = await writer.ExecuteAsync((db, token) => WriteAsync(db, batch, token), cancellationToken).ConfigureAwait(false);
-            if (committed.Count > 0)
-            {
-                Changed?.Invoke(this, new EmbeddingsChangedEventArgs(committed));
-            }
+            await writer.ExecuteAsync((db, token) => WriteAsync(db, batch, token), RaiseChanged, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -189,5 +191,14 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
         }
 
         return documents;
+    }
+
+    // Runs on the writer right after the commit, so listeners see the commits in order (D067).
+    private void RaiseChanged(IReadOnlyList<CommittedEmbeddings> committed)
+    {
+        if (committed.Count > 0)
+        {
+            Changed?.Invoke(this, new EmbeddingsChangedEventArgs(committed));
+        }
     }
 }

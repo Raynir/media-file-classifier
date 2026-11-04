@@ -16,6 +16,11 @@ internal sealed class VectorIndex : IDisposable
     private readonly Dictionary<Id<ModelRegistration>, ModelVectors> models = [];
 
     /// <summary>
+    /// Gets the number of items the load left out because their stored vectors don't fit their model.
+    /// </summary>
+    public int SkippedItems { get; private set; }
+
+    /// <summary>
     /// Gets the number of vectors of every model.
     /// </summary>
     public int VectorCount
@@ -193,8 +198,17 @@ internal sealed class VectorIndex : IDisposable
                 return;
             }
 
-            // Loading happens before the index is shared, so it needs no lock.
-            index.GetOrAddModel(current.ModelId, current.Dimension).Upsert(current.DocumentId, current.ItemId, buffer.AsSpan(0, length));
+            // Loading happens before the index is shared, so it needs no lock. An item whose rows don't fit its model
+            // (a wrong dimension, a truncated vector) is left out rather than failing the whole load.
+            try
+            {
+                index.GetOrAddModel(current.ModelId, current.Dimension).Upsert(current.DocumentId, current.ItemId, buffer.AsSpan(0, length));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                index.SkippedItems++;
+            }
+
             length = 0;
             hasCurrent = false;
         }

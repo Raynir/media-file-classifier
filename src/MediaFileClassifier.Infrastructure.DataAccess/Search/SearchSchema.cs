@@ -25,7 +25,8 @@ internal static class SearchSchema
         """
         CREATE TABLE IF NOT EXISTS "search_document" (
             "doc_id" INTEGER PRIMARY KEY AUTOINCREMENT,
-            "item_id" TEXT NOT NULL UNIQUE
+            "item_id" TEXT NOT NULL UNIQUE,
+            "excluded" INTEGER NOT NULL DEFAULT 0
         );
         """,
         """
@@ -47,7 +48,7 @@ internal static class SearchSchema
         """
         CREATE TRIGGER IF NOT EXISTS "search_item_insert" AFTER INSERT ON "media_item"
         BEGIN
-            INSERT INTO "search_document" ("item_id") VALUES (new."id");
+            INSERT INTO "search_document" ("item_id", "excluded") VALUES (new."id", new."status" = 5);
             INSERT INTO "search_text" ("rowid", "file_name")
                 VALUES ((SELECT "doc_id" FROM "search_document" WHERE "item_id" = new."id"), replace(replace(new."path", 'ё', 'е'), 'Ё', 'Е'));
             INSERT INTO "search_filename" ("rowid", "path")
@@ -61,6 +62,12 @@ internal static class SearchSchema
                 WHERE "rowid" = (SELECT "doc_id" FROM "search_document" WHERE "item_id" = new."id");
             UPDATE "search_filename" SET "path" = replace(replace(new."path", 'ё', 'е'), 'Ё', 'Е')
                 WHERE "rowid" = (SELECT "doc_id" FROM "search_document" WHERE "item_id" = new."id");
+        END;
+        """,
+        """
+        CREATE TRIGGER IF NOT EXISTS "search_item_status" AFTER UPDATE OF "status" ON "media_item" WHEN (new."status" = 5) IS NOT (old."status" = 5)
+        BEGIN
+            UPDATE "search_document" SET "excluded" = (new."status" = 5) WHERE "item_id" = new."id";
         END;
         """,
         """

@@ -4,6 +4,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using Microsoft.Data.Sqlite;
 
 namespace MediaFileClassifier.Infrastructure.DataAccess.Search;
@@ -15,8 +16,6 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Search;
 /// </summary>
 internal sealed class SearchSql
 {
-    private const string LikeEscape = "\\";
-
     // The item date: date taken, converted to UTC with its offset when known, else the file modification time. Dates
     // taken are wall-clock milliseconds and offsets milliseconds (D071).
     private const string ItemDate = """coalesce(t."date_taken" - coalesce(t."date_taken_offset", 0), m."file_modified_at")""";
@@ -106,7 +105,7 @@ internal sealed class SearchSql
                 .Select(format => format.Trim().TrimStart('.'))
                 .Where(format => format.Length > 0)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Select(format => $"""m."path" LIKE {Add("%." + EscapeLike(format))} ESCAPE '{LikeEscape}'""")
+                .Select(format => $"""m."path" LIKE {Add("%." + SqlLike.Escape(format))} ESCAPE '{SqlLike.EscapeCharacter}'""")
                 .ToList();
 
             // LIKE ignores case for ASCII, which covers file extensions.
@@ -170,9 +169,9 @@ internal sealed class SearchSql
             conditions.Add($"""m."folder_id" = {Add(folder.ToString())}""");
         }
 
-        if (filter.Subfolder?.Replace('\\', '/').Trim('/') is { Length: > 0 } subfolder)
+        if (SqlLike.SubfolderPattern(filter.Subfolder) is { } pattern)
         {
-            conditions.Add($"""m."path" LIKE {Add(EscapeLike(subfolder) + "/%")} ESCAPE '{LikeEscape}'""");
+            conditions.Add($"""m."path" LIKE {Add(pattern)} ESCAPE '{SqlLike.EscapeCharacter}'""");
         }
 
         if (filter.ImportedSince is { } since)
@@ -227,9 +226,4 @@ internal sealed class SearchSql
         var list = values.Distinct().ToList();
         return list.Count == 0 ? "NULL" : string.Join(", ", list.Select(value => value.ToString(CultureInfo.InvariantCulture)));
     }
-
-    private static string EscapeLike(string value) =>
-        value.Replace(LikeEscape, LikeEscape + LikeEscape, StringComparison.Ordinal)
-            .Replace("%", LikeEscape + "%", StringComparison.Ordinal)
-            .Replace("_", LikeEscape + "_", StringComparison.Ordinal);
 }

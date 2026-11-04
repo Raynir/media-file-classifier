@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Searches;
@@ -119,9 +120,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
             return;
         }
 
-        await library.Library.Search.RebuildAsync(progress is null ? null : new ScaledProgress(progress, 0, 0.9), cancellationToken).ConfigureAwait(false);
-        await library.ReloadVectorsAsync(cancellationToken).ConfigureAwait(false);
-        progress?.Report(1);
+        await library.RebuildAsync(progress, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -191,9 +190,18 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
                 cancellationToken);
 
         // The filter runs as SQL; its documents become the mask the scorer checks (D067). Excluded items are never in it.
-        var documentIds = await store.GetDocumentIdsAsync(query.Filter, cancellationToken).ConfigureAwait(false);
-        var vectorHits = await Task.Run(() => index.Search(vector, limit, CreateMask(documentIds)), cancellationToken).ConfigureAwait(false);
+        var vectorTask = Task.Run(
+            async () =>
+            {
+                var documentIds = await store.GetDocumentIdsAsync(query.Filter, cancellationToken).ConfigureAwait(false);
+                return index.Search(vector, limit, CreateMask(documentIds));
+            },
+            cancellationToken);
+
+        // Both are awaited even when one fails, so neither exception goes unobserved.
+        await Task.WhenAll(keywordTask, vectorTask).ConfigureAwait(false);
         var keyword = await keywordTask.ConfigureAwait(false);
+        var vectorHits = await vectorTask.ConfigureAwait(false);
 
         var items = new Dictionary<int, Id<MediaItem>>();
         foreach (var match in keyword.Matches)
@@ -289,12 +297,19 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
 
     /// <summary>
     /// The search state of one open library: its vector index, kept current from the embedding repository's commits.
+    /// The vector load at opening and rebuilds run one at a time.
     /// </summary>
+    [SuppressMessage(
+        "Usage",
+        "CA2213:Disposable fields should be disposed",
+        Justification = "Background work may still wait on the semaphore or read the token after the library closed; neither holds a timer or handle that needs disposing.")]
     private sealed class LibrarySearch : IDisposable
     {
         private readonly ILogger logger;
         private readonly Action stateChanged;
         private readonly Lock gate = new();
+        private readonly SemaphoreSlim maintenance = new(1, 1);
+
         private readonly CancellationTokenSource stopping = new();
         private List<IReadOnlyList<CommittedEmbeddings>>? pending;
         private volatile VectorIndex? index;
@@ -322,15 +337,52 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
         }
 
         /// <summary>
-        /// Loads every vector into a new index while the current one keeps answering, then swaps them. Commits that
-        /// arrive during the load are applied to both: replaying a commit the load already read is harmless, because
-        /// every change replaces all of an item's vectors.
+        /// Rebuilds the keyword index and reloads the vectors. Vector search is off meanwhile: a rebuild may give the
+        /// documents new IDs, which the old vector index doesn't know.
         /// </summary>
+        /// <param name="progress">Receives the share done.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>A task that completes when the new index is in use.</returns>
-        public async Task ReloadVectorsAsync(CancellationToken cancellationToken)
+        /// <returns>A task that completes when both indexes are rebuilt.</returns>
+        public async Task RebuildAsync(IProgress<double>? progress, CancellationToken cancellationToken)
         {
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, stopping.Token);
+            await maintenance.WaitAsync(linked.Token).ConfigureAwait(false);
+            try
+            {
+                SetState(VectorIndexState.Loading);
+                try
+                {
+                    await Library.Search.RebuildAsync(progress is null ? null : new ScaledProgress(progress, 0, 0.9), linked.Token).ConfigureAwait(false);
+                    await ReloadVectorsAsync(linked.Token).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // The old index still matches the documents unless they were renumbered, which only a damaged index
+                    // does; its next rebuild or the next opening repairs that.
+                    SetState(index is null ? VectorIndexState.Failed : VectorIndexState.Ready);
+                    throw;
+                }
+
+                progress?.Report(1);
+            }
+            finally
+            {
+                maintenance.Release();
+            }
+        }
+
+        public void Dispose()
+        {
+            Library.Embeddings.Changed -= OnEmbeddingsChanged;
+            stopping.Cancel();
+            SetState(VectorIndexState.Unavailable, raise: false);
+        }
+
+        // Loads every vector into a new index while the current one keeps answering, then swaps them. Commits that
+        // arrive during the load are applied to both: replaying a commit the load already read is harmless, because
+        // every change replaces all of an item's vectors. Callers hold the maintenance semaphore, so loads never overlap.
+        private async Task ReloadVectorsAsync(CancellationToken cancellationToken)
+        {
             lock (gate)
             {
                 pending = [];
@@ -339,7 +391,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
             VectorIndex loaded;
             try
             {
-                loaded = await VectorIndex.LoadAsync(Library.Embeddings, linked.Token).ConfigureAwait(false);
+                loaded = await VectorIndex.LoadAsync(Library.Embeddings, cancellationToken).ConfigureAwait(false);
             }
             catch
             {
@@ -364,23 +416,41 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
                 index = loaded;
             }
 
-            SetState(VectorIndexState.Ready);
-        }
+            if (loaded.SkippedItems > 0)
+            {
+                logger.LogWarning("Left {SkippedItems} items out of vector search: their stored vectors don't fit their model", loaded.SkippedItems);
+            }
 
-        public void Dispose()
-        {
-            Library.Embeddings.Changed -= OnEmbeddingsChanged;
-            stopping.Cancel();
-            stopping.Dispose();
-            SetState(VectorIndexState.Unavailable, raise: false);
+            SetState(VectorIndexState.Ready);
         }
 
         private async Task StartAsync()
         {
             try
             {
+                await maintenance.WaitAsync(stopping.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            try
+            {
+                await LoadAtOpeningAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                maintenance.Release();
+            }
+        }
+
+        private async Task LoadAtOpeningAsync()
+        {
+            try
+            {
                 var started = System.Diagnostics.Stopwatch.GetTimestamp();
-                await ReloadVectorsAsync(CancellationToken.None).ConfigureAwait(false);
+                await ReloadVectorsAsync(stopping.Token).ConfigureAwait(false);
                 logger.LogInformation(
                     "Loaded {VectorCount} vectors for search in {ElapsedMs} ms",
                     index?.VectorCount ?? 0,
@@ -403,6 +473,12 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
                     logger.LogInformation("Rebuilding the keyword search index");
                     await Library.Search.RebuildAsync(null, stopping.Token).ConfigureAwait(false);
                     logger.LogInformation("Rebuilt the keyword search index");
+
+                    // A damaged index can fail the vector load, which reads the documents; try again on the repaired one.
+                    if (State == VectorIndexState.Failed)
+                    {
+                        await ReloadVectorsAsync(stopping.Token).ConfigureAwait(false);
+                    }
                 }
             }
             catch (Exception exception) when (stopping.IsCancellationRequested || exception is ObjectDisposedException)
@@ -427,7 +503,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
             }
             catch (Exception exception)
             {
-                // Raised on the writer's side; never let the index fail the write that already committed.
+                // Raised on the writer after the commit; never let the index fail a write that already committed.
                 logger.LogError(exception, "Updating the vector index failed; a rebuild repairs it");
             }
         }

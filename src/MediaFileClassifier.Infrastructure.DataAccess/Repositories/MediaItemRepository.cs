@@ -24,8 +24,6 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     /// </summary>
     public const int BatchSize = 100;
 
-    private const string LikeEscape = "\\";
-
     /// <inheritdoc />
     public event EventHandler? Changed;
 
@@ -509,10 +507,9 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
             items = items.Where(item => item.FolderId == folderId);
         }
 
-        if (filter.Subfolder?.Replace('\\', '/').Trim('/') is { Length: > 0 } subfolder)
+        if (SqlLike.SubfolderPattern(filter.Subfolder) is { } pattern)
         {
-            var pattern = EscapeLike(subfolder) + "/%";
-            items = items.Where(item => EF.Functions.Like((string)(object)item.Path, pattern, LikeEscape));
+            items = items.Where(item => EF.Functions.Like((string)(object)item.Path, pattern, SqlLike.EscapeCharacter));
         }
 
         if (filter.ImportedSince is { } since)
@@ -522,9 +519,4 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
 
         return items;
     }
-
-    private static string EscapeLike(string value) =>
-        value.Replace(LikeEscape, LikeEscape + LikeEscape, StringComparison.Ordinal)
-            .Replace("%", LikeEscape + "%", StringComparison.Ordinal)
-            .Replace("_", LikeEscape + "_", StringComparison.Ordinal);
 }

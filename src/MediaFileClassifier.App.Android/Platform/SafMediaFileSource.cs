@@ -136,8 +136,10 @@ internal sealed class SafMediaFileSource(AndroidContentResolver contentResolver)
             },
             cancellationToken);
 
-    // SAF has no lookup by path, so a relative path is resolved one segment at a time: one query per folder level.
     /// <inheritdoc />
+    /// <remarks>
+    /// SAF has no lookup by path, so a relative path is resolved one segment at a time: one query per folder level.
+    /// </remarks>
     public async Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(folder);

@@ -11,6 +11,7 @@ using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Shortcuts;
 using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Theming;
+using MediaFileClassifier.Ui.Toolbar;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
@@ -23,6 +24,7 @@ using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Navigation;
 using MediaFileClassifier.Ui.Views.Settings;
+using MediaFileClassifier.Ui.Views.Toolbar;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Settings;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,7 +52,9 @@ public static class UiModule
             .Register<ThumbnailGridViewModel, ThumbnailGridView>()
             .Register<IndexedFoldersViewModel, IndexedFoldersView>()
             .Register<NavigationPanelViewModel, NavigationPanelView>()
-            .Register<DetailsPanelViewModel, DetailsPanelView>());
+            .Register<DetailsPanelViewModel, DetailsPanelView>()
+            .Register<ToolbarViewModel, ToolbarView>()
+            .Register<ThumbnailSizeViewModel, ThumbnailSizeView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -114,6 +118,10 @@ public static class UiModule
 
         // Status bar (E13-S04). Features add segments through IStatusBarContributor.
         services.AddSingleton<StatusBarViewModel>();
+
+        // Toolbar (E13-S03). Features fill its slots and add actions through IToolbarContributor.
+        services.AddSingleton<ToolbarViewModel>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, BrowserToolbar>());
 
         // Processing indicator (E05-S02).
         services.AddSingleton<ProgressFeed>();

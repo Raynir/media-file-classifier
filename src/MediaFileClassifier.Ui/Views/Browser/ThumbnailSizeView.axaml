@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Browser"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Browser.ThumbnailSizeView"
+             x:DataType="vm:ThumbnailSizeViewModel">
+  <!-- The thumbnail size slider (E14-S01-T05), in the toolbar's View slot (E13-S03). -->
+  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+    <PathIcon Classes="Small" Data="{StaticResource Icon.Media.Image}" VerticalAlignment="Center" />
+    <!-- The range and step are ThumbnailGridViewModel.MinTileSize, MaxTileSize and TileSizeStep. -->
+    <Slider x:Name="SizeSlider"
+            Width="120"
+            VerticalAlignment="Center"
+            Minimum="96"
+            Maximum="384"
+            SmallChange="32"
+            LargeChange="32"
+            TickFrequency="32"
+            IsSnapToTickEnabled="True"
+            Value="{Binding Grid.TileSize}"
+            ToolTip.Tip="{l:Loc Browser_TileSize}"
+            AutomationProperties.Name="{l:Loc Browser_TileSize}" />
+    <PathIcon Data="{StaticResource Icon.Media.Image}" VerticalAlignment="Center" />
+  </StackPanel>
+</UserControl>

@@ -10,7 +10,7 @@
              sc:Shortcuts.Scope="browser">
   <!--
     Virtualised thumbnail grid (E14-S01). Provisional layout after the Figma tile (node 26:1127, D095) until the
-    E14-S01-T00 design. The size slider sits above the grid until the toolbar slot exists (E13-S03).
+    E14-S01-T00 design. The size slider is in the toolbar's View slot (ThumbnailSizeView, E13-S03).
   -->
   <UserControl.Styles>
     <Style Selector="views|ThumbnailRowPanel">
@@ -123,28 +123,6 @@
   </UserControl.Resources>
 
   <DockPanel>
-    <StackPanel DockPanel.Dock="Top"
-                Orientation="Horizontal"
-                HorizontalAlignment="Right"
-                Margin="{DynamicResource Padding.Header}"
-                Spacing="{DynamicResource Space.S}">
-      <PathIcon Classes="Small" Data="{StaticResource Icon.Media.Image}" VerticalAlignment="Center" />
-      <!-- The range and step are ThumbnailGridViewModel.MinTileSize, MaxTileSize and TileSizeStep. -->
-      <Slider x:Name="SizeSlider"
-              Width="160"
-              VerticalAlignment="Center"
-              Minimum="96"
-              Maximum="384"
-              SmallChange="32"
-              LargeChange="32"
-              TickFrequency="32"
-              IsSnapToTickEnabled="True"
-              Value="{Binding TileSize}"
-              ToolTip.Tip="{l:Loc Browser_TileSize}"
-              AutomationProperties.Name="{l:Loc Browser_TileSize}" />
-      <PathIcon Data="{StaticResource Icon.Media.Image}" VerticalAlignment="Center" />
-    </StackPanel>
-
     <Panel>
       <ScrollViewer x:Name="Scroller"
                     HorizontalScrollBarVisibility="Disabled"

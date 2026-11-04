@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="using:MediaFileClassifier.Ui.Toolbar"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Toolbar.ToolbarView"
+             x:DataType="t:ToolbarViewModel"
+             AutomationProperties.Name="{l:Loc Toolbar_Name}">
+  <!--
+    The toolbar (E13-S03), provisional after the Figma screens (D095): one row, 30 from the sides, with the slots
+    Search, Filter, Sort and View in that order at every width, then the action buttons. Each slot shows the view
+    of the view model a feature puts in it. See docs/toolbar.md.
+  -->
+  <t:ToolbarLayoutPanel x:Name="Row" Spacing="{DynamicResource Space.M}" Margin="{DynamicResource Padding.Toolbar}">
+    <ContentControl x:Name="SearchSlot"
+                    t:ToolbarLayoutPanel.Role="Fill"
+                    MinWidth="{DynamicResource Size.Toolbar.SearchMin}"
+                    VerticalAlignment="Center"
+                    HorizontalContentAlignment="Stretch"
+                    Content="{Binding Search}" />
+    <ContentControl x:Name="FilterSlot"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding Filter, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Content="{Binding Filter}" />
+    <ContentControl x:Name="SortSlot"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding Sort, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Content="{Binding Sort}" />
+    <ContentControl x:Name="ViewSlot"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding View, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Content="{Binding View}" />
+  </t:ToolbarLayoutPanel>
+</UserControl>

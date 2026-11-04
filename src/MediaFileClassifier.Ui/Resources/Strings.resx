@@ -937,4 +937,7 @@
   <data name="StatusBar_FoldersOffline_ToolTip" xml:space="preserve">
     <value>Some indexed folders can't be reached. Their items stay in the library.</value>
   </data>
+  <data name="Toolbar_Name" xml:space="preserve">
+    <value>Toolbar</value>
+  </data>
 </root>

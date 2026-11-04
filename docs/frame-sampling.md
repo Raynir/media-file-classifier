@@ -44,3 +44,11 @@ Each `SampledFrame` has its index, timestamp (for animated images, the sum of th
 - At most 1024 pixels on the longest edge, never upscaled: enough for SigLIP 2's 256 × 256 input (D092) and for OCR of on-screen text. 16 frames of 16:9 video take about 38 MB.
 
 `SampledFrame.ToKeyframe` makes the `Keyframe` to store with `IKeyframeRepository.ReplaceAsync`. Replacing an item's keyframes deletes the old ones with their per-frame embeddings.
+
+## Combining per-frame results
+
+`KeyframeAggregation` in `Domain/Analysis` turns per-frame results into item-level ones (E06-S02-T04):
+
+- **Tags:** a tag is kept when it appears in at least 25% of the keyframes. Its confidence is the sum of its per-frame confidences divided by the number of keyframes, so frequent tags score higher.
+- **OCR text:** lines are trimmed and their whitespace collapsed, empty lines are dropped, and exact repeats are removed, keeping the first-seen order.
+- **Embedding:** the mean of the L2-normalised keyframe embeddings, normalised again.

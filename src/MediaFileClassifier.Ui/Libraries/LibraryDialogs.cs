@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using Microsoft.Extensions.Logging;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.Views.Libraries;
@@ -19,6 +20,11 @@ public sealed class LibraryDialogs(Func<CreateLibraryViewModel> createLibrary, F
     /// How often the folders dialog lists the folders again, so states and counts follow an import.
     /// </summary>
     public static readonly TimeSpan FoldersRefreshInterval = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Raised when the folders dialog closes, e.g. so the navigation panel shows changed folders at once.
+    /// </summary>
+    public event EventHandler? Closed;
 
     /// <summary>
     /// Gets a value indicating whether the app has windows, so the dialogs can be shown.
@@ -44,10 +50,11 @@ public sealed class LibraryDialogs(Func<CreateLibraryViewModel> createLibrary, F
     }
 
     /// <summary>
-    /// Shows the indexed folders dialog until the user closes it (E02-S03-T06).
+    /// Shows the indexed folders dialog until the user closes it (E02-S03-T06), adding dropped folders first (E13-S02).
     /// </summary>
+    /// <param name="dropped">Folders dropped on the navigation panel, or <c>null</c>.</param>
     /// <returns>A task that completes when the dialog closes.</returns>
-    public async Task ShowIndexedFoldersAsync()
+    public async Task ShowIndexedFoldersAsync(IReadOnlyList<FolderHandle>? dropped = null)
     {
         if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
         {
@@ -71,6 +78,11 @@ public sealed class LibraryDialogs(Func<CreateLibraryViewModel> createLibrary, F
             }
         };
         await viewModel.OpenAsync();
+        if (dropped is { Count: > 0 })
+        {
+            await viewModel.AddFoldersAsync(dropped);
+        }
+
         timer.Start();
         try
         {
@@ -79,6 +91,7 @@ public sealed class LibraryDialogs(Func<CreateLibraryViewModel> createLibrary, F
         finally
         {
             timer.Stop();
+            Closed?.Invoke(this, EventArgs.Empty);
         }
     }
 }

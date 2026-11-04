@@ -165,41 +165,77 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsEmpty));
     }
 
-    [RelayCommand]
-    private async Task AddFolderAsync()
+    /// <summary>
+    /// Adds folders with the overlap rules (E02-S03-T02): folders that are covered already are refused with a message,
+    /// and when one contains indexed folders the dialog asks before merging them. Dropping folders on the navigation
+    /// panel comes here too (E13-S02).
+    /// </summary>
+    /// <param name="folders">The folders.</param>
+    /// <returns>A task that completes when they're added, or the question is asked.</returns>
+    public async Task AddFoldersAsync(IReadOnlyList<FolderHandle> folders)
     {
-        if (await platform.PickFolderAsync(localizer.Get("Folders_PickFolder")) is not { } folder)
+        ArgumentNullException.ThrowIfNull(folders);
+
+        var messages = new List<string>();
+        var toAdd = new List<FolderHandle>();
+        var merges = new List<string>();
+        foreach (var folder in folders)
+        {
+            var overlap = await sender.Send(new CheckFolderOverlapQuery(folder));
+            switch (overlap.Kind)
+            {
+                case FolderOverlapKind.AlreadyIndexed:
+                    messages.Add(localizer.Format("Folders_AlreadyIndexed", overlap.Folders[0].DisplayPath));
+                    break;
+                case FolderOverlapKind.InsideIndexed:
+                    messages.Add(localizer.Format("Folders_InsideIndexed", folder.Id, overlap.Folders[0].DisplayPath));
+                    break;
+                case FolderOverlapKind.ContainsIndexed:
+                    merges.Add(localizer.Format("Folders_MergeConfirm", folder.Id, string.Join(", ", overlap.Folders.Select(child => child.DisplayPath))));
+                    toAdd.Add(folder);
+                    break;
+                default:
+                    toAdd.Add(folder);
+                    break;
+            }
+        }
+
+        Message = messages.Count > 0 ? string.Join(Environment.NewLine, messages) : null;
+        if (toAdd.Count == 0)
         {
             return;
         }
 
-        var overlap = await sender.Send(new CheckFolderOverlapQuery(folder));
-        switch (overlap.Kind)
+        if (merges.Count > 0)
         {
-            case FolderOverlapKind.AlreadyIndexed:
-                Message = localizer.Format("Folders_AlreadyIndexed", overlap.Folders[0].DisplayPath);
-                return;
-            case FolderOverlapKind.InsideIndexed:
-                Message = localizer.Format("Folders_InsideIndexed", folder.Id, overlap.Folders[0].DisplayPath);
-                return;
-            case FolderOverlapKind.ContainsIndexed:
-                Ask(
-                    localizer.Format("Folders_MergeConfirm", folder.Id, string.Join(", ", overlap.Folders.Select(child => child.DisplayPath))),
-                    localizer.Get("Folders_Merge"),
-                    () => AddAsync(folder));
-                return;
-            default:
-                await AddAsync(folder);
-                return;
+            Ask(string.Join(Environment.NewLine, merges), localizer.Get("Folders_Merge"), () => AddAsync(toAdd));
+        }
+        else
+        {
+            await AddAsync(toAdd);
         }
     }
 
-    private async Task AddAsync(FolderHandle folder)
+    [RelayCommand]
+    private async Task AddFolderAsync()
     {
-        var result = await sender.Send(new AddLibraryFoldersCommand([folder]));
-        Message = result.Refused.Count > 0 ? localizer.Format("Folders_InsideIndexed", folder.Id, result.Refused[0].CoveredBy.DisplayPath) : null;
+        if (await platform.PickFolderAsync(localizer.Get("Folders_PickFolder")) is { } folder)
+        {
+            await AddFoldersAsync([folder]);
+        }
+    }
+
+    private async Task AddAsync(IReadOnlyList<FolderHandle> folders)
+    {
+        var result = await sender.Send(new AddLibraryFoldersCommand(folders));
+        if (result.Refused.Count > 0)
+        {
+            // E.g. two dropped folders where one is inside the other.
+            Message = string.Join(Environment.NewLine, result.Refused.Select(refused => localizer.Format("Folders_InsideIndexed", refused.Folder.Id, refused.CoveredBy.DisplayPath)));
+        }
+
         await RefreshAsync();
-        SelectedFolder = result.Added.Count > 0 ? Folders.FirstOrDefault(row => row.Folder.Id == result.Added[0].Id) : SelectedFolder;
+        SelectedFolder = result.Added.Count > 0 ? Folders.FirstOrDefault(row => row.Folder.Id == result.Added[^1].Id) : SelectedFolder;
     }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]

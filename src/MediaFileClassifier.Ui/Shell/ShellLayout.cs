@@ -15,6 +15,8 @@ public sealed partial class ShellLayout : ObservableObject
     /// </summary>
     public const double BrowserMinWidth = 320;
 
+    private readonly HashSet<string> collapsedSections = new(StringComparer.Ordinal);
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ShellLayout"/> class with the default layout.
     /// </summary>
@@ -46,6 +48,25 @@ public sealed partial class ShellLayout : ObservableObject
     public partial bool IsStatusBarVisible { get; set; } = true;
 
     /// <summary>
+    /// Gets the keys of the navigation panel's collapsed sections (E13-S02).
+    /// </summary>
+    public IReadOnlySet<string> CollapsedNavigationSections => collapsedSections;
+
+    /// <summary>
+    /// Collapses or expands a navigation section, remembered with the layout.
+    /// </summary>
+    /// <param name="key">The section key.</param>
+    /// <param name="collapsed">Whether it's collapsed.</param>
+    public void SetNavigationSectionCollapsed(string key, bool collapsed)
+    {
+        if (collapsed ? collapsedSections.Add(key) : collapsedSections.Remove(key))
+        {
+            OnPropertyChanged(nameof(CollapsedNavigationSections));
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>
     /// Restores the default layout of every panel and the status bar.
     /// </summary>
     public void Reset()
@@ -53,13 +74,20 @@ public sealed partial class ShellLayout : ObservableObject
         Navigation.Reset();
         Details.Reset();
         IsStatusBarVisible = true;
+        if (collapsedSections.Count > 0)
+        {
+            collapsedSections.Clear();
+            OnPropertyChanged(nameof(CollapsedNavigationSections));
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     /// <summary>
     /// Gets the layout to save.
     /// </summary>
     /// <returns>The layout.</returns>
-    public MainWindowLayout ToSettings() => new(Navigation.ToLayout(), Details.ToLayout(), IsStatusBarVisible);
+    public MainWindowLayout ToSettings() =>
+        new(Navigation.ToLayout(), Details.ToLayout(), IsStatusBarVisible, collapsedSections.Count == 0 ? null : [.. collapsedSections.Order(StringComparer.Ordinal)]);
 
     /// <summary>
     /// Restores a saved layout.
@@ -70,6 +98,9 @@ public sealed partial class ShellLayout : ObservableObject
         Navigation.Apply(layout.Navigation);
         Details.Apply(layout.Details);
         IsStatusBarVisible = layout.IsStatusBarVisible;
+        collapsedSections.Clear();
+        collapsedSections.UnionWith(layout.CollapsedNavigationSections ?? []);
+        OnPropertyChanged(nameof(CollapsedNavigationSections));
     }
 
     partial void OnIsStatusBarVisibleChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);

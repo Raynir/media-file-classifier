@@ -28,7 +28,8 @@ public static class UseCasesModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<SettingRegistry>();
-        services.TryAddSingleton<IMediaResultSource, LibraryItemsSource>();
+        services.TryAddSingleton<LibraryItemsSource>();
+        services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<LibraryItemsSource>());
         services.AddSetting(KnownSettings.OpenAiCompatibleEndpoint);
         services.AddSetting(KnownSettings.AnalyzeAutomatically);
         services.AddSetting(KnownSettings.RetainedPreviousRuns);

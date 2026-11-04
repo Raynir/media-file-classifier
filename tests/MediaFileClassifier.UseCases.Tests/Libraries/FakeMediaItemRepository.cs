@@ -72,6 +72,16 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
     public Task<IReadOnlyList<MediaItem>> GetByFolderAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<MediaItem>>([.. Items.Where(item => item.FolderId == folderId)]);
 
+    public Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(MediaItemFilter filter, int offset, int limit, CancellationToken cancellationToken = default) =>
+        GetSummariesAsync(offset, limit, cancellationToken);
+
+    public Task<int> CountNewerAsync(MediaItemFilter filter, Id<MediaItem> id, CancellationToken cancellationToken = default) =>
+        CountNewerAsync(id, cancellationToken);
+
+    public Task<int> CountAsync(MediaItemFilter filter, CancellationToken cancellationToken = default) => CountAsync(cancellationToken);
+
+    public Task<IReadOnlyList<(string Name, int Count)>> GetSubfoldersAsync(Id<IndexedFolder> folderId, string subfolder, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
     public Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default) => throw new NotSupportedException();

@@ -64,13 +64,16 @@
                          VerticalAlignment="Center"
                          TextWrapping="Wrap" />
             </DockPanel>
-            <Panel IsVisible="{Binding Layout.Navigation.IsExpanded}">
+            <!-- The navigation view shows its own icon rail while the panel is collapsed (D108). -->
+            <Panel>
               <ContentControl Content="{Binding Regions.Navigation}" />
-              <TextBlock Classes="Tertiary"
-                         Text="{l:Loc Navigation_Empty}"
-                         IsVisible="{Binding Regions.Navigation, Converter={x:Static ObjectConverters.IsNull}}"
-                         Margin="{DynamicResource Padding.Panel}"
-                         TextWrapping="Wrap" />
+              <Panel IsVisible="{Binding Layout.Navigation.IsExpanded}">
+                <TextBlock Classes="Tertiary"
+                           Text="{l:Loc Navigation_Empty}"
+                           IsVisible="{Binding Regions.Navigation, Converter={x:Static ObjectConverters.IsNull}}"
+                           Margin="{DynamicResource Padding.Panel}"
+                           TextWrapping="Wrap" />
+              </Panel>
             </Panel>
           </DockPanel>
         </Border>

@@ -24,6 +24,8 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     /// </summary>
     public const int BatchSize = 100;
 
+    private const string LikeEscape = "\\";
+
     /// <inheritdoc />
     public event EventHandler? Changed;
 
@@ -173,7 +175,18 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(int offset, int limit, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(int offset, int limit, CancellationToken cancellationToken = default) =>
+        ReadSummariesAsync(null, offset, limit, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(MediaItemFilter filter, int offset, int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        return ReadSummariesAsync(filter, offset, limit, cancellationToken);
+    }
+
+    private Task<IReadOnlyList<MediaItemSummary>> ReadSummariesAsync(MediaItemFilter? filter, int offset, int limit, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
@@ -182,7 +195,7 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
             async (db, token) =>
             {
                 var rows = await (
-                    from item in db.MediaItems.OrderByDescending(item => item.Id).Skip(offset).Take(limit)
+                    from item in Filter(db, filter).OrderByDescending(item => item.Id).Skip(offset).Take(limit)
                     join metadata in db.TechnicalMetadata on item.Id equals metadata.ItemId into found
                     from metadata in found.DefaultIfEmpty()
                     orderby item.Id descending
@@ -270,6 +283,51 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     /// <inheritdoc />
     public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync((db, token) => db.MediaItems.CountAsync(token), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> CountNewerAsync(MediaItemFilter filter, Id<MediaItem> id, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        var text = id.Value.ToString();
+        return connections.ReadAsync(
+            (db, token) => Filter(db, filter, db.MediaItems.FromSql($"SELECT * FROM media_item WHERE id > {text}")).CountAsync(token),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<int> CountAsync(MediaItemFilter filter, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        return connections.ReadAsync((db, token) => Filter(db, filter).CountAsync(token), cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<(string Name, int Count)>> GetSubfoldersAsync(Id<IndexedFolder> folderId, string subfolder, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(subfolder);
+
+        var parent = subfolder.Replace('\\', '/').Trim('/');
+        return connections.ReadAsync<IReadOnlyList<(string Name, int Count)>>(
+            async (db, token) =>
+            {
+                var paths = await Filter(db, new MediaItemFilter { FolderId = folderId, Subfolder = parent })
+                    .Select(item => item.Path)
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+
+                // The next segment of each path below the parent that has a folder after it.
+                var skip = parent.Length == 0 ? 0 : parent.Length + 1;
+                return [.. paths
+                    .Select(path => path.Value[skip..])
+                    .Where(rest => rest.Contains('/', StringComparison.Ordinal))
+                    .GroupBy(rest => rest[..rest.IndexOf('/', StringComparison.Ordinal)], StringComparer.OrdinalIgnoreCase)
+                    .Select(group => (group.Key, group.Count()))
+                    .OrderBy(subfolder => subfolder.Key, StringComparer.CurrentCultureIgnoreCase)];
+            },
+            cancellationToken);
+    }
 
     /// <inheritdoc />
     public async Task AddAsync(MediaItem item, CancellationToken cancellationToken = default)
@@ -408,4 +466,38 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
 
         return deleted;
     }
+
+    // The items a filter shows; a null filter shows every item, the Excluded ones too.
+    private static IQueryable<MediaItem> Filter(LibraryDbContext db, MediaItemFilter? filter, IQueryable<MediaItem>? items = null)
+    {
+        items ??= db.MediaItems;
+        if (filter is null)
+        {
+            return items;
+        }
+
+        items = items.Where(item => item.Status != MediaItemStatus.Excluded);
+        if (filter.FolderId is { } folderId)
+        {
+            items = items.Where(item => item.FolderId == folderId);
+        }
+
+        if (filter.Subfolder?.Replace('\\', '/').Trim('/') is { Length: > 0 } subfolder)
+        {
+            var pattern = EscapeLike(subfolder) + "/%";
+            items = items.Where(item => EF.Functions.Like((string)(object)item.Path, pattern, LikeEscape));
+        }
+
+        if (filter.ImportedSince is { } since)
+        {
+            items = items.Where(item => item.ImportedAt >= since);
+        }
+
+        return items;
+    }
+
+    private static string EscapeLike(string value) =>
+        value.Replace(LikeEscape, LikeEscape + LikeEscape, StringComparison.Ordinal)
+            .Replace("%", LikeEscape + "%", StringComparison.Ordinal)
+            .Replace("_", LikeEscape + "_", StringComparison.Ordinal);
 }

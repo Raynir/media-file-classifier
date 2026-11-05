@@ -4,6 +4,7 @@ using Avalonia.Logging;
 using MediaFileClassifier.Desktop.Diagnostics;
 using MediaFileClassifier.Desktop.Platform;
 using MediaFileClassifier.Infrastructure;
+using MediaFileClassifier.Infrastructure.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
@@ -50,6 +51,7 @@ internal static class Program
                 .AddSingleton<IAppPaths>(appPaths)
                 .AddDesktopPlatform()
                 .AddInfrastructure()
+                .AddAi()
                 .AddDataAccess()
                 .AddJobs()
                 .AddMedia()

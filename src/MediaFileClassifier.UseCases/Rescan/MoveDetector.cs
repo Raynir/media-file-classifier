@@ -40,7 +40,17 @@ public sealed class MoveDetector(IMediaHasher hasher)
                 continue;
             }
 
-            var fingerprint = await hasher.ComputeFingerprintAsync(ItemStage.GetLocation(folder, file), file.SizeBytes, cancellationToken).ConfigureAwait(false);
+            UInt128 fingerprint;
+            try
+            {
+                fingerprint = await hasher.ComputeFingerprintAsync(ItemStage.GetLocation(folder, file), file.SizeBytes, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // Gone or locked since it was listed: it stays new, and the import deals with it.
+                continue;
+            }
+
             file.SetHashes(file.Hashes with { Fingerprint = fingerprint });
             edges.AddRange(bySize[file.SizeBytes].Where(item => item.Hashes.Fingerprint == fingerprint).Select(item => (folder, file, item)));
         }
@@ -90,8 +100,15 @@ public sealed class MoveDetector(IMediaHasher hasher)
             return true;
         }
 
-        var hashes = await hasher.ComputeMissingAsync(ItemStage.GetLocation(folder, file), file.SizeBytes, file.MediaType, file.Hashes, cancellationToken).ConfigureAwait(false);
-        file.SetHashes(hashes);
-        return hashes.ContentHash == item.Hashes.ContentHash;
+        try
+        {
+            var hashes = await hasher.ComputeMissingAsync(ItemStage.GetLocation(folder, file), file.SizeBytes, file.MediaType, file.Hashes, cancellationToken).ConfigureAwait(false);
+            file.SetHashes(hashes);
+            return hashes.ContentHash == item.Hashes.ContentHash;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 }

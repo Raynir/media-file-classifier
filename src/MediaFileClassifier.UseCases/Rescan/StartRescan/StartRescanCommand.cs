@@ -72,6 +72,9 @@ public sealed class StartRescanCommandHandler(
 
         var unfinished = (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false))
             .Where(job => job.Type is ImportStages.ImportJob or RescanStages.RescanJob or IndexedFolders.RemoveJob)
+
+            // Waiting for a model means discovery and registration are done; the rest of the job needn't hold up a rescan.
+            .Where(job => job.State != ProcessingJobState.WaitingForModel)
             .ToList();
         var busy = request.FolderId is { } single
             ? unfinished.Any(job => job.FolderId == single || (job.FolderId is null && job.Type == RescanStages.RescanJob))

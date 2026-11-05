@@ -1,0 +1,34 @@
+{
+  "models": [
+    {
+      "modelId": "siglip2-base-patch16-256",
+      "version": "1.0",
+      "displayName": "SigLIP 2 base (search)",
+      "purpose": "Embedding",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "source": "https://huggingface.co/google/siglip2-base-patch16-256",
+      "defaultTier": "standard",
+      "tiers": [
+        {
+          "tierId": "standard",
+          "displayName": "Standard",
+          "files": [
+            { "role": "vision", "fileName": "vision_model.onnx", "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-256-ONNX/resolve/d1114256522a37ffa257a0a58017348ab0058db2/onnx/vision_model.onnx", "size": 371992072, "sha256": "f5cb16728a704703f05516ded628397e11dbca4de2eb5db04b0c0bcee988aa7a" },
+            { "role": "text", "fileName": "text_model.onnx", "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-256-ONNX/resolve/d1114256522a37ffa257a0a58017348ab0058db2/onnx/text_model.onnx", "size": 1129469657, "sha256": "d3de4a6bbbfcb429b6615ac496790353cf4a4fc0f19fbbe7179e523ae60daaef" },
+            { "role": "tokenizer", "fileName": "tokenizer.model", "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-256-ONNX/resolve/d1114256522a37ffa257a0a58017348ab0058db2/tokenizer.model", "size": 4241003, "sha256": "61a7b147390c64585d6c3543dd6fc636906c9af3865a5548f27f31aee1d4c8e2" }
+          ]
+        },
+        {
+          "tierId": "compact",
+          "displayName": "Compact (half-precision text tower)",
+          "files": [
+            { "role": "vision", "fileName": "vision_model.onnx", "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-256-ONNX/resolve/d1114256522a37ffa257a0a58017348ab0058db2/onnx/vision_model.onnx", "size": 371992072, "sha256": "f5cb16728a704703f05516ded628397e11dbca4de2eb5db04b0c0bcee988aa7a" },
+            { "role": "text", "fileName": "text_model_fp16.onnx", "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-256-ONNX/resolve/d1114256522a37ffa257a0a58017348ab0058db2/onnx/text_model_fp16.onnx", "size": 564862230, "sha256": "80954edffdc689599e5d5bc6a1738380bc9e8139a18e5c8892485f248b6b4890" },
+            { "role": "tokenizer", "fileName": "tokenizer.model", "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-256-ONNX/resolve/d1114256522a37ffa257a0a58017348ab0058db2/tokenizer.model", "size": 4241003, "sha256": "61a7b147390c64585d6c3543dd6fc636906c9af3865a5548f27f31aee1d4c8e2" }
+          ]
+        }
+      ]
+    }
+  ]
+}

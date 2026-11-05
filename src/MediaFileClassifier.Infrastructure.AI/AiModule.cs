@@ -24,6 +24,7 @@ public static class AiModule
         services.TryAddSingleton<OnnxSessionFactory>();
         services.TryAddSingleton<IAiProviderRegistry, AiProviderRegistry>();
         services.TryAddSingleton<IModelStore, ModelStore>();
+        services.TryAddSingleton<IModelCatalog, ModelCatalog>();
         return services;
     }
 }

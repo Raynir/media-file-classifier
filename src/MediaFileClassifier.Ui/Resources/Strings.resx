@@ -1008,4 +1008,76 @@
   <data name="Toolbar_More" xml:space="preserve">
     <value>More actions</value>
   </data>
+  <data name="ModelBanner_Name" xml:space="preserve">
+    <value>Search model</value>
+  </data>
+  <data name="ModelBanner_Message" xml:space="preserve">
+    <value>Search needs an AI model. Download it once, or import its files if this computer is offline.</value>
+  </data>
+  <data name="ModelBanner_Download" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="ModelBanner_Import" xml:space="preserve">
+    <value>Import from file</value>
+  </data>
+  <data name="ModelBanner_Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="ModelBanner_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ModelBanner_Downloading" xml:space="preserve">
+    <value>Downloading the search model: {0}</value>
+  </data>
+  <data name="ModelBanner_Progress" xml:space="preserve">
+    <value>{0} of {1}</value>
+  </data>
+  <data name="ModelBanner_Installing" xml:space="preserve">
+    <value>Checking and installing the search model…</value>
+  </data>
+  <data name="ModelBanner_ErrorNetwork" xml:space="preserve">
+    <value>The search model couldn't be downloaded: the server couldn't be reached or the connection broke.</value>
+  </data>
+  <data name="ModelBanner_ErrorDiskFull" xml:space="preserve">
+    <value>There isn't enough free disk space for the search model.</value>
+  </data>
+  <data name="ModelBanner_ErrorHashMismatch" xml:space="preserve">
+    <value>The downloaded search model was damaged, so it was deleted.</value>
+  </data>
+  <data name="ModelBanner_ErrorInstall" xml:space="preserve">
+    <value>The search model couldn't be installed.</value>
+  </data>
+  <data name="ModelBanner_ErrorImport" xml:space="preserve">
+    <value>These files couldn't be imported as the search model.</value>
+  </data>
+  <data name="ModelConsent_Title" xml:space="preserve">
+    <value>Download the search model</value>
+  </data>
+  <data name="ModelConsent_Intro" xml:space="preserve">
+    <value>Media File Classifier downloads this model from its publisher once and keeps it on this computer. Your media never leaves it.</value>
+  </data>
+  <data name="ModelConsent_Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="ModelConsent_Size" xml:space="preserve">
+    <value>Download size</value>
+  </data>
+  <data name="ModelConsent_License" xml:space="preserve">
+    <value>License</value>
+  </data>
+  <data name="ModelConsent_Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="ModelConsent_Download" xml:space="preserve">
+    <value>Download ({0})</value>
+  </data>
+  <data name="ModelConsent_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ModelImport_Title" xml:space="preserve">
+    <value>Import the search model files</value>
+  </data>
+  <data name="ModelImport_FileType" xml:space="preserve">
+    <value>Model files</value>
+  </data>
 </root>

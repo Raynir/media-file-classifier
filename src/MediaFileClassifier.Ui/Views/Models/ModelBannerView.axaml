@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Models"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Models.ModelBannerView"
+             x:DataType="vm:ModelBannerViewModel">
+  <!--
+    The "no model" banner (E06-S12-T04), a plain Fluent info bar under the menu until the designer's version (D095).
+    Tab order: the actions left to right; the progress bar isn't a tab stop.
+  -->
+  <Border x:Name="Banner"
+          Classes="Panel"
+          BorderThickness="0,0,0,1"
+          Padding="{DynamicResource Padding.Header}"
+          Background="{DynamicResource Brush.Status.Pending.Background}"
+          AutomationProperties.Name="{l:Loc ModelBanner_Name}"
+          AutomationProperties.LiveSetting="Polite">
+    <DockPanel>
+      <PathIcon DockPanel.Dock="Left"
+                Data="{StaticResource Icon.Info}"
+                Foreground="{DynamicResource Brush.Status.Pending.Foreground}"
+                Margin="{DynamicResource Padding.Compact}"
+                VerticalAlignment="Center" />
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+        <Button x:Name="DownloadButton" Classes="accent" Content="{l:Loc ModelBanner_Download}" Command="{Binding DownloadCommand}" IsVisible="{Binding IsMissing}" />
+        <Button x:Name="ImportButton" Content="{l:Loc ModelBanner_Import}" Command="{Binding ImportCommand}" IsVisible="{Binding IsMissing}" />
+        <Button x:Name="RetryButton" Classes="accent" Content="{l:Loc ModelBanner_Retry}" Command="{Binding RetryCommand}" IsVisible="{Binding IsFailed}" />
+        <Button x:Name="FailedImportButton" Content="{l:Loc ModelBanner_Import}" Command="{Binding ImportCommand}" IsVisible="{Binding IsFailed}" />
+        <Button x:Name="CancelButton" Content="{l:Loc ModelBanner_Cancel}" Command="{Binding CancelDownloadCommand}" IsVisible="{Binding IsDownloading}" />
+      </StackPanel>
+      <StackPanel VerticalAlignment="Center" Spacing="{DynamicResource Space.XS}" Margin="{DynamicResource Padding.Compact}">
+        <TextBlock x:Name="MessageText"
+                   Text="{Binding Message}"
+                   ToolTip.Tip="{Binding ErrorDetail}"
+                   TextWrapping="Wrap" />
+        <ProgressBar x:Name="DownloadProgress"
+                     Minimum="0"
+                     Maximum="100"
+                     Value="{Binding ProgressPercent}"
+                     IsVisible="{Binding IsDownloading}"
+                     AutomationProperties.Name="{Binding ProgressText}" />
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsInstalling}" />
+      </StackPanel>
+    </DockPanel>
+  </Border>
+</UserControl>

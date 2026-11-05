@@ -3,6 +3,7 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.Navigation;
 using MediaFileClassifier.Ui.Rescan;
 using MediaFileClassifier.Ui.Platform;
@@ -17,6 +18,7 @@ using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
+using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
@@ -83,6 +85,8 @@ public static class UiModule
         services.AddTransient<IndexedFoldersViewModel>();
         services.AddSingleton<Func<IndexedFoldersViewModel>>(provider => provider.GetRequiredService<IndexedFoldersViewModel>);
         services.AddSingleton<LibraryDialogs>();
+        services.TryAddSingleton<IModelDialogs, ModelDialogs>();
+        services.AddSingleton<ModelBannerViewModel>();
 
         // Navigation panel (E13-S02). Features add sections through INavigationContributor.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INavigationContributor, LibraryNavigation>());

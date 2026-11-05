@@ -19,6 +19,11 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 public interface IModelStore
 {
     /// <summary>
+    /// Raised after a model is installed or deleted.
+    /// </summary>
+    event EventHandler? ModelsChanged;
+
+    /// <summary>
     /// Gets the store's root folder.
     /// </summary>
     string RootDirectory { get; }

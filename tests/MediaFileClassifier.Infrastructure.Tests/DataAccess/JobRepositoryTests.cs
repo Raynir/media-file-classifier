@@ -42,12 +42,12 @@ public sealed class JobRepositoryTests : IAsyncLifetime
         var otherPool = WorkItem.Create(job.Id, null, "thumbnail", ResourcePool.Cpu, (int)JobPriority.UserAction, null, Now);
         await bed.Library.Jobs.AddJobAsync(job, [low, high, older, otherPool], Token);
 
-        var queued = await bed.Library.Jobs.GetQueuedAsync(ResourcePool.Io, 10, [], Token);
-        var excluding = await bed.Library.Jobs.GetQueuedAsync(ResourcePool.Io, 10, [older.Id], Token);
+        var queued = await bed.Library.Jobs.GetQueuedAsync(ResourcePool.Io, 10, [], null, Token);
+        var excluding = await bed.Library.Jobs.GetQueuedAsync(ResourcePool.Io, 10, [older.Id], null, Token);
 
         Assert.Equal([older.Id, high.Id, low.Id], queued.Select(item => item.Id));
         Assert.Equal([high.Id, low.Id], excluding.Select(item => item.Id));
-        Assert.Single(await bed.Library.Jobs.GetQueuedAsync(ResourcePool.Io, 1, [], Token));
+        Assert.Single(await bed.Library.Jobs.GetQueuedAsync(ResourcePool.Io, 1, [], null, Token));
     }
 
     [Fact]

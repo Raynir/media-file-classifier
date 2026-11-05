@@ -249,6 +249,26 @@ public sealed class ModelStoreTests : IDisposable
         Directory.Delete(root, recursive: true);
     }
 
+    [Fact]
+    public async Task ModelsChanged_IsRaisedAfterImportAndDeleteOnly()
+    {
+        var raised = 0;
+        store.ModelsChanged += (_, _) => raised++;
+        var (path, sha256) = WriteSource("vision.onnx", 1000);
+        await Assert.ThrowsAsync<ModelStoreException>(() => store.ImportAsync(Request(new ModelFileSource("vision", path, new string('0', 64))), null, Token));
+        Assert.Equal(0, raised);
+
+        await store.ImportAsync(Request(new ModelFileSource("vision", path, sha256)), null, Token);
+        Assert.Equal(1, raised);
+
+        await store.RecordUsageAsync("siglip2", "1", Path.Combine(root, "Holidays.mfclib"), Token);
+        await store.DeleteAsync("siglip2", "1", confirmed: false, Token);
+        Assert.Equal(1, raised);
+
+        await store.DeleteAsync("siglip2", "1", confirmed: true, Token);
+        Assert.Equal(2, raised);
+    }
+
     private static ModelImportRequest Request(params ModelFileSource[] files) => new("siglip2", "1", "SigLIP 2", files);
 
     private (string Path, string Sha256) WriteSource(string name, int size)

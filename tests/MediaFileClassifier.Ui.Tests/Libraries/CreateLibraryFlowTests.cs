@@ -53,6 +53,7 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
         services.GetRequiredService<LibraryShell>();
 
         Assert.IsType<WelcomeViewModel>(services.GetRequiredService<ShellRegions>().Browser);
+        Assert.Null(services.GetRequiredService<ShellRegions>().Toolbar);
     });
 
     [Fact]
@@ -101,7 +102,7 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task OpeningALibrary_ShowsTheThumbnailGridInsteadOfTheWelcomeScreen()
+    public async Task OpeningALibrary_ShowsTheThumbnailGridAndToolbarInsteadOfTheWelcomeScreen()
     {
         await TestApp.RunAsync(() => services.GetRequiredService<LibraryShell>());
         var library = await services.GetRequiredService<ILibraryStore>().CreateAsync(root, "Family", TestContext.Current.CancellationToken);
@@ -109,6 +110,7 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
         await TestApp.RunAsync(() => services.GetRequiredService<ILibrarySession>().SetCurrentAsync(library).GetAwaiter().GetResult());
 
         Assert.IsType<ThumbnailGridViewModel>(services.GetRequiredService<ShellRegions>().Browser);
+        Assert.IsType<Ui.Toolbar.ToolbarViewModel>(services.GetRequiredService<ShellRegions>().Toolbar);
     }
 
     [Fact]

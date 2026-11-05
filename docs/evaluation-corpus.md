@@ -102,6 +102,14 @@ dotnet run --project tools/MediaFileClassifier.Evaluation -- evaluate --results 
 - `evaluate` writes `eval/reports/<yyyy-MM-dd_HHmmss>_<system>.json` and `.md`. The report shows each metric, the change from the previous report of the same system, the baseline and its status, scores per category, and the weakest queries. If the labels changed since the previous run, the report says so, because the deltas then compare different questions.
 - `--fail-below-baseline` exits with code 3 when a metric is worse than its baseline, for CI later.
 
+To score the app's own SigLIP 2 pipeline instead of a results file (E06-S03-T05), give the model folder:
+
+```powershell
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate --system siglip2 --models models/siglip2 --fail-below-baseline
+```
+
+`Siglip2System` embeds each item with `Siglip2EmbeddingProvider`: one vector for a photo, screenshot or document, and the mean of the keyframes' vectors for a GIF or video, sampled by the app's `FrameSampler` (videos need FFmpeg). Each query is encoded by the text tower and ranked by cosine similarity. It takes about 1.5 minutes on an i7-14700HX.
+
 Commit the reports of public runs, so the next run compares against a shared history. A second run of the same system within the same second gets a `-2` suffix instead of replacing the first report.
 
 ## Baselines
@@ -135,7 +143,7 @@ Personal media never goes into the repository. To measure on your own photos:
 
 The data-consistency check runs in CI on every build: `PublicDataSetTests` validates the committed manifest, queries and OCR truth without the media.
 
-The model run is manual for now, because no model exists yet: the spike runs the models, writes a results file, and runs `evaluate` as above. To run the public subset in CI later (E01-S11-T02), a job needs:
+The model run is manual. The embedding regression test (E06-S03-T05) is the command above, run after any change to the SigLIP 2 model, its preprocessing, the tokenizer or the keyframe sampler. The same run is the xunit test `Siglip2QualityTests` in `MediaFileClassifier.Evaluation.Tests`. It skips when `models/siglip2` (or `MFC_SIGLIP2_DIR`) or `eval/corpus` is missing, so it never runs in CI today. The first run's numbers, against the D094 baselines: recall@10 0.959 (en) and 0.816 (ru), MRR 0.983 and 0.831. To run the public subset in CI later (E01-S11-T02), a job needs:
 
 - the corpus: `fetch-corpus.ps1` with `GH_TOKEN: ${{ github.token }}`, cached by the release tag;
 - the model files, cached by model hash (D030), and a CPU ONNX runtime;

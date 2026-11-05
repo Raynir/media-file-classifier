@@ -30,3 +30,7 @@ The text tower needs the Gemma SentencePiece vocabulary (`tokenizer.model`, a ro
 - **Image:** `EncodeImageAsync(AiImage)` and `EncodeImageFileAsync(path)` embed a picture that isn't in the library (a dropped or pasted file). They add nothing to the library's items, and nothing is cached. The vector goes into `SearchQuery.Vector` for image-to-image search.
 - **Lifecycle:** when a library opens, the text tower loads in the background (a missing model is logged, not thrown). When it closes, the model is unloaded and the cache cleared.
 - **No library or no provider:** both methods return `null`. A model that isn't installed throws `AiProviderException` with `ModelMissing`, and the search falls back to text matching (D037).
+
+## Quality regression test (T05)
+
+`dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate --system siglip2 --models models/siglip2 --fail-below-baseline` runs the app's pipeline over the public corpus and exits with code 3 when a metric is below `eval/baselines.json` (D094). Run it after changing the model, the preprocessing, the tokenizer or the keyframe sampler. Details and the first numbers are in [evaluation-corpus.md](evaluation-corpus.md). `Siglip2QualityTests` runs the same thing when the model and the corpus are installed.

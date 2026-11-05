@@ -19,6 +19,10 @@ internal sealed record CommandOptions
 
     public string? Out { get; init; }
 
+    public string? System { get; init; }
+
+    public string? Models { get; init; }
+
     public string? Media { get; init; }
 
     public bool CheckFiles { get; init; }
@@ -35,6 +39,8 @@ internal sealed record CommandOptions
             {
                 "--data" => options with { Data = Path.GetFullPath(Value(args, ref i, name)), DataGiven = true },
                 "--results" => options with { Results = Path.GetFullPath(Value(args, ref i, name)) },
+                "--system" => options with { System = Value(args, ref i, name) },
+                "--models" => options with { Models = Path.GetFullPath(Value(args, ref i, name)) },
                 "--out" => options with { Out = Path.GetFullPath(Value(args, ref i, name)) },
                 "--media" => options with { Media = Path.GetFullPath(Value(args, ref i, name)) },
                 "--files" => options with { CheckFiles = true },

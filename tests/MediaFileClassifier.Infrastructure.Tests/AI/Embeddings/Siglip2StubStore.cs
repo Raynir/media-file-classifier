@@ -7,6 +7,12 @@ namespace MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 /// <param name="installed">The installed model, or null.</param>
 internal sealed class Siglip2StubStore(InstalledModel? installed) : IModelStore
 {
+    public event EventHandler? ModelsChanged
+    {
+        add { }
+        remove { }
+    }
+
     public InstalledModel? Installed { get; set; } = installed;
 
     public string RootDirectory => "models";

@@ -153,6 +153,12 @@ public sealed class Siglip2System : IRetrievalSystem, IDisposable
 
     private sealed class DirectoryModelStore(string directory) : IModelStore
     {
+        public event EventHandler? ModelsChanged
+        {
+            add { }
+            remove { }
+        }
+
         public string RootDirectory => directory;
 
         public Task<InstalledModel?> FindAsync(string modelId, string version, CancellationToken cancellationToken) =>

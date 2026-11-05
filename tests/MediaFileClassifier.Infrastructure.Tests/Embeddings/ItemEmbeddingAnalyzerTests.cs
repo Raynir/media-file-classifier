@@ -177,6 +177,12 @@ public sealed class ItemEmbeddingAnalyzerTests : IAsyncLifetime
 
     private sealed class UsageStore : IModelStore
     {
+        public event EventHandler? ModelsChanged
+        {
+            add { }
+            remove { }
+        }
+
         public string RootDirectory => "models";
 
         public Task RecordUsageAsync(string modelId, string version, string libraryPath, CancellationToken cancellationToken) => Task.CompletedTask;

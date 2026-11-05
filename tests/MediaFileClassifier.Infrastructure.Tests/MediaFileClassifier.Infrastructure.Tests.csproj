@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure/MediaFileClassifier.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.AI/MediaFileClassifier.Infrastructure.AI.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.DataAccess/MediaFileClassifier.Infrastructure.DataAccess.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Jobs/MediaFileClassifier.Infrastructure.Jobs.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Media/MediaFileClassifier.Infrastructure.Media.csproj" />
@@ -14,6 +15,8 @@
     <ProjectReference Include="../../src/MediaFileClassifier.UseCases/MediaFileClassifier.UseCases.csproj" />
     <ProjectReference Include="../MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <!-- The native CPU runtime for the ONNX provider tests. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 

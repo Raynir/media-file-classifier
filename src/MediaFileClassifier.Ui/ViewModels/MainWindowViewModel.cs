@@ -19,6 +19,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <param name="commands">The command registry, for binding buttons and menus by command ID.</param>
     /// <param name="menu">The main menu.</param>
     /// <param name="statusBar">The status bar.</param>
+    /// <param name="modelBanner">The "no model" banner.</param>
     /// <param name="shortcuts">The shortcut reference. Taking it also builds the keymap, which gives the
     /// commands their shortcuts.</param>
     public MainWindowViewModel(
@@ -27,8 +28,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         CommandRegistry commands,
         MainMenuViewModel menu,
         StatusBarViewModel statusBar,
-        ShortcutReferenceViewModel shortcuts)
+        ShortcutReferenceViewModel shortcuts,
+        Models.ModelBannerViewModel modelBanner)
     {
+        ModelBanner = modelBanner;
         Layout = layout;
         Regions = regions;
         Commands = commands;
@@ -51,6 +54,11 @@ public sealed class MainWindowViewModel : ViewModelBase
         ];
         StatusBarContextMenu = [commands[ShellCommands.ToggleStatusBar]];
     }
+
+    /// <summary>
+    /// Gets the "no model" banner (E06-S12-T04).
+    /// </summary>
+    public Models.ModelBannerViewModel ModelBanner { get; }
 
     /// <summary>
     /// Gets which panels are shown, and how wide.

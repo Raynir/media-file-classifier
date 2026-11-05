@@ -124,6 +124,49 @@ public sealed class ModifiedFileTests : IAsyncLifetime
         Assert.NotNull(await ThumbnailHashAsync(after));
     }
 
+    [Fact]
+    public async Task Rescan_DamagedFileUnchanged_StaysFailed()
+    {
+        bed.Copy(SampleMedia.CorruptJpeg, "photo.jpg");
+        await ImportAsync();
+        var failed = await ItemAsync();
+
+        await ReconcilerTests.RescanAsync(bed);
+
+        var after = await ItemAsync();
+        Assert.Equal(MediaItemStatus.Error, after.Status);
+        Assert.Equal(failed.Error, after.Error);
+    }
+
+    [Fact]
+    public async Task Rescan_DamagedFileReplacedWithAnotherDamagedOne_IsTriedAndFailsAgain()
+    {
+        var path = bed.Copy(SampleMedia.CorruptJpeg, "photo.jpg");
+        await ImportAsync();
+        var size = (await ItemAsync()).SizeBytes;
+
+        File.AppendAllBytes(path, [0, 1, 2, 3, 4, 5, 6, 7]);
+        await ReconcilerTests.RescanAsync(bed);
+
+        var after = await ItemAsync();
+        Assert.Equal(MediaItemStatus.Error, after.Status);
+        Assert.Equal(size + 8, after.SizeBytes);
+        Assert.True(after.Error!.IsPermanent);
+    }
+
+    [Fact]
+    public async Task Rescan_FixedFile_IsNoLongerListedAsFailed()
+    {
+        var path = bed.Copy(SampleMedia.CorruptJpeg, "photo.jpg");
+        await ImportAsync();
+        Assert.Single(await bed.Library.Items.GetByStatusAsync(MediaItemStatus.Error, null, Token));
+
+        File.Copy(SampleMedia.JpegWithExif, path, overwrite: true);
+        await ReconcilerTests.RescanAsync(bed);
+
+        Assert.Empty(await bed.Library.Items.GetByStatusAsync(MediaItemStatus.Error, null, Token));
+    }
+
     private async Task ImportAsync()
     {
         await bed.ImportAsync();

@@ -28,6 +28,9 @@ public static class AiModule
         services.TryAddSingleton(new Siglip2Options());
         services.TryAddSingleton<Siglip2EmbeddingProvider>();
         services.AddSingleton<IAiProvider>(provider => provider.GetRequiredService<Siglip2EmbeddingProvider>());
+        services.TryAddSingleton<IModelCatalog, ModelCatalog>();
+        services.TryAddSingleton<IModelDownloader, ModelDownloader>();
+        services.TryAddSingleton<IModelAvailability, ModelAvailability>();
         return services;
     }
 }

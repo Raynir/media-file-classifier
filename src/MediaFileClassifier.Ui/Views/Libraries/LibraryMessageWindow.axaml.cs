@@ -21,13 +21,18 @@ public partial class LibraryMessageWindow : Window
     /// </summary>
     /// <param name="message">The question.</param>
     /// <param name="primary">The primary answer, e.g. "Restore".</param>
-    /// <param name="secondary">The other answer, e.g. "Keep as is".</param>
-    public LibraryMessageWindow(string message, string primary, string secondary)
+    /// <param name="secondary">The other answer, e.g. "Keep as is", or <c>null</c> for a notice with one button.</param>
+    public LibraryMessageWindow(string message, string primary, string? secondary)
         : this()
     {
         MessageText.Text = message;
         PrimaryButton.Content = primary;
         SecondaryButton.Content = secondary;
+        if (secondary is null)
+        {
+            SecondaryButton.IsVisible = false;
+            PrimaryButton.IsCancel = true;
+        }
     }
 
     private void OnPrimary(object? sender, RoutedEventArgs e) => Close(true);

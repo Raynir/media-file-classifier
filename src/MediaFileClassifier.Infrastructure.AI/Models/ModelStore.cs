@@ -107,7 +107,17 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     }
 
     /// <inheritdoc />
+    public event EventHandler? ModelsChanged;
+
+    /// <inheritdoc />
     public async Task<InstalledModel> ImportAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken)
+    {
+        var model = await ImportCoreAsync(request, progress, cancellationToken).ConfigureAwait(false);
+        RaiseModelsChanged();
+        return model;
+    }
+
+    private async Task<InstalledModel> ImportCoreAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -250,6 +260,17 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     /// <inheritdoc />
     public async Task<ModelDeletionResult> DeleteAsync(string modelId, string version, bool confirmed, CancellationToken cancellationToken)
     {
+        var result = await DeleteCoreAsync(modelId, version, confirmed, cancellationToken).ConfigureAwait(false);
+        if (result.Deleted)
+        {
+            RaiseModelsChanged();
+        }
+
+        return result;
+    }
+
+    private async Task<ModelDeletionResult> DeleteCoreAsync(string modelId, string version, bool confirmed, CancellationToken cancellationToken)
+    {
         var target = GetModelDirectory(modelId, version);
         var key = GetUsageKey(modelId, version);
 
@@ -303,6 +324,21 @@ public sealed partial class ModelStore : IModelStore, IDisposable
 
     /// <inheritdoc />
     public void Dispose() => gate.Dispose();
+
+    /// <summary>
+    /// Tells the subscribers the store changed. The change is done, so a failing subscriber is logged, not thrown.
+    /// </summary>
+    private void RaiseModelsChanged()
+    {
+        try
+        {
+            ModelsChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "A subscriber to the model store's changes failed");
+        }
+    }
 
     /// <summary>
     /// Computes the hash that identifies a model's set of files.

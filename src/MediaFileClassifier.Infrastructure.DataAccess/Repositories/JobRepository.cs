@@ -60,7 +60,8 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                         return false;
                     }
 
-                    if (ProcessingJobStateTransitions.IsFinished(job.State))
+                    // New work wakes a finished job, and one waiting for a model: the new work may not need it.
+                    if (ProcessingJobStateTransitions.IsFinished(job.State) || job.State == ProcessingJobState.WaitingForModel)
                     {
                         db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Queued, now));
                     }
@@ -99,15 +100,17 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         ResourcePool pool,
         int limit,
         IReadOnlyCollection<Id<WorkItem>> excluding,
+        IReadOnlyCollection<string>? excludingStages = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
         ArgumentNullException.ThrowIfNull(excluding);
 
         var excluded = excluding.ToList();
+        var excludedStages = excludingStages?.ToList() ?? [];
         return connections.ReadAsync<IReadOnlyList<WorkItem>>(
             async (db, token) => await db.WorkItems
-                .Where(item => item.State == WorkItemState.Queued && item.Pool == pool && !excluded.Contains(item.Id))
+                .Where(item => item.State == WorkItemState.Queued && item.Pool == pool && !excluded.Contains(item.Id) && !excludedStages.Contains(item.Stage))
                 .OrderByDescending(item => item.Priority)
                 .ThenBy(item => item.CreatedAt)
                 .ThenBy(item => item.Id)
@@ -145,7 +148,11 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
     /// <inheritdoc />
     public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync(
-            (db, token) => db.WorkItems.CountAsync(item => item.State == WorkItemState.Queued || item.State == WorkItemState.Running, token),
+            (db, token) => db.WorkItems.CountAsync(
+                item => item.State == WorkItemState.Running
+                    || (item.State == WorkItemState.Queued
+                        && db.ProcessingJobs.Any(job => job.Id == item.JobId && job.State != ProcessingJobState.WaitingForModel)),
+                token),
             cancellationToken);
 
     /// <inheritdoc />
@@ -181,6 +188,12 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                 var running = stored.ChangeState(WorkItemState.Running, now);
                 db.Entry(stored).CurrentValues.SetValues(running);
                 var job = await db.ProcessingJobs.AsTracking().SingleAsync(job => job.Id == workItem.JobId, token).ConfigureAwait(false);
+                if (job.State == ProcessingJobState.WaitingForModel)
+                {
+                    // The model arrived between the scheduler reading the work and starting it.
+                    db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Queued, now));
+                }
+
                 if (job.State == ProcessingJobState.Queued)
                 {
                     db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Running, now));
@@ -227,6 +240,17 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
     }
 
     /// <inheritdoc />
+    public async Task<bool> SetResultAsync(Id<ProcessingJob> jobId, string result, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        return await writer.ExecuteAsync(
+            async (db, token) => await db.ProcessingJobs.Where(job => job.Id == jobId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(job => job.Result, result), token).ConfigureAwait(false) > 0,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default) =>
         writer.ExecuteAsync(
             async (db, token) =>
@@ -266,6 +290,57 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
 
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
                 return count;
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> MarkWaitingForModelAsync(IReadOnlyCollection<string> stages, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stages);
+        if (stages.Count == 0)
+        {
+            return Task.FromResult(0);
+        }
+
+        var waiting = stages.ToList();
+        return writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var jobs = await db.ProcessingJobs.AsTracking()
+                    .Where(job => job.State == ProcessingJobState.Queued || job.State == ProcessingJobState.Running)
+                    .Where(job => db.WorkItems.Any(item => item.JobId == job.Id && item.State == WorkItemState.Queued && waiting.Contains(item.Stage)))
+                    .Where(job => !db.WorkItems.Any(
+                        item => item.JobId == job.Id
+                            && (item.State == WorkItemState.Running || (item.State == WorkItemState.Queued && !waiting.Contains(item.Stage)))))
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                foreach (var job in jobs)
+                {
+                    db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.WaitingForModel, now));
+                }
+
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return jobs.Count;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<int> ResumeWaitingForModelAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var jobs = await db.ProcessingJobs.AsTracking()
+                    .Where(job => job.State == ProcessingJobState.WaitingForModel)
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                foreach (var job in jobs)
+                {
+                    db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Queued, now));
+                }
+
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return jobs.Count;
             },
             cancellationToken);
 }

@@ -319,6 +319,11 @@ internal static class ProductionBenchmark
         }
 
         Console.WriteLine($"Embeddings written in {watch.Elapsed.TotalSeconds:F1} s.");
+
+        // The migration marks the keyword index for a rebuild; do it here so the measured vector load runs alone.
+        watch.Restart();
+        await library.Search.RebuildAsync();
+        Console.WriteLine($"Keyword index rebuilt in {watch.Elapsed.TotalSeconds:F1} s.");
         await File.WriteAllTextAsync(Path.Combine(libraryDirectory, "populated"), DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
     }
 

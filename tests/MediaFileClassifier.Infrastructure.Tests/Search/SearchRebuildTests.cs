@@ -49,6 +49,7 @@ public sealed class SearchRebuildTests : IAsyncLifetime
     [InlineData("DROP TABLE \"search_text\"; DROP TABLE \"search_filename\"; DROP TABLE \"search_document\"; DROP TABLE \"search_state\";")]
     [InlineData("DELETE FROM \"search_text\"; DELETE FROM \"search_filename\"; DELETE FROM \"search_document\";")]
     [InlineData("DELETE FROM \"search_text\" WHERE \"rowid\" % 2 = 0; UPDATE \"search_text\" SET \"title\" = 'garbage';")]
+    [InlineData("UPDATE \"search_document\" SET \"excluded\" = 1 - \"excluded\";")]
     public async Task DeletedIndex_RebuildsToIdenticalResults(string damage)
     {
         var before = await RunQueriesAsync();

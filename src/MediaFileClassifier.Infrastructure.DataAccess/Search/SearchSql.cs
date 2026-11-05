@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
@@ -10,9 +9,9 @@ using Microsoft.Data.Sqlite;
 namespace MediaFileClassifier.Infrastructure.DataAccess.Search;
 
 /// <summary>
-/// Translates filters, orders and keyword terms into SQL (E01-S04-T05). Queries alias <c>media_item</c> as <c>m</c>,
-/// <c>search_document</c> as <c>d</c> and, when <see cref="NeedsTechnicalMetadata"/> says so, <c>technical_metadata</c>
-/// as <c>t</c>. Every value is a parameter; only numbers the code formats itself go into the text.
+/// Translates filters, orders and keyword terms into SQL (E01-S04-T05). Queries start from <c>search_document</c> as
+/// <c>d</c>, and join <c>media_item</c> as <c>m</c> and <c>technical_metadata</c> as <c>t</c> only when
+/// <see cref="NeedsMediaItem"/> and <see cref="NeedsTechnicalMetadata"/> say so. Every value is a parameter; only numbers the code formats itself go into the text.
 /// </summary>
 internal sealed class SearchSql
 {
@@ -31,14 +30,21 @@ internal sealed class SearchSql
     public IReadOnlyList<SqliteParameter> Parameters => parameters;
 
     /// <summary>
+    /// Gets whether the SQL built so far reads <c>m</c>, so the query must join <c>media_item</c>.
+    /// </summary>
+    public bool NeedsMediaItem { get; private set; }
+
+    /// <summary>
     /// Gets whether the SQL built so far reads <c>t</c>, so the query must join <c>technical_metadata</c>.
     /// </summary>
     public bool NeedsTechnicalMetadata { get; private set; }
 
     /// <summary>
-    /// Gets the join of <c>technical_metadata</c>, or nothing if it isn't needed.
+    /// Gets the joins of <c>media_item</c> and <c>technical_metadata</c> to <c>d</c>, each only if it's needed.
     /// </summary>
-    public string TechnicalJoin => NeedsTechnicalMetadata ? """LEFT JOIN "technical_metadata" t ON t."item_id" = m."id" """ : string.Empty;
+    public string Joins =>
+        (NeedsMediaItem ? """JOIN "media_item" m ON m."id" = d."item_id" """ : string.Empty)
+        + (NeedsTechnicalMetadata ? """LEFT JOIN "technical_metadata" t ON t."item_id" = d."item_id" """ : string.Empty);
 
     /// <summary>
     /// Quotes a term as an FTS5 string, so its characters are never read as query syntax.
@@ -84,7 +90,8 @@ internal sealed class SearchSql
     }
 
     /// <summary>
-    /// Builds the condition of a filter. Excluded items never pass (D048, D024).
+    /// Builds the condition of a filter. Excluded items never pass (D048, D024); <c>search_document</c> mirrors the flag,
+    /// so that check needs no join.
     /// </summary>
     /// <param name="filter">The filter.</param>
     /// <returns>The condition, for a <c>WHERE</c> clause.</returns>
@@ -92,7 +99,7 @@ internal sealed class SearchSql
     {
         ArgumentNullException.ThrowIfNull(filter);
 
-        var conditions = new List<string> { $"""m."status" <> {(int)MediaItemStatus.Excluded}""" };
+        var conditions = new List<string> { """d."excluded" = 0""" };
 
         if (filter.MediaTypes is { } types)
         {
@@ -179,6 +186,7 @@ internal sealed class SearchSql
             conditions.Add($"""m."imported_at" >= {Add(since.ToUnixTimeMilliseconds())}""");
         }
 
+        NeedsMediaItem |= conditions.Any(ReadsMediaItem);
         return string.Join(" AND ", conditions);
     }
 
@@ -207,6 +215,8 @@ internal sealed class SearchSql
             NeedsTechnicalMetadata = true;
         }
 
+        NeedsMediaItem |= keys.Any(key => ReadsMediaItem(key.Expression));
+
         var builder = new StringBuilder();
         foreach (var (expression, ascending) in keys.Append(("""d."doc_id" """, keys[^1].Ascending)))
         {
@@ -220,6 +230,9 @@ internal sealed class SearchSql
 
         return builder.ToString();
     }
+
+    // Every column of media_item is written as m."column", and no other alias ends in m.
+    private static bool ReadsMediaItem(string sql) => sql.Contains("m.\"", StringComparison.Ordinal);
 
     private static string Numbers(IEnumerable<int> values)
     {

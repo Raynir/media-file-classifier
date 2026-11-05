@@ -72,8 +72,7 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
             SELECT d."doc_id", d."item_id", r."rank", count(*) OVER ()
             FROM hits h
             JOIN "search_document" d ON d."doc_id" = h."doc_id"
-            JOIN "media_item" m ON m."id" = d."item_id"
-            {sql.TechnicalJoin}
+            {sql.Joins}
             LEFT JOIN ranked r ON r."doc_id" = h."doc_id"
             WHERE {where}
             ORDER BY {orderBy}
@@ -115,8 +114,7 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
         var text = $"""
             SELECT d."doc_id"
             FROM "search_document" d
-            JOIN "media_item" m ON m."id" = d."item_id"
-            {sql.TechnicalJoin}
+            {sql.Joins}
             WHERE {where}
             ORDER BY d."doc_id"
             """;
@@ -157,9 +155,8 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
         var orderBy = sql.OrderBy(sort, reverse);
         var text = $"""
             SELECT d."doc_id", d."item_id", count(*) OVER ()
-            FROM "media_item" m
-            JOIN "search_document" d ON d."item_id" = m."id"
-            {sql.TechnicalJoin}
+            FROM "search_document" d
+            {sql.Joins}
             WHERE {where}
             ORDER BY {orderBy}
             LIMIT {sql.Add(limit)} OFFSET {sql.Add(offset)}
@@ -194,7 +191,7 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
                     }
 
                     var countText = $"""
-                        SELECT count(*) FROM "media_item" m JOIN "search_document" d ON d."item_id" = m."id" {countSql.TechnicalJoin} WHERE {countWhere}
+                        SELECT count(*) FROM "search_document" d {countSql.Joins} WHERE {countWhere}
                         """;
                     total = await ExecuteScalarIntAsync(db, countText, countSql.Parameters, token).ConfigureAwait(false);
                 }
@@ -219,44 +216,71 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
             return Task.FromResult<IReadOnlyDictionary<int, SearchFields>>(new Dictionary<int, SearchFields>());
         }
 
-        var sql = new SearchSql();
-        var documents = sql.Add(JsonSerializer.Serialize(documentIds));
-        var anyWord = "(" + string.Join(" OR ", searchable.Select(term => SearchSql.QuoteFts(term) + "*")) + ")";
-        var parts = new List<string>();
-        for (var column = 0; column < SearchSchema.TextColumns.Length; column++)
-        {
-            parts.Add($"""
-                SELECT "rowid", {column} FROM "search_text"
-                WHERE "search_text" MATCH {sql.Add("{" + SearchSchema.TextColumns[column] + "} : " + anyWord)}
-                AND "rowid" IN (SELECT "value" FROM json_each({documents}))
-                """);
-        }
+        // One lookup per document: a column-filtered MATCH would scan the term's whole doclist for every column
+        // (≈95 ms each at 100k items), while a MATCH pinned to one rowid reads just that row. highlight() marks the
+        // matched phrases, so a marker in a column means the column matched.
+        var columns = string.Join(
+            ", ",
+            Enumerable.Range(0, SearchSchema.TextColumns.Length).Select(column =>
+                $"""coalesce(instr(highlight("search_text", {column}, char(1), ''), char(1)) > 0, 0)"""));
+        var text = $"""SELECT {columns} FROM "search_text" WHERE "search_text" MATCH $match AND "rowid" = $doc""";
+        var anyWord = string.Join(" OR ", searchable.Select(term => SearchSql.QuoteFts(term) + "*"));
 
-        var substrings = searchable.Where(SearchSql.IsSubstringSearchable).ToList();
-        if (substrings.Count > 0)
-        {
-            parts.Add($"""
-                SELECT "rowid", {SearchSchema.TextColumns.Length - 1} FROM "search_filename"
-                WHERE "search_filename" MATCH {sql.Add(string.Join(" OR ", substrings.Select(SearchSql.QuoteFts)))}
-                AND "rowid" IN (SELECT "value" FROM json_each({documents}))
-                """);
-        }
+        // Path substrings: the trigram index's text, read by rowid and searched here, ignoring case and diacritics
+        // the way the trigram tokenizer does.
+        var substrings = searchable.Where(SearchSql.IsSubstringSearchable).Select(SearchSql.Fold).ToList();
+        const string PathsText = """SELECT "rowid", "path" FROM "search_filename" WHERE "rowid" IN (SELECT "value" FROM json_each($docs))""";
 
-        var text = string.Join(" UNION ALL ", parts);
         return connections.ReadAsync<IReadOnlyDictionary<int, SearchFields>>(
             async (db, token) =>
             {
                 var fields = new Dictionary<int, SearchFields>();
-                await QueryAsync(
-                    db,
-                    text,
-                    sql.Parameters,
-                    reader =>
+                await using (var command = CreateCommand(db, text, [new SqliteParameter("$match", anyWord), new SqliteParameter("$doc", 0L)]))
+                {
+                    var doc = command.Parameters["$doc"];
+                    foreach (var document in documentIds)
                     {
-                        var document = DocumentId(reader, 0);
-                        fields[document] = fields.GetValueOrDefault(document) | ColumnField(reader.GetInt32(1));
-                    },
-                    token).ConfigureAwait(false);
+                        doc.Value = (long)document;
+                        await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
+                        if (!await reader.ReadAsync(token).ConfigureAwait(false))
+                        {
+                            continue;
+                        }
+
+                        var matched = SearchFields.None;
+                        for (var column = 0; column < SearchSchema.TextColumns.Length; column++)
+                        {
+                            if (reader.GetInt64(column) != 0)
+                            {
+                                matched |= ColumnField(column);
+                            }
+                        }
+
+                        if (matched != SearchFields.None)
+                        {
+                            fields[document] = matched;
+                        }
+                    }
+                }
+
+                if (substrings.Count > 0)
+                {
+                    var compare = CultureInfo.InvariantCulture.CompareInfo;
+                    await QueryAsync(
+                        db,
+                        PathsText,
+                        [new SqliteParameter("$docs", JsonSerializer.Serialize(documentIds))],
+                        reader =>
+                        {
+                            var path = reader.GetString(1);
+                            if (substrings.Any(term => compare.IndexOf(path, term, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0))
+                            {
+                                var document = DocumentId(reader, 0);
+                                fields[document] = fields.GetValueOrDefault(document) | SearchFields.FileName;
+                            }
+                        },
+                        token).ConfigureAwait(false);
+                }
 
                 return fields;
             },
@@ -308,9 +332,17 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
                     token).ConfigureAwait(false);
                 await db.Database.ExecuteSqlRawAsync(
                     """
-                    INSERT INTO "search_document" ("item_id")
-                    SELECT "id" FROM "media_item" WHERE "id" NOT IN (SELECT "item_id" FROM "search_document") ORDER BY "id"
+                    INSERT INTO "search_document" ("item_id", "excluded")
+                    SELECT "id", "status" = {0} FROM "media_item" WHERE "id" NOT IN (SELECT "item_id" FROM "search_document") ORDER BY "id"
                     """,
+                    [(int)MediaItemStatus.Excluded],
+                    token).ConfigureAwait(false);
+                await db.Database.ExecuteSqlRawAsync(
+                    """
+                    UPDATE "search_document" SET "excluded" = (SELECT m."status" = {0} FROM "media_item" m WHERE m."id" = "item_id")
+                    WHERE "excluded" IS NOT (SELECT m."status" = {0} FROM "media_item" m WHERE m."id" = "item_id")
+                    """,
+                    [(int)MediaItemStatus.Excluded],
                     token).ConfigureAwait(false);
                 await db.Database.ExecuteSqlRawAsync(
                     """DELETE FROM "search_text" WHERE "rowid" NOT IN (SELECT "doc_id" FROM "search_document")""",

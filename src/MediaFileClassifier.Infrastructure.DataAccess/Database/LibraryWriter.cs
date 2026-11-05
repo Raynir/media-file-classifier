@@ -67,7 +67,24 @@ internal sealed class LibraryWriter : IAsyncDisposable
     /// started write is rolled back if <paramref name="work"/> stops on the token, and commits otherwise.</param>
     /// <returns>What the write returned.</returns>
     public Task<T> ExecuteAsync<T>(Func<LibraryDbContext, CancellationToken, Task<T>> work, CancellationToken cancellationToken = default) =>
-        Enqueue(work, transaction: true, cancellationToken);
+        Enqueue(work, transaction: true, null, cancellationToken);
+
+    /// <summary>
+    /// Queues a write, waits for it, and runs <paramref name="afterCommit"/> on the writer right after the commit, before
+    /// the next write starts. So callbacks run in commit order, which awaiting the returned task doesn't guarantee: the
+    /// callers' continuations run on the thread pool. The callback must be quick and must not write to the library.
+    /// </summary>
+    /// <typeparam name="T">What the write returns.</typeparam>
+    /// <param name="work">The write, as for <see cref="ExecuteAsync{T}(Func{LibraryDbContext, CancellationToken, Task{T}}, CancellationToken)"/>.</param>
+    /// <param name="afterCommit">Gets what the write returned, once it's committed. If it throws, the caller gets the
+    /// exception although the write is committed.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>What the write returned.</returns>
+    public Task<T> ExecuteAsync<T>(
+        Func<LibraryDbContext, CancellationToken, Task<T>> work,
+        Action<T> afterCommit,
+        CancellationToken cancellationToken = default) =>
+        Enqueue(work, transaction: true, afterCommit, cancellationToken);
 
     /// <summary>
     /// Queues a write and waits for it.
@@ -84,6 +101,7 @@ internal sealed class LibraryWriter : IAsyncDisposable
                 return true;
             },
             transaction: true,
+            null,
             cancellationToken);
 
     /// <summary>
@@ -100,6 +118,7 @@ internal sealed class LibraryWriter : IAsyncDisposable
                 return true;
             },
             transaction: false,
+            null,
             cancellationToken);
 
     /// <summary>
@@ -114,7 +133,11 @@ internal sealed class LibraryWriter : IAsyncDisposable
         await connection.DisposeAsync().ConfigureAwait(false);
     }
 
-    private Task<T> Enqueue<T>(Func<LibraryDbContext, CancellationToken, Task<T>> work, bool transaction, CancellationToken cancellationToken)
+    private Task<T> Enqueue<T>(
+        Func<LibraryDbContext, CancellationToken, Task<T>> work,
+        bool transaction,
+        Action<T>? afterCommit,
+        CancellationToken cancellationToken)
     {
         var completion = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (Running.Value == this)
@@ -139,7 +162,9 @@ internal sealed class LibraryWriter : IAsyncDisposable
 
             try
             {
-                completion.TrySetResult(await RunAsync(work, transaction, cancellationToken).ConfigureAwait(false));
+                var result = await RunAsync(work, transaction, cancellationToken).ConfigureAwait(false);
+                afterCommit?.Invoke(result);
+                completion.TrySetResult(result);
             }
             catch (OperationCanceledException exception) when (exception.CancellationToken == cancellationToken)
             {

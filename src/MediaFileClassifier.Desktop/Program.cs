@@ -8,10 +8,12 @@ using MediaFileClassifier.Infrastructure.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Infrastructure.DataAccess;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Paths;
+using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.Ui;
 using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,6 +57,7 @@ internal static class Program
                 .AddDataAccess()
                 .AddJobs()
                 .AddMedia()
+                .AddSearch()
                 .AddUseCases()
                 .AddUi()
                 .Configure<ConsoleLifetimeOptions>(options => options.SuppressStatusMessages = true);
@@ -67,6 +70,9 @@ internal static class Program
             GlobalExceptionHandlers.Install(logger);
             Logger.Sink = new AvaloniaLogSink(loggerFactory);
             host.Services.GetRequiredService<ICapabilityService>().RefreshAsync().GetAwaiter().GetResult();
+
+            // The search index loads the open library's vectors in the background from its first use (D067).
+            host.Services.GetRequiredService<ISearchIndex>();
 
             UiCommandLine.Apply(args, host.Services);
 

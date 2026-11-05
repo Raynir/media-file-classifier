@@ -123,6 +123,20 @@ def gif_blank_first_frame(path: Path) -> None:
     frames[0].save(path, "GIF", save_all=True, append_images=frames[1:], duration=100, loop=0, optimize=False)
 
 
+def gif_variable_delays(path: Path) -> None:
+    # 13 frames over 4 s: frames 0 and 1 last 1 s each, frames 2-11 100 ms each, frame 12 1 s. Sampling 4 frames
+    # evenly in time (at 0.5, 1.5, 2.5 and 3.5 s) picks frames 0, 1, 7 and 12; by frame index it would pick 1, 4, 7, 10.
+    frames = [gif_frame(i, 13) for i in range(13)]
+    durations = [1000, 1000] + [100] * 10 + [1000]
+    frames[0].save(path, "GIF", save_all=True, append_images=frames[1:], duration=durations, loop=0, optimize=False)
+
+
+def gif_three_frames(path: Path) -> None:
+    # Fewer frames than the minimum keyframe count, so frame sampling uses them all.
+    frames = [gif_frame(i, 3) for i in range(3)]
+    frames[0].save(path, "GIF", save_all=True, append_images=frames[1:], duration=200, loop=0, optimize=False)
+
+
 def ocr_text(path: Path) -> None:
     font_path = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "arial.ttf"
     font = ImageFont.truetype(str(font_path), 40)
@@ -234,6 +248,59 @@ def black_intro_video(path: Path) -> None:
     )
 
 
+def encode_frames(path: Path, frames: list[Image.Image], rate: int) -> None:
+    """Encodes Pillow images as an H.264 video with no audio."""
+    folder = path.with_suffix(".frames")
+    folder.mkdir(exist_ok=True)
+    try:
+        for index, frame in enumerate(frames):
+            frame.save(folder / f"{index:04d}.png")
+        encode_video(
+            path,
+            ["-framerate", str(rate), "-i", str(folder / "%04d.png")],
+            ["-c:v", "libx264", "-preset", "veryslow", "-crf", "30", "-pix_fmt", "yuv420p", "-g", str(rate * 5)],
+        )
+    finally:
+        for file in folder.iterdir():
+            file.unlink()
+        folder.rmdir()
+
+
+def static_camera_video(path: Path) -> None:
+    # 80 s at 2 fps from a tripod: one scene with light sensor noise and a small dot crossing it, like a person far
+    # away. Frame sampling takes 16 positions, and nearly all are near-duplicates.
+    rng = random.Random(SEED)
+    scene = gradient(160, 120)
+    frames = []
+    for index in range(160):
+        frame = scene.copy()
+        pixels = frame.load()
+        for _ in range(400):
+            x, y = rng.randrange(160), rng.randrange(120)
+            r, g, b = pixels[x, y]
+            delta = rng.randrange(-6, 7)
+            pixels[x, y] = (max(0, min(255, r + delta)), max(0, min(255, g + delta)), max(0, min(255, b + delta)))
+        x = index * 150 // 160
+        ImageDraw.Draw(frame).ellipse((x, 80, x + 5, 85), fill=(20, 20, 20))
+        frames.append(frame)
+    encode_frames(path, frames, rate=2)
+
+
+def action_video(path: Path) -> None:
+    # 80 s at 2 fps that cuts to a new, unrelated scene every 5 s, so each of the 16 sampled positions differs.
+    rng = random.Random(SEED + 1)
+    frames = []
+    for _ in range(16):
+        scene = Image.new("RGB", (160, 120), tuple(rng.randrange(256) for _ in range(3)))
+        draw = ImageDraw.Draw(scene)
+        for _ in range(4):
+            x, y = rng.randrange(-40, 160), rng.randrange(-40, 120)
+            size = rng.randrange(30, 90)
+            draw.rectangle((x, y, x + size, y + size), fill=tuple(rng.randrange(256) for _ in range(3)))
+        frames.extend(scene.copy() for _ in range(10))
+    encode_frames(path, frames, rate=2)
+
+
 def audio_only_mp4(path: Path) -> None:
     encode_video(path, ["-f", "lavfi", "-i", "sine=frequency=440:duration=1"], ["-c:a", "aac", "-b:a", "32k"])
 
@@ -253,6 +320,10 @@ GENERATORS = {
     "video-portrait.mp4": portrait_video,
     "video-black-intro.mp4": black_intro_video,
     "audio-only.mp4": audio_only_mp4,
+    "video-static-camera.mp4": static_camera_video,
+    "video-action.mp4": action_video,
+    "gif-variable-delays.gif": gif_variable_delays,
+    "gif-three-frames.gif": gif_three_frames,
     "ocr-text.png": ocr_text,
     "corrupt.jpg": corrupt_jpeg,
     "zero-byte.png": zero_byte,

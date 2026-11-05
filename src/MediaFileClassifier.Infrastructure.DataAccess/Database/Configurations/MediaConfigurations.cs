@@ -85,6 +85,7 @@ internal sealed class KeyframeConfiguration : IEntityTypeConfiguration<Keyframe>
         builder.Property(keyframe => keyframe.Index);
         builder.Property(keyframe => keyframe.Timestamp);
         builder.Property(keyframe => keyframe.FrameNumber);
+        builder.Property(keyframe => keyframe.PerceptualHash);
         builder.HasOne<MediaItem>().WithMany().HasForeignKey(keyframe => keyframe.ItemId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(keyframe => new { keyframe.ItemId, keyframe.Index }).IsUnique();
     }

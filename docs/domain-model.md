@@ -92,6 +92,8 @@ erDiagram
         uuid ItemId FK
         int Index
         timespan Timestamp
+        int FrameNumber
+        ulong PerceptualHash
     }
     TECHNICAL_FIELD_VALUE {
         uuid ItemId PK, FK
@@ -206,7 +208,7 @@ Invariants are enforced in the constructors and methods, so an invalid entity ca
 | `IndexedFolder` | A root folder. `PlatformHandle` is opaque: a path on Windows, a content URI on Android (E01-S07). Include and exclude globs, and an online or offline status. | Handle and display path not blank. |
 | `MediaItem` | One file: folder plus relative path, media type, size, file dates, import date, hashes (E01-S06), processing status with the failed stage and kind of failure while it's Error (`MediaItemError`, E03-S07), review status (D021), favorite flag, and when the review status and favorite flag last changed (null if never; for package merges, D076). | Size ≥ 0; status changes follow the table below; `RelativePath` is relative, `/`-separated, with no empty, `.` or `..` segment. |
 | `TechnicalMetadata` | Facts read from the file: dimensions, orientation, duration, frame count, loop count, frame rate, codecs, whether a video has audio, bit rate, color space, date taken with its offset and its source (EXIF, video creation time or file modification time), camera, lens, GPS, the full raw dump as JSON, and the warnings of a partial read (E03-S03). One per item. | Coordinates in range. |
-| `Keyframe` | A frame sampled from a video or animated image (E06-S02). | Index and timestamp ≥ 0. |
+| `Keyframe` | A frame sampled from a video or animated image (E06-S02): its index among the item's keyframes, its timestamp (for animated images, the sum of the preceding frame delays), the frame number when known, and the frame's perceptual hash. Re-sampling replaces all of an item's keyframes, which deletes their per-frame embeddings. Frame thumbnails for the timeline are files next to the item's thumbnails, written by E14, with no column. | Index and timestamp ≥ 0; indexes unique per item. |
 | `TechnicalFieldValue` | A descriptive value found in the file, such as an embedded title. | Value kind fits the field; never `Notes`. |
 | `AiFieldValue` | A descriptive value produced by a run, with its model and optional confidence. Belongs to the run. | Value kind fits the field; never `Notes`; confidence in 0–1. |
 | `UserFieldValue` | A user-owned value, with its origin (`Edited` or `Accepted`) and, if accepted, a `RunReference` snapshot of the run (model, prompt version, date). Can carry a new-AI-suggestion flag. | Accepted ⇔ has a run reference. |

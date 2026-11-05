@@ -152,6 +152,8 @@ internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
 
         public IJobRepository Jobs => throw new NotSupportedException();
 
+        public IKeyframeRepository Keyframes => throw new NotSupportedException();
+
         public MediaFileClassifier.Infrastructure.Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
 
         public MediaFileClassifier.Infrastructure.Abstractions.Search.ISearchStore Search => throw new NotSupportedException();

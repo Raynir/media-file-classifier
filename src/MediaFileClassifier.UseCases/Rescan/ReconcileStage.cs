@@ -43,7 +43,11 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
 
         var result = await reconciler.ReconcileAsync(library, folders, cancellationToken).ConfigureAwait(false);
         await UpdateFolderStatusAsync(library, result, cancellationToken).ConfigureAwait(false);
-        await ApplyAsync(context, result, cancellationToken).ConfigureAwait(false);
+        var newlyMissing = await ApplyAsync(context, result, cancellationToken).ConfigureAwait(false);
+
+        // Stored last: the job can't finish before this work item does, so a finished job always has its counts.
+        var counts = new RescanCounts(folders.Count, result.Offline.Count, result.New.Count, result.Moved.Count, newlyMissing, result.Modified.Count, result.Unchanged.Count);
+        await library.Jobs.SetResultAsync(jobId, counts.ToJson(), cancellationToken).ConfigureAwait(false);
 
         LogReconciled(folders.Count, result.Offline.Count, result.New.Count, result.Modified.Count, result.Moved.Count, result.Missing.Count, result.Unchanged.Count);
     }
@@ -87,7 +91,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         }
     }
 
-    private async Task ApplyAsync(WorkItemContext context, Reconciliation result, CancellationToken cancellationToken)
+    private async Task<int> ApplyAsync(WorkItemContext context, Reconciliation result, CancellationToken cancellationToken)
     {
         var library = context.Library;
         var jobId = context.WorkItem.JobId;
@@ -146,6 +150,8 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
             await library.Items.AddRangeAsync(batch, cancellationToken).ConfigureAwait(false);
             await EnqueueAsync(context.Scheduler, jobId, ImportStages.Fingerprint, batch.Select(item => item.Id), cancellationToken).ConfigureAwait(false);
         }
+
+        return missing.Length;
     }
 
     [LoggerMessage(

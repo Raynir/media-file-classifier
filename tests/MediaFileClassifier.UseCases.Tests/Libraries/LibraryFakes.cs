@@ -187,6 +187,8 @@ internal sealed class FakeSettingsService : ISettingsService
 /// </summary>
 internal sealed class FakeJobRepository : IJobRepository
 {
+    public Task<bool> SetResultAsync(Id<ProcessingJob> jobId, string result, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
     public Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();

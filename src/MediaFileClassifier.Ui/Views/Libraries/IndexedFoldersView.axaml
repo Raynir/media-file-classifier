@@ -12,6 +12,7 @@
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
         <Button x:Name="AddButton" Content="{l:Loc Folders_Add}" Command="{Binding AddFolderCommand}" />
         <Button Content="{l:Loc Folders_Remove}" Command="{Binding RemoveCommand}" />
+        <Button Content="{l:Loc Folders_Rescan}" Command="{Binding RescanCommand}" />
       </StackPanel>
 
       <!-- Merge and remove are confirmed here, not in another window. -->

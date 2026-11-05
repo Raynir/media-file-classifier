@@ -92,6 +92,7 @@ public static class UiModule
         services.AddSingleton<WelcomeViewModel>();
         services.AddSingleton<LibraryShell>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
+        services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());
 
         // Media browser (E14-S01).

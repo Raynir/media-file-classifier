@@ -11,19 +11,30 @@ using MediatR;
 namespace MediaFileClassifier.Ui.Rescan;
 
 /// <summary>
-/// The rescan commands (E02-S04): Remove missing items. Rescan comes here too.
+/// The rescan commands (E02-S04): Rescan library, with the toolbar button, and Remove missing items. Rescan folder is a button of the
+/// indexed folders dialog.
 /// </summary>
 /// <param name="sender">Sends the use cases.</param>
+/// <param name="runner">Starts rescans and shows their summaries.</param>
 /// <param name="localizer">UI strings.</param>
 /// <param name="session">Holds the open library, which the commands need, or <c>null</c> where there's none.</param>
-public sealed class RescanCommands(ISender sender, Localizer localizer, ILibrarySession? session = null) : ICommandContributor
+public sealed class RescanCommands(ISender sender, RescanRunner runner, Localizer localizer, ILibrarySession? session = null) : ICommandContributor
 {
+    /// <summary>Command ID: rescan every folder of the open library (E02-S04-T06).</summary>
+    public const string Rescan = "library.rescan";
+
     /// <summary>Command ID: delete the items whose files are gone, after a confirmation (E02-S04-T04).</summary>
     public const string RemoveMissing = "library.remove-missing";
 
     /// <inheritdoc />
     public void Register(CommandRegistry registry)
     {
+        var rescan = registry.Add(new AppCommand(Rescan, CommandGroups.Library, 125, "Command_Rescan", RescanAsync)
+        {
+            IconKey = "Icon.Rescan",
+            IsVisible = IsSupported,
+            WhyDisabled = NoLibrary,
+        });
         var removeMissing = registry.Add(new AppCommand(RemoveMissing, CommandGroups.Library, 130, "Command_RemoveMissing", RemoveMissingAsync)
         {
             IconKey = "Icon.Delete",
@@ -32,13 +43,25 @@ public sealed class RescanCommands(ISender sender, Localizer localizer, ILibrary
         });
         if (session is not null)
         {
-            session.CurrentChanged += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(removeMissing.Refresh);
+            session.CurrentChanged += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                rescan.Refresh();
+                removeMissing.Refresh();
+            });
         }
     }
 
     private static bool IsSupported => Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime;
 
     private string? NoLibrary() => session?.Current is null ? localizer.Get("Command_NoLibraryOpen") : null;
+
+    private async Task RescanAsync()
+    {
+        if ((await runner.StartAsync()).Message is { } message)
+        {
+            await runner.ShowMessageAsync(message);
+        }
+    }
 
     private async Task RemoveMissingAsync()
     {

@@ -256,6 +256,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("priority");
 
+                    b.Property<string>("Result")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("result");
+
                     b.Property<long?>("StartedAt")
                         .HasColumnType("INTEGER")
                         .HasColumnName("started_at");

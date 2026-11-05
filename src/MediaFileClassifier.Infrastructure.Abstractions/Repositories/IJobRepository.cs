@@ -129,4 +129,13 @@ public interface IJobRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of work items put back.</returns>
     Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores <see cref="ProcessingJob.Result"/> of a job, replacing an earlier one.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="result">The result, as JSON.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist.</returns>
+    Task<bool> SetResultAsync(Id<ProcessingJob> jobId, string result, CancellationToken cancellationToken = default);
 }

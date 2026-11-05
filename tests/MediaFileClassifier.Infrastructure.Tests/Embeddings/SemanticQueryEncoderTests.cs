@@ -1,5 +1,11 @@
 using System.Diagnostics;
+using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Frames;
+using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Infrastructure.AI;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
@@ -7,6 +13,7 @@ using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Search;
 using MediaFileClassifier.Testing.AI;
+using MediaFileClassifier.Testing.Media;
 using MediaFileClassifier.UseCases.Embeddings;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Embeddings;
@@ -132,6 +139,51 @@ public sealed class SemanticQueryEncoderTests : IAsyncLifetime
         Assert.True(times[10] < 50, $"median {times[10]:F1} ms");
     }
 
+    [Fact]
+    public async Task EncodeImage_ExternalFile_DoesNotTouchTheLibrary()
+    {
+        var provider = new PreloadableEmbedder();
+        using var encoder = Create(provider, new TestSession(bed.Library));
+        var before = (await bed.Library.Items.GetIdentitiesAsync(Token)).Count;
+
+        var vector = await encoder.EncodeImageFileAsync(SampleMedia.PngWithAlpha, Token);
+
+        Assert.NotNull(vector);
+        Assert.Equal(1.0, Norm(vector.Vector.Span), 3);
+        Assert.Null(vector.ItemId);
+        Assert.Equal(before, (await bed.Library.Items.GetIdentitiesAsync(Token)).Count);
+        Assert.Equal(0, encoder.CachedCount);
+    }
+
+    [Fact]
+    public async Task EncodeImage_RealModel_FindsTheSameAndSimilarPicturesFirst()
+    {
+        var directory = Siglip2TestModel.RequireDirectory();
+        var store = new Siglip2StubStore(Siglip2TestModel.CreateInstalled(directory));
+        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(), new Siglip2Options());
+        await using var search = await SearchTestBed.CreateAsync();
+        var registry = new AiProviderRegistry([provider], search.Library.Clock);
+        var analyzer = new ItemEmbeddingAnalyzer(registry, new StillsOnlySampler(), new Siglip2StubStore(null), search.Library.Clock);
+        using var encoder = new SemanticQueryEncoder(registry, search.Session, search.Library.Clock);
+        var files = Siglip2TestModel.Reference.Images.Select(image => Path.Combine(SampleMedia.Directory, image.File)).ToList();
+        var items = new List<MediaItem>();
+        for (var i = 0; i < files.Count; i++)
+        {
+            var item = await search.AddItemAsync(i + 1);
+            items.Add(item);
+            await analyzer.EmbedStillAsync(search.Library.Library, item.Id, new AiImage(await File.ReadAllBytesAsync(files[i], Token), "image/*", files[i]), Token);
+        }
+
+        for (var i = 0; i < files.Count; i++)
+        {
+            var query = await encoder.EncodeImageFileAsync(files[i], Token);
+            var results = await search.SearchAsync(new SearchQuery { Vector = query });
+
+            Assert.Equal(items[i].Id, results.Hits[0].ItemId);
+            Assert.True(results.Hits[0].Similarity > 0.999f, $"{files[i]}: similarity {results.Hits[0].Similarity}");
+        }
+    }
+
     private static double Norm(ReadOnlySpan<float> vector)
     {
         var sum = 0.0;
@@ -146,10 +198,16 @@ public sealed class SemanticQueryEncoderTests : IAsyncLifetime
     private SemanticQueryEncoder Create(PreloadableEmbedder provider, TestSession session) =>
         new(new AiProviderRegistry([provider], bed.Clock), session, bed.Clock);
 
+    private sealed class StillsOnlySampler : IFrameSampler
+    {
+        public Task<FrameSample> SampleAsync(MediaContent content, MediaFormatDetection format, TechnicalMetadata metadata, FrameSamplingOptions options, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("These tests embed stills only.");
+    }
+
     /// <summary>
-    /// A fake text embedder that also counts preloads and unloads.
+    /// A fake embedder that also counts preloads and unloads.
     /// </summary>
-    private sealed class PreloadableEmbedder : ITextEmbeddingProvider, IPreloadableAiProvider
+    private sealed class PreloadableEmbedder : ITextEmbeddingProvider, IImageEmbeddingProvider, IPreloadableAiProvider
     {
         public FakeEmbeddingProvider Inner { get; } = new(dimension: 8);
 
@@ -177,6 +235,9 @@ public sealed class SemanticQueryEncoderTests : IAsyncLifetime
 
         public Task<AiOutput<IReadOnlyList<ReadOnlyMemory<float>>>> EmbedTextsAsync(IReadOnlyList<string> texts, CancellationToken cancellationToken) =>
             Inner.EmbedTextsAsync(texts, cancellationToken);
+
+        public Task<AiOutput<IReadOnlyList<ReadOnlyMemory<float>>>> EmbedImagesAsync(IReadOnlyList<AiImage> images, CancellationToken cancellationToken) =>
+            Inner.EmbedImagesAsync(images, cancellationToken);
 
         public Task PreloadAsync(AiCapability? capability, CancellationToken cancellationToken)
         {

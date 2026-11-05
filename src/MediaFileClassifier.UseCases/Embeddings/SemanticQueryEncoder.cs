@@ -106,6 +106,45 @@ public sealed partial class SemanticQueryEncoder : IDisposable
     }
 
     /// <summary>
+    /// Encodes a picture for image-to-image search (E06-S03-T04), for example a file the user dropped or pasted. The
+    /// picture isn't added to the library, and the vector isn't cached.
+    /// </summary>
+    /// <param name="image">The picture: encoded bytes, or raw RGBA from <see cref="AiImage.FromRgba"/>.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The query vector in the open library's embedding space, or <see langword="null"/> when no library is open or no image embedding provider is registered.</returns>
+    /// <exception cref="AiProviderException">The model isn't installed (<see cref="AiFailureKind.ModelMissing"/>), the picture can't be decoded (<see cref="AiFailureKind.InvalidInput"/>) or the model failed.</exception>
+    public async Task<SearchVector?> EncodeImageAsync(AiImage image, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+
+        var library = session.Current;
+        var provider = registry.GetProviders<IImageEmbeddingProvider>().FirstOrDefault();
+        if (library is null || provider is null)
+        {
+            return null;
+        }
+
+        var output = await provider.EmbedImagesAsync([image], cancellationToken).ConfigureAwait(false);
+        var model = await library.Models.GetOrAddAsync(output.Model, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        return SearchVector.FromVector(model.Id, output.Value[0].Span);
+    }
+
+    /// <summary>
+    /// Encodes a picture file for image-to-image search (E06-S03-T04). The file is only read.
+    /// </summary>
+    /// <param name="path">The picture file.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>See <see cref="EncodeImageAsync"/>.</returns>
+    /// <exception cref="IOException">The file can't be read.</exception>
+    public async Task<SearchVector?> EncodeImageFileAsync(string path, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        return await EncodeImageAsync(new AiImage(bytes, "image/*", Path.GetFileName(path)), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Waits for the model preload that the last library change started. It never throws.
     /// </summary>
     /// <returns>A task that completes when the preload has finished or failed.</returns>

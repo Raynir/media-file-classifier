@@ -145,21 +145,18 @@ public sealed partial class ModelStore : IModelStore, IDisposable
                     long size;
                     if (request.MoveSourceFiles)
                     {
+                        // Check the hash before the move, so a wrong file is never taken away from where the user keeps it.
                         (sha256, size) = await HashFileAsync(source.SourcePath, null, onProgress, cancellationToken).ConfigureAwait(false);
+                        EnsureExpectedHash(fileNames[index], sha256, source.ExpectedSha256);
                         File.Move(source.SourcePath, destination);
                     }
                     else
                     {
                         (sha256, size) = await HashFileAsync(source.SourcePath, destination, onProgress, cancellationToken).ConfigureAwait(false);
+                        EnsureExpectedHash(fileNames[index], sha256, source.ExpectedSha256);
                     }
 
                     processed += size;
-                    if (source.ExpectedSha256 is { } expected && !string.Equals(sha256, expected.Trim(), StringComparison.OrdinalIgnoreCase))
-                    {
-                        throw new ModelStoreException(
-                            $"{fileNames[index]} isn't the expected file, or it's damaged: its SHA-256 is {sha256}, but {expected.Trim().ToLowerInvariant()} was expected.");
-                    }
-
                     files.Add(new InstalledModelFile(source.Role, fileNames[index], size, sha256));
                 }
 
@@ -316,6 +313,15 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     {
         var lines = string.Concat(files.OrderBy(file => file.Role, StringComparer.Ordinal).Select(file => $"{file.Role}:{file.Sha256.ToLowerInvariant()}\n"));
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(lines)));
+    }
+
+    private static void EnsureExpectedHash(string fileName, string sha256, string? expected)
+    {
+        if (expected is not null && !string.Equals(sha256, expected.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ModelStoreException(
+                $"{fileName} isn't the expected file, or it's damaged: its SHA-256 is {sha256}, but {expected.Trim().ToLowerInvariant()} was expected.");
+        }
     }
 
     private static bool IsModelName(string path) => NamePattern().IsMatch(Path.GetFileName(path));

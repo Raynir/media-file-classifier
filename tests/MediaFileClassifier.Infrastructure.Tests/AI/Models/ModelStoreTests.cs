@@ -90,6 +90,17 @@ public sealed class ModelStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Import_MoveSourceFilesWithWrongHash_KeepsTheSourceFile()
+    {
+        var (path, _) = WriteSource("vision.onnx", 1000);
+
+        await Assert.ThrowsAsync<ModelStoreException>(
+            () => store.ImportAsync(Request(new ModelFileSource("vision", path, new string('0', 64))) with { MoveSourceFiles = true }, null, Token));
+
+        Assert.True(File.Exists(path));
+    }
+
+    [Fact]
     public async Task Import_SameVersionTwice_Fails()
     {
         var (path, _) = WriteSource("vision.onnx", 100);

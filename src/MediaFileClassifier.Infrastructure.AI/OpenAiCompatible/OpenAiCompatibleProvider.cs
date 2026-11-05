@@ -51,7 +51,7 @@ public abstract class OpenAiCompatibleProvider : IAiProvider, IDisposable
         }
 
         // Local servers ignore the key, but the SDK requires one.
-        client = new OpenAIClient(new ApiKeyCredential(endpoint.ApiKey ?? "not-needed"), options);
+        client = new OpenAIClient(new ApiKeyCredential(string.IsNullOrWhiteSpace(endpoint.ApiKey) ? "not-needed" : endpoint.ApiKey), options);
         chatClient = client.GetChatClient(endpoint.Model).AsIChatClient();
     }
 
@@ -162,7 +162,7 @@ public abstract class OpenAiCompatibleProvider : IAiProvider, IDisposable
     }
 
     private static bool IsTransportFailure(Exception ex, CancellationToken cancellationToken) =>
-        ex is ClientResultException or HttpRequestException or IOException
+        ex is ClientResultException or HttpRequestException or IOException or System.Text.Json.JsonException
         || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested);
 
     private AiProviderException ToProviderException(Exception ex) => ex switch
@@ -173,6 +173,8 @@ public abstract class OpenAiCompatibleProvider : IAiProvider, IDisposable
             AiFailureKind.Timeout, Id, $"{Endpoint.BaseUrl} timed out.", innerException: ex),
         ClientResultException { Status: > 0 } result => new AiProviderException(
             AiFailureKind.ProviderError, Id, $"{Endpoint.BaseUrl} returned an error ({result.Status}): {ex.Message}", innerException: ex),
+        System.Text.Json.JsonException => new AiProviderException(
+            AiFailureKind.ProviderError, Id, $"{Endpoint.BaseUrl} sent a reply that isn't OpenAI-compatible.", innerException: ex),
         _ => new AiProviderException(
             AiFailureKind.Unreachable, Id, $"{Endpoint.BaseUrl} isn't answering.", innerException: ex),
     };

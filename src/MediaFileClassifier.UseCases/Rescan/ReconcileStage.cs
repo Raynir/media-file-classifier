@@ -93,6 +93,25 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         var jobId = context.WorkItem.JobId;
         var now = clock.GetUtcNow();
 
+        // Moved or renamed: the item keeps its ID and all its metadata (E02-S04-T02).
+        var moved = new List<MediaItem>();
+        foreach (var (item, folder, found) in result.Moved)
+        {
+            item.Relocate(folder.Id, found.Path);
+            item.UpdateFile(found.SizeBytes, found.FileCreatedAt, found.FileModifiedAt, item.Hashes);
+            if (item.Status == MediaItemStatus.Missing)
+            {
+                item.ChangeStatus(MediaItemStatus.Pending, now);
+            }
+
+            moved.Add(item);
+        }
+
+        foreach (var batch in moved.Chunk(BatchSize))
+        {
+            await library.Items.UpdateRangeAsync(batch, cancellationToken).ConfigureAwait(false);
+        }
+
         // Gone: marked Missing with everything kept, so the item can be relinked if the file comes back (E02-S04-T04).
         MediaItem[] missing = [.. result.Missing.Where(item => item.Status != MediaItemStatus.Missing)];
         foreach (var item in missing)

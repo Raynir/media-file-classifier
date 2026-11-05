@@ -8,7 +8,7 @@ namespace MediaFileClassifier.UseCases.Rescan;
 /// <summary>
 /// One folder's items compared with its snapshot, by path alone (E02-S04-T01). Pure, so E04 can feed it the same way.
 /// Moves aren't known here: a moved file shows as one <see cref="New"/> file and one <see cref="Disappeared"/> item until
-/// move detection (E02-S04-T02) pairs them.
+/// <see cref="MoveDetector"/> pairs them.
 /// </summary>
 public sealed record FolderComparison
 {

@@ -140,12 +140,15 @@ public sealed class ReconcilerTests : IAsyncLifetime
     /// </summary>
     /// <param name="bed">The test bed.</param>
     /// <param name="folder">The folder to rescan, or null for the whole library.</param>
+    /// <param name="library">Whether to rescan every folder of the library instead.</param>
     /// <returns>The job.</returns>
-    internal static async Task<Id<ProcessingJob>> RescanAsync(ImportTestBed bed, IndexedFolder? folder = null)
+    internal static async Task<Id<ProcessingJob>> RescanAsync(ImportTestBed bed, IndexedFolder? folder = null, bool library = false)
     {
-        folder ??= bed.Folder;
         var jobId = await bed.Jobs.Current!.EnqueueJobAsync(
-            new JobRequest(RescanStages.RescanJob, "Rescan", JobPriority.UserAction, [new WorkItemRequest(RescanStages.Reconcile)]) { FolderId = folder.Id },
+            new JobRequest(RescanStages.RescanJob, "Rescan", JobPriority.UserAction, [new WorkItemRequest(RescanStages.Reconcile)])
+            {
+                FolderId = library ? null : (folder ?? bed.Folder).Id,
+            },
             Token);
         await bed.WaitUntilIdleAsync();
         return jobId;

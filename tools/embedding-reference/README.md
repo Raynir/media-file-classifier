@@ -20,7 +20,7 @@ curl.exe -L -o models/siglip2/text_model.onnx "$base/onnx/text_model.onnx"
 curl.exe -L -o models/siglip2/tokenizer.model "https://huggingface.co/google/siglip2-base-patch16-256/resolve/main/tokenizer.model"
 ```
 
-The app itself finds the model in its model store (`%LOCALAPPDATA%\MediaFileClassifier\models\siglip2-base-patch16-256\1`), with the roles `vision`, `text` and `tokenizer`. The model download (E06-S12) installs it there.
+The app itself finds the model in its model store (`%LOCALAPPDATA%\MediaFileClassifier\models\siglip2-base-patch16-256\1.0`), with the roles `vision`, `text` and `tokenizer`. Files are found by role, never by name: the compact tier (E06-S12) puts `text_model_fp16.onnx` in the `text` role. The model download (E06-S12) installs it there.
 
 ## Regenerating the reference
 

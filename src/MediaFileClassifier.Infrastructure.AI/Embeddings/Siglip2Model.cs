@@ -14,7 +14,7 @@ public static class Siglip2Model
     /// <summary>
     /// The installed version the provider looks for.
     /// </summary>
-    public const string Version = "1";
+    public const string Version = "1.0";
 
     /// <summary>
     /// The provider's ID in the registry.

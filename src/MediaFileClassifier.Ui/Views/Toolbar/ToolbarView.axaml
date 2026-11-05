@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="using:MediaFileClassifier.Ui.Toolbar"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Toolbar.ToolbarView"
+             x:DataType="t:ToolbarViewModel"
+             AutomationProperties.Name="{l:Loc Toolbar_Name}">
+  <!--
+    The toolbar (E13-S03), provisional after the Figma screens (D095): one row, 30 from the sides, with the slots
+    Search, Filter, Sort and View in that order at every width, then the action buttons. Each slot shows the view
+    of the view model a feature puts in it. Actions that don't fit move into the More menu. See docs/toolbar.md.
+  -->
+  <UserControl.Styles>
+    <!-- Action buttons: a control-high button with an icon and a label (Figma 27:1742). -->
+    <Style Selector="Button.ToolbarAction">
+      <Setter Property="Height" Value="{DynamicResource Size.Control}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Control}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.ToolbarAction PathIcon">
+      <Setter Property="Width" Value="{DynamicResource Size.Control.Small}" />
+      <Setter Property="Height" Value="{DynamicResource Size.Control.Small}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Icon}" />
+    </Style>
+    <Style Selector="Button.ToolbarAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Hover}" />
+    </Style>
+    <Style Selector="Button.ToolbarAction:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Pressed}" />
+    </Style>
+    <Style Selector="Button.ToolbarAction:disabled">
+      <Setter Property="Opacity" Value="{DynamicResource Opacity.Disabled}" />
+    </Style>
+  </UserControl.Styles>
+
+  <t:ToolbarLayoutPanel x:Name="Row" Spacing="{DynamicResource Space.M}" Margin="{DynamicResource Padding.Toolbar}">
+    <ContentControl x:Name="SearchSlot"
+                    t:ToolbarLayoutPanel.Role="Fill"
+                    MinWidth="{DynamicResource Size.Toolbar.SearchMin}"
+                    VerticalAlignment="Center"
+                    HorizontalContentAlignment="Stretch"
+                    Content="{Binding Search}" />
+    <ContentControl x:Name="FilterSlot"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding Filter, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Content="{Binding Filter}" />
+    <ContentControl x:Name="SortSlot"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding Sort, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Content="{Binding Sort}" />
+    <ContentControl x:Name="ViewSlot"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding View, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Content="{Binding View}" />
+    <ItemsControl x:Name="Actions"
+                  t:ToolbarLayoutPanel.Role="Overflow"
+                  VerticalAlignment="Center"
+                  ItemsSource="{Binding Items}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <!-- Moves the actions that don't fit into the More menu (E13-S03-T03). -->
+          <t:ToolbarActionPanel Spacing="{DynamicResource Space.S}"
+                                OverflowButtonWidth="{DynamicResource Size.Control}" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.DataTemplates>
+        <!-- An action runs its command: the label, icon, enablement and tooltip with the shortcut come from it. -->
+        <DataTemplate DataType="t:ToolbarAction">
+          <Button Classes="ToolbarAction"
+                  IsVisible="{Binding !IsOverflowed}"
+                  Command="{Binding Command}"
+                  ToolTip.Tip="{Binding Command.ToolTip}"
+                  ToolTip.ShowOnDisabled="True"
+                  AutomationProperties.Name="{Binding Command.PlainLabel}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+              <PathIcon Data="{Binding Command.Icon}" />
+              <TextBlock Text="{Binding Command.PlainLabel}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </DataTemplate>
+        <!-- The overflow menu: the actions that don't fit, as menu items bound to the same commands. -->
+        <DataTemplate DataType="t:ToolbarOverflowMenu">
+          <Button x:Name="OverflowButton"
+                  Classes="Icon"
+                  IsVisible="{Binding IsShown}"
+                  ToolTip.Tip="{l:Loc Toolbar_More}"
+                  AutomationProperties.Name="{l:Loc Toolbar_More}">
+            <Button.Flyout>
+              <MenuFlyout Placement="BottomEdgeAlignedRight"
+                          FlyoutPresenterClasses="Commands"
+                          ItemsSource="{Binding Entries}" />
+            </Button.Flyout>
+            <PathIcon Data="{StaticResource Icon.More}" />
+          </Button>
+        </DataTemplate>
+      </ItemsControl.DataTemplates>
+    </ItemsControl>
+  </t:ToolbarLayoutPanel>
+</UserControl>

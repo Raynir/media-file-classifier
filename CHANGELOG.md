@@ -7,6 +7,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Added
 
 - AI provider abstraction: capability interfaces (image description, OCR, transcription, image and text embedding) that any provider implements in part, base classes for ONNX, OpenAI-compatible (LM Studio, Ollama) and native-library providers, a provider registry with capability lookup and health checks (missing model, unreachable endpoint, native library that won't load), a JSON schema for LLM image descriptions with repair and one retry, a per-user model store with SHA-256-verified import and deletion that names the libraries using a model, a query for items left outdated by a model change, and deterministic fake providers for tests (E01-S05).
+- Toolbar above the media browser and details panel while a library is open: slots for the search bar, filters, sort and view controls in a fixed order, with the thumbnail size slider now in the view slot; an Add folder… button (also Library › Add folder…, `Ctrl+Shift+O`) that picks a folder and opens the Indexed folders dialog with it added; and a More menu (⋯) that takes the actions that don't fit as the window narrows (E13-S03).
 
 ### Fixed
 

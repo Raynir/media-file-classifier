@@ -682,6 +682,9 @@
   <data name="Setting_OpenLastLibrary_Help" xml:space="preserve">
     <value>When off, the app starts on the welcome screen.</value>
   </data>
+  <data name="Command_AddFolder" xml:space="preserve">
+    <value>_Add folder…</value>
+  </data>
   <data name="Command_ManageFolders" xml:space="preserve">
     <value>Manage _folders…</value>
   </data>
@@ -936,5 +939,11 @@
   </data>
   <data name="StatusBar_FoldersOffline_ToolTip" xml:space="preserve">
     <value>Some indexed folders can't be reached. Their items stay in the library.</value>
+  </data>
+  <data name="Toolbar_Name" xml:space="preserve">
+    <value>Toolbar</value>
+  </data>
+  <data name="Toolbar_More" xml:space="preserve">
+    <value>More actions</value>
   </data>
 </root>

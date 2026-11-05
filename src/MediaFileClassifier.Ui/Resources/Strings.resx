@@ -688,6 +688,26 @@
   <data name="Command_ManageFolders" xml:space="preserve">
     <value>Manage _folders…</value>
   </data>
+  <data name="Command_RemoveMissing" xml:space="preserve">
+    <value>Remove _missing items…</value>
+  </data>
+  <data name="Command_NoMissingItems" xml:space="preserve">
+    <value>No items are missing.</value>
+  </data>
+  <data name="Rescan_RemoveMissingConfirm" xml:space="preserve">
+    <value>Remove {0} from the library? Their tags, favorites and other metadata are deleted with them. Files on disk aren't touched.</value>
+    <comment>{0} is Folders_Items or Folders_ItemsOne, the missing items.</comment>
+  </data>
+  <data name="Rescan_RemoveMissingButton" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Rescan_Keep" xml:space="preserve">
+    <value>Keep them</value>
+  </data>
+  <data name="Rescan_MissingRemoved" xml:space="preserve">
+    <value>{0} removed from the library.</value>
+    <comment>{0} is Folders_Items or Folders_ItemsOne.</comment>
+  </data>
   <data name="Command_NoLibraryOpen" xml:space="preserve">
     <value>Open a library first.</value>
   </data>

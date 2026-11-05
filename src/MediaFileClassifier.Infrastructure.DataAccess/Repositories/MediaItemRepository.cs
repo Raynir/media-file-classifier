@@ -492,6 +492,32 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
         return deleted;
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> DeleteMissingAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+
+        var deleted = await writer.ExecuteAsync<IReadOnlyList<Id<MediaItem>>>(
+            async (db, token) =>
+            {
+                var ids = await db.MediaItems.Where(item => item.Status == MediaItemStatus.Missing).OrderBy(item => item.Id).Select(item => item.Id)
+                    .Take(limit).ToListAsync(token).ConfigureAwait(false);
+                if (ids.Count > 0)
+                {
+                    await db.MediaItems.Where(item => ids.Contains(item.Id)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                }
+
+                return ids;
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (deleted.Count > 0)
+        {
+            RaiseChanged();
+        }
+
+        return deleted;
+    }
+
     // The items a filter shows; a null filter shows every item, the Excluded ones too.
     private static IQueryable<MediaItem> Filter(LibraryDbContext db, MediaItemFilter? filter, IQueryable<MediaItem>? items = null)
     {
@@ -515,6 +541,11 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
         if (filter.ImportedSince is { } since)
         {
             items = items.Where(item => item.ImportedAt >= since);
+        }
+
+        if (filter.Status is { } status)
+        {
+            items = items.Where(item => item.Status == status);
         }
 
         return items;

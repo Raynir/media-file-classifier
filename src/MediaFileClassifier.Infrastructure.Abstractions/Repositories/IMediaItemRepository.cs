@@ -276,4 +276,13 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The deleted items, so the caller can delete their thumbnails; empty when the folder has none left.</returns>
     Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes up to <paramref name="limit"/> items whose status is Missing, as <see cref="DeleteAsync"/> does, in one
+    /// short write. The status is checked in the same write, so an item that came back meanwhile stays (E02-S04-T04).
+    /// </summary>
+    /// <param name="limit">The most items to delete.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The deleted items, so the caller can delete their thumbnails; empty when none are left.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> DeleteMissingAsync(int limit, CancellationToken cancellationToken = default);
 }

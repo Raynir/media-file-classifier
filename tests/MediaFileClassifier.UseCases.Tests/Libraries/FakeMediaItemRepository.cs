@@ -91,4 +91,6 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
     public Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<Id<MediaItem>>> DeleteMissingAsync(int limit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }

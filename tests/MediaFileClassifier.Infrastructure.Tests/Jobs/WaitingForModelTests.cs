@@ -82,6 +82,7 @@ public sealed class WaitingForModelTests : IAsyncLifetime
         await WaitForJobAsync(jobId, ProcessingJobState.WaitingForModel);
         await Task.Delay(100, Token);
         Assert.Empty(embed.Started);
+        Assert.Equal(0, await bed.Library.Jobs.CountPendingAsync(Token));
 
         await InstallModelAsync();
 

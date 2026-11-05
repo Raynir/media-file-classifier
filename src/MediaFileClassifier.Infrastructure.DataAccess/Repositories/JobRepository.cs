@@ -148,7 +148,11 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
     /// <inheritdoc />
     public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync(
-            (db, token) => db.WorkItems.CountAsync(item => item.State == WorkItemState.Queued || item.State == WorkItemState.Running, token),
+            (db, token) => db.WorkItems.CountAsync(
+                item => item.State == WorkItemState.Running
+                    || (item.State == WorkItemState.Queued
+                        && db.ProcessingJobs.Any(job => job.Id == item.JobId && job.State != ProcessingJobState.WaitingForModel)),
+                token),
             cancellationToken);
 
     /// <inheritdoc />

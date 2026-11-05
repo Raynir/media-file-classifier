@@ -77,9 +77,9 @@ public sealed class ModelCatalog : IModelCatalog
         foreach (var entry in entries)
         {
             Require(entry is not null, "an entry is null");
-            Require(!string.IsNullOrWhiteSpace(entry!.ModelId) && modelIds.Add(entry.ModelId), $"the model ID '{entry.ModelId}' is empty or repeated");
+            Require(IsStoreName(entry!.ModelId) && modelIds.Add(entry.ModelId), $"the model ID '{entry.ModelId}' isn't a valid store name, or is repeated");
             var name = entry.ModelId;
-            Require(!string.IsNullOrWhiteSpace(entry.Version), $"{name} has no version");
+            Require(IsStoreName(entry.Version), $"{name}'s version '{entry.Version}' isn't a valid store name");
             Require(!string.IsNullOrWhiteSpace(entry.DisplayName), $"{name} has no display name");
             Require(!string.IsNullOrWhiteSpace(entry.License), $"{name} has no license (D030)");
             Require(IsHttps(entry.LicenseUrl) && IsHttps(entry.Source), $"{name} needs https license and source URLs");
@@ -109,6 +109,15 @@ public sealed class ModelCatalog : IModelCatalog
             Require(tierIds.Contains(entry.DefaultTier ?? string.Empty), $"{name}'s default tier '{entry.DefaultTier}' isn't one of its tiers");
         }
     }
+
+    /// <summary>
+    /// Gets whether a model ID or version is a name the model store accepts: lower-case letters, digits, dots, dashes
+    /// and underscores, starting with a letter or digit, at most 100 characters.
+    /// </summary>
+    private static bool IsStoreName(string? value) =>
+        value is { Length: > 0 and <= 100 }
+        && (char.IsAsciiLetterLower(value[0]) || char.IsAsciiDigit(value[0]))
+        && value.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c is '.' or '-' or '_');
 
     private static bool IsHttps(Uri? uri) => uri is { IsAbsoluteUri: true } && uri.Scheme == Uri.UriSchemeHttps;
 

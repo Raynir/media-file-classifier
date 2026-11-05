@@ -78,7 +78,8 @@ public interface IJobRepository
     Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Counts the work items still to do (queued or running) in the whole library.
+    /// Counts the work items still to do (queued or running) in the whole library. Work of jobs that wait for a model
+    /// isn't counted: it can't run until the model is installed (D037).
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of work items.</returns>

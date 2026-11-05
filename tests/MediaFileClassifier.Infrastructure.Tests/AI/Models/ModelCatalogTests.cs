@@ -83,6 +83,8 @@ public sealed class ModelCatalogTests
     [InlineData("\"v.onnx\"", "\"..\\\\v.onnx\"")]
     [InlineData("\"size\": 10", "\"size\": 0")]
     [InlineData("\"license\": \"MIT\"", "\"license\": \"\"")]
+    [InlineData("\"version\": \"1\"", "\"version\": \"V1\"")]
+    [InlineData("\"modelId\": \"m\"", "\"modelId\": \"my model\"")]
     [InlineData("\"purpose\": \"Embedding\"", "\"purpose\": \"Embedding\", \"extra\": 1")]
     [InlineData("\"models\": [", "\"models\": [ null,")]
     public void Malformed_IsRejected(string find, string replace)

@@ -157,8 +157,9 @@ public sealed partial class ModelBannerViewModel : ViewModelBase, IDisposable
         {
             offer = await sender.Send(new GetModelOfferQuery(ModelPurpose.Embedding));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex)
         {
+            // Runs fire-and-forget on the UI thread: a failure leaves the banner as it is, and is logged.
             LogRefreshFailed(ex);
             return;
         }

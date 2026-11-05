@@ -1,5 +1,6 @@
 using Avalonia.Input;
 using MediaFileClassifier.Ui.Browser;
+using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 
@@ -17,6 +18,9 @@ public static class DefaultKeymap
     /// </summary>
     public static IReadOnlyList<ShortcutBinding> Bindings { get; } =
     [
+        // Library (E02-S03): Add folder, also on the toolbar (E13-S03).
+        Bind(LibraryCommands.AddFolder, PhysicalKey.O, KeyModifiers.Control | KeyModifiers.Shift),
+
         // View (E13-S01)
         Bind(ShellCommands.ToggleNavigation, PhysicalKey.Digit1, KeyModifiers.Control),
         Bind(ShellCommands.ToggleDetails, PhysicalKey.Digit2, KeyModifiers.Control),

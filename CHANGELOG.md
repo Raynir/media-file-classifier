@@ -7,6 +7,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Added
 
 - Search index engine: keyword search over the effective title, description, tags, OCR text, transcript, other descriptive fields and file path (FTS5, case and diacritics ignored, every word as a prefix, path substrings through a trigram index), in-memory vector search over half-precision embeddings of one model at a time, hybrid ranking with Reciprocal Rank Fusion, filters for media type, format, date, resolution, favorite, status, review status, collection, user tags and folder on every path, and an index rebuild. Metadata edits are searchable as soon as they are saved; libraries move to schema version 6 and rebuild their keyword index once when opened (E01-S04).
+- Toolbar above the media browser and details panel while a library is open: slots for the search bar, filters, sort and view controls in a fixed order, with the thumbnail size slider now in the view slot; an Add folder… button (also Library › Add folder…, `Ctrl+Shift+O`) that picks a folder and opens the Indexed folders dialog with it added; and a More menu (⋯) that takes the actions that don't fit as the window narrows (E13-S03).
 
 ### Fixed
 

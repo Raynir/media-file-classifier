@@ -4,6 +4,7 @@
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              xmlns:sh="using:MediaFileClassifier.Ui.Shell"
              xmlns:v="using:MediaFileClassifier.Ui.Views"
+             xmlns:vmo="using:MediaFileClassifier.Ui.Views.Models"
              x:Class="MediaFileClassifier.Ui.Views.MainView"
              x:DataType="vm:MainWindowViewModel">
   <!--
@@ -29,6 +30,9 @@
   <Panel>
   <DockPanel>
     <Menu x:Name="MainMenu" DockPanel.Dock="Top" Classes="Commands" ItemsSource="{Binding Menu.Groups}" />
+
+    <!-- The "no model" banner (E06-S12-T04), while search has no embedding model. -->
+    <vmo:ModelBannerView x:Name="ModelBanner" DockPanel.Dock="Top" DataContext="{Binding ModelBanner}" IsVisible="{Binding IsVisible}" />
 
     <Panel x:Name="StatusBarHost" DockPanel.Dock="Bottom" IsVisible="{Binding Layout.IsStatusBarVisible}">
       <Panel.ContextMenu>

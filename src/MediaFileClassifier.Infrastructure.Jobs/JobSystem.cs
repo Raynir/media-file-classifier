@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
@@ -18,13 +19,15 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// <param name="progress">The progress counters of the open library (E05-S02).</param>
 /// <param name="clock">Clock.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="models">Which models are installed, so stages that need a missing one wait (D037).</param>
 public sealed partial class JobSystem(
     IEnumerable<IStageHandler> handlers,
     ISettingsService settings,
     IHardwareInfo hardware,
     JobProgressTracker progress,
     TimeProvider clock,
-    ILogger<JobSystem> logger) : IJobSystem, IDisposable
+    ILogger<JobSystem> logger,
+    IModelAvailability? models = null) : IJobSystem, IDisposable
 {
     /// <summary>
     /// Default concurrency limit of the I/O pool.
@@ -79,7 +82,7 @@ public sealed partial class JobSystem(
             progress.Reset(
                 await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false),
                 await library.Jobs.CountUnfinishedWorkAsync(cancellationToken).ConfigureAwait(false));
-            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger);
+            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger, models);
             scheduler.Start(startPaused);
             current = scheduler;
             LogStarted(library.Layout.RootDirectory, pending, requeued, startPaused);

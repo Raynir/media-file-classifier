@@ -89,14 +89,17 @@ public sealed partial class SemanticQueryEncoder : IDisposable
             return null;
         }
 
-        var key = (provider.Model.ToString(), text.Trim().ToLowerInvariant());
-        if (TryGetCached(key, out var cached))
+        var normalised = text.Trim().ToLowerInvariant();
+        if (TryGetCached((provider.Model.ToString(), normalised), out var cached))
         {
             return cached;
         }
 
         var startedIn = Volatile.Read(ref generation);
-        var output = await provider.EmbedTextsAsync([key.Item2], cancellationToken).ConfigureAwait(false);
+        var output = await provider.EmbedTextsAsync([normalised], cancellationToken).ConfigureAwait(false);
+
+        // The provider's identity is only final once its model has loaded, so the entry goes under the output's.
+        var key = (output.Model.ToString(), normalised);
         var model = await library.Models.GetOrAddAsync(output.Model, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
         var vector = SearchVector.FromVector(model.Id, output.Value[0].Span);
 
@@ -202,6 +205,11 @@ public sealed partial class SemanticQueryEncoder : IDisposable
             try
             {
                 await provider.PreloadAsync(AiCapability.TextEmbedding, CancellationToken.None).ConfigureAwait(false);
+                if (started != Volatile.Read(ref generation) && session.Current is null)
+                {
+                    // The library closed while the model was loading: don't keep it in memory.
+                    provider.Unload();
+                }
             }
             catch (AiProviderException ex) when (ex.Kind == AiFailureKind.ModelMissing)
             {

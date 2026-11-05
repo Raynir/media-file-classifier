@@ -1,0 +1,120 @@
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.UseCases.Import;
+using MediaFileClassifier.UseCases.Libraries;
+using Microsoft.Extensions.Logging;
+
+namespace MediaFileClassifier.UseCases.Rescan;
+
+/// <summary>
+/// The first stage of a rescan job (E02-S04): reconciles the job's folder, or every folder of the library, and applies
+/// the result. New files go on through the import's stages in this job; nothing is deleted.
+/// </summary>
+/// <param name="reconciler">The reconciliation engine.</param>
+/// <param name="clock">Clock for status changes.</param>
+/// <param name="logger">Logger.</param>
+public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider clock, ILogger<ReconcileStage> logger) : IStageHandler
+{
+    /// <summary>
+    /// Number of items written per transaction, the writer's batch size (D072).
+    /// </summary>
+    public const int BatchSize = 100;
+
+    /// <inheritdoc />
+    public string Stage => RescanStages.Reconcile;
+
+    /// <inheritdoc />
+    public ResourcePool Pool => ResourcePool.Io;
+
+    /// <inheritdoc />
+    public async Task HandleAsync(WorkItemContext context, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var library = context.Library;
+        var jobId = context.WorkItem.JobId;
+        var job = await library.Jobs.GetJobAsync(jobId, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The rescan job isn't in the library.");
+        var folders = await GetFoldersAsync(library, job, cancellationToken).ConfigureAwait(false);
+
+        var result = await reconciler.ReconcileAsync(library, folders, cancellationToken).ConfigureAwait(false);
+        await UpdateFolderStatusAsync(library, result, cancellationToken).ConfigureAwait(false);
+        await ApplyAsync(context, result, cancellationToken).ConfigureAwait(false);
+
+        LogReconciled(folders.Count, result.Offline.Count, result.New.Count, result.Modified.Count, result.Moved.Count, result.Missing.Count, result.Unchanged.Count);
+    }
+
+    // The job's folder, or all of them; a folder that's being removed isn't rescanned.
+    private static async Task<IReadOnlyList<IndexedFolder>> GetFoldersAsync(IOpenLibrary library, ProcessingJob job, CancellationToken cancellationToken)
+    {
+        var removing = (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false))
+            .Where(other => other.Type == IndexedFolders.RemoveJob && other.FolderId is not null)
+            .Select(other => other.FolderId!.Value)
+            .ToHashSet();
+        IReadOnlyList<IndexedFolder> folders = job.FolderId is { } folderId
+            ? [.. new[] { await library.Folders.GetAsync(folderId, cancellationToken).ConfigureAwait(false) }.OfType<IndexedFolder>()]
+            : await library.Folders.GetAllAsync(cancellationToken).ConfigureAwait(false);
+        return [.. folders.Where(folder => !removing.Contains(folder.Id))];
+    }
+
+    private static async Task EnqueueAsync(IJobScheduler scheduler, Id<ProcessingJob> jobId, string stage, IEnumerable<Id<MediaItem>> itemIds, CancellationToken cancellationToken)
+    {
+        WorkItemRequest[] work = [.. itemIds.Select(itemId => new WorkItemRequest(stage, itemId))];
+        if (work.Length > 0)
+        {
+            await scheduler.EnqueueWorkAsync(jobId, work, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    // Offline folders are skipped and marked (D188); a listed folder is online again.
+    private async Task UpdateFolderStatusAsync(IOpenLibrary library, Reconciliation result, CancellationToken cancellationToken)
+    {
+        var now = clock.GetUtcNow();
+        foreach (var folder in result.Offline.Where(folder => folder.Status != FolderStatus.Offline))
+        {
+            folder.MarkOffline(now);
+            await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+        }
+
+        foreach (var (folder, _) in result.Scanned.Where(scanned => scanned.Folder.Status == FolderStatus.Offline))
+        {
+            folder.MarkOnline(now);
+            await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ApplyAsync(WorkItemContext context, Reconciliation result, CancellationToken cancellationToken)
+    {
+        var library = context.Library;
+        var jobId = context.WorkItem.JobId;
+        var now = clock.GetUtcNow();
+
+        // Gone: marked Missing with everything kept, so the item can be relinked if the file comes back (E02-S04-T04).
+        MediaItem[] missing = [.. result.Missing.Where(item => item.Status != MediaItemStatus.Missing)];
+        foreach (var item in missing)
+        {
+            item.ChangeStatus(MediaItemStatus.Missing, now);
+        }
+
+        foreach (var batch in missing.Chunk(BatchSize))
+        {
+            await library.Items.UpdateRangeAsync(batch, cancellationToken).ConfigureAwait(false);
+        }
+
+        // New files are imported like any other (E03-S07): the fingerprint stage goes on from what's known.
+        foreach (var batch in result.New.Chunk(BatchSize))
+        {
+            await library.Items.AddRangeAsync(batch, cancellationToken).ConfigureAwait(false);
+            await EnqueueAsync(context.Scheduler, jobId, ImportStages.Fingerprint, batch.Select(item => item.Id), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Rescan of {Folders} folders ({Offline} offline): {New} new, {Modified} modified, {Moved} moved, {Missing} missing, {Unchanged} unchanged")]
+    private partial void LogReconciled(int folders, int offline, int @new, int modified, int moved, int missing, int unchanged);
+}

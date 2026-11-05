@@ -107,7 +107,17 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     }
 
     /// <inheritdoc />
+    public event EventHandler? ModelsChanged;
+
+    /// <inheritdoc />
     public async Task<InstalledModel> ImportAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken)
+    {
+        var model = await ImportCoreAsync(request, progress, cancellationToken).ConfigureAwait(false);
+        ModelsChanged?.Invoke(this, EventArgs.Empty);
+        return model;
+    }
+
+    private async Task<InstalledModel> ImportCoreAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -249,6 +259,17 @@ public sealed partial class ModelStore : IModelStore, IDisposable
 
     /// <inheritdoc />
     public async Task<ModelDeletionResult> DeleteAsync(string modelId, string version, bool confirmed, CancellationToken cancellationToken)
+    {
+        var result = await DeleteCoreAsync(modelId, version, confirmed, cancellationToken).ConfigureAwait(false);
+        if (result.Deleted)
+        {
+            ModelsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        return result;
+    }
+
+    private async Task<ModelDeletionResult> DeleteCoreAsync(string modelId, string version, bool confirmed, CancellationToken cancellationToken)
     {
         var target = GetModelDirectory(modelId, version);
         var key = GetUsageKey(modelId, version);

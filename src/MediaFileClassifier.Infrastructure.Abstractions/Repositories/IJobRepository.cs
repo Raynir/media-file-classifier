@@ -51,12 +51,14 @@ public interface IJobRepository
     /// <param name="pool">The pool.</param>
     /// <param name="limit">Maximum number of items.</param>
     /// <param name="excluding">Work items to leave out, e.g. those the caller already holds.</param>
+    /// <param name="excludingStages">Stages to leave out, e.g. those waiting for a model, or <see langword="null"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The work items.</returns>
     Task<IReadOnlyList<WorkItem>> GetQueuedAsync(
         ResourcePool pool,
         int limit,
         IReadOnlyCollection<Id<WorkItem>> excluding,
+        IReadOnlyCollection<string>? excludingStages = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -129,4 +131,23 @@ public interface IJobRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of work items put back.</returns>
     Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Puts the jobs that can't go on without a model into <see cref="ProcessingJobState.WaitingForModel"/>: queued or
+    /// running jobs with nothing running, whose queued work is all in the given stages (D037).
+    /// </summary>
+    /// <param name="stages">The stages whose model is missing.</param>
+    /// <param name="now">The current time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>How many jobs started waiting.</returns>
+    Task<int> MarkWaitingForModelAsync(IReadOnlyCollection<string> stages, DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Queues every job that waits for a model again, after a model was installed. Jobs whose model is still missing
+    /// wait again at the next dispatch.
+    /// </summary>
+    /// <param name="now">The current time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>How many jobs were queued.</returns>
+    Task<int> ResumeWaitingForModelAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
 }

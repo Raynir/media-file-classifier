@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,10 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// queued work items per resource pool, read from the database in run order, and starts the best one whenever a pool
 /// is under its limit. The database stays the source of truth: the buffer is only a read-ahead.
 /// </summary>
+/// <remarks>
+/// Work of a stage whose model isn't installed isn't dispatched, and jobs left with only such work wait in
+/// <see cref="ProcessingJobState.WaitingForModel"/> (D037). When a model is installed, they're queued again.
+/// </remarks>
 internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 {
     /// <summary>
@@ -31,6 +36,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(1);
 
     private readonly IReadOnlyDictionary<string, IStageHandler> handlers;
+    private readonly IReadOnlyDictionary<string, ModelPurpose> modelStages;
+    private readonly IModelAvailability? models;
     private readonly JobProgressTracker progress;
     private readonly TimeProvider clock;
     private readonly ILogger logger;
@@ -43,6 +50,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private readonly CancellationTokenSource aborting = new();
     private HashSet<Id<MediaItem>> boosted = [];
     private bool boostChanged;
+    private HashSet<string> waitingStages = new(StringComparer.Ordinal);
+    private bool modelsChanged = true;
     private Task loop = Task.CompletedTask;
     private volatile bool paused;
 
@@ -55,16 +64,29 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// <param name="progress">The progress counters, kept up to date as work is added and finishes.</param>
     /// <param name="clock">Clock.</param>
     /// <param name="logger">Logger.</param>
+    /// <param name="models">
+    /// Which models are installed, or <see langword="null"/> to dispatch every stage regardless.
+    /// </param>
     public JobScheduler(
         IOpenLibrary library,
         IEnumerable<IStageHandler> handlers,
         IReadOnlyDictionary<ResourcePool, int> limits,
         JobProgressTracker progress,
         TimeProvider clock,
-        ILogger logger)
+        ILogger logger,
+        IModelAvailability? models = null)
     {
         Library = library;
         this.handlers = handlers.ToDictionary(handler => handler.Stage, StringComparer.Ordinal);
+        this.models = models;
+        modelStages = models is null
+            ? new Dictionary<string, ModelPurpose>()
+            : this.handlers.Values.OfType<IModelDependentStage>().ToDictionary(stage => stage.Stage, stage => stage.RequiredModel, StringComparer.Ordinal);
+        if (models is not null)
+        {
+            models.Changed += OnModelsChanged;
+        }
+
         this.progress = progress;
         this.clock = clock;
         this.logger = logger;
@@ -265,6 +287,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// <returns>A task that completes when no work is running and nothing more will be written.</returns>
     public async Task StopAsync()
     {
+        if (models is not null)
+        {
+            models.Changed -= OnModelsChanged;
+        }
+
         await stopping.CancelAsync().ConfigureAwait(false);
         await loop.ConfigureAwait(false);
         var all = Task.WhenAll(RunningTasks());
@@ -368,8 +395,10 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                 {
                     if (!paused)
                     {
+                        await RefreshWaitingStagesAsync(token).ConfigureAwait(false);
                         await LoadBoostedAsync(token).ConfigureAwait(false);
                         await DispatchAsync(token).ConfigureAwait(false);
+                        await MarkWaitingForModelAsync(token).ConfigureAwait(false);
                     }
 
                     await wake.Reader.ReadAsync(token).ConfigureAwait(false);
@@ -381,6 +410,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                     lock (gate)
                     {
                         boostChanged = true;
+                        modelsChanged = true;
                         foreach (var pool in pools.Values)
                         {
                             pool.Exhausted = false;
@@ -396,6 +426,82 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         {
             // Stopping.
         }
+    }
+
+    /// <summary>
+    /// After a model was installed or deleted (and at the start), finds the stages whose model is missing, and queues
+    /// the jobs that waited for a model again. Those whose model is still missing wait again after the dispatch.
+    /// </summary>
+    private async Task RefreshWaitingStagesAsync(CancellationToken token)
+    {
+        lock (gate)
+        {
+            if (!modelsChanged)
+            {
+                return;
+            }
+
+            modelsChanged = false;
+        }
+
+        var missing = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (stage, purpose) in modelStages)
+        {
+            if (!await models!.IsInstalledAsync(purpose, token).ConfigureAwait(false))
+            {
+                missing.Add(stage);
+            }
+        }
+
+        lock (gate)
+        {
+            waitingStages = missing;
+            foreach (var pool in pools.Values)
+            {
+                pool.Buffer.RemoveAll(workItem => missing.Contains(workItem.Stage));
+                pool.Exhausted = false;
+                pool.Stale = true;
+            }
+        }
+
+        var resumed = await Library.Jobs.ResumeWaitingForModelAsync(clock.GetUtcNow(), token).ConfigureAwait(false);
+        if (resumed > 0)
+        {
+            LogJobsResumed(resumed);
+        }
+    }
+
+    /// <summary>
+    /// Puts the jobs that have only work waiting for a model left into <see cref="ProcessingJobState.WaitingForModel"/>.
+    /// </summary>
+    private async Task MarkWaitingForModelAsync(CancellationToken token)
+    {
+        List<string> stages;
+        lock (gate)
+        {
+            if (waitingStages.Count == 0)
+            {
+                return;
+            }
+
+            stages = [.. waitingStages];
+        }
+
+        var waiting = await Library.Jobs.MarkWaitingForModelAsync(stages, clock.GetUtcNow(), token).ConfigureAwait(false);
+        if (waiting > 0)
+        {
+            LogJobsWaiting(waiting, string.Join(", ", stages));
+        }
+    }
+
+    private void OnModelsChanged(object? sender, EventArgs e)
+    {
+        lock (gate)
+        {
+            modelsChanged = true;
+        }
+
+        Wake();
     }
 
     /// <summary>
@@ -427,7 +533,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             foreach (var workItem in queued)
             {
                 var pool = pools[workItem.Pool];
-                if (!running.ContainsKey(workItem.Id) && !pool.Buffer.Any(buffered => buffered.Id == workItem.Id))
+                if (!running.ContainsKey(workItem.Id) && !waitingStages.Contains(workItem.Stage) && !pool.Buffer.Any(buffered => buffered.Id == workItem.Id))
                 {
                     pool.Buffer.Add(workItem);
                 }
@@ -445,6 +551,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             while (!token.IsCancellationRequested && !paused)
             {
                 List<Id<WorkItem>> excluding;
+                List<string> excludingStages;
                 lock (gate)
                 {
                     if (pool.Running >= pool.Limit)
@@ -466,9 +573,10 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 
                     pool.Stale = false;
                     excluding = [.. running.Keys];
+                    excludingStages = [.. waitingStages];
                 }
 
-                var page = await Library.Jobs.GetQueuedAsync(resource, PageSize, excluding, token).ConfigureAwait(false);
+                var page = await Library.Jobs.GetQueuedAsync(resource, PageSize, excluding, excludingStages, token).ConfigureAwait(false);
                 lock (gate)
                 {
                     // The page replaces the read-ahead, so it stays small; boosted work read by LoadBoostedAsync stays.
@@ -580,6 +688,12 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             return workItem.ChangeState(WorkItemState.Failed, clock.GetUtcNow(), exception.Message);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} jobs wait for a model (stages: {Stages})")]
+    private partial void LogJobsWaiting(int count, string stages);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} jobs that waited for a model are queued again")]
+    private partial void LogJobsResumed(int count);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Work item {WorkItemId} ({Stage}) failed")]
     private partial void LogWorkItemFailed(Exception exception, string workItemId, string stage);

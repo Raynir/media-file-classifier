@@ -231,6 +231,18 @@ public sealed class ModelDownloaderTests : IDisposable
         Assert.True(Directory.Exists(recent));
     }
 
+    [Fact]
+    public async Task Download_StoreCantBeWritten_IsAnInstallFailure()
+    {
+        using var failing = new FailingImportStore(store, new UnauthorizedAccessException("Access to the path is denied."));
+        using var downloader = new ModelDownloader(failing, handler, TimeSpan.FromSeconds(30), _ => null);
+
+        var error = await Assert.ThrowsAsync<ModelDownloadException>(() => downloader.DownloadAsync(entry, "standard", null, Token));
+
+        Assert.Equal(ModelDownloadFailure.Install, error.Failure);
+        await AssertNothingLeftAsync();
+    }
+
     private static ModelCatalogFile File(string role, byte[] content) =>
         new(role, $"{role}.onnx", new Uri($"https://example.com/{role}.onnx"), content.Length, Convert.ToHexStringLower(SHA256.HashData(content)));
 
@@ -246,6 +258,41 @@ public sealed class ModelDownloaderTests : IDisposable
 
     private void AssertNoDownloadsLeft() =>
         Assert.True(!Directory.Exists(DownloadsDirectory) || !Directory.EnumerateFileSystemEntries(DownloadsDirectory).Any(), "A download left files behind.");
+
+    /// <summary>
+    /// A model store whose import fails, e.g. because its folder can't be written.
+    /// </summary>
+    private sealed class FailingImportStore(ModelStore inner, Exception failure) : IModelStore, IDisposable
+    {
+        public event EventHandler? ModelsChanged
+        {
+            add => inner.ModelsChanged += value;
+            remove => inner.ModelsChanged -= value;
+        }
+
+        public string RootDirectory => inner.RootDirectory;
+
+        public Task<IReadOnlyList<InstalledModel>> GetInstalledAsync(CancellationToken cancellationToken) => inner.GetInstalledAsync(cancellationToken);
+
+        public Task<InstalledModel?> FindAsync(string modelId, string version, CancellationToken cancellationToken) => inner.FindAsync(modelId, version, cancellationToken);
+
+        public Task<InstalledModel> ImportAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken) => throw failure;
+
+        public Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, CancellationToken cancellationToken) => inner.VerifyAsync(modelId, version, cancellationToken);
+
+        public Task RecordUsageAsync(string modelId, string version, string libraryPath, CancellationToken cancellationToken) =>
+            inner.RecordUsageAsync(modelId, version, libraryPath, cancellationToken);
+
+        public Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, CancellationToken cancellationToken) =>
+            inner.GetUsingLibrariesAsync(modelId, version, cancellationToken);
+
+        public Task<ModelDeletionResult> DeleteAsync(string modelId, string version, bool confirmed, CancellationToken cancellationToken) =>
+            inner.DeleteAsync(modelId, version, confirmed, cancellationToken);
+
+        public void Dispose()
+        {
+        }
+    }
 
     private sealed class SyncProgress(Action<ModelDownloadProgress> report) : IProgress<ModelDownloadProgress>
     {

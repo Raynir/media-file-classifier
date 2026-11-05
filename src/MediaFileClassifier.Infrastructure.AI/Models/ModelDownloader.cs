@@ -139,10 +139,6 @@ public sealed partial class ModelDownloader : IModelDownloader, IDisposable
                 // The files were checked as they arrived, so this is e.g. a parallel import of the same model.
                 throw new ModelDownloadException(ModelDownloadFailure.Install, $"{entry.DisplayName} couldn't be installed: {ex.Message}", ex);
             }
-            catch (IOException ex) when (IsDiskFull(ex))
-            {
-                throw DiskFullException(entry, ex);
-            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -153,6 +149,15 @@ public sealed partial class ModelDownloader : IModelDownloader, IDisposable
         {
             LogDownloadFailed(ex, entry.ModelId, entry.Version, ex.Failure);
             throw;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // E.g. the store's folder can't be written, or a file is locked while it's moved in.
+            var failure = ex is IOException io && IsDiskFull(io)
+                ? DiskFullException(entry, ex)
+                : new ModelDownloadException(ModelDownloadFailure.Install, $"{entry.DisplayName} couldn't be saved in {store.RootDirectory}: {ex.Message}", ex);
+            LogDownloadFailed(ex, entry.ModelId, entry.Version, failure.Failure);
+            throw failure;
         }
         finally
         {
@@ -186,7 +191,7 @@ public sealed partial class ModelDownloader : IModelDownloader, IDisposable
     }
 
     private static bool IsDiskFull(IOException exception) =>
-        exception.HResult is HandleDiskFull or DiskFull || (exception.HResult & 0xFFFF) == NoSpace;
+        OperatingSystem.IsWindows() ? exception.HResult is HandleDiskFull or DiskFull : exception.HResult == NoSpace;
 
     private static ModelDownloadException DiskFullException(ModelCatalogEntry entry, Exception? inner = null) =>
         new(ModelDownloadFailure.DiskFull, $"There isn't enough free disk space for {entry.DisplayName}.", inner);
@@ -200,6 +205,7 @@ public sealed partial class ModelDownloader : IModelDownloader, IDisposable
     private async Task DownloadFileAsync(ModelCatalogFile file, string path, Action<long> onProgress, CancellationToken cancellationToken)
     {
         using var stall = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var saving = false;
         stall.CancelAfter(stallTimeout);
         try
         {
@@ -220,10 +226,12 @@ public sealed partial class ModelDownloader : IModelDownloader, IDisposable
             var source = await response.Content.ReadAsStreamAsync(stall.Token).ConfigureAwait(false);
             await using (source.ConfigureAwait(false))
             {
+                saving = true;
                 var target = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize, FileOptions.Asynchronous);
                 await using (target.ConfigureAwait(false))
                 {
                     int read;
+                    saving = false;
                     while ((read = await source.ReadAsync(buffer, stall.Token).ConfigureAwait(false)) > 0)
                     {
                         stall.CancelAfter(stallTimeout);
@@ -234,7 +242,9 @@ public sealed partial class ModelDownloader : IModelDownloader, IDisposable
                         }
 
                         hash.AppendData(buffer, 0, read);
+                        saving = true;
                         await target.WriteAsync(buffer.AsMemory(0, read), stall.Token).ConfigureAwait(false);
+                        saving = false;
                         onProgress(received);
                     }
                 }
@@ -263,7 +273,7 @@ public sealed partial class ModelDownloader : IModelDownloader, IDisposable
         {
             throw new ModelDownloadException(ModelDownloadFailure.DiskFull, $"There isn't enough free disk space for {file.FileName}.", ex);
         }
-        catch (IOException ex) when (ex is HttpIOException || ex.InnerException is System.Net.Sockets.SocketException)
+        catch (IOException ex) when (!saving)
         {
             throw NetworkException(file, ex.Message, ex);
         }

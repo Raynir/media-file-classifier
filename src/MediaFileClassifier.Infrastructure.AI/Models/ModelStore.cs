@@ -113,7 +113,7 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     public async Task<InstalledModel> ImportAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken)
     {
         var model = await ImportCoreAsync(request, progress, cancellationToken).ConfigureAwait(false);
-        ModelsChanged?.Invoke(this, EventArgs.Empty);
+        RaiseModelsChanged();
         return model;
     }
 
@@ -263,7 +263,7 @@ public sealed partial class ModelStore : IModelStore, IDisposable
         var result = await DeleteCoreAsync(modelId, version, confirmed, cancellationToken).ConfigureAwait(false);
         if (result.Deleted)
         {
-            ModelsChanged?.Invoke(this, EventArgs.Empty);
+            RaiseModelsChanged();
         }
 
         return result;
@@ -324,6 +324,21 @@ public sealed partial class ModelStore : IModelStore, IDisposable
 
     /// <inheritdoc />
     public void Dispose() => gate.Dispose();
+
+    /// <summary>
+    /// Tells the subscribers the store changed. The change is done, so a failing subscriber is logged, not thrown.
+    /// </summary>
+    private void RaiseModelsChanged()
+    {
+        try
+        {
+            ModelsChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "A subscriber to the model store's changes failed");
+        }
+    }
 
     /// <summary>
     /// Computes the hash that identifies a model's set of files.

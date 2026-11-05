@@ -18,6 +18,8 @@ internal static class Program
         Options:
           --data <folder>        The data set (default: eval, the public set).
           --results <file>       evaluate: the system's results (see docs/evaluation-corpus.md).
+          --system siglip2       evaluate: run the app's SigLIP 2 pipeline over the corpus instead of reading a results file.
+          --models <folder>      evaluate --system: the folder with vision_model.onnx, text_model.onnx and tokenizer.model.
           --out <folder>         evaluate: where reports go (default: <data>/reports).
           --media <folder>       The media files (default: from <data>/dataset.json, else <data>/corpus).
           --files                validate: also check that every file exists and matches its checksum.

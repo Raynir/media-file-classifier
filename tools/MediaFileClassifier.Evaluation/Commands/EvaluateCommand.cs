@@ -11,9 +11,9 @@ internal static class EvaluateCommand
 {
     public static async Task<int> RunAsync(CommandOptions options, TimeProvider clock, TextWriter output, CancellationToken cancellationToken)
     {
-        if (options.Results is null)
+        if (options.Results is null == (options.System is null))
         {
-            throw new ArgumentException("evaluate needs --results <file>.");
+            throw new ArgumentException("evaluate needs either --results <file> or --system siglip2 --models <folder>.");
         }
 
         var data = Load(options);
@@ -24,14 +24,9 @@ internal static class EvaluateCommand
             return 1;
         }
 
-        var results = ResultsFile.Load(options.Results);
-        var report = await Evaluator.EvaluateAsync(
-            data,
-            results.Name,
-            results.HasSearch ? results : null,
-            results.HasOcr ? results : null,
-            clock.GetUtcNow(),
-            cancellationToken);
+        var report = options.System is null
+            ? await ScoreResultsFileAsync(options.Results!, data, clock, cancellationToken)
+            : await ScoreAppSystemAsync(options, data, clock, output, cancellationToken);
 
         var directory = options.Out ?? Path.Combine(data.Directory, "reports");
         var previous = ReportStore.FindPrevious(directory, report.System, report.CreatedAt);
@@ -45,6 +40,34 @@ internal static class EvaluateCommand
         }
 
         return options.FailBelowBaseline && report.Comparisons.Any(c => c.Status == ReportComparer.Below) ? 3 : 0;
+    }
+
+    private static async Task<EvaluationReport> ScoreResultsFileAsync(string path, EvaluationData data, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        var results = ResultsFile.Load(path);
+        return await Evaluator.EvaluateAsync(
+            data,
+            results.Name,
+            results.HasSearch ? results : null,
+            results.HasOcr ? results : null,
+            clock.GetUtcNow(),
+            cancellationToken);
+    }
+
+    private static async Task<EvaluationReport> ScoreAppSystemAsync(CommandOptions options, EvaluationData data, TimeProvider clock, TextWriter output, CancellationToken cancellationToken)
+    {
+        if (!string.Equals(options.System, "siglip2", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"Unknown system '{options.System}'. The only one is 'siglip2'.");
+        }
+
+        if (options.Models is null)
+        {
+            throw new ArgumentException("--system siglip2 needs --models <folder with the SigLIP 2 files>.");
+        }
+
+        using var system = new Siglip2System(options.Models, output.WriteLine);
+        return await Evaluator.EvaluateAsync(data, system.Name, system, null, clock.GetUtcNow(), cancellationToken);
     }
 
     internal static EvaluationData Load(CommandOptions options)

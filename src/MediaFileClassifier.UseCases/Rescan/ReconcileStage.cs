@@ -95,6 +95,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
 
         // Moved or renamed: the item keeps its ID and all its metadata (E02-S04-T02).
         var moved = new List<MediaItem>();
+        var check = new List<MediaItem>();
         foreach (var (item, folder, found) in result.Moved)
         {
             item.Relocate(folder.Id, found.Path);
@@ -102,6 +103,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
             if (item.Status == MediaItemStatus.Missing)
             {
                 item.ChangeStatus(MediaItemStatus.Pending, now);
+                check.Add(item);
             }
 
             moved.Add(item);
@@ -111,6 +113,20 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         {
             await library.Items.UpdateRangeAsync(batch, cancellationToken).ConfigureAwait(false);
         }
+
+        // Changed or back: the check stage fingerprints them (E02-S04-T03). A returning item is Pending meanwhile.
+        foreach (var (item, _) in result.Modified)
+        {
+            if (item.Status == MediaItemStatus.Missing)
+            {
+                item.ChangeStatus(MediaItemStatus.Pending, now);
+                await library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
+            }
+
+            check.Add(item);
+        }
+
+        await EnqueueAsync(context.Scheduler, jobId, RescanStages.Check, check.Select(item => item.Id), cancellationToken).ConfigureAwait(false);
 
         // Gone: marked Missing with everything kept, so the item can be relinked if the file comes back (E02-S04-T04).
         MediaItem[] missing = [.. result.Missing.Where(item => item.Status != MediaItemStatus.Missing)];

@@ -26,7 +26,7 @@ namespace MediaFileClassifier.UseCases.Import.Stages;
 /// <param name="publisher">Publishes <see cref="MediaItemRegistered"/>.</param>
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
-public sealed partial class MediaStage(
+public partial class MediaStage(
     IMediaFileSource files,
     IMediaFormatRegistry formats,
     IThumbnailCache thumbnails,
@@ -50,7 +50,7 @@ public sealed partial class MediaStage(
 
         // Registered already, e.g. the work item ran again after an interruption. An excluded item that reaches this
         // stage is back in its folder's rules, and gets its thumbnails again.
-        if (item.Status is not (MediaItemStatus.Discovered or MediaItemStatus.Error or MediaItemStatus.Excluded))
+        if (!ShouldProcess(item))
         {
             return;
         }
@@ -87,13 +87,25 @@ public sealed partial class MediaStage(
         // isn't queued is still found by IMediaItemRepository.GetWithoutContentHashAsync.
         try
         {
-            await publisher.Publish(new MediaItemRegistered(item.Id, item.FolderId), CancellationToken.None).ConfigureAwait(false);
+            await publisher.Publish(new MediaItemRegistered(item.Id, item.FolderId, ContentChanged: Stage != ImportStages.Media), CancellationToken.None).ConfigureAwait(false);
             await hashJobs.EnqueueAsync(context.Scheduler, folder, [item.Id], CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
             LogAfterRegistrationFailed(exception, item.Path.Value);
         }
+    }
+
+    /// <summary>
+    /// Tells whether the item still needs this stage. The import skips items that are registered already.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <returns>Whether to process it.</returns>
+    protected virtual bool ShouldProcess(MediaItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        return item.Status is MediaItemStatus.Discovered or MediaItemStatus.Error or MediaItemStatus.Excluded;
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "{Path} is imported, but announcing it or queueing its full hash failed")]

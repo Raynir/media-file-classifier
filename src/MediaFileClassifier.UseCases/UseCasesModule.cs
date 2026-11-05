@@ -45,6 +45,8 @@ public static class UseCasesModule
         services.TryAddSingleton<MoveDetector>();
         services.TryAddSingleton<Reconciler>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RescanCheckStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RefreshMediaStage>());
         return services;
     }
 }

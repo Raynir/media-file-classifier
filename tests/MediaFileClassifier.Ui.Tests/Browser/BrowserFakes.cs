@@ -154,6 +154,10 @@ internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
 
         public IKeyframeRepository Keyframes => throw new NotSupportedException();
 
+        public MediaFileClassifier.Infrastructure.Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
+
+        public MediaFileClassifier.Infrastructure.Abstractions.Search.ISearchStore Search => throw new NotSupportedException();
+
         public ILibraryMaintenance Maintenance => throw new NotSupportedException();
 
         public Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default) => Task.CompletedTask;

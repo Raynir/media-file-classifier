@@ -14,7 +14,7 @@ public sealed class Library
     /// <summary>
     /// Schema version written by this build.
     /// </summary>
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Library"/> class from stored values.

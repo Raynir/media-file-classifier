@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
 {
     [DbContext(typeof(LibraryDbContext))]
-    [Migration("20261104171030_KeyframePerceptualHash")]
+    [Migration("20261105085943_KeyframePerceptualHash")]
     partial class KeyframePerceptualHash
     {
         /// <inheritdoc />

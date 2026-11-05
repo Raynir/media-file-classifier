@@ -27,10 +27,10 @@ The UI takes every colour, size and font setting from design tokens (E13-S06). T
 | States | `Brush.State.Hover`, `.Pressed`, `.Selected`, `.Focus`; `Opacity.Disabled`, `Opacity.Inactive` | |
 | Item status | `Brush.Status.<Status>.Foreground` and `.Background`; `Icon.Status.<Status>` | `<Status>` is `Pending`, `Error`, `Missing`, `Offline` or `Excluded`. |
 | Provenance | `Brush.Provenance.<Slot>.Foreground` and `.Background`; `Icon.Provenance.<Slot>` | `<Slot>` is `Ai`, `Edited`, `Accepted` or `NewSuggestion`. The look is designed in E07-S11-T01 (M3). |
-| Spacing | `Space.XS` 4, `.S` 8, `.M` 12, `.L` 16, `.XL` 20, `.XXL` 24; `Padding.Panel`, `.Header`, `.Control`, `.Compact`, `.Strip`, `.Badge`, `.StatusSegment`, `.Group`, `.Row`, `.Grid`, `.TileRow`, `.TileInfo` | |
+| Spacing | `Space.XS` 4, `.S` 8, `.M` 12, `.L` 16, `.XL` 20, `.XXL` 24; `Padding.Panel`, `.Header`, `.Control`, `.Compact`, `.Strip`, `.Badge`, `.StatusSegment`, `.Toolbar`, `.Group`, `.Row`, `.Grid`, `.TileRow`, `.TileInfo` | |
 | Radii | `Radius.None`, `.Control`, `.Tile`, `.Tooltip`, `.Pill` | |
 | Typography | `Font.Family`; `FontSize.Title`, `.Subtitle`, `.Body`, `.Caption`, `.Badge`; `FontWeight.Title`, `.Label`, `.Body` | Figma uses Roboto. The app bundles Inter until the font is decided. |
-| Layout | `Size.Navigation.Expanded`, `.Collapsed`, `Size.DetailsPanel`, `.Collapsed`, `Size.Splitter`, `Size.StatusBar`, `Size.Dialog.Width`, `.MaxHeight`, `Size.Toolbar`, `Size.ContentHeader`, `Size.Control`, `Size.Control.Small`, `Size.Icon`, `.Small`, `.Large`, `Size.Tile.Width`, `.Height`, `Size.ListRow`, `Size.SettingControl` | The expanded panel widths are defaults: the user resizes the panels, and `ShellLayout` keeps their limits. `Size.DetailsPanel.Collapsed`, `Size.StatusBar` and `Size.Dialog.*` aren't in Figma. |
+| Layout | `Size.Navigation.Expanded`, `.Collapsed`, `Size.DetailsPanel`, `.Collapsed`, `Size.Splitter`, `Size.StatusBar`, `Size.Dialog.Width`, `.MaxHeight`, `Size.Toolbar`, `.SearchMin`, `Size.ContentHeader`, `Size.Control`, `Size.Control.Small`, `Size.Icon`, `.Small`, `.Large`, `Size.Tile.Width`, `.Height`, `Size.ListRow`, `Size.SettingControl` | The expanded panel widths are defaults: the user resizes the panels, and `ShellLayout` keeps their limits. `Size.DetailsPanel.Collapsed`, `Size.StatusBar` and `Size.Dialog.*` and `Size.Toolbar.SearchMin` aren't in Figma. |
 
 ## Classes in Styles.axaml
 

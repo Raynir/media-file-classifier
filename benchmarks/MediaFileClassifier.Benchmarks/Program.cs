@@ -16,6 +16,7 @@ internal static class Program
           run        Generate the libraries if needed, run every engine on them, write a report (default).
           generate   Only generate the libraries.
           check      Extension loading, filter and transaction checks on a small library.
+          production Benchmark the app's search index on a copy of a real library (E01-S04-T07).
 
         Options (run, generate):
           --items 10000,100000       Item counts.
@@ -51,6 +52,8 @@ internal static class Program
                     return 0;
                 case "check":
                     return SpikeChecks.Run(BenchmarkOptions.Parse(rest).DataDirectory);
+                case "production":
+                    return Production.ProductionBenchmark.Run(rest);
                 case "worker":
                     return Worker.Run(WorkerOptions.Parse(rest));
                 default:

@@ -96,6 +96,10 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IKeyframeRepository Keyframes => throw new NotSupportedException();
 
+    public MediaFileClassifier.Infrastructure.Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
+
+    public MediaFileClassifier.Infrastructure.Abstractions.Search.ISearchStore Search => throw new NotSupportedException();
+
     public ILibraryMaintenance Maintenance => throw new NotSupportedException();
 
     public bool IsDisposed { get; private set; }

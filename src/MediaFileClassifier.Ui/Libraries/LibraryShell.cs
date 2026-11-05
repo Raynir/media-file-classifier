@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.Toolbar;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
@@ -9,7 +10,8 @@ namespace MediaFileClassifier.Ui.Libraries;
 
 /// <summary>
 /// Shows the welcome screen in the browser area while no library is open (E02-S01-T02), and reopens the last
-/// library on startup (E02-S02-T03). The thumbnail grid (E14-S01) takes the area once a library is open.
+/// library on startup (E02-S02-T03). The thumbnail grid (E14-S01) takes the area once a library is open, and the
+/// navigation panel and the toolbar (E13-S03) show only while one is.
 /// </summary>
 public sealed class LibraryShell
 {
@@ -19,6 +21,7 @@ public sealed class LibraryShell
     private readonly LibraryOpener opener;
     private readonly Func<ThumbnailGridViewModel> grid;
     private readonly NavigationPanelViewModel? navigation;
+    private readonly ToolbarViewModel? toolbar;
     private ThumbnailGridViewModel? shownGrid;
 
     /// <summary>
@@ -30,8 +33,10 @@ public sealed class LibraryShell
     /// <param name="opener">Opens libraries.</param>
     /// <param name="grid">Gets the thumbnail grid, once a library opens.</param>
     /// <param name="navigation">The navigation panel, shown while a library is open, or <c>null</c> for none.</param>
-    public LibraryShell(ILibrarySession session, ShellRegions regions, WelcomeViewModel welcome, LibraryOpener opener, Func<ThumbnailGridViewModel> grid, NavigationPanelViewModel? navigation = null)
+    /// <param name="toolbar">The toolbar, shown while a library is open, or <c>null</c> for none.</param>
+    public LibraryShell(ILibrarySession session, ShellRegions regions, WelcomeViewModel welcome, LibraryOpener opener, Func<ThumbnailGridViewModel> grid, NavigationPanelViewModel? navigation = null, ToolbarViewModel? toolbar = null)
     {
+        this.toolbar = toolbar;
         this.grid = grid;
         this.navigation = navigation;
         this.session = session;
@@ -65,6 +70,7 @@ public sealed class LibraryShell
         {
             shownGrid?.Deactivate();
             regions.Navigation = null;
+            regions.Toolbar = null;
             regions.Browser = welcome;
             _ = welcome.RefreshAsync();
         }
@@ -72,6 +78,7 @@ public sealed class LibraryShell
         {
             welcome.Message = null;
             regions.Navigation = navigation;
+            regions.Toolbar = toolbar;
             shownGrid ??= grid();
             if (regions.Browser == welcome || regions.Browser is null)
             {

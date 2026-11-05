@@ -24,4 +24,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- SigLIP 2 reference outputs, written by tools/embedding-reference/make_reference.py. -->
+    <None Include="AI/Embeddings/siglip2-reference.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

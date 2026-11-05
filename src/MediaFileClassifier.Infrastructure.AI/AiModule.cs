@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,9 @@ public static class AiModule
         services.TryAddSingleton<OnnxSessionFactory>();
         services.TryAddSingleton<IAiProviderRegistry, AiProviderRegistry>();
         services.TryAddSingleton<IModelStore, ModelStore>();
+        services.TryAddSingleton(new Siglip2Options());
+        services.TryAddSingleton<Siglip2EmbeddingProvider>();
+        services.AddSingleton<IAiProvider>(provider => provider.GetRequiredService<Siglip2EmbeddingProvider>());
         return services;
     }
 }

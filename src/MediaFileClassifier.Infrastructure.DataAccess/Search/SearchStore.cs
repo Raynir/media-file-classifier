@@ -339,8 +339,8 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
                     token).ConfigureAwait(false);
                 await db.Database.ExecuteSqlRawAsync(
                     """
-                    UPDATE "search_document" SET "excluded" = (SELECT m."status" = {0} FROM "media_item" m WHERE m."id" = "item_id")
-                    WHERE "excluded" IS NOT (SELECT m."status" = {0} FROM "media_item" m WHERE m."id" = "item_id")
+                    UPDATE "search_document" SET "excluded" = m."status" = {0}
+                    FROM "media_item" m WHERE m."id" = "search_document"."item_id" AND "excluded" IS NOT (m."status" = {0})
                     """,
                     [(int)MediaItemStatus.Excluded],
                     token).ConfigureAwait(false);

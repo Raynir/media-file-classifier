@@ -61,6 +61,18 @@ public sealed class SearchRebuildTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task StaleExcludedFlag_IsRepairedByRebuild()
+    {
+        await ExecuteAsync("""UPDATE "media_item" SET "status" = 5 WHERE "rowid" % 3 = 0""");
+        var before = await RunQueriesAsync();
+
+        await ExecuteAsync("""UPDATE "search_document" SET "excluded" = 0""");
+        await bed.Index.RebuildAsync(cancellationToken: Token);
+
+        Assert.Equal(before, await RunQueriesAsync());
+    }
+
+    [Fact]
     public async Task DroppedIndex_IsRecreatedAsTheMigrationCreatedIt()
     {
         var before = await ReadSchemaAsync();

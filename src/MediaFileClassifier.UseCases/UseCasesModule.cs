@@ -30,6 +30,7 @@ public static class UseCasesModule
         services.TryAddSingleton<SettingRegistry>();
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
+        services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
         services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<LibraryItemsSource>());
         services.AddSetting(KnownSettings.OpenAiCompatibleEndpoint);
         services.AddSetting(KnownSettings.AnalyzeAutomatically);

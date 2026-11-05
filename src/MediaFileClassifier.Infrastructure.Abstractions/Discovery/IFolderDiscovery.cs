@@ -30,4 +30,20 @@ public interface IFolderDiscovery
         IProgress<DiscoveryProgress>? progress = null,
         Func<IReadOnlyList<MediaItem>, CancellationToken, Task>? registered = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Scans a folder with its rules like <see cref="DiscoverAsync"/>, but registers nothing: it returns the files at
+    /// known paths and the new media files, for a rescan to reconcile (E02-S04-T01).
+    /// </summary>
+    /// <param name="library">The open library the folder belongs to.</param>
+    /// <param name="folder">The folder to scan.</param>
+    /// <param name="progress">Receives the counts after each listed folder.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The folder's files.</returns>
+    /// <exception cref="DirectoryNotFoundException">The folder doesn't exist, e.g. its drive isn't connected.</exception>
+    Task<FolderSnapshot> SnapshotAsync(
+        IOpenLibrary library,
+        IndexedFolder folder,
+        IProgress<DiscoveryProgress>? progress = null,
+        CancellationToken cancellationToken = default);
 }

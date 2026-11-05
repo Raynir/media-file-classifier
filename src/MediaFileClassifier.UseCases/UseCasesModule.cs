@@ -5,6 +5,7 @@ using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.Stages;
 using MediaFileClassifier.UseCases.Libraries.RemoveFolder;
+using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -41,6 +42,11 @@ public static class UseCasesModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, MediaStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ContentHashStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RemoveFolderStage>());
+        services.TryAddSingleton<MoveDetector>();
+        services.TryAddSingleton<Reconciler>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RescanCheckStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RefreshMediaStage>());
         return services;
     }
 }

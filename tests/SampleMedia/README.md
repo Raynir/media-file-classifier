@@ -19,6 +19,10 @@ All files are synthetic, so they hold no personal data. The larger labelled corp
 | `video-av1.mp4` | `Av1Video` | 1 s, 160×120, 10 fps AV1 (`av01`), no audio. |
 | `video-portrait.mp4` | `PortraitVideo` | 1 s, 160×90 H.264 stored landscape with a display matrix rotation of −90° (shown portrait, 90×160, like a phone held upright); container `creation_time` `2026-07-01T10:20:30Z`. |
 | `video-black-intro.mp4` | `BlackIntroVideo` | 4 s, 160×120, 10 fps H.264, no audio: 1.5 s of black, then a test pattern. The frames at 10% and 25% of the duration are black. |
+| `video-static-camera.mp4` | `StaticCameraVideo` | 80 s, 160×120, 2 fps H.264, no audio: one photo-like scene with light per-frame noise and a small dark dot crossing it, like a tripod shot. Frame sampling keeps few of its 16 positions. |
+| `video-action.mp4` | `ActionVideo` | 80 s, 160×120, 2 fps H.264, no audio: cuts to a new, unrelated scene of coloured rectangles every 5 s, so all 16 sampled positions differ. |
+| `gif-variable-delays.gif` | `GifWithVariableDelays` | 96×96 GIF, 13 frames over 4 s: frames 0 and 1 last 1 s, frames 2 to 11 100 ms, frame 12 1 s. Sampling 4 frames evenly in time picks frames 0, 1, 7 and 12. |
+| `gif-three-frames.gif` | `GifWithThreeFrames` | 96×96 GIF, 3 different frames of 200 ms, looping: fewer frames than the minimum keyframe count. |
 | `audio-only.mp4` | `AudioOnlyMp4` | 1 s 440 Hz AAC tone in an MP4 container, with no video track. |
 | `ocr-text.png` | `ImageWithText` | Black text on white: "Invoice 2026-10-29" and "Счёт на оплату". |
 | `corrupt.jpg` | `CorruptJpeg` | 500 bytes: the start of a valid JPEG, then junk, with no end-of-image marker. |

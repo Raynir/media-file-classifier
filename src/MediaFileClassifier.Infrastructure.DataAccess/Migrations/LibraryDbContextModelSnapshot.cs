@@ -442,6 +442,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("item_id");
 
+                    b.Property<long?>("PerceptualHash")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("perceptual_hash");
+
                     b.Property<long>("Timestamp")
                         .HasColumnType("INTEGER")
                         .HasColumnName("timestamp");

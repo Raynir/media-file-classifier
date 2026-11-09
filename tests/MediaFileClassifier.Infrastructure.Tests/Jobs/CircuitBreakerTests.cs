@@ -91,6 +91,22 @@ public sealed class CircuitBreakerTests : IAsyncLifetime
         Assert.True(Assert.Single(slow.OpenCircuits).IsConfiguration);
     }
 
+    [Fact]
+    public void Breaker_ConfigurationProblem_WhileOpen_UpdatesTheStatus()
+    {
+        using var slow = new ProviderCircuitBreaker(TimeProvider.System, null, registry, TimeSpan.FromHours(1));
+        var changes = 0;
+        slow.Changed += (_, _) => changes++;
+        Trip(slow);
+
+        Assert.True(slow.RecordFailure(new ClassifiedError(ErrorCategory.Configuration, "Confirm the host.", new InvalidOperationException()) { ProviderId = LmStudio, IsProviderFailure = true }));
+        Assert.True(slow.RecordFailure(Unreachable()));
+
+        var status = Assert.Single(slow.OpenCircuits);
+        Assert.Equal(("Confirm the host.", true), (status.Message, status.IsConfiguration));
+        Assert.Equal(2, changes);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, true)]

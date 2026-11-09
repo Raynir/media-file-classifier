@@ -98,7 +98,6 @@ public sealed partial class ProviderCircuitBreaker : IProviderCircuitBreaker, ID
             return false;
         }
 
-        Circuit circuit;
         lock (gate)
         {
             if (disposed)
@@ -106,30 +105,38 @@ public sealed partial class ProviderCircuitBreaker : IProviderCircuitBreaker, ID
                 return false;
             }
 
-            if (open.ContainsKey(providerId))
+            if (open.TryGetValue(providerId, out var current))
             {
-                return true;
-            }
+                // A configuration problem needs the user, so the status says so even if the provider was down before.
+                if (error.Category != ErrorCategory.Configuration || current.Status.IsConfiguration)
+                {
+                    return true;
+                }
 
-            var count = failures.GetValueOrDefault(providerId) + 1;
-            if (count < FailureThreshold && error.Category != ErrorCategory.Configuration)
+                current.Status = current.Status with { Message = error.Message, IsConfiguration = true };
+            }
+            else
             {
-                failures[providerId] = count;
-                return false;
+                var count = failures.GetValueOrDefault(providerId) + 1;
+                if (count < FailureThreshold && error.Category != ErrorCategory.Configuration)
+                {
+                    failures[providerId] = count;
+                    return false;
+                }
+
+                failures.Remove(providerId);
+                var status = new ProviderCircuitStatus(
+                    providerId,
+                    registry?.Find(providerId)?.DisplayName ?? providerId,
+                    error.Message,
+                    clock.GetUtcNow(),
+                    error.Category == ErrorCategory.Configuration);
+                var circuit = new Circuit(status);
+                open[providerId] = circuit;
+
+                // Started under the lock, so Dispose can't miss it; the probe's first step is a delay.
+                _ = Task.Run(() => ProbeLoopAsync(circuit, disposing.Token));
             }
-
-            failures.Remove(providerId);
-            var status = new ProviderCircuitStatus(
-                providerId,
-                registry?.Find(providerId)?.DisplayName ?? providerId,
-                error.Message,
-                clock.GetUtcNow(),
-                error.Category == ErrorCategory.Configuration);
-            circuit = new Circuit(status);
-            open[providerId] = circuit;
-
-            // Started under the lock, so Dispose can't miss it; the probe's first step is a delay.
-            _ = Task.Run(() => ProbeLoopAsync(circuit, disposing.Token));
         }
 
         LogOpened(providerId, error.Message);

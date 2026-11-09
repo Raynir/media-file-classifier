@@ -453,7 +453,6 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                         boostChanged = true;
                         modelsChanged = true;
                         retriesChanged = true;
-                        releaseParked = breaker is not null;
                         foreach (var pool in pools.Values)
                         {
                             pool.Exhausted = false;
@@ -553,7 +552,22 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             releaseParked = false;
         }
 
-        var released = await Library.Jobs.ReleaseParkedAsync(clock.GetUtcNow(), token).ConfigureAwait(false);
+        int released;
+        try
+        {
+            released = await Library.Jobs.ReleaseParkedAsync(clock.GetUtcNow(), token).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Only a release that didn't happen is tried again: releasing parked work for nothing re-runs all of it.
+            lock (gate)
+            {
+                releaseParked = true;
+            }
+
+            throw;
+        }
+
         if (released > 0)
         {
             LogParkedReleased(released);
@@ -570,9 +584,10 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 
     private void OnCircuitsChanged(object? sender, EventArgs e)
     {
-        var nowOpen = breaker!.OpenCircuits.Select(circuit => circuit.ProviderId).ToHashSet(StringComparer.Ordinal);
         lock (gate)
         {
+            // Read under the lock, so events racing on two threads can't store an older set over a newer one.
+            var nowOpen = breaker!.OpenCircuits.Select(circuit => circuit.ProviderId).ToHashSet(StringComparer.Ordinal);
             if (openCircuits.Any(providerId => !nowOpen.Contains(providerId)))
             {
                 releaseParked = true;

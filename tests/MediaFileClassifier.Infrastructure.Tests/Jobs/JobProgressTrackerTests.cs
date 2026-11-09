@@ -52,6 +52,8 @@ public sealed class JobProgressTrackerTests
         tracker.Finished(Running(items[0]).ScheduleRetry(Start.AddSeconds(2), ErrorCategory.Transient, "down", countsAsRetry: true, Start), job);
         tracker.Finished(Running(items[1]).Park(ErrorCategory.Transient, "down", Start), job);
 
+        tracker.Finished(Running(items[2]).ScheduleRetry(Start.AddMinutes(1), ErrorCategory.Configuration, "model missing", countsAsRetry: false, Start), job);
+
         var progress = Assert.Single(tracker.Current.Jobs);
         Assert.Equal((2, 0, 3), (progress.Retrying, progress.Failed, progress.Pending));
         Assert.Equal(2, tracker.Current.Retrying);

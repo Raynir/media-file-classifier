@@ -190,6 +190,32 @@ public sealed class ImportPipelineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Retry_SelectedItems_RetriesOnlyThose()
+    {
+        var first = bed.Copy(SampleMedia.JpegWithExif, "first.jpg");
+        var second = bed.Copy(SampleMedia.JpegWithExif, "second.jpg");
+        await bed.Get<IFolderDiscovery>().DiscoverAsync(bed.Library, bed.Folder, cancellationToken: Token);
+        using (new FileStream(first, FileMode.Open, FileAccess.Read, FileShare.None))
+        using (new FileStream(second, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            await bed.ImportAsync();
+            await bed.WaitUntilIdleAsync();
+        }
+
+        var items = await bed.ItemsAsync();
+        Assert.All(items, item => Assert.Equal(MediaItemStatus.Error, item.Status));
+        var chosen = items.Single(item => item.FileName == "first.jpg");
+
+        var result = await bed.Sender.Send(new RetryFailedItemsCommand(ItemIds: [chosen.Id]), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(new RetryFailedItemsResult(1, 0), result);
+        var after = await bed.ItemsAsync();
+        Assert.Equal(MediaItemStatus.Pending, after.Single(item => item.Id == chosen.Id).Status);
+        Assert.Equal(MediaItemStatus.Error, after.Single(item => item.Id != chosen.Id).Status);
+    }
+
+    [Fact]
     public async Task Retry_DamagedFile_WaitsUntilTheFileChanges()
     {
         var path = bed.Copy(SampleMedia.CorruptJpeg, "damaged.jpg");

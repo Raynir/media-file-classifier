@@ -98,6 +98,7 @@ public static class UiModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
         services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RetryCommands>());
 
         // Media browser (E14-S01).
         services.AddSingleton<ThumbnailBitmapCache>();

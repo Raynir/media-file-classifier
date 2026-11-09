@@ -688,6 +688,12 @@
   <data name="Command_ManageFolders" xml:space="preserve">
     <value>Manage _folders…</value>
   </data>
+  <data name="Command_RetryFailedItems" xml:space="preserve">
+    <value>Retry _failed items</value>
+  </data>
+  <data name="Command_RetrySelected" xml:space="preserve">
+    <value>Re_try if failed</value>
+  </data>
   <data name="Command_RemoveMissing" xml:space="preserve">
     <value>Remove _missing items…</value>
   </data>

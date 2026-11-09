@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
 {
     [DbContext(typeof(LibraryDbContext))]
-    [Migration("20261109130606_AnalyzerStates")]
+    [Migration("20261109133534_AnalyzerStates")]
     partial class AnalyzerStates
     {
         /// <inheritdoc />
@@ -344,6 +344,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("created_at");
 
+                    b.Property<int?>("ErrorCategory")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("error_category");
+
                     b.Property<long?>("FinishedAt")
                         .HasColumnType("INTEGER")
                         .HasColumnName("finished_at");
@@ -372,6 +376,14 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<int>("Priority")
                         .HasColumnType("INTEGER")
                         .HasColumnName("priority");
+
+                    b.Property<long?>("RetryAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("retry_at");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("retry_count");
 
                     b.Property<string>("Stage")
                         .IsRequired()

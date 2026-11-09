@@ -1,3 +1,4 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Previews;
@@ -41,6 +42,7 @@ public static class MediaModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, GifFormatHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, Mp4FormatHandler>());
         services.TryAddSingleton<IMediaFormatRegistry, MediaFormatRegistry>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, MediaExceptionClassifier>());
         return services;
     }
 }

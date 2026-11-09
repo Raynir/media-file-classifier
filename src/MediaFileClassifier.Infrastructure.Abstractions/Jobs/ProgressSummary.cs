@@ -32,4 +32,9 @@ public sealed record ProgressSummary(IReadOnlyList<JobProgress> Jobs, TimeSpan? 
     /// Gets the work items finished, completed or failed, in all jobs.
     /// </summary>
     public int Finished => Total - PendingItems;
+
+    /// <summary>
+    /// Gets the pending work items waiting for a retry, in all jobs.
+    /// </summary>
+    public int Retrying => Jobs.Sum(job => job.Retrying);
 }

@@ -101,6 +101,7 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         int limit,
         IReadOnlyCollection<Id<WorkItem>> excluding,
         IReadOnlyCollection<string>? excludingStages = null,
+        DateTimeOffset? dueBy = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
@@ -111,6 +112,7 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         return connections.ReadAsync<IReadOnlyList<WorkItem>>(
             async (db, token) => await db.WorkItems
                 .Where(item => item.State == WorkItemState.Queued && item.Pool == pool && !excluded.Contains(item.Id) && !excludedStages.Contains(item.Stage))
+                .Where(item => dueBy == null || item.RetryAt == null || item.RetryAt <= dueBy)
                 .OrderByDescending(item => item.Priority)
                 .ThenBy(item => item.CreatedAt)
                 .ThenBy(item => item.Id)
@@ -119,6 +121,26 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                 .ConfigureAwait(false),
             cancellationToken);
     }
+
+    /// <inheritdoc />
+    public Task<DateTimeOffset?> GetNextRetryAtAsync(DateTimeOffset after, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync(
+            async (db, token) => await db.WorkItems
+                .Where(item => item.State == WorkItemState.Queued && item.RetryAt > after && item.RetryAt != WorkItem.ParkedUntil)
+                .OrderBy(item => item.RetryAt)
+                .Select(item => item.RetryAt)
+                .FirstOrDefaultAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> ReleaseParkedAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        writer.ExecuteAsync(
+            async (db, token) => await db.WorkItems
+                .Where(item => item.State == WorkItemState.Queued && item.RetryAt == WorkItem.ParkedUntil)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.RetryAt, now), token)
+                .ConfigureAwait(false),
+            cancellationToken);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<WorkItem>> GetQueuedForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default)

@@ -43,4 +43,10 @@ public sealed record JobProgress(
     /// Gets the failed work items, in all stages.
     /// </summary>
     public int Failed => Stages.Sum(stage => stage.Failed);
+
+    /// <summary>
+    /// Gets the pending work items that failed and wait for an automatic retry or for their AI provider (E05-S04). They
+    /// aren't failures yet, so they're shown as retrying, not as errors.
+    /// </summary>
+    public int Retrying { get; init; }
 }

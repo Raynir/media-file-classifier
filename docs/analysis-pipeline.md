@@ -7,7 +7,7 @@ The pipeline runs the library's analyzers on items and stores what they find. An
 | Piece | Project | What it does |
 |---|---|---|
 | `AnalysisProfile`, `AnalyzerSettings`, `AnalyzerKeys` | `Domain/Analysis` | The profile, stored in the library settings JSON. The default is embedding, then describer (20 tags at most), then OCR, all enabled, with the provider picked automatically. |
-| `AnalyzerState`, `AnalyzerStatus`, `AnalyzerReasons` | `Domain/Analysis` | How each analyzer last ended for an item: one row per item and analyzer in `analyzer_state` (schema 9). |
+| `AnalyzerState`, `AnalyzerStatus`, `AnalyzerReasons` | `Domain/Analysis` | How each analyzer last ended for an item: one row per item and analyzer in `analyzer_state` (schema 10). |
 | `IAnalyzerStateRepository` (`IOpenLibrary.AnalyzerStates`) | `Infrastructure.Abstractions` | Reads and writes states. `ApplyRunAsync` stores a run, its values and tags, and the analyzer's state in one write. |
 | `AnalyzeItemsCommand` | `UseCases/Analysis/AnalyzeItems` | Queues an `analysis` job with one `analysis.item` work item per item, in the AI pool. It can name analyzers, e.g. only `ocr` to retry OCR. |
 | `AnalysisStage` | `UseCases/Analysis/Pipeline` | The stage handler: runs the analyzers of one item and sets its status. |
@@ -65,5 +65,4 @@ Analyzers get raw RGBA pixels (`AiImage.FromRgba`). OpenAI-compatible providers 
 - The stage depends on the embedding model (`IModelDependentStage`), so it waits for that model even when the embedding is disabled in the profile.
 - The embedding uses the first registered embedding provider, not the one the profile names.
 - The profile's `PromptVersion` isn't used; the provider's prompt version is stored.
-- Without MFC-103's scheduler, failures aren't retried and `OnFailedAsync` isn't called: Retrying states stay, and an embedding failure leaves the item Pending.
 - A job cancelled while an analyzer is Retrying leaves that state as it is.

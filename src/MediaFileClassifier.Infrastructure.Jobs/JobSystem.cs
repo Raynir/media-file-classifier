@@ -1,10 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Infrastructure.Jobs.Errors;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Infrastructure.Jobs;
@@ -20,6 +23,9 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// <param name="clock">Clock.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="models">Which models are installed, so stages that need a missing one wait (D037).</param>
+/// <param name="classifier">Classifies failures, so transient ones are retried (E05-S04).</param>
+/// <param name="retryPolicy">When transient failures are retried, or <see langword="null"/> for the default.</param>
+/// <param name="breaker">Pauses unavailable AI providers (E05-S04-T03).</param>
 public sealed partial class JobSystem(
     IEnumerable<IStageHandler> handlers,
     ISettingsService settings,
@@ -27,7 +33,10 @@ public sealed partial class JobSystem(
     JobProgressTracker progress,
     TimeProvider clock,
     ILogger<JobSystem> logger,
-    IModelAvailability? models = null) : IJobSystem, IDisposable
+    IModelAvailability? models = null,
+    IErrorClassifier? classifier = null,
+    RetryPolicy? retryPolicy = null,
+    IProviderCircuitBreaker? breaker = null) : IJobSystem, IDisposable
 {
     /// <summary>
     /// Default concurrency limit of the I/O pool.
@@ -82,7 +91,7 @@ public sealed partial class JobSystem(
             progress.Reset(
                 await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false),
                 await library.Jobs.CountUnfinishedWorkAsync(cancellationToken).ConfigureAwait(false));
-            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger, models);
+            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger, models, classifier, retryPolicy, breaker);
             scheduler.Start(startPaused);
             current = scheduler;
             LogStarted(library.Layout.RootDirectory, pending, requeued, startPaused);

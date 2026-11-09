@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
@@ -21,6 +22,7 @@ using MediaFileClassifier.Infrastructure.Discovery;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Infrastructure.Hashing;
 using MediaFileClassifier.Infrastructure.Jobs;
+using MediaFileClassifier.Infrastructure.Jobs.Errors;
 using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
@@ -101,6 +103,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
         collection.TryAddSingleton<IAiProviderRegistry>(new AiProviderRegistry([], library.Clock));
         collection.TryAddSingleton<IAnalysisImageDecoder, SkiaAnalysisImageDecoder>();
         collection.TryAddSingleton<IModelStore>(new Siglip2StubStore(null));
+        collection.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, AiExceptionClassifier>());
         var services = collection
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddSingleton<ICapabilityService>(capabilities)
@@ -114,6 +117,9 @@ internal sealed class ImportTestBed : IAsyncDisposable
             .AddSingleton<ILibrarySession>(new BedSession(library))
             .AddSingleton<RegisteredRecorder>()
             .AddSingleton<INotificationHandler<MediaItemRegistered>>(provider => provider.GetRequiredService<RegisteredRecorder>())
+
+            // Retries of transient failures (E05-S04) don't wait in tests.
+            .AddSingleton(new RetryPolicy(5, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(40)))
             .AddJobs()
             .AddMedia()
             .AddUseCases()

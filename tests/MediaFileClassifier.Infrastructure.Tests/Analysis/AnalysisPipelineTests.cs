@@ -8,7 +8,6 @@ using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
-using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.AI;
 using MediaFileClassifier.Infrastructure.Tests.Import;
@@ -92,28 +91,28 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     [Fact]
     public async Task OcrFailsAlone_ItemIsIndexed_WithARetryableOcrFailure()
     {
+        // A breaker that never opens, so the scheduler retries the transient failure and then gives up.
+        var describer = new FakeImageDescriber();
+        var ocrProvider = new FakeOcrProvider(FakeProviderBehavior.AlwaysFailing(AiFailureKind.Unreachable));
         var items = await ImportAsync(
-            [new FakeEmbeddingProvider(), new FakeImageDescriber(), new FakeOcrProvider(FakeProviderBehavior.AlwaysFailing(AiFailureKind.Unreachable))],
+            [new FakeEmbeddingProvider(), describer, ocrProvider],
+            services => services.AddSingleton<IProviderCircuitBreaker>(new OpenBreaker(null)),
             SampleMedia.JpegWithExif);
 
         var jobId = await AnalyzeAsync(items);
 
         var item = items[0];
-        Assert.Equal(MediaItemStatus.Indexed, (await bed!.Library.Items.GetAsync(item.Id, Token))!.Status);
-        Assert.Equal(AnalyzerStatus.Retrying, (await StateAsync(item, AnalyzerKeys.Ocr)).Status);
-        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(item, AnalyzerKeys.Describer)).Status);
-
-        // The scheduler gives up (MFC-103 calls this): the warning appears, the item stays Indexed.
-        var workItem = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token));
-        var error = new AiProviderException(AiFailureKind.Unreachable, "fake:ocr", "down");
-        error.Data["MediaFileClassifier.Analyzer"] = AnalyzerKeys.Ocr;
-        await Stage.OnFailedAsync(Context(workItem), new ClassifiedError(ErrorCategory.Transient, "down", error), Token);
-
         var ocr = await StateAsync(item, AnalyzerKeys.Ocr);
         Assert.Equal(AnalyzerStatus.Failed, ocr.Status);
         Assert.True(ocr.IsRetryable);
         Assert.Equal(nameof(AiFailureKind.Unreachable), ocr.FailureKind);
-        Assert.Equal(MediaItemStatus.Indexed, (await bed.Library.Items.GetAsync(item.Id, Token))!.Status);
+        Assert.Equal(MediaItemStatus.Indexed, (await bed!.Library.Items.GetAsync(item.Id, Token))!.Status);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(item, AnalyzerKeys.Describer)).Status);
+
+        // Five attempts; the retries ran only OCR.
+        Assert.Equal(5, ocrProvider.Calls);
+        Assert.Equal(1, describer.Calls);
+        Assert.Equal(WorkItemState.Failed, Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
     }
 
     [Fact]
@@ -126,19 +125,14 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         var jobId = await AnalyzeAsync(items);
 
         var item = items[0];
-        Assert.Equal(MediaItemStatus.Pending, (await bed!.Library.Items.GetAsync(item.Id, Token))!.Status);
         var embedding = await StateAsync(item, AnalyzerKeys.Embedding);
         Assert.Equal(AnalyzerStatus.Failed, embedding.Status);
         Assert.False(embedding.IsRetryable);
         Assert.Equal(AnalyzerStatus.Done, (await StateAsync(item, AnalyzerKeys.Describer)).Status);
         Assert.Equal(AnalyzerStatus.Done, (await StateAsync(item, AnalyzerKeys.Ocr)).Status);
-        var workItem = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token));
-        Assert.Equal(WorkItemState.Failed, workItem.State);
+        Assert.Equal(WorkItemState.Failed, Assert.Single(await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
 
-        var error = new AiProviderException(AiFailureKind.InvalidInput, "fake", "bad");
-        error.Data["MediaFileClassifier.Analyzer"] = AnalyzerKeys.Embedding;
-        await Stage.OnFailedAsync(Context(workItem), new ClassifiedError(ErrorCategory.Permanent, "bad", error), Token);
-
+        // A permanent failure isn't retried: the scheduler calls OnFailedAsync at once.
         var failed = (await bed.Library.Items.GetAsync(item.Id, Token))!;
         Assert.Equal(MediaItemStatus.Error, failed.Status);
         Assert.Equal(AnalysisStages.EmbeddingError, failed.Error?.Stage);
@@ -221,30 +215,31 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
             ? throw new AiProviderException(AiFailureKind.Timeout, "fake:ocr", "slow")
             : "text");
         var items = await ImportAsync([new FakeEmbeddingProvider(), describer, ocr], SampleMedia.JpegWithExif);
-        var jobId = await AnalyzeAsync(items);
-        var workItem = Assert.Single(await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token));
 
-        await Stage.HandleAsync(Context(workItem), Token);
+        var jobId = await AnalyzeAsync(items);
 
         Assert.Equal(1, describer.Calls);
         Assert.Equal(2, ocr.Calls);
         Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Ocr)).Status);
+        Assert.Equal(WorkItemState.Completed, Assert.Single(await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
+        Assert.Equal(MediaItemStatus.Indexed, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
     }
 
     [Fact]
     public async Task OcrOnlyRun_LeavesTheItemsStatusAlone()
     {
         var ocr = new FakeOcrProvider(recognize: _ => "text");
+        // An embedding that fails for good puts the item in Error; a retry of OCR alone doesn't change that.
         var items = await ImportAsync(
-            [new FakeEmbeddingProvider(FakeProviderBehavior.AlwaysFailing(AiFailureKind.ModelMissing)), new FakeImageDescriber(), ocr],
+            [new FakeEmbeddingProvider(FakeProviderBehavior.AlwaysFailing(AiFailureKind.InvalidInput)), new FakeImageDescriber(), ocr],
             SampleMedia.JpegWithExif);
         await AnalyzeAsync(items);
-        Assert.Equal(MediaItemStatus.Pending, (await bed!.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+        Assert.Equal(MediaItemStatus.Error, (await bed!.Library.Items.GetAsync(items[0].Id, Token))!.Status);
         var describer = await StateAsync(items[0], AnalyzerKeys.Describer);
 
         await AnalyzeAsync(items, [AnalyzerKeys.Ocr]);
 
-        Assert.Equal(MediaItemStatus.Pending, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+        Assert.Equal(MediaItemStatus.Error, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
         Assert.Equal(2, ocr.Calls);
         Assert.Equal(describer, await StateAsync(items[0], AnalyzerKeys.Describer));
     }
@@ -258,11 +253,9 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
 
         var ocrOnly = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(await AnalyzeAsync(items, [AnalyzerKeys.Ocr]), Token));
         Assert.Equal(WorkItemState.Failed, ocrOnly.State);
-        await Stage.OnFailedAsync(Context(ocrOnly), new ClassifiedError(ErrorCategory.Permanent, "gone", new FileNotFoundException("gone")), Token);
         Assert.Equal(MediaItemStatus.Indexed, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
 
-        var full = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(await AnalyzeAsync(items), Token));
-        await Stage.OnFailedAsync(Context(full), new ClassifiedError(ErrorCategory.Permanent, "gone", new FileNotFoundException("gone")), Token);
+        Assert.Equal(WorkItemState.Failed, Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(await AnalyzeAsync(items), Token)).State);
         var failed = (await bed.Library.Items.GetAsync(items[0].Id, Token))!;
         Assert.Equal(MediaItemStatus.Error, failed.Status);
         Assert.Equal(AnalysisStages.Item, failed.Error?.Stage);
@@ -326,10 +319,6 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         Assert.Equal(WorkItemState.Failed, Assert.Single(await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
     }
 
-    private AnalysisStage Stage => bed!.Get<IEnumerable<IStageHandler>>().OfType<AnalysisStage>().Single();
-
-    private WorkItemContext Context(WorkItem workItem) => new(workItem, bed!.Jobs.Current!);
-
     private Task<IReadOnlyList<MediaItem>> ImportAsync(IAiProvider[] providers, params string[] files) =>
         ImportAsync(providers, null, files);
 
@@ -363,7 +352,7 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     private async Task<AnalyzerState> StateAsync(MediaItem item, string analyzer) =>
         Assert.Single(await bed!.Library.AnalyzerStates.GetForItemAsync(item.Id, Token), state => state.Analyzer == analyzer);
 
-    private sealed class OpenBreaker(string openProviderId) : IProviderCircuitBreaker
+    private sealed class OpenBreaker(string? openProviderId) : IProviderCircuitBreaker
     {
         public event EventHandler? Changed
         {

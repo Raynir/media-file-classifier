@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
@@ -19,6 +20,7 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// <remarks>
 /// Work of a stage whose model isn't installed isn't dispatched, and jobs left with only such work wait in
 /// <see cref="ProcessingJobState.WaitingForModel"/> (D037). When a model is installed, they're queued again.
+/// Work that failed because an AI provider is unavailable is parked until the provider's circuit closes (E05-S04-T03).
 /// </remarks>
 internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 {
@@ -45,6 +47,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private readonly ILogger logger;
     private readonly IErrorClassifier classifier;
     private readonly RetryPolicy retryPolicy;
+    private readonly IProviderCircuitBreaker? breaker;
     private readonly Lock gate = new();
     private readonly Dictionary<ResourcePool, PoolState> pools;
     private readonly Dictionary<Id<WorkItem>, RunningWork> running = [];
@@ -52,12 +55,19 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private readonly Channel<bool> wake = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropWrite });
     private readonly CancellationTokenSource stopping = new();
     private readonly CancellationTokenSource aborting = new();
+
+    // The providers each stage was seen failing with: a completed work item of the stage means they answered.
+    private readonly Dictionary<string, HashSet<string>> stageProviders = new(StringComparer.Ordinal);
     private HashSet<Id<MediaItem>> boosted = [];
     private bool boostChanged;
     private HashSet<string> waitingStages = new(StringComparer.Ordinal);
     private bool modelsChanged = true;
     private DateTimeOffset? nextRetryAt;
     private bool retriesChanged = true;
+
+    // Parked work is released when a circuit closes, and when the library opens, because circuits live in memory.
+    private bool releaseParked;
+    private HashSet<string> openCircuits = new(StringComparer.Ordinal);
 
     // Retries due by this time were visible to the queue reads since the last OnRetriesDue; later ones need a wake-up.
     private DateTimeOffset retryHorizon = DateTimeOffset.MinValue;
@@ -78,6 +88,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// </param>
     /// <param name="classifier">Classifies failures, or <see langword="null"/> for the .NET exception rules only.</param>
     /// <param name="retryPolicy">When transient failures are retried, or <see langword="null"/> for <see cref="RetryPolicy.Default"/>.</param>
+    /// <param name="breaker">Pauses unavailable AI providers, or <see langword="null"/> to retry their failures like any other.</param>
     public JobScheduler(
         IOpenLibrary library,
         IEnumerable<IStageHandler> handlers,
@@ -87,9 +98,18 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         ILogger logger,
         IModelAvailability? models = null,
         IErrorClassifier? classifier = null,
-        RetryPolicy? retryPolicy = null)
+        RetryPolicy? retryPolicy = null,
+        IProviderCircuitBreaker? breaker = null)
     {
         Library = library;
+        this.breaker = breaker;
+        if (breaker is not null)
+        {
+            openCircuits = [.. breaker.OpenCircuits.Select(circuit => circuit.ProviderId)];
+            releaseParked = true;
+            breaker.Changed += OnCircuitsChanged;
+        }
+
         this.classifier = classifier ?? new ErrorClassifier([]);
         this.retryPolicy = retryPolicy ?? RetryPolicy.Default;
         this.handlers = handlers.ToDictionary(handler => handler.Stage, StringComparer.Ordinal);
@@ -307,6 +327,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             models.Changed -= OnModelsChanged;
         }
 
+        if (breaker is not null)
+        {
+            breaker.Changed -= OnCircuitsChanged;
+        }
+
         await stopping.CancelAsync().ConfigureAwait(false);
         await loop.ConfigureAwait(false);
         var all = Task.WhenAll(RunningTasks());
@@ -411,6 +436,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                     if (!paused)
                     {
                         await RefreshWaitingStagesAsync(token).ConfigureAwait(false);
+                        await ReleaseParkedAsync(token).ConfigureAwait(false);
                         await LoadBoostedAsync(token).ConfigureAwait(false);
                         await DispatchAsync(token).ConfigureAwait(false);
                         await MarkWaitingForModelAsync(token).ConfigureAwait(false);
@@ -427,6 +453,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                         boostChanged = true;
                         modelsChanged = true;
                         retriesChanged = true;
+                        releaseParked = breaker is not null;
                         foreach (var pool in pools.Values)
                         {
                             pool.Exhausted = false;
@@ -508,6 +535,53 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         {
             LogJobsWaiting(waiting, string.Join(", ", stages));
         }
+    }
+
+    /// <summary>
+    /// Releases the parked work after a circuit closed (and when the scheduler starts), so it runs again. Work for a
+    /// provider that's still unavailable is parked again when it fails.
+    /// </summary>
+    private async Task ReleaseParkedAsync(CancellationToken token)
+    {
+        lock (gate)
+        {
+            if (!releaseParked)
+            {
+                return;
+            }
+
+            releaseParked = false;
+        }
+
+        var released = await Library.Jobs.ReleaseParkedAsync(clock.GetUtcNow(), token).ConfigureAwait(false);
+        if (released > 0)
+        {
+            LogParkedReleased(released);
+            lock (gate)
+            {
+                foreach (var pool in pools.Values)
+                {
+                    pool.Exhausted = false;
+                    pool.Stale = true;
+                }
+            }
+        }
+    }
+
+    private void OnCircuitsChanged(object? sender, EventArgs e)
+    {
+        var nowOpen = breaker!.OpenCircuits.Select(circuit => circuit.ProviderId).ToHashSet(StringComparer.Ordinal);
+        lock (gate)
+        {
+            if (openCircuits.Any(providerId => !nowOpen.Contains(providerId)))
+            {
+                releaseParked = true;
+            }
+
+            openCircuits = nowOpen;
+        }
+
+        Wake();
     }
 
     private void OnModelsChanged(object? sender, EventArgs e)
@@ -652,10 +726,21 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                 return;
             }
 
-            var finished = await HandleAsync(workItem, cancellation.Token).ConfigureAwait(false);
+            var (finished, parkedFor) = await HandleAsync(workItem, cancellation.Token).ConfigureAwait(false);
             var job = await Library.Jobs.FinishAsync(finished, clock.GetUtcNow(), CancellationToken.None).ConfigureAwait(false);
             progress.Finished(finished, job);
-            if (finished.RetryAt is { } retryAt)
+            if (parkedFor is not null)
+            {
+                // The circuit may have closed before the parked state was written, so its release missed this one.
+                if (!breaker!.IsOpen(parkedFor))
+                {
+                    lock (gate)
+                    {
+                        releaseParked = true;
+                    }
+                }
+            }
+            else if (finished.RetryAt is { } retryAt)
             {
                 lock (gate)
                 {
@@ -682,19 +767,21 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     }
 
     /// <summary>
-    /// Runs the stage handler, and returns the work item in its finished state.
+    /// Runs the stage handler, and returns the work item in its finished state, and the provider it waits for if it's
+    /// parked.
     /// </summary>
-    private async Task<WorkItem> HandleAsync(WorkItem workItem, CancellationToken token)
+    private async Task<(WorkItem WorkItem, string? ParkedFor)> HandleAsync(WorkItem workItem, CancellationToken token)
     {
         if (!handlers.TryGetValue(workItem.Stage, out var handler))
         {
-            return workItem.ChangeState(WorkItemState.Failed, clock.GetUtcNow(), $"No stage handler is registered for '{workItem.Stage}'.");
+            return (workItem.ChangeState(WorkItemState.Failed, clock.GetUtcNow(), $"No stage handler is registered for '{workItem.Stage}'."), null);
         }
 
         try
         {
             await handler.HandleAsync(new WorkItemContext(workItem, this), token).ConfigureAwait(false);
-            return workItem.ChangeState(WorkItemState.Completed, clock.GetUtcNow());
+            RecordProviderSuccess(workItem.Stage);
+            return (workItem.ChangeState(WorkItemState.Completed, clock.GetUtcNow()), null);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -705,7 +792,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                 jobCancelled = cancelledJobs.Contains(workItem.JobId);
             }
 
-            return workItem.ChangeState(jobCancelled ? WorkItemState.Cancelled : WorkItemState.Queued, clock.GetUtcNow());
+            return (workItem.ChangeState(jobCancelled ? WorkItemState.Cancelled : WorkItemState.Queued, clock.GetUtcNow()), null);
         }
         catch (Exception exception)
         {
@@ -714,10 +801,39 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     }
 
     /// <summary>
-    /// Decides what happens to a work item that failed (E05-S04): a transient failure is retried later, a missing model
-    /// waits, and anything else fails the work item for good and tells the stage.
+    /// Tells the breaker that the providers a stage was seen failing with answered, now that a work item of the stage
+    /// completed.
     /// </summary>
-    private async Task<WorkItem> OnFailedAsync(WorkItem workItem, IStageHandler handler, Exception exception)
+    private void RecordProviderSuccess(string stage)
+    {
+        if (breaker is null)
+        {
+            return;
+        }
+
+        List<string> providerIds;
+        lock (gate)
+        {
+            if (!stageProviders.TryGetValue(stage, out var known))
+            {
+                return;
+            }
+
+            providerIds = [.. known];
+        }
+
+        foreach (var providerId in providerIds)
+        {
+            breaker.RecordSuccess(providerId);
+        }
+    }
+
+    /// <summary>
+    /// Decides what happens to a work item that failed (E05-S04): a transient failure is retried later, a missing model
+    /// waits, a failure of an unavailable AI provider is parked until the provider is back, and anything else fails the
+    /// work item for good and tells the stage.
+    /// </summary>
+    private async Task<(WorkItem WorkItem, string? ParkedFor)> OnFailedAsync(WorkItem workItem, IStageHandler handler, Exception exception)
     {
         var error = classifier.Classify(exception);
         var now = clock.GetUtcNow();
@@ -730,14 +846,33 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             }
 
             LogWorkItemWaitsForModel(workItem.Id.ToString(), workItem.Stage, error.Message);
-            return workItem.ScheduleRetry(now + retryPolicy.MaxDelay, error.Category, error.Message, countsAsRetry: false, now);
+            return (workItem.ScheduleRetry(now + retryPolicy.MaxDelay, error.Category, error.Message, countsAsRetry: false, now), null);
+        }
+
+        if (breaker is not null && error is { IsProviderFailure: true, ProviderId: { } providerId })
+        {
+            lock (gate)
+            {
+                if (!stageProviders.TryGetValue(workItem.Stage, out var known))
+                {
+                    stageProviders[workItem.Stage] = known = new HashSet<string>(StringComparer.Ordinal);
+                }
+
+                known.Add(providerId);
+            }
+
+            if (breaker.RecordFailure(error))
+            {
+                LogWorkItemParked(workItem.Id.ToString(), workItem.Stage, providerId);
+                return (workItem.Park(error.Category, error.Message, now), providerId);
+            }
         }
 
         if (error.Category == ErrorCategory.Transient && retryPolicy.CanRetry(workItem.RetryCount))
         {
             var delay = retryPolicy.GetDelay(workItem.RetryCount);
             LogWorkItemRetrying(exception, workItem.Id.ToString(), workItem.Stage, workItem.RetryCount + 1, delay.TotalSeconds);
-            return workItem.ScheduleRetry(now + delay, error.Category, error.Message, countsAsRetry: true, now);
+            return (workItem.ScheduleRetry(now + delay, error.Category, error.Message, countsAsRetry: true, now), null);
         }
 
         LogWorkItemFailed(exception, workItem.Id.ToString(), workItem.Stage, error.Category);
@@ -753,7 +888,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             }
         }
 
-        return workItem.Fail(clock.GetUtcNow(), error.Category, error.Message);
+        return (workItem.Fail(clock.GetUtcNow(), error.Category, error.Message), null);
     }
 
     /// <summary>
@@ -845,6 +980,12 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Work item {WorkItemId} ({Stage}) waits for a model: {Reason}")]
     private partial void LogWorkItemWaitsForModel(string workItemId, string stage, string reason);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Work item {WorkItemId} ({Stage}) waits until AI provider {ProviderId} is available")]
+    private partial void LogWorkItemParked(string workItemId, string stage, string providerId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} work items that waited for an AI provider are queued again")]
+    private partial void LogParkedReleased(int count);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The stage {Stage} couldn't record the failure of work item {WorkItemId}")]
     private partial void LogFailureNotRecorded(Exception exception, string workItemId, string stage);

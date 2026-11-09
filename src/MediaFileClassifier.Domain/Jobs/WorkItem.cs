@@ -10,6 +10,12 @@ namespace MediaFileClassifier.Domain.Jobs;
 /// </summary>
 public sealed record WorkItem
 {
+    /// <summary>
+    /// The <see cref="RetryAt"/> of a parked work item: a whole millisecond, so it survives the Unix-milliseconds
+    /// storage (D071) unchanged.
+    /// </summary>
+    public static readonly DateTimeOffset ParkedUntil = new(9999, 12, 31, 0, 0, 0, TimeSpan.Zero);
+
     public required Id<WorkItem> Id { get; init; }
 
     public required Id<ProcessingJob> JobId { get; init; }
@@ -52,9 +58,16 @@ public sealed record WorkItem
     public int RetryCount { get; init; }
 
     /// <summary>
-    /// Gets when a queued retry may start, or <see langword="null"/> when it may start at once.
+    /// Gets when a queued retry may start, or <see langword="null"/> when it may start at once. A parked work item
+    /// (<see cref="IsParked"/>) has <see cref="ParkedUntil"/> here.
     /// </summary>
     public DateTimeOffset? RetryAt { get; init; }
+
+    /// <summary>
+    /// Gets whether the work item is parked because the AI provider it needs is unavailable (E05-S04-T03): it starts
+    /// again when the provider's circuit closes, not at a time.
+    /// </summary>
+    public bool IsParked => State == WorkItemState.Queued && RetryAt == ParkedUntil;
 
     /// <summary>
     /// Gets stage-specific input as JSON, if the stage needs more than the item, e.g. a folder path to discover.
@@ -168,4 +181,16 @@ public sealed record WorkItem
             RetryCount = countsAsRetry ? RetryCount + 1 : RetryCount,
         };
     }
+
+    /// <summary>
+    /// Puts the running work item back in the queue until the AI provider it needs is available again (E05-S04-T03).
+    /// It doesn't use up an automatic retry.
+    /// </summary>
+    /// <param name="category">What kind of failure it was.</param>
+    /// <param name="error">Error message, kept until it starts again.</param>
+    /// <param name="now">Current time.</param>
+    /// <returns>The parked work item.</returns>
+    /// <exception cref="InvalidOperationException">The work item isn't running.</exception>
+    public WorkItem Park(ErrorCategory category, string error, DateTimeOffset now) =>
+        ScheduleRetry(ParkedUntil, category, error, countsAsRetry: false, now);
 }

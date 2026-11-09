@@ -126,10 +126,19 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
     public Task<DateTimeOffset?> GetNextRetryAtAsync(DateTimeOffset after, CancellationToken cancellationToken = default) =>
         connections.ReadAsync(
             async (db, token) => await db.WorkItems
-                .Where(item => item.State == WorkItemState.Queued && item.RetryAt > after)
+                .Where(item => item.State == WorkItemState.Queued && item.RetryAt > after && item.RetryAt != WorkItem.ParkedUntil)
                 .OrderBy(item => item.RetryAt)
                 .Select(item => item.RetryAt)
                 .FirstOrDefaultAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> ReleaseParkedAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        writer.ExecuteAsync(
+            async (db, token) => await db.WorkItems
+                .Where(item => item.State == WorkItemState.Queued && item.RetryAt == WorkItem.ParkedUntil)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.RetryAt, now), token)
                 .ConfigureAwait(false),
             cancellationToken);
 

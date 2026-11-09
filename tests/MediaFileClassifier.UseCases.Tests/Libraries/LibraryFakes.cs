@@ -201,6 +201,8 @@ internal sealed class FakeJobRepository : IJobRepository
 
     public Task<DateTimeOffset?> GetNextRetryAtAsync(DateTimeOffset after, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+    public Task<int> ReleaseParkedAsync(DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
     public Task<IReadOnlyList<WorkItem>> GetQueuedForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();

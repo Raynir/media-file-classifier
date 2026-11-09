@@ -68,8 +68,19 @@ public interface IJobRepository
     /// </summary>
     /// <param name="after">Only retries due after this time count.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The earliest retry time after <paramref name="after"/>, or <see langword="null"/> if there's none.</returns>
+    /// <returns>
+    /// The earliest retry time after <paramref name="after"/>, or <see langword="null"/> if there's none. Parked work
+    /// (<see cref="WorkItem.IsParked"/>) doesn't count.
+    /// </returns>
     Task<DateTimeOffset?> GetNextRetryAtAsync(DateTimeOffset after, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Releases every parked work item (E05-S04-T03), so it may start at once.
+    /// </summary>
+    /// <param name="now">Current time, the released work's retry time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of work items released.</returns>
+    Task<int> ReleaseParkedAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the queued work items for some media items, e.g. those on screen (E05-S01-T03).

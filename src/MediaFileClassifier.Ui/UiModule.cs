@@ -140,6 +140,7 @@ public static class UiModule
         // M1 segments (E13-S04-T02).
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ResultCountStatusSegment>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, OfflineFoldersStatusSegment>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProviderStatusSegment>());
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

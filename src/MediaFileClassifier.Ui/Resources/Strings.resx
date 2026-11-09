@@ -955,6 +955,10 @@
     <value>{0} — {1}</value>
     <comment>Processing indicator tooltip, one line per job. {0} is the job description, {1} its progress like Progress_Count.</comment>
   </data>
+  <data name="Progress_Retrying" xml:space="preserve">
+    <value>{0}, {1} retrying</value>
+    <comment>{0} is a tooltip line, {1} the number of work items that failed and wait for an automatic retry.</comment>
+  </data>
   <data name="Progress_Failed" xml:space="preserve">
     <value>{0}, {1} failed</value>
     <comment>{0} is a tooltip line, {1} the number of failed work items.</comment>
@@ -996,6 +1000,20 @@
   </data>
   <data name="StatusBar_Items_ToolTip" xml:space="preserve">
     <value>Items in this view</value>
+  </data>
+  <data name="StatusBar_ProviderUnavailable_One" xml:space="preserve">
+    <value>{0} unavailable</value>
+    <comment>Status bar warning while one AI provider can't be used. {0} is its name, e.g. LM Studio.</comment>
+  </data>
+  <data name="StatusBar_ProviderUnavailable_Other" xml:space="preserve">
+    <value>{0} AI providers unavailable</value>
+    <comment>Status bar warning while several AI providers can't be used. {0} is the number.</comment>
+  </data>
+  <data name="StatusBar_ProviderUnavailable_ToolTip" xml:space="preserve">
+    <value>Analysis that needs it waits and resumes when it's back. Click to check now.</value>
+  </data>
+  <data name="StatusBar_ProviderUnavailable_FixSettings" xml:space="preserve">
+    <value>Analysis that needs it waits until the setting is fixed. Click to check now.</value>
   </data>
   <data name="StatusBar_FoldersOffline_One" xml:space="preserve">
     <value>{0} folder offline</value>

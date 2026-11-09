@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Embeddings;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
@@ -56,6 +57,28 @@ public sealed class SearchMediaQueryHandlerTests : IAsyncLifetime
         Assert.Equal(SearchFields.Title, results.Hits[0].MatchedFields);
         Assert.Contains(results.Hits, hit => hit.ItemId == pictured.Id && hit.KeywordRank is null && hit.Similarity > 0.89f);
         Assert.Contains(results.Hits, hit => hit.ItemId == titled.Id && hit.Similarity is null);
+    }
+
+    [Fact]
+    public async Task Search_TextInTheImage_IsAMatchInTheOcrField()
+    {
+        var provider = new FakeEmbeddingProvider(dimension: Dimension);
+        var sign = await bed.AddItemAsync(1);
+        var other = await bed.AddItemAsync(2, title: "harbour");
+
+        // The OCR text goes through the same metadata edit as the other fields; E06-S05 will write it from the analysis.
+        await bed.Library.Library.Metadata.UpdateAsync(
+            sign.Id,
+            metadata => metadata.EditValue(DescriptiveField.OcrText, FieldValue.FromText("Keep out: private property"), bed.Library.Clock.Tick()),
+            Token);
+        using var handler = Create(provider);
+
+        var results = await handler.SearchAsync(new SearchMediaQuery { Text = "private property" });
+
+        var hit = Assert.Single(results.Hits);
+        Assert.Equal(sign.Id, hit.ItemId);
+        Assert.Equal(SearchFields.OcrText, hit.MatchedFields);
+        Assert.DoesNotContain(results.Hits, found => found.ItemId == other.Id);
     }
 
     [Fact]

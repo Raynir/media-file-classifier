@@ -198,24 +198,38 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     public ResultMatch? GetMatch(Id<MediaItem> itemId) => current.Matches.GetValueOrDefault(itemId);
 
     // Every hit's ID in result order: the grid asks for them to select ranges and everything, and to find an item.
-    private Task<List<Id<MediaItem>>> AllIdsAsync(ActiveSearch search, CancellationToken cancellationToken) =>
-        RunAsync(
-            search,
-            [],
-            cancellationToken,
-            async token =>
+    // The list is read once per search and shared; it is cancelled only when the search is replaced.
+    private async Task<List<Id<MediaItem>>> AllIdsAsync(ActiveSearch search, CancellationToken cancellationToken)
+    {
+        Task<List<Id<MediaItem>>> task;
+        lock (search)
+        {
+            if (search.AllIds is { IsFaulted: true } or { IsCanceled: true })
             {
-                var ids = new List<Id<MediaItem>>();
-                while (true)
+                search.AllIds = null;
+            }
+
+            task = search.AllIds ??= RunAsync(
+                search,
+                [],
+                CancellationToken.None,
+                async token =>
                 {
-                    var page = await sender.Send(search.Query(ids.Count, IdPageSize, includeFields: false), token).ConfigureAwait(false);
-                    ids.AddRange(page.Hits.Select(hit => hit.ItemId));
-                    if (page.Hits.Count < IdPageSize || ids.Count >= page.TotalCount)
+                    var ids = new List<Id<MediaItem>>();
+                    while (true)
                     {
-                        return ids;
+                        var page = await sender.Send(search.Query(ids.Count, IdPageSize, includeFields: false), token).ConfigureAwait(false);
+                        ids.AddRange(page.Hits.Select(hit => hit.ItemId));
+                        if (page.Hits.Count < IdPageSize || ids.Count >= page.TotalCount)
+                        {
+                            return ids;
+                        }
                     }
-                }
-            });
+                });
+        }
+
+        return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     // A superseded search ends quietly with the fallback: its caller is about to refresh for the new one.
     private static async Task<T> RunAsync<T>(ActiveSearch search, T fallback, CancellationToken cancellationToken, Func<CancellationToken, Task<T>> run)
@@ -276,6 +290,8 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         public bool IsSearch => Text.Length > 0;
 
         public CancellationTokenSource Cancellation { get; } = new();
+
+        public Task<List<Id<MediaItem>>>? AllIds { get; set; }
 
         public ConcurrentDictionary<Id<MediaItem>, ResultMatch> Matches { get; } = new();
 

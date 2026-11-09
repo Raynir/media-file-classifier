@@ -53,6 +53,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     private static readonly TimeSpan SaveDelay = TimeSpan.FromMilliseconds(500);
 
     private readonly IMediaResultSource source;
+    private readonly IResultAnnotations? annotations;
     private readonly ThumbnailLoader loader;
     private readonly IItemOpener opener;
     private readonly IJobSystem jobs;
@@ -97,6 +98,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     {
         Notice = notice;
         this.source = source;
+        annotations = source as IResultAnnotations;
         this.loader = loader;
         this.opener = opener;
         this.jobs = jobs;
@@ -492,7 +494,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         {
             var tile = row.Tiles[column];
             var item = pages.Get(first + column);
-            tile.Show(first + column, item, ThumbnailSize, item is null ? null : (source as IResultAnnotations)?.GetMatch(item.Id));
+            tile.Show(first + column, item, ThumbnailSize, item is null ? null : annotations?.GetMatch(item.Id));
             UpdateTileState(tile);
         }
     }

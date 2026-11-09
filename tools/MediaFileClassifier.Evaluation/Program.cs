@@ -14,12 +14,13 @@ internal static class Program
           validate       Check the data set: IDs, labels, minimums and licences.
           evaluate       Score a results file and write a dated report.
           init-private   List a folder of personal media into a new private data set.
+          threshold      Measure SigLIP 2 similarities of real and nonsense queries, for the relevance threshold.
 
         Options:
           --data <folder>        The data set (default: eval, the public set).
           --results <file>       evaluate: the system's results (see docs/evaluation-corpus.md).
           --system siglip2       evaluate: run the app's SigLIP 2 pipeline over the corpus instead of reading a results file.
-          --models <folder>      evaluate --system: the folder with vision_model.onnx, text_model.onnx and tokenizer.model.
+          --models <folder>      evaluate --system, threshold: the folder with vision_model.onnx, text_model.onnx and tokenizer.model.
           --out <folder>         evaluate: where reports go (default: <data>/reports).
           --media <folder>       The media files (default: from <data>/dataset.json, else <data>/corpus).
           --files                validate: also check that every file exists and matches its checksum.
@@ -38,6 +39,8 @@ internal static class Program
                     return ValidateCommand.Run(options, Console.Out);
                 case "evaluate":
                     return await EvaluateCommand.RunAsync(options, TimeProvider.System, Console.Out, CancellationToken.None);
+                case "threshold":
+                    return await ThresholdCommand.RunAsync(options, Console.Out, CancellationToken.None);
                 case "init-private":
                     return InitPrivateCommand.Run(options, Console.Out);
                 default:

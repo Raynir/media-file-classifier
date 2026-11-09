@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.ThumbnailTileSize;
 using MediatR;
@@ -52,6 +53,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     private static readonly TimeSpan SaveDelay = TimeSpan.FromMilliseconds(500);
 
     private readonly IMediaResultSource source;
+    private readonly IResultAnnotations? annotations;
     private readonly ThumbnailLoader loader;
     private readonly IItemOpener opener;
     private readonly IJobSystem jobs;
@@ -83,6 +85,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <param name="sender">Sends the tile size requests.</param>
     /// <param name="selection">The selection.</param>
     /// <param name="contextMenu">Builds the context menu, or <see langword="null"/> for none.</param>
+    /// <param name="notice">The notice above the results while a search is on, or <see langword="null"/> for none.</param>
     public ThumbnailGridViewModel(
         IMediaResultSource source,
         ThumbnailLoader loader,
@@ -90,9 +93,12 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         IJobSystem jobs,
         ISender sender,
         SelectionModel selection,
-        BrowserContextMenu? contextMenu = null)
+        BrowserContextMenu? contextMenu = null,
+        SearchNoticeViewModel? notice = null)
     {
+        Notice = notice;
         this.source = source;
+        annotations = source as IResultAnnotations;
         this.loader = loader;
         this.opener = opener;
         this.jobs = jobs;
@@ -139,6 +145,11 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// Gets the rows.
     /// </summary>
     public ThumbnailRowList Rows { get; }
+
+    /// <summary>
+    /// Gets the notice bar above the results while a search is on (E09-S01-T05), or <see langword="null"/>.
+    /// </summary>
+    public SearchNoticeViewModel? Notice { get; }
 
     /// <summary>
     /// Gets the selection.
@@ -482,7 +493,8 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         for (var column = 0; column < row.Tiles.Count; column++)
         {
             var tile = row.Tiles[column];
-            tile.Show(first + column, pages.Get(first + column), ThumbnailSize);
+            var item = pages.Get(first + column);
+            tile.Show(first + column, item, ThumbnailSize, item is null ? null : annotations?.GetMatch(item.Id));
             UpdateTileState(tile);
         }
     }

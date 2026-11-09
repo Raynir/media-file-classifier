@@ -190,38 +190,63 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
 
         return connections.ReadAsync<IReadOnlyList<MediaItemSummary>>(
+            (db, token) => ToSummariesAsync(db, Filter(db, filter).OrderByDescending(item => item.Id).Skip(offset).Take(limit), token),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItemSummary>> GetSummariesByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyList<MediaItemSummary>>([]);
+        }
+
+        return connections.ReadAsync<IReadOnlyList<MediaItemSummary>>(
             async (db, token) =>
             {
-                var rows = await (
-                    from item in Filter(db, filter).OrderByDescending(item => item.Id).Skip(offset).Take(limit)
-                    join metadata in db.TechnicalMetadata on item.Id equals metadata.ItemId into found
-                    from metadata in found.DefaultIfEmpty()
-                    orderby item.Id descending
-                    select new
-                    {
-                        item.Id,
-                        item.Path,
-                        item.MediaType,
-                        item.SizeBytes,
-                        item.FileModifiedAt,
-                        item.Status,
-                        item.StatusReason,
-                        Duration = metadata == null ? null : metadata.Duration,
-                        Warnings = metadata == null ? null : metadata.Warnings,
-                    }).ToListAsync(token).ConfigureAwait(false);
-                return [.. rows.Select(row => new MediaItemSummary(
-                    row.Id,
-                    row.Path.FileName,
-                    row.Path.Extension,
-                    row.MediaType,
-                    row.SizeBytes,
-                    row.FileModifiedAt,
-                    row.Status,
-                    row.StatusReason,
-                    row.Duration,
-                    row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false))];
+                var summaries = new List<MediaItemSummary>(ids.Count);
+                foreach (var batch in ids.Chunk(5000))
+                {
+                    summaries.AddRange(await ToSummariesAsync(db, db.MediaItems.Where(item => batch.Contains(item.Id)), token).ConfigureAwait(false));
+                }
+
+                return summaries;
             },
             cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<MediaItemSummary>> ToSummariesAsync(LibraryDbContext db, IQueryable<MediaItem> items, CancellationToken token)
+    {
+        var rows = await (
+            from item in items
+            join metadata in db.TechnicalMetadata on item.Id equals metadata.ItemId into found
+            from metadata in found.DefaultIfEmpty()
+            orderby item.Id descending
+            select new
+            {
+                item.Id,
+                item.Path,
+                item.MediaType,
+                item.SizeBytes,
+                item.FileModifiedAt,
+                item.Status,
+                item.StatusReason,
+                Duration = metadata == null ? null : metadata.Duration,
+                Warnings = metadata == null ? null : metadata.Warnings,
+            }).ToListAsync(token).ConfigureAwait(false);
+        return [.. rows.Select(row => new MediaItemSummary(
+            row.Id,
+            row.Path.FileName,
+            row.Path.Extension,
+            row.MediaType,
+            row.SizeBytes,
+            row.FileModifiedAt,
+            row.Status,
+            row.StatusReason,
+            row.Duration,
+            row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false))];
     }
 
     /// <inheritdoc />

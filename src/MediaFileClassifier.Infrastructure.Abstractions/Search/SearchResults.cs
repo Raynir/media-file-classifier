@@ -19,6 +19,12 @@ public sealed record SearchResults(IReadOnlyList<SearchHit> Hits, int TotalCount
     /// Gets the empty result.
     /// </summary>
     public static SearchResults Empty { get; } = new([], 0, [], false);
+
+    /// <summary>
+    /// Gets how many results fall below <see cref="SearchQuery.RelevanceCut"/>. They're left out of
+    /// <see cref="Hits"/> and <see cref="TotalCount"/> unless <see cref="SearchQuery.IncludeLessRelevant"/> is set.
+    /// </summary>
+    public int LessRelevantCount { get; init; }
 }
 
 /// <summary>
@@ -35,4 +41,11 @@ public sealed record SearchHit(
     double Score,
     int? KeywordRank,
     float? Similarity,
-    SearchFields MatchedFields);
+    SearchFields MatchedFields)
+{
+    /// <summary>
+    /// Gets whether only the vector search found the item, with a similarity below the query's
+    /// <see cref="SearchQuery.RelevanceCut"/>.
+    /// </summary>
+    public bool IsLessRelevant { get; init; }
+}

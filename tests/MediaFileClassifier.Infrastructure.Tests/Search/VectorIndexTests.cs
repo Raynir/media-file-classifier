@@ -155,6 +155,23 @@ public sealed class VectorIndexTests
 
         Assert.Equal(BruteForce(data, query, 30, roundToHalf: true, mask: null).Select(hit => hit.Document), actual.Select(hit => hit.DocumentId));
         Assert.Equal(data.Sum(item => item.Vectors.Count), index.VectorCount);
+
+        // The running mean behind the relevance cut follows replacements, removals and compaction.
+        var mean = data.Average(item => (double)TensorPrimitives.Dot(RoundToHalf(item.Vectors[0]), query));
+        Assert.Equal(mean, index.MeanSimilarity(search), 4);
+    }
+
+    [Fact]
+    public void MeanSimilarity_IsTheMeanOfTheFirstVectors()
+    {
+        var data = SyntheticItems.Create(300, 3, Dimension, seed: 5);
+        using var index = Build(data);
+        var query = SearchVector.FromVector(ModelA, SyntheticItems.RandomUnit(new Random(9), Dimension));
+        var expected = data.Average(item => (double)TensorPrimitives.Dot(RoundToHalf(item.Vectors[0]), query.Vector.Span));
+
+        Assert.Equal(expected, index.MeanSimilarity(query), 4);
+        Assert.Equal(0, index.MeanSimilarity(SearchVector.FromVector(ModelB, query.Vector.Span)));
+        Assert.Equal(0, index.MeanSimilarity(SearchVector.FromItem(ModelA, Id<MediaItem>.New())));
     }
 
     internal static VectorIndex Build(IReadOnlyList<SyntheticItem> data)

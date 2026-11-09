@@ -5,6 +5,7 @@
              xmlns:controls="using:MediaFileClassifier.Ui.Controls"
              xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:search="using:MediaFileClassifier.Ui.Search"
              x:Class="MediaFileClassifier.Ui.Views.Browser.ThumbnailGridView"
              x:DataType="vm:ThumbnailGridViewModel"
              sc:Shortcuts.Scope="browser">
@@ -24,6 +25,10 @@
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="ClipToBounds" Value="True" />
       <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <!-- A search result below the relevance threshold, shown on request (E09-S01-T03). -->
+    <Style Selector="Border.ThumbnailTile.LessRelevant">
+      <Setter Property="Opacity" Value="0.55" />
     </Style>
     <Style Selector="Border.ThumbnailTile:pointerover">
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Hover}" />
@@ -76,6 +81,8 @@
       <Border Classes="ThumbnailTile"
               Classes.Selected="{Binding IsSelected}"
               Classes.Focused="{Binding IsFocused}"
+              Classes.LessRelevant="{Binding IsLessRelevant}"
+              ToolTip.Tip="{Binding MatchReason}"
               Width="{Binding Width}"
               AutomationProperties.Name="{Binding FileName}">
         <Panel>
@@ -123,6 +130,25 @@
   </UserControl.Resources>
 
   <DockPanel>
+    <!-- Search notice (E09-S01-T05): result count, hints and the less relevant option. -->
+    <Border DockPanel.Dock="Top"
+            IsVisible="{Binding Notice.IsVisible}"
+            Padding="{DynamicResource Padding.Compact}">
+      <StackPanel Orientation="Horizontal"
+                  Spacing="{DynamicResource Space.M}"
+                  DataContext="{Binding Notice}"
+                  x:DataType="search:SearchNoticeViewModel">
+        <TextBlock Classes="Secondary" Text="{Binding Message}" VerticalAlignment="Center" />
+        <TextBlock Classes="Secondary"
+                   Text="{Binding Hint}"
+                   IsVisible="{Binding Hint, Converter={x:Static ObjectConverters.IsNotNull}}"
+                   VerticalAlignment="Center" />
+        <HyperlinkButton
+                Content="{Binding LessRelevantText}"
+                Command="{Binding ToggleLessRelevantCommand}"
+                IsVisible="{Binding LessRelevantText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+    </Border>
     <Panel>
       <ScrollViewer x:Name="Scroller"
                     HorizontalScrollBarVisibility="Disabled"

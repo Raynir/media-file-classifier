@@ -188,6 +188,15 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(MediaItemFilter filter, int offset, int limit, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the tile summaries of the given items, e.g. the hits of a search page (E09-S01). Items that no longer
+    /// exist are left out.
+    /// </summary>
+    /// <param name="ids">The item IDs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The summaries, in no particular order.</returns>
+    Task<IReadOnlyList<MediaItemSummary>> GetSummariesByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Counts the items a filter shows that were added after an item: its position in
     /// <see cref="GetSummariesAsync(MediaItemFilter, int, int, CancellationToken)"/>.
     /// </summary>

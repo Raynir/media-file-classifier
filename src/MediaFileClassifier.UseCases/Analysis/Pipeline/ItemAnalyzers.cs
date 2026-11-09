@@ -78,7 +78,8 @@ internal static class ProviderSelection
         out string? skipReason)
         where TCapability : class, IAiProvider
     {
-        var candidates = registry.GetProviders<TCapability>()
+        // GetProviders hides providers that don't run here, so they're looked for among all of them.
+        var candidates = registry.Providers.OfType<TCapability>()
             .Where(provider => settings.ProviderId is null || string.Equals(provider.Id, settings.ProviderId, StringComparison.Ordinal))
             .Where(provider => settings.ModelId is null || string.Equals(provider.Model.ModelName, settings.ModelId, StringComparison.Ordinal))
             .ToList();
@@ -98,6 +99,37 @@ internal static class ProviderSelection
         var available = supported.FirstOrDefault(provider => breaker?.IsOpen(provider.Id) != true);
         skipReason = available is null ? AnalyzerReasons.ProviderUnavailable : null;
         return available;
+    }
+
+    /// <summary>
+    /// Creates the state of an analyzer without a provider. A provider paused by its circuit breaker also fails the
+    /// work item with <see cref="AiFailureKind.Unreachable"/>, once the other results are stored, so the scheduler parks
+    /// it until the circuit closes and then runs it again (E05-S04); the analyzers that finished are skipped then.
+    /// </summary>
+    /// <typeparam name="TCapability">The capability.</typeparam>
+    /// <param name="registry">The provider registry.</param>
+    /// <param name="context">The analyzer's context.</param>
+    /// <param name="analyzer">Analyzer key.</param>
+    /// <param name="reason">Why, from <see cref="Select"/>.</param>
+    /// <param name="now">Current time.</param>
+    /// <returns>The skipped state, and the failure that parks the work item, if any.</returns>
+    public static AnalyzerResult Skip<TCapability>(IAiProviderRegistry registry, AnalyzerContext context, string analyzer, string reason, DateTimeOffset now)
+        where TCapability : class, IAiProvider
+    {
+        var result = Skip(context, analyzer, reason, now);
+        if (reason != AnalyzerReasons.ProviderUnavailable)
+        {
+            return result;
+        }
+
+        var provider = registry.GetProviders<TCapability>()
+            .First(provider => provider.IsSupportedOnCurrentPlatform
+                && (context.Settings.ProviderId is null || string.Equals(provider.Id, context.Settings.ProviderId, StringComparison.Ordinal)));
+        var failure = new AiProviderException(
+            AiFailureKind.Unreachable,
+            provider.Id,
+            $"{provider.DisplayName} is unavailable, so {analyzer} waits until it's back.");
+        return result with { Failure = failure };
     }
 
     /// <summary>
@@ -200,7 +232,7 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
     {
         if (ProviderSelection.Select<IImageDescriber>(registry, context.Settings, breaker, out var reason) is not { } provider)
         {
-            return ProviderSelection.Skip(context, Key, reason!, clock.GetUtcNow());
+            return ProviderSelection.Skip<IImageDescriber>(registry, context, Key, reason!, clock.GetUtcNow());
         }
 
         AiImage image;
@@ -221,6 +253,7 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
 
         var startedAt = clock.GetUtcNow();
         var output = await provider.DescribeAsync(image, new ImageDescriptionOptions(context.Settings.Language), cancellationToken).ConfigureAwait(false);
+        breaker?.RecordSuccess(provider.Id);
         var now = clock.GetUtcNow();
         var model = await context.Library.Models.GetOrAddAsync(output.Model, now, cancellationToken).ConfigureAwait(false);
         var run = AnalysisRun.Start(context.Item.Id, Key, model, output.PromptVersion ?? provider.PromptVersion, startedAt);
@@ -291,7 +324,7 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
     {
         if (ProviderSelection.Select<IOcrProvider>(registry, context.Settings, breaker, out var reason) is not { } provider)
         {
-            return ProviderSelection.Skip(context, Key, reason!, clock.GetUtcNow());
+            return ProviderSelection.Skip<IOcrProvider>(registry, context, Key, reason!, clock.GetUtcNow());
         }
 
         var startedAt = clock.GetUtcNow();
@@ -315,6 +348,7 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
             }
 
             text = string.Join('\n', KeyframeAggregation.MergeTextLines(texts));
+            breaker?.RecordSuccess(provider.Id);
         }
         else
         {
@@ -322,6 +356,7 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
             var output = await provider.RecognizeTextAsync(still.ToAiImage(context.ImageName), cancellationToken).ConfigureAwait(false);
             identity = output.Model;
             text = output.Value.HasText ? output.Value.Text : string.Empty;
+            breaker?.RecordSuccess(provider.Id);
         }
 
         var now = clock.GetUtcNow();

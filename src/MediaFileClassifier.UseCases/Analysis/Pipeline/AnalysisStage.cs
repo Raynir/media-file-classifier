@@ -168,7 +168,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
                 states[key] = result.IsStored ? result.State : await SetAsync(library, result.State, cancellationToken).ConfigureAwait(false);
                 if (result.Failure is { } failure)
                 {
-                    failures.Add((key, Tag(failure, key), false));
+                    failures.Add((key, Tag(failure, key), IsTransient(failure)));
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

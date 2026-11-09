@@ -23,6 +23,7 @@ public static class JobsModule
         services.TryAddSingleton<JobProgressTracker>();
         services.TryAddSingleton<IJobProgress>(provider => provider.GetRequiredService<JobProgressTracker>());
         services.TryAddSingleton<IErrorClassifier, ErrorClassifier>();
+        services.TryAddSingleton(RetryPolicy.Default);
         return services;
     }
 }

@@ -17,6 +17,7 @@ using MediaFileClassifier.Infrastructure.Discovery;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Infrastructure.Hashing;
 using MediaFileClassifier.Infrastructure.Jobs;
+using MediaFileClassifier.Infrastructure.Jobs.Errors;
 using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
@@ -101,6 +102,9 @@ internal sealed class ImportTestBed : IAsyncDisposable
             .AddSingleton<ILibrarySession>(new BedSession(library))
             .AddSingleton<RegisteredRecorder>()
             .AddSingleton<INotificationHandler<MediaItemRegistered>>(provider => provider.GetRequiredService<RegisteredRecorder>())
+
+            // Retries of transient failures (E05-S04) don't wait in tests.
+            .AddSingleton(new RetryPolicy(5, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(40)))
             .AddJobs()
             .AddMedia()
             .AddUseCases()

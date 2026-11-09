@@ -3,8 +3,10 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Jobs.Errors;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Infrastructure.Jobs;
@@ -41,6 +43,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private readonly JobProgressTracker progress;
     private readonly TimeProvider clock;
     private readonly ILogger logger;
+    private readonly IErrorClassifier classifier;
+    private readonly RetryPolicy retryPolicy;
     private readonly Lock gate = new();
     private readonly Dictionary<ResourcePool, PoolState> pools;
     private readonly Dictionary<Id<WorkItem>, RunningWork> running = [];
@@ -52,6 +56,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private bool boostChanged;
     private HashSet<string> waitingStages = new(StringComparer.Ordinal);
     private bool modelsChanged = true;
+    private DateTimeOffset? nextRetryAt;
+    private bool retriesChanged = true;
+
+    // Retries due by this time were visible to the queue reads since the last OnRetriesDue; later ones need a wake-up.
+    private DateTimeOffset retryHorizon = DateTimeOffset.MinValue;
     private Task loop = Task.CompletedTask;
     private volatile bool paused;
 
@@ -67,6 +76,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// <param name="models">
     /// Which models are installed, or <see langword="null"/> to dispatch every stage regardless.
     /// </param>
+    /// <param name="classifier">Classifies failures, or <see langword="null"/> for the .NET exception rules only.</param>
+    /// <param name="retryPolicy">When transient failures are retried, or <see langword="null"/> for <see cref="RetryPolicy.Default"/>.</param>
     public JobScheduler(
         IOpenLibrary library,
         IEnumerable<IStageHandler> handlers,
@@ -74,9 +85,13 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         JobProgressTracker progress,
         TimeProvider clock,
         ILogger logger,
-        IModelAvailability? models = null)
+        IModelAvailability? models = null,
+        IErrorClassifier? classifier = null,
+        RetryPolicy? retryPolicy = null)
     {
         Library = library;
+        this.classifier = classifier ?? new ErrorClassifier([]);
+        this.retryPolicy = retryPolicy ?? RetryPolicy.Default;
         this.handlers = handlers.ToDictionary(handler => handler.Stage, StringComparer.Ordinal);
         this.models = models;
         modelStages = models is null
@@ -401,7 +416,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                         await MarkWaitingForModelAsync(token).ConfigureAwait(false);
                     }
 
-                    await wake.Reader.ReadAsync(token).ConfigureAwait(false);
+                    await WaitAsync(token).ConfigureAwait(false);
                 }
                 catch (Exception exception) when (!token.IsCancellationRequested)
                 {
@@ -411,6 +426,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                     {
                         boostChanged = true;
                         modelsChanged = true;
+                        retriesChanged = true;
                         foreach (var pool in pools.Values)
                         {
                             pool.Exhausted = false;
@@ -528,9 +544,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         }
 
         var queued = await Library.Jobs.GetQueuedForItemsAsync(itemIds, token).ConfigureAwait(false);
+        var now = clock.GetUtcNow();
         lock (gate)
         {
-            foreach (var workItem in queued)
+            // A retry that isn't due yet runs when it's due, boosted or not.
+            foreach (var workItem in queued.Where(workItem => workItem.RetryAt is null || workItem.RetryAt <= now))
             {
                 var pool = pools[workItem.Pool];
                 if (!running.ContainsKey(workItem.Id) && !waitingStages.Contains(workItem.Stage) && !pool.Buffer.Any(buffered => buffered.Id == workItem.Id))
@@ -576,7 +594,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                     excludingStages = [.. waitingStages];
                 }
 
-                var page = await Library.Jobs.GetQueuedAsync(resource, PageSize, excluding, excludingStages, token).ConfigureAwait(false);
+                var page = await Library.Jobs.GetQueuedAsync(resource, PageSize, excluding, excludingStages, clock.GetUtcNow(), token).ConfigureAwait(false);
                 lock (gate)
                 {
                     // The page replaces the read-ahead, so it stays small; boosted work read by LoadBoostedAsync stays.
@@ -637,6 +655,13 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             var finished = await HandleAsync(workItem, cancellation.Token).ConfigureAwait(false);
             var job = await Library.Jobs.FinishAsync(finished, clock.GetUtcNow(), CancellationToken.None).ConfigureAwait(false);
             progress.Finished(finished, job);
+            if (finished.RetryAt is { } retryAt)
+            {
+                lock (gate)
+                {
+                    nextRetryAt = nextRetryAt is { } next && next < retryAt ? next : retryAt;
+                }
+            }
         }
         catch (Exception exception)
         {
@@ -684,8 +709,125 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         }
         catch (Exception exception)
         {
-            LogWorkItemFailed(exception, workItem.Id.ToString(), workItem.Stage);
-            return workItem.ChangeState(WorkItemState.Failed, clock.GetUtcNow(), exception.Message);
+            return await OnFailedAsync(workItem, handler, exception).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Decides what happens to a work item that failed (E05-S04): a transient failure is retried later, a missing model
+    /// waits, and anything else fails the work item for good and tells the stage.
+    /// </summary>
+    private async Task<WorkItem> OnFailedAsync(WorkItem workItem, IStageHandler handler, Exception exception)
+    {
+        var error = classifier.Classify(exception);
+        var now = clock.GetUtcNow();
+        if (error.IsModelMissing)
+        {
+            // D037: the dispatcher checks the models again, and holds the stage back while the model is missing.
+            lock (gate)
+            {
+                modelsChanged = true;
+            }
+
+            LogWorkItemWaitsForModel(workItem.Id.ToString(), workItem.Stage, error.Message);
+            return workItem.ScheduleRetry(now + retryPolicy.MaxDelay, error.Category, error.Message, countsAsRetry: false, now);
+        }
+
+        if (error.Category == ErrorCategory.Transient && retryPolicy.CanRetry(workItem.RetryCount))
+        {
+            var delay = retryPolicy.GetDelay(workItem.RetryCount);
+            LogWorkItemRetrying(exception, workItem.Id.ToString(), workItem.Stage, workItem.RetryCount + 1, delay.TotalSeconds);
+            return workItem.ScheduleRetry(now + delay, error.Category, error.Message, countsAsRetry: true, now);
+        }
+
+        LogWorkItemFailed(exception, workItem.Id.ToString(), workItem.Stage, error.Category);
+        if (handler is IFailureAwareStage stage)
+        {
+            try
+            {
+                await stage.OnFailedAsync(new WorkItemContext(workItem, this), error, aborting.Token).ConfigureAwait(false);
+            }
+            catch (Exception recordException)
+            {
+                LogFailureNotRecorded(recordException, workItem.Id.ToString(), workItem.Stage);
+            }
+        }
+
+        return workItem.Fail(clock.GetUtcNow(), error.Category, error.Message);
+    }
+
+    /// <summary>
+    /// Waits for new work, or until the next retry is due (E05-S04-T02).
+    /// </summary>
+    private async Task WaitAsync(CancellationToken token)
+    {
+        bool refresh;
+        DateTimeOffset horizon;
+        lock (gate)
+        {
+            refresh = retriesChanged && !paused;
+            horizon = retryHorizon;
+            if (refresh)
+            {
+                retriesChanged = false;
+            }
+        }
+
+        if (refresh)
+        {
+            var queued = await Library.Jobs.GetNextRetryAtAsync(horizon, token).ConfigureAwait(false);
+            lock (gate)
+            {
+                // A retry recorded while reading is already in nextRetryAt.
+                nextRetryAt = queued is { } read && (nextRetryAt is null || read < nextRetryAt) ? read : nextRetryAt;
+            }
+        }
+
+        DateTimeOffset? due;
+        lock (gate)
+        {
+            due = paused ? null : nextRetryAt;
+        }
+
+        var delay = due is { } at ? at - clock.GetUtcNow() : Timeout.InfiniteTimeSpan;
+        if (due is not null && delay <= TimeSpan.Zero)
+        {
+            OnRetriesDue();
+            return;
+        }
+
+        using var waiting = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var woken = wake.Reader.WaitToReadAsync(waiting.Token).AsTask();
+        var timer = Task.Delay(delay, clock, waiting.Token);
+        var first = await Task.WhenAny(woken, timer).ConfigureAwait(false);
+        await waiting.CancelAsync().ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        if (first == woken)
+        {
+            wake.Reader.TryRead(out _);
+        }
+        else
+        {
+            OnRetriesDue();
+        }
+    }
+
+    /// <summary>
+    /// Makes the dispatcher read the queue again, now that a retry is due, and look up the one after it.
+    /// </summary>
+    private void OnRetriesDue()
+    {
+        lock (gate)
+        {
+            // Every pool reads the queue again with a later due time, so it sees every retry due by now.
+            retryHorizon = clock.GetUtcNow();
+            nextRetryAt = null;
+            retriesChanged = true;
+            foreach (var pool in pools.Values)
+            {
+                pool.Exhausted = false;
+                pool.Stale = true;
+            }
         }
     }
 
@@ -695,8 +837,17 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     [LoggerMessage(Level = LogLevel.Information, Message = "{Count} jobs that waited for a model are queued again")]
     private partial void LogJobsResumed(int count);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Work item {WorkItemId} ({Stage}) failed")]
-    private partial void LogWorkItemFailed(Exception exception, string workItemId, string stage);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Work item {WorkItemId} ({Stage}) failed ({Category})")]
+    private partial void LogWorkItemFailed(Exception exception, string workItemId, string stage, ErrorCategory category);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Work item {WorkItemId} ({Stage}) failed; retry {Retry} in {DelaySeconds:0.0} s")]
+    private partial void LogWorkItemRetrying(Exception exception, string workItemId, string stage, int retry, double delaySeconds);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Work item {WorkItemId} ({Stage}) waits for a model: {Reason}")]
+    private partial void LogWorkItemWaitsForModel(string workItemId, string stage, string reason);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The stage {Stage} couldn't record the failure of work item {WorkItemId}")]
+    private partial void LogFailureNotRecorded(Exception exception, string workItemId, string stage);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The state of work item {WorkItemId} ({Stage}) couldn't be recorded")]
     private partial void LogWorkItemNotRecorded(Exception exception, string workItemId, string stage);

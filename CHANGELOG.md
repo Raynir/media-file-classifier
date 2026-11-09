@@ -18,6 +18,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Fixed
 
 - A finished job no longer stays in the progress summary and the status bar when its last work items finish at the same time (MFC-985).
+- The SigLIP 2 quality test (`Siglip2QualityTests`) is opt-in: it skips unless `MFC_QUALITY_TESTS=1`, so it no longer uses every CPU core in a full `dotnet test` and starves the timing tests. Opt-in tests are documented in `docs/development-workflow.md` (MFC-986).
 
 ## M1 — 2026-11-04
 

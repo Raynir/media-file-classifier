@@ -110,6 +110,8 @@ dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate
 
 `Siglip2System` embeds each item with `Siglip2EmbeddingProvider`: one vector for a photo, screenshot or document, and the mean of the keyframes' vectors for a GIF or video, sampled by the app's `FrameSampler` (videos need FFmpeg). Each query is encoded by the text tower and ranked by cosine similarity. It takes about 1.5 minutes on an i7-14700HX.
 
+`threshold --models models/siglip2` measures the semantic relevance cut (E09-S01-T03): for raw, centred (minus the query's mean over the corpus) and z-scored similarity, it prints how many relevant items of the real queries stay visible and how many results 20 built-in nonsense queries still get at each threshold, then the same for the app's rule in `SemanticRelevanceThresholds`. First run (2026-11-09): raw cosine overlaps badly (nonsense top-1 0.07–0.12, relevant median 0.12 en / 0.10 ru); the app's rule, centred ≥ 0.07 or raw ≥ 0.13, keeps 88% (en) and 89% (ru) of the relevant items in the top 10, and 2 of 20 nonsense queries show one item.
+
 Commit the reports of public runs, so the next run compares against a shared history. A second run of the same system within the same second gets a `-2` suffix instead of replacing the first report.
 
 ## Baselines

@@ -41,6 +41,11 @@ The `SearchIndex` migration adds, in raw SQL:
 - **Hybrid:** the top 200 of each list, fused by RRF. Ties go to the better single rank, then the keyword list, then the lower document ID.
 - **Other orders** (name, date, size, import date) work in every mode: for vector and hybrid queries the ranked set is sorted in SQL.
 - **Item date:** date taken, converted to UTC with its offset when known, else the file modification time.
+- **Relevance cut (E09-S01-T03):** with `SearchQuery.RelevanceCut`, a hit that only the vector search found is "less relevant" unless its similarity minus the query's mean similarity over the library clears `MinCentredSimilarity`, or its raw similarity clears `MinSimilarity`. Less relevant hits are dropped after fusion (so the others keep their order) and counted in `SearchResults.LessRelevantCount`; `IncludeLessRelevant` returns them marked `SearchHit.IsLessRelevant`. The mean comes from a running sum of each item's first vector per model, kept in `ModelVectors`. Keyword matches are never cut.
+
+## Unified text search (E09-S01)
+
+`SearchMediaQuery` (MediatR, `UseCases/Search/SearchMedia`) is the call the search bar makes. It normalises the text (`SearchText`: NFC, invisible characters out, white space collapsed, 256 characters at most), encodes it with `SemanticQueryEncoder`, and runs one `ISearchIndex` query with both text and vector. Empty text browses by date taken, newest first. If the model is missing, the vector index isn't ready or encoding fails, the keyword results come back alone and `MediaSearchResults.Semantic` says why. The relevance cut per model is in `SemanticRelevanceThresholds`; a model without an entry shows every neighbour.
 
 ## Benchmark
 

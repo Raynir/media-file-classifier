@@ -14,10 +14,12 @@ namespace MediaFileClassifier.UseCases.Search.SearchMedia;
 /// </summary>
 /// <param name="index">The search index.</param>
 /// <param name="encoder">The query encoder.</param>
+/// <param name="registry">The AI providers, to find the text model's relevance threshold.</param>
 /// <param name="logger">Logger.</param>
 public sealed class SearchMediaQueryHandler(
     ISearchIndex index,
     SemanticQueryEncoder encoder,
+    IAiProviderRegistry registry,
     ILogger<SearchMediaQueryHandler> logger) : IRequestHandler<SearchMediaQuery, MediaSearchResults>
 {
     /// <inheritdoc />
@@ -54,6 +56,8 @@ public sealed class SearchMediaQueryHandler(
                 Offset = request.Offset,
                 Limit = request.Limit,
                 IncludeMatchedFields = request.IncludeMatchedFields,
+                RelevanceCut = vector is null ? null : FindCut(),
+                IncludeLessRelevant = request.ShowLessRelevant,
             },
             cancellationToken).ConfigureAwait(false);
 
@@ -68,8 +72,12 @@ public sealed class SearchMediaQueryHandler(
             (true, false) => SearchMode.Semantic,
             _ => SearchMode.Keyword,
         };
-        return new MediaSearchResults(results.Hits, results.TotalCount, results.Terms, mode, status);
+        return new MediaSearchResults(results.Hits, results.TotalCount, results.Terms, mode, status, results.LessRelevantCount);
     }
+
+    // The same provider the encoder picks: the first text embedder.
+    private SemanticRelevanceCut? FindCut() =>
+        registry.GetProviders<ITextEmbeddingProvider>().FirstOrDefault() is { } provider ? SemanticRelevanceThresholds.For(provider.Model) : null;
 
     private async Task<(SearchVector? Vector, SemanticSearchStatus Status)> EncodeAsync(string text, CancellationToken cancellationToken)
     {

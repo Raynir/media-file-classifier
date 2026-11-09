@@ -111,6 +111,19 @@ public sealed class Siglip2System : IRetrievalSystem, IDisposable
         ];
     }
 
+    /// <summary>
+    /// Scores every indexed item against a text query, for picking the relevance threshold (E09-S01-T03).
+    /// </summary>
+    /// <param name="text">The query text.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The cosine similarity of each item, by item ID.</returns>
+    public async Task<IReadOnlyDictionary<string, float>> ScoreAsync(string text, CancellationToken cancellationToken)
+    {
+        var output = await provider.EmbedTextsAsync([text], cancellationToken).ConfigureAwait(false);
+        var query = output.Value[0].ToArray();
+        return vectors.ToDictionary(pair => pair.Key, pair => System.Numerics.Tensors.TensorPrimitives.Dot(query, pair.Value), StringComparer.Ordinal);
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

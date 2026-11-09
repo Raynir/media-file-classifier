@@ -44,22 +44,32 @@ public sealed record SearchMediaQuery : IRequest<MediaSearchResults>
     /// Gets whether to report which fields matched each hit, for highlighting and match reasons.
     /// </summary>
     public bool IncludeMatchedFields { get; init; } = true;
+
+    /// <summary>
+    /// Gets whether to include the semantic matches below the model's relevance threshold ("Show less relevant
+    /// results", E09-S01-T03). They come back marked <see cref="SearchHit.IsLessRelevant"/>, in rank order.
+    /// </summary>
+    public bool ShowLessRelevant { get; init; }
 }
 
 /// <summary>
 /// One page of unified search results.
 /// </summary>
 /// <param name="Hits">The results of the page, in order.</param>
-/// <param name="TotalCount">How many results the search has over all pages.</param>
+/// <param name="TotalCount">How many results the search has over all pages; without the less relevant ones unless
+/// <see cref="SearchMediaQuery.ShowLessRelevant"/> is set.</param>
 /// <param name="Terms">The words the keyword search used, for highlighting; empty in browse mode.</param>
 /// <param name="Mode">Which searches produced the results.</param>
 /// <param name="Semantic">Whether the semantic search ran, and why not if it didn't.</param>
+/// <param name="LessRelevantCount">How many semantic matches fall below the relevance threshold, shown or not: the
+/// N of "Show N less relevant results".</param>
 public sealed record MediaSearchResults(
     IReadOnlyList<SearchHit> Hits,
     int TotalCount,
     IReadOnlyList<string> Terms,
     SearchMode Mode,
-    SemanticSearchStatus Semantic);
+    SemanticSearchStatus Semantic,
+    int LessRelevantCount = 0);
 
 /// <summary>
 /// Which searches produced a result list.

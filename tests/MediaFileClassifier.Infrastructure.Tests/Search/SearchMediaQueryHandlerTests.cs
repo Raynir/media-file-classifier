@@ -220,16 +220,70 @@ public sealed class SearchMediaQueryHandlerTests : IAsyncLifetime
         Assert.Equal([items[expected - 1].Id], results.Hits.Select(hit => hit.ItemId));
     }
 
+    [Fact]
+    public async Task Search_ModelWithAThreshold_HidesNonsenseButKeepsRealMatches()
+    {
+        // Many dimensions keep chance similarities near 0 (about 0.016 apart), far below the 0.07 bar.
+        const int Wide = 4096;
+        var provider = new FakeEmbeddingProvider(dimension: Wide, modelName: "siglip2-base-patch16-256");
+        var model = await RegisterAsync(provider);
+        var cars = new List<MediaItem>();
+        for (var i = 0; i < 3; i++)
+        {
+            var car = await bed.AddItemAsync(i + 1);
+            await SetVectorAsync(model, car, Around("red car", 0.3f - (i * 0.05f), Wide));
+            cars.Add(car);
+            var dog = await bed.AddItemAsync(i + 11);
+            await SetVectorAsync(model, dog, Around("a dog", 0.3f - (i * 0.05f), Wide));
+        }
+
+        for (var i = 0; i < 6; i++)
+        {
+            var other = await bed.AddItemAsync(i + 21);
+            await SetVectorAsync(model, other, FakeEmbeddingProvider.VectorFor($"filler {i}", Wide));
+        }
+
+        using var handler = Create(provider);
+
+        var real = await handler.SearchAsync(new SearchMediaQuery { Text = "red car" });
+        var nonsense = await handler.SearchAsync(new SearchMediaQuery { Text = "xqzv plorft" });
+        var nonsenseShown = await handler.SearchAsync(new SearchMediaQuery { Text = "xqzv plorft", ShowLessRelevant = true });
+
+        Assert.Equal(cars.Select(item => item.Id), real.Hits.Select(hit => hit.ItemId));
+        Assert.Equal(9, real.LessRelevantCount);
+        Assert.Empty(nonsense.Hits);
+        Assert.Equal(0, nonsense.TotalCount);
+        Assert.Equal(12, nonsense.LessRelevantCount);
+        Assert.Equal(12, nonsenseShown.Hits.Count);
+        Assert.All(nonsenseShown.Hits, hit => Assert.True(hit.IsLessRelevant));
+    }
+
+    [Fact]
+    public async Task Search_ModelWithoutAThreshold_ShowsEveryNeighbour()
+    {
+        var provider = new FakeEmbeddingProvider(dimension: Dimension, modelName: "unmeasured-model");
+        var model = await RegisterAsync(provider);
+        var item = await bed.AddItemAsync(1);
+        await SetVectorAsync(model, item, FakeEmbeddingProvider.VectorFor("filler", Dimension));
+        using var handler = Create(provider);
+
+        var results = await handler.SearchAsync(new SearchMediaQuery { Text = "xqzv plorft" });
+
+        Assert.Equal([item.Id], results.Hits.Select(hit => hit.ItemId));
+        Assert.Equal(0, results.LessRelevantCount);
+    }
+
     /// <summary>
     /// Makes a unit vector whose cosine to the text's query vector is <paramref name="similarity"/>.
     /// </summary>
     /// <param name="text">The query text.</param>
     /// <param name="similarity">The cosine wanted, from 0 to 1.</param>
+    /// <param name="dimension">The vector length.</param>
     /// <returns>The vector.</returns>
-    internal static float[] Around(string text, float similarity)
+    internal static float[] Around(string text, float similarity, int dimension = Dimension)
     {
-        var query = FakeEmbeddingProvider.VectorFor(text.ToLowerInvariant(), Dimension);
-        var other = FakeEmbeddingProvider.VectorFor("orthogonal " + text, Dimension);
+        var query = FakeEmbeddingProvider.VectorFor(text.ToLowerInvariant(), dimension);
+        var other = FakeEmbeddingProvider.VectorFor("orthogonal " + text, dimension);
         var dot = query.Zip(other, (a, b) => a * b).Sum();
         var orthogonal = other.Select((value, i) => value - (dot * query[i])).ToArray();
         var norm = MathF.Sqrt(orthogonal.Sum(value => value * value));
@@ -251,7 +305,7 @@ public sealed class SearchMediaQueryHandlerTests : IAsyncLifetime
     {
         var registry = new AiProviderRegistry(provider is null ? [] : [provider], bed.Library.Clock);
         var encoder = new SemanticQueryEncoder(registry, bed.Session, bed.Library.Clock);
-        return new TestHandler(encoder, new SearchMediaQueryHandler(bed.Index, encoder, NullLogger<SearchMediaQueryHandler>.Instance));
+        return new TestHandler(encoder, new SearchMediaQueryHandler(bed.Index, encoder, registry, NullLogger<SearchMediaQueryHandler>.Instance));
     }
 
     private sealed class TestHandler(SemanticQueryEncoder encoder, SearchMediaQueryHandler handler) : IDisposable

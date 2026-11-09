@@ -32,6 +32,7 @@ internal sealed class ModelVectors(int dimension)
     private bool[] removed = [];
     private int itemCount;
     private int removedVectors;
+    private double[] firstVectorSum = new double[dimension];
 
     public int Dimension { get; } = dimension;
 
@@ -61,6 +62,7 @@ internal sealed class ModelVectors(int dimension)
             target[i] = BinaryPrimitives.ReadHalfLittleEndian(vectors[(i * sizeof(short))..]);
         }
 
+        AddFirstVector(itemCount - 1, 1);
         CompactIfSparse();
     }
 
@@ -74,6 +76,7 @@ internal sealed class ModelVectors(int dimension)
     {
         var start = Append(documentId, itemId, vectors.Length);
         TensorPrimitives.ConvertToHalf(vectors, halves.AsSpan(start, vectors.Length));
+        AddFirstVector(itemCount - 1, 1);
         CompactIfSparse();
     }
 
@@ -92,6 +95,7 @@ internal sealed class ModelVectors(int dimension)
         ordinalsByItem.Remove(itemIds[ordinal]);
         removed[ordinal] = true;
         removedVectors += vectorCounts[ordinal];
+        AddFirstVector(ordinal, -1);
         CompactIfSparse();
         return true;
     }
@@ -114,6 +118,35 @@ internal sealed class ModelVectors(int dimension)
         var vector = new float[Dimension];
         TensorPrimitives.ConvertToSingle(halves.AsSpan(firstVectors[ordinal] * Dimension, Dimension), vector);
         return vector;
+    }
+
+    /// <summary>
+    /// Gets the query's mean similarity over the items: the dot product with the mean of their first vectors (the
+    /// whole-item vector, or the first keyframe's). It's the baseline that
+    /// <see cref="Abstractions.Search.SemanticRelevanceCut"/> centres similarities on.
+    /// </summary>
+    /// <param name="query">The normalised query vector.</param>
+    /// <returns>The mean similarity, or 0 without items.</returns>
+    public float MeanSimilarity(ReadOnlySpan<float> query)
+    {
+        if (query.Length != Dimension)
+        {
+            throw new ArgumentException($"The query has {query.Length} values, but the model's vectors have {Dimension}.", nameof(query));
+        }
+
+        var items = ordinalsByDocument.Count;
+        if (items == 0)
+        {
+            return 0;
+        }
+
+        var sum = 0.0;
+        for (var i = 0; i < Dimension; i++)
+        {
+            sum += query[i] * firstVectorSum[i];
+        }
+
+        return (float)(sum / items);
     }
 
     /// <summary>
@@ -168,6 +201,7 @@ internal sealed class ModelVectors(int dimension)
             ordinalsByDocument.Remove(documentId);
             removed[old] = true;
             removedVectors += vectorCounts[old];
+            AddFirstVector(old, -1);
         }
 
         var count = values / Dimension;
@@ -257,6 +291,23 @@ internal sealed class ModelVectors(int dimension)
         vectorCount = nextVector;
         itemCount = nextItem;
         removedVectors = 0;
+
+        // Recomputed from the live items, so rounding from many replacements doesn't build up.
+        firstVectorSum = new double[Dimension];
+        for (var ordinal = 0; ordinal < itemCount; ordinal++)
+        {
+            AddFirstVector(ordinal, 1);
+        }
+    }
+
+    // Adds (sign 1) or subtracts (sign -1) an item's first vector to the running sum behind MeanSimilarity.
+    private void AddFirstVector(int ordinal, int sign)
+    {
+        var first = halves.AsSpan(firstVectors[ordinal] * Dimension, Dimension);
+        for (var i = 0; i < Dimension; i++)
+        {
+            firstVectorSum[i] += sign * (double)first[i];
+        }
     }
 
     // Splits the vectors into ranges for parallel scoring, moving each boundary forward so that no item's vectors

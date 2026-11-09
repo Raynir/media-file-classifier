@@ -250,6 +250,25 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task FileGone_FailsTheItemOnlyWhenTheRunIncludesTheEmbedding()
+    {
+        var items = await ImportAsync([new FakeEmbeddingProvider(), new FakeImageDescriber(), new FakeOcrProvider()], SampleMedia.JpegWithExif);
+        await AnalyzeAsync(items);
+        File.Delete(Path.Combine(bed!.Root, Path.GetFileName(SampleMedia.JpegWithExif)));
+
+        var ocrOnly = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(await AnalyzeAsync(items, [AnalyzerKeys.Ocr]), Token));
+        Assert.Equal(WorkItemState.Failed, ocrOnly.State);
+        await Stage.OnFailedAsync(Context(ocrOnly), new ClassifiedError(ErrorCategory.Permanent, "gone", new FileNotFoundException("gone")), Token);
+        Assert.Equal(MediaItemStatus.Indexed, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+
+        var full = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(await AnalyzeAsync(items), Token));
+        await Stage.OnFailedAsync(Context(full), new ClassifiedError(ErrorCategory.Permanent, "gone", new FileNotFoundException("gone")), Token);
+        var failed = (await bed.Library.Items.GetAsync(items[0].Id, Token))!;
+        Assert.Equal(MediaItemStatus.Error, failed.Status);
+        Assert.Equal(AnalysisStages.Item, failed.Error?.Stage);
+    }
+
+    [Fact]
     public async Task Cancelled_KeepsTheFinishedResults_AndLeavesTheItemPending()
     {
         var describer = new FakeImageDescriber(new FakeProviderBehavior { Latency = TimeSpan.FromMinutes(5) });

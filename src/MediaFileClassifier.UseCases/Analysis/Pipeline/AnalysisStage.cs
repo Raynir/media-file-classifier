@@ -142,7 +142,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
             return;
         }
 
-        var inputs = await PrepareAsync(library, item, requested, cancellationToken).ConfigureAwait(false);
+        AnalysisInputs? inputs = null;
         var previous = (await library.AnalyzerStates.GetForItemAsync(itemId, cancellationToken).ConfigureAwait(false))
             .ToDictionary(state => state.Analyzer, StringComparer.Ordinal);
         var states = new Dictionary<string, AnalyzerState>(StringComparer.Ordinal);
@@ -161,6 +161,10 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
                 states[key] = await SetAsync(library, AnalyzerState.Skipped(itemId, key, AnalyzerReasons.Disabled, false, clock.GetUtcNow()), cancellationToken).ConfigureAwait(false);
                 continue;
             }
+
+            // Prepared only when an analyzer runs, so a retry with nothing left to do doesn't touch the file. A file
+            // that can't be opened fails the whole item, not one analyzer.
+            inputs ??= await PrepareAsync(library, item, requested, cancellationToken).ConfigureAwait(false);
 
             try
             {
@@ -246,7 +250,13 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
             .ToList();
         await library.AnalyzerStates.SetAsync(failed, cancellationToken).ConfigureAwait(false);
 
-        if (analyzer is not (null or AnalyzerKeys.Embedding) || !MediaItemStatusTransitions.IsAllowed(item.Status, MediaItemStatus.Error))
+        // A failure of the whole item (e.g. an unreadable file) counts only for a run that included the embedding: a
+        // retry of OCR alone never changes the item's status.
+        var requested = AnalysisPayload.ReadAnalyzers(context.WorkItem.Payload);
+        var includesEmbedding = requested is null || requested.Contains(AnalyzerKeys.Embedding, StringComparer.Ordinal);
+        if (analyzer is not (null or AnalyzerKeys.Embedding)
+            || (analyzer is null && !includesEmbedding)
+            || !MediaItemStatusTransitions.IsAllowed(item.Status, MediaItemStatus.Error))
         {
             return;
         }
@@ -275,7 +285,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
 
     private static bool CanAnalyze(MediaItem item) =>
         item.Status is MediaItemStatus.Pending or MediaItemStatus.Indexed
-        || (item.Status == MediaItemStatus.Error && item.Error?.Stage.StartsWith("analysis.", StringComparison.Ordinal) == true);
+        || (item.Status == MediaItemStatus.Error && item.Error is { } error && AnalysisStages.IsAnalysisStage(error.Stage));
 
     // The requested analyzers in profile order; analyzers that the profile or this version doesn't know are ignored.
     private List<AnalyzerSettings> GetRequested(AnalysisProfile profile, IReadOnlyList<string>? only) =>
@@ -288,9 +298,15 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         state.UpdatedAt >= workItem.CreatedAt
         && (state.Status is AnalyzerStatus.Done or AnalyzerStatus.NotApplicable || (state.Status == AnalyzerStatus.Failed && !state.IsRetryable));
 
+    // One exception can fail several analyzers (a file that can't be decoded): the embedding's tag wins, since it
+    // decides the item's status, then the first analyzer's.
     private static Exception Tag(Exception exception, string analyzer)
     {
-        exception.Data[AnalyzerKey] = analyzer;
+        if (analyzer == AnalyzerKeys.Embedding || exception.Data[AnalyzerKey] is null)
+        {
+            exception.Data[AnalyzerKey] = analyzer;
+        }
+
         return exception;
     }
 

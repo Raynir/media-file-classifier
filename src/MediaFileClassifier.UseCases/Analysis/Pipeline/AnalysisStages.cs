@@ -21,6 +21,13 @@ public static class AnalysisStages
     public const string EmbeddingError = "analysis.embedding";
 
     /// <summary>
+    /// Gets whether a stage key, e.g. a <c>MediaItemError</c>'s stage, belongs to the analysis pipeline.
+    /// </summary>
+    /// <param name="stage">The stage key.</param>
+    /// <returns><c>true</c> for <see cref="Item"/> and <see cref="EmbeddingError"/>.</returns>
+    public static bool IsAnalysisStage(string stage) => stage is Item or EmbeddingError;
+
+    /// <summary>
     /// Gets an English name for each stage, for progress until the UI localizes them.
     /// </summary>
     public static IReadOnlyDictionary<string, string> DisplayNames { get; } = new Dictionary<string, string>(StringComparer.Ordinal)

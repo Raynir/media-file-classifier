@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
@@ -23,6 +24,7 @@ public sealed class AnalysisInputs
     private readonly InputSize decodeSize;
     private readonly Dictionary<int, DecodedImage> shrunk = [];
     private DecodedImage? still;
+    private ExceptionDispatchInfo? stillFailure;
     private FrameInputs? frames;
 
     /// <summary>
@@ -94,11 +96,21 @@ public sealed class AnalysisInputs
             throw new InvalidOperationException("A video or animated image is analyzed from its keyframes.");
         }
 
+        // A file that can't be read or decoded fails every analyzer with the same exception, without reading it again.
+        stillFailure?.Throw();
         if (still is null)
         {
-            var bytes = await ItemEmbeddingAnalyzer.ReadAsync(Content, cancellationToken).ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-            still = decoder.Decode(bytes, decodeSize.MinShortSide, decodeSize.MinLongestEdge, Path.GetFileName(Content.LocalPath));
+            try
+            {
+                var bytes = await ItemEmbeddingAnalyzer.ReadAsync(Content, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                still = decoder.Decode(bytes, decodeSize.MinShortSide, decodeSize.MinLongestEdge, Path.GetFileName(Content.LocalPath));
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                stillFailure = ExceptionDispatchInfo.Capture(exception);
+                throw;
+            }
         }
 
         if (maxLongestEdge is not { } edge || still.LongestEdge <= edge)

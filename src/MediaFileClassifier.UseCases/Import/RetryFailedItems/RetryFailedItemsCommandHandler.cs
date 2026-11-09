@@ -77,7 +77,7 @@ public sealed class RetryFailedItemsCommandHandler(
                 }
 
                 // An analysis failure (E06-S01) runs the item's analysis again; its stage key isn't a handler.
-                if (stage.StartsWith("analysis.", StringComparison.Ordinal))
+                if (Analysis.Pipeline.AnalysisStages.IsAnalysisStage(stage))
                 {
                     stage = Analysis.Pipeline.AnalysisStages.Item;
                 }

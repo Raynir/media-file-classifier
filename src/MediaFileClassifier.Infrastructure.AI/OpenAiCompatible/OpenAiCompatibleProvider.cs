@@ -170,8 +170,13 @@ public abstract class OpenAiCompatibleProvider : IAiProvider, IDisposable
             return new DataContent(image.Data, image.MediaType);
         }
 
+        if (image.PixelWidth is not { } width || image.PixelHeight is not { } height)
+        {
+            throw new AiProviderException(AiFailureKind.InvalidInput, Id, "Raw pixels need their width and height.");
+        }
+
         // The pipeline's pictures are opaque (composited over white), so JPEG loses nothing but compression.
-        var info = new SKImageInfo(image.PixelWidth!.Value, image.PixelHeight!.Value, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
         using var source = SKImage.FromPixelCopy(info, image.Data.Span)
             ?? throw new AiProviderException(AiFailureKind.InvalidInput, Id, "The image couldn't be encoded.");
         using var data = source.Encode(SKEncodedImageFormat.Jpeg, JpegQuality)

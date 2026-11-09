@@ -9,6 +9,7 @@
     <ProjectReference Include="../../src/MediaFileClassifier.Ui/MediaFileClassifier.Ui.csproj" />
     <ProjectReference Include="../MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure/MediaFileClassifier.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.AI/MediaFileClassifier.Infrastructure.AI.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.DataAccess/MediaFileClassifier.Infrastructure.DataAccess.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Jobs/MediaFileClassifier.Infrastructure.Jobs.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Media/MediaFileClassifier.Infrastructure.Media.csproj" />

@@ -70,14 +70,17 @@ internal static class ProviderSelection
     /// <param name="settings">The analyzer's settings.</param>
     /// <param name="breaker">The circuit breaker, or <c>null</c> to ignore it.</param>
     /// <param name="skipReason">Why there's none, see <see cref="AnalyzerReasons"/>.</param>
+    /// <param name="paused">With <see cref="AnalyzerReasons.ProviderUnavailable"/>, the provider whose circuit is open.</param>
     /// <returns>The provider, or <c>null</c>.</returns>
     public static TCapability? Select<TCapability>(
         IAiProviderRegistry registry,
         AnalyzerSettings settings,
         IProviderCircuitBreaker? breaker,
-        out string? skipReason)
+        out string? skipReason,
+        out TCapability? paused)
         where TCapability : class, IAiProvider
     {
+        paused = null;
         // GetProviders hides providers that don't run here, so they're looked for among all of them.
         var candidates = registry.Providers.OfType<TCapability>()
             .Where(provider => settings.ProviderId is null || string.Equals(provider.Id, settings.ProviderId, StringComparison.Ordinal))
@@ -98,6 +101,7 @@ internal static class ProviderSelection
 
         var available = supported.FirstOrDefault(provider => breaker?.IsOpen(provider.Id) != true);
         skipReason = available is null ? AnalyzerReasons.ProviderUnavailable : null;
+        paused = available is null ? supported[0] : null;
         return available;
     }
 
@@ -106,25 +110,20 @@ internal static class ProviderSelection
     /// work item with <see cref="AiFailureKind.Unreachable"/>, once the other results are stored, so the scheduler parks
     /// it until the circuit closes and then runs it again (E05-S04); the analyzers that finished are skipped then.
     /// </summary>
-    /// <typeparam name="TCapability">The capability.</typeparam>
-    /// <param name="registry">The provider registry.</param>
     /// <param name="context">The analyzer's context.</param>
     /// <param name="analyzer">Analyzer key.</param>
     /// <param name="reason">Why, from <see cref="Select"/>.</param>
+    /// <param name="paused">The paused provider, from <see cref="Select"/>.</param>
     /// <param name="now">Current time.</param>
     /// <returns>The skipped state, and the failure that parks the work item, if any.</returns>
-    public static AnalyzerResult Skip<TCapability>(IAiProviderRegistry registry, AnalyzerContext context, string analyzer, string reason, DateTimeOffset now)
-        where TCapability : class, IAiProvider
+    public static AnalyzerResult Skip(AnalyzerContext context, string analyzer, string reason, IAiProvider? paused, DateTimeOffset now)
     {
         var result = Skip(context, analyzer, reason, now);
-        if (reason != AnalyzerReasons.ProviderUnavailable)
+        if (paused is not { } provider)
         {
             return result;
         }
 
-        var provider = registry.GetProviders<TCapability>()
-            .First(provider => provider.IsSupportedOnCurrentPlatform
-                && (context.Settings.ProviderId is null || string.Equals(provider.Id, context.Settings.ProviderId, StringComparison.Ordinal)));
         var failure = new AiProviderException(
             AiFailureKind.Unreachable,
             provider.Id,
@@ -163,7 +162,7 @@ internal sealed class EmbeddingItemAnalyzer(ItemEmbeddingAnalyzer embedder, IAiP
     public async Task<AnalyzerResult> RunAsync(AnalyzerContext context, CancellationToken cancellationToken)
     {
         // Embedding doesn't check the breaker: it's a local model.
-        if (ProviderSelection.Select<IImageEmbeddingProvider>(registry, context.Settings, null, out var reason) is null)
+        if (ProviderSelection.Select<IImageEmbeddingProvider>(registry, context.Settings, null, out var reason, out _) is null)
         {
             return ProviderSelection.Skip(context, Key, reason!, clock.GetUtcNow());
         }
@@ -230,9 +229,9 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
     /// <inheritdoc />
     public async Task<AnalyzerResult> RunAsync(AnalyzerContext context, CancellationToken cancellationToken)
     {
-        if (ProviderSelection.Select<IImageDescriber>(registry, context.Settings, breaker, out var reason) is not { } provider)
+        if (ProviderSelection.Select<IImageDescriber>(registry, context.Settings, breaker, out var reason, out var paused) is not { } provider)
         {
-            return ProviderSelection.Skip<IImageDescriber>(registry, context, Key, reason!, clock.GetUtcNow());
+            return ProviderSelection.Skip(context, Key, reason!, paused, clock.GetUtcNow());
         }
 
         AiImage image;
@@ -322,9 +321,9 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
     /// <inheritdoc />
     public async Task<AnalyzerResult> RunAsync(AnalyzerContext context, CancellationToken cancellationToken)
     {
-        if (ProviderSelection.Select<IOcrProvider>(registry, context.Settings, breaker, out var reason) is not { } provider)
+        if (ProviderSelection.Select<IOcrProvider>(registry, context.Settings, breaker, out var reason, out var paused) is not { } provider)
         {
-            return ProviderSelection.Skip<IOcrProvider>(registry, context, Key, reason!, clock.GetUtcNow());
+            return ProviderSelection.Skip(context, Key, reason!, paused, clock.GetUtcNow());
         }
 
         var startedAt = clock.GetUtcNow();

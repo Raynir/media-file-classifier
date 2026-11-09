@@ -24,6 +24,7 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
     private readonly FakeLibrarySession session = new();
     private readonly ServiceProvider services;
     private readonly StubSender sender;
+    private readonly LibraryItemsSource browse;
     private readonly SearchResultSource source;
     private FakeOpenLibrary? library;
 
@@ -31,7 +32,8 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
     {
         services = new ServiceCollection().AddSingleton<ILibrarySession>(session).AddUseCases().BuildServiceProvider();
         sender = new StubSender(services.GetRequiredService<ISender>());
-        source = new SearchResultSource(services.GetRequiredService<LibraryItemsSource>(), sender);
+        browse = services.GetRequiredService<LibraryItemsSource>();
+        source = new SearchResultSource(browse, sender);
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -124,6 +126,32 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
         Assert.Null(source.Summary);
         Assert.False(source.ShowLessRelevant);
         Assert.Equal(2, await source.CountAsync(Token));
+    }
+
+    [Fact]
+    public async Task Search_StaysInsideTheSelectedScope_AndRestartsWhenTheScopeChanges()
+    {
+        await OpenLibraryAsync(2);
+        var folder = library!.FolderList.Folders[0];
+        source.SetText("sign");
+        await source.CountAsync(Token);
+        Assert.Null(sender.LastQuery!.Filter.FolderId);
+        var changes = 0;
+        source.Changed += (_, _) => changes++;
+
+        browse.Scope = new FolderScope(folder.Id, "trip/day1");
+        await source.CountAsync(Token);
+
+        Assert.Equal(1, changes);
+        Assert.Equal(folder.Id, sender.LastQuery.Filter.FolderId);
+        Assert.Equal("trip/day1", sender.LastQuery.Filter.Subfolder);
+        Assert.Equal("sign", source.Text);
+
+        browse.Scope = BrowseScope.RecentlyImported;
+        await source.CountAsync(Token);
+
+        Assert.NotNull(sender.LastQuery.Filter.ImportedSince);
+        Assert.Null(sender.LastQuery.Filter.FolderId);
     }
 
     [Fact]

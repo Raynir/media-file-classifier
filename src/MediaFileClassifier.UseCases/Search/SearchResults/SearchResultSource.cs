@@ -30,8 +30,8 @@ public sealed record SearchSummary(
 /// <summary>
 /// The result source of the media browser from M2 (E09-S01-T05): the unified text search while the search text has
 /// something to look for, and the browse results of <see cref="LibraryItemsSource"/> while it's blank. Changing the
-/// text or the less relevant option starts a new search and cancels the one still running. A search covers the whole
-/// library; the browse scope applies to browsing only until the filters (E10) take over.
+/// text, the less relevant option or the browse scope starts a new search and cancels the one still running. A search
+/// covers the selected scope (folder, subfolder, recently imported); the filters (E10) will add to it.
 /// </summary>
 public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
 {
@@ -51,7 +51,12 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     {
         this.browse = browse;
         this.sender = sender;
-        browse.Changed += (_, _) => Changed?.Invoke(this, EventArgs.Empty);
+        browse.Changed += (_, _) =>
+        {
+            // The scope or the items changed: a search starts over inside the new scope, on the current items.
+            Restart();
+            Changed?.Invoke(this, EventArgs.Empty);
+        };
     }
 
     /// <inheritdoc />
@@ -85,7 +90,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     public void SetText(string? text)
     {
         var value = string.IsNullOrWhiteSpace(text) ? string.Empty : text;
-        Replace(old => old.Text == value ? null : new ActiveSearch(value, showLessRelevant: false));
+        Replace(old => old.Text == value ? null : new ActiveSearch(value, showLessRelevant: false, ScopeFilter()));
     }
 
     /// <summary>
@@ -93,7 +98,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     /// </summary>
     /// <param name="show">Whether to include them.</param>
     public void SetShowLessRelevant(bool show) =>
-        Replace(old => old.IsSearch && old.ShowLessRelevant != show ? new ActiveSearch(old.Text, show) : null);
+        Replace(old => old.IsSearch && old.ShowLessRelevant != show ? new ActiveSearch(old.Text, show, old.Filter) : null);
 
     /// <inheritdoc />
     public async Task<int> CountAsync(CancellationToken cancellationToken)
@@ -245,6 +250,30 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         }
     }
 
+    // Search covers the items of the selected browse scope; Excluded items never pass the search filter (D048).
+    private SearchFilter ScopeFilter()
+    {
+        var filter = browse.CurrentFilter;
+        return new SearchFilter { FolderId = filter.FolderId, Subfolder = filter.Subfolder, ImportedSince = filter.ImportedSince };
+    }
+
+    private void Restart()
+    {
+        ActiveSearch old;
+        lock (syncRoot)
+        {
+            old = current;
+            if (!old.IsSearch)
+            {
+                return;
+            }
+
+            current = new ActiveSearch(old.Text, old.ShowLessRelevant, ScopeFilter());
+        }
+
+        old.Cancellation.Cancel();
+    }
+
     private void Replace(Func<ActiveSearch, ActiveSearch?> change)
     {
         ActiveSearch old;
@@ -279,11 +308,13 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         SummaryChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private sealed class ActiveSearch(string text, bool showLessRelevant)
+    private sealed class ActiveSearch(string text, bool showLessRelevant, SearchFilter filter)
     {
-        public static ActiveSearch None { get; } = new(string.Empty, showLessRelevant: false);
+        public static ActiveSearch None { get; } = new(string.Empty, showLessRelevant: false, SearchFilter.None);
 
         public string Text { get; } = text;
+
+        public SearchFilter Filter { get; } = filter;
 
         public bool ShowLessRelevant { get; } = showLessRelevant;
 
@@ -298,6 +329,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         public SearchMediaQuery Query(int offset, int limit, bool includeFields) => new()
         {
             Text = Text,
+            Filter = Filter,
             Offset = offset,
             Limit = limit,
             IncludeMatchedFields = includeFields,

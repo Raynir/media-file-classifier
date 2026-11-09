@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
@@ -31,6 +32,7 @@ public static class AiModule
         services.TryAddSingleton<IModelCatalog, ModelCatalog>();
         services.TryAddSingleton<IModelDownloader, ModelDownloader>();
         services.TryAddSingleton<IModelAvailability, ModelAvailability>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, AiExceptionClassifier>());
         return services;
     }
 }

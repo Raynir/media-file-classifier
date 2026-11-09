@@ -1,4 +1,6 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Jobs.Errors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -20,6 +22,7 @@ public static class JobsModule
         services.TryAddSingleton<IJobSystem, JobSystem>();
         services.TryAddSingleton<JobProgressTracker>();
         services.TryAddSingleton<IJobProgress>(provider => provider.GetRequiredService<JobProgressTracker>());
+        services.TryAddSingleton<IErrorClassifier, ErrorClassifier>();
         return services;
     }
 }

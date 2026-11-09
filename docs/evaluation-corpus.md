@@ -143,7 +143,7 @@ Personal media never goes into the repository. To measure on your own photos:
 
 The data-consistency check runs in CI on every build: `PublicDataSetTests` validates the committed manifest, queries and OCR truth without the media.
 
-The model run is manual. The embedding regression test (E06-S03-T05) is the command above, run after any change to the SigLIP 2 model, its preprocessing, the tokenizer or the keyframe sampler. The same run is the xunit test `Siglip2QualityTests` in `MediaFileClassifier.Evaluation.Tests`. It skips when `models/siglip2` (or `MFC_SIGLIP2_DIR`) or `eval/corpus` is missing, so it never runs in CI today. The first run's numbers, against the D094 baselines: recall@10 0.959 (en) and 0.816 (ru), MRR 0.983 and 0.831. To run the public subset in CI later (E01-S11-T02), a job needs:
+The model run is manual. The embedding regression test (E06-S03-T05) is the command above, run after any change to the SigLIP 2 model, its preprocessing, the tokenizer or the keyframe sampler. The same run is the xunit test `Siglip2QualityTests` in `MediaFileClassifier.Evaluation.Tests`. It is opt-in (`MFC_QUALITY_TESTS=1`, see [Development workflow](development-workflow.md#opt-in-tests)) and also skips when `models/siglip2` (or `MFC_SIGLIP2_DIR`) or `eval/corpus` is missing, so it never runs in CI today. The first run's numbers, against the D094 baselines: recall@10 0.959 (en) and 0.816 (ru), MRR 0.983 and 0.831. To run the public subset in CI later (E01-S11-T02), a job needs:
 
 - the corpus: `fetch-corpus.ps1` with `GH_TOKEN: ${{ github.token }}`, cached by the release tag;
 - the model files, cached by model hash (D030), and a CPU ONNX runtime;

@@ -43,6 +43,8 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
 
     public DbSet<AiFieldValue> AiFieldValues => Set<AiFieldValue>();
 
+    public DbSet<AnalyzerState> AnalyzerStates => Set<AnalyzerState>();
+
     public DbSet<TagAssignment> TagAssignments => Set<TagAssignment>();
 
     public DbSet<TagRejection> TagRejections => Set<TagRejection>();

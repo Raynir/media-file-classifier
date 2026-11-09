@@ -122,6 +122,8 @@ public sealed class LibraryLocationsTests : IDisposable
 
         public Abstractions.Repositories.IKeyframeRepository Keyframes => throw new NotSupportedException();
 
+        public Abstractions.Repositories.IAnalyzerStateRepository AnalyzerStates => throw new NotSupportedException();
+
         public Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
 
         public Abstractions.Search.ISearchStore Search => throw new NotSupportedException();

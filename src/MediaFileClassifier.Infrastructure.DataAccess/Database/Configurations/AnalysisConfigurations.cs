@@ -36,6 +36,30 @@ internal sealed class AnalysisRunConfiguration : IEntityTypeConfiguration<Analys
 }
 
 /// <summary>
+/// Maps <see cref="AnalyzerState"/>: one row per item and analyzer. The run isn't a foreign key, since runs are
+/// pruned. The index on analyzer and status finds the items whose analyzer failed, for retries and the UI.
+/// </summary>
+internal sealed class AnalyzerStateConfiguration : IEntityTypeConfiguration<AnalyzerState>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<AnalyzerState> builder)
+    {
+        builder.HasKey(state => new { state.ItemId, state.Analyzer });
+        builder.Property(state => state.ItemId);
+        builder.Property(state => state.Analyzer);
+        builder.Property(state => state.Status);
+        builder.Property(state => state.ReasonCode);
+        builder.Property(state => state.Detail);
+        builder.Property(state => state.FailureKind);
+        builder.Property(state => state.IsRetryable);
+        builder.Property(state => state.RunId);
+        builder.Property(state => state.UpdatedAt);
+        builder.HasOne<MediaItem>().WithMany().HasForeignKey(state => state.ItemId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(state => new { state.Analyzer, state.Status });
+    }
+}
+
+/// <summary>
 /// Maps <see cref="ModelRegistration"/>.
 /// </summary>
 internal sealed class ModelRegistrationConfiguration : IEntityTypeConfiguration<ModelRegistration>

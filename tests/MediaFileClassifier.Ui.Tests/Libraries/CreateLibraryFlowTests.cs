@@ -1,4 +1,5 @@
 using MediaFileClassifier.Infrastructure;
+using MediaFileClassifier.Infrastructure.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
@@ -41,6 +42,7 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
             .AddSingleton<Infrastructure.Abstractions.Files.IMediaFileSource, Infrastructure.Files.FileSystemMediaFileSource>()
             .AddJobs()
             .AddMedia()
+            .AddAi()
             .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
             .AddUseCases()
             .AddUi()

@@ -13,6 +13,7 @@ public sealed record LibrarySettings
     /// </summary>
     public const int DefaultThumbnailTileSize = 160;
 
+    private readonly AnalysisProfile analysisProfile = AnalysisProfile.Default;
     private readonly int retainedPreviousRuns = 1;
     private readonly int thumbnailTileSize = DefaultThumbnailTileSize;
 
@@ -26,6 +27,19 @@ public sealed record LibrarySettings
     /// model's vectors are built alongside, and this switches once enough items have them (E06-S07-T05).
     /// </summary>
     public Id<ModelRegistration>? ActiveSearchModelId { get; init; }
+
+    /// <summary>
+    /// Gets which analyzers run, in which order, and with which providers, models and options (E06-S01-T01).
+    /// </summary>
+    public AnalysisProfile AnalysisProfile
+    {
+        get => analysisProfile;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            analysisProfile = value;
+        }
+    }
 
     /// <summary>
     /// Gets how many previous analysis runs are kept per item and analyzer, besides the active one (D020).

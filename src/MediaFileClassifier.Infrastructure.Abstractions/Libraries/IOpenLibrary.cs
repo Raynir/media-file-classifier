@@ -61,6 +61,11 @@ public interface IOpenLibrary : IAsyncDisposable
     IKeyframeRepository Keyframes { get; }
 
     /// <summary>
+    /// Gets the analyzer states of the library's items (E06-S01).
+    /// </summary>
+    IAnalyzerStateRepository AnalyzerStates { get; }
+
+    /// <summary>
     /// Gets the integrity check, backup and optimization services.
     /// </summary>
     ILibraryMaintenance Maintenance { get; }

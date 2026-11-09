@@ -58,7 +58,12 @@ internal sealed class LibrarySettingsConverter()
     : ValueConverter<LibrarySettings, string>(settings => ToJson(settings), json => FromJson(json))
 {
     private static string ToJson(LibrarySettings settings) => JsonSerializer.Serialize(
-        new LibrarySettingsJson(settings.AnalyzeAutomatically, settings.ActiveSearchModelId?.Value, settings.RetainedPreviousRuns, settings.ThumbnailTileSize),
+        new LibrarySettingsJson(
+            settings.AnalyzeAutomatically,
+            settings.ActiveSearchModelId?.Value,
+            settings.RetainedPreviousRuns,
+            settings.ThumbnailTileSize,
+            ToJson(settings.AnalysisProfile)),
         DataAccessJsonContext.Default.LibrarySettingsJson);
 
     private static LibrarySettings FromJson(string json)
@@ -71,8 +76,30 @@ internal sealed class LibrarySettingsConverter()
             ActiveSearchModelId = stored.ActiveSearchModelId is { } id ? new Id<ModelRegistration>(id) : null,
             RetainedPreviousRuns = stored.RetainedPreviousRuns,
             ThumbnailTileSize = stored.ThumbnailTileSize is > 0 and var size ? size : LibrarySettings.DefaultThumbnailTileSize,
+            AnalysisProfile = stored.AnalysisProfile is { } profile ? FromJson(profile) : AnalysisProfile.Default,
         };
     }
+
+    private static AnalysisProfileJson ToJson(AnalysisProfile profile) =>
+        new([.. profile.Analyzers.Select(settings => new AnalyzerSettingsJson(
+            settings.Analyzer,
+            settings.Enabled,
+            settings.ProviderId,
+            settings.ModelId,
+            settings.MaxTags,
+            settings.Language,
+            settings.PromptVersion))]);
+
+    private static AnalysisProfile FromJson(AnalysisProfileJson profile) =>
+        new(profile.Analyzers.Select(settings => new AnalyzerSettings(settings.Analyzer)
+        {
+            Enabled = settings.Enabled,
+            ProviderId = settings.ProviderId,
+            ModelId = settings.ModelId,
+            MaxTags = settings.MaxTags,
+            Language = settings.Language,
+            PromptVersion = settings.PromptVersion,
+        }));
 }
 
 /// <summary>
@@ -138,7 +165,29 @@ internal sealed record FolderRulesJson(bool IncludeSubfolders, string[] IncludeP
 /// Stored shape of <see cref="LibrarySettings"/>. Fields added later are optional, so libraries stored before them read
 /// as the defaults.
 /// </summary>
-internal sealed record LibrarySettingsJson(bool AnalyzeAutomatically, Guid? ActiveSearchModelId, int RetainedPreviousRuns, int? ThumbnailTileSize = null);
+internal sealed record LibrarySettingsJson(
+    bool AnalyzeAutomatically,
+    Guid? ActiveSearchModelId,
+    int RetainedPreviousRuns,
+    int? ThumbnailTileSize = null,
+    AnalysisProfileJson? AnalysisProfile = null);
+
+/// <summary>
+/// Stored shape of <see cref="AnalysisProfile"/>. Libraries stored before it read as <see cref="AnalysisProfile.Default"/>.
+/// </summary>
+internal sealed record AnalysisProfileJson(AnalyzerSettingsJson[] Analyzers);
+
+/// <summary>
+/// Stored shape of <see cref="AnalyzerSettings"/>.
+/// </summary>
+internal sealed record AnalyzerSettingsJson(
+    string Analyzer,
+    bool Enabled,
+    string? ProviderId,
+    string? ModelId,
+    int? MaxTags,
+    string? Language,
+    string? PromptVersion);
 
 /// <summary>
 /// Source-generated JSON serialization, which needs no reflection and so trims safely on Android (D004).

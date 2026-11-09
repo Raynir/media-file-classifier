@@ -4,6 +4,7 @@ using System.Diagnostics;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using Microsoft.Extensions.AI;
 using OpenAI;
+using SkiaSharp;
 
 namespace MediaFileClassifier.Infrastructure.AI.OpenAiCompatible;
 
@@ -18,6 +19,11 @@ namespace MediaFileClassifier.Infrastructure.AI.OpenAiCompatible;
 /// </remarks>
 public abstract class OpenAiCompatibleProvider : IAiProvider, IDisposable
 {
+    /// <summary>
+    /// The JPEG quality of raw pictures sent to the endpoint: high enough that small text stays readable for OCR.
+    /// </summary>
+    private const int JpegQuality = 90;
+
     private readonly OpenAIClient client;
     private readonly IChatClient chatClient;
 
@@ -147,6 +153,35 @@ public abstract class OpenAiCompatibleProvider : IAiProvider, IDisposable
         {
             throw ToProviderException(ex);
         }
+    }
+
+    /// <summary>
+    /// Turns an image into chat content. Raw RGBA pixels, as the analysis pipeline sends them (E06-S01), are encoded
+    /// as JPEG first, since an endpoint only accepts encoded images.
+    /// </summary>
+    /// <param name="image">The image.</param>
+    /// <returns>The content.</returns>
+    protected DataContent ToDataContent(AiImage image)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+
+        if (!image.IsRawRgba)
+        {
+            return new DataContent(image.Data, image.MediaType);
+        }
+
+        if (image.PixelWidth is not { } width || image.PixelHeight is not { } height)
+        {
+            throw new AiProviderException(AiFailureKind.InvalidInput, Id, "Raw pixels need their width and height.");
+        }
+
+        // The pipeline's pictures are opaque (composited over white), so JPEG loses nothing but compression.
+        var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        using var source = SKImage.FromPixelCopy(info, image.Data.Span)
+            ?? throw new AiProviderException(AiFailureKind.InvalidInput, Id, "The image couldn't be encoded.");
+        using var data = source.Encode(SKEncodedImageFormat.Jpeg, JpegQuality)
+            ?? throw new AiProviderException(AiFailureKind.InvalidInput, Id, "The image couldn't be encoded.");
+        return new DataContent(data.ToArray(), "image/jpeg");
     }
 
     /// <summary>

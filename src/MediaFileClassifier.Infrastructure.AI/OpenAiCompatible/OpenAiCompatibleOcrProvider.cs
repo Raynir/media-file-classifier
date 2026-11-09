@@ -30,7 +30,7 @@ public sealed class OpenAiCompatibleOcrProvider(string id, string displayName, O
     {
         ArgumentNullException.ThrowIfNull(image);
 
-        ChatMessage[] messages = [new(ChatRole.User, [new TextContent(Prompt), new DataContent(image.Data, image.MediaType)])];
+        ChatMessage[] messages = [new(ChatRole.User, [new TextContent(Prompt), ToDataContent(image)])];
         var (response, duration) = await GetResponseAsync(messages, new ChatOptions { Temperature = 0 }, cancellationToken)
             .ConfigureAwait(false);
 

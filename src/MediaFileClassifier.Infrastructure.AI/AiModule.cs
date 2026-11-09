@@ -26,6 +26,7 @@ public static class AiModule
         services.TryAddSingleton<OnnxSessionFactory>();
         services.TryAddSingleton<IAiProviderRegistry, AiProviderRegistry>();
         services.TryAddSingleton<IModelStore, ModelStore>();
+        services.TryAddSingleton<IAnalysisImageDecoder, Imaging.SkiaAnalysisImageDecoder>();
         services.TryAddSingleton(new Siglip2Options());
         services.TryAddSingleton<Siglip2EmbeddingProvider>();
         services.AddSingleton<IAiProvider>(provider => provider.GetRequiredService<Siglip2EmbeddingProvider>());

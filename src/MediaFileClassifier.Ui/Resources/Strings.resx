@@ -1080,4 +1080,61 @@
   <data name="ModelImport_FileType" xml:space="preserve">
     <value>Model files</value>
   </data>
+  <data name="Search_Placeholder" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Search_NoResults" xml:space="preserve">
+    <value>No results</value>
+  </data>
+  <data name="Search_OneResult" xml:space="preserve">
+    <value>1 result</value>
+  </data>
+  <data name="Search_Results" xml:space="preserve">
+    <value>{0} results</value>
+  </data>
+  <data name="Search_ShowLessRelevant" xml:space="preserve">
+    <value>Show {0} less relevant results</value>
+  </data>
+  <data name="Search_HideLessRelevant" xml:space="preserve">
+    <value>Hide less relevant results</value>
+  </data>
+  <data name="Search_Hint_ModelMissing" xml:space="preserve">
+    <value>The image model is not installed, so only text matches are shown.</value>
+  </data>
+  <data name="Search_Hint_IndexNotReady" xml:space="preserve">
+    <value>The search index is still loading, so only text matches are shown for now.</value>
+  </data>
+  <data name="Search_Hint_Failed" xml:space="preserve">
+    <value>Searching by meaning failed, so only text matches are shown.</value>
+  </data>
+  <data name="Search_MatchedIn" xml:space="preserve">
+    <value>Matched in: {0}</value>
+  </data>
+  <data name="Search_VisualMatch" xml:space="preserve">
+    <value>Visual match</value>
+  </data>
+  <data name="Search_LessRelevantTile" xml:space="preserve">
+    <value>Less relevant</value>
+  </data>
+  <data name="Search_Field_Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Search_Field_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Search_Field_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Search_Field_OcrText" xml:space="preserve">
+    <value>Text in the image</value>
+  </data>
+  <data name="Search_Field_Transcript" xml:space="preserve">
+    <value>Transcript</value>
+  </data>
+  <data name="Search_Field_Other" xml:space="preserve">
+    <value>Notes and details</value>
+  </data>
+  <data name="Search_Field_FileName" xml:space="preserve">
+    <value>File name</value>
+  </data>
 </root>

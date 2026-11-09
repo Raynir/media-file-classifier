@@ -32,7 +32,8 @@ public static class UseCasesModule
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
-        services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<LibraryItemsSource>());
+        services.TryAddSingleton<Search.SearchResults.SearchResultSource>();
+        services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<Search.SearchResults.SearchResultSource>());
         services.AddSetting(KnownSettings.OpenAiCompatibleEndpoint);
         services.AddSetting(KnownSettings.AnalyzeAutomatically);
         services.AddSetting(KnownSettings.RetainedPreviousRuns);

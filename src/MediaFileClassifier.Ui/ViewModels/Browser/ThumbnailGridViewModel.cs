@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.ThumbnailTileSize;
 using MediatR;
@@ -83,6 +84,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <param name="sender">Sends the tile size requests.</param>
     /// <param name="selection">The selection.</param>
     /// <param name="contextMenu">Builds the context menu, or <see langword="null"/> for none.</param>
+    /// <param name="notice">The notice above the results while a search is on, or <see langword="null"/> for none.</param>
     public ThumbnailGridViewModel(
         IMediaResultSource source,
         ThumbnailLoader loader,
@@ -90,8 +92,10 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         IJobSystem jobs,
         ISender sender,
         SelectionModel selection,
-        BrowserContextMenu? contextMenu = null)
+        BrowserContextMenu? contextMenu = null,
+        SearchNoticeViewModel? notice = null)
     {
+        Notice = notice;
         this.source = source;
         this.loader = loader;
         this.opener = opener;
@@ -139,6 +143,11 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// Gets the rows.
     /// </summary>
     public ThumbnailRowList Rows { get; }
+
+    /// <summary>
+    /// Gets the notice bar above the results while a search is on (E09-S01-T05), or <see langword="null"/>.
+    /// </summary>
+    public SearchNoticeViewModel? Notice { get; }
 
     /// <summary>
     /// Gets the selection.
@@ -482,7 +491,8 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         for (var column = 0; column < row.Tiles.Count; column++)
         {
             var tile = row.Tiles[column];
-            tile.Show(first + column, pages.Get(first + column), ThumbnailSize);
+            var item = pages.Get(first + column);
+            tile.Show(first + column, item, ThumbnailSize, item is null ? null : (source as IResultAnnotations)?.GetMatch(item.Id));
             UpdateTileState(tile);
         }
     }

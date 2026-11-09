@@ -6,6 +6,7 @@ using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.Navigation;
 using MediaFileClassifier.Ui.Rescan;
+using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.Settings;
@@ -26,6 +27,7 @@ using MediaFileClassifier.Ui.Views.Browser;
 using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Navigation;
+using MediaFileClassifier.Ui.Views.Search;
 using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.Ui.Views.Toolbar;
 using MediaFileClassifier.UseCases.Browsing;
@@ -57,7 +59,8 @@ public static class UiModule
             .Register<NavigationPanelViewModel, NavigationPanelView>()
             .Register<DetailsPanelViewModel, DetailsPanelView>()
             .Register<ToolbarViewModel, ToolbarView>()
-            .Register<ThumbnailSizeViewModel, ThumbnailSizeView>());
+            .Register<ThumbnailSizeViewModel, ThumbnailSizeView>()
+            .Register<SearchBarViewModel, SearchBarView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -125,6 +128,11 @@ public static class UiModule
 
         // Status bar (E13-S04). Features add segments through IStatusBarContributor.
         services.AddSingleton<StatusBarViewModel>();
+
+        // Unified search (E09-S01): the box in the toolbar and the notice above the results.
+        services.AddSingleton<SearchBarViewModel>();
+        services.AddSingleton<SearchNoticeViewModel>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, SearchToolbar>());
 
         // Toolbar (E13-S03). Features fill its slots and add actions through IToolbarContributor.
         services.AddSingleton<ToolbarViewModel>();

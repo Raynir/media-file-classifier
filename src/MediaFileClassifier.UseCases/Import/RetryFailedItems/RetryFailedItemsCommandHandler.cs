@@ -76,6 +76,12 @@ public sealed class RetryFailedItemsCommandHandler(
                     stage = ImportStages.Fingerprint;
                 }
 
+                // An analysis failure (E06-S01) runs the item's analysis again; its stage key isn't a handler.
+                if (stage.StartsWith("analysis.", StringComparison.Ordinal))
+                {
+                    stage = Analysis.Pipeline.AnalysisStages.Item;
+                }
+
                 if (stage == ImportStages.ContentHash)
                 {
                     hashWork.Add(item.Id);

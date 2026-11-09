@@ -144,7 +144,7 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             id => new ItemMetadata(id, technical[id], user[id], runs[id], ai[id], tags[id], rejections[id]));
     }
 
-    private static async Task<ItemMetadata> LoadExistingAsync(LibraryDbContext db, Id<MediaItem> itemId, CancellationToken cancellationToken)
+    internal static async Task<ItemMetadata> LoadExistingAsync(LibraryDbContext db, Id<MediaItem> itemId, CancellationToken cancellationToken)
     {
         if (!await db.MediaItems.AnyAsync(item => item.Id == itemId, cancellationToken).ConfigureAwait(false))
         {
@@ -154,7 +154,7 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
         return await LoadAsync(db, itemId, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task ReplaceAsync(LibraryDbContext db, ItemMetadata metadata, CancellationToken cancellationToken)
+    internal static async Task ReplaceAsync(LibraryDbContext db, ItemMetadata metadata, CancellationToken cancellationToken)
     {
         var itemId = metadata.ItemId;
 

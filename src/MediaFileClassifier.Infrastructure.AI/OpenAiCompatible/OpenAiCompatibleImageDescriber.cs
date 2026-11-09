@@ -59,7 +59,7 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
         var messages = new List<ChatMessage>
         {
             new(ChatRole.System, SystemPrompt),
-            new(ChatRole.User, [new TextContent(BuildRequest(options)), new DataContent(image.Data, image.MediaType)]),
+            new(ChatRole.User, [new TextContent(BuildRequest(options)), ToDataContent(image)]),
         };
         var chatOptions = new ChatOptions
         {

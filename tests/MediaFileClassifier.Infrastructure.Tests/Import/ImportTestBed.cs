@@ -4,6 +4,8 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
@@ -12,12 +14,15 @@ using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.AI.Imaging;
 using MediaFileClassifier.Infrastructure.Capabilities;
 using MediaFileClassifier.Infrastructure.Discovery;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Infrastructure.Hashing;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Media;
+using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
 using MediaFileClassifier.UseCases;
@@ -25,6 +30,7 @@ using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.ImportFolders;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -72,7 +78,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
     /// <summary>
     /// Creates the bed. A given root folder is kept afterwards; otherwise a new temporary one is made and deleted.
     /// </summary>
-    public static async Task<ImportTestBed> CreateAsync(int cpu = 2, string? root = null)
+    public static async Task<ImportTestBed> CreateAsync(int cpu = 2, string? root = null, Action<IServiceCollection>? configure = null)
     {
         var ownsRoot = root is null;
         root ??= Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
@@ -88,7 +94,14 @@ internal sealed class ImportTestBed : IAsyncDisposable
             capabilities.SetAvailable(KnownCapabilities.VideoAnalysis);
         }
 
-        var services = new ServiceCollection()
+        var collection = new ServiceCollection();
+        configure?.Invoke(collection);
+
+        // The analysis stage (E06-S01) is registered by AddUseCases; without providers it skips every analyzer.
+        collection.TryAddSingleton<IAiProviderRegistry>(new AiProviderRegistry([], library.Clock));
+        collection.TryAddSingleton<IAnalysisImageDecoder, SkiaAnalysisImageDecoder>();
+        collection.TryAddSingleton<IModelStore>(new Siglip2StubStore(null));
+        var services = collection
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddSingleton<ICapabilityService>(capabilities)
             .AddSingleton<ISettingsService>(settings)

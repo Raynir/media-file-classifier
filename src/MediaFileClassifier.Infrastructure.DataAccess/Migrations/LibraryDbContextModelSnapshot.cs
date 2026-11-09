@@ -84,6 +84,51 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.ToTable("analysis_run");
                 });
 
+            modelBuilder.Entity("MediaFileClassifier.Domain.Analysis.AnalyzerState", b =>
+                {
+                    b.Property<string>("ItemId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("item_id");
+
+                    b.Property<string>("Analyzer")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("analyzer");
+
+                    b.Property<string>("Detail")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("detail");
+
+                    b.Property<string>("FailureKind")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("failure_kind");
+
+                    b.Property<bool>("IsRetryable")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_retryable");
+
+                    b.Property<string>("ReasonCode")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("reason_code");
+
+                    b.Property<string>("RunId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("run_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("status");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("ItemId", "Analyzer");
+
+                    b.HasIndex("Analyzer", "Status");
+
+                    b.ToTable("analyzer_state");
+                });
+
             modelBuilder.Entity("MediaFileClassifier.Domain.Analysis.ModelRegistration", b =>
                 {
                     b.Property<string>("Id")
@@ -992,6 +1037,15 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .WithMany()
                         .HasForeignKey("ModelId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MediaFileClassifier.Domain.Analysis.AnalyzerState", b =>
+                {
+                    b.HasOne("MediaFileClassifier.Domain.Media.MediaItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

@@ -144,7 +144,8 @@ internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
 
         public IFolderRepository Folders => throw new NotSupportedException();
 
-        public IMediaItemRepository Items => throw new NotSupportedException();
+        // LibraryItemsSource, which the search box needs, reads this when it is created; it only watches it for changes.
+        public IMediaItemRepository Items => null!;
 
         public IItemMetadataRepository Metadata => throw new NotSupportedException();
 

@@ -25,7 +25,7 @@ public sealed class SearchMediaQueryHandler(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var text = request.Text?.Trim() ?? string.Empty;
+        var text = SearchText.Normalise(request.Text);
         if (text.Length == 0)
         {
             var listed = await index.SearchAsync(

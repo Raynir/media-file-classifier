@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Embeddings;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Infrastructure.AI;
@@ -138,6 +139,85 @@ public sealed class SearchMediaQueryHandlerTests : IAsyncLifetime
         await cancelled.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => handler.Handler.Handle(new SearchMediaQuery { Text = "red car" }, cancelled.Token));
+    }
+
+    [Theory]
+    [InlineData("\"")]
+    [InlineData("\"red")]
+    [InlineData("red\" car")]
+    [InlineData("'")]
+    [InlineData("*")]
+    [InlineData("red*")]
+    [InlineData("^red")]
+    [InlineData("-red +car")]
+    [InlineData("red AND car OR NOT boat")]
+    [InlineData("NEAR(red car, 2)")]
+    [InlineData("title:red")]
+    [InlineData("{title description}: red")]
+    [InlineData("(red")]
+    [InlineData("red)")]
+    [InlineData(@"[x] % _ \ ; --")]
+    [InlineData("a\0b")]
+    [InlineData("😀 🐱")]
+    [InlineData("猫の写真")]
+    [InlineData("صورة قطة")]
+    [InlineData("כלב")]
+    [InlineData("ศาลา")]
+    [InlineData("e\u0301\u0301\u0301")]
+    [InlineData("\u200B\u200D\uFEFF")]
+    [InlineData("cat\uD800")]
+    public async Task Search_AnySymbolsOrScript_NeverFails(string text)
+    {
+        var provider = new FakeEmbeddingProvider(dimension: Dimension);
+        await bed.AddItemAsync(1, title: "red car \"quoted\" кот 猫");
+        using var keywordOnly = Create(null);
+        using var hybrid = Create(provider);
+
+        var keyword = await keywordOnly.SearchAsync(new SearchMediaQuery { Text = text });
+        var both = await hybrid.SearchAsync(new SearchMediaQuery { Text = text, Sort = SortMode.Name });
+
+        Assert.NotNull(keyword);
+        Assert.NotNull(both);
+    }
+
+    [Fact]
+    public async Task Search_LongPastedText_NeverFails()
+    {
+        var provider = new FakeEmbeddingProvider(dimension: Dimension);
+        await bed.AddItemAsync(1, title: "red car");
+        using var handler = Create(provider);
+        var text = string.Join(' ', Enumerable.Range(0, 400).Select(i => $"word{i}\"*"));
+
+        var results = await handler.SearchAsync(new SearchMediaQuery { Text = text });
+
+        Assert.DoesNotContain(results.Hits, hit => hit.KeywordRank is not null);
+    }
+
+    [Theory]
+    [InlineData("кот", 1)]
+    [InlineData("КОТ", 1)]
+    [InlineData("ёлка", 2)]
+    [InlineData("елка", 2)]
+    [InlineData("e\u0301te\u0301", 3)]
+    [InlineData("\"quoted\"", 4)]
+    [InlineData("  red\u00A0car  ", 5)]
+    [InlineData("猫", 6)]
+    public async Task Search_NonLatinAndOddlyTypedText_FindsTheItem(string text, int expected)
+    {
+        var items = new[]
+        {
+            await bed.AddItemAsync(1, title: "кот на окне"),
+            await bed.AddItemAsync(2, title: "Ёлка в снегу"),
+            await bed.AddItemAsync(3, title: "Été à Paris"),
+            await bed.AddItemAsync(4, title: "the \"quoted\" sign"),
+            await bed.AddItemAsync(5, title: "red car"),
+            await bed.AddItemAsync(6, title: "猫"),
+        };
+        using var handler = Create(null);
+
+        var results = await handler.SearchAsync(new SearchMediaQuery { Text = text });
+
+        Assert.Equal([items[expected - 1].Id], results.Hits.Select(hit => hit.ItemId));
     }
 
     /// <summary>

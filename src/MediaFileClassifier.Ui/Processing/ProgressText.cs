@@ -52,6 +52,7 @@ public sealed class ProgressText(Localizer localizer)
         {
             var stage = job.CurrentStage;
             var line = localizer.Format("Progress_JobLine", job.Description, Counts(stage is null ? string.Empty : StageName(stage.Stage) ?? stage.Stage, stage, job.IsTotalGrowing));
+            line = job.Retrying > 0 ? localizer.Format("Progress_Retrying", line, Format.Number(job.Retrying)) : line;
             return job.Failed > 0 ? localizer.Format("Progress_Failed", line, Format.Number(job.Failed)) : line;
         }));
     }

@@ -98,6 +98,7 @@ public static class UiModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
         services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RetryCommands>());
 
         // Media browser (E14-S01).
         services.AddSingleton<ThumbnailBitmapCache>();
@@ -139,6 +140,7 @@ public static class UiModule
         // M1 segments (E13-S04-T02).
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ResultCountStatusSegment>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, OfflineFoldersStatusSegment>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProviderStatusSegment>());
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();

@@ -42,6 +42,30 @@ public sealed class JobProgressTrackerTests
     }
 
     [Fact]
+    public void RetriedWork_IsCountedAsRetrying_NotAsFailed_UntilItFinishes()
+    {
+        var job = NewJob();
+        var items = Items(job, "describe", 3);
+        tracker.AddWork(job, items);
+        WorkItem Running(WorkItem item) => item.ChangeState(WorkItemState.Running, Start);
+
+        tracker.Finished(Running(items[0]).ScheduleRetry(Start.AddSeconds(2), ErrorCategory.Transient, "down", countsAsRetry: true, Start), job);
+        tracker.Finished(Running(items[1]).Park(ErrorCategory.Transient, "down", Start), job);
+
+        tracker.Finished(Running(items[2]).ScheduleRetry(Start.AddMinutes(1), ErrorCategory.Configuration, "model missing", countsAsRetry: false, Start), job);
+
+        var progress = Assert.Single(tracker.Current.Jobs);
+        Assert.Equal((2, 0, 3), (progress.Retrying, progress.Failed, progress.Pending));
+        Assert.Equal(2, tracker.Current.Retrying);
+
+        Finish(job, items[0], WorkItemState.Completed);
+        Finish(job, items[1], WorkItemState.Failed);
+
+        progress = Assert.Single(tracker.Current.Jobs);
+        Assert.Equal((0, 1), (progress.Retrying, progress.Failed));
+    }
+
+    [Fact]
     public void FinishedJob_IsForgotten()
     {
         var job = NewJob();

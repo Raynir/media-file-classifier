@@ -1,6 +1,8 @@
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.UseCases.Libraries;
@@ -15,7 +17,7 @@ namespace MediaFileClassifier.UseCases.Import.Stages;
 /// </summary>
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
-public abstract partial class ItemStage(TimeProvider clock, ILogger logger) : IStageHandler
+public abstract partial class ItemStage(TimeProvider clock, ILogger logger) : IFailureAwareStage
 {
     /// <inheritdoc />
     public abstract string Stage { get; }
@@ -87,23 +89,33 @@ public abstract partial class ItemStage(TimeProvider clock, ILogger logger) : IS
             return;
         }
 
-        try
+        var folder = await library.Folders.GetAsync(item.FolderId, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The item's folder isn't in the library.");
+
+        // An excluded item is imported again only once its folder's rules include it (E02-S03-T03).
+        if (item.Status == MediaItemStatus.Excluded && !IndexedFolders.IsBackInRules(item, new FolderRuleMatcher(folder.Rules)))
         {
-            var folder = await library.Folders.GetAsync(item.FolderId, cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidOperationException("The item's folder isn't in the library.");
-
-            // An excluded item is imported again only once its folder's rules include it (E02-S03-T03).
-            if (item.Status == MediaItemStatus.Excluded && !IndexedFolders.IsBackInRules(item, new FolderRuleMatcher(folder.Rules)))
-            {
-                return;
-            }
-
-            await ProcessAsync(context, item, folder, cancellationToken).ConfigureAwait(false);
+            return;
         }
-        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+
+        await ProcessAsync(context, item, folder, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Marks the item as failed, once the scheduler gave up on it (E05-S04): transient failures are retried first.
+    /// </summary>
+    /// <param name="context">The work item and the open library.</param>
+    /// <param name="error">The failure.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the item is marked.</returns>
+    public async Task OnFailedAsync(WorkItemContext context, ClassifiedError error, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(error);
+
+        if (context.WorkItem.ItemId is { } itemId)
         {
-            await RecordFailureAsync(context, item, exception).ConfigureAwait(false);
-            throw;
+            await RecordFailureAsync(context, itemId, error, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -125,24 +137,27 @@ public abstract partial class ItemStage(TimeProvider clock, ILogger logger) : IS
     private partial void LogFailureNotRecorded(Exception exception, string stage, string path);
 
     // The stage may have changed the item in memory, so the stored item is marked, not that one.
-    private async Task RecordFailureAsync(WorkItemContext context, MediaItem item, Exception exception)
+    private async Task RecordFailureAsync(WorkItemContext context, Id<MediaItem> itemId, ClassifiedError error, CancellationToken cancellationToken)
     {
-        LogItemFailed(exception, Stage, item.Path.Value);
+        var exception = error.Exception;
+        var path = itemId.ToString();
         try
         {
-            var stored = await context.Library.Items.GetAsync(item.Id, CancellationToken.None).ConfigureAwait(false);
+            var stored = await context.Library.Items.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
             if (stored is null || !MediaItemStatusTransitions.IsAllowed(stored.Status, MediaItemStatus.Error))
             {
                 return;
             }
 
-            var error = new MediaItemError(Stage, exception is MediaFileException ? null : exception.GetType().Name, IsPermanent(exception));
-            stored.MarkFailed(error, exception.Message, clock.GetUtcNow());
-            await context.Library.Items.UpdateAsync(stored, CancellationToken.None).ConfigureAwait(false);
+            path = stored.Path.Value;
+            LogItemFailed(exception, Stage, path);
+            var itemError = new MediaItemError(Stage, exception is MediaFileException ? null : exception.GetType().Name, error.Category == ErrorCategory.Permanent);
+            stored.MarkFailed(itemError, error.Message, clock.GetUtcNow());
+            await context.Library.Items.UpdateAsync(stored, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception recordException)
+        catch (Exception recordException) when (recordException is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            LogFailureNotRecorded(recordException, Stage, item.Path.Value);
+            LogFailureNotRecorded(recordException, Stage, path);
         }
     }
 }

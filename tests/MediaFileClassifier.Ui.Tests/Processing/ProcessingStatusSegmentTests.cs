@@ -34,6 +34,14 @@ public sealed class ProcessingStatusSegmentTests
     }
 
     [Fact]
+    public void Details_SayHowManyAreRetrying_BeforeAnyFailure()
+    {
+        var job = Job("Analyze photos", null, new StageProgress("custom", 10, 4, 0, false)) with { Retrying = 3 };
+
+        Assert.Equal("Analyze photos — custom: 4 of 10, 3 retrying", text.Details(Summary(job)));
+    }
+
+    [Fact]
     public void Summary_ShowsTheTimeLeft_AndTheJobDescriptionForAnUnnamedStage()
     {
         var summary = Summary(Job("Full hashing", TimeSpan.FromMinutes(11.5), new StageProgress("custom", 900, 40, 0, false)));

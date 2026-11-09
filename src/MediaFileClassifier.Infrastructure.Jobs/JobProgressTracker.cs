@@ -195,6 +195,19 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
             }
 
             var stage = counters.Stage(workItem.Stage, workItem.ItemId is null);
+
+            // A failure that's retried later (or parked until its provider is back) stays pending, as retrying. Work
+            // waiting for a missing model (a Configuration failure that isn't parked) isn't retrying: it waits (D037).
+            if (workItem is { State: WorkItemState.Queued, RetryAt: not null }
+                && (workItem.ErrorCategory != ErrorCategory.Configuration || workItem.IsParked))
+            {
+                counters.Retrying.Add(workItem.Id);
+            }
+            else
+            {
+                counters.Retrying.Remove(workItem.Id);
+            }
+
             switch (workItem.State)
             {
                 case WorkItemState.Completed or WorkItemState.Failed:
@@ -269,6 +282,11 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
         /// </summary>
         public bool IsJobFinished { get; set; }
 
+        /// <summary>
+        /// Gets the work items that failed and were queued again for a retry since tracking started.
+        /// </summary>
+        public HashSet<Id<WorkItem>> Retrying { get; } = [];
+
         public bool IsEmpty => stages.All(stage => stage.Total == 0);
 
         public bool HasPending => stages.Any(stage => stage.Total > stage.Done + stage.Failed);
@@ -292,7 +310,10 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
                 Job.Type,
                 Job.Description,
                 [.. stages.Where(stage => stage.Total > 0).Select(stage => new StageProgress(stage.Stage, stage.Total, stage.Done, stage.Failed, stage.IsWholeTarget))],
-                null);
+                null)
+            {
+                Retrying = Retrying.Count,
+            };
             return progress.IsTotalGrowing ? progress : progress with { TimeRemaining = Throughput.Estimate(progress.Pending, now) };
         }
     }

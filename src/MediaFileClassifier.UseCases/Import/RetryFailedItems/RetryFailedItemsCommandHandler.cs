@@ -50,6 +50,12 @@ public sealed class RetryFailedItemsCommandHandler(
             failed = failed.Where(item => itemIds.Contains(item.Id));
         }
 
+        if (request.ItemIds is { } selected)
+        {
+            var wanted = selected.ToHashSet();
+            failed = failed.Where(item => wanted.Contains(item.Id));
+        }
+
         var retried = 0;
         var unchanged = 0;
         foreach (var byFolder in failed.Where(item => item.Error is not null).GroupBy(item => item.FolderId))

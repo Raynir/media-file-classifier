@@ -16,6 +16,7 @@ using MediaFileClassifier.Testing.Media;
 using MediaFileClassifier.UseCases.Analysis.AnalyzeItems;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Analysis.UpdateAnalysisProfile;
+using MediaFileClassifier.UseCases.Import.RetryFailedItems;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Analysis;
@@ -137,6 +138,37 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         Assert.Equal(MediaItemStatus.Error, failed.Status);
         Assert.Equal(AnalysisStages.EmbeddingError, failed.Error?.Stage);
         Assert.True(failed.Error?.IsPermanent);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RetryFailedItems_AnalyzesAnItemWhoseEmbeddingFailed_InAnAnalysisJob(bool inTheSameJob)
+    {
+        // The embedding keeps failing transiently until the provider is back, then the item is Error (not permanent).
+        var failing = true;
+        var embedder = new FakeEmbeddingProvider(imageKey: _ => failing
+            ? throw new AiProviderException(AiFailureKind.Unreachable, "fake:fake-embedder", "down")
+            : "picture");
+        var items = await ImportAsync(
+            [embedder, new FakeImageDescriber(), new FakeOcrProvider()],
+            services => services.AddSingleton<IProviderCircuitBreaker>(new OpenBreaker(null)),
+            SampleMedia.JpegWithExif);
+        var jobId = await AnalyzeAsync(items);
+        var failed = (await bed!.Library.Items.GetAsync(items[0].Id, Token))!;
+        Assert.Equal(MediaItemStatus.Error, failed.Status);
+        Assert.False(failed.Error?.IsPermanent);
+
+        failing = false;
+        var result = await bed.Sender.Send(new RetryFailedItemsCommand(inTheSameJob ? jobId : null), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(1, result.Retried);
+        Assert.Equal(MediaItemStatus.Indexed, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Embedding)).Status);
+        var work = await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token);
+        Assert.Equal(inTheSameJob ? 2 : 1, work.Count);
+        Assert.All(work, workItem => Assert.Equal(AnalysisStages.Item, workItem.Stage));
     }
 
     [Fact]

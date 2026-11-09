@@ -5,6 +5,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Import.Stages;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -13,7 +14,8 @@ namespace MediaFileClassifier.UseCases.Import.RetryFailedItems;
 
 /// <summary>
 /// Handles <see cref="RetryFailedItemsCommand"/>. Import stages are queued in the given import job, or in a new import
-/// job per folder; hashing goes to the folder's hash job.
+/// job per folder; hashing goes to the folder's hash job; an analysis failure (E06-S01) is analyzed again in the given
+/// analysis job, or in one new analysis job.
 /// </summary>
 /// <param name="jobs">Runs the jobs of the open library.</param>
 /// <param name="files">Checks whether a file has changed.</param>
@@ -58,6 +60,7 @@ public sealed class RetryFailedItemsCommandHandler(
 
         var retried = 0;
         var unchanged = 0;
+        var analysisWork = new List<Id<MediaItem>>();
         foreach (var byFolder in failed.Where(item => item.Error is not null).GroupBy(item => item.FolderId))
         {
             var folder = await library.Folders.GetAsync(byFolder.Key, cancellationToken).ConfigureAwait(false);
@@ -82,13 +85,11 @@ public sealed class RetryFailedItemsCommandHandler(
                     stage = ImportStages.Fingerprint;
                 }
 
-                // An analysis failure (E06-S01) runs the item's analysis again; its stage key isn't a handler.
-                if (Analysis.Pipeline.AnalysisStages.IsAnalysisStage(stage))
+                if (AnalysisStages.IsAnalysisStage(stage))
                 {
-                    stage = Analysis.Pipeline.AnalysisStages.Item;
+                    analysisWork.Add(item.Id);
                 }
-
-                if (stage == ImportStages.ContentHash)
+                else if (stage == ImportStages.ContentHash)
                 {
                     hashWork.Add(item.Id);
                 }
@@ -104,6 +105,7 @@ public sealed class RetryFailedItemsCommandHandler(
             await hashJobs.EnqueueAsync(scheduler, folder, hashWork, cancellationToken).ConfigureAwait(false);
         }
 
+        await EnqueueAnalysisAsync(scheduler, job, analysisWork, cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Retrying {Retried} failed items; {Unchanged} damaged files haven't changed", retried, unchanged);
         return new RetryFailedItemsResult(retried, unchanged);
     }
@@ -131,6 +133,30 @@ public sealed class RetryFailedItemsCommandHandler(
 
         await scheduler.EnqueueJobAsync(
             new JobRequest(ImportStages.ImportJob, $"Retry failed items in {folder.DisplayPath}", JobPriority.Import, work) { FolderId = folder.Id },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    // The whole analysis runs again: a failed embedding fails the item, and the analyzers that worked are cheap to redo.
+    private static async Task EnqueueAnalysisAsync(
+        IJobScheduler scheduler,
+        ProcessingJob? job,
+        IReadOnlyList<Id<MediaItem>> itemIds,
+        CancellationToken cancellationToken)
+    {
+        if (itemIds.Count == 0)
+        {
+            return;
+        }
+
+        var work = itemIds.Select(itemId => new WorkItemRequest(AnalysisStages.Item, itemId)).ToList();
+        if (job?.Type == AnalysisStages.AnalysisJob && await scheduler.EnqueueWorkAsync(job.Id, work, cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        var description = itemIds.Count == 1 ? "Retry the analysis of 1 item" : $"Retry the analysis of {itemIds.Count} items";
+        await scheduler.EnqueueJobAsync(
+            new JobRequest(AnalysisStages.AnalysisJob, description, JobPriority.AiAnalysis, work) { ItemIds = itemIds },
             cancellationToken).ConfigureAwait(false);
     }
 

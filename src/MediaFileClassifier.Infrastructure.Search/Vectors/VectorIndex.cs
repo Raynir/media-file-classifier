@@ -138,6 +138,36 @@ internal sealed class VectorIndex : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the query's mean similarity over the items of its model (see <see cref="ModelVectors.MeanSimilarity"/>).
+    /// </summary>
+    /// <param name="query">The query.</param>
+    /// <returns>The mean similarity, or 0 when the model or the "find similar" item has no vectors.</returns>
+    public float MeanSimilarity(SearchVector query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        gate.EnterReadLock();
+        try
+        {
+            if (!models.TryGetValue(query.ModelId, out var model))
+            {
+                return 0;
+            }
+
+            if (query.ItemId is { } itemId)
+            {
+                return model.GetFirstVector(itemId, out _) is { } first ? model.MeanSimilarity(first) : 0;
+            }
+
+            return model.MeanSimilarity(query.Vector.Span);
+        }
+        finally
+        {
+            gate.ExitReadLock();
+        }
+    }
+
     /// <inheritdoc />
     public void Dispose() => gate.Dispose();
 

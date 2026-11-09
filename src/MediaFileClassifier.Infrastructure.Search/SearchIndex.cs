@@ -64,6 +64,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
         ArgumentOutOfRangeException.ThrowIfLessThan(query.Limit, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(query.Limit, SearchQuery.MaxLimit);
         query.Ranking.Validate();
+        query.RelevanceCut?.Validate();
 
         var library = current;
         if (library is null)
@@ -78,6 +79,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
 
         List<Entry> page;
         int total;
+        var lessRelevant = 0;
         if (query.Vector is null || index is null)
         {
             if (terms.Count == 0)
@@ -99,16 +101,19 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
         }
         else
         {
-            (page, total) = await RankedPageAsync(store, index, query, query.Vector, terms, cancellationToken).ConfigureAwait(false);
+            (page, total, lessRelevant) = await RankedPageAsync(store, index, query, query.Vector, terms, cancellationToken).ConfigureAwait(false);
         }
 
         var fields = terms.Count > 0 && query.IncludeMatchedFields && page.Count > 0
             ? await store.GetMatchedFieldsAsync([.. page.Select(entry => entry.DocumentId)], terms, cancellationToken).ConfigureAwait(false)
             : null;
         var hits = page
-            .Select(entry => new SearchHit(entry.ItemId, entry.Score, entry.KeywordRank, entry.Similarity, fields?.GetValueOrDefault(entry.DocumentId) ?? SearchFields.None))
+            .Select(entry => new SearchHit(entry.ItemId, entry.Score, entry.KeywordRank, entry.Similarity, fields?.GetValueOrDefault(entry.DocumentId) ?? SearchFields.None)
+            {
+                IsLessRelevant = entry.IsLessRelevant,
+            })
             .ToList();
-        return new SearchResults(hits, total, terms, skipped);
+        return new SearchResults(hits, total, terms, skipped) { LessRelevantCount = lessRelevant };
     }
 
     /// <inheritdoc />
@@ -174,7 +179,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
         return (page, matches.TotalCount);
     }
 
-    private static async Task<(List<Entry> Page, int Total)> RankedPageAsync(
+    private static async Task<(List<Entry> Page, int Total, int LessRelevant)> RankedPageAsync(
         ISearchStore store,
         VectorIndex index,
         SearchQuery query,
@@ -235,6 +240,22 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
                 similarities.TryGetValue(hit.DocumentId, out var similarity) ? similarity : null))];
         }
 
+        // Dropping weak vector hits after fusion keeps the others' order: they're the bottom of the vector list, so no
+        // stronger hit's vector rank changes.
+        var lessRelevant = 0;
+        if (query.RelevanceCut is { } cut)
+        {
+            var baseline = index.MeanSimilarity(vector);
+            ranked = [.. ranked.Select(entry => entry.KeywordRank is null && entry.Similarity is { } similarity && !cut.IsRelevant(similarity, baseline)
+                ? entry with { IsLessRelevant = true }
+                : entry)];
+            lessRelevant = ranked.Count(entry => entry.IsLessRelevant);
+            if (!query.IncludeLessRelevant)
+            {
+                ranked.RemoveAll(entry => entry.IsLessRelevant);
+            }
+        }
+
         if (query.Sort == SortMode.Relevance)
         {
             if (query.ReverseSort)
@@ -242,7 +263,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
                 ranked.Reverse();
             }
 
-            return ([.. ranked.Skip(query.Offset).Take(query.Limit)], ranked.Count);
+            return ([.. ranked.Skip(query.Offset).Take(query.Limit)], ranked.Count, lessRelevant);
         }
 
         // Another order: the ranked results are the set, and SQL sorts them.
@@ -255,7 +276,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
             query.Limit,
             byDocument.Keys,
             cancellationToken).ConfigureAwait(false);
-        return ([.. sorted.Documents.Select(document => byDocument[document.DocumentId])], ranked.Count);
+        return ([.. sorted.Documents.Select(document => byDocument[document.DocumentId])], ranked.Count, lessRelevant);
     }
 
     private void OnCurrentChanged(object? sender, EventArgs e) => Attach(session.Current);
@@ -285,7 +306,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
     /// <summary>
     /// A result before it's paged and given its matched fields.
     /// </summary>
-    private sealed record Entry(int DocumentId, Id<MediaItem> ItemId, double Score, int? KeywordRank, float? Similarity);
+    private sealed record Entry(int DocumentId, Id<MediaItem> ItemId, double Score, int? KeywordRank, float? Similarity, bool IsLessRelevant = false);
 
     /// <summary>
     /// Maps progress into a sub-range, synchronously.

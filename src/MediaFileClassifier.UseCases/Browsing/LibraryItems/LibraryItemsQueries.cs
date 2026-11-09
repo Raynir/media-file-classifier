@@ -42,6 +42,13 @@ public sealed record GetLibraryItemIdsQuery(int Offset, int Limit, Id<MediaItem>
 public sealed record GetExistingLibraryItemsQuery(IReadOnlyCollection<Id<MediaItem>> Ids) : IRequest<IReadOnlySet<Id<MediaItem>>>;
 
 /// <summary>
+/// Gets the tile summaries of the given items, e.g. the hits of a search page (E09-S01). Items that no longer exist
+/// are left out; the order is not kept.
+/// </summary>
+/// <param name="Ids">The item IDs.</param>
+public sealed record GetItemSummariesQuery(IReadOnlyCollection<Id<MediaItem>> Ids) : IRequest<IReadOnlyList<MediaItemSummary>>;
+
+/// <summary>
 /// Handles the library item queries of the media browser.
 /// </summary>
 /// <param name="session">Holds the open library.</param>
@@ -50,7 +57,8 @@ public sealed class LibraryItemsQueryHandlers(ILibrarySession session)
       IRequestHandler<GetLibraryItemsPageQuery, IReadOnlyList<MediaItemSummary>>,
       IRequestHandler<GetLibraryItemPositionQuery, int>,
       IRequestHandler<GetLibraryItemIdsQuery, IReadOnlyList<Id<MediaItem>>>,
-      IRequestHandler<GetExistingLibraryItemsQuery, IReadOnlySet<Id<MediaItem>>>
+      IRequestHandler<GetExistingLibraryItemsQuery, IReadOnlySet<Id<MediaItem>>>,
+      IRequestHandler<GetItemSummariesQuery, IReadOnlyList<MediaItemSummary>>
 {
     /// <inheritdoc />
     public Task<int> Handle(CountLibraryItemsQuery request, CancellationToken cancellationToken) =>
@@ -81,4 +89,10 @@ public sealed class LibraryItemsQueryHandlers(ILibrarySession session)
         session.Current is { } library
             ? library.Items.GetExistingIdsAsync(request.Ids, cancellationToken)
             : Task.FromResult<IReadOnlySet<Id<MediaItem>>>(new HashSet<Id<MediaItem>>());
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItemSummary>> Handle(GetItemSummariesQuery request, CancellationToken cancellationToken) =>
+        session.Current is { } library
+            ? library.Items.GetSummariesByIdsAsync(request.Ids, cancellationToken)
+            : Task.FromResult<IReadOnlyList<MediaItemSummary>>([]);
 }

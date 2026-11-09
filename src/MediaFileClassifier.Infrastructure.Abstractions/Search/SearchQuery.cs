@@ -59,4 +59,16 @@ public sealed record SearchQuery
     /// Gets whether to report which fields matched each hit, for highlighting. It costs one more query per page.
     /// </summary>
     public bool IncludeMatchedFields { get; init; } = true;
+
+    /// <summary>
+    /// Gets when a hit that only the vector search found counts as relevant (E09-S01-T03), or <c>null</c> to treat
+    /// every hit as relevant. It has no effect without a <see cref="Vector"/>.
+    /// </summary>
+    public SemanticRelevanceCut? RelevanceCut { get; init; }
+
+    /// <summary>
+    /// Gets whether hits below <see cref="RelevanceCut"/> are returned, marked <see cref="SearchHit.IsLessRelevant"/>
+    /// ("Show less relevant results"), instead of left out.
+    /// </summary>
+    public bool IncludeLessRelevant { get; init; }
 }

@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.Search"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Search.SearchBarView"
+             x:DataType="vm:SearchBarViewModel">
+  <!-- The search box in the toolbar's Search slot (E09-S01-T05, Figma 25:379). It fills the slot's width. -->
+  <TextBox x:Name="SearchBox"
+           Classes="clearButton"
+           HorizontalAlignment="Stretch"
+           VerticalAlignment="Center"
+           Text="{Binding Text}"
+           PlaceholderText="{l:Loc Search_Placeholder}"
+           AutomationProperties.Name="{l:Loc Search_Placeholder}">
+    <TextBox.InnerLeftContent>
+      <PathIcon Classes="Small" Data="{StaticResource Icon.Search}" Margin="{DynamicResource Padding.Compact}" />
+    </TextBox.InnerLeftContent>
+    <TextBox.KeyBindings>
+      <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />
+      <KeyBinding Gesture="Escape" Command="{Binding ClearCommand}" />
+    </TextBox.KeyBindings>
+  </TextBox>
+</UserControl>

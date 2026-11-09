@@ -16,6 +16,7 @@
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure/MediaFileClassifier.Infrastructure.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.AI/MediaFileClassifier.Infrastructure.AI.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Media/MediaFileClassifier.Infrastructure.Media.csproj" />
+    <ProjectReference Include="../../src/MediaFileClassifier.UseCases/MediaFileClassifier.UseCases.csproj" />
   </ItemGroup>
 
   <ItemGroup>

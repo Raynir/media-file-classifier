@@ -59,6 +59,11 @@ public sealed class LibraryItemsSource : IMediaResultSource
 
     = BrowseScope.All;
 
+    /// <summary>
+    /// Gets the filter of the selected <see cref="Scope"/>, as of now.
+    /// </summary>
+    public MediaItemFilter CurrentFilter => Filter;
+
     private MediaItemFilter Filter => Scope.ToFilter(clock.GetUtcNow());
 
     /// <inheritdoc />

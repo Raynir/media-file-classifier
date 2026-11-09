@@ -114,6 +114,23 @@ public sealed class OpenAiCompatibleProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task RecognizeText_RawPixels_AreSentAsJpeg()
+    {
+        server.ChatAnswers.Enqueue("text");
+        using var provider = CreateOcr();
+        var pixels = Enumerable.Repeat((byte)200, 8 * 4 * 4).ToArray();
+
+        await provider.RecognizeTextAsync(AiImage.FromRgba(pixels, 8, 4, "frame 0"), TestContext.Current.CancellationToken);
+
+        var request = Assert.Single(server.ChatRequests);
+        var start = request.IndexOf("data:image/jpeg;base64,", StringComparison.Ordinal);
+        Assert.True(start >= 0, "The image isn't sent as JPEG.");
+        var base64 = new string([.. request.Skip(start + "data:image/jpeg;base64,".Length).TakeWhile(c => c != '"')]);
+        using var decoded = SkiaSharp.SKBitmap.Decode(Convert.FromBase64String(base64));
+        Assert.Equal((8, 4), (decoded.Width, decoded.Height));
+    }
+
+    [Fact]
     public async Task RecognizeText_NoTextMarker_IsEmpty()
     {
         server.ChatAnswers.Enqueue(OpenAiCompatibleOcrProvider.NoTextMarker);

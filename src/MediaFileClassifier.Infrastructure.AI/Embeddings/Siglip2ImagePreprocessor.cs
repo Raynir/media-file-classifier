@@ -139,7 +139,7 @@ internal static class Siglip2ImagePreprocessor
         }
     }
 
-    private static (byte[] Pixels, int Width, int Height) Orient(byte[] pixels, int width, int height, SKEncodedOrigin origin)
+    internal static (byte[] Pixels, int Width, int Height) Orient(byte[] pixels, int width, int height, SKEncodedOrigin origin)
     {
         if (origin is SKEncodedOrigin.TopLeft)
         {

@@ -164,7 +164,7 @@ public sealed partial class ItemEmbeddingAnalyzer
         return new ItemEmbeddingResult(model, frames.Count, []);
     }
 
-    private static async Task<byte[]> ReadAsync(MediaContent content, CancellationToken cancellationToken)
+    internal static async Task<byte[]> ReadAsync(MediaContent content, CancellationToken cancellationToken)
     {
         if (content.LocalPath is { } path)
         {

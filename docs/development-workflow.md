@@ -38,6 +38,22 @@ The branching and commit rules (D064).
 - The title names the Story or sub-task key.
 - The **CI** checks must pass: *Build and test (Windows)*, *Build shared projects (Linux)* and *Build Android head*.
 
+## Opt-in tests
+
+A plain `dotnet test` (and CI) skips tests that are slow, heavy or need the network or large files. Each one is switched on by an environment variable and skips with a message that names it.
+
+| Variable | Test | Needs | Cost |
+|---|---|---|---|
+| `MFC_QUALITY_TESTS=1` | `Siglip2QualityTests` (SigLIP 2 embedding quality against the D094 baselines) | `models/siglip2` or `MFC_SIGLIP2_DIR`, and the fetched `eval/corpus` | About 2 minutes, all CPU cores, so it makes timing tests fail if it runs alongside them |
+| `MFC_NETWORK_TESTS=1` | `ModelCatalogTests` network checks | Network access | A few requests |
+
+Run one on its own, never with the whole suite:
+
+```powershell
+$env:MFC_QUALITY_TESTS = "1"
+dotnet test --project tests/MediaFileClassifier.Evaluation.Tests -- --filter-class "*Siglip2QualityTests"
+```
+
 ## Android development
 
 The Android app is `src/MediaFileClassifier.App.Android` (E20). It needs the .NET **android workload**, the **Android SDK** and a **JDK**, and none of these are needed for the desktop app. The solution marks the head `Build Project="false"` (D080), so `dotnet build` and `dotnet test` at the repository root skip it, and work without any of this. CI builds the head in its own job, *Build Android head*.

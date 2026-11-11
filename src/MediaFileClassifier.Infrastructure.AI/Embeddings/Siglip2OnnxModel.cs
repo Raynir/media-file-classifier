@@ -46,6 +46,13 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
 
     public int Dimension => Siglip2Model.Dimension;
 
+    /// <summary>
+    /// Gets the execution provider a tower's session runs on now, which is the CPU after a fallback (E06-S08-T04).
+    /// </summary>
+    /// <param name="role">The tower's file role.</param>
+    /// <returns>The execution provider.</returns>
+    internal ExecutionProvider ExecutionProviderOf(string role) => GetSession(role).ExecutionProvider;
+
     protected override string? PromptVersion => Siglip2Model.PreprocessingVersion;
 
     public static ModelIdentity CreateIdentity(InstalledModel? installed) =>

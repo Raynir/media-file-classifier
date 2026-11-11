@@ -1,6 +1,8 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Errors;
+using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
@@ -31,6 +33,10 @@ public static class AiModule
         services.TryAddSingleton<Siglip2EmbeddingProvider>();
         services.AddSingleton<IAiProvider>(provider => provider.GetRequiredService<Siglip2EmbeddingProvider>());
         services.TryAddSingleton<IModelCatalog, ModelCatalog>();
+        services.TryAddSingleton<Benchmarks.BenchmarkResultStore>();
+        services.TryAddSingleton<IBenchmarkResults>(provider => provider.GetRequiredService<Benchmarks.BenchmarkResultStore>());
+        services.TryAddSingleton<IThroughputHints>(provider => provider.GetRequiredService<Benchmarks.BenchmarkResultStore>());
+        services.TryAddSingleton<IBenchmarkRunner, Benchmarks.Siglip2Benchmark>();
         services.TryAddSingleton<IModelDownloader, ModelDownloader>();
         services.TryAddSingleton<IModelAvailability, ModelAvailability>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, AiExceptionClassifier>());

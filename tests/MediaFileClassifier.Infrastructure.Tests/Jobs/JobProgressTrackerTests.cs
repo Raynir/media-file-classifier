@@ -137,6 +137,44 @@ public sealed class JobProgressTrackerTests
     }
 
     [Fact]
+    public void KnownRate_GivesAnEstimateBeforeAnyItemFinished_AndTheMeasuredRateTakesOverLater()
+    {
+        var seeded = new JobProgressTracker(clock, new FixedHints("import", 5));
+        var job = NewJob();
+        var items = Items(job, "stage", 100);
+        seeded.AddWork(job, items);
+
+        // Nothing finished: 100 items at the benchmark's 5 per second.
+        Assert.Equal(TimeSpan.FromSeconds(20), seeded.Current.Jobs[0].TimeRemaining);
+        Assert.Equal(TimeSpan.FromSeconds(20), seeded.Current.TimeRemaining);
+
+        // Measured: 20 items in 5 s (4 per second), 80 left, so 20 s as well, from the measurement.
+        for (var i = 0; i < 20; i++)
+        {
+            clock.Advance(TimeSpan.FromMilliseconds(250));
+            seeded.Finished(items[i].ChangeState(WorkItemState.Running, clock.GetUtcNow()).ChangeState(WorkItemState.Completed, clock.GetUtcNow()), job);
+        }
+
+        Assert.InRange(seeded.Current.Jobs[0].TimeRemaining!.Value.TotalSeconds, 15, 25);
+    }
+
+    [Fact]
+    public void KnownRate_IsOnlyUsedForItsOwnJobType()
+    {
+        var seeded = new JobProgressTracker(clock, new FixedHints("other-type", 5));
+        var job = NewJob();
+        seeded.AddWork(job, Items(job, "stage", 10));
+
+        Assert.Null(seeded.Current.Jobs[0].TimeRemaining);
+        Assert.Null(seeded.Current.TimeRemaining);
+    }
+
+    private sealed class FixedHints(string jobType, double rate) : IThroughputHints
+    {
+        public double? ItemsPerSecond(string type) => type == jobType ? rate : null;
+    }
+
+    [Fact]
     public void PendingWholeTargetWork_MeansTheTotalStillGrows_AndHidesTheEstimate()
     {
         var job = NewJob();

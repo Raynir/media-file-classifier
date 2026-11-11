@@ -14,10 +14,12 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// The estimated time remaining divides the pending work items by the throughput of the last
 /// <see cref="ThroughputWindow"/> (a shorter window right after the start), and is shown once
 /// <see cref="MinimumFinishedForEstimate"/> work items finished and <see cref="MinimumElapsedForEstimate"/> passed.
-/// It's hidden while a job's total still grows.
+/// It's hidden while a job's total still grows. Until those thresholds are met, a job type with a known rate (the
+/// benchmark's, E06-S08-T04) is estimated from that rate, so the first minutes of a run show a time too.
 /// </remarks>
 /// <param name="clock">Clock.</param>
-public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
+/// <param name="hints">Throughputs known before a job runs, or <see langword="null"/> for none.</param>
+public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hints = null) : IJobProgress
 {
     /// <summary>
     /// How many finished work items the estimate needs.
@@ -54,13 +56,24 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
                     return ProgressSummary.Empty;
                 }
 
-                var snapshots = jobs.Select(job => job.ToProgress(now)).ToList();
+                var snapshots = jobs.Select(job => job.ToProgress(now, hints?.ItemsPerSecond(job.Job.Type))).ToList();
                 var remaining = snapshots.Any(job => job.IsTotalGrowing)
                     ? null
-                    : overall.Estimate(snapshots.Sum(job => job.Pending), now);
+                    : overall.Estimate(snapshots.Sum(job => job.Pending), now) ?? SumOfJobEstimates(snapshots);
                 return new ProgressSummary(snapshots, remaining);
             }
         }
+    }
+
+    /// <summary>
+    /// The total of the jobs' own estimates, when every job with pending work has one (some are from known rates).
+    /// </summary>
+    private static TimeSpan? SumOfJobEstimates(List<JobProgress> snapshots)
+    {
+        var pending = snapshots.Where(job => job.Pending > 0).ToList();
+        return pending.Count > 0 && pending.All(job => job.TimeRemaining is not null)
+            ? TimeSpan.FromTicks(pending.Sum(job => job.TimeRemaining!.Value.Ticks))
+            : null;
     }
 
     /// <summary>
@@ -303,7 +316,7 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
             return counters;
         }
 
-        public JobProgress ToProgress(DateTimeOffset now)
+        public JobProgress ToProgress(DateTimeOffset now, double? knownRate)
         {
             var progress = new JobProgress(
                 Job.Id,
@@ -314,9 +327,12 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
             {
                 Retrying = Retrying.Count,
             };
-            return progress.IsTotalGrowing ? progress : progress with { TimeRemaining = Throughput.Estimate(progress.Pending, now) };
+            return progress.IsTotalGrowing ? progress : progress with { TimeRemaining = Throughput.Estimate(progress.Pending, now) ?? Seeded(progress.Pending, knownRate) };
         }
     }
+
+    private static TimeSpan? Seeded(int pending, double? itemsPerSecond) =>
+        pending > 0 && itemsPerSecond is > 0 ? TimeSpan.FromSeconds(pending / itemsPerSecond.Value) : null;
 
     /// <summary>
     /// The counters of one stage of a job.

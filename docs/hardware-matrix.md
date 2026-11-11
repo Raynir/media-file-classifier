@@ -49,5 +49,5 @@ Dev machine (28 logical processors, 31.7 GB, RTX 4070 Laptop + Intel UHD), both 
 
 What it shows:
 - The GPU embeds images about 3.3 to 4.2 times faster than the CPU and texts 5 to 7 times faster. The `compact` tier shares the `standard` image tower, so its image figure only differs by run-to-run noise (these runs ranged from 27.7 to 36.5 images/s).
-- **The `compact` tier's fp16 text model doesn't load on the CPU** (ONNX Runtime fails to initialise it: `InsertedPrecisionFreeCast_…` in `SimplifiedLayerNormFusion`). So `compact` is a GPU-only tier. If DirectML falls back to the CPU while `compact` is the installed tier, the text tower is unusable until `standard` is installed. The provider doesn't handle that case yet.
+- **The `compact` tier's fp16 text model doesn't load on the CPU** (ONNX Runtime fails to initialise it: `InsertedPrecisionFreeCast_…` in `SimplifiedLayerNormFusion`). So `compact` is a GPU-only tier. If DirectML falls back to the CPU while `compact` is the installed tier, the text tower is unusable until `standard` is installed. The provider handles it: a GPU tier that fails to load makes it use the installed CPU tier (`standard`) from then on, until the app restarts.
 - The CPU figure here (8.7 images/s) is below MFC-85's 14.7 images/s, which was measured differently (see its contract); compare runs only with the same command.

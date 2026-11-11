@@ -41,10 +41,22 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
 
         tokenizerPath = tokenizerFile;
         this.imageBatchSize = imageBatchSize;
-        tokenizer = new Lazy<Siglip2Tokenizer>(() => Siglip2Tokenizer.Load(tokenizerPath), LazyThreadSafetyMode.ExecutionAndPublication);
+        tokenizer = new Lazy<Siglip2Tokenizer>(LoadTokenizer, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     public int Dimension => Siglip2Model.Dimension;
+
+    private Siglip2Tokenizer LoadTokenizer()
+    {
+        try
+        {
+            return Siglip2Tokenizer.Load(tokenizerPath);
+        }
+        catch (Google.Protobuf.InvalidProtocolBufferException ex)
+        {
+            throw new AiProviderException(AiFailureKind.ProviderError, Siglip2Model.ProviderId, $"The tokenizer file {Path.GetFileName(tokenizerPath)} is damaged: {ex.Message}", innerException: ex);
+        }
+    }
 
     /// <summary>
     /// Gets the execution provider a tower's session runs on now, which is the CPU after a fallback (E06-S08-T04).

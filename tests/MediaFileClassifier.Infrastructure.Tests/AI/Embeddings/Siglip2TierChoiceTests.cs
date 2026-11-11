@@ -1,3 +1,4 @@
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
@@ -94,6 +95,34 @@ public sealed class Siglip2TierChoiceTests : IDisposable
         await store.DeleteAsync(Siglip2Model.ModelId, Siglip2Model.Version, Compact, confirmed: true, Token);
         await provider.CheckHealthAsync(Token);
         Assert.Equal(standard.ContentHash, provider.Model.FileHash);
+    }
+
+    [Fact]
+    public async Task Provider_GpuTierFailsToLoad_SwitchesToTheCpuTierForGood()
+    {
+        var standard = await ImportAsync(Standard);
+        var compact = await ImportAsync(Compact);
+        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog);
+        await provider.CheckHealthAsync(Token);
+        Assert.Equal(compact.ContentHash, provider.Model.FileHash);
+
+        // The placeholder files don't load either tier, but the failure of the GPU tier makes the provider move to the CPU tier.
+        await Assert.ThrowsAsync<AiProviderException>(() => provider.EmbedTextsAsync(["a cat"], Token));
+        await provider.CheckHealthAsync(Token);
+
+        Assert.Equal(standard.ContentHash, provider.Model.FileHash);
+    }
+
+    [Fact]
+    public async Task Provider_GpuTierFailsToLoad_WithNoCpuTierInstalled_StaysAndThrows()
+    {
+        var compact = await ImportAsync(Compact);
+        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog);
+
+        await Assert.ThrowsAsync<AiProviderException>(() => provider.EmbedTextsAsync(["a cat"], Token));
+        await provider.CheckHealthAsync(Token);
+
+        Assert.Equal(compact.ContentHash, provider.Model.FileHash);
     }
 
     public void Dispose()

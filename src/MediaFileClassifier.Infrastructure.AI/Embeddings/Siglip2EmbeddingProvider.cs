@@ -29,6 +29,7 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
     private readonly List<Siglip2OnnxModel> retired = [];
     private volatile Siglip2OnnxModel? model;
     private volatile bool storeChanged;
+    private volatile bool onCpu;
     private bool disposed;
 
     /// <summary>
@@ -166,6 +167,14 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
             {
                 // Unloaded while this call ran: load it again once.
             }
+            catch (AiProviderException ex) when (attempt == 0 && ex.Kind == AiFailureKind.ProviderError && !disposed && !onCpu)
+            {
+                // A GPU tier can fail where the CPU can't run it, e.g. the fp16 text model doesn't load on the CPU.
+                if (!await SwitchToCpuTierAsync(current, cancellationToken).ConfigureAwait(false))
+                {
+                    throw;
+                }
+            }
         }
     }
 
@@ -195,6 +204,26 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
             ?? ordered.FirstOrDefault();
     }
 
+    /// <summary>
+    /// When a tier meant for the GPU fails and another installed tier suits the CPU, uses the CPU from now on: the next
+    /// call chooses again, and picks that tier. A restart tries the GPU again.
+    /// </summary>
+    private async Task<bool> SwitchToCpuTierAsync(Siglip2OnnxModel failed, CancellationToken cancellationToken)
+    {
+        var installed = await store.FindTiersAsync(Siglip2Model.ModelId, Siglip2Model.Version, cancellationToken).ConfigureAwait(false);
+        var tiers = catalog.Find(Siglip2Model.ModelId)?.Tiers ?? [];
+        var current = installed.FirstOrDefault(tier => tier.ContentHash.Equals(failed.Model.FileHash, StringComparison.OrdinalIgnoreCase));
+        var currentSuitsCpu = current is not null && tiers.FirstOrDefault(tier => tier.TierId == current.TierId)?.Suits(ExecutionProvider.Cpu) == true;
+        if (currentSuitsCpu || ChooseTier(installed, catalog, ExecutionProvider.Cpu, null) is not { } replacement || replacement.TierId == current?.TierId)
+        {
+            return false;
+        }
+
+        onCpu = true;
+        storeChanged = true;
+        return true;
+    }
+
     private void OnModelsChanged(object? sender, EventArgs e) => storeChanged = true;
 
     private async Task<Siglip2OnnxModel?> FindModelAsync(CancellationToken cancellationToken)
@@ -215,7 +244,7 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
 
             storeChanged = false;
             var installed = await store.FindTiersAsync(Siglip2Model.ModelId, Siglip2Model.Version, cancellationToken).ConfigureAwait(false);
-            var provider = options.ExecutionProvider ?? sessionFactory.DefaultExecutionProvider;
+            var provider = onCpu ? ExecutionProvider.Cpu : options.ExecutionProvider ?? sessionFactory.DefaultExecutionProvider;
             var chosen = ChooseTier(installed, catalog, provider, options.TierId);
             var current = model;
             if (current is not null && chosen is not null && current.Model.FileHash == chosen.ContentHash.ToLowerInvariant())

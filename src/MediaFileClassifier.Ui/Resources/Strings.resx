@@ -1191,4 +1191,7 @@
   <data name="Search_Hint_Image_Failed" xml:space="preserve">
     <value>This image couldn't be searched with. Try another one.</value>
   </data>
+  <data name="Search_PastedImageName" xml:space="preserve">
+    <value>Pasted image.png</value>
+  </data>
 </root>

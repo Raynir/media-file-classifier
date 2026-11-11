@@ -26,8 +26,8 @@
                 ToolTip.Tip="{Binding ReferenceImage.Name, FallbackValue={x:Null}}">
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" VerticalAlignment="Center">
             <Image Source="{Binding ReferenceImage, Converter={x:Static vm:ReferenceImageThumbnail.Converter}}"
-                   Width="{x:Static vm:ReferenceImageThumbnail.Width}"
-                   Height="{x:Static vm:ReferenceImageThumbnail.Width}"
+                   Width="{DynamicResource Size.Icon}"
+                   Height="{DynamicResource Size.Icon}"
                    Stretch="UniformToFill" />
             <TextBlock Text="{Binding ReferenceImage.Name, FallbackValue={x:Null}}"
                        MaxWidth="160"

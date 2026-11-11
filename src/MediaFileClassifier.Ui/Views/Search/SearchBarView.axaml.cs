@@ -4,6 +4,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Search;
 
 namespace MediaFileClassifier.Ui.Views.Search;
@@ -16,9 +17,9 @@ namespace MediaFileClassifier.Ui.Views.Search;
 public partial class SearchBarView : UserControl
 {
     /// <summary>
-    /// The name a pasted bitmap shows on the chip.
+    /// Gets the name a pasted or dropped bitmap shows on the chip, in the UI language.
     /// </summary>
-    internal const string PastedImageName = "Pasted image.png";
+    internal static string PastedImageName => Localizer.Current.Get("Search_PastedImageName");
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SearchBarView"/> class.

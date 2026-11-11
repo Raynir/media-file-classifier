@@ -10,9 +10,9 @@ namespace MediaFileClassifier.Ui.Search;
 public static class ReferenceImageThumbnail
 {
     /// <summary>
-    /// The width the chip shows, in pixels; decoded at twice that for high-DPI screens.
+    /// The width the picture is decoded at: twice the chip's <c>Size.Icon</c> token, for high-DPI screens.
     /// </summary>
-    public const double Width = 24;
+    public const int DecodeWidth = 48;
 
     /// <summary>
     /// Gets a converter from a <see cref="ReferenceImage"/> to a <see cref="Bitmap"/>, or <see langword="null"/> when
@@ -21,7 +21,7 @@ public static class ReferenceImageThumbnail
     public static IValueConverter Converter { get; } = new FuncValueConverter<ReferenceImage?, Bitmap?>(Decode);
 
     /// <summary>
-    /// Decodes the picture at twice <see cref="Width"/>.
+    /// Decodes the picture at <see cref="DecodeWidth"/>.
     /// </summary>
     /// <param name="image">The reference image.</param>
     /// <returns>The bitmap, or <see langword="null"/>.</returns>
@@ -35,7 +35,7 @@ public static class ReferenceImageThumbnail
         try
         {
             using var stream = new MemoryStream(image.Image.Data.ToArray(), writable: false);
-            return Bitmap.DecodeToWidth(stream, (int)(Width * 2));
+            return Bitmap.DecodeToWidth(stream, DecodeWidth);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NotSupportedException or IOException)
         {

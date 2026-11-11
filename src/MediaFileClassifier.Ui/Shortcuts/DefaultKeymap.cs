@@ -1,6 +1,7 @@
 using Avalonia.Input;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Libraries;
+using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 
@@ -38,6 +39,7 @@ public static class DefaultKeymap
         Bind(ItemCommands.OpenInDefaultApp, PhysicalKey.O, KeyModifiers.Control),
         Bind(ItemCommands.Reveal, PhysicalKey.R, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
         Bind(ItemCommands.CopyPath, PhysicalKey.C, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
+        Bind(FindSimilarCommands.FindSimilar, PhysicalKey.F, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
 
         // Preview and details panel (E14-S05): previous and next, and Enter opens the item in its default app.
         Bind(BrowserCommands.PreviousItem, PhysicalKey.ArrowLeft, scope: ShortcutScopes.Viewer),

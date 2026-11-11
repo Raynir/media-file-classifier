@@ -34,6 +34,11 @@ public static class MatchReasonText
             return null;
         }
 
+        if (match.IsSource)
+        {
+            return localizer.Get("Search_SourceTile");
+        }
+
         var parts = new List<string>(3);
         var fields = FieldNames.Where(name => match.Fields.HasFlag(name.Field)).Select(name => localizer.Get(name.Key)).ToList();
         if (fields.Count > 0)

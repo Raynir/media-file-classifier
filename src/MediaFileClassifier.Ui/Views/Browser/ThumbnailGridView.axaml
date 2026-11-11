@@ -121,6 +121,13 @@
                       AutomationProperties.Name="{l:Loc Tile_Animated}">
                 <Path Data="{StaticResource Icon.Media.AnimatedImage}" />
               </Border>
+              <!-- The source of a "find similar" search (E09-S03, D053). -->
+              <Border Classes="TileMarker"
+                      IsVisible="{Binding IsSource}"
+                      HorizontalAlignment="Left"
+                      AutomationProperties.Name="{l:Loc Search_SourceBadge}">
+                <TextBlock Text="{l:Loc Search_SourceBadge}" FontSize="{DynamicResource FontSize.Caption}" />
+              </Border>
             </Panel>
           </DockPanel>
           <Border Classes="SelectionFill" IsVisible="{Binding IsSelected}" />

@@ -6,6 +6,8 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.Threading;
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Ui.Localization;
@@ -14,6 +16,7 @@ using MediaFileClassifier.Ui.Tests.Browser;
 using MediaFileClassifier.Ui.Views.Search;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
+using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.LoadReferenceImage;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
 using MediaFileClassifier.UseCases.Search.SearchResults;
@@ -140,6 +143,123 @@ public sealed class SearchUiTests
         Assert.Equal(string.Empty, bar.Text);
         Assert.Equal(string.Empty, source.Text);
         Assert.False(bar.ClearCommand.CanExecute(null));
+    });
+
+    [Fact]
+    public Task SearchBar_FindSimilar_ShowsTheChip_TextReplacesIt_AndClearingLeavesIt() => TestApp.RunAsync(() =>
+    {
+        var sender = new StubSender();
+        var source = CreateSource(sender);
+        var bar = CreateBar(source, sender);
+        var item = new SimilarSource(Id<MediaItem>.New(), "IMG_1234.jpg");
+        bar.Text = "beach";
+
+        source.SetSimilarTo(item);
+
+        Assert.True(bar.IsSimilarMode);
+        Assert.Equal("Similar to: IMG_1234.jpg", bar.SimilarLabel);
+        Assert.Equal(string.Empty, bar.Text);
+        Assert.Equal(item, source.SimilarTo);
+
+        // The pause after emptying the box doesn't leave the mode; text typed replaces it.
+        var waitUntil = DateTime.UtcNow.AddMilliseconds(100);
+        Pump.Until(() => DateTime.UtcNow > waitUntil);
+        Assert.True(bar.IsSimilarMode);
+        bar.Text = "lake";
+        bar.SubmitCommand.Execute(null);
+        Assert.False(bar.IsSimilarMode);
+        Assert.Null(source.SimilarTo);
+        Assert.Equal("lake", source.Text);
+
+        // Escape with an empty box, or the chip's clear button, goes back to browsing.
+        source.SetSimilarTo(item);
+        Assert.True(bar.ClearCommand.CanExecute(null));
+        bar.ClearCommand.Execute(null);
+        Assert.False(bar.IsSimilarMode);
+        Assert.False(source.SimilarTo is not null || source.Text.Length > 0);
+
+        source.SetSimilarTo(item);
+        bar.ClearSimilarCommand.Execute(null);
+        Assert.Null(bar.SimilarLabel);
+        Assert.Null(source.SimilarTo);
+    });
+
+    [Theory]
+    [InlineData(SemanticSearchStatus.NotAnalyzed, true)]
+    [InlineData(SemanticSearchStatus.Used, false)]
+    public Task SearchBar_FindSimilar_OffersAnalyzeNow_OnlyForAnUnanalyzedItem(SemanticSearchStatus semantic, bool offered) => TestApp.RunAsync(() =>
+    {
+        var sender = new StubSender { Semantic = semantic };
+        var source = CreateSource(sender);
+        var analyzeNow = new AnalyzeNow(source, sender, new FakeBrowserSession(open: false));
+        var bar = new SearchBarViewModel(source, sender, new StubPicker(), localizer, TimeSpan.FromMilliseconds(30), analyzeNow: analyzeNow);
+
+        source.SetSimilarTo(new SimilarSource(Id<MediaItem>.New(), "IMG_1.jpg"));
+        _ = source.CountAsync(CancellationToken.None);
+        Pump.Until(() => source.Summary is not null);
+        Pump.Until(() => bar.IsAnalyzeNowOffered == offered);
+
+        Assert.Equal(offered, bar.IsAnalyzeNowOffered);
+        Assert.Equal(offered, bar.AnalyzeNowCommand.CanExecute(null));
+        Assert.False(bar.HasAnalyzeStatus);
+
+        // Leaving the mode hides it.
+        bar.ClearSimilarCommand.Execute(null);
+        Pump.Until(() => !bar.IsAnalyzeNowOffered);
+        Assert.False(bar.IsAnalyzeNowOffered);
+    });
+
+    [Theory]
+    [InlineData(SemanticSearchStatus.Used, 0, "No similar items", null)]
+    [InlineData(SemanticSearchStatus.Used, 1, "1 similar item", null)]
+    [InlineData(SemanticSearchStatus.Used, 5, "5 similar items", null)]
+    [InlineData(SemanticSearchStatus.NotAnalyzed, 0, "No similar items", "hasn't been analyzed")]
+    public Task Notice_FindSimilar_CountsSimilarItems(SemanticSearchStatus semantic, int total, string message, string? hint) => TestApp.RunAsync(() =>
+    {
+        var sender = new StubSender { Total = total, Semantic = semantic };
+        var source = CreateSource(sender);
+        var notice = new SearchNoticeViewModel(source, localizer);
+
+        source.SetSimilarTo(new SimilarSource(Id<MediaItem>.New(), "IMG_1.jpg"));
+        _ = source.CountAsync(CancellationToken.None);
+        Pump.Until(() => notice.IsVisible);
+
+        Assert.Equal(message, notice.Message);
+        if (hint is null)
+        {
+            Assert.Null(notice.Hint);
+        }
+        else
+        {
+            Assert.Contains(hint, notice.Hint, StringComparison.Ordinal);
+        }
+    });
+
+    [Fact]
+    public void MatchReason_ForTheSource_SaysSo() =>
+        Assert.Equal("The item you're finding similar items to", MatchReasonText.For(new ResultMatch(SearchFields.None, false, false, IsSource: true), localizer));
+
+    [Fact]
+    public Task SearchBar_FindSimilarAndAPicture_ReplaceEachOther() => TestApp.RunAsync(() =>
+    {
+        var sender = new StubSender();
+        var source = CreateSource(sender);
+        var bar = CreateBar(source, sender);
+        _ = bar.UseImageAsync(new PickedImage(new byte[] { 1 }, "a.png"));
+        Pump.Until(() => bar.HasReferenceImage);
+
+        source.SetSimilarTo(new SimilarSource(Id<MediaItem>.New(), "IMG_1.jpg"));
+
+        Assert.True(bar.IsSimilarMode);
+        Assert.False(bar.HasReferenceImage);
+        Assert.Null(source.ReferenceImage);
+
+        _ = bar.UseImageAsync(new PickedImage(new byte[] { 1 }, "b.png"));
+        Pump.Until(() => bar.HasReferenceImage);
+
+        Assert.False(bar.IsSimilarMode);
+        Assert.Null(source.SimilarTo);
+        Assert.Same(bar.ReferenceImage, source.ReferenceImage);
     });
 
     [Fact]
@@ -377,6 +497,12 @@ public sealed class SearchUiTests
 
         public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
+            if (request is FindSimilarQuery)
+            {
+                var status = Semantic == SemanticSearchStatus.Used ? Semantic : SemanticSearchStatus.NotAnalyzed;
+                return Task.FromResult((TResponse)(object)new MediaSearchResults([], Total, [], SearchMode.Similar, status));
+            }
+
             if (request is LoadReferenceImageQuery load)
             {
                 LastLoad = load;

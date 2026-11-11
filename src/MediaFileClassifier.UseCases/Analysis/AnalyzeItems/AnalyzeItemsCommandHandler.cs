@@ -38,7 +38,7 @@ public sealed partial class AnalyzeItemsCommandHandler(IJobSystem jobs, ILogger<
         var work = itemIds.Select(itemId => new WorkItemRequest(AnalysisStages.Item, itemId, payload)).ToList();
         var description = request.Description ?? (itemIds.Count == 1 ? "Analyze 1 item" : $"Analyze {itemIds.Count} items");
         return await scheduler.EnqueueJobAsync(
-            new JobRequest(AnalysisStages.AnalysisJob, description, JobPriority.AiAnalysis, work) { ItemIds = itemIds },
+            new JobRequest(AnalysisStages.AnalysisJob, description, request.Priority, work) { ItemIds = itemIds },
             cancellationToken).ConfigureAwait(false);
     }
 

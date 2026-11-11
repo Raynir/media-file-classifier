@@ -105,6 +105,11 @@ public enum SearchMode
     Hybrid,
 
     /// <summary>
+    /// "Find similar" (E09-S03): a vector search from an item's own embedding.
+    /// </summary>
+    Similar,
+
+    /// <summary>
     /// The image-to-image search (E09-S04): the reference image's vector alone, ranked by similarity.
     /// </summary>
     Image,
@@ -144,4 +149,9 @@ public enum SemanticSearchStatus
     /// Encoding the query failed; the error is logged. Keyword results only, or none for an image search.
     /// </summary>
     Failed,
+
+    /// <summary>
+    /// "Find similar" on an item without an embedding yet: nothing to compare until it's analyzed (D036).
+    /// </summary>
+    NotAnalyzed,
 }

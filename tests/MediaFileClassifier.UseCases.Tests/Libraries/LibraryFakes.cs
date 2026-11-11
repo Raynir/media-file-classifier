@@ -92,13 +92,19 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IModelRegistrationRepository Models => throw new NotSupportedException();
 
-    public IJobRepository Jobs { get; } = new FakeJobRepository();
+    public FakeJobRepository JobList { get; } = new();
+
+    public IJobRepository Jobs => JobList;
 
     public IKeyframeRepository Keyframes => throw new NotSupportedException();
 
-    public IAnalyzerStateRepository AnalyzerStates => throw new NotSupportedException();
+    public IAnalyzerStateRepository? AnalyzerStateList { get; set; }
 
-    public MediaFileClassifier.Infrastructure.Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
+    public IAnalyzerStateRepository AnalyzerStates => AnalyzerStateList ?? throw new NotSupportedException();
+
+    public IEmbeddingRepository? EmbeddingList { get; set; }
+
+    public IEmbeddingRepository Embeddings => EmbeddingList ?? throw new NotSupportedException();
 
     public MediaFileClassifier.Infrastructure.Abstractions.Search.ISearchStore Search => throw new NotSupportedException();
 
@@ -195,7 +201,15 @@ internal sealed class FakeJobRepository : IJobRepository
 
     public Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<ProcessingJob?> GetJobAsync(Id<ProcessingJob> id, CancellationToken cancellationToken = default) => Task.FromResult<ProcessingJob?>(null);
+    /// <summary>
+    /// Gets or sets the state every job is in, for <see cref="GetJobAsync"/>; <see langword="null"/> for no jobs.
+    /// </summary>
+    public ProcessingJobState? JobState { get; set; }
+
+    public Task<ProcessingJob?> GetJobAsync(Id<ProcessingJob> id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(JobState is { } jobState
+            ? new ProcessingJob { Id = id, Type = "analysis", Description = "Analyze 1 item", State = jobState, CreatedAt = DateTimeOffset.UnixEpoch }
+            : null);
 
     public Task<IReadOnlyList<ProcessingJob>> GetUnfinishedJobsAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ProcessingJob>>([]);
 

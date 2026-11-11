@@ -1161,6 +1161,48 @@
   <data name="Search_Field_FileName" xml:space="preserve">
     <value>File name</value>
   </data>
+  <data name="Command_FindSimilar" xml:space="preserve">
+    <value>Find _similar</value>
+  </data>
+  <data name="Search_SimilarTo" xml:space="preserve">
+    <value>Similar to: {0}</value>
+  </data>
+  <data name="Search_ClearSimilar" xml:space="preserve">
+    <value>Leave find similar</value>
+  </data>
+  <data name="Search_SourceBadge" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Search_SourceTile" xml:space="preserve">
+    <value>The item you're finding similar items to</value>
+  </data>
+  <data name="Search_SimilarResults" xml:space="preserve">
+    <value>{0} similar items</value>
+  </data>
+  <data name="Search_OneSimilarResult" xml:space="preserve">
+    <value>1 similar item</value>
+  </data>
+  <data name="Search_NoSimilarResults" xml:space="preserve">
+    <value>No similar items</value>
+  </data>
+  <data name="Search_Hint_NotAnalyzed" xml:space="preserve">
+    <value>This item hasn't been analyzed yet, so there's nothing to compare it with.</value>
+  </data>
+  <data name="Search_AnalyzeNow" xml:space="preserve">
+    <value>Analyze now</value>
+  </data>
+  <data name="Search_Analyzing" xml:space="preserve">
+    <value>Analyzing…</value>
+  </data>
+  <data name="Search_AnalyzePaused" xml:space="preserve">
+    <value>Queued, but processing is paused</value>
+  </data>
+  <data name="Search_AnalyzeNotRunning" xml:space="preserve">
+    <value>Background processing isn't running</value>
+  </data>
+  <data name="Search_AnalyzeFailed" xml:space="preserve">
+    <value>Couldn't analyze this item</value>
+  </data>
   <data name="Search_PickImage" xml:space="preserve">
     <value>Search with an image</value>
   </data>

@@ -11,7 +11,9 @@ namespace MediaFileClassifier.UseCases.Browsing;
 /// semantic search found.</param>
 /// <param name="IsSemantic">Whether the semantic search found it too.</param>
 /// <param name="IsLessRelevant">Whether it falls below the relevance threshold and is only shown on request.</param>
-public sealed record ResultMatch(SearchFields Fields, bool IsSemantic, bool IsLessRelevant);
+/// <param name="IsSource">Whether it's the item a "find similar" search started from, shown first and marked Source
+/// (D053).</param>
+public sealed record ResultMatch(SearchFields Fields, bool IsSemantic, bool IsLessRelevant, bool IsSource = false);
 
 /// <summary>
 /// Implemented by a result source that can say why it returned a result. The browser asks it for the tiles on screen.

@@ -44,6 +44,41 @@
             </Button>
           </StackPanel>
         </Border>
+        <!-- Similarity mode (E09-S03-T02): "Similar to: IMG_1234" with the item's thumbnail; text typed replaces it. -->
+        <Border x:Name="SimilarChip"
+                IsVisible="{Binding IsSimilarMode}"
+                Background="{DynamicResource Brush.State.Hover}"
+                CornerRadius="{DynamicResource Radius.Control}"
+                Padding="{DynamicResource Padding.Badge}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" VerticalAlignment="Center">
+            <Image Source="{Binding SimilarThumbnail}"
+                   Width="{DynamicResource Size.Icon}"
+                   Height="{DynamicResource Size.Icon}"
+                   Stretch="UniformToFill" />
+            <TextBlock VerticalAlignment="Center"
+                       MaxWidth="180"
+                       TextTrimming="CharacterEllipsis"
+                       Text="{Binding SimilarLabel}" />
+            <!-- "Analyze now" for an item without an embedding (E09-S03-T03, D036), and how it goes. -->
+            <TextBlock x:Name="AnalyzeStatus"
+                       Classes="Secondary Caption"
+                       VerticalAlignment="Center"
+                       IsVisible="{Binding HasAnalyzeStatus}"
+                       Text="{Binding AnalyzeStatus}" />
+            <Button x:Name="AnalyzeNowButton"
+                    Classes="accent"
+                    Padding="{DynamicResource Padding.Compact}"
+                    IsVisible="{Binding IsAnalyzeNowOffered}"
+                    Command="{Binding AnalyzeNowCommand}"
+                    Content="{l:Loc Search_AnalyzeNow}" />
+            <Button Classes="Icon Small"
+                    Command="{Binding ClearSimilarCommand}"
+                    ToolTip.Tip="{l:Loc Search_ClearSimilar}"
+                    AutomationProperties.Name="{l:Loc Search_ClearSimilar}">
+              <PathIcon Classes="Small" Data="{StaticResource Icon.Close}" />
+            </Button>
+          </StackPanel>
+        </Border>
         <TextBlock x:Name="ImageErrorText"
                    IsVisible="{Binding HasImageError}"
                    Text="{Binding ImageError}"

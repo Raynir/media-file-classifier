@@ -118,7 +118,6 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
 
     private ReadOnlyMemory<float>[] EmbedImages(IReadOnlyList<AiImage> images, CancellationToken cancellationToken)
     {
-        var session = GetSession(Siglip2Model.VisionRole).Session;
         var vectors = new ReadOnlyMemory<float>[images.Count];
         for (var start = 0; start < images.Count; start += imageBatchSize)
         {
@@ -139,7 +138,7 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
             }
 
             var tensor = new DenseTensor<float>(input, [count, 3, Siglip2Model.ImageSize, Siglip2Model.ImageSize]);
-            using var results = session.Run([NamedOnnxValue.CreateFromTensor(PixelInput, tensor)], [PooledOutput]);
+            using var results = Run(Siglip2Model.VisionRole, session => session.Run([NamedOnnxValue.CreateFromTensor(PixelInput, tensor)], [PooledOutput]));
             Split(results[0].AsTensor<float>(), count).CopyTo(vectors, start);
         }
 
@@ -154,7 +153,6 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var session = GetSession(Siglip2Model.TextRole).Session;
         var ids = new long[texts.Count * Siglip2Model.SequenceLength];
         for (var i = 0; i < texts.Count; i++)
         {
@@ -162,7 +160,7 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
         }
 
         var tensor = new DenseTensor<long>(ids, [texts.Count, Siglip2Model.SequenceLength]);
-        using var results = session.Run([NamedOnnxValue.CreateFromTensor(TokenInput, tensor)], [PooledOutput]);
+        using var results = Run(Siglip2Model.TextRole, session => session.Run([NamedOnnxValue.CreateFromTensor(TokenInput, tensor)], [PooledOutput]));
         return Split(results[0].AsTensor<float>(), texts.Count);
     }
 }

@@ -14,7 +14,9 @@ public sealed record Siglip2Options
     public int ImageBatchSize { get; init; } = 4;
 
     /// <summary>
-    /// Gets the execution provider to try first. The session factory falls back to the CPU.
+    /// Gets the execution provider to try first, or <c>null</c> to choose it from the hardware
+    /// (<see cref="Onnx.OnnxSessionFactory.DefaultExecutionProvider"/>). The session factory falls back to the CPU.
+    /// The hardware settings (E17-S08) override it.
     /// </summary>
-    public ExecutionProvider ExecutionProvider { get; init; } = ExecutionProvider.Cpu;
+    public ExecutionProvider? ExecutionProvider { get; init; }
 }

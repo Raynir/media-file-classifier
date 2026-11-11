@@ -8,12 +8,13 @@ namespace MediaFileClassifier.Infrastructure.AI.Onnx;
 /// <summary>
 /// Base class for providers that run an in-process ONNX model (D005). It owns the session lifecycle: each model file
 /// is loaded on first use with the preferred execution provider (falling back to the CPU), shared by all callers, and
-/// released on <see cref="Dispose()"/>. A missing file is reported as <see cref="ProviderHealthStatus.ModelMissing"/>,
+/// released on <see cref="Dispose()"/>. If a GPU session's first run fails, the file is reloaded on the CPU and the run
+/// is retried once (E06-S08). A missing file is reported as <see cref="ProviderHealthStatus.ModelMissing"/>,
 /// so jobs wait for the model instead of failing (D037).
 /// </summary>
 /// <remarks>
 /// A subclass implements one or more capability interfaces and calls <see cref="GetSession"/> and
-/// <see cref="RunAsync{T}"/>. A two-tower model such as SigLIP 2 is one provider with two files, e.g. <c>vision</c>
+/// <see cref="RunAsync{T}"/>, and runs sessions through <see cref="Run{T}"/>. A two-tower model such as SigLIP 2 is one provider with two files, e.g. <c>vision</c>
 /// and <c>text</c>, and implements both <see cref="IImageEmbeddingProvider"/> and <see cref="ITextEmbeddingProvider"/>.
 /// </remarks>
 public abstract class OnnxModelProvider : IAiProvider, IDisposable
@@ -22,6 +23,7 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
     private readonly OnnxSessionFactory sessionFactory;
     private readonly ExecutionProvider preferredExecutionProvider;
     private readonly Dictionary<string, OnnxSession> sessions = new(StringComparer.Ordinal);
+    private readonly List<OnnxSession> retiredSessions = [];
     private readonly Lock sessionLock = new();
     private bool disposed;
 
@@ -154,6 +156,36 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
     }
 
     /// <summary>
+    /// Runs one model file's session. If the session is on a GPU provider and this is its first run, a failure moves the
+    /// file to the CPU, and the run is retried once there. Later failures, and failures on the CPU, are thrown.
+    /// </summary>
+    /// <typeparam name="T">Type of the result.</typeparam>
+    /// <param name="role">The file's role, a key of the model files passed to the constructor.</param>
+    /// <param name="run">The run, e.g. <c>session =&gt; session.Run(inputs, outputs)</c>.</param>
+    /// <returns>The result.</returns>
+    /// <exception cref="AiProviderException">The file is missing or doesn't load.</exception>
+    /// <exception cref="OnnxRuntimeException">The run failed.</exception>
+    protected T Run<T>(string role, Func<InferenceSession, T> run)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+
+        var session = GetSession(role);
+        T result;
+        try
+        {
+            result = run(session.Session);
+        }
+        catch (OnnxRuntimeException ex) when (session.ExecutionProvider != ExecutionProvider.Cpu && !session.HasRun)
+        {
+            session = MoveToCpu(role, session, ex);
+            result = run(session.Session);
+        }
+
+        session.HasRun = true;
+        return result;
+    }
+
+    /// <summary>
     /// Runs inference work on the thread pool and wraps the result with its provenance. ONNX Runtime errors become
     /// <see cref="AiProviderException"/>.
     /// </summary>
@@ -177,6 +209,36 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
         }
     }
 
+    private OnnxSession MoveToCpu(string role, OnnxSession failed, OnnxRuntimeException error)
+    {
+        var path = modelFiles[role];
+        lock (sessionLock)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (sessions.TryGetValue(role, out var current) && !ReferenceEquals(current, failed))
+            {
+                // Another caller already moved it.
+                return current;
+            }
+
+            sessionFactory.ReportRunFailure(path, failed.ExecutionProvider, error);
+            OnnxSession replacement;
+            try
+            {
+                replacement = sessionFactory.Create(path, ExecutionProvider.Cpu);
+            }
+            catch (Exception ex) when (ex is OnnxRuntimeException or FileNotFoundException)
+            {
+                throw new AiProviderException(AiFailureKind.ProviderError, Id, $"The model {Model.ModelName} didn't load on the CPU: {ex.Message}", innerException: ex);
+            }
+
+            // Other callers may still be running on the failed session, so it's released with the provider.
+            retiredSessions.Add(failed);
+            sessions[role] = replacement;
+            return replacement;
+        }
+    }
+
     /// <summary>
     /// Releases the sessions.
     /// </summary>
@@ -192,12 +254,13 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
         {
             lock (sessionLock)
             {
-                foreach (var session in sessions.Values)
+                foreach (var session in sessions.Values.Concat(retiredSessions))
                 {
                     session.Dispose();
                 }
 
                 sessions.Clear();
+                retiredSessions.Clear();
             }
         }
 

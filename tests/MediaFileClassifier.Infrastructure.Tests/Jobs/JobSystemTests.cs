@@ -199,6 +199,8 @@ public sealed class JobSystemTests : IAsyncLifetime
 
         public ExecutionProvider PreferredExecutionProvider => ExecutionProvider.Cpu;
 
+        public GpuInfo? PreferredGpu => null;
+
         public int DefaultParallelism => parallelism;
     }
 }

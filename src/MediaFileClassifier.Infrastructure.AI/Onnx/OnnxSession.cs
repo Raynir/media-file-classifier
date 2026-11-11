@@ -22,6 +22,12 @@ public sealed class OnnxSession : IDisposable
 
     public ExecutionProvider ExecutionProvider { get; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether a run has succeeded on this session. Until then, a failed run on a GPU
+    /// provider moves the model to the CPU (E06-S08).
+    /// </summary>
+    internal bool HasRun { get; set; }
+
     /// <inheritdoc />
     public void Dispose()
     {

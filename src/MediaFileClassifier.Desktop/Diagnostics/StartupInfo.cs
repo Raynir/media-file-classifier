@@ -40,11 +40,12 @@ internal static class StartupInfo
             : string.Join("; ", profile.Gpus.Select(gpu => $"{gpu.Name} ({gpu.Vendor}, {gpu.DedicatedMemoryBytes / Gigabyte:0.0} GB)"));
         logger.LogInformation(
             "Hardware: {LogicalProcessors} logical processors, {MemoryGb:0.0} GB memory, GPUs: {Gpus}. "
-                + "Execution provider {ExecutionProvider} (applied when ONNX Runtime is added in E06), default parallelism {Parallelism}",
+                + "Preferred execution provider {ExecutionProvider} on {Gpu}, default parallelism {Parallelism}",
             profile.LogicalProcessorCount,
             profile.TotalMemoryBytes / Gigabyte,
             gpus,
             hardware.PreferredExecutionProvider,
+            hardware.PreferredGpu?.Name ?? "the CPU",
             hardware.DefaultParallelism);
     }
 }

@@ -162,7 +162,11 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
                 return null;
             }
 
-            model = new Siglip2OnnxModel(installed, sessionFactory, options.ExecutionProvider, options.ImageBatchSize);
+            model = new Siglip2OnnxModel(
+                installed,
+                sessionFactory,
+                options.ExecutionProvider ?? sessionFactory.DefaultExecutionProvider,
+                options.ImageBatchSize);
             return model;
         }
         finally

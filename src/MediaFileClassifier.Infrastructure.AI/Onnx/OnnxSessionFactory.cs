@@ -35,6 +35,7 @@ public sealed class OnnxSessionFactory
     private readonly ILogger logger;
     private readonly IHardwareInfo? hardware;
     private readonly ConcurrentDictionary<(string Path, ExecutionProvider Provider), string> failedRuns = new();
+    private readonly ConcurrentDictionary<(string Path, ExecutionProvider Provider, string Kind), bool> logged = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OnnxSessionFactory"/> class.
@@ -112,7 +113,7 @@ public sealed class OnnxSessionFactory
         var fileName = Path.GetFileName(modelPath);
         var available = AvailableProviders();
         var attempts = GetAttemptOrder(preferred, available);
-        if (preferred != ExecutionProvider.Cpu && attempts[0] == ExecutionProvider.Cpu)
+        if (preferred != ExecutionProvider.Cpu && attempts[0] == ExecutionProvider.Cpu && logged.TryAdd((modelPath, preferred, "missing"), true))
         {
             logger.LogInformation(
                 "{ExecutionProvider} isn't in this ONNX Runtime ({Available}), so {Model} uses the CPU",
@@ -123,7 +124,11 @@ public sealed class OnnxSessionFactory
 
         if (attempts[0] != ExecutionProvider.Cpu && failedRuns.TryGetValue((modelPath, attempts[0]), out var reason))
         {
-            logger.LogInformation("{Model} uses the CPU, because it failed on {ExecutionProvider} earlier: {Reason}", fileName, attempts[0], reason);
+            if (logged.TryAdd((modelPath, attempts[0], "failed-earlier"), true))
+            {
+                logger.LogInformation("{Model} uses the CPU, because it failed on {ExecutionProvider} earlier: {Reason}", fileName, attempts[0], reason);
+            }
+
             attempts = [ExecutionProvider.Cpu];
         }
 

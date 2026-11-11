@@ -110,6 +110,10 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
 
         Assert.Throws<OnnxRuntimeException>(() => provider.Embed());
         Assert.Equal(ExecutionProvider.Cpu, provider.LoadedExecutionProvider);
+
+        // The input was bad, not the GPU: a new session of the file tries the GPU again.
+        using var next = new FlakyEmbedder(modelPath, factory, failingRuns: 0);
+        Assert.Equal(ExecutionProvider.DirectMl, next.LoadedExecutionProvider);
     }
 
     [Fact]

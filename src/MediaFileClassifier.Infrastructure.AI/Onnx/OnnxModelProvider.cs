@@ -177,8 +177,12 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
         }
         catch (OnnxRuntimeException ex) when (session.ExecutionProvider != ExecutionProvider.Cpu && !session.HasRun)
         {
-            session = MoveToCpu(role, session, ex);
+            var gpu = session.ExecutionProvider;
+            session = MoveToCpu(role, session);
             result = run(session.Session);
+
+            // The CPU run worked, so the GPU was at fault. If it threw too, the input was bad, and the GPU stays usable.
+            sessionFactory.ReportRunFailure(modelFiles[role], gpu, ex);
         }
 
         session.HasRun = true;
@@ -209,7 +213,7 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
         }
     }
 
-    private OnnxSession MoveToCpu(string role, OnnxSession failed, OnnxRuntimeException error)
+    private OnnxSession MoveToCpu(string role, OnnxSession failed)
     {
         var path = modelFiles[role];
         lock (sessionLock)
@@ -221,7 +225,6 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
                 return current;
             }
 
-            sessionFactory.ReportRunFailure(path, failed.ExecutionProvider, error);
             OnnxSession replacement;
             try
             {

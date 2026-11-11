@@ -186,8 +186,9 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
         }
 
         var tiers = catalog.Find(Siglip2Model.ModelId)?.Tiers ?? [];
+        var order = tiers.Select(tier => tier.TierId).ToList();
         var ordered = installed
-            .OrderBy(model => tiers.Select(tier => tier.TierId).ToList().IndexOf(model.TierId) is var index and >= 0 ? index : int.MaxValue)
+            .OrderBy(model => order.IndexOf(model.TierId) is var index and >= 0 ? index : int.MaxValue)
             .ThenBy(model => model.TierId, StringComparer.Ordinal)
             .ToList();
         return ordered.FirstOrDefault(model => tiers.FirstOrDefault(tier => tier.TierId == model.TierId)?.Suits(provider) == true)

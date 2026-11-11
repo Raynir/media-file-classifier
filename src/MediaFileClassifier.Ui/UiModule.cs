@@ -131,6 +131,7 @@ public static class UiModule
         services.AddSingleton<StatusBarViewModel>();
 
         // Unified search (E09-S01): the box in the toolbar and the notice above the results.
+        services.TryAddSingleton<IReferenceImagePicker, AvaloniaReferenceImagePicker>();
         services.AddSingleton<SearchBarViewModel>();
         services.AddSingleton<SearchNoticeViewModel>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, SearchToolbar>());

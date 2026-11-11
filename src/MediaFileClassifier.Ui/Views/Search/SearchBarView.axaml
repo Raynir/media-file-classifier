@@ -3,8 +3,11 @@
              xmlns:vm="using:MediaFileClassifier.Ui.Search"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              x:Class="MediaFileClassifier.Ui.Views.Search.SearchBarView"
-             x:DataType="vm:SearchBarViewModel">
-  <!-- The search box in the toolbar's Search slot (E09-S01-T05, Figma 25:379). It fills the slot's width. -->
+             x:DataType="vm:SearchBarViewModel"
+             DragDrop.AllowDrop="True">
+  <!-- The search box in the toolbar's Search slot (E09-S01-T05, Figma 25:379). It fills the slot's width.
+       A picture picked with the image button, dropped on the box or pasted into it shows as a chip (E09-S04-T01);
+       the chip's look is provisional until the E09-S04 mockups are signed off. -->
   <TextBox x:Name="SearchBox"
            Classes="clearButton"
            HorizontalAlignment="Stretch"
@@ -13,8 +16,57 @@
            PlaceholderText="{l:Loc Search_Placeholder}"
            AutomationProperties.Name="{l:Loc Search_Placeholder}">
     <TextBox.InnerLeftContent>
-      <PathIcon Classes="Small" Data="{StaticResource Icon.Search}" Margin="{DynamicResource Padding.Compact}" />
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <PathIcon Classes="Small" Data="{StaticResource Icon.Search}" Margin="{DynamicResource Padding.Compact}" />
+        <Border x:Name="ImageChip"
+                IsVisible="{Binding HasReferenceImage}"
+                Background="{DynamicResource Brush.State.Hover}"
+                CornerRadius="4"
+                Padding="4,1,2,1"
+                Margin="0,2,4,2"
+                ToolTip.Tip="{Binding ReferenceImage.Name, FallbackValue={x:Null}}">
+          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Image Source="{Binding ReferenceImage, Converter={x:Static vm:ReferenceImageThumbnail.Converter}}"
+                   Width="{x:Static vm:ReferenceImageThumbnail.Width}"
+                   Height="{x:Static vm:ReferenceImageThumbnail.Width}"
+                   Stretch="UniformToFill" />
+            <TextBlock Text="{Binding ReferenceImage.Name, FallbackValue={x:Null}}"
+                       MaxWidth="160"
+                       TextTrimming="CharacterEllipsis"
+                       VerticalAlignment="Center" />
+            <Button x:Name="RemoveImageButton"
+                    Classes="Icon"
+                    Width="20"
+                    Height="20"
+                    Padding="2"
+                    Command="{Binding RemoveImageCommand}"
+                    ToolTip.Tip="{l:Loc Search_RemoveImage}"
+                    AutomationProperties.Name="{l:Loc Search_RemoveImage}">
+              <PathIcon Classes="Small" Data="{StaticResource Icon.Close}" />
+            </Button>
+          </StackPanel>
+        </Border>
+        <TextBlock x:Name="ImageErrorText"
+                   IsVisible="{Binding HasImageError}"
+                   Text="{Binding ImageError}"
+                   Foreground="{DynamicResource Brush.Status.Error.Foreground}"
+                   MaxWidth="260"
+                   TextTrimming="CharacterEllipsis"
+                   ToolTip.Tip="{Binding ImageError}"
+                   VerticalAlignment="Center"
+                   Margin="0,0,4,0" />
+      </StackPanel>
     </TextBox.InnerLeftContent>
+    <TextBox.InnerRightContent>
+      <Button x:Name="PickImageButton"
+              Classes="Icon"
+              Margin="0,0,2,0"
+              Command="{Binding PickImageCommand}"
+              ToolTip.Tip="{l:Loc Search_PickImage}"
+              AutomationProperties.Name="{l:Loc Search_PickImage}">
+        <PathIcon Classes="Small" Data="{StaticResource Icon.Image}" />
+      </Button>
+    </TextBox.InnerRightContent>
     <TextBox.KeyBindings>
       <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />
       <KeyBinding Gesture="Escape" Command="{Binding ClearCommand}" />

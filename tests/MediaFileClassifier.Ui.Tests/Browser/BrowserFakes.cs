@@ -278,4 +278,14 @@ internal static class Pump
             Thread.Sleep(5);
         }
     }
+
+    public static void For(TimeSpan duration)
+    {
+        var deadline = DateTime.UtcNow + duration;
+        while (DateTime.UtcNow < deadline)
+        {
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(5);
+        }
+    }
 }

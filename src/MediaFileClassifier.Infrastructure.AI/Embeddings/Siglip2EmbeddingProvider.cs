@@ -26,6 +26,7 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
     private readonly Siglip2Options options;
     private readonly IModelCatalog catalog;
     private readonly SemaphoreSlim loadGate = new(1, 1);
+    private readonly List<Siglip2OnnxModel> retired = [];
     private volatile Siglip2OnnxModel? model;
     private volatile bool storeChanged;
     private bool disposed;
@@ -119,6 +120,20 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
         // A call that already holds the old model finishes on it, or retries on a new one if it was disposed.
         var old = Interlocked.Exchange(ref model, null);
         old?.Dispose();
+        DisposeRetired();
+    }
+
+    private void DisposeRetired()
+    {
+        lock (retired)
+        {
+            foreach (var old in retired)
+            {
+                old.Dispose();
+            }
+
+            retired.Clear();
+        }
     }
 
     /// <inheritdoc />
@@ -133,6 +148,7 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
         store.ModelsChanged -= OnModelsChanged;
         model?.Dispose();
         model = null;
+        DisposeRetired();
         loadGate.Dispose();
     }
 
@@ -207,9 +223,17 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
                 return current;
             }
 
-            // A call still running on the old model finishes on it, or retries on the new one if it was disposed.
+            // Calls may still be running on the old model, and a native session freed under a running call can crash the
+            // process, so the old one is kept until this provider is disposed (tier swaps are rare).
             model = chosen is null ? null : new Siglip2OnnxModel(chosen, sessionFactory, provider, options.ImageBatchSize);
-            current?.Dispose();
+            if (current is not null)
+            {
+                lock (retired)
+                {
+                    retired.Add(current);
+                }
+            }
+
             return model;
         }
         catch

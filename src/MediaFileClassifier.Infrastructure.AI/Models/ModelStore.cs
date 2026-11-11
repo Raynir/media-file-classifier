@@ -734,6 +734,7 @@ public sealed partial class ModelStore : IModelStore, IDisposable
         var manifest = await TryReadManifestFileAsync(pending, modelId, version, CancellationToken.None).ConfigureAwait(false);
         if (manifest is null)
         {
+            SetAside(pending, "its manifest can't be read");
             return;
         }
 
@@ -744,7 +745,7 @@ public sealed partial class ModelStore : IModelStore, IDisposable
         {
             if (Directory.Exists(target) || File.Exists(Path.Combine(versionDirectory, ManifestFileName)))
             {
-                logger.LogWarning("Couldn't move {Pending} into {Target}: the folder is taken", pending, target);
+                SetAside(pending, $"{target} is taken");
                 return;
             }
 
@@ -777,6 +778,27 @@ public sealed partial class ModelStore : IModelStore, IDisposable
         }
 
         logger.LogInformation("Moved the model {ModelId} {Version} into its tier folder {TierId}", modelId, version, tierId);
+    }
+
+    /// <summary>
+    /// Renames a <c>.migrating-</c> folder that can never be finished to <c>.unmigrated-&lt;version&gt;-&lt;id&gt;</c>, so it
+    /// no longer blocks import and delete of its version as "being moved". Nothing is deleted: the files stay for the
+    /// user to look at or remove.
+    /// </summary>
+    private void SetAside(string pending, string reason)
+    {
+        var aside = Path.Combine(
+            Path.GetDirectoryName(pending)!,
+            ".unmigrated-" + Path.GetFileName(pending)[MigratingPrefix.Length..] + "-" + Guid.NewGuid().ToString("N")[..8]);
+        try
+        {
+            Directory.Move(pending, aside);
+            logger.LogWarning("Couldn't move {Pending} into its tier folder ({Reason}); left it as {Aside} for the user to check", pending, reason, aside);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Couldn't move {Pending} into its tier folder ({Reason}), nor set it aside; will try again", pending, reason);
+        }
     }
 
     /// <summary>

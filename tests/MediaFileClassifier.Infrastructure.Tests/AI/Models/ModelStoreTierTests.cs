@@ -127,6 +127,34 @@ public sealed class ModelStoreTierTests : IDisposable
         Assert.False(Directory.Exists(Path.Combine(models, "siglip2", ".migrating-1")));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Legacy_MoveThatCanNeverFinish_IsSetAside_AndDoesNotBlockImportOrDelete(bool targetTaken)
+    {
+        await MakeLegacyAsync(Compact);
+        var modelFolder = Path.Combine(models, "siglip2");
+        var pending = Path.Combine(modelFolder, ".migrating-1");
+        Directory.Move(Path.Combine(modelFolder, "1"), pending);
+        if (targetTaken)
+        {
+            Directory.CreateDirectory(Path.Combine(modelFolder, "1", Compact));
+        }
+        else
+        {
+            File.WriteAllText(Path.Combine(pending, "manifest.json"), "{ not json");
+        }
+
+        using var reopened = new ModelStore(models, TimeProvider.System, catalog: catalog);
+
+        _ = await reopened.FindTiersAsync("siglip2", "1", Token);
+
+        Assert.False(Directory.Exists(pending));
+        Assert.Single(Directory.EnumerateDirectories(modelFolder, ".unmigrated-1-*"));
+        await reopened.ImportAsync(Request(Standard), null, Token);
+        Assert.Contains(await reopened.FindTiersAsync("siglip2", "1", Token), tier => tier.TierId == Standard);
+    }
+
     [Fact]
     public async Task Legacy_FileOpen_IsReadInPlaceAndMovedLater()
     {

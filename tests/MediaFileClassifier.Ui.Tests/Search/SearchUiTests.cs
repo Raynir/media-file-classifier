@@ -92,6 +92,33 @@ public sealed class SearchUiTests
         Assert.Null(notice.Hint);
     });
 
+    [Theory]
+    [InlineData(SemanticSearchStatus.ModelMissing, "searching by image isn't possible yet")]
+    [InlineData(SemanticSearchStatus.IndexNotReady, "Try the image search again")]
+    [InlineData(SemanticSearchStatus.Failed, "couldn't be searched with")]
+    [InlineData(SemanticSearchStatus.Used, null)]
+    public Task Notice_ImageSearch_ExplainsWhyThereAreNoResults(SemanticSearchStatus status, string? expected) => TestApp.RunAsync(() =>
+    {
+        var sender = new StubSender { Mode = SearchMode.Image, Semantic = status };
+        var source = CreateSource(sender);
+        var notice = new SearchNoticeViewModel(source, localizer);
+
+        source.SetReferenceImage(Image("a.png"));
+        _ = source.CountAsync(CancellationToken.None);
+        Pump.Until(() => notice.IsVisible);
+
+        Assert.Equal("No results", notice.Message);
+        if (expected is null)
+        {
+            Assert.Null(notice.Hint);
+        }
+        else
+        {
+            Assert.Contains(expected, notice.Hint, StringComparison.Ordinal);
+            Assert.DoesNotContain("text matches", notice.Hint, StringComparison.Ordinal);
+        }
+    });
+
     [Fact]
     public Task SearchBar_DoesNotSearchWhileTyping_SearchesOnEnter_AndClearGoesBackToBrowsing() => TestApp.RunAsync(() =>
     {
@@ -315,6 +342,8 @@ public sealed class SearchUiTests
 
         public SemanticSearchStatus Semantic { get; set; } = SemanticSearchStatus.Used;
 
+        public SearchMode Mode { get; set; } = SearchMode.Hybrid;
+
         public SearchMediaQuery? LastQuery { get; private set; }
 
         public ReferenceImageProblem LoadProblem { get; set; }
@@ -335,7 +364,7 @@ public sealed class SearchUiTests
             if (request is SearchMediaQuery query)
             {
                 LastQuery = query;
-                return Task.FromResult((TResponse)(object)new MediaSearchResults([], Total, [], SearchMode.Hybrid, Semantic, LessRelevant));
+                return Task.FromResult((TResponse)(object)new MediaSearchResults([], Total, [], Mode, Semantic, LessRelevant));
             }
 
             throw new NotSupportedException();

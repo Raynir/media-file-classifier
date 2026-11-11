@@ -74,7 +74,7 @@ public sealed partial class SearchNoticeViewModel : ViewModelBase
             1 => localizer.Get("Search_OneResult"),
             _ => localizer.Format("Search_Results", summary.TotalCount),
         };
-        Hint = summary.Semantic switch
+        Hint = summary.Mode == SearchMode.Image ? ImageHint(summary.Semantic) : summary.Semantic switch
         {
             SemanticSearchStatus.ModelMissing => localizer.Get("Search_Hint_ModelMissing"),
             SemanticSearchStatus.IndexNotReady => localizer.Get("Search_Hint_IndexNotReady"),
@@ -86,4 +86,13 @@ public sealed partial class SearchNoticeViewModel : ViewModelBase
             : summary.LessRelevantCount > 0 ? localizer.Format("Search_ShowLessRelevant", summary.LessRelevantCount) : null;
         IsVisible = true;
     }
+
+    // An image search has no text results to fall back on (E09-S04).
+    private string? ImageHint(SemanticSearchStatus status) => status switch
+    {
+        SemanticSearchStatus.ModelMissing => localizer.Get("Search_Hint_Image_ModelMissing"),
+        SemanticSearchStatus.IndexNotReady => localizer.Get("Search_Hint_Image_IndexNotReady"),
+        SemanticSearchStatus.Failed => localizer.Get("Search_Hint_Image_Failed"),
+        _ => null,
+    };
 }

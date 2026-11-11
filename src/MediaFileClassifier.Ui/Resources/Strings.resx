@@ -1182,4 +1182,13 @@
   <data name="Search_ImageError_Unreadable" xml:space="preserve">
     <value>This image couldn't be read.</value>
   </data>
+  <data name="Search_Hint_Image_ModelMissing" xml:space="preserve">
+    <value>The image model is not installed, so searching by image isn't possible yet.</value>
+  </data>
+  <data name="Search_Hint_Image_IndexNotReady" xml:space="preserve">
+    <value>The search index is still loading. Try the image search again in a moment.</value>
+  </data>
+  <data name="Search_Hint_Image_Failed" xml:space="preserve">
+    <value>This image couldn't be searched with. Try another one.</value>
+  </data>
 </root>

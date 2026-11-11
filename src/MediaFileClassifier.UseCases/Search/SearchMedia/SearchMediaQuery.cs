@@ -103,6 +103,11 @@ public enum SearchMode
     /// Both searches, merged with reciprocal rank fusion (E01-S04-T04).
     /// </summary>
     Hybrid,
+
+    /// <summary>
+    /// The image-to-image search (E09-S04): the reference image's vector alone, ranked by similarity.
+    /// </summary>
+    Image,
 }
 
 /// <summary>
@@ -136,7 +141,7 @@ public enum SemanticSearchStatus
     IndexNotReady,
 
     /// <summary>
-    /// Encoding the query failed; the error is logged. Keyword results only.
+    /// Encoding the query failed; the error is logged. Keyword results only, or none for an image search.
     /// </summary>
     Failed,
 }

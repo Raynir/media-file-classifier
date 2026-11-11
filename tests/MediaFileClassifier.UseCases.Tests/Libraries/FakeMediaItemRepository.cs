@@ -15,6 +15,8 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
 
     public List<MediaItem> Items { get; } = [];
 
+    public int ChangedHandlerCount => Changed?.GetInvocationList().Length ?? 0;
+
     public void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
 
     public Task<MediaItem?> GetAsync(Id<MediaItem> id, CancellationToken cancellationToken = default) =>

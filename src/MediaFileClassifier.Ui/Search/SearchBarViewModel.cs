@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels;
+using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.SearchResults;
 
 namespace MediaFileClassifier.Ui.Search;
@@ -14,7 +15,8 @@ namespace MediaFileClassifier.Ui.Search;
 /// The search box in the toolbar's Search slot (E09-S01-T05). Typing starts a search once the keystrokes pause for
 /// <see cref="DefaultDelay"/> (D031); the search before it is cancelled. Enter searches at once, and Clear goes
 /// back to browsing. "Find similar" (E09-S03-T02) shows as a chip with the item's thumbnail and name; text typed then
-/// replaces it, and clearing the chip goes back to browsing.
+/// replaces it, and clearing the chip goes back to browsing. For an item without an embedding, the chip offers
+/// "Analyze now" (E09-S03-T03) and shows how the analysis goes; the results appear by themselves once it's done.
 /// </summary>
 public sealed partial class SearchBarViewModel : ViewModelBase
 {
@@ -25,6 +27,7 @@ public sealed partial class SearchBarViewModel : ViewModelBase
 
     private readonly SearchResultSource source;
     private readonly ThumbnailLoader? thumbnails;
+    private readonly AnalyzeNow? analyzeNow;
     private readonly DispatcherTimer timer;
     private CancellationTokenSource? thumbnailLoading;
     private ThumbnailLease? thumbnailLease;
@@ -35,10 +38,12 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     /// <param name="source">The results to search.</param>
     /// <param name="delay">The keystroke pause, or <see langword="null"/> for <see cref="DefaultDelay"/>.</param>
     /// <param name="thumbnails">Loads the chip's thumbnail, or <see langword="null"/> for none.</param>
-    public SearchBarViewModel(SearchResultSource source, TimeSpan? delay = null, ThumbnailLoader? thumbnails = null)
+    /// <param name="analyzeNow">Analyzes an item without an embedding, or <see langword="null"/> to not offer it.</param>
+    public SearchBarViewModel(SearchResultSource source, TimeSpan? delay = null, ThumbnailLoader? thumbnails = null, AnalyzeNow? analyzeNow = null)
     {
         this.source = source;
         this.thumbnails = thumbnails;
+        this.analyzeNow = analyzeNow;
         timer = new DispatcherTimer { Interval = delay ?? DefaultDelay };
         timer.Tick += (_, _) => Submit();
         source.Changed += (_, _) =>
@@ -53,6 +58,11 @@ public sealed partial class SearchBarViewModel : ViewModelBase
                 Dispatcher.UIThread.Post(Sync);
             }
         };
+        if (analyzeNow is not null)
+        {
+            AnalyzeState = analyzeNow.State;
+            analyzeNow.StateChanged += (_, _) => Dispatcher.UIThread.Post(() => AnalyzeState = analyzeNow.State);
+        }
     }
 
     /// <summary>
@@ -77,6 +87,37 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     public partial IImage? SimilarThumbnail { get; private set; }
 
     /// <summary>
+    /// Gets where "Analyze now" stands for <see cref="SimilarTo"/>.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAnalyzeNowOffered), nameof(AnalyzeStatus), nameof(HasAnalyzeStatus))]
+    [NotifyCanExecuteChangedFor(nameof(AnalyzeNowCommand))]
+    public partial AnalyzeNowState AnalyzeState { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the chip offers "Analyze now": the item has no embedding, and isn't being
+    /// analyzed.
+    /// </summary>
+    public bool IsAnalyzeNowOffered => AnalyzeState is AnalyzeNowState.Offered or AnalyzeNowState.Failed or AnalyzeNowState.NotRunning;
+
+    /// <summary>
+    /// Gets how "Analyze now" goes, e.g. <c>Analyzing…</c>, or <see langword="null"/> when there's nothing to say.
+    /// </summary>
+    public string? AnalyzeStatus => AnalyzeState switch
+    {
+        AnalyzeNowState.Analyzing => Localizer.Current["Search_Analyzing"],
+        AnalyzeNowState.Paused => Localizer.Current["Search_AnalyzePaused"],
+        AnalyzeNowState.NotRunning => Localizer.Current["Search_AnalyzeNotRunning"],
+        AnalyzeNowState.Failed => Localizer.Current["Search_AnalyzeFailed"],
+        _ => null,
+    };
+
+    /// <summary>
+    /// Gets a value indicating whether <see cref="AnalyzeStatus"/> is shown.
+    /// </summary>
+    public bool HasAnalyzeStatus => AnalyzeStatus is not null;
+
+    /// <summary>
     /// Gets a value indicating whether the chip is shown.
     /// </summary>
     public bool IsSimilarMode => SimilarTo is not null;
@@ -96,6 +137,13 @@ public sealed partial class SearchBarViewModel : ViewModelBase
         source.SetText(Text);
         Sync();
     }
+
+    /// <summary>
+    /// Queues the item of the chip for analysis at user priority; the results appear once its embedding is ready.
+    /// </summary>
+    /// <returns>A task that completes when the item is queued.</returns>
+    [RelayCommand(CanExecute = nameof(IsAnalyzeNowOffered))]
+    public Task AnalyzeNowAsync() => analyzeNow?.AnalyzeAsync() ?? Task.CompletedTask;
 
     /// <summary>
     /// Leaves similarity mode and goes back to browsing.

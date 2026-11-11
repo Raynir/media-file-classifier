@@ -27,6 +27,18 @@
                        MaxWidth="180"
                        TextTrimming="CharacterEllipsis"
                        Text="{Binding SimilarLabel}" />
+            <!-- "Analyze now" for an item without an embedding (E09-S03-T03, D036), and how it goes. -->
+            <TextBlock x:Name="AnalyzeStatus"
+                       Classes="Secondary Caption"
+                       VerticalAlignment="Center"
+                       IsVisible="{Binding HasAnalyzeStatus}"
+                       Text="{Binding AnalyzeStatus}" />
+            <Button x:Name="AnalyzeNowButton"
+                    Classes="accent"
+                    Padding="{DynamicResource Padding.Compact}"
+                    IsVisible="{Binding IsAnalyzeNowOffered}"
+                    Command="{Binding AnalyzeNowCommand}"
+                    Content="{l:Loc Search_AnalyzeNow}" />
             <Button Classes="Icon Small"
                     Command="{Binding ClearSimilarCommand}"
                     ToolTip.Tip="{l:Loc Search_ClearSimilar}"

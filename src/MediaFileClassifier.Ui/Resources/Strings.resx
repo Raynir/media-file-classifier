@@ -1188,4 +1188,19 @@
   <data name="Search_Hint_NotAnalyzed" xml:space="preserve">
     <value>This item hasn't been analyzed yet, so there's nothing to compare it with.</value>
   </data>
+  <data name="Search_AnalyzeNow" xml:space="preserve">
+    <value>Analyze now</value>
+  </data>
+  <data name="Search_Analyzing" xml:space="preserve">
+    <value>Analyzing…</value>
+  </data>
+  <data name="Search_AnalyzePaused" xml:space="preserve">
+    <value>Queued, but processing is paused</value>
+  </data>
+  <data name="Search_AnalyzeNotRunning" xml:space="preserve">
+    <value>Background processing isn't running</value>
+  </data>
+  <data name="Search_AnalyzeFailed" xml:space="preserve">
+    <value>Couldn't analyze this item</value>
+  </data>
 </root>

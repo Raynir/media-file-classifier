@@ -147,6 +147,31 @@ public sealed class SearchUiTests
     });
 
     [Theory]
+    [InlineData(SemanticSearchStatus.NotAnalyzed, true)]
+    [InlineData(SemanticSearchStatus.Used, false)]
+    public Task SearchBar_FindSimilar_OffersAnalyzeNow_OnlyForAnUnanalyzedItem(SemanticSearchStatus semantic, bool offered) => TestApp.RunAsync(() =>
+    {
+        var sender = new StubSender { Semantic = semantic };
+        var source = CreateSource(sender);
+        var analyzeNow = new AnalyzeNow(source, sender, new FakeBrowserSession(open: false));
+        var bar = new SearchBarViewModel(source, TimeSpan.FromMilliseconds(30), analyzeNow: analyzeNow);
+
+        source.SetSimilarTo(new SimilarSource(Id<MediaItem>.New(), "IMG_1.jpg"));
+        _ = source.CountAsync(CancellationToken.None);
+        Pump.Until(() => source.Summary is not null);
+        Pump.Until(() => bar.IsAnalyzeNowOffered == offered);
+
+        Assert.Equal(offered, bar.IsAnalyzeNowOffered);
+        Assert.Equal(offered, bar.AnalyzeNowCommand.CanExecute(null));
+        Assert.False(bar.HasAnalyzeStatus);
+
+        // Leaving the mode hides it.
+        bar.ClearSimilarCommand.Execute(null);
+        Pump.Until(() => !bar.IsAnalyzeNowOffered);
+        Assert.False(bar.IsAnalyzeNowOffered);
+    });
+
+    [Theory]
     [InlineData(SemanticSearchStatus.Used, 0, "No similar items", null)]
     [InlineData(SemanticSearchStatus.Used, 1, "1 similar item", null)]
     [InlineData(SemanticSearchStatus.Used, 5, "5 similar items", null)]

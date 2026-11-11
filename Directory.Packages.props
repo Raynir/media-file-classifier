@@ -39,8 +39,11 @@
     <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" />
     <PackageVersion Include="Microsoft.ML.Tokenizers" Version="2.0.1" />
     <!-- AI providers (E01-S05). Infrastructure.AI uses the managed ONNX Runtime API, and each head brings the native
-         runtime (Microsoft.ML.OnnxRuntime above). The OpenAI-compatible provider is built on Microsoft.Extensions.AI. -->
-    <PackageVersion Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.31.1" />
+         runtime (Microsoft.ML.OnnxRuntime above). The OpenAI-compatible provider is built on Microsoft.Extensions.AI.
+         E06-S08: Desktop ships DirectML, whose last release is 1.24.4, so the managed API stays at 1.24.4 (a newer
+         native runtime, as on Android and in tests, accepts it; an older one doesn't accept a newer managed API). -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.24.4" />
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.11.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.11.0" />
     <!-- Playback spike (MFC-54): prototype only until D070 is settled. -->

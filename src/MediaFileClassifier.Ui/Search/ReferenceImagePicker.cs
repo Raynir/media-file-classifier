@@ -14,7 +14,8 @@ namespace MediaFileClassifier.Ui.Search;
 /// </summary>
 /// <param name="Content">The bytes, at most <see cref="LoadReferenceImageQuery.MaxBytes"/> + 1.</param>
 /// <param name="Name">The file name.</param>
-public sealed record PickedImage(ReadOnlyMemory<byte> Content, string Name);
+/// <param name="IsTooLarge">Whether the file is known to be larger than the limit; it isn't read then.</param>
+public sealed record PickedImage(ReadOnlyMemory<byte> Content, string Name, bool IsTooLarge = false);
 
 /// <summary>
 /// Asks the user for a picture to search with (E09-S04-T01), so the search bar can be tested without a window.
@@ -81,6 +82,12 @@ public static class ReferenceImageFiles
     public static async Task<PickedImage> ReadAsync(IStorageFile file)
     {
         ArgumentNullException.ThrowIfNull(file);
+
+        // A file known to be too large isn't read at all.
+        if ((await file.GetBasicPropertiesAsync()).Size > LoadReferenceImageQuery.MaxBytes)
+        {
+            return new PickedImage(ReadOnlyMemory<byte>.Empty, file.Name, IsTooLarge: true);
+        }
 
         await using var stream = await file.OpenReadAsync();
         return new PickedImage(await ReadCappedAsync(stream), file.Name);

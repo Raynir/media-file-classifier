@@ -213,6 +213,27 @@ public sealed class SearchUiTests
     });
 
     [Fact]
+    public Task SearchBar_TextTypedWhileThePictureIsChecked_Wins_AndTooLargeIsRefusedUnread() => TestApp.RunAsync(() =>
+    {
+        var sender = new StubSender { LoadDelay = new TaskCompletionSource() };
+        var source = CreateSource(sender);
+        var bar = CreateBar(source, sender);
+
+        var loading = bar.UseImageAsync(new PickedImage(new byte[] { 1 }, "a.png"));
+        bar.Text = "lake";
+        sender.LoadDelay.SetResult();
+        Pump.Until(() => loading.IsCompleted);
+        Assert.False(bar.HasReferenceImage);
+        Assert.Equal("lake", bar.Text);
+        Assert.Null(source.ReferenceImage);
+
+        var calls = sender.LoadCalls;
+        _ = bar.UseImageAsync(new PickedImage(ReadOnlyMemory<byte>.Empty, "huge.png", IsTooLarge: true));
+        Assert.Contains("too large", bar.ImageError, StringComparison.Ordinal);
+        Assert.Equal(calls, sender.LoadCalls);
+    });
+
+    [Fact]
     public Task SearchBar_PickerCancelledOrFailing_ChangesNothingOrShowsTheError() => TestApp.RunAsync(() =>
     {
         var sender = new StubSender();
@@ -350,15 +371,22 @@ public sealed class SearchUiTests
 
         public LoadReferenceImageQuery? LastLoad { get; private set; }
 
+        public int LoadCalls { get; private set; }
+
+        public TaskCompletionSource? LoadDelay { get; init; }
+
         public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
             if (request is LoadReferenceImageQuery load)
             {
                 LastLoad = load;
+                LoadCalls++;
                 var loaded = LoadProblem == ReferenceImageProblem.None
                     ? new ReferenceImageLoad(new ReferenceImage(new AiImage(load.Content, "image/png", load.Name), load.Name), ReferenceImageProblem.None)
                     : new ReferenceImageLoad(null, LoadProblem);
-                return Task.FromResult((TResponse)(object)loaded);
+                return LoadDelay is { } delay
+                    ? delay.Task.ContinueWith(_ => (TResponse)(object)loaded, TaskScheduler.Default)
+                    : Task.FromResult((TResponse)(object)loaded);
             }
 
             if (request is SearchMediaQuery query)

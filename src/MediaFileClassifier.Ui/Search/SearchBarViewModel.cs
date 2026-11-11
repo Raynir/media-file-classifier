@@ -150,7 +150,21 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     {
         ArgumentNullException.ThrowIfNull(picture);
 
+        if (picture.IsTooLarge)
+        {
+            ImageError = localizer.Get("Search_ImageError_TooLarge");
+            return;
+        }
+
+        var typed = Text;
         var load = await sender.Send(new LoadReferenceImageQuery(picture.Content, picture.Name));
+
+        // The user typed while the picture was checked: the newer text wins.
+        if (Text != typed)
+        {
+            return;
+        }
+
         if (load.Image is not { } image)
         {
             ImageError = localizer.Get(load.Problem switch

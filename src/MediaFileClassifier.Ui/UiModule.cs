@@ -36,6 +36,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.SearchResults;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -135,8 +136,12 @@ public static class UiModule
         services.AddSingleton<StatusBarViewModel>();
 
         // Unified search (E09-S01): the box in the toolbar and the notice above the results.
+        services.TryAddSingleton<IReferenceImagePicker, AvaloniaReferenceImagePicker>();
         services.AddSingleton(provider => new SearchBarViewModel(
             provider.GetRequiredService<SearchResultSource>(),
+            provider.GetRequiredService<ISender>(),
+            provider.GetRequiredService<IReferenceImagePicker>(),
+            provider.GetRequiredService<Localizer>(),
             thumbnails: provider.GetService<IThumbnailCache>() is null ? null : provider.GetRequiredService<ThumbnailLoader>(),
             analyzeNow: provider.GetService<ILibrarySession>() is null ? null : provider.GetRequiredService<AnalyzeNow>()));
         services.AddSingleton<SearchNoticeViewModel>();

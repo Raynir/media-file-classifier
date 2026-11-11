@@ -78,6 +78,11 @@ internal static class Program
             // The search index loads the open library's vectors in the background from its first use (D067).
             host.Services.GetRequiredService<ISearchIndex>();
 
+            if (args.Contains("--benchmark"))
+            {
+                return RunBenchmark(host.Services, logger);
+            }
+
             UiCommandLine.Apply(args, host.Services);
 
             host.Start();
@@ -95,6 +100,44 @@ internal static class Program
         finally
         {
             Log.CloseAndFlush();
+        }
+    }
+
+    /// <summary>
+    /// With <c>--benchmark</c>, times the AI analyzers on this machine, prints a table, saves the results for the
+    /// progress estimate, and exits without opening the window (E06-S08-T04).
+    /// </summary>
+    private static int RunBenchmark(IServiceProvider services, Microsoft.Extensions.Logging.ILogger logger)
+    {
+        AttachParentConsole();
+        var progress = new Progress<string>(line =>
+        {
+            Console.WriteLine(line);
+            logger.LogInformation("Benchmark: {Line}", line);
+        });
+        var report = services.GetRequiredService<IBenchmarkRunner>().RunAsync(progress, CancellationToken.None).GetAwaiter().GetResult();
+        Console.WriteLine($"Machine: {report.Machine}");
+        Console.WriteLine($"{"Analyzer",-14}{"Tier",-10}{"Provider",-10}{"Items/s",8}");
+        foreach (var entry in report.Entries)
+        {
+            Console.WriteLine($"{entry.Analyzer,-14}{entry.TierId,-10}{entry.Provider,-10}{entry.ItemsPerSecond,8:0.0}");
+        }
+
+        return report.Entries.Count == 0 ? 2 : 0;
+    }
+
+    /// <summary>
+    /// The app is a Windows GUI program, so it has no console of its own: attach to the one that started it, so
+    /// <c>--benchmark</c> can print.
+    /// </summary>
+    private const int StdOutputHandle = -11;
+
+    private static void AttachParentConsole()
+    {
+        // Redirected output (a pipe or a file) already has a handle; attaching would replace it with the console.
+        if (NativeMethods.GetStdHandle(StdOutputHandle) == 0 && NativeMethods.AttachConsole(uint.MaxValue))
+        {
+            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
         }
     }
 

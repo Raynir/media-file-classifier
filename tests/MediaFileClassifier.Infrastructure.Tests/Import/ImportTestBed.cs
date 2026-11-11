@@ -248,5 +248,7 @@ internal sealed class ImportTestHardware : IHardwareInfo
 
     public ExecutionProvider PreferredExecutionProvider => ExecutionProvider.Cpu;
 
+    public GpuInfo? PreferredGpu => null;
+
     public int DefaultParallelism => 4;
 }

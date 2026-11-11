@@ -62,8 +62,8 @@ public sealed class ModelDownloaderTests : IDisposable
         Assert.Equal(text.Length, new FileInfo(model.GetFilePaths()["text"]).Length);
         Assert.Equal("Apache-2.0", model.License);
         Assert.Equal("https://example.com/siglip2", model.Source);
-        Assert.Equivalent(model, await store.FindAsync("siglip2", "1", Token));
-        Assert.Empty(await store.VerifyAsync("siglip2", "1", Token));
+        Assert.Equivalent(model, await store.FindAsync("siglip2", "1", "standard", Token));
+        Assert.Empty(await store.VerifyAsync("siglip2", "1", "standard", Token));
         Assert.Equal(new ModelDownloadProgress(ModelDownloadPhase.Downloading, entry.Default.Size, entry.Default.Size), reports.Last(report => report.Phase == ModelDownloadPhase.Downloading));
         Assert.Contains(reports, report => report.Phase == ModelDownloadPhase.Installing);
         AssertNoDownloadsLeft();
@@ -208,7 +208,7 @@ public sealed class ModelDownloaderTests : IDisposable
 
         Assert.Equal(ModelDownloadFailure.Install, error.Failure);
         Assert.Equal(requests, handler.Requests);
-        Assert.NotNull(await store.FindAsync("siglip2", "1", Token));
+        Assert.NotNull(await store.FindAsync("siglip2", "1", "standard", Token));
     }
 
     [Fact]
@@ -251,7 +251,7 @@ public sealed class ModelDownloaderTests : IDisposable
 
     private async Task AssertNothingLeftAsync()
     {
-        Assert.Null(await store.FindAsync("siglip2", "1", Token));
+        Assert.Null(await store.FindAsync("siglip2", "1", "standard", Token));
         Assert.Empty(await store.GetInstalledAsync(Token));
         AssertNoDownloadsLeft();
     }
@@ -274,20 +274,22 @@ public sealed class ModelDownloaderTests : IDisposable
 
         public Task<IReadOnlyList<InstalledModel>> GetInstalledAsync(CancellationToken cancellationToken) => inner.GetInstalledAsync(cancellationToken);
 
-        public Task<InstalledModel?> FindAsync(string modelId, string version, CancellationToken cancellationToken) => inner.FindAsync(modelId, version, cancellationToken);
+        public Task<InstalledModel?> FindAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => inner.FindAsync(modelId, version, tierId, cancellationToken);
+
+        public Task<IReadOnlyList<InstalledModel>> FindTiersAsync(string modelId, string version, CancellationToken cancellationToken) => inner.FindTiersAsync(modelId, version, cancellationToken);
 
         public Task<InstalledModel> ImportAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken) => throw failure;
 
-        public Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, CancellationToken cancellationToken) => inner.VerifyAsync(modelId, version, cancellationToken);
+        public Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => inner.VerifyAsync(modelId, version, tierId, cancellationToken);
 
-        public Task RecordUsageAsync(string modelId, string version, string libraryPath, CancellationToken cancellationToken) =>
-            inner.RecordUsageAsync(modelId, version, libraryPath, cancellationToken);
+        public Task RecordUsageAsync(string modelId, string version, string contentHash, string libraryPath, CancellationToken cancellationToken) =>
+            inner.RecordUsageAsync(modelId, version, contentHash, libraryPath, cancellationToken);
 
-        public Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, CancellationToken cancellationToken) =>
-            inner.GetUsingLibrariesAsync(modelId, version, cancellationToken);
+        public Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) =>
+            inner.GetUsingLibrariesAsync(modelId, version, tierId, cancellationToken);
 
-        public Task<ModelDeletionResult> DeleteAsync(string modelId, string version, bool confirmed, CancellationToken cancellationToken) =>
-            inner.DeleteAsync(modelId, version, confirmed, cancellationToken);
+        public Task<ModelDeletionResult> DeleteAsync(string modelId, string version, string tierId, bool confirmed, CancellationToken cancellationToken) =>
+            inner.DeleteAsync(modelId, version, tierId, confirmed, cancellationToken);
 
         public void Dispose()
         {

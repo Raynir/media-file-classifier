@@ -90,19 +90,21 @@ public sealed class ImportModelCommandHandlerTests
         public Task<InstalledModel> ImportAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken)
         {
             Request = request;
-            return Task.FromResult(new InstalledModel(request.ModelId, request.Version, request.DisplayName, request.License, request.Source, RootDirectory, [], Hash, DateTimeOffset.UnixEpoch));
+            return Task.FromResult(new InstalledModel(request.ModelId, request.Version, request.TierId, request.DisplayName, request.License, request.Source, RootDirectory, [], Hash, DateTimeOffset.UnixEpoch));
         }
 
         public Task<IReadOnlyList<InstalledModel>> GetInstalledAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public Task<InstalledModel?> FindAsync(string modelId, string version, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<InstalledModel?> FindAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<IReadOnlyList<InstalledModel>> FindTiersAsync(string modelId, string version, CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public Task RecordUsageAsync(string modelId, string version, string libraryPath, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task RecordUsageAsync(string modelId, string version, string contentHash, string libraryPath, CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public Task<ModelDeletionResult> DeleteAsync(string modelId, string version, bool confirmed, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task<ModelDeletionResult> DeleteAsync(string modelId, string version, string tierId, bool confirmed, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

@@ -9,6 +9,8 @@ namespace MediaFileClassifier.Infrastructure.Tests.AI.Models;
 /// </summary>
 public sealed class ModelStoreTests : IDisposable
 {
+    private const string Standard = "standard";
+
     private static readonly DateTimeOffset Now = new(2026, 11, 5, 10, 0, 0, TimeSpan.Zero);
 
     private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
@@ -35,15 +37,16 @@ public sealed class ModelStoreTests : IDisposable
         Assert.Equal(3_000_000, model.Files[0].Size);
         Assert.True(File.Exists(model.GetFilePaths()["vision"]));
         Assert.True(File.Exists(path), "Importing copies by default.");
-        Assert.Equivalent(model, await store.FindAsync("siglip2", "1", Token));
-        Assert.Empty(await store.VerifyAsync("siglip2", "1", Token));
+        Assert.Equivalent(model, await store.FindAsync("siglip2", "1", Standard, Token));
+        Assert.Empty(await store.VerifyAsync("siglip2", "1", Standard, Token));
 
-        var deletion = await store.DeleteAsync("siglip2", "1", confirmed: false, Token);
+        var deletion = await store.DeleteAsync("siglip2", "1", Standard, confirmed: false, Token);
 
         Assert.True(deletion.Deleted);
-        Assert.Null(await store.FindAsync("siglip2", "1", Token));
+        Assert.Null(await store.FindAsync("siglip2", "1", Standard, Token));
         Assert.Empty(await store.GetInstalledAsync(Token));
         Assert.False(Directory.Exists(Path.Combine(store.RootDirectory, "siglip2")));
+        Assert.Equal(Path.Combine(store.RootDirectory, "siglip2", "1", Standard), model.Directory);
     }
 
     [Fact]
@@ -55,7 +58,7 @@ public sealed class ModelStoreTests : IDisposable
             () => store.ImportAsync(Request(new ModelFileSource("vision", path, new string('0', 64))), null, Token));
 
         Assert.Contains("vision.onnx", exception.Message, StringComparison.Ordinal);
-        Assert.Null(await store.FindAsync("siglip2", "1", Token));
+        Assert.Null(await store.FindAsync("siglip2", "1", Standard, Token));
         Assert.Empty(Directory.EnumerateFiles(store.RootDirectory, "*.onnx", SearchOption.AllDirectories));
     }
 
@@ -117,18 +120,20 @@ public sealed class ModelStoreTests : IDisposable
     }
 
     [Theory]
-    [InlineData("..", "1")]
-    [InlineData("../evil", "1")]
-    [InlineData("siglip2", "..\\..")]
-    [InlineData("SigLIP", "1")]
-    [InlineData(".hidden", "1")]
-    [InlineData("a/b", "1")]
-    public async Task Import_UnsafeIdOrVersion_IsRejected(string modelId, string version)
+    [InlineData("..", "1", Standard)]
+    [InlineData("siglip2", "1", "..")]
+    [InlineData("siglip2", "1", "Compact")]
+    [InlineData("../evil", "1", Standard)]
+    [InlineData("siglip2", "..\\..", Standard)]
+    [InlineData("SigLIP", "1", Standard)]
+    [InlineData(".hidden", "1", Standard)]
+    [InlineData("a/b", "1", Standard)]
+    public async Task Import_UnsafeIdVersionOrTier_IsRejected(string modelId, string version, string tierId)
     {
         var (path, _) = WriteSource("vision.onnx", 100);
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => store.ImportAsync(new ModelImportRequest(modelId, version, "Model", [new ModelFileSource("vision", path)]), null, Token));
+            () => store.ImportAsync(new ModelImportRequest(modelId, version, tierId, "Model", [new ModelFileSource("vision", path)]), null, Token));
     }
 
     [Theory]
@@ -163,7 +168,7 @@ public sealed class ModelStoreTests : IDisposable
         await File.WriteAllBytesAsync(model.GetFilePaths()["vision"], new byte[100], Token);
         File.Delete(model.GetFilePaths()["text"]);
 
-        var problems = await store.VerifyAsync("siglip2", "1", Token);
+        var problems = await store.VerifyAsync("siglip2", "1", Standard, Token);
 
         Assert.Equal(["a.onnx is damaged: its contents changed since it was installed.", "b.onnx is missing."], problems);
     }
@@ -172,31 +177,31 @@ public sealed class ModelStoreTests : IDisposable
     public async Task Delete_ModelUsedByLibraries_NamesThemAndWaitsForConfirmation()
     {
         var (path, _) = WriteSource("vision.onnx", 100);
-        await store.ImportAsync(Request(new ModelFileSource("vision", path)), null, Token);
+        var model = await store.ImportAsync(Request(new ModelFileSource("vision", path)), null, Token);
         var holidays = Path.Combine(root, "Holidays.mfclib");
-        await store.RecordUsageAsync("siglip2", "1", holidays, Token);
-        await store.RecordUsageAsync("siglip2", "1", holidays + Path.DirectorySeparatorChar, Token);
-        await store.RecordUsageAsync("siglip2", "1", Path.Combine(root, "Work.mfclib"), Token);
+        await store.RecordUsageAsync("siglip2", "1", model.ContentHash, holidays, Token);
+        await store.RecordUsageAsync("siglip2", "1", model.ContentHash.ToUpperInvariant(), holidays + Path.DirectorySeparatorChar, Token);
+        await store.RecordUsageAsync("siglip2", "1", model.ContentHash, Path.Combine(root, "Work.mfclib"), Token);
 
-        var unconfirmed = await store.DeleteAsync("siglip2", "1", confirmed: false, Token);
+        var unconfirmed = await store.DeleteAsync("siglip2", "1", Standard, confirmed: false, Token);
 
         Assert.False(unconfirmed.Deleted);
         Assert.True(unconfirmed.NeedsConfirmation);
         Assert.Equal([holidays, Path.Combine(root, "Work.mfclib")], unconfirmed.UsingLibraries);
-        Assert.NotNull(await store.FindAsync("siglip2", "1", Token));
+        Assert.NotNull(await store.FindAsync("siglip2", "1", Standard, Token));
 
-        var confirmed = await store.DeleteAsync("siglip2", "1", confirmed: true, Token);
+        var confirmed = await store.DeleteAsync("siglip2", "1", Standard, confirmed: true, Token);
 
         Assert.True(confirmed.Deleted);
         Assert.Equal(2, confirmed.UsingLibraries.Count);
-        Assert.Null(await store.FindAsync("siglip2", "1", Token));
-        Assert.Empty(await store.GetUsingLibrariesAsync("siglip2", "1", Token));
+        Assert.Null(await store.FindAsync("siglip2", "1", Standard, Token));
+        Assert.Empty(await store.GetUsingLibrariesAsync("siglip2", "1", Standard, Token));
     }
 
     [Fact]
     public async Task Delete_NotInstalled_Fails()
     {
-        await Assert.ThrowsAsync<ModelStoreException>(() => store.DeleteAsync("siglip2", "1", confirmed: true, Token));
+        await Assert.ThrowsAsync<ModelStoreException>(() => store.DeleteAsync("siglip2", "1", Standard, confirmed: true, Token));
     }
 
     [Fact]
@@ -208,11 +213,11 @@ public sealed class ModelStoreTests : IDisposable
 
         await using (File.OpenRead(model.GetFilePaths()["vision"]))
         {
-            var exception = await Assert.ThrowsAsync<ModelStoreException>(() => store.DeleteAsync("siglip2", "1", confirmed: true, Token));
+            var exception = await Assert.ThrowsAsync<ModelStoreException>(() => store.DeleteAsync("siglip2", "1", Standard, confirmed: true, Token));
             Assert.Contains("in use", exception.Message, StringComparison.Ordinal);
         }
 
-        Assert.Empty(await store.VerifyAsync("siglip2", "1", Token));
+        Assert.Empty(await store.VerifyAsync("siglip2", "1", Standard, Token));
     }
 
     [Fact]
@@ -236,7 +241,7 @@ public sealed class ModelStoreTests : IDisposable
         var model = await store.ImportAsync(Request(new ModelFileSource("vision", path, sha256)) with { License = "Apache-2.0" }, null, Token);
         using var reopened = new ModelStore(store.RootDirectory, TimeProvider.System);
 
-        var found = await reopened.FindAsync("siglip2", "1", Token);
+        var found = await reopened.FindAsync("siglip2", "1", Standard, Token);
 
         Assert.Equivalent(model, found);
         Assert.Equal("Apache-2.0", found!.License);
@@ -258,18 +263,18 @@ public sealed class ModelStoreTests : IDisposable
         await Assert.ThrowsAsync<ModelStoreException>(() => store.ImportAsync(Request(new ModelFileSource("vision", path, new string('0', 64))), null, Token));
         Assert.Equal(0, raised);
 
-        await store.ImportAsync(Request(new ModelFileSource("vision", path, sha256)), null, Token);
+        var model = await store.ImportAsync(Request(new ModelFileSource("vision", path, sha256)), null, Token);
         Assert.Equal(1, raised);
 
-        await store.RecordUsageAsync("siglip2", "1", Path.Combine(root, "Holidays.mfclib"), Token);
-        await store.DeleteAsync("siglip2", "1", confirmed: false, Token);
+        await store.RecordUsageAsync("siglip2", "1", model.ContentHash, Path.Combine(root, "Holidays.mfclib"), Token);
+        await store.DeleteAsync("siglip2", "1", Standard, confirmed: false, Token);
         Assert.Equal(1, raised);
 
-        await store.DeleteAsync("siglip2", "1", confirmed: true, Token);
+        await store.DeleteAsync("siglip2", "1", Standard, confirmed: true, Token);
         Assert.Equal(2, raised);
     }
 
-    private static ModelImportRequest Request(params ModelFileSource[] files) => new("siglip2", "1", "SigLIP 2", files);
+    private static ModelImportRequest Request(params ModelFileSource[] files) => new("siglip2", "1", Standard, "SigLIP 2", files);
 
     private (string Path, string Sha256) WriteSource(string name, int size)
     {

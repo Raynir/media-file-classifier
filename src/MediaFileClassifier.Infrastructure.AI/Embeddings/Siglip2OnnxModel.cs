@@ -41,10 +41,29 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
 
         tokenizerPath = tokenizerFile;
         this.imageBatchSize = imageBatchSize;
-        tokenizer = new Lazy<Siglip2Tokenizer>(() => Siglip2Tokenizer.Load(tokenizerPath), LazyThreadSafetyMode.ExecutionAndPublication);
+        tokenizer = new Lazy<Siglip2Tokenizer>(LoadTokenizer, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     public int Dimension => Siglip2Model.Dimension;
+
+    private Siglip2Tokenizer LoadTokenizer()
+    {
+        try
+        {
+            return Siglip2Tokenizer.Load(tokenizerPath);
+        }
+        catch (Google.Protobuf.InvalidProtocolBufferException ex)
+        {
+            throw new AiProviderException(AiFailureKind.ProviderError, Siglip2Model.ProviderId, $"The tokenizer file {Path.GetFileName(tokenizerPath)} is damaged: {ex.Message}", innerException: ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets the execution provider a tower's session runs on now, which is the CPU after a fallback (E06-S08-T04).
+    /// </summary>
+    /// <param name="role">The tower's file role.</param>
+    /// <returns>The execution provider.</returns>
+    internal ExecutionProvider ExecutionProviderOf(string role) => GetSession(role).ExecutionProvider;
 
     protected override string? PromptVersion => Siglip2Model.PreprocessingVersion;
 
@@ -118,7 +137,6 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
 
     private ReadOnlyMemory<float>[] EmbedImages(IReadOnlyList<AiImage> images, CancellationToken cancellationToken)
     {
-        var session = GetSession(Siglip2Model.VisionRole).Session;
         var vectors = new ReadOnlyMemory<float>[images.Count];
         for (var start = 0; start < images.Count; start += imageBatchSize)
         {
@@ -139,7 +157,7 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
             }
 
             var tensor = new DenseTensor<float>(input, [count, 3, Siglip2Model.ImageSize, Siglip2Model.ImageSize]);
-            using var results = session.Run([NamedOnnxValue.CreateFromTensor(PixelInput, tensor)], [PooledOutput]);
+            using var results = Run(Siglip2Model.VisionRole, session => session.Run([NamedOnnxValue.CreateFromTensor(PixelInput, tensor)], [PooledOutput]));
             Split(results[0].AsTensor<float>(), count).CopyTo(vectors, start);
         }
 
@@ -154,7 +172,6 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var session = GetSession(Siglip2Model.TextRole).Session;
         var ids = new long[texts.Count * Siglip2Model.SequenceLength];
         for (var i = 0; i < texts.Count; i++)
         {
@@ -162,7 +179,7 @@ internal sealed class Siglip2OnnxModel : OnnxModelProvider, IImageEmbeddingProvi
         }
 
         var tensor = new DenseTensor<long>(ids, [texts.Count, Siglip2Model.SequenceLength]);
-        using var results = session.Run([NamedOnnxValue.CreateFromTensor(TokenInput, tensor)], [PooledOutput]);
+        using var results = Run(Siglip2Model.TextRole, session => session.Run([NamedOnnxValue.CreateFromTensor(TokenInput, tensor)], [PooledOutput]));
         return Split(results[0].AsTensor<float>(), texts.Count);
     }
 }

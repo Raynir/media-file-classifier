@@ -184,7 +184,7 @@ public sealed class WaitingForModelTests : IAsyncLifetime
         var source = Path.Combine(root, "vision.onnx");
         await File.WriteAllBytesAsync(source, modelFile, Token);
         await store.ImportAsync(
-            new ModelImportRequest(entry.ModelId, entry.Version, entry.DisplayName, [new ModelFileSource("vision", source, entry.Default.Files[0].Sha256)]),
+            new ModelImportRequest(entry.ModelId, entry.Version, entry.DefaultTier, entry.DisplayName, [new ModelFileSource("vision", source, entry.Default.Files[0].Sha256)]),
             null,
             Token);
     }

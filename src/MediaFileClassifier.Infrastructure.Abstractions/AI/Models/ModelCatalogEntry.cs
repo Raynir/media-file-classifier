@@ -1,3 +1,5 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+
 namespace MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 
 /// <summary>
@@ -56,13 +58,32 @@ public sealed record ModelCatalogEntry(
 }
 
 /// <summary>
-/// One tier of a catalogue model: the files to download.
+/// One tier of a catalogue model: the files to download, their precision and the hardware they suit (E06-S08-T03).
+/// Tiers of a model can be installed side by side, and the provider uses the one that suits the execution provider.
 /// </summary>
 /// <param name="TierId">Tier ID, e.g. <c>standard</c>.</param>
 /// <param name="DisplayName">Name shown to the user.</param>
 /// <param name="Files">The files.</param>
 public sealed record ModelTier(string TierId, string DisplayName, IReadOnlyList<ModelCatalogFile> Files)
 {
+    /// <summary>
+    /// Gets the numeric precision of the weights, e.g. <c>fp32</c>, or <c>fp16-text</c> for a half-precision text tower.
+    /// </summary>
+    public string Precision { get; init; } = "fp32";
+
+    /// <summary>
+    /// Gets the execution provider the tier suits: <see cref="ExecutionProvider.Cpu"/>, or a GPU provider for a tier
+    /// meant for any GPU (DirectML, CUDA).
+    /// </summary>
+    public ExecutionProvider PreferredExecutionProvider { get; init; } = ExecutionProvider.Cpu;
+
+    /// <summary>
+    /// Gets whether the tier suits an execution provider: a CPU tier suits the CPU, a GPU tier suits any GPU provider.
+    /// </summary>
+    /// <param name="provider">The provider sessions run on.</param>
+    /// <returns><c>true</c> if the tier is meant for that kind of hardware.</returns>
+    public bool Suits(ExecutionProvider provider) => (PreferredExecutionProvider == ExecutionProvider.Cpu) == (provider == ExecutionProvider.Cpu);
+
     /// <summary>
     /// Gets the download size of all the files, in bytes.
     /// </summary>

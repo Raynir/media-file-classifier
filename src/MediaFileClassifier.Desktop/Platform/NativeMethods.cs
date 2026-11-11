@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace MediaFileClassifier.Desktop.Platform;
 
 /// <summary>
-/// Windows keyboard functions used by <see cref="WindowsKeyboardLayout"/>.
+/// Windows functions used by <see cref="WindowsKeyboardLayout"/> and the <c>--benchmark</c> console output.
 /// </summary>
 internal static unsafe partial class NativeMethods
 {
@@ -40,4 +40,17 @@ internal static unsafe partial class NativeMethods
     [LibraryImport("user32.dll")]
     private static partial int ToUnicodeEx(
         uint virtualKey, uint scanCode, byte* keyState, char* buffer, int bufferSize, uint flags, nint layout);
+
+    /// <summary>
+    /// Gets a standard handle of the process; zero when it has none, as a GUI program started without redirection.
+    /// </summary>
+    [LibraryImport("kernel32.dll")]
+    internal static partial nint GetStdHandle(int standardHandle);
+
+    /// <summary>
+    /// Attaches the process to the console of another process; <c>uint.MaxValue</c> is its parent.
+    /// </summary>
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool AttachConsole(uint processId);
 }

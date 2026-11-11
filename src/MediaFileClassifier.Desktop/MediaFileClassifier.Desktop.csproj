@@ -8,6 +8,10 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- DXGI adapter detection (Platform/WindowsHardwareDetector). -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Microsoft.AI.DirectML copies DirectML.dll only for an x64 PlatformTarget; this AnyCPU app runs as x64, so take
+         its x64 build. Without it, ONNX Runtime loads the older DirectML.dll in System32 (E06-S08). -->
+    <Microsoft_AI_DirectML_Bin_Dir_Target Condition="'$(PlatformTarget)' == '' Or '$(PlatformTarget)' == 'AnyCPU'">$(Microsoft_AI_DirectML_Bin_Dir_Windows_x64)</Microsoft_AI_DirectML_Bin_Dir_Target>
+    <Microsoft_AI_DirectML_SkipDebugLayerCopy>true</Microsoft_AI_DirectML_SkipDebugLayerCopy>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,8 +23,8 @@
     <ProjectReference Include="../MediaFileClassifier.Infrastructure.Jobs/MediaFileClassifier.Infrastructure.Jobs.csproj" />
     <ProjectReference Include="../MediaFileClassifier.Infrastructure.Media/MediaFileClassifier.Infrastructure.Media.csproj" />
     <PackageReference Include="Avalonia.Desktop" />
-    <!-- The native ONNX Runtime for Infrastructure.AI: CPU for now, the GPU package is chosen in E06-S08. -->
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+    <!-- The native ONNX Runtime for Infrastructure.AI: the DirectML build, which also has the CPU provider (E06-S08). -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Serilog.Extensions.Hosting" />
     <PackageReference Include="Serilog.Sinks.File" />

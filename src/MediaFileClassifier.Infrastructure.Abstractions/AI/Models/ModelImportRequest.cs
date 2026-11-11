@@ -5,9 +5,10 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 /// </summary>
 /// <param name="ModelId">Model ID: lower-case letters, digits, dots, dashes and underscores, e.g. <c>siglip2-base-patch16-256</c>.</param>
 /// <param name="Version">Model version, with the same characters, e.g. <c>1</c> or <c>2025-02-20</c>.</param>
+/// <param name="TierId">Tier of the model, with the same characters, e.g. <c>standard</c> (E06-S08-T03).</param>
 /// <param name="DisplayName">Name shown to the user.</param>
 /// <param name="Files">The model's files.</param>
-public sealed record ModelImportRequest(string ModelId, string Version, string DisplayName, IReadOnlyList<ModelFileSource> Files)
+public sealed record ModelImportRequest(string ModelId, string Version, string TierId, string DisplayName, IReadOnlyList<ModelFileSource> Files)
 {
     /// <summary>
     /// Gets the model's license, recorded for the third-party notices (D030).

@@ -79,7 +79,8 @@ internal sealed unsafe partial class WindowsHardwareDetector : IHardwareDetector
                         gpus.Add(new GpuInfo(
                             new string(description.Description),
                             GetVendorName(description.VendorId),
-                            (long)description.DedicatedVideoMemory));
+                            (long)description.DedicatedVideoMemory,
+                            (int)index));
                     }
                 }
                 finally

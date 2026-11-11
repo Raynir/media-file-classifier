@@ -95,6 +95,11 @@ public enum SearchMode
     /// Both searches, merged with reciprocal rank fusion (E01-S04-T04).
     /// </summary>
     Hybrid,
+
+    /// <summary>
+    /// "Find similar" (E09-S03): a vector search from an item's own embedding.
+    /// </summary>
+    Similar,
 }
 
 /// <summary>
@@ -131,4 +136,9 @@ public enum SemanticSearchStatus
     /// Encoding the query failed; the error is logged. Keyword results only.
     /// </summary>
     Failed,
+
+    /// <summary>
+    /// "Find similar" on an item without an embedding yet: nothing to compare until it's analyzed (D036).
+    /// </summary>
+    NotAnalyzed,
 }

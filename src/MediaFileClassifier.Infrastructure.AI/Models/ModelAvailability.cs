@@ -4,7 +4,7 @@ namespace MediaFileClassifier.Infrastructure.AI.Models;
 
 /// <summary>
 /// Checks the model store for the catalogue's model for each purpose (D037). A model counts as installed when the
-/// catalogue entry's ID and version are in the store, whichever tier it is, and whether it was downloaded or imported.
+/// catalogue entry's ID and version are in the store, in any tier, and whether it was downloaded or imported.
 /// </summary>
 public sealed class ModelAvailability : IModelAvailability, IDisposable
 {
@@ -32,7 +32,7 @@ public sealed class ModelAvailability : IModelAvailability, IDisposable
     /// <inheritdoc />
     public async Task<bool> IsInstalledAsync(ModelPurpose purpose, CancellationToken cancellationToken) =>
         catalog.GetDefault(purpose) is { } entry
-        && await store.FindAsync(entry.ModelId, entry.Version, cancellationToken).ConfigureAwait(false) is not null;
+        && (await store.FindTiersAsync(entry.ModelId, entry.Version, cancellationToken).ConfigureAwait(false)).Count > 0;
 
     /// <inheritdoc />
     public void Dispose() => store.ModelsChanged -= OnModelsChanged;

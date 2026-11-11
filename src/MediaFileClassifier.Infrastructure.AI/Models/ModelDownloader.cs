@@ -99,9 +99,9 @@ public sealed partial class ModelDownloader : IModelDownloader, IDisposable
         var folder = Path.Combine(DownloadsDirectory, Guid.NewGuid().ToString("N"));
         try
         {
-            if (await store.FindAsync(entry.ModelId, entry.Version, cancellationToken).ConfigureAwait(false) is not null)
+            if (await store.FindAsync(entry.ModelId, entry.Version, tier.TierId, cancellationToken).ConfigureAwait(false) is not null)
             {
-                throw new ModelDownloadException(ModelDownloadFailure.Install, $"{entry.DisplayName} is already installed.");
+                throw new ModelDownloadException(ModelDownloadFailure.Install, $"{entry.DisplayName} ({tier.DisplayName}) is already installed.");
             }
 
             DeleteAbandonedDownloads();
@@ -121,7 +121,7 @@ public sealed partial class ModelDownloader : IModelDownloader, IDisposable
                 sources.Add(new ModelFileSource(file.Role, path, file.Sha256, file.FileName));
             }
 
-            var request = new ModelImportRequest(entry.ModelId, entry.Version, entry.DisplayName, sources)
+            var request = new ModelImportRequest(entry.ModelId, entry.Version, tier.TierId, entry.DisplayName, sources)
             {
                 License = entry.License,
                 Source = entry.Source.ToString(),

@@ -1,0 +1,133 @@
+using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+using MediaFileClassifier.Infrastructure.AI.Embeddings;
+using MediaFileClassifier.Infrastructure.AI.Models;
+using MediaFileClassifier.Infrastructure.AI.Onnx;
+
+namespace MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
+
+/// <summary>
+/// Tests for the SigLIP 2 tier choice (E06-S08-T03): the CPU tier on a CPU-only machine, the GPU tier on a GPU machine,
+/// with the shipped catalogue.
+/// </summary>
+public sealed class Siglip2TierChoiceTests : IDisposable
+{
+    private const string Standard = "standard";
+    private const string Compact = "compact";
+
+    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly ModelCatalog catalog = new();
+    private readonly ModelStore store;
+
+    public Siglip2TierChoiceTests()
+    {
+        Directory.CreateDirectory(root);
+        store = new ModelStore(Path.Combine(root, "models"), TimeProvider.System, catalog: catalog);
+    }
+
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    [Theory]
+    [InlineData(ExecutionProvider.Cpu, Standard)]
+    [InlineData(ExecutionProvider.DirectMl, Compact)]
+    [InlineData(ExecutionProvider.Cuda, Compact)]
+    public void ChooseTier_BothInstalled_TakesTheOneThatSuitsTheProvider(ExecutionProvider provider, string expected)
+    {
+        var installed = new[] { Installed(Compact), Installed(Standard) };
+
+        Assert.Equal(expected, Siglip2EmbeddingProvider.ChooseTier(installed, catalog, provider, null)?.TierId);
+    }
+
+    [Theory]
+    [InlineData(ExecutionProvider.Cpu, Compact)]
+    [InlineData(ExecutionProvider.DirectMl, Standard)]
+    public void ChooseTier_OnlyTheOtherTierInstalled_TakesIt(ExecutionProvider provider, string only)
+    {
+        Assert.Equal(only, Siglip2EmbeddingProvider.ChooseTier([Installed(only)], catalog, provider, null)?.TierId);
+    }
+
+    [Theory]
+    [InlineData(Compact, Compact)]
+    [InlineData("missing", Standard)]
+    public void ChooseTier_ConfiguredTier_WinsWhenInstalled(string configured, string expected)
+    {
+        var installed = new[] { Installed(Standard), Installed(Compact) };
+
+        Assert.Equal(expected, Siglip2EmbeddingProvider.ChooseTier(installed, catalog, ExecutionProvider.Cpu, configured)?.TierId);
+    }
+
+    [Fact]
+    public void ChooseTier_NothingInstalled_IsNull()
+    {
+        Assert.Null(Siglip2EmbeddingProvider.ChooseTier([], catalog, ExecutionProvider.Cpu, null));
+    }
+
+    [Theory]
+    [InlineData(ExecutionProvider.Cpu, Standard)]
+    [InlineData(ExecutionProvider.DirectMl, Compact)]
+    public async Task Provider_BothInstalled_UsesTheTierForTheMachine(ExecutionProvider machine, string expected)
+    {
+        var tiers = new Dictionary<string, InstalledModel>
+        {
+            [Standard] = await ImportAsync(Standard),
+            [Compact] = await ImportAsync(Compact),
+        };
+        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FixedHardware(machine)), new Siglip2Options(), catalog);
+
+        await provider.CheckHealthAsync(Token);
+
+        Assert.Equal(tiers[expected].ContentHash, provider.Model.FileHash);
+    }
+
+    [Fact]
+    public async Task Provider_StoreChanges_ChoosesAgain()
+    {
+        var standard = await ImportAsync(Standard);
+        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog);
+        await provider.CheckHealthAsync(Token);
+        Assert.Equal(standard.ContentHash, provider.Model.FileHash);
+
+        var compact = await ImportAsync(Compact);
+        await provider.CheckHealthAsync(Token);
+        Assert.Equal(compact.ContentHash, provider.Model.FileHash);
+
+        await store.DeleteAsync(Siglip2Model.ModelId, Siglip2Model.Version, Compact, confirmed: true, Token);
+        await provider.CheckHealthAsync(Token);
+        Assert.Equal(standard.ContentHash, provider.Model.FileHash);
+    }
+
+    public void Dispose()
+    {
+        store.Dispose();
+        Directory.Delete(root, recursive: true);
+    }
+
+    private static InstalledModel Installed(string tierId) =>
+        new(Siglip2Model.ModelId, Siglip2Model.Version, tierId, "SigLIP 2", null, null, "models", [], tierId, DateTimeOffset.UnixEpoch);
+
+    /// <summary>Imports a tier with placeholder files under the catalogue's names; the tier choice never reads them.</summary>
+    private async Task<InstalledModel> ImportAsync(string tierId)
+    {
+        var tier = catalog.Find(Siglip2Model.ModelId)!.GetTier(tierId);
+        var files = new List<ModelFileSource>();
+        foreach (var file in tier.Files)
+        {
+            var path = Path.Combine(root, tierId + "-" + file.FileName);
+            await File.WriteAllTextAsync(path, tierId + file.Role, Token);
+            files.Add(new ModelFileSource(file.Role, path, FileName: file.FileName));
+        }
+
+        return await store.ImportAsync(new ModelImportRequest(Siglip2Model.ModelId, Siglip2Model.Version, tierId, "SigLIP 2", files), null, Token);
+    }
+
+    private sealed class FixedHardware(ExecutionProvider provider) : IHardwareInfo
+    {
+        public HardwareProfile Profile { get; } = new("X64", 8, 16L << 30, []);
+
+        public ExecutionProvider PreferredExecutionProvider => provider;
+
+        public GpuInfo? PreferredGpu => null;
+
+        public int DefaultParallelism => 4;
+    }
+}

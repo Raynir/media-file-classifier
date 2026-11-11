@@ -19,4 +19,11 @@ public sealed record Siglip2Options
     /// The hardware settings (E17-S08) override it.
     /// </summary>
     public ExecutionProvider? ExecutionProvider { get; init; }
+
+    /// <summary>
+    /// Gets the model tier to use, e.g. <c>compact</c>; <see langword="null"/> (the default) picks the installed tier
+    /// that suits the execution provider (E06-S08-T03). The hardware settings (E17-S08) set it to override. A tier that
+    /// isn't installed falls back to the automatic choice.
+    /// </summary>
+    public string? TierId { get; init; }
 }

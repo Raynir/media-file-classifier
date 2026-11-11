@@ -29,6 +29,7 @@ internal static class Siglip2TestModel
     public static InstalledModel CreateInstalled(string directory) => new(
         Siglip2Model.ModelId,
         Siglip2Model.Version,
+        "standard",
         "SigLIP 2 base-patch16-256",
         "Apache-2.0",
         "test",

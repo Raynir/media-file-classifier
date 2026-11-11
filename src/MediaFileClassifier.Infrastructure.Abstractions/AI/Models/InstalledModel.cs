@@ -5,6 +5,7 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 /// </summary>
 /// <param name="ModelId">Model ID.</param>
 /// <param name="Version">Model version.</param>
+/// <param name="TierId">Tier of the model (E06-S08-T03), e.g. <c>standard</c>. Tiers of a version are installed side by side.</param>
 /// <param name="DisplayName">Name shown to the user.</param>
 /// <param name="License">License, if recorded.</param>
 /// <param name="Source">Where the model came from, if recorded.</param>
@@ -18,6 +19,7 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 public sealed record InstalledModel(
     string ModelId,
     string Version,
+    string TierId,
     string DisplayName,
     string? License,
     string? Source,

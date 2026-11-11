@@ -1,5 +1,7 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+using MediaFileClassifier.Infrastructure.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
 
 namespace MediaFileClassifier.Infrastructure.AI.Embeddings;
@@ -10,6 +12,11 @@ namespace MediaFileClassifier.Infrastructure.AI.Embeddings;
 /// up without a restart. Until then its health is <see cref="ProviderHealthStatus.ModelMissing"/> and calls throw
 /// <see cref="AiFailureKind.ModelMissing"/>, which the analysis queue treats as a waiting state (D037).
 /// </summary>
+/// <remarks>
+/// When several tiers are installed (E06-S08-T03), it uses <see cref="Siglip2Options.TierId"/> if that one is installed,
+/// else the tier that suits the execution provider (fp32 <c>standard</c> on the CPU, <c>compact</c> on a GPU), else the
+/// first installed tier in catalogue order. A change in the store makes it choose again on the next call.
+/// </remarks>
 public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmbeddingProvider, IPreloadableAiProvider, IDisposable
 {
     private static readonly ModelIdentity NotInstalledIdentity = Siglip2OnnxModel.CreateIdentity(null);
@@ -17,8 +24,10 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
     private readonly IModelStore store;
     private readonly OnnxSessionFactory sessionFactory;
     private readonly Siglip2Options options;
+    private readonly IModelCatalog catalog;
     private readonly SemaphoreSlim loadGate = new(1, 1);
     private volatile Siglip2OnnxModel? model;
+    private volatile bool storeChanged;
     private bool disposed;
 
     /// <summary>
@@ -26,8 +35,9 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
     /// </summary>
     /// <param name="store">Model store the files are installed in.</param>
     /// <param name="sessionFactory">ONNX session factory.</param>
-    /// <param name="options">Batch size and execution provider.</param>
-    public Siglip2EmbeddingProvider(IModelStore store, OnnxSessionFactory sessionFactory, Siglip2Options options)
+    /// <param name="options">Batch size, execution provider and tier.</param>
+    /// <param name="catalog">The model catalogue, for the tiers' order and the hardware they suit; the embedded one if <see langword="null"/>.</param>
+    public Siglip2EmbeddingProvider(IModelStore store, OnnxSessionFactory sessionFactory, Siglip2Options options, IModelCatalog? catalog = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(sessionFactory);
@@ -37,6 +47,8 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
         this.store = store;
         this.sessionFactory = sessionFactory;
         this.options = options;
+        this.catalog = catalog ?? new ModelCatalog();
+        store.ModelsChanged += OnModelsChanged;
     }
 
     /// <inheritdoc />
@@ -118,6 +130,7 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
         }
 
         disposed = true;
+        store.ModelsChanged -= OnModelsChanged;
         model?.Dispose();
         model = null;
         loadGate.Dispose();
@@ -140,10 +153,37 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
         }
     }
 
+    /// <summary>
+    /// Chooses among the installed tiers of the model: the configured one, else the one that suits the execution
+    /// provider, else the first in catalogue order (tiers the catalogue doesn't list come last).
+    /// </summary>
+    /// <param name="installed">The installed tiers.</param>
+    /// <param name="catalog">The model catalogue.</param>
+    /// <param name="provider">The execution provider sessions run on.</param>
+    /// <param name="preferredTierId">The configured tier, if any.</param>
+    /// <returns>The tier to use, or <see langword="null"/> if none is installed.</returns>
+    internal static InstalledModel? ChooseTier(IReadOnlyList<InstalledModel> installed, IModelCatalog catalog, ExecutionProvider provider, string? preferredTierId)
+    {
+        if (installed.FirstOrDefault(tier => tier.TierId == preferredTierId) is { } configured)
+        {
+            return configured;
+        }
+
+        var tiers = catalog.Find(Siglip2Model.ModelId)?.Tiers ?? [];
+        var ordered = installed
+            .OrderBy(model => tiers.Select(tier => tier.TierId).ToList().IndexOf(model.TierId) is var index and >= 0 ? index : int.MaxValue)
+            .ThenBy(model => model.TierId, StringComparer.Ordinal)
+            .ToList();
+        return ordered.FirstOrDefault(model => tiers.FirstOrDefault(tier => tier.TierId == model.TierId)?.Suits(provider) == true)
+            ?? ordered.FirstOrDefault();
+    }
+
+    private void OnModelsChanged(object? sender, EventArgs e) => storeChanged = true;
+
     private async Task<Siglip2OnnxModel?> FindModelAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
-        if (model is { } loaded)
+        if (model is { } loaded && !storeChanged)
         {
             return loaded;
         }
@@ -151,23 +191,32 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
         await loadGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (model is { } raced)
+            if (model is { } raced && !storeChanged)
             {
                 return raced;
             }
 
-            var installed = await store.FindAsync(Siglip2Model.ModelId, Siglip2Model.Version, cancellationToken).ConfigureAwait(false);
-            if (installed is null)
+            storeChanged = false;
+            var installed = await store.FindTiersAsync(Siglip2Model.ModelId, Siglip2Model.Version, cancellationToken).ConfigureAwait(false);
+            var provider = options.ExecutionProvider ?? sessionFactory.DefaultExecutionProvider;
+            var chosen = ChooseTier(installed, catalog, provider, options.TierId);
+            var current = model;
+            if (current is not null && chosen is not null && current.Model.FileHash == chosen.ContentHash.ToLowerInvariant())
             {
-                return null;
+                // The same tier is still the best one: keep the loaded sessions.
+                return current;
             }
 
-            model = new Siglip2OnnxModel(
-                installed,
-                sessionFactory,
-                options.ExecutionProvider ?? sessionFactory.DefaultExecutionProvider,
-                options.ImageBatchSize);
+            // A call still running on the old model finishes on it, or retries on the new one if it was disposed.
+            model = chosen is null ? null : new Siglip2OnnxModel(chosen, sessionFactory, provider, options.ImageBatchSize);
+            current?.Dispose();
             return model;
+        }
+        catch
+        {
+            // Couldn't look at the store: choose again next time.
+            storeChanged = true;
+            throw;
         }
         finally
         {

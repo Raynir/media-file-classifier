@@ -30,7 +30,7 @@ public sealed class ImportModelCommandHandler(IModelCatalog catalog, IModelStore
                 $"Pick all the files of {entry.DisplayName}: {string.Join(", ", entry.Default.Files.Select(file => file.FileName))}.");
 
         var sources = tier.Files.Select(file => new ModelFileSource(file.Role, byName[file.FileName], file.Sha256, file.FileName)).ToList();
-        var import = new ModelImportRequest(entry.ModelId, entry.Version, entry.DisplayName, sources)
+        var import = new ModelImportRequest(entry.ModelId, entry.Version, tier.TierId, entry.DisplayName, sources)
         {
             License = entry.License,
             Source = entry.Source.ToString(),

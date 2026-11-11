@@ -14,9 +14,14 @@ namespace MediaFileClassifier.Infrastructure.AI.Models;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Layout: <c>models\&lt;id&gt;\&lt;version&gt;\</c> holds the files and <c>manifest.json</c>; <c>models\usage.json</c>
-/// maps each model to the libraries that use it; <c>models\.staging</c> and <c>models\.trash</c> hold imports in
-/// progress and deletions in progress.
+/// Layout: <c>models\&lt;id&gt;\&lt;version&gt;\&lt;tier&gt;\</c> holds the files and <c>manifest.json</c>, so tiers of
+/// a version sit side by side (E06-S08-T03); <c>models\usage.json</c> maps each tier to the libraries that use it;
+/// <c>models\.staging</c> and <c>models\.trash</c> hold imports in progress and deletions in progress.
+/// </para>
+/// <para>
+/// Migration: a folder from before tiers (<c>&lt;id&gt;\&lt;version&gt;\manifest.json</c>) is moved down into its tier
+/// folder on first access, by two renames through <c>&lt;id&gt;\.migrating-&lt;version&gt;</c>, so a crash between them
+/// is finished on the next access. Its tier is the catalogue tier whose files it has, else the catalogue's default.
 /// </para>
 /// <para>
 /// Safety: IDs, versions and file names are restricted to plain names, so no path can leave the store. An import is
@@ -31,6 +36,9 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     private const string UsageFileName = "usage.json";
     private const string StagingFolderName = ".staging";
     private const string TrashFolderName = ".trash";
+    private const string MigratingPrefix = ".migrating-";
+    private const string FallbackTierId = "standard";
+    private const int ManifestFormat = 2;
     private const int MaxNameLength = 100;
     private const int BufferSize = 1 << 20;
 
@@ -41,6 +49,7 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     private static readonly StringComparer PathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     private readonly TimeProvider timeProvider;
+    private readonly IModelCatalog? catalog;
     private readonly ILogger logger;
     private readonly SemaphoreSlim gate = new(1, 1);
 
@@ -50,8 +59,9 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     /// <param name="paths">App folders.</param>
     /// <param name="timeProvider">Clock for installation times.</param>
     /// <param name="logger">Logger.</param>
-    public ModelStore(IAppPaths paths, TimeProvider timeProvider, ILogger<ModelStore>? logger = null)
-        : this(Path.Combine(paths?.DataDirectory ?? throw new ArgumentNullException(nameof(paths)), "models"), timeProvider, logger)
+    /// <param name="catalog">The model catalogue, to tell the tier of a folder from before tiers.</param>
+    public ModelStore(IAppPaths paths, TimeProvider timeProvider, ILogger<ModelStore>? logger = null, IModelCatalog? catalog = null)
+        : this(Path.Combine(paths?.DataDirectory ?? throw new ArgumentNullException(nameof(paths)), "models"), timeProvider, logger, catalog)
     {
     }
 
@@ -61,13 +71,15 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     /// <param name="rootDirectory">The store's root folder.</param>
     /// <param name="timeProvider">Clock for installation times.</param>
     /// <param name="logger">Logger.</param>
-    internal ModelStore(string rootDirectory, TimeProvider timeProvider, ILogger? logger = null)
+    /// <param name="catalog">The model catalogue, to tell the tier of a folder from before tiers.</param>
+    internal ModelStore(string rootDirectory, TimeProvider timeProvider, ILogger? logger = null, IModelCatalog? catalog = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
         ArgumentNullException.ThrowIfNull(timeProvider);
 
         RootDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(rootDirectory));
         this.timeProvider = timeProvider;
+        this.catalog = catalog;
         this.logger = logger ?? NullLogger.Instance;
     }
 
@@ -85,14 +97,12 @@ public sealed partial class ModelStore : IModelStore, IDisposable
         }
 
         var models = new List<InstalledModel>();
-        foreach (var modelDirectory in Directory.EnumerateDirectories(RootDirectory).Where(IsModelName).Order(StringComparer.Ordinal))
+        foreach (var modelDirectory in Directory.EnumerateDirectories(RootDirectory).Where(IsModelName).Order(StringComparer.Ordinal).ToList())
         {
+            await MigrateLegacyAsync(modelDirectory, cancellationToken).ConfigureAwait(false);
             foreach (var versionDirectory in Directory.EnumerateDirectories(modelDirectory).Where(IsModelName).Order(StringComparer.Ordinal))
             {
-                if (await TryReadManifestAsync(versionDirectory, cancellationToken).ConfigureAwait(false) is { } model)
-                {
-                    models.Add(model);
-                }
+                models.AddRange(await ReadTiersAsync(versionDirectory, cancellationToken).ConfigureAwait(false));
             }
         }
 
@@ -100,10 +110,19 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     }
 
     /// <inheritdoc />
-    public Task<InstalledModel?> FindAsync(string modelId, string version, CancellationToken cancellationToken)
+    public async Task<InstalledModel?> FindAsync(string modelId, string version, string tierId, CancellationToken cancellationToken)
     {
-        var directory = GetModelDirectory(modelId, version);
-        return Directory.Exists(directory) ? TryReadManifestAsync(directory, cancellationToken) : Task.FromResult<InstalledModel?>(null);
+        _ = GetModelDirectory(modelId, version, tierId);
+        var tiers = await FindTiersAsync(modelId, version, cancellationToken).ConfigureAwait(false);
+        return tiers.FirstOrDefault(model => model.TierId == tierId);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<InstalledModel>> FindTiersAsync(string modelId, string version, CancellationToken cancellationToken)
+    {
+        var versionDirectory = GetVersionDirectory(modelId, version);
+        await MigrateLegacyAsync(GetModelFolder(modelId), cancellationToken).ConfigureAwait(false);
+        return Directory.Exists(versionDirectory) ? await ReadTiersAsync(versionDirectory, cancellationToken).ConfigureAwait(false) : [];
     }
 
     /// <inheritdoc />
@@ -121,16 +140,19 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var target = GetModelDirectory(request.ModelId, request.Version);
+        var target = GetModelDirectory(request.ModelId, request.Version, request.TierId);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.DisplayName);
         var fileNames = ValidateFiles(request.Files);
 
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            await MigrateLegacyCoreAsync(GetModelFolder(request.ModelId)).ConfigureAwait(false);
+            EnsureNotLegacy(request.ModelId, request.Version);
             if (Directory.Exists(target))
             {
-                throw new ModelStoreException($"{request.DisplayName} {request.Version} is already installed. Delete it first to replace it.");
+                throw new ModelStoreException(
+                    $"{request.DisplayName} {request.Version} ({request.TierId}) is already installed. Delete it first to replace it.");
             }
 
             CleanUpLeftovers();
@@ -173,6 +195,7 @@ public sealed partial class ModelStore : IModelStore, IDisposable
                 var model = new InstalledModel(
                     request.ModelId,
                     request.Version,
+                    request.TierId,
                     request.DisplayName,
                     request.License,
                     request.Source,
@@ -184,7 +207,7 @@ public sealed partial class ModelStore : IModelStore, IDisposable
 
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 Directory.Move(staging, target);
-                logger.LogInformation("Installed model {ModelId} {Version} ({FileCount} files)", model.ModelId, model.Version, files.Count);
+                logger.LogInformation("Installed model {ModelId} {Version} tier {TierId} ({FileCount} files)", model.ModelId, model.Version, model.TierId, files.Count);
                 return model;
             }
             catch
@@ -200,10 +223,10 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, string tierId, CancellationToken cancellationToken)
     {
-        var model = await FindAsync(modelId, version, cancellationToken).ConfigureAwait(false)
-            ?? throw new ModelStoreException($"The model {modelId} {version} isn't installed.");
+        var model = await FindAsync(modelId, version, tierId, cancellationToken).ConfigureAwait(false)
+            ?? throw new ModelStoreException($"The model {modelId} {version} ({tierId}) isn't installed.");
 
         var problems = new List<string>();
         foreach (var file in model.Files)
@@ -226,10 +249,14 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task RecordUsageAsync(string modelId, string version, string libraryPath, CancellationToken cancellationToken)
+    public async Task RecordUsageAsync(string modelId, string version, string contentHash, string libraryPath, CancellationToken cancellationToken)
     {
-        var key = GetUsageKey(modelId, version);
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
         ArgumentException.ThrowIfNullOrWhiteSpace(libraryPath);
+        var tiers = await FindTiersAsync(modelId, version, cancellationToken).ConfigureAwait(false);
+        var tier = tiers.FirstOrDefault(model => string.Equals(model.ContentHash, contentHash, StringComparison.OrdinalIgnoreCase))
+            ?? throw new ModelStoreException($"No installed tier of {modelId} {version} has the content hash {contentHash}.");
+        var key = GetUsageKey(modelId, version, tier.TierId);
         var library = Path.TrimEndingDirectorySeparator(Path.GetFullPath(libraryPath));
 
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -250,17 +277,17 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, string tierId, CancellationToken cancellationToken)
     {
-        var key = GetUsageKey(modelId, version);
+        var key = GetUsageKey(modelId, version, tierId);
         var usage = await ReadUsageAsync(cancellationToken).ConfigureAwait(false);
-        return usage.TryGetValue(key, out var libraries) ? libraries : [];
+        return GetLibraries(usage, key, GetLegacyUsageKey(modelId, version));
     }
 
     /// <inheritdoc />
-    public async Task<ModelDeletionResult> DeleteAsync(string modelId, string version, bool confirmed, CancellationToken cancellationToken)
+    public async Task<ModelDeletionResult> DeleteAsync(string modelId, string version, string tierId, bool confirmed, CancellationToken cancellationToken)
     {
-        var result = await DeleteCoreAsync(modelId, version, confirmed, cancellationToken).ConfigureAwait(false);
+        var result = await DeleteCoreAsync(modelId, version, tierId, confirmed, cancellationToken).ConfigureAwait(false);
         if (result.Deleted)
         {
             RaiseModelsChanged();
@@ -269,21 +296,24 @@ public sealed partial class ModelStore : IModelStore, IDisposable
         return result;
     }
 
-    private async Task<ModelDeletionResult> DeleteCoreAsync(string modelId, string version, bool confirmed, CancellationToken cancellationToken)
+    private async Task<ModelDeletionResult> DeleteCoreAsync(string modelId, string version, string tierId, bool confirmed, CancellationToken cancellationToken)
     {
-        var target = GetModelDirectory(modelId, version);
-        var key = GetUsageKey(modelId, version);
+        var target = GetModelDirectory(modelId, version, tierId);
+        var key = GetUsageKey(modelId, version, tierId);
+        var legacyKey = GetLegacyUsageKey(modelId, version);
 
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            await MigrateLegacyCoreAsync(GetModelFolder(modelId)).ConfigureAwait(false);
+            EnsureNotLegacy(modelId, version);
             if (!Directory.Exists(target))
             {
-                throw new ModelStoreException($"The model {modelId} {version} isn't installed.");
+                throw new ModelStoreException($"The model {modelId} {version} ({tierId}) isn't installed.");
             }
 
             var usage = await ReadUsageAsync(cancellationToken).ConfigureAwait(false);
-            var libraries = usage.TryGetValue(key, out var existing) ? existing : [];
+            var libraries = GetLibraries(usage, key, legacyKey);
             if (libraries.Count > 0 && !confirmed)
             {
                 return new ModelDeletionResult(false, libraries);
@@ -298,22 +328,29 @@ public sealed partial class ModelStore : IModelStore, IDisposable
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                throw new ModelStoreException($"The model {modelId} {version} is in use. Stop the analysis that uses it, then try again.", ex);
+                throw new ModelStoreException($"The model {modelId} {version} ({tierId}) is in use. Stop the analysis that uses it, then try again.", ex);
             }
 
-            if (usage.Remove(key))
+            // The folders above go once they're empty; the usage from before tiers goes with the last tier.
+            var versionDirectory = Path.GetDirectoryName(target)!;
+            var lastTier = !Directory.EnumerateFileSystemEntries(versionDirectory).Any();
+            if (usage.Remove(key) | (lastTier && usage.Remove(legacyKey)))
             {
                 await WriteJsonAtomicallyAsync(UsageFile, usage, cancellationToken).ConfigureAwait(false);
             }
 
-            var modelDirectory = Path.GetDirectoryName(target)!;
-            if (!Directory.EnumerateFileSystemEntries(modelDirectory).Any())
+            if (lastTier)
             {
-                Directory.Delete(modelDirectory);
+                Directory.Delete(versionDirectory);
+                var modelDirectory = Path.GetDirectoryName(versionDirectory)!;
+                if (!Directory.EnumerateFileSystemEntries(modelDirectory).Any())
+                {
+                    Directory.Delete(modelDirectory);
+                }
             }
 
             TryDeleteDirectory(trash);
-            logger.LogInformation("Deleted model {ModelId} {Version}", modelId, version);
+            logger.LogInformation("Deleted model {ModelId} {Version} tier {TierId}", modelId, version, tierId);
             return new ModelDeletionResult(true, libraries);
         }
         finally
@@ -361,6 +398,8 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     }
 
     private static bool IsModelName(string path) => NamePattern().IsMatch(Path.GetFileName(path));
+
+    private static bool IsValidName(string value) => value.Length <= MaxNameLength && NamePattern().IsMatch(value);
 
     private static void ValidateName(string value, string parameterName)
     {
@@ -463,25 +502,57 @@ public sealed partial class ModelStore : IModelStore, IDisposable
     [GeneratedRegex("^[a-z0-9][a-z0-9._-]*$")]
     private static partial Regex NamePattern();
 
-    private string GetModelDirectory(string modelId, string version)
+    private static List<string> GetLibraries(Dictionary<string, List<string>> usage, string key, string legacyKey)
+    {
+        var libraries = usage.TryGetValue(key, out var existing) ? new List<string>(existing) : [];
+
+        // A usage recorded before tiers that the migration couldn't rewrite: it may be this tier's, so warn about it.
+        if (usage.TryGetValue(legacyKey, out var legacy))
+        {
+            libraries.AddRange(legacy.Where(library => !libraries.Contains(library, PathComparer)));
+        }
+
+        return libraries;
+    }
+
+    private string GetModelFolder(string modelId)
     {
         ValidateName(modelId, nameof(modelId));
+        return EnsureInsideStore(Path.Combine(RootDirectory, modelId));
+    }
+
+    private string GetVersionDirectory(string modelId, string version)
+    {
         ValidateName(version, nameof(version));
+        return EnsureInsideStore(Path.Combine(GetModelFolder(modelId), version));
+    }
 
-        var directory = Path.Combine(RootDirectory, modelId, version);
+    private string GetModelDirectory(string modelId, string version, string tierId)
+    {
+        ValidateName(tierId, nameof(tierId));
+        return EnsureInsideStore(Path.Combine(GetVersionDirectory(modelId, version), tierId));
+    }
 
+    private string EnsureInsideStore(string directory)
+    {
         // Belt and braces: the names can't contain separators, but never touch anything outside the store.
         if (!Path.GetFullPath(directory).StartsWith(RootDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("The model folder would be outside the store.", nameof(modelId));
+            throw new ArgumentException("The model folder would be outside the store.", nameof(directory));
         }
 
         return directory;
     }
 
-    private string GetUsageKey(string modelId, string version)
+    private string GetUsageKey(string modelId, string version, string tierId)
     {
-        _ = GetModelDirectory(modelId, version);
+        _ = GetModelDirectory(modelId, version, tierId);
+        return $"{modelId}/{version}/{tierId}";
+    }
+
+    private string GetLegacyUsageKey(string modelId, string version)
+    {
+        _ = GetVersionDirectory(modelId, version);
         return $"{modelId}/{version}";
     }
 
@@ -505,28 +576,235 @@ public sealed partial class ModelStore : IModelStore, IDisposable
         }
     }
 
+    private async Task<List<InstalledModel>> ReadTiersAsync(string versionDirectory, CancellationToken cancellationToken)
+    {
+        var tiers = new List<InstalledModel>();
+
+        // A folder from before tiers that couldn't be moved yet (a file is open) still works where it is.
+        if (File.Exists(Path.Combine(versionDirectory, ManifestFileName))
+            && await TryReadManifestFileAsync(versionDirectory, Path.GetFileName(Path.GetDirectoryName(versionDirectory)!), Path.GetFileName(versionDirectory), cancellationToken)
+                .ConfigureAwait(false) is { } legacy)
+        {
+            tiers.Add(legacy.ToModel(versionDirectory, legacy.TierId ?? InferTier(legacy)));
+        }
+
+        foreach (var tierDirectory in Directory.EnumerateDirectories(versionDirectory).Where(IsModelName).Order(StringComparer.Ordinal))
+        {
+            if (await TryReadManifestAsync(tierDirectory, cancellationToken).ConfigureAwait(false) is { } model)
+            {
+                tiers.Add(model);
+            }
+        }
+
+        return tiers;
+    }
+
     private async Task<InstalledModel?> TryReadManifestAsync(string directory, CancellationToken cancellationToken)
+    {
+        var tierId = Path.GetFileName(directory);
+        var versionDirectory = Path.GetDirectoryName(directory)!;
+        var manifest = await TryReadManifestFileAsync(
+            directory,
+            Path.GetFileName(Path.GetDirectoryName(versionDirectory)!),
+            Path.GetFileName(versionDirectory),
+            cancellationToken).ConfigureAwait(false);
+        if (manifest is null)
+        {
+            return null;
+        }
+
+        // A manifest moved down from before tiers, whose rewrite failed, has no tier: the folder names it.
+        if (manifest.TierId is { } recorded && recorded != tierId)
+        {
+            logger.LogWarning("The model manifest in {Directory} names the tier {TierId}", directory, recorded);
+            return null;
+        }
+
+        return manifest.ToModel(directory, tierId);
+    }
+
+    /// <summary>
+    /// Reads a manifest and checks it describes the given model and version, with valid files.
+    /// </summary>
+    private async Task<Manifest?> TryReadManifestFileAsync(string directory, string modelId, string version, CancellationToken cancellationToken)
     {
         var path = Path.Combine(directory, ManifestFileName);
         try
         {
             await using var stream = File.OpenRead(path);
             var manifest = await JsonSerializer.DeserializeAsync<Manifest>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
-            var version = Path.GetFileName(directory);
-            var modelId = Path.GetFileName(Path.GetDirectoryName(directory)!);
-            if (manifest is null || manifest.ModelId != modelId || manifest.Version != version || manifest.Files is not { Count: > 0 })
+            if (manifest is null || manifest.ModelId != modelId || manifest.Version != version || manifest.Files is not { Count: > 0 }
+                || (manifest.TierId is { } tierId && !IsValidName(tierId)))
             {
                 logger.LogWarning("The model manifest {Path} doesn't match its folder", path);
                 return null;
             }
 
             _ = ValidateFiles(manifest.Files.Select(file => new ModelFileSource(file.Role, file.FileName)).ToList());
-            return manifest.ToModel(directory);
+            return manifest;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or ArgumentException)
         {
             logger.LogWarning(ex, "Skipping the model folder {Directory}: its manifest can't be read", directory);
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Moves the model's folders from before tiers down into their tier folders, if it has any. Takes the lock only
+    /// when there's something to move, so reads stay lock-free.
+    /// </summary>
+    private async Task MigrateLegacyAsync(string modelDirectory, CancellationToken cancellationToken)
+    {
+        if (!HasLegacyFolders(modelDirectory))
+        {
+            return;
+        }
+
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await MigrateLegacyCoreAsync(modelDirectory).ConfigureAwait(false);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private static bool HasLegacyFolders(string modelDirectory) =>
+        Directory.Exists(modelDirectory)
+        && (Directory.EnumerateDirectories(modelDirectory, MigratingPrefix + "*").Any()
+            || Directory.EnumerateDirectories(modelDirectory).Where(IsModelName).Any(directory => File.Exists(Path.Combine(directory, ManifestFileName))));
+
+    /// <summary>
+    /// Moves each <c>&lt;version&gt;</c> folder that holds a manifest to <c>&lt;version&gt;\&lt;tier&gt;</c>: first it's
+    /// renamed to <c>.migrating-&lt;version&gt;</c>, then into the new tier folder. Both are single renames, and a
+    /// <c>.migrating-</c> folder left by a crash is finished first. Runs under the lock; never throws for a folder
+    /// it can't move (e.g. a file is open), which is logged and tried again on the next access.
+    /// </summary>
+    private async Task MigrateLegacyCoreAsync(string modelDirectory)
+    {
+        if (!HasLegacyFolders(modelDirectory))
+        {
+            return;
+        }
+
+        var modelId = Path.GetFileName(modelDirectory);
+        foreach (var pending in Directory.EnumerateDirectories(modelDirectory, MigratingPrefix + "*").ToList())
+        {
+            var version = Path.GetFileName(pending)[MigratingPrefix.Length..];
+            if (IsValidName(version))
+            {
+                await FinishMigrationAsync(modelId, version, pending).ConfigureAwait(false);
+            }
+        }
+
+        foreach (var versionDirectory in Directory.EnumerateDirectories(modelDirectory).Where(IsModelName).ToList())
+        {
+            if (!File.Exists(Path.Combine(versionDirectory, ManifestFileName)))
+            {
+                continue;
+            }
+
+            var version = Path.GetFileName(versionDirectory);
+            if (await TryReadManifestFileAsync(versionDirectory, modelId, version, CancellationToken.None).ConfigureAwait(false) is null)
+            {
+                // Unreadable before tiers too; leave it for the user to delete.
+                continue;
+            }
+
+            var pending = Path.Combine(modelDirectory, MigratingPrefix + version);
+            try
+            {
+                Directory.Move(versionDirectory, pending);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning(ex, "Couldn't move the model folder {Directory} into its tier folder yet; will try again", versionDirectory);
+                continue;
+            }
+
+            await FinishMigrationAsync(modelId, version, pending).ConfigureAwait(false);
+        }
+    }
+
+    private async Task FinishMigrationAsync(string modelId, string version, string pending)
+    {
+        var manifest = await TryReadManifestFileAsync(pending, modelId, version, CancellationToken.None).ConfigureAwait(false);
+        if (manifest is null)
+        {
+            return;
+        }
+
+        var tierId = manifest.TierId ?? InferTier(manifest);
+        var versionDirectory = Path.Combine(Path.GetDirectoryName(pending)!, version);
+        var target = Path.Combine(versionDirectory, tierId);
+        try
+        {
+            if (Directory.Exists(target) || File.Exists(Path.Combine(versionDirectory, ManifestFileName)))
+            {
+                logger.LogWarning("Couldn't move {Pending} into {Target}: the folder is taken", pending, target);
+                return;
+            }
+
+            Directory.CreateDirectory(versionDirectory);
+            Directory.Move(pending, target);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Couldn't move {Pending} into {Target} yet; will try again", pending, target);
+            return;
+        }
+
+        try
+        {
+            // The folder names the tier already; recording it too keeps the manifest self-describing.
+            await WriteJsonAtomicallyAsync(Path.Combine(target, ManifestFileName), manifest with { Format = ManifestFormat, TierId = tierId }, CancellationToken.None)
+                .ConfigureAwait(false);
+            var usage = await ReadUsageAsync(CancellationToken.None).ConfigureAwait(false);
+            if (usage.Remove(GetLegacyUsageKey(modelId, version), out var libraries))
+            {
+                var key = GetUsageKey(modelId, version, tierId);
+                var merged = usage.TryGetValue(key, out var existing) ? existing : usage[key] = [];
+                merged.AddRange(libraries.Where(library => !merged.Contains(library, PathComparer)));
+                await WriteJsonAtomicallyAsync(UsageFile, usage, CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogWarning(ex, "Moved the model {ModelId} {Version} into the tier {TierId}, but couldn't update its manifest or usage", modelId, version, tierId);
+        }
+
+        logger.LogInformation("Moved the model {ModelId} {Version} into its tier folder {TierId}", modelId, version, tierId);
+    }
+
+    /// <summary>
+    /// Tells the tier of a manifest from before tiers: the catalogue tier with the same files, else the default tier.
+    /// </summary>
+    private string InferTier(Manifest manifest)
+    {
+        if (catalog?.Find(manifest.ModelId) is not { } entry || entry.Version != manifest.Version)
+        {
+            return FallbackTierId;
+        }
+
+        var contentHash = ComputeContentHash(manifest.Files);
+        var match = entry.Tiers.FirstOrDefault(
+            tier => ComputeContentHash(tier.Files.Select(file => new InstalledModelFile(file.Role, file.FileName, file.Size, file.Sha256))) == contentHash);
+        return match?.TierId ?? entry.DefaultTier;
+    }
+
+    /// <summary>
+    /// Fails an operation on a version whose folder from before tiers couldn't be moved yet, so nothing is written
+    /// next to its files.
+    /// </summary>
+    private void EnsureNotLegacy(string modelId, string version)
+    {
+        if (File.Exists(Path.Combine(GetVersionDirectory(modelId, version), ManifestFileName))
+            || Directory.Exists(Path.Combine(GetModelFolder(modelId), MigratingPrefix + version)))
+        {
+            throw new ModelStoreException($"The model {modelId} {version} is being moved to the new folder layout and is in use. Try again later.");
         }
     }
 
@@ -579,12 +857,13 @@ public sealed partial class ModelStore : IModelStore, IDisposable
         string? Source,
         IReadOnlyList<InstalledModelFile> Files,
         string ContentHash,
-        DateTimeOffset InstalledAt)
+        DateTimeOffset InstalledAt,
+        string? TierId = null)
     {
         public static Manifest From(InstalledModel model) =>
-            new(1, model.ModelId, model.Version, model.DisplayName, model.License, model.Source, model.Files, model.ContentHash, model.InstalledAt);
+            new(ManifestFormat, model.ModelId, model.Version, model.DisplayName, model.License, model.Source, model.Files, model.ContentHash, model.InstalledAt, model.TierId);
 
-        public InstalledModel ToModel(string directory) =>
-            new(ModelId, Version, DisplayName, License, Source, directory, Files, ContentHash, InstalledAt);
+        public InstalledModel ToModel(string directory, string tierId) =>
+            new(ModelId, Version, tierId, DisplayName, License, Source, directory, Files, ContentHash, InstalledAt);
     }
 }

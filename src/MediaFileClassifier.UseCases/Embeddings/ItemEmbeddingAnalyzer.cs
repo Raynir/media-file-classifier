@@ -188,16 +188,17 @@ public sealed partial class ItemEmbeddingAnalyzer
     {
         var model = await library.Models.GetOrAddAsync(identity, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
         var root = library.Layout.RootDirectory;
-        if (identity.ProviderId == ProviderIds.Onnx && identity.Version is { } version && recordedUsage.TryAdd((root, identity.ToString()), true))
+        if (identity.ProviderId == ProviderIds.Onnx && identity.Version is { } version && identity.FileHash is { } contentHash
+            && recordedUsage.TryAdd((root, identity.ToString() + "#" + contentHash), true))
         {
             try
             {
-                await modelStore.RecordUsageAsync(identity.ModelName, version, root, cancellationToken).ConfigureAwait(false);
+                await modelStore.RecordUsageAsync(identity.ModelName, version, contentHash, root, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ModelStoreException)
             {
                 // Only the delete warning (E06-S12) depends on it; try again next time.
-                recordedUsage.TryRemove((root, identity.ToString()), out _);
+                recordedUsage.TryRemove((root, identity.ToString() + "#" + contentHash), out _);
                 LogUsageNotRecorded(ex, identity.ToString());
             }
         }

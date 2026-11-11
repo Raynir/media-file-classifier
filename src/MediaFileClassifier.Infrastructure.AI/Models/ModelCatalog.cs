@@ -91,6 +91,7 @@ public sealed class ModelCatalog : IModelCatalog
                 Require(tier is not null && !string.IsNullOrWhiteSpace(tier.TierId) && tierIds.Add(tier.TierId), $"{name} has an empty or repeated tier ID");
                 Require(!string.IsNullOrWhiteSpace(tier!.DisplayName), $"{name} tier {tier.TierId} has no display name");
                 Require(tier.Files is { Count: > 0 }, $"{name} tier {tier.TierId} has no files");
+                Require(!string.IsNullOrWhiteSpace(tier.Precision), $"{name} tier {tier.TierId} has no precision");
 
                 var roles = new HashSet<string>(StringComparer.Ordinal);
                 var fileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

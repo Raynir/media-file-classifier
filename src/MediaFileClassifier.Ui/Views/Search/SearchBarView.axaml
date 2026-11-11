@@ -13,7 +13,29 @@
            PlaceholderText="{l:Loc Search_Placeholder}"
            AutomationProperties.Name="{l:Loc Search_Placeholder}">
     <TextBox.InnerLeftContent>
-      <PathIcon Classes="Small" Data="{StaticResource Icon.Search}" Margin="{DynamicResource Padding.Compact}" />
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="{DynamicResource Space.XS}">
+        <PathIcon Classes="Small" Data="{StaticResource Icon.Search}" Margin="{DynamicResource Padding.Compact}" />
+        <!-- Similarity mode (E09-S03-T02): "Similar to: IMG_1234" with the item's thumbnail; text typed replaces it. -->
+        <Border x:Name="SimilarChip"
+                IsVisible="{Binding IsSimilarMode}"
+                Background="{DynamicResource Brush.Surface.Control}"
+                CornerRadius="{DynamicResource Radius.Pill}"
+                Padding="{DynamicResource Padding.Compact}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" VerticalAlignment="Center">
+            <Image Source="{Binding SimilarThumbnail}" Width="20" Height="20" Stretch="UniformToFill" />
+            <TextBlock VerticalAlignment="Center"
+                       MaxWidth="180"
+                       TextTrimming="CharacterEllipsis"
+                       Text="{Binding SimilarLabel}" />
+            <Button Classes="Icon Small"
+                    Command="{Binding ClearSimilarCommand}"
+                    ToolTip.Tip="{l:Loc Search_ClearSimilar}"
+                    AutomationProperties.Name="{l:Loc Search_ClearSimilar}">
+              <PathIcon Classes="Small" Data="{StaticResource Icon.Close}" />
+            </Button>
+          </StackPanel>
+        </Border>
+      </StackPanel>
     </TextBox.InnerLeftContent>
     <TextBox.KeyBindings>
       <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />

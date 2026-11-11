@@ -32,6 +32,8 @@ using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.Ui.Views.Toolbar;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Settings;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
+using MediaFileClassifier.UseCases.Search.SearchResults;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -131,9 +133,12 @@ public static class UiModule
         services.AddSingleton<StatusBarViewModel>();
 
         // Unified search (E09-S01): the box in the toolbar and the notice above the results.
-        services.AddSingleton<SearchBarViewModel>();
+        services.AddSingleton(provider => new SearchBarViewModel(
+            provider.GetRequiredService<SearchResultSource>(),
+            thumbnails: provider.GetService<IThumbnailCache>() is null ? null : provider.GetRequiredService<ThumbnailLoader>()));
         services.AddSingleton<SearchNoticeViewModel>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, SearchToolbar>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, FindSimilarCommands>());
 
         // Toolbar (E13-S03). Features fill its slots and add actions through IToolbarContributor.
         services.AddSingleton<ToolbarViewModel>();

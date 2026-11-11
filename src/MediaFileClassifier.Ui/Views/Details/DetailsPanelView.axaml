@@ -113,7 +113,7 @@
       <TextBlock Classes="Secondary"
                  Text="{Binding SelectedCountText}"
                  IsVisible="{Binding SelectedCountText, Converter={x:Static ObjectConverters.IsNotNull}}" />
-      <!-- Quick actions (E14-S05): Open and Reveal now; Favorite, Find similar and Re-analyze join with their Stories. -->
+      <!-- Quick actions (E14-S05): Open, Reveal and Find similar (E09-S03) now; Favorite and Re-analyze join with their Stories. -->
       <StackPanel x:Name="QuickActions"
                   Orientation="Horizontal"
                   Spacing="{DynamicResource Space.XS}"
@@ -133,6 +133,14 @@
                 ToolTip.ShowOnDisabled="True"
                 AutomationProperties.Name="{Binding Commands[item.reveal].PlainLabel}">
           <PathIcon Data="{StaticResource Icon.FolderOpen}" />
+        </Button>
+        <Button Classes="Icon"
+                Command="{Binding Commands[item.find-similar]}"
+                IsVisible="{Binding Commands[item.find-similar].IsApplicable}"
+                ToolTip.Tip="{Binding Commands[item.find-similar].ToolTip}"
+                ToolTip.ShowOnDisabled="True"
+                AutomationProperties.Name="{Binding Commands[item.find-similar].PlainLabel}">
+          <PathIcon Data="{StaticResource Icon.Search}" />
         </Button>
       </StackPanel>
     </StackPanel>

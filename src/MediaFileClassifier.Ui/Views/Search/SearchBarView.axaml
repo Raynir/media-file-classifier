@@ -16,16 +16,15 @@
            PlaceholderText="{l:Loc Search_Placeholder}"
            AutomationProperties.Name="{l:Loc Search_Placeholder}">
     <TextBox.InnerLeftContent>
-      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" VerticalAlignment="Center">
         <PathIcon Classes="Small" Data="{StaticResource Icon.Search}" Margin="{DynamicResource Padding.Compact}" />
         <Border x:Name="ImageChip"
                 IsVisible="{Binding HasReferenceImage}"
                 Background="{DynamicResource Brush.State.Hover}"
-                CornerRadius="4"
-                Padding="4,1,2,1"
-                Margin="0,2,4,2"
+                CornerRadius="{DynamicResource Radius.Control}"
+                Padding="{DynamicResource Padding.Badge}"
                 ToolTip.Tip="{Binding ReferenceImage.Name, FallbackValue={x:Null}}">
-          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" VerticalAlignment="Center">
             <Image Source="{Binding ReferenceImage, Converter={x:Static vm:ReferenceImageThumbnail.Converter}}"
                    Width="{x:Static vm:ReferenceImageThumbnail.Width}"
                    Height="{x:Static vm:ReferenceImageThumbnail.Width}"
@@ -36,9 +35,8 @@
                        VerticalAlignment="Center" />
             <Button x:Name="RemoveImageButton"
                     Classes="Icon"
-                    Width="20"
-                    Height="20"
-                    Padding="2"
+                    Width="{DynamicResource Size.Icon}"
+                    Height="{DynamicResource Size.Icon}"
                     Command="{Binding RemoveImageCommand}"
                     ToolTip.Tip="{l:Loc Search_RemoveImage}"
                     AutomationProperties.Name="{l:Loc Search_RemoveImage}">
@@ -53,14 +51,12 @@
                    MaxWidth="260"
                    TextTrimming="CharacterEllipsis"
                    ToolTip.Tip="{Binding ImageError}"
-                   VerticalAlignment="Center"
-                   Margin="0,0,4,0" />
+                   VerticalAlignment="Center" />
       </StackPanel>
     </TextBox.InnerLeftContent>
     <TextBox.InnerRightContent>
       <Button x:Name="PickImageButton"
               Classes="Icon"
-              Margin="0,0,2,0"
               Command="{Binding PickImageCommand}"
               ToolTip.Tip="{l:Loc Search_PickImage}"
               AutomationProperties.Name="{l:Loc Search_PickImage}">

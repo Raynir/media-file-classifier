@@ -34,9 +34,9 @@ public interface IReferenceImagePicker
 /// The picker of the app's main window, through Avalonia, so it works on every platform head. It offers the image
 /// formats of D010.
 /// </summary>
-/// <param name="formats">The supported formats.</param>
+/// <param name="formats">The supported formats (the registry's handlers).</param>
 /// <param name="localizer">UI strings.</param>
-public sealed class AvaloniaReferenceImagePicker(IMediaFormatRegistry formats, Localizer localizer) : IReferenceImagePicker
+public sealed class AvaloniaReferenceImagePicker(IEnumerable<IMediaFormatHandler> formats, Localizer localizer) : IReferenceImagePicker
 {
     /// <inheritdoc />
     public async Task<PickedImage?> PickAsync()
@@ -52,7 +52,7 @@ public sealed class AvaloniaReferenceImagePicker(IMediaFormatRegistry formats, L
             return null;
         }
 
-        var patterns = formats.Handlers
+        var patterns = formats
             .Where(handler => handler.MimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
             .SelectMany(handler => handler.Extensions)
             .Select(extension => "*" + extension)

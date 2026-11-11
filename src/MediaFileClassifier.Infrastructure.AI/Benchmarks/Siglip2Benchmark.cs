@@ -110,7 +110,18 @@ public sealed class Siglip2Benchmark : IBenchmarkRunner
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 progress?.Report($"Timing {tier.TierId} on {requested}...");
-                var measured = await Task.Run(() => Measure(tier, requested, images, texts, cancellationToken), cancellationToken).ConfigureAwait(false);
+                List<BenchmarkEntry> measured;
+                try
+                {
+                    measured = await Task.Run(() => Measure(tier, requested, images, texts, cancellationToken), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // A tier that doesn't run on a provider (e.g. an fp16 graph on the CPU) is a result, not a reason to stop.
+                    progress?.Report($"  {tier.TierId} on {requested} failed: {ex.Message}");
+                    continue;
+                }
+
                 foreach (var entry in measured)
                 {
                     progress?.Report($"  {entry.Analyzer}: {entry.ItemsPerSecond:0.0} items/s on {entry.Provider} ({entry.Items} items, load {entry.LoadSeconds:0.0} s)");

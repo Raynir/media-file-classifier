@@ -18,7 +18,7 @@ Legend: **Checked** = done on a real machine and passed. **Open** = not done.
 
 | Machine class | Example | Provider expected | Provider and fallback checks | Benchmark (real model) |
 |---|---|---|---|---|
-| NVIDIA discrete GPU + integrated GPU (hybrid laptop) | Dev machine: RTX 4070 Laptop (adapter 0), Intel UHD (adapter 1), 28 logical processors, 31.7 GB | DirectML on the NVIDIA adapter | **Checked**: adapter choice picks the discrete GPU; DirectML 1.24.4 lists `DmlExecutionProvider` and runs a small model on both adapters (T02 smoke test); fallback paths covered by unit tests | **Open**: the SigLIP 2 files aren't on this machine |
+| NVIDIA discrete GPU + integrated GPU (hybrid laptop) | Dev machine: RTX 4070 Laptop (adapter 0), Intel UHD (adapter 1), 28 logical processors, 31.7 GB | DirectML on the NVIDIA adapter | **Checked**: adapter choice picks the discrete GPU; DirectML 1.24.4 lists `DmlExecutionProvider` and runs a small model on both adapters (T02 smoke test); fallback paths covered by unit tests | **Checked** (2026-11-11), see Results |
 | Integrated GPU only (Intel/AMD APU, under 2 GB dedicated) | Intel UHD alone | CPU (by design: the 2 GB threshold of DNEW-3) | **Open** (the rule is unit-tested; the dev machine's iGPU is never the preferred adapter) | **Open** |
 | AMD discrete GPU | Radeon RX series | DirectML | **Open** | **Open** |
 | Intel Arc discrete GPU | Arc A-series | DirectML | **Open** | **Open** |
@@ -28,11 +28,26 @@ Legend: **Checked** = done on a real machine and passed. **Open** = not done.
 
 ## Known gaps
 
-- **No real-model numbers yet.** The SigLIP 2 files aren't installed on the only machine used so far. Once installed, run the benchmark on each row and paste its table in a "Results" section below. The quality gate (`MFC_SIGLIP2_DIR` real-model tests) is described in the MFC-85 contract.
+- **One machine only.** Run the benchmark on each other row and paste its table in the Results section below. The quality gate (`MFC_SIGLIP2_DIR` real-model tests) is described in the MFC-85 contract.
 - **Machines.** AMD, Intel Arc, a no-GPU machine and ARM64 are not available to the developer. Ask testers for the benchmark output and the first log lines from those.
 - **DirectML on the integrated GPU** is never chosen when a discrete one exists, and is skipped below 2 GB. Whether a UHD/Iris GPU would beat the CPU is unmeasured; the benchmark only tries the preferred adapter. The CUDA build for NVIDIA users is a backlog item, not part of this matrix.
 - **Android** (NNAPI) isn't built or tested here.
 
 ## Results
 
-None recorded yet.
+Dev machine (28 logical processors, 31.7 GB, RTX 4070 Laptop + Intel UHD), both tiers installed, 2026-11-11. The whole run took about 30 s. Generated 640×480 images, so these are throughput figures, not quality figures.
+
+| Analyzer | Tier | Provider | Items/s |
+|---|---|---|---|
+| siglip2.image | standard | CPU | 8.7 |
+| siglip2.text | standard | CPU | 34.2 |
+| siglip2.image | standard | DirectML (RTX 4070) | 29.0 |
+| siglip2.text | standard | DirectML (RTX 4070) | 185.4 |
+| siglip2.image | compact | DirectML (RTX 4070) | 36.5 |
+| siglip2.text | compact | DirectML (RTX 4070) | 251.2 |
+| any | compact | CPU | does not load |
+
+What it shows:
+- The GPU embeds images about 3.3 to 4.2 times faster than the CPU and texts 5 to 7 times faster. The `compact` tier shares the `standard` image tower, so its image figure only differs by run-to-run noise (these runs ranged from 27.7 to 36.5 images/s).
+- **The `compact` tier's fp16 text model doesn't load on the CPU** (ONNX Runtime fails to initialise it: `InsertedPrecisionFreeCast_…` in `SimplifiedLayerNormFusion`). So `compact` is a GPU-only tier. If DirectML falls back to the CPU while `compact` is the installed tier, the text tower is unusable until `standard` is installed. The provider doesn't handle that case yet.
+- The CPU figure here (8.7 images/s) is below MFC-85's 14.7 images/s, which was measured differently (see its contract); compare runs only with the same command.

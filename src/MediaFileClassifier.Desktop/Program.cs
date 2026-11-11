@@ -27,7 +27,7 @@ namespace MediaFileClassifier.Desktop;
 /// <summary>
 /// The desktop entry point and composition root.
 /// </summary>
-internal static partial class Program
+internal static class Program
 {
     private const string LogOutputTemplate =
         "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}";
@@ -130,17 +130,16 @@ internal static partial class Program
     /// The app is a Windows GUI program, so it has no console of its own: attach to the one that started it, so
     /// <c>--benchmark</c> can print.
     /// </summary>
+    private const int StdOutputHandle = -11;
+
     private static void AttachParentConsole()
     {
-        if (AttachConsole(uint.MaxValue))
+        // Redirected output (a pipe or a file) already has a handle; attaching would replace it with the console.
+        if (NativeMethods.GetStdHandle(StdOutputHandle) == 0 && NativeMethods.AttachConsole(uint.MaxValue))
         {
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
         }
     }
-
-    [System.Runtime.InteropServices.LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static partial bool AttachConsole(uint processId);
 
     /// <summary>
     /// Avalonia configuration used by the XAML designer.

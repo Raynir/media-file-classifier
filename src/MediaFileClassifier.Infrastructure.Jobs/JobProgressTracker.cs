@@ -56,7 +56,7 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
                     return ProgressSummary.Empty;
                 }
 
-                var snapshots = jobs.Select(job => job.ToProgress(now, hints?.ItemsPerSecond(job.Job.Type))).ToList();
+                var snapshots = jobs.Select(job => job.ToProgress(now, () => hints?.ItemsPerSecond(job.Job.Type))).ToList();
                 var remaining = snapshots.Any(job => job.IsTotalGrowing)
                     ? null
                     : overall.Estimate(snapshots.Sum(job => job.Pending), now) ?? SumOfJobEstimates(snapshots);
@@ -316,7 +316,7 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
             return counters;
         }
 
-        public JobProgress ToProgress(DateTimeOffset now, double? knownRate)
+        public JobProgress ToProgress(DateTimeOffset now, Func<double?> knownRate)
         {
             var progress = new JobProgress(
                 Job.Id,
@@ -327,7 +327,7 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
             {
                 Retrying = Retrying.Count,
             };
-            return progress.IsTotalGrowing ? progress : progress with { TimeRemaining = Throughput.Estimate(progress.Pending, now) ?? Seeded(progress.Pending, knownRate) };
+            return progress.IsTotalGrowing ? progress : progress with { TimeRemaining = Throughput.Estimate(progress.Pending, now) ?? Seeded(progress.Pending, knownRate()) };
         }
     }
 

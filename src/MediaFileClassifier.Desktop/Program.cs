@@ -27,7 +27,7 @@ namespace MediaFileClassifier.Desktop;
 /// <summary>
 /// The desktop entry point and composition root.
 /// </summary>
-internal static class Program
+internal static partial class Program
 {
     private const string LogOutputTemplate =
         "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}";
@@ -109,6 +109,7 @@ internal static class Program
     /// </summary>
     private static int RunBenchmark(IServiceProvider services, Microsoft.Extensions.Logging.ILogger logger)
     {
+        AttachParentConsole();
         var progress = new Progress<string>(line =>
         {
             Console.WriteLine(line);
@@ -124,6 +125,22 @@ internal static class Program
 
         return report.Entries.Count == 0 ? 2 : 0;
     }
+
+    /// <summary>
+    /// The app is a Windows GUI program, so it has no console of its own: attach to the one that started it, so
+    /// <c>--benchmark</c> can print.
+    /// </summary>
+    private static void AttachParentConsole()
+    {
+        if (AttachConsole(uint.MaxValue))
+        {
+            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
+        }
+    }
+
+    [System.Runtime.InteropServices.LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static partial bool AttachConsole(uint processId);
 
     /// <summary>
     /// Avalonia configuration used by the XAML designer.

@@ -42,7 +42,7 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
         services = new ServiceCollection().AddSingleton<ILibrarySession>(session).AddUseCases().BuildServiceProvider();
         sender = new StubSender(services.GetRequiredService<ISender>());
         source = new SearchResultSource(services.GetRequiredService<LibraryItemsSource>(), sender);
-        analyzeNow = new AnalyzeNow(source, sender, session, jobs: null, clock);
+        analyzeNow = new AnalyzeNow(source, sender, session, clock: clock);
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -85,6 +85,39 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task EmbeddingDoneAfterItsCommit_KeepsAnalyzingUntilTheSearchFindsIt()
+    {
+        var item = await FindSimilarToUnanalyzedAsync();
+        await analyzeNow.AnalyzeAsync(Token);
+        embeddings.Commit(item);
+
+        // The item changes before the search that runs again has counted: the offer doesn't come back meanwhile.
+        analyzerStates.Set(AnalyzerState.Done(item, AnalyzerKeys.Embedding, null, Now.AddSeconds(5)));
+        library!.ItemList.RaiseChanged();
+        await analyzerStates.Read.Task.WaitAsync(TimeSpan.FromSeconds(5), Token);
+        await Task.Delay(50, Token);
+        Assert.Equal(AnalyzeNowState.Analyzing, analyzeNow.State);
+
+        sender.Semantic = SemanticSearchStatus.Used;
+        await source.CountAsync(Token);
+        Assert.Equal(AnalyzeNowState.Hidden, analyzeNow.State);
+    }
+
+    [Fact]
+    public async Task JobEndsWithoutAnEmbedding_SaysSo()
+    {
+        // E.g. an Indexed item whose embedding is skipped again: the item doesn't change, only the job ends.
+        await FindSimilarToUnanalyzedAsync();
+        await analyzeNow.AnalyzeAsync(Token);
+        Assert.Equal(AnalyzeNowState.Analyzing, analyzeNow.State);
+
+        library!.JobList.JobState = ProcessingJobState.Completed;
+        library.ItemList.RaiseChanged();
+
+        await WaitForStateAsync(AnalyzeNowState.Failed);
+    }
+
+    [Fact]
     public async Task AnalyzeAgainWhileAnalyzing_QueuesOnce()
     {
         await FindSimilarToUnanalyzedAsync();
@@ -113,6 +146,7 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
         // The next search of the item still finds no embedding, and the outcome stays until the user tries again.
         await source.CountAsync(Token);
         Assert.Equal(AnalyzeNowState.Failed, analyzeNow.State);
+        clock.Now = Now.AddSeconds(10);
         await analyzeNow.AnalyzeAsync(Token);
         Assert.Equal(AnalyzeNowState.Analyzing, analyzeNow.State);
         Assert.Equal(2, sender.Analyses.Count);
@@ -147,7 +181,7 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
     [Fact]
     public async Task ProcessingPaused_QueuesIt_AndSaysProcessingIsPaused()
     {
-        var paused = new AnalyzeNow(source, sender, session, new FakeJobSystem(new RecordingScheduler { IsPaused = true }), clock);
+        var paused = new AnalyzeNow(source, sender, session, new FakeJobSystem(new RecordingScheduler { IsPaused = true }), clock: clock);
         await FindSimilarToUnanalyzedAsync();
 
         await paused.AnalyzeAsync(Token);
@@ -210,6 +244,7 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
             library.ItemList.Items.Add(MediaItem.Discover(folder.Id, RelativePath.From($"album/IMG_{number}.jpg"), MediaType.Image, 100, Now, Now, null, Now));
         }
 
+        library.JobList.JobState = ProcessingJobState.Running;
         await session.SetCurrentAsync(library);
     }
 
@@ -226,7 +261,9 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
 
     private sealed class ManualClock(DateTimeOffset now) : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => now;
+        public DateTimeOffset Now { get; set; } = now;
+
+        public override DateTimeOffset GetUtcNow() => Now;
     }
 
     private sealed class FakeEmbeddings : IEmbeddingRepository

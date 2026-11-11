@@ -1,12 +1,14 @@
 using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.UseCases.Search.LoadReferenceImage;
 using MediatR;
 
 namespace MediaFileClassifier.UseCases.Search.SearchMedia;
 
 /// <summary>
 /// The unified text search (E09-S01): one query that runs the keyword and the semantic search together and merges
-/// them, or lists the items when the text is empty (browse mode).
+/// them, or lists the items when the text is empty (browse mode). With a <see cref="ReferenceImage"/> it is an
+/// image-to-image search instead (E09-S04).
 /// </summary>
 public sealed record SearchMediaQuery : IRequest<MediaSearchResults>
 {
@@ -14,6 +16,12 @@ public sealed record SearchMediaQuery : IRequest<MediaSearchResults>
     /// Gets what the user typed, as plain text (D022). <c>null</c>, empty or white space browses every item.
     /// </summary>
     public string? Text { get; init; }
+
+    /// <summary>
+    /// Gets the picture to search with (E09-S04), or <see langword="null"/> for a text search. The picture replaces
+    /// the text: <see cref="Text"/> is ignored while it is set, and the results are ranked by similarity alone.
+    /// </summary>
+    public ReferenceImage? ReferenceImage { get; init; }
 
     /// <summary>
     /// Gets the structured filters. They apply to every mode.
@@ -95,6 +103,16 @@ public enum SearchMode
     /// Both searches, merged with reciprocal rank fusion (E01-S04-T04).
     /// </summary>
     Hybrid,
+
+    /// <summary>
+    /// "Find similar" (E09-S03): a vector search from an item's own embedding.
+    /// </summary>
+    Similar,
+
+    /// <summary>
+    /// The image-to-image search (E09-S04): the reference image's vector alone, ranked by similarity.
+    /// </summary>
+    Image,
 }
 
 /// <summary>
@@ -128,7 +146,12 @@ public enum SemanticSearchStatus
     IndexNotReady,
 
     /// <summary>
-    /// Encoding the query failed; the error is logged. Keyword results only.
+    /// Encoding the query failed; the error is logged. Keyword results only, or none for an image search.
     /// </summary>
     Failed,
+
+    /// <summary>
+    /// "Find similar" on an item without an embedding yet: nothing to compare until it's analyzed (D036).
+    /// </summary>
+    NotAnalyzed,
 }

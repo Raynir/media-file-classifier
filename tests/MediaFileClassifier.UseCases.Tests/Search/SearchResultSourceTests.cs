@@ -5,6 +5,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
+using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
 using MediaFileClassifier.UseCases.Search.SearchResults;
 using MediaFileClassifier.UseCases.Tests.Libraries;
@@ -190,6 +191,74 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
             await source.GetExistingIdsAsync([items[4].Id, items[2].Id], Token));
     }
 
+    [Fact]
+    public async Task FindSimilar_ShowsTheSourceFirst_MarkedSource_AndLeavesItOutOfTheTotal()
+    {
+        await OpenLibraryAsync(4);
+        var items = library!.ItemList.Items;
+        sender.Hits = [new SearchHit(items[3].Id, 0.95, null, 0.95f, SearchFields.None), new SearchHit(items[1].Id, 0.4, null, 0.4f, SearchFields.None)];
+        source.SetSimilarTo(new SimilarSource(items[0].Id, "IMG_0.jpg"));
+
+        var count = await source.CountAsync(Token);
+        var page = await source.GetPageAsync(0, 10, Token);
+        var rest = await source.GetPageAsync(1, 10, Token);
+
+        Assert.Equal(3, count);
+        Assert.Equal([items[0].Id, items[3].Id, items[1].Id], page.Select(item => item.Id));
+        Assert.Equal([items[3].Id, items[1].Id], rest.Select(item => item.Id));
+        Assert.True(source.GetMatch(items[0].Id)!.IsSource);
+        Assert.Equal(new ResultMatch(SearchFields.None, IsSemantic: true, IsLessRelevant: false), source.GetMatch(items[3].Id));
+        Assert.Equal(items[0].Id, sender.LastSimilar!.ItemId);
+        Assert.Equal(
+            new SearchSummary(string.Empty, SearchMode.Similar, SemanticSearchStatus.Used, 2, 0, ShowLessRelevant: false, new SimilarSource(items[0].Id, "IMG_0.jpg")),
+            source.Summary);
+        Assert.Equal([items[0].Id, items[3].Id, items[1].Id], await source.GetIdsAsync(0, 10, null, Token));
+        Assert.Equal(1, await source.PositionOfAsync(items[3].Id, Token));
+    }
+
+    [Fact]
+    public async Task FindSimilar_UnanalyzedItem_ShowsOnlyTheSource()
+    {
+        await OpenLibraryAsync(2);
+        var items = library!.ItemList.Items;
+        sender.Semantic = SemanticSearchStatus.NotAnalyzed;
+        source.SetSimilarTo(new SimilarSource(items[1].Id, "IMG_1.jpg"));
+
+        Assert.Equal(1, await source.CountAsync(Token));
+        Assert.Equal([items[1].Id], (await source.GetPageAsync(0, 10, Token)).Select(item => item.Id));
+        Assert.Equal(SemanticSearchStatus.NotAnalyzed, source.Summary!.Semantic);
+        Assert.Equal(0, source.Summary.TotalCount);
+    }
+
+    [Fact]
+    public async Task FindSimilar_TextReplacesIt_BlankTextKeepsIt_AndClearingGoesBackToBrowsing()
+    {
+        await OpenLibraryAsync(3);
+        var items = library!.ItemList.Items;
+        var similar = new SimilarSource(items[0].Id, "IMG_0.jpg");
+        var changes = 0;
+        source.Changed += (_, _) => changes++;
+
+        source.SetSimilarTo(similar);
+        source.SetText(string.Empty);
+        Assert.Equal(similar, source.SimilarTo);
+        Assert.Equal(1, changes);
+
+        source.SetText("boat");
+        Assert.Null(source.SimilarTo);
+        Assert.Equal("boat", source.Text);
+        Assert.Equal(2, changes);
+
+        source.SetSimilarTo(similar);
+        Assert.Equal(string.Empty, source.Text);
+        source.ClearSimilar();
+        source.ClearSimilar();
+        Assert.Null(source.SimilarTo);
+        Assert.Equal(4, changes);
+        Assert.Equal(3, await source.CountAsync(Token));
+        Assert.Null(source.Summary);
+    }
+
     private async Task OpenLibraryAsync(int count)
     {
         library = new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "search"), "search");
@@ -222,8 +291,18 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
 
         public SearchMediaQuery? LastQuery { get; private set; }
 
+        public FindSimilarQuery? LastSimilar { get; private set; }
+
         public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
+            if (request is FindSimilarQuery similar)
+            {
+                SearchCalls++;
+                LastSimilar = similar;
+                var hits = Semantic == SemanticSearchStatus.NotAnalyzed ? [] : Hits;
+                return (TResponse)(object)new MediaSearchResults([.. hits.Skip(similar.Offset).Take(similar.Limit)], hits.Count, [], SearchMode.Similar, Semantic);
+            }
+
             if (request is not SearchMediaQuery query)
             {
                 return await inner.Send(request, cancellationToken);

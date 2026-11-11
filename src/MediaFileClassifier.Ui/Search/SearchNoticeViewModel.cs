@@ -68,17 +68,22 @@ public sealed partial class SearchNoticeViewModel : ViewModelBase
             return;
         }
 
-        Message = summary.TotalCount switch
+        var similar = summary.SimilarTo is not null;
+        Message = (summary.TotalCount, similar) switch
         {
-            0 => localizer.Get("Search_NoResults"),
-            1 => localizer.Get("Search_OneResult"),
-            _ => localizer.Format("Search_Results", summary.TotalCount),
+            (0, false) => localizer.Get("Search_NoResults"),
+            (1, false) => localizer.Get("Search_OneResult"),
+            (_, false) => localizer.Format("Search_Results", summary.TotalCount),
+            (0, true) => localizer.Get("Search_NoSimilarResults"),
+            (1, true) => localizer.Get("Search_OneSimilarResult"),
+            (_, true) => localizer.Format("Search_SimilarResults", summary.TotalCount),
         };
-        Hint = summary.Semantic switch
+        Hint = summary.Mode == SearchMode.Image ? ImageHint(summary.Semantic) : summary.Semantic switch
         {
             SemanticSearchStatus.ModelMissing => localizer.Get("Search_Hint_ModelMissing"),
             SemanticSearchStatus.IndexNotReady => localizer.Get("Search_Hint_IndexNotReady"),
             SemanticSearchStatus.Failed => localizer.Get("Search_Hint_Failed"),
+            SemanticSearchStatus.NotAnalyzed => localizer.Get("Search_Hint_NotAnalyzed"),
             _ => null,
         };
         LessRelevantText = summary.ShowLessRelevant
@@ -86,4 +91,13 @@ public sealed partial class SearchNoticeViewModel : ViewModelBase
             : summary.LessRelevantCount > 0 ? localizer.Format("Search_ShowLessRelevant", summary.LessRelevantCount) : null;
         IsVisible = true;
     }
+
+    // An image search has no text results to fall back on (E09-S04).
+    private string? ImageHint(SemanticSearchStatus status) => status switch
+    {
+        SemanticSearchStatus.ModelMissing => localizer.Get("Search_Hint_Image_ModelMissing"),
+        SemanticSearchStatus.IndexNotReady => localizer.Get("Search_Hint_Image_IndexNotReady"),
+        SemanticSearchStatus.Failed => localizer.Get("Search_Hint_Image_Failed"),
+        _ => null,
+    };
 }

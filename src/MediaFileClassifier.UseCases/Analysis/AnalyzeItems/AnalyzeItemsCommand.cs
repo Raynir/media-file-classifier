@@ -12,7 +12,12 @@ namespace MediaFileClassifier.UseCases.Analysis.AnalyzeItems;
 /// <param name="ItemIds">The items.</param>
 /// <param name="Analyzers">Analyzer keys to run, e.g. only <c>ocr</c> to retry OCR; <c>null</c> for the whole profile.</param>
 /// <param name="Description">The job's description, for progress; a default one if <c>null</c>.</param>
+/// <param name="Priority">
+/// The job's priority: <see cref="JobPriority.AiAnalysis"/> by default, <see cref="JobPriority.UserAction"/> when the
+/// user waits for the result, e.g. "Analyze now" in "Find similar" (E09-S03-T03).
+/// </param>
 public sealed record AnalyzeItemsCommand(
     IReadOnlyCollection<Id<MediaItem>> ItemIds,
     IReadOnlyCollection<string>? Analyzers = null,
-    string? Description = null) : IRequest<Id<ProcessingJob>?>;
+    string? Description = null,
+    JobPriority Priority = JobPriority.AiAnalysis) : IRequest<Id<ProcessingJob>?>;

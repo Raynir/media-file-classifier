@@ -70,7 +70,7 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
     /// Gets why the item is in the search results, or <see langword="null"/> while browsing.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MatchReason), nameof(IsLessRelevant))]
+    [NotifyPropertyChangedFor(nameof(MatchReason), nameof(IsLessRelevant), nameof(IsSource))]
     public partial ResultMatch? Match { get; private set; }
 
     /// <summary>
@@ -82,6 +82,11 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
     /// Gets a value indicating whether the item is a less relevant search result, which shows dimmed.
     /// </summary>
     public bool IsLessRelevant => Match?.IsLessRelevant ?? false;
+
+    /// <summary>
+    /// Gets a value indicating whether the tile is the item a "find similar" search started from, marked Source (D053).
+    /// </summary>
+    public bool IsSource => Match?.IsSource ?? false;
 
     /// <summary>
     /// Gets the thumbnail, or <see langword="null"/> while it loads or when there's none, so the cell shows its

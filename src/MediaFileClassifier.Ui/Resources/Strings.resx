@@ -1161,4 +1161,37 @@
   <data name="Search_Field_FileName" xml:space="preserve">
     <value>File name</value>
   </data>
+  <data name="Search_PickImage" xml:space="preserve">
+    <value>Search with an image</value>
+  </data>
+  <data name="Search_PickImage_Title" xml:space="preserve">
+    <value>Choose an image to search with</value>
+  </data>
+  <data name="Search_PickImage_FileType" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="Search_RemoveImage" xml:space="preserve">
+    <value>Remove the image</value>
+  </data>
+  <data name="Search_ImageError_Unsupported" xml:space="preserve">
+    <value>This file isn't a supported image. Use a JPEG, PNG, WebP or GIF.</value>
+  </data>
+  <data name="Search_ImageError_TooLarge" xml:space="preserve">
+    <value>This image is too large to search with.</value>
+  </data>
+  <data name="Search_ImageError_Unreadable" xml:space="preserve">
+    <value>This image couldn't be read.</value>
+  </data>
+  <data name="Search_Hint_Image_ModelMissing" xml:space="preserve">
+    <value>The image model is not installed, so searching by image isn't possible yet.</value>
+  </data>
+  <data name="Search_Hint_Image_IndexNotReady" xml:space="preserve">
+    <value>The search index is still loading. Try the image search again in a moment.</value>
+  </data>
+  <data name="Search_Hint_Image_Failed" xml:space="preserve">
+    <value>This image couldn't be searched with. Try another one.</value>
+  </data>
+  <data name="Search_PastedImageName" xml:space="preserve">
+    <value>Pasted image.png</value>
+  </data>
 </root>

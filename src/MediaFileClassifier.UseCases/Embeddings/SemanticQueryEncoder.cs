@@ -32,6 +32,7 @@ public sealed partial class SemanticQueryEncoder : IDisposable
     private readonly LinkedList<CacheEntry> recent = new();
     private Task preload = Task.CompletedTask;
     private int generation;
+    private (AiImage Image, SearchVector Vector, int Generation)? lastImage;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SemanticQueryEncoder"/> class.
@@ -110,7 +111,8 @@ public sealed partial class SemanticQueryEncoder : IDisposable
 
     /// <summary>
     /// Encodes a picture for image-to-image search (E06-S03-T04), for example a file the user dropped or pasted. The
-    /// picture isn't added to the library, and the vector isn't cached.
+    /// picture isn't added to the library. Only the last picture's vector is kept, by instance, so the pages of one
+    /// image search (E09-S04) don't encode it again.
     /// </summary>
     /// <param name="image">The picture: encoded bytes, or raw RGBA from <see cref="AiImage.FromRgba"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -127,9 +129,24 @@ public sealed partial class SemanticQueryEncoder : IDisposable
             return null;
         }
 
+        var startedIn = Volatile.Read(ref generation);
+        lock (gate)
+        {
+            if (lastImage is { } last && ReferenceEquals(last.Image, image) && last.Generation == startedIn)
+            {
+                return last.Vector;
+            }
+        }
+
         var output = await provider.EmbedImagesAsync([image], cancellationToken).ConfigureAwait(false);
         var model = await library.Models.GetOrAddAsync(output.Model, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
-        return SearchVector.FromVector(model.Id, output.Value[0].Span);
+        var vector = SearchVector.FromVector(model.Id, output.Value[0].Span);
+        lock (gate)
+        {
+            lastImage = (image, vector, startedIn);
+        }
+
+        return vector;
     }
 
     /// <summary>
@@ -169,6 +186,7 @@ public sealed partial class SemanticQueryEncoder : IDisposable
         {
             cache.Clear();
             recent.Clear();
+            lastImage = null;
         }
 
         if (session.Current is null)

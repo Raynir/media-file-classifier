@@ -5,6 +5,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
+using MediaFileClassifier.UseCases.Search.LoadReferenceImage;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
 using MediatR;
 
@@ -13,7 +14,7 @@ namespace MediaFileClassifier.UseCases.Search.SearchResults;
 /// <summary>
 /// What the search showed last, for the notice above the results (E09-S01-T05).
 /// </summary>
-/// <param name="Text">The search text.</param>
+/// <param name="Text">The search text, or an empty string for an image search.</param>
 /// <param name="Mode">Which searches produced the results.</param>
 /// <param name="Semantic">Whether the semantic search ran, and why not if it didn't.</param>
 /// <param name="TotalCount">The number of results shown.</param>
@@ -29,9 +30,10 @@ public sealed record SearchSummary(
 
 /// <summary>
 /// The result source of the media browser from M2 (E09-S01-T05): the unified text search while the search text has
-/// something to look for, and the browse results of <see cref="LibraryItemsSource"/> while it's blank. Changing the
-/// text, the less relevant option or the browse scope starts a new search and cancels the one still running. A search
-/// covers the selected scope (folder, subfolder, recently imported); the filters (E10) will add to it.
+/// something to look for, the image-to-image search while a reference image is set (E09-S04), and the browse results
+/// of <see cref="LibraryItemsSource"/> otherwise. Changing the text, the reference image, the less relevant option or
+/// the browse scope starts a new search and cancels the one still running. A search covers the selected scope (folder,
+/// subfolder, recently imported); the filters (E10) will add to it.
 /// </summary>
 public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
 {
@@ -73,6 +75,11 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     public string Text => current.Text;
 
     /// <summary>
+    /// Gets the picture being searched with, or <see langword="null"/> for a text search or while browsing.
+    /// </summary>
+    public ReferenceImage? ReferenceImage => current.Image;
+
+    /// <summary>
     /// Gets a value indicating whether the less relevant semantic matches are included.
     /// </summary>
     public bool ShowLessRelevant => current.ShowLessRelevant;
@@ -84,21 +91,34 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
 
     /// <summary>
     /// Starts a search for the text, or goes back to browsing when it's blank. The text is searched as it is
-    /// (<see cref="SearchText.Normalise"/> runs in the search); the less relevant option resets.
+    /// (<see cref="SearchText.Normalise"/> runs in the search); the less relevant option resets. Text replaces a
+    /// reference image, but a blank text leaves the image search as it is.
     /// </summary>
     /// <param name="text">What the user typed.</param>
     public void SetText(string? text)
     {
         var value = string.IsNullOrWhiteSpace(text) ? string.Empty : text;
-        Replace(old => old.Text == value ? null : new ActiveSearch(value, showLessRelevant: false, ScopeFilter()));
+        Replace(old => old.Text == value || (value.Length == 0 && old.Image is not null)
+            ? null
+            : new ActiveSearch(value, showLessRelevant: false, ScopeFilter()));
     }
+
+    /// <summary>
+    /// Starts an image-to-image search with the picture (E09-S04), replacing the text. <see langword="null"/> removes
+    /// the picture and goes back to browsing; it does nothing to a text search.
+    /// </summary>
+    /// <param name="image">The picture, from <see cref="LoadReferenceImageQuery"/>.</param>
+    public void SetReferenceImage(ReferenceImage? image) =>
+        Replace(old => ReferenceEquals(old.Image, image) || (image is null && old.Image is null)
+            ? null
+            : new ActiveSearch(string.Empty, showLessRelevant: false, ScopeFilter(), image));
 
     /// <summary>
     /// Includes or leaves out the less relevant semantic matches of the current search.
     /// </summary>
     /// <param name="show">Whether to include them.</param>
     public void SetShowLessRelevant(bool show) =>
-        Replace(old => old.IsSearch && old.ShowLessRelevant != show ? new ActiveSearch(old.Text, show, old.Filter) : null);
+        Replace(old => old.IsSearch && old.ShowLessRelevant != show ? new ActiveSearch(old.Text, show, old.Filter, old.Image) : null);
 
     /// <inheritdoc />
     public async Task<int> CountAsync(CancellationToken cancellationToken)
@@ -268,7 +288,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
                 return;
             }
 
-            current = new ActiveSearch(old.Text, old.ShowLessRelevant, ScopeFilter());
+            current = new ActiveSearch(old.Text, old.ShowLessRelevant, ScopeFilter(), old.Image);
         }
 
         old.Cancellation.Cancel();
@@ -308,7 +328,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         SummaryChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private sealed class ActiveSearch(string text, bool showLessRelevant, SearchFilter filter)
+    private sealed class ActiveSearch(string text, bool showLessRelevant, SearchFilter filter, ReferenceImage? image = null)
     {
         public static ActiveSearch None { get; } = new(string.Empty, showLessRelevant: false, SearchFilter.None);
 
@@ -318,7 +338,9 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
 
         public bool ShowLessRelevant { get; } = showLessRelevant;
 
-        public bool IsSearch => Text.Length > 0;
+        public ReferenceImage? Image { get; } = image;
+
+        public bool IsSearch => Text.Length > 0 || Image is not null;
 
         public CancellationTokenSource Cancellation { get; } = new();
 
@@ -329,6 +351,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         public SearchMediaQuery Query(int offset, int limit, bool includeFields) => new()
         {
             Text = Text,
+            ReferenceImage = Image,
             Filter = Filter,
             Offset = offset,
             Limit = limit,

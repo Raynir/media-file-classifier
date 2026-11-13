@@ -201,6 +201,39 @@ internal static class ProductionBenchmark
             }
         }
 
+        // Search as you type (E09-S02-T03): the app searches the text once the typing pauses, and a pause can come after
+        // any letter, so every prefix of a query is a search of its own. A query vector stands in for the text encoder.
+        Log(string.Empty);
+        Log("Search as you type: hybrid search of every prefix of the keyword queries, no filter. The text encoder (D031: < 50 ms) and the pause before searching come on top.");
+        Log(string.Empty);
+        Log("| Letters typed | Searches | p50 | p95 | max |");
+        Log("|---|--:|--:|--:|--:|");
+        var prefixes = KeywordQueries
+            .Select(words => string.Join(' ', words))
+            .SelectMany(text => Enumerable.Range(1, text.Length).Select(length => (Text: text[..length], Length: length)))
+            .ToList();
+        for (var i = 0; i < 5; i++)
+        {
+            await index.SearchAsync(new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count] });
+        }
+
+        var typing = new List<(int Length, double Ms)>();
+        for (var i = 0; i < prefixes.Count; i++)
+        {
+            var q = new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count], Limit = 100 };
+            var watch = Stopwatch.StartNew();
+            await index.SearchAsync(q);
+            typing.Add((prefixes[i].Length, watch.Elapsed.TotalMilliseconds));
+        }
+
+        foreach (var (label, selector) in new (string, Func<int, bool>)[] { ("1 to 2", n => n <= 2), ("3 to 5", n => n is >= 3 and <= 5), ("6 or more", n => n >= 6), ("all", _ => true) })
+        {
+            var times = typing.Where(t => selector(t.Length)).Select(t => t.Ms).ToList();
+            var summary = LatencySummary.From(times);
+            allWithin &= label != "all" || summary.P95 < BudgetMs;
+            Log(string.Create(CultureInfo.InvariantCulture, $"| {label} | {times.Count} | {summary.P50:F1} | {summary.P95:F1} | {summary.Max:F1} |"));
+        }
+
         await session.SetCurrentAsync(null);
         await library.DisposeAsync();
 

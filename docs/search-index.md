@@ -51,6 +51,16 @@ A filter is an `IFilterDefinition` (`Infrastructure.Abstractions/Search/Filters`
 
 `SearchMediaQuery` (MediatR, `UseCases/Search/SearchMedia`) is the call the search bar makes. It normalises the text (`SearchText`: NFC, invisible characters out, white space collapsed, 256 characters at most), encodes it with `SemanticQueryEncoder`, and runs one `ISearchIndex` query with both text and vector. Empty text browses by date taken, newest first. If the model is missing, the vector index isn't ready or encoding fails, the keyword results come back alone and `MediaSearchResults.Semantic` says why. The relevance cut per model is in `SemanticRelevanceThresholds`; a model without an entry shows every neighbour.
 
+## Search as you type (E09-S02)
+
+`SearchBarViewModel` searches 300 ms after the last keystroke (`DefaultDelay`), `SearchResultSource` cancels the search before it, and a search that was replaced never hands its answer on, even when it had finished. Two caches make going back instant: `SemanticQueryEncoder` keeps 256 query vectors, and `SearchPageCache` keeps the first page of the last 32 text searches (64 cached answers) (reset when the scope or items change; answers that lack the semantic search for a reason that can pass are never kept). The time from the last keystroke to the results is logged (`Search as you type: N ms ...`).
+
+`production` also searches every prefix of the keyword queries (hybrid, no filter). On 100k items and 28 CPUs: p50 221 ms, p95 3.9 s, max 7.8 s (1-2 letters p95 5.1 s, 3-5 letters 0.8 s, 6+ letters 2.0 s), without the encoder and the pause. The D031 budget of 300 ms is **not met**: short prefixes match most of the library because every word is a prefix (D221 and MFC-89's decision). Bottlenecks are filed as tasks.
+
+## Known follow-ups
+
+- A text or image search that ran while the vector index was still loading (`SemanticSearchStatus.IndexNotReady`) is not run again when the index finishes loading; the user has to search again (found in PR #58, MFC-93). Such answers are not cached.
+
 ## Benchmark
 
 `dotnet run -c Release --project benchmarks/MediaFileClassifier.Benchmarks -- production` copies a real library (`C:\gb2\data\libs\Bench.mfc` by default; `--source`), gives every item synthetic metadata and three 768-d vectors through the repositories, and measures the load, the rebuild and every query mode under three filters. `--cpus 4` runs it on four logical CPUs. Results are in the MFC-89 pull request.

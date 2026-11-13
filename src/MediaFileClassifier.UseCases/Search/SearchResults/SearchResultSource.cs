@@ -319,13 +319,17 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    // A superseded search ends quietly with the fallback: its caller is about to refresh for the new one.
+    // A superseded search ends quietly with the fallback, even when its answer was already complete: its caller is about
+    // to refresh for the new one.
     private static async Task<T> RunAsync<T>(ActiveSearch search, T fallback, CancellationToken cancellationToken, Func<CancellationToken, Task<T>> run)
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, search.Cancellation.Token);
         try
         {
-            return await run(linked.Token).ConfigureAwait(false);
+            var result = await run(linked.Token).ConfigureAwait(false);
+
+            // A search replaced while its answer was on the way must not show it: results never arrive out of order.
+            return !cancellationToken.IsCancellationRequested && search.Cancellation.IsCancellationRequested ? fallback : result;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && search.Cancellation.IsCancellationRequested)
         {

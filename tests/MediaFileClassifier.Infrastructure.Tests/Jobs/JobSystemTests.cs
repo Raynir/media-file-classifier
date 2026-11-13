@@ -2,11 +2,11 @@ using System.Diagnostics;
 using System.Globalization;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
-using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
+using MediaFileClassifier.Testing.Hardware;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
@@ -168,7 +168,7 @@ public sealed class JobSystemTests : IAsyncLifetime
     [Fact]
     public void GetPoolLimits_UsesSettingsOrDefaults()
     {
-        var hardware = new TestHardware(6);
+        var hardware = new FakeHardwareInfo(defaultParallelism: 6, cpuCores: 6, memoryBytes: 8L << 30);
 
         var defaults = JobSystem.GetPoolLimits(new ProcessingSettings(), hardware);
         var configured = JobSystem.GetPoolLimits(new ProcessingSettings { IoConcurrency = 2, CpuConcurrency = 3, AiConcurrency = 0 }, hardware);
@@ -182,7 +182,7 @@ public sealed class JobSystemTests : IAsyncLifetime
     }
 
     private JobSystem CreateSystem(params IStageHandler[] handlers) =>
-        new(handlers, settings, new TestHardware(2), Progress, TimeProvider.System, NullLogger<JobSystem>.Instance);
+        new(handlers, settings, new FakeHardwareInfo(defaultParallelism: 2, cpuCores: 2, memoryBytes: 8L << 30), Progress, TimeProvider.System, NullLogger<JobSystem>.Instance);
 
     private sealed class TestSettings : ISettingsService
     {
@@ -191,16 +191,5 @@ public sealed class JobSystemTests : IAsyncLifetime
         public void Save(AppSettings settings) => Current = settings;
 
         public AppSettings Update(Func<AppSettings, AppSettings> change) => Current = change(Current);
-    }
-
-    private sealed class TestHardware(int parallelism) : IHardwareInfo
-    {
-        public HardwareProfile Profile { get; } = new("X64", parallelism, 8L << 30, []);
-
-        public ExecutionProvider PreferredExecutionProvider => ExecutionProvider.Cpu;
-
-        public GpuInfo? PreferredGpu => null;
-
-        public int DefaultParallelism => parallelism;
     }
 }

@@ -4,6 +4,7 @@ using MediaFileClassifier.Infrastructure.AI.Benchmarks;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
 using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
+using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Hardware;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -17,14 +18,17 @@ public sealed class BenchmarkTests : IDisposable
 {
     private static readonly DateTimeOffset Moment = new(2026, 11, 11, 10, 0, 0, TimeSpan.Zero);
 
-    private readonly string directory = Path.Combine(Path.GetTempPath(), "mfc-benchmark-" + Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
+    private readonly string directory;
+
+    public BenchmarkTests()
+    {
+        directory = temp.Combine("benchmark");
+    }
 
     public void Dispose()
     {
-        if (Directory.Exists(directory))
-        {
-            Directory.Delete(directory, recursive: true);
-        }
+        temp.Dispose();
     }
 
     [Fact]

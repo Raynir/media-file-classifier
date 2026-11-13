@@ -56,6 +56,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     private readonly LibraryItemsSource browse;
     private readonly ISender sender;
     private readonly Lock syncRoot = new();
+    private readonly SearchPageCache pages = new();
     private ActiveSearch current = ActiveSearch.None;
 
     /// <summary>
@@ -70,6 +71,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         browse.Changed += (_, _) =>
         {
             // The scope or the items changed: a search starts over inside the new scope, on the current items.
+            pages.Clear();
             Restart();
             Changed?.Invoke(this, EventArgs.Empty);
         };
@@ -177,7 +179,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
             cancellationToken,
             async token =>
             {
-                var results = await sender.Send(search.Query(0, 1, includeFields: false), token).ConfigureAwait(false);
+                var results = await SendAsync(search.Query(0, 1, includeFields: false), token).ConfigureAwait(false);
                 if (ReferenceEquals(current, search))
                 {
                     SetSummary(new SearchSummary(search.Text, results.Mode, results.Semantic, results.TotalCount, results.LessRelevantCount, search.ShowLessRelevant, search.Similar));
@@ -207,7 +209,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
                 var take = Math.Min(limit, SearchQuery.MaxLimit) - (source is null ? 0 : 1);
                 var hits = take == 0
                     ? []
-                    : (await sender.Send(search.Query(Math.Max(0, offset - search.Pinned), take, includeFields: true), token).ConfigureAwait(false)).Hits;
+                    : (await SendAsync(search.Query(Math.Max(0, offset - search.Pinned), take, includeFields: true), token).ConfigureAwait(false)).Hits;
                 var ids = hits.Select(hit => hit.ItemId).ToList();
                 if (source is not null)
                 {
@@ -306,7 +308,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
 
                     while (true)
                     {
-                        var page = await sender.Send(search.Query(ids.Count - search.Pinned, IdPageSize, includeFields: false), token).ConfigureAwait(false);
+                        var page = await SendAsync(search.Query(ids.Count - search.Pinned, IdPageSize, includeFields: false), token).ConfigureAwait(false);
                         ids.AddRange(page.Hits.Select(hit => hit.ItemId));
                         if (page.Hits.Count < IdPageSize || ids.Count - search.Pinned >= page.TotalCount)
                         {
@@ -319,13 +321,41 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    // A superseded search ends quietly with the fallback: its caller is about to refresh for the new one.
+    // The first page of a text search comes from the cache when the same search ran lately (E09-S02-T02); the other
+    // searches always run.
+    private async Task<MediaSearchResults> SendAsync(IRequest<MediaSearchResults> request, CancellationToken cancellationToken)
+    {
+        if (request is not SearchMediaQuery query || !SearchPageCache.CanCache(query))
+        {
+            return await sender.Send(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (pages.TryGet(query, out var cached))
+        {
+            return cached;
+        }
+
+        var readAt = pages.Version;
+        var results = await sender.Send(query, cancellationToken).ConfigureAwait(false);
+        if (SearchPageCache.CanCache(results))
+        {
+            pages.Set(query, results, readAt);
+        }
+
+        return results;
+    }
+
+    // A superseded search ends quietly with the fallback, even when its answer was already complete: its caller is about
+    // to refresh for the new one.
     private static async Task<T> RunAsync<T>(ActiveSearch search, T fallback, CancellationToken cancellationToken, Func<CancellationToken, Task<T>> run)
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, search.Cancellation.Token);
         try
         {
-            return await run(linked.Token).ConfigureAwait(false);
+            var result = await run(linked.Token).ConfigureAwait(false);
+
+            // A search replaced while its answer was on the way must not show it: results never arrive out of order.
+            return !cancellationToken.IsCancellationRequested && search.Cancellation.IsCancellationRequested ? fallback : result;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && search.Cancellation.IsCancellationRequested)
         {

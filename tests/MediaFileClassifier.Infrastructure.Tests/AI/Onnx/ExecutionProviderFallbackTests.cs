@@ -1,6 +1,7 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
+using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Hardware;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -15,13 +16,13 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
 {
     private const int Width = 4;
 
-    private readonly string directory = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly string modelPath;
 
     public ExecutionProviderFallbackTests()
     {
-        Directory.CreateDirectory(directory);
-        modelPath = Path.Combine(directory, "tiny.onnx");
+        Directory.CreateDirectory(temp.Path);
+        modelPath = temp.Combine("tiny.onnx");
         TinyOnnxModel.WriteIdentity(modelPath, Width);
     }
 
@@ -141,7 +142,7 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
 
     public void Dispose()
     {
-        Directory.Delete(directory, recursive: true);
+        temp.Dispose();
     }
 
     private static OnnxSessionFactory CreateFactory(Action<SessionOptions, ExecutionProvider, int> append, IHardwareInfo? hardware = null) =>

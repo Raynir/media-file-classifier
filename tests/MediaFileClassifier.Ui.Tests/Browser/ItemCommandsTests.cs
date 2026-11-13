@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
@@ -12,7 +13,6 @@ using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediaFileClassifier.UseCases.Import.RetryFailedItems;
-using MediatR;
 
 namespace MediaFileClassifier.Ui.Tests.Browser;
 
@@ -244,7 +244,7 @@ public sealed class ItemCommandsTests
 
         public List<RetryFailedItemsCommand> Retries { get; } = [];
 
-        public ISender Sender => new LocationSender(this);
+        public FakeSender Sender => new LocationSender(this);
 
         public RetryFailedItemsResult Retry(RetryFailedItemsCommand command)
         {
@@ -253,24 +253,15 @@ public sealed class ItemCommandsTests
         }
     }
 
-    private sealed class LocationSender(Bed bed) : ISender
+    private sealed class LocationSender(Bed bed) : FakeSender
     {
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) => request switch
+        protected override object? Handle(object request) => request switch
         {
-            GetItemLocationsQuery query => Task.FromResult((TResponse)(object)query.ItemIds.Select(bed.Locate).ToList()),
-            ResolveItemSelectionQuery query => Task.FromResult((TResponse)bed.Resolve(query.Selection)),
-            RetryFailedItemsCommand command => Task.FromResult((TResponse)(object)bed.Retry(command)),
+            GetItemLocationsQuery query => query.ItemIds.Select(bed.Locate).ToList(),
+            ResolveItemSelectionQuery query => bed.Resolve(query.Selection),
+            RetryFailedItemsCommand command => bed.Retry(command),
             _ => throw new NotSupportedException(),
         };
-
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest => throw new NotSupportedException();
-
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private sealed class RecordingPlatform(bool canReveal) : IPlatformServices

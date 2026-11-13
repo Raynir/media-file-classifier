@@ -1,19 +1,10 @@
-using MediaFileClassifier.Infrastructure;
-using MediaFileClassifier.Infrastructure.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
-using MediaFileClassifier.Infrastructure.Abstractions.Paths;
-using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
-using MediaFileClassifier.Infrastructure.DataAccess;
-using MediaFileClassifier.Infrastructure.Jobs;
-using MediaFileClassifier.Infrastructure.Media;
-using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
-using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Ui.Tests.Libraries;
@@ -24,63 +15,40 @@ namespace MediaFileClassifier.Ui.Tests.Libraries;
 /// </summary>
 public sealed class CreateLibraryFlowTests : IAsyncDisposable
 {
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
-    private readonly Commands.FakePlatformServices platform;
-    private readonly ServiceProvider services;
-
-    public CreateLibraryFlowTests()
-    {
-        platform = new Commands.FakePlatformServices(new AppPaths(Path.Combine(root, "app")));
-        services = new ServiceCollection()
-            .AddLogging()
-            .AddSingleton<IAppPaths>(platform.Paths)
-            .AddSingleton<IPlatformServices>(platform)
-            .AddSingleton<Platform.ICapabilityGate>(new Commands.FakeCapabilityGate())
-            .AddSingleton<IMediaFileSource, Infrastructure.Files.FileSystemMediaFileSource>()
-            .AddInfrastructure()
-            .AddDataAccess()
-            .AddSingleton<Infrastructure.Abstractions.Files.IMediaFileSource, Infrastructure.Files.FileSystemMediaFileSource>()
-            .AddJobs()
-            .AddMedia()
-            .AddAi()
-            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
-            .AddUseCases()
-            .AddUi()
-            .BuildServiceProvider();
-    }
+    private readonly TestServices app = TestServices.Build(fullStack: true);
 
     [Fact]
     public Task FirstLaunch_ShowsTheWelcomeScreen() => TestApp.RunAsync(() =>
     {
-        services.GetRequiredService<LibraryShell>();
+        app.Services.GetRequiredService<LibraryShell>();
 
-        Assert.IsType<WelcomeViewModel>(services.GetRequiredService<ShellRegions>().Browser);
-        Assert.Null(services.GetRequiredService<ShellRegions>().Toolbar);
+        Assert.IsType<WelcomeViewModel>(app.Services.GetRequiredService<ShellRegions>().Browser);
+        Assert.Null(app.Services.GetRequiredService<ShellRegions>().Toolbar);
     });
 
     [Fact]
     public async Task Dialog_CreatesTheLibraryAndHandsOverToAddingFolders()
     {
-        var viewModel = services.GetRequiredService<CreateLibraryViewModel>();
+        var viewModel = app.Services.GetRequiredService<CreateLibraryViewModel>();
         var closed = false;
         viewModel.CloseRequested += (_, _) => closed = true;
         await viewModel.ValidateAsync();
         Assert.Null(viewModel.Error);
         Assert.False(viewModel.CreateCommand.CanExecute(null));
 
-        platform.Folders.Enqueue(new FolderHandle(Path.Combine(root, "libraries"), "libraries"));
+        app.Platform.Folders.Enqueue(new FolderHandle(Path.Combine(app.Root, "libraries"), "libraries"));
         await viewModel.BrowseCommand.ExecuteAsync(null);
         viewModel.Name = "Family";
         await viewModel.ValidateAsync();
         await viewModel.CreateCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.IsFoldersStep, viewModel.Error);
-        var session = services.GetRequiredService<ILibrarySession>();
-        Assert.Equal(Path.Combine(root, "libraries", "Family.mfc"), session.Current?.Layout.RootDirectory);
-        Assert.Equal("Family", Assert.Single(services.GetRequiredService<ISettingsService>().Current.RecentLibraries!).Name);
+        var session = app.Services.GetRequiredService<ILibrarySession>();
+        Assert.Equal(Path.Combine(app.Root, "libraries", "Family.mfc"), session.Current?.Layout.RootDirectory);
+        Assert.Equal("Family", Assert.Single(app.Services.GetRequiredService<ISettingsService>().Current.RecentLibraries!).Name);
 
-        var photos = Directory.CreateDirectory(Path.Combine(root, "Photos")).FullName;
-        platform.Folders.Enqueue(new FolderHandle(photos, "Photos"));
+        var photos = Directory.CreateDirectory(Path.Combine(app.Root, "Photos")).FullName;
+        app.Platform.Folders.Enqueue(new FolderHandle(photos, "Photos"));
         await viewModel.AddFolderCommand.ExecuteAsync(null);
         viewModel.CloseCommand.Execute(null);
 
@@ -92,10 +60,10 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
     [Fact]
     public async Task Dialog_ShowsWhyALocationIsRejected()
     {
-        var viewModel = services.GetRequiredService<CreateLibraryViewModel>();
-        Directory.CreateDirectory(Path.Combine(root, "Family.mfc", "thumbnails"));
+        var viewModel = app.Services.GetRequiredService<CreateLibraryViewModel>();
+        Directory.CreateDirectory(Path.Combine(app.Root, "Family.mfc", "thumbnails"));
 
-        viewModel.Location = Path.Combine(root, "Family.mfc");
+        viewModel.Location = Path.Combine(app.Root, "Family.mfc");
         viewModel.Name = "Trips";
         await viewModel.ValidateAsync();
 
@@ -106,39 +74,39 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
     [Fact]
     public async Task OpeningALibrary_ShowsTheThumbnailGridAndToolbarInsteadOfTheWelcomeScreen()
     {
-        await TestApp.RunAsync(() => services.GetRequiredService<LibraryShell>());
-        var library = await services.GetRequiredService<ILibraryStore>().CreateAsync(root, "Family", TestContext.Current.CancellationToken);
+        await TestApp.RunAsync(() => app.Services.GetRequiredService<LibraryShell>());
+        var library = await app.Services.GetRequiredService<ILibraryStore>().CreateAsync(app.Root, "Family", TestContext.Current.CancellationToken);
 
-        await TestApp.RunAsync(() => services.GetRequiredService<ILibrarySession>().SetCurrentAsync(library).GetAwaiter().GetResult());
+        await TestApp.RunAsync(() => app.Services.GetRequiredService<ILibrarySession>().SetCurrentAsync(library).GetAwaiter().GetResult());
 
-        Assert.IsType<ThumbnailGridViewModel>(services.GetRequiredService<ShellRegions>().Browser);
-        Assert.IsType<Ui.Toolbar.ToolbarViewModel>(services.GetRequiredService<ShellRegions>().Toolbar);
+        Assert.IsType<ThumbnailGridViewModel>(app.Services.GetRequiredService<ShellRegions>().Browser);
+        Assert.IsType<Ui.Toolbar.ToolbarViewModel>(app.Services.GetRequiredService<ShellRegions>().Toolbar);
     }
 
     [Fact]
     public async Task Startup_ReopensTheLastLibrary()
     {
-        var sender = services.GetRequiredService<MediatR.ISender>();
-        var session = services.GetRequiredService<ILibrarySession>();
-        await sender.Send(new UseCases.Libraries.CreateLibrary.CreateLibraryCommand("Family", root), TestContext.Current.CancellationToken);
+        var sender = app.Services.GetRequiredService<MediatR.ISender>();
+        var session = app.Services.GetRequiredService<ILibrarySession>();
+        await sender.Send(new UseCases.Libraries.CreateLibrary.CreateLibraryCommand("Family", app.Root), TestContext.Current.CancellationToken);
         await session.SetCurrentAsync(null);
 
-        await services.GetRequiredService<LibraryOpener>().OpenLastAsync();
+        await app.Services.GetRequiredService<LibraryOpener>().OpenLastAsync();
 
-        Assert.Equal(Path.Combine(root, "Family.mfc"), session.Current?.Layout.RootDirectory);
+        Assert.Equal(Path.Combine(app.Root, "Family.mfc"), session.Current?.Layout.RootDirectory);
     }
 
     [Fact]
     public async Task Startup_MissingLastLibrary_ExplainsOnTheWelcomeScreen()
     {
-        var sender = services.GetRequiredService<MediatR.ISender>();
-        await sender.Send(new UseCases.Libraries.CreateLibrary.CreateLibraryCommand("Family", root), TestContext.Current.CancellationToken);
-        await services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
-        Directory.Move(Path.Combine(root, "Family.mfc"), Path.Combine(root, "Moved.mfc"));
-        await TestApp.RunAsync(() => services.GetRequiredService<LibraryShell>());
-        var welcome = services.GetRequiredService<WelcomeViewModel>();
+        var sender = app.Services.GetRequiredService<MediatR.ISender>();
+        await sender.Send(new UseCases.Libraries.CreateLibrary.CreateLibraryCommand("Family", app.Root), TestContext.Current.CancellationToken);
+        await app.Services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
+        Directory.Move(Path.Combine(app.Root, "Family.mfc"), Path.Combine(app.Root, "Moved.mfc"));
+        await TestApp.RunAsync(() => app.Services.GetRequiredService<LibraryShell>());
+        var welcome = app.Services.GetRequiredService<WelcomeViewModel>();
 
-        await services.GetRequiredService<LibraryOpener>().OpenLastAsync();
+        await app.Services.GetRequiredService<LibraryOpener>().OpenLastAsync();
         await welcome.RefreshAsync();
 
         Assert.Equal("Family couldn't be opened. The library folder or its database is missing.", welcome.Message);
@@ -147,22 +115,5 @@ public sealed class CreateLibraryFlowTests : IAsyncDisposable
         Assert.False(recent.OpenCommand.CanExecute(null));
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
-        await services.DisposeAsync();
-
-        // The thumbnail grid's first reads may still be finishing on the thread pool after the library closed.
-        for (var attempt = 1; Directory.Exists(root); attempt++)
-        {
-            try
-            {
-                Directory.Delete(root, recursive: true);
-            }
-            catch (IOException) when (attempt < 20)
-            {
-                await Task.Delay(50);
-            }
-        }
-    }
+    public ValueTask DisposeAsync() => app.DisposeAsync();
 }

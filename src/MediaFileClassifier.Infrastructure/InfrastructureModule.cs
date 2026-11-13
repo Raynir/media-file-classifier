@@ -37,6 +37,7 @@ public static class InfrastructureModule
         services.TryAddSingleton<ISettingsService, JsonSettingsService>();
         services.TryAddSingleton<ILibrarySettingValues, NoLibrarySettingValues>();
         services.TryAddSingleton<ISettingsStore, SettingsStore>();
+        services.TryAddSingleton<IHardwareOverrides, SettingsHardwareOverrides>();
         services.TryAddSingleton<ILibrarySession, LibrarySession>();
         services.TryAddSingleton<ILibraryLocations, LibraryLocations>();
         services.TryAddSingleton<IHardwareDetector, PortableHardwareDetector>();

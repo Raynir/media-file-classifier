@@ -26,6 +26,7 @@ public static class AiModule
     {
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<OnnxSessionFactory>();
+        services.TryAddSingleton<IExecutionProviderStatus, ExecutionProviderStatus>();
         services.TryAddSingleton<IAiProviderRegistry, AiProviderRegistry>();
         services.TryAddSingleton<IModelStore, ModelStore>();
         services.TryAddSingleton<IAnalysisImageDecoder, Imaging.SkiaAnalysisImageDecoder>();

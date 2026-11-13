@@ -25,6 +25,7 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
     private readonly OnnxSessionFactory sessionFactory;
     private readonly Siglip2Options options;
     private readonly IModelCatalog catalog;
+    private readonly IHardwareOverrides? overrides;
     private readonly SemaphoreSlim loadGate = new(1, 1);
     private readonly List<Siglip2OnnxModel> retired = [];
     private volatile Siglip2OnnxModel? model;
@@ -39,7 +40,16 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
     /// <param name="sessionFactory">ONNX session factory.</param>
     /// <param name="options">Batch size, execution provider and tier.</param>
     /// <param name="catalog">The model catalogue, for the tiers' order and the hardware they suit; the embedded one if <see langword="null"/>.</param>
-    public Siglip2EmbeddingProvider(IModelStore store, OnnxSessionFactory sessionFactory, Siglip2Options options, IModelCatalog? catalog = null)
+    /// <param name="overrides">
+    /// The user's execution provider and tier (E17-S08-T02), which win over <paramref name="options"/>; a change releases
+    /// the loaded model so the next call uses them. <see langword="null"/> where there are no hardware settings.
+    /// </param>
+    public Siglip2EmbeddingProvider(
+        IModelStore store,
+        OnnxSessionFactory sessionFactory,
+        Siglip2Options options,
+        IModelCatalog? catalog = null,
+        IHardwareOverrides? overrides = null)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(sessionFactory);
@@ -51,6 +61,11 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
         this.options = options;
         this.catalog = catalog ?? new ModelCatalog();
         store.ModelsChanged += OnModelsChanged;
+        this.overrides = overrides;
+        if (overrides is not null)
+        {
+            overrides.Changed += OnOverridesChanged;
+        }
     }
 
     /// <inheritdoc />
@@ -147,6 +162,11 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
 
         disposed = true;
         store.ModelsChanged -= OnModelsChanged;
+        if (overrides is not null)
+        {
+            overrides.Changed -= OnOverridesChanged;
+        }
+
         model?.Dispose();
         model = null;
         DisposeRetired();
@@ -226,6 +246,23 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
 
     private void OnModelsChanged(object? sender, EventArgs e) => storeChanged = true;
 
+    /// <summary>
+    /// The user chose another execution provider or tier: they apply from the next call. The choice is the user's, so
+    /// a GPU tier that failed before is tried again (the session factory still keeps a file that failed on the GPU on
+    /// the CPU until restart).
+    /// </summary>
+    private void OnOverridesChanged(object? sender, EventArgs e)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        onCpu = false;
+        storeChanged = true;
+        Unload();
+    }
+
     private async Task<Siglip2OnnxModel?> FindModelAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
@@ -244,10 +281,13 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
 
             storeChanged = false;
             var installed = await store.FindTiersAsync(Siglip2Model.ModelId, Siglip2Model.Version, cancellationToken).ConfigureAwait(false);
-            var provider = onCpu ? ExecutionProvider.Cpu : options.ExecutionProvider ?? sessionFactory.DefaultExecutionProvider;
-            var chosen = ChooseTier(installed, catalog, provider, options.TierId);
+            var provider = onCpu ? ExecutionProvider.Cpu : overrides?.ExecutionProvider ?? options.ExecutionProvider ?? sessionFactory.DefaultExecutionProvider;
+            var chosen = ChooseTier(installed, catalog, provider, overrides?.TierId ?? options.TierId);
             var current = model;
-            if (current is not null && chosen is not null && current.Model.FileHash == chosen.ContentHash.ToLowerInvariant())
+            if (current is not null
+                && chosen is not null
+                && current.Model.FileHash == chosen.ContentHash.ToLowerInvariant()
+                && current.PreferredExecutionProvider == provider)
             {
                 // The same tier is still the best one: keep the loaded sessions.
                 return current;

@@ -31,6 +31,7 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
     private volatile Siglip2OnnxModel? model;
     private volatile bool storeChanged;
     private volatile bool onCpu;
+    private int overridesVersion;
     private bool disposed;
 
     /// <summary>
@@ -230,6 +231,7 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
     /// </summary>
     private async Task<bool> SwitchToCpuTierAsync(Siglip2OnnxModel failed, CancellationToken cancellationToken)
     {
+        var version = Volatile.Read(ref overridesVersion);
         var installed = await store.FindTiersAsync(Siglip2Model.ModelId, Siglip2Model.Version, cancellationToken).ConfigureAwait(false);
         var tiers = catalog.Find(Siglip2Model.ModelId)?.Tiers ?? [];
         var current = installed.FirstOrDefault(tier => tier.ContentHash.Equals(failed.Model.FileHash, StringComparison.OrdinalIgnoreCase));
@@ -237,6 +239,12 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
         if (currentSuitsCpu || ChooseTier(installed, catalog, ExecutionProvider.Cpu, null) is not { } replacement || replacement.TierId == current?.TierId)
         {
             return false;
+        }
+
+        // The user changed the hardware settings meanwhile: their choice wins over this fallback.
+        if (version != Volatile.Read(ref overridesVersion))
+        {
+            return true;
         }
 
         onCpu = true;
@@ -258,6 +266,7 @@ public sealed class Siglip2EmbeddingProvider : IImageEmbeddingProvider, ITextEmb
             return;
         }
 
+        Interlocked.Increment(ref overridesVersion);
         onCpu = false;
         storeChanged = true;
         Unload();

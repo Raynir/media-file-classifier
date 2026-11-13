@@ -53,6 +53,8 @@ public sealed partial class HardwareSettingsViewModel : ViewModelBase, IDisposab
     private CancellationTokenSource? benchmark;
     private bool updating;
     private bool loadFailed;
+    private int refreshes;
+    private readonly IModelAvailability? availability;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HardwareSettingsViewModel"/> class.
@@ -75,10 +77,11 @@ public sealed partial class HardwareSettingsViewModel : ViewModelBase, IDisposab
         this.logger = logger ?? (ILogger)NullLogger.Instance;
         store.Changed += OnSettingChanged;
         localizer.Changed += OnLocalizerChanged;
+        this.availability = availability;
         if (availability is not null)
         {
             // Installing or deleting a tier changes which tiers can be chosen.
-            availability.Changed += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshAsync());
+            availability.Changed += OnModelsChanged;
             Dispatcher.UIThread.Post(() => _ = RefreshAsync());
         }
     }
@@ -167,9 +170,11 @@ public sealed partial class HardwareSettingsViewModel : ViewModelBase, IDisposab
     /// <returns>A task that completes when the section is up to date.</returns>
     public async Task RefreshAsync()
     {
+        var refresh = ++refreshes;
+        HardwareStatus latest;
         try
         {
-            status = await sender.Send(new GetHardwareStatusQuery());
+            latest = await sender.Send(new GetHardwareStatusQuery());
         }
         catch (Exception ex) when (ex is ModelStoreException or IOException or UnauthorizedAccessException)
         {
@@ -179,6 +184,13 @@ public sealed partial class HardwareSettingsViewModel : ViewModelBase, IDisposab
             return;
         }
 
+        if (refresh != refreshes)
+        {
+            // A later refresh started meanwhile; its result is newer.
+            return;
+        }
+
+        status = latest;
         if (loadFailed)
         {
             // Only the refresh's own error: a benchmark failure stays until the next action.
@@ -193,6 +205,11 @@ public sealed partial class HardwareSettingsViewModel : ViewModelBase, IDisposab
     public void Dispose()
     {
         store.Changed -= OnSettingChanged;
+        if (availability is not null)
+        {
+            availability.Changed -= OnModelsChanged;
+        }
+
         localizer.Changed -= OnLocalizerChanged;
         benchmark?.Cancel();
         benchmark?.Dispose();
@@ -386,6 +403,8 @@ public sealed partial class HardwareSettingsViewModel : ViewModelBase, IDisposab
     }
 
     private void OnLocalizerChanged(object? sender, EventArgs e) => Show();
+
+    private void OnModelsChanged(object? sender, EventArgs e) => Dispatcher.UIThread.Post(() => _ = RefreshAsync());
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Reading the hardware status failed")]
     private partial void LogRefreshFailed(Exception exception);

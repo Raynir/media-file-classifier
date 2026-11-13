@@ -28,6 +28,7 @@ public sealed class SettingsHardwareOverridesTests
     {
         var store = new InMemorySettingsStore();
         var overrides = new SettingsHardwareOverrides(store);
+        _ = overrides.TierId; // Changes are announced from the first read on.
         var changes = 0;
         overrides.Changed += (_, _) => changes++;
 
@@ -44,6 +45,7 @@ public sealed class SettingsHardwareOverridesTests
     {
         var store = new InMemorySettingsStore();
         var overrides = new SettingsHardwareOverrides(store);
+        _ = overrides.TierId; // Changes are announced from the first read on.
         var changes = 0;
         overrides.Changed += (_, _) => changes++;
 

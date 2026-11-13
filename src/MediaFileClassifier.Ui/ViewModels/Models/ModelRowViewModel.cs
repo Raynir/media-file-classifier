@@ -52,6 +52,7 @@ public sealed partial class ModelRowViewModel : ViewModelBase, IDisposable
     private readonly Localizer localizer;
     private readonly ILogger logger;
     private CancellationTokenSource? download;
+    private bool usedByLibraries;
     private string statusKey = string.Empty;
     private object?[] statusArgs = [];
 
@@ -198,14 +199,14 @@ public sealed partial class ModelRowViewModel : ViewModelBase, IDisposable
     /// <param name="entry">The entry.</param>
     public void Update(ModelListEntry entry)
     {
-        var wasInstalled = Entry.IsInstalled;
         Entry = entry;
-        if (IsBusy || wasInstalled == entry.IsInstalled)
+        var idle = entry.IsInstalled ? ModelRowState.Installed : ModelRowState.NotInstalled;
+        if (IsBusy || State == idle || (State == ModelRowState.ConfirmingDelete && entry.IsInstalled))
         {
             return;
         }
 
-        State = entry.IsInstalled ? ModelRowState.Installed : ModelRowState.NotInstalled;
+        State = idle;
         SetStatus(entry.IsInstalled ? "Models_StatusInstalled" : "Models_StatusNotInstalled", isError: false);
     }
 
@@ -350,6 +351,7 @@ public sealed partial class ModelRowViewModel : ViewModelBase, IDisposable
             return;
         }
 
+        usedByLibraries = usedBy.Count > 0;
         DeleteQuestion = usedBy.Count == 0
             ? localizer.Format("Models_DeleteQuestion", Name)
             : localizer.Format("Models_DeleteQuestionUsed", Name, string.Join(", ", usedBy.Select(Path.GetFileName)));
@@ -363,7 +365,17 @@ public sealed partial class ModelRowViewModel : ViewModelBase, IDisposable
         SetStatus("Models_StatusDeleting", isError: false);
         try
         {
-            await sender.Send(new DeleteModelCommand(Entry.ModelId, Entry.Version, Entry.TierId, Confirmed: true));
+            // Confirmed only for the libraries the user was shown: the store asks again if one started using it since.
+            var result = await sender.Send(new DeleteModelCommand(Entry.ModelId, Entry.Version, Entry.TierId, Confirmed: usedByLibraries));
+            if (result.NeedsConfirmation)
+            {
+                usedByLibraries = true;
+                DeleteQuestion = localizer.Format("Models_DeleteQuestionUsed", Name, string.Join(", ", result.UsingLibraries.Select(Path.GetFileName)));
+                State = ModelRowState.ConfirmingDelete;
+                SetStatus("Models_StatusInstalled", isError: false);
+                return;
+            }
+
             State = ModelRowState.NotInstalled;
             SetStatus("Models_StatusNotInstalled", isError: false);
         }

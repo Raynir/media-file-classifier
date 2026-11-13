@@ -23,6 +23,7 @@ public sealed partial class ModelManagementViewModel : ViewModelBase, IDisposabl
     private readonly Localizer localizer;
     private readonly IModelAvailability? availability;
     private readonly ILogger logger;
+    private int refreshes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ModelManagementViewModel"/> class.
@@ -75,6 +76,7 @@ public sealed partial class ModelManagementViewModel : ViewModelBase, IDisposabl
     /// <returns>A task that completes when the list is up to date.</returns>
     public async Task RefreshAsync()
     {
+        var refresh = ++refreshes;
         IReadOnlyList<ModelListEntry> entries;
         try
         {
@@ -84,6 +86,12 @@ public sealed partial class ModelManagementViewModel : ViewModelBase, IDisposabl
         {
             LogRefreshFailed(ex);
             LoadError = localizer.Get("Models_LoadFailed");
+            return;
+        }
+
+        if (refresh != refreshes)
+        {
+            // A later refresh started meanwhile; its result is newer.
             return;
         }
 

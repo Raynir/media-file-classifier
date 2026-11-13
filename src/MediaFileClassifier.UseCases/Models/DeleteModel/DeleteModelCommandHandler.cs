@@ -31,6 +31,6 @@ public sealed class DeleteModelCommandHandler(IModelStore store, IAiProviderRegi
             provider.Unload();
         }
 
-        return await store.DeleteAsync(request.ModelId, request.Version, request.TierId, confirmed: true, cancellationToken).ConfigureAwait(false);
+        return await store.DeleteAsync(request.ModelId, request.Version, request.TierId, request.Confirmed, cancellationToken).ConfigureAwait(false);
     }
 }

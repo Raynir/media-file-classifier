@@ -1,6 +1,7 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
+using MediaFileClassifier.Testing.Hardware;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
@@ -60,7 +61,7 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
     public void Create_DirectMl_UsesThePreferredAdapter()
     {
         var devices = new List<int>();
-        var hardware = new FixedHardware(ExecutionProvider.DirectMl, new GpuInfo("Discrete", "NVIDIA", 8L << 30, AdapterIndex: 1));
+        var hardware = new FakeHardwareInfo(ExecutionProvider.DirectMl, new GpuInfo("Discrete", "NVIDIA", 8L << 30, AdapterIndex: 1));
         var factory = CreateFactory(append: (_, _, device) => devices.Add(device), hardware);
 
         using var session = factory.Create(modelPath, factory.DefaultExecutionProvider);
@@ -149,17 +150,6 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
             AvailableProviders = () => [ExecutionProvider.Cpu, ExecutionProvider.DirectMl],
             AppendExecutionProvider = append,
         };
-
-    private sealed class FixedHardware(ExecutionProvider provider, GpuInfo? gpu) : IHardwareInfo
-    {
-        public HardwareProfile Profile { get; } = new("X64", 8, 16L << 30, gpu is null ? [] : [gpu]);
-
-        public ExecutionProvider PreferredExecutionProvider => provider;
-
-        public GpuInfo? PreferredGpu => gpu;
-
-        public int DefaultParallelism => 4;
-    }
 
     /// <summary>
     /// An identity model whose first runs use a wrong input name, which ONNX Runtime rejects.

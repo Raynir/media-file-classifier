@@ -50,7 +50,7 @@ public sealed record MultiSelectValue : FilterValue
     /// Initializes a new instance of the <see cref="MultiSelectValue"/> class.
     /// </summary>
     /// <param name="values">The values picked, in any order.</param>
-    public MultiSelectValue(IEnumerable<string>? values) => Values = Normalise(values);
+    public MultiSelectValue(IReadOnlyList<string>? values) => Values = Normalise(values);
 
     /// <summary>
     /// Gets the values picked, sorted.
@@ -119,7 +119,7 @@ public sealed record IncludeExcludeValue : FilterValue
     /// <param name="include">The values an item must have.</param>
     /// <param name="exclude">The values an item must not have.</param>
     /// <param name="matchAll">Whether an item needs all included values (AND) or any (OR).</param>
-    public IncludeExcludeValue(IEnumerable<string>? include, IEnumerable<string>? exclude, bool matchAll)
+    public IncludeExcludeValue(IReadOnlyList<string>? include, IReadOnlyList<string>? exclude, bool matchAll)
     {
         Include = Normalise(include);
         Exclude = Normalise(exclude);

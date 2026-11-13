@@ -14,8 +14,8 @@ public class FakeSender : ISender
     private readonly Dictionary<Type, Func<object, object?>> handlers = [];
 
     /// <summary>
-    /// Answers every <typeparamref name="TRequest"/> with the handler's result. The result is cast to the
-    /// request's response type; a request without a response (a plain <c>IRequest</c>) returns <see langword="null"/>.
+    /// Answers every <typeparamref name="TRequest"/> with the handler's result. A null result gives the
+    /// default of the response type.
     /// </summary>
     /// <typeparam name="TRequest">The request type.</typeparam>
     /// <param name="handler">Computes the response.</param>
@@ -42,7 +42,7 @@ public class FakeSender : ISender
     {
         try
         {
-            return Task.FromResult((TResponse)Handle(request)!);
+            return Task.FromResult(Handle(request) is TResponse response ? response : default!);
         }
         catch (Exception ex)
         {

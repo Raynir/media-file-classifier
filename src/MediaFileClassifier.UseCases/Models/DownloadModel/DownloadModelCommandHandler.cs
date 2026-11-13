@@ -16,6 +16,7 @@ public sealed class DownloadModelCommandHandler(IModelCatalog catalog, IModelDow
         ArgumentNullException.ThrowIfNull(request);
         var entry = catalog.GetDefault(request.Purpose)
             ?? throw new InvalidOperationException($"The model catalogue has no {request.Purpose} model.");
-        return downloader.DownloadAsync(entry, entry.DefaultTier, request.Progress, cancellationToken);
+        var tier = request.TierId is null ? entry.Default : entry.GetTier(request.TierId);
+        return downloader.DownloadAsync(entry, tier.TierId, request.Progress, cancellationToken);
     }
 }

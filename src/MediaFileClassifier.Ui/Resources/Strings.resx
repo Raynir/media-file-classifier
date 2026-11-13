@@ -1236,4 +1236,175 @@
   <data name="Search_PastedImageName" xml:space="preserve">
     <value>Pasted image.png</value>
   </data>
+  <data name="Models_Heading" xml:space="preserve">
+    <value>Models</value>
+  </data>
+  <data name="Models_Help" xml:space="preserve">
+    <value>AI models run on this computer. Download a model once, or import its files on a computer without internet. The Standard tier suits the processor, and Compact suits a graphics card.</value>
+  </data>
+  <data name="Models_LoadFailed" xml:space="preserve">
+    <value>The installed models couldn't be read.</value>
+  </data>
+  <data name="Models_Name" xml:space="preserve">
+    <value>{0} — {1}</value>
+  </data>
+  <data name="Models_LicenseUnknown" xml:space="preserve">
+    <value>License unknown</value>
+  </data>
+  <data name="Models_Version" xml:space="preserve">
+    <value>version {0}</value>
+  </data>
+  <data name="Models_Download" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="Models_Import" xml:space="preserve">
+    <value>Import from file</value>
+  </data>
+  <data name="Models_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Models_Verify" xml:space="preserve">
+    <value>Verify</value>
+  </data>
+  <data name="Models_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Models_DeleteConfirm" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Models_StatusInstalled" xml:space="preserve">
+    <value>Installed. Its files were checked when it was installed.</value>
+  </data>
+  <data name="Models_StatusInstalledNow" xml:space="preserve">
+    <value>Installed and verified.</value>
+  </data>
+  <data name="Models_StatusNotInstalled" xml:space="preserve">
+    <value>Not installed</value>
+  </data>
+  <data name="Models_StatusDownloading" xml:space="preserve">
+    <value>Downloading: {0} of {1}</value>
+  </data>
+  <data name="Models_StatusInstalling" xml:space="preserve">
+    <value>Checking the files and installing…</value>
+  </data>
+  <data name="Models_StatusImportedOtherTier" xml:space="preserve">
+    <value>Those files are the {0} tier, so that tier was installed.</value>
+  </data>
+  <data name="Models_StatusVerifying" xml:space="preserve">
+    <value>Verifying the files…</value>
+  </data>
+  <data name="Models_StatusVerified" xml:space="preserve">
+    <value>Verified: the files are intact.</value>
+  </data>
+  <data name="Models_StatusVerifyFailed" xml:space="preserve">
+    <value>Verification failed: the files are damaged or changed. Delete the model and download it again.</value>
+  </data>
+  <data name="Models_StatusDeleting" xml:space="preserve">
+    <value>Deleting…</value>
+  </data>
+  <data name="Models_ErrorVerify" xml:space="preserve">
+    <value>The files couldn't be verified.</value>
+  </data>
+  <data name="Models_ErrorDelete" xml:space="preserve">
+    <value>The model couldn't be deleted. Stop the analysis that uses it, then try again.</value>
+  </data>
+  <data name="Models_DeleteQuestion" xml:space="preserve">
+    <value>Delete {0}? You can download it again later.</value>
+  </data>
+  <data name="Models_DeleteQuestionUsed" xml:space="preserve">
+    <value>Delete {0}? These libraries use it: {1}. Their items need analysing again with another tier.</value>
+  </data>
+  <data name="Hardware_Heading" xml:space="preserve">
+    <value>Hardware</value>
+  </data>
+  <data name="Hardware_Help" xml:space="preserve">
+    <value>Where the AI models run on this computer. Automatic uses the graphics card when it has enough memory, and the processor otherwise.</value>
+  </data>
+  <data name="Hardware_LoadFailed" xml:space="preserve">
+    <value>The hardware details couldn't be read.</value>
+  </data>
+  <data name="Hardware_Detected" xml:space="preserve">
+    <value>Detected</value>
+  </data>
+  <data name="Hardware_DetectedOn" xml:space="preserve">
+    <value>{0} on {1}</value>
+  </data>
+  <data name="Hardware_Provider" xml:space="preserve">
+    <value>Run models on</value>
+  </data>
+  <data name="Hardware_Tier" xml:space="preserve">
+    <value>Model tier</value>
+  </data>
+  <data name="Hardware_Automatic" xml:space="preserve">
+    <value>Automatic ({0})</value>
+  </data>
+  <data name="Hardware_TierAutomatic" xml:space="preserve">
+    <value>Automatic (best for the hardware)</value>
+  </data>
+  <data name="Hardware_Tier_Standard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Hardware_Tier_Compact" xml:space="preserve">
+    <value>Compact</value>
+  </data>
+  <data name="Hardware_Provider_Cpu" xml:space="preserve">
+    <value>Processor (CPU)</value>
+  </data>
+  <data name="Hardware_Provider_DirectMl" xml:space="preserve">
+    <value>DirectML</value>
+  </data>
+  <data name="Hardware_Provider_Cuda" xml:space="preserve">
+    <value>CUDA</value>
+  </data>
+  <data name="Hardware_Provider_Nnapi" xml:space="preserve">
+    <value>NNAPI</value>
+  </data>
+  <data name="Hardware_Reason_NotInRuntime" xml:space="preserve">
+    <value>{0} isn't included in this version of the app.</value>
+  </data>
+  <data name="Hardware_Reason_NoSuitableGpu" xml:space="preserve">
+    <value>{0} needs a graphics card with at least 2 GB of its own memory.</value>
+  </data>
+  <data name="Hardware_Reason_NoNvidiaGpu" xml:space="preserve">
+    <value>{0} needs an NVIDIA graphics card.</value>
+  </data>
+  <data name="Hardware_Reason_TierNotInstalled" xml:space="preserve">
+    <value>The {0} tier isn't installed. Download it under Models.</value>
+  </data>
+  <data name="Hardware_AppliesNext" xml:space="preserve">
+    <value>Changes apply from the next analysis. Another tier gives different results, so items analysed with the old one need analysing again.</value>
+  </data>
+  <data name="Hardware_Benchmark" xml:space="preserve">
+    <value>Benchmark</value>
+  </data>
+  <data name="Hardware_RunBenchmark" xml:space="preserve">
+    <value>Run benchmark</value>
+  </data>
+  <data name="Hardware_CancelBenchmark" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Hardware_BenchmarkStarting" xml:space="preserve">
+    <value>Starting…</value>
+  </data>
+  <data name="Hardware_BenchmarkNever" xml:space="preserve">
+    <value>Measures how fast this computer analyses, for the time estimates. It hasn't run yet.</value>
+  </data>
+  <data name="Hardware_BenchmarkNoModel" xml:space="preserve">
+    <value>The last run found no installed model to measure.</value>
+  </data>
+  <data name="Hardware_BenchmarkMeasured" xml:space="preserve">
+    <value>Measured {0}.</value>
+  </data>
+  <data name="Hardware_BenchmarkFailed" xml:space="preserve">
+    <value>The benchmark failed. The earlier results are kept.</value>
+  </data>
+  <data name="Hardware_Analyzer_siglip2_image" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="Hardware_Analyzer_siglip2_text" xml:space="preserve">
+    <value>Search text</value>
+  </data>
+  <data name="Hardware_Speed" xml:space="preserve">
+    <value>{0} per second</value>
+  </data>
 </root>

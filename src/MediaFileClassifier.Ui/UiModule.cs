@@ -18,6 +18,7 @@ using MediaFileClassifier.Ui.Toolbar;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
+using MediaFileClassifier.Ui.ViewModels.Hardware;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
@@ -25,7 +26,9 @@ using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
 using MediaFileClassifier.Ui.Views.Browser;
 using MediaFileClassifier.Ui.Views.Details;
+using MediaFileClassifier.Ui.Views.Hardware;
 using MediaFileClassifier.Ui.Views.Libraries;
+using MediaFileClassifier.Ui.Views.Models;
 using MediaFileClassifier.Ui.Views.Navigation;
 using MediaFileClassifier.Ui.Views.Search;
 using MediaFileClassifier.Ui.Views.Settings;
@@ -33,6 +36,7 @@ using MediaFileClassifier.Ui.Views.Toolbar;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.SearchResults;
@@ -65,7 +69,9 @@ public static class UiModule
             .Register<DetailsPanelViewModel, DetailsPanelView>()
             .Register<ToolbarViewModel, ToolbarView>()
             .Register<ThumbnailSizeViewModel, ThumbnailSizeView>()
-            .Register<SearchBarViewModel, SearchBarView>());
+            .Register<SearchBarViewModel, SearchBarView>()
+            .Register<ModelManagementViewModel, ModelManagementView>()
+            .Register<HardwareSettingsViewModel, HardwareSettingsView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -95,6 +101,14 @@ public static class UiModule
         services.AddSingleton<LibraryDialogs>();
         services.TryAddSingleton<IModelDialogs, ModelDialogs>();
         services.AddSingleton<ModelBannerViewModel>();
+
+        // Model and hardware settings (E17-S08): sections of AI & Models.
+        services.AddSingleton<ModelManagementViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.AiModels, "Models_Heading", provider.GetRequiredService<ModelManagementViewModel>) { Order = 1000 });
+        services.AddSingleton<HardwareSettingsViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.AiModels, "Hardware_Heading", provider.GetRequiredService<HardwareSettingsViewModel>) { Order = 1100 });
 
         // Navigation panel (E13-S02). Features add sections through INavigationContributor.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INavigationContributor, LibraryNavigation>());

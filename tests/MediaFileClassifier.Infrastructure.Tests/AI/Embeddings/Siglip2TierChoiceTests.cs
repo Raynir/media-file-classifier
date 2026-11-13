@@ -131,6 +131,45 @@ public sealed class Siglip2TierChoiceTests : IDisposable
         Directory.Delete(root, recursive: true);
     }
 
+    [Fact]
+    public async Task Provider_HardwareOverrides_WinAndApplyToTheNextCall()
+    {
+        var standard = await ImportAsync(Standard);
+        var compact = await ImportAsync(Compact);
+        var overrides = new FakeOverrides();
+        using var provider = new Siglip2EmbeddingProvider(
+            store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog, overrides);
+        await provider.CheckHealthAsync(Token);
+        Assert.Equal(compact.ContentHash, provider.Model.FileHash);
+
+        overrides.Set(provider: null, tierId: Standard);
+        await provider.CheckHealthAsync(Token);
+        Assert.Equal(standard.ContentHash, provider.Model.FileHash);
+
+        // The CPU as the provider: the tier that suits it.
+        overrides.Set(ExecutionProvider.Cpu, tierId: null);
+        await provider.CheckHealthAsync(Token);
+        Assert.Equal(standard.ContentHash, provider.Model.FileHash);
+
+        overrides.Set(provider: null, tierId: null);
+        await provider.CheckHealthAsync(Token);
+        Assert.Equal(compact.ContentHash, provider.Model.FileHash);
+    }
+
+    [Fact]
+    public async Task Provider_OverriddenTierNotInstalled_FallsBackToTheAutomaticChoice()
+    {
+        var standard = await ImportAsync(Standard);
+        var overrides = new FakeOverrides();
+        overrides.Set(provider: null, tierId: Compact);
+        using var provider = new Siglip2EmbeddingProvider(
+            store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog, overrides);
+
+        await provider.CheckHealthAsync(Token);
+
+        Assert.Equal(standard.ContentHash, provider.Model.FileHash);
+    }
+
     private static InstalledModel Installed(string tierId) =>
         new(Siglip2Model.ModelId, Siglip2Model.Version, tierId, "SigLIP 2", null, null, "models", [], tierId, DateTimeOffset.UnixEpoch);
 
@@ -158,5 +197,21 @@ public sealed class Siglip2TierChoiceTests : IDisposable
         public GpuInfo? PreferredGpu => null;
 
         public int DefaultParallelism => 4;
+    }
+
+    private sealed class FakeOverrides : IHardwareOverrides
+    {
+        public event EventHandler? Changed;
+
+        public ExecutionProvider? ExecutionProvider { get; private set; }
+
+        public string? TierId { get; private set; }
+
+        public void Set(ExecutionProvider? provider, string? tierId)
+        {
+            ExecutionProvider = provider;
+            TierId = tierId;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
     }
 }

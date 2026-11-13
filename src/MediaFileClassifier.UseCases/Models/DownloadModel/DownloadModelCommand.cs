@@ -9,4 +9,11 @@ namespace MediaFileClassifier.UseCases.Models.DownloadModel;
 /// </summary>
 /// <param name="Purpose">The purpose.</param>
 /// <param name="Progress">Receives progress, or <see langword="null"/>.</param>
-public sealed record DownloadModelCommand(ModelPurpose Purpose, IProgress<ModelDownloadProgress>? Progress) : IRequest<InstalledModel>;
+public sealed record DownloadModelCommand(ModelPurpose Purpose, IProgress<ModelDownloadProgress>? Progress) : IRequest<InstalledModel>
+{
+    /// <summary>
+    /// Gets the tier to download, e.g. <c>compact</c> from the model management page (E17-S08-T01), or
+    /// <see langword="null"/> for the catalogue's default tier.
+    /// </summary>
+    public string? TierId { get; init; }
+}

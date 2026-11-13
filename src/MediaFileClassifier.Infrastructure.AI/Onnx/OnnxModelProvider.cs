@@ -28,6 +28,11 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
     private bool disposed;
 
     /// <summary>
+    /// Gets the execution provider sessions try first; they fall back to the CPU.
+    /// </summary>
+    internal ExecutionProvider PreferredExecutionProvider => preferredExecutionProvider;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="OnnxModelProvider"/> class.
     /// </summary>
     /// <param name="id">Provider instance ID.</param>

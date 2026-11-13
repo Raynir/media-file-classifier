@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Models"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Models.ModelManagementView"
+             x:DataType="vm:ModelManagementViewModel">
+  <!--
+    Model management (E17-S08-T01), in the AI & Models settings. Provisional layout until E17-S08-T00 designs it (D095):
+    one row per model tier, texts on the left and the row's actions on the right.
+    Tab order: each row's actions left to right, rows top to bottom. Status changes are announced politely.
+  -->
+  <StackPanel Spacing="{DynamicResource Space.S}">
+    <TextBlock Classes="Secondary"
+               Margin="{DynamicResource Padding.Compact}"
+               Text="{l:Loc Models_Help}"
+               TextWrapping="Wrap" />
+    <TextBlock
+               Margin="{DynamicResource Padding.Compact}"
+               Foreground="{DynamicResource Brush.Status.Error.Foreground}"
+               Text="{Binding LoadError}"
+               IsVisible="{Binding HasLoadError}"
+               TextWrapping="Wrap" />
+    <ItemsControl x:Name="ModelList" ItemsSource="{Binding Rows}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:ModelRowViewModel">
+          <Border Padding="{DynamicResource Padding.Compact}"
+                  BorderBrush="{DynamicResource Brush.Border.Divider}"
+                  BorderThickness="0,0,0,1"
+                  AutomationProperties.Name="{Binding Name}">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right"
+                          Orientation="Horizontal"
+                          Spacing="{DynamicResource Space.S}"
+                          VerticalAlignment="Center"
+                          Margin="{DynamicResource Padding.Compact}">
+                <Button Classes="accent" Content="{l:Loc Models_Download}" Command="{Binding DownloadCommand}" IsVisible="{Binding CanDownload}" />
+                <Button Content="{l:Loc Models_Import}" Command="{Binding ImportCommand}" IsVisible="{Binding CanDownload}" />
+                <Button Content="{l:Loc Models_Cancel}" Command="{Binding CancelDownloadCommand}" IsVisible="{Binding IsDownloading}" />
+                <Button Content="{l:Loc Models_Verify}" Command="{Binding VerifyCommand}" IsVisible="{Binding IsInstalledIdle}" />
+                <Button Content="{l:Loc Models_Delete}" Command="{Binding DeleteCommand}" IsVisible="{Binding IsInstalledIdle}" />
+              </StackPanel>
+              <StackPanel Spacing="{DynamicResource Space.XS}" Margin="{DynamicResource Padding.Compact}">
+                <TextBlock Classes="Subtitle" Text="{Binding Name}" TextWrapping="Wrap" />
+                <TextBlock Classes="Secondary" Text="{Binding Details}" ToolTip.Tip="{Binding LicenseUrl}" TextWrapping="Wrap" />
+                <TextBlock Classes="Secondary"
+                           Text="{Binding Status}"
+                           ToolTip.Tip="{Binding ErrorDetail}"
+                           IsVisible="{Binding !IsError}"
+                           AutomationProperties.LiveSetting="Polite"
+                           TextWrapping="Wrap" />
+                <TextBlock Foreground="{DynamicResource Brush.Status.Error.Foreground}"
+                           Text="{Binding Status}"
+                           ToolTip.Tip="{Binding ErrorDetail}"
+                           IsVisible="{Binding IsError}"
+                           AutomationProperties.LiveSetting="Assertive"
+                           TextWrapping="Wrap" />
+                <ProgressBar Minimum="0"
+                             Maximum="100"
+                             Value="{Binding ProgressPercent}"
+                             IsVisible="{Binding IsDownloading}"
+                             AutomationProperties.Name="{Binding Status}" />
+                <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsInstalling}" AutomationProperties.Name="{Binding Status}" />
+                <!-- Delete asks first, naming the libraries that use the model. -->
+                <StackPanel Spacing="{DynamicResource Space.S}" IsVisible="{Binding IsConfirmingDelete}">
+                  <TextBlock Text="{Binding DeleteQuestion}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+                    <Button Classes="accent" Content="{l:Loc Models_DeleteConfirm}" Command="{Binding ConfirmDeleteCommand}" />
+                    <Button Content="{l:Loc Models_Cancel}" Command="{Binding CancelDeleteCommand}" />
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </DockPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>

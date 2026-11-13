@@ -1,0 +1,109 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Hardware"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Hardware.HardwareSettingsView"
+             x:DataType="vm:HardwareSettingsViewModel">
+  <!--
+    Hardware (E17-S08-T02), in the AI & Models settings. Provisional layout until E17-S08-T00 designs it (D095).
+    Options that can't be used here are disabled in the lists, and their reasons are listed under them (E01-S07-T03).
+    Tab order: execution provider, model tier, Run benchmark (or Cancel).
+  -->
+  <UserControl.Styles>
+    <Style Selector="ComboBoxItem" x:DataType="vm:HardwareOption">
+      <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
+      <Setter Property="ToolTip.Tip" Value="{Binding Reason}" />
+    </Style>
+  </UserControl.Styles>
+
+  <StackPanel Spacing="{DynamicResource Space.S}">
+    <TextBlock Classes="Secondary"
+               Margin="{DynamicResource Padding.Compact}"
+               Text="{l:Loc Hardware_Help}"
+               TextWrapping="Wrap" />
+
+    <DockPanel Margin="{DynamicResource Padding.Compact}">
+      <TextBlock Text="{l:Loc Hardware_Detected}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+      <TextBlock x:Name="DetectedText" Classes="Subtitle" Text="{Binding Detected}" TextWrapping="Wrap" VerticalAlignment="Center" />
+    </DockPanel>
+
+    <DockPanel Margin="{DynamicResource Padding.Compact}">
+      <TextBlock Text="{l:Loc Hardware_Provider}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+      <ComboBox x:Name="ProviderList"
+                ItemsSource="{Binding Providers}"
+                SelectedItem="{Binding SelectedProvider}"
+                MinWidth="{DynamicResource Size.SettingControl}"
+                AutomationProperties.Name="{l:Loc Hardware_Provider}">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:HardwareOption">
+            <TextBlock Text="{Binding Label}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+    </DockPanel>
+
+    <DockPanel Margin="{DynamicResource Padding.Compact}">
+      <TextBlock Text="{l:Loc Hardware_Tier}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+      <ComboBox x:Name="TierList"
+                ItemsSource="{Binding Tiers}"
+                SelectedItem="{Binding SelectedTier}"
+                MinWidth="{DynamicResource Size.SettingControl}"
+                AutomationProperties.Name="{l:Loc Hardware_Tier}">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:HardwareOption">
+            <TextBlock Text="{Binding Label}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+    </DockPanel>
+
+    <TextBlock Classes="Secondary"
+               Margin="{DynamicResource Padding.Compact}"
+               Text="{l:Loc Hardware_AppliesNext}"
+               TextWrapping="Wrap" />
+
+    <!-- Why some options are disabled. -->
+    <ItemsControl ItemsSource="{Binding Unavailable}" Margin="{DynamicResource Padding.Compact}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="x:String">
+          <TextBlock Classes="Tertiary" Text="{Binding}" TextWrapping="Wrap" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <TextBlock Foreground="{DynamicResource Brush.Status.Error.Foreground}"
+               Margin="{DynamicResource Padding.Compact}"
+               Text="{Binding Error}"
+               IsVisible="{Binding HasError}"
+               AutomationProperties.LiveSetting="Assertive"
+               TextWrapping="Wrap" />
+
+    <!-- Benchmark (E06-S08-T04). -->
+    <DockPanel Margin="{DynamicResource Padding.Compact}">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+        <Button x:Name="RunBenchmarkButton" Content="{l:Loc Hardware_RunBenchmark}" Command="{Binding RunBenchmarkCommand}" IsVisible="{Binding IsIdle}" />
+        <Button Content="{l:Loc Hardware_CancelBenchmark}" Command="{Binding CancelBenchmarkCommand}" IsVisible="{Binding IsBenchmarking}" />
+      </StackPanel>
+      <StackPanel Spacing="{DynamicResource Space.XS}" VerticalAlignment="Center">
+        <TextBlock Classes="Subtitle" Text="{l:Loc Hardware_Benchmark}" />
+        <TextBlock Classes="Secondary" Text="{Binding BenchmarkSummary}" TextWrapping="Wrap" />
+      </StackPanel>
+    </DockPanel>
+    <StackPanel Margin="{DynamicResource Padding.Compact}" Spacing="{DynamicResource Space.XS}" IsVisible="{Binding IsBenchmarking}">
+      <ProgressBar IsIndeterminate="True" AutomationProperties.Name="{l:Loc Hardware_Benchmark}" />
+      <TextBlock Classes="Tertiary" Text="{Binding BenchmarkProgress}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    </StackPanel>
+    <ItemsControl ItemsSource="{Binding BenchmarkRows}" Margin="{DynamicResource Padding.Compact}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:BenchmarkRow">
+          <Grid ColumnDefinitions="2*,*,*,*">
+            <TextBlock Grid.Column="0" Text="{Binding Analyzer}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Column="1" Classes="Secondary" Text="{Binding Tier}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Column="2" Classes="Secondary" Text="{Binding Provider}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Column="3" Text="{Binding Speed}" HorizontalAlignment="Right" />
+          </Grid>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>

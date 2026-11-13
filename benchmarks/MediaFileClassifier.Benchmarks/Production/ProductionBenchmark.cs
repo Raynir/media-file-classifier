@@ -470,7 +470,7 @@ internal static class ProductionBenchmark
                     "--queries" => options with { Queries = int.Parse(Next(), CultureInfo.InvariantCulture) },
                     "--cpus" => options with { Cpus = int.Parse(Next(), CultureInfo.InvariantCulture) },
                     "--rebuild" => options with { Rebuild = true },
-                    "--typing-runs" => options with { TypingRuns = int.Parse(Next(), CultureInfo.InvariantCulture) },
+                    "--typing-runs" => options with { TypingRuns = Math.Max(1, int.Parse(Next(), CultureInfo.InvariantCulture)) },
                     "--child" => options with { IsChild = true },
                     "--out" => options with { OutDirectory = Next() },
                     _ => throw new ArgumentException($"Unknown option {args[i]}."),

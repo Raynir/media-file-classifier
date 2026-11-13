@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using MediaFileClassifier.Ui.Localization;
@@ -9,7 +10,7 @@ using MediaFileClassifier.UseCases.Models.GetModelOffer;
 namespace MediaFileClassifier.Ui.Models;
 
 /// <summary>
-/// Shows the model dialogs on the desktop, modal to the main window.
+/// Shows the model dialogs on the desktop, modal to the active window: the main window, or the settings window (E17-S08).
 /// </summary>
 /// <param name="localizer">UI strings.</param>
 public sealed class ModelDialogs(Localizer localizer) : IModelDialogs
@@ -17,7 +18,7 @@ public sealed class ModelDialogs(Localizer localizer) : IModelDialogs
     /// <inheritdoc />
     public async Task<bool> ConfirmDownloadAsync(ModelOffer offer)
     {
-        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
+        if (FindOwner() is not { } owner)
         {
             return false;
         }
@@ -32,7 +33,7 @@ public sealed class ModelDialogs(Localizer localizer) : IModelDialogs
     /// <inheritdoc />
     public async Task<IReadOnlyList<string>> PickModelFilesAsync()
     {
-        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
+        if (FindOwner() is not { } owner)
         {
             return [];
         }
@@ -45,4 +46,9 @@ public sealed class ModelDialogs(Localizer localizer) : IModelDialogs
         });
         return [.. files.Select(file => file.TryGetLocalPath()).OfType<string>()];
     }
+
+    private static Window? FindOwner() =>
+        Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.Windows.FirstOrDefault(window => window.IsActive) ?? desktop.MainWindow
+            : null;
 }

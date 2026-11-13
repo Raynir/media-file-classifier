@@ -26,6 +26,7 @@ using MediaFileClassifier.Ui.Views;
 using MediaFileClassifier.Ui.Views.Browser;
 using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.Ui.Views.Libraries;
+using MediaFileClassifier.Ui.Views.Models;
 using MediaFileClassifier.Ui.Views.Navigation;
 using MediaFileClassifier.Ui.Views.Search;
 using MediaFileClassifier.Ui.Views.Settings;
@@ -33,6 +34,7 @@ using MediaFileClassifier.Ui.Views.Toolbar;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.SearchResults;
@@ -65,7 +67,8 @@ public static class UiModule
             .Register<DetailsPanelViewModel, DetailsPanelView>()
             .Register<ToolbarViewModel, ToolbarView>()
             .Register<ThumbnailSizeViewModel, ThumbnailSizeView>()
-            .Register<SearchBarViewModel, SearchBarView>());
+            .Register<SearchBarViewModel, SearchBarView>()
+            .Register<ModelManagementViewModel, ModelManagementView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -95,6 +98,11 @@ public static class UiModule
         services.AddSingleton<LibraryDialogs>();
         services.TryAddSingleton<IModelDialogs, ModelDialogs>();
         services.AddSingleton<ModelBannerViewModel>();
+
+        // Model and hardware settings (E17-S08): sections of AI & Models.
+        services.AddSingleton<ModelManagementViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.AiModels, "Models_Heading", provider.GetRequiredService<ModelManagementViewModel>) { Order = 1000 });
 
         // Navigation panel (E13-S02). Features add sections through INavigationContributor.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INavigationContributor, LibraryNavigation>());

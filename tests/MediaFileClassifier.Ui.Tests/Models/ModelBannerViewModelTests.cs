@@ -6,8 +6,8 @@ using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.UseCases.Models.DownloadModel;
 using MediaFileClassifier.UseCases.Models.GetModelOffer;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Models.ImportModel;
-using MediatR;
 
 namespace MediaFileClassifier.Ui.Tests.Models;
 
@@ -17,7 +17,7 @@ namespace MediaFileClassifier.Ui.Tests.Models;
 /// </summary>
 public sealed class ModelBannerViewModelTests
 {
-    private readonly FakeSender sender = new();
+    private readonly ModelSender sender = new();
     private readonly FakeDialogs dialogs = new();
 
     [Fact]
@@ -169,7 +169,7 @@ public sealed class ModelBannerViewModelTests
     /// <summary>
     /// Answers the model use cases.
     /// </summary>
-    private sealed class FakeSender : ISender
+    private sealed class ModelSender : FakeSender
     {
         public bool Installed { get; set; }
 
@@ -181,7 +181,7 @@ public sealed class ModelBannerViewModelTests
 
         public Action OnImport { get; set; } = () => { };
 
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        protected override object? Handle(object request)
         {
             object? response;
             switch (request)
@@ -203,17 +203,7 @@ public sealed class ModelBannerViewModelTests
                     throw new NotSupportedException(request.GetType().Name);
             }
 
-            return Task.FromResult((TResponse)response!);
+            return response;
         }
-
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest => throw new NotSupportedException();
-
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
-
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

@@ -217,6 +217,102 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task GoingBackToARecentText_ShowsItsFirstPageWithoutSearchingAgain()
+    {
+        await OpenLibraryAsync(2);
+        var items = library!.ItemList.Items;
+        sender.Hits = [new SearchHit(items[1].Id, 1, 1, null, SearchFields.Title)];
+
+        source.SetText("boat");
+        await source.CountAsync(Token);
+        await source.GetPageAsync(0, 10, Token);
+        Assert.Equal(2, sender.SearchCalls);
+
+        source.SetText("boa");
+        await source.CountAsync(Token);
+        await source.GetPageAsync(0, 10, Token);
+        Assert.Equal(4, sender.SearchCalls);
+
+        // Back to the first text: the count, the page and the match reasons all come from the cache.
+        source.SetText("boat");
+        var count = await source.CountAsync(Token);
+        var page = await source.GetPageAsync(0, 10, Token);
+
+        Assert.Equal(4, sender.SearchCalls);
+        Assert.Equal(1, count);
+        Assert.Equal([items[1].Id], page.Select(item => item.Id));
+        Assert.Equal(SearchFields.Title, source.GetMatch(items[1].Id)!.Fields);
+        Assert.Equal(1, source.Summary!.TotalCount);
+    }
+
+    [Fact]
+    public async Task TheCache_IsKeyedByTheOptionsAndTheScope_AndForgetsWhenTheScopeOrItemsChange()
+    {
+        await OpenLibraryAsync(2);
+        var folder = library!.FolderList.Folders[0];
+        source.SetText("boat");
+        await source.CountAsync(Token);
+        source.SetShowLessRelevant(true);
+        await source.CountAsync(Token);
+        Assert.Equal(2, sender.SearchCalls);
+
+        source.SetShowLessRelevant(false);
+        await source.CountAsync(Token);
+        Assert.Equal(2, sender.SearchCalls);
+
+        browse.Scope = new FolderScope(folder.Id);
+        await source.CountAsync(Token);
+        browse.Scope = BrowseScope.All;
+        await source.CountAsync(Token);
+        Assert.Equal(4, sender.SearchCalls);
+    }
+
+    [Theory]
+    [InlineData(SemanticSearchStatus.IndexNotReady)]
+    [InlineData(SemanticSearchStatus.ModelMissing)]
+    [InlineData(SemanticSearchStatus.Failed)]
+    public async Task AnAnswerWithoutTheSemanticSearchForAReasonThatPasses_IsNotCached(SemanticSearchStatus semantic)
+    {
+        await OpenLibraryAsync(1);
+        sender.Semantic = semantic;
+        source.SetText("boat");
+        await source.CountAsync(Token);
+
+        source.SetText("boa");
+        source.SetText("boat");
+        sender.Semantic = SemanticSearchStatus.Used;
+        await source.CountAsync(Token);
+
+        Assert.Equal(2, sender.SearchCalls);
+        Assert.Equal(SemanticSearchStatus.Used, source.Summary!.Semantic);
+    }
+
+    [Fact]
+    public async Task OnlyFirstPagesAreCached_AndAnAnswerThatStartedBeforeAChangeIsNotKept()
+    {
+        await OpenLibraryAsync(1);
+        sender.Hits = [];
+        source.SetText("boat");
+        await source.GetPageAsync(5, 10, Token);
+        await source.GetPageAsync(5, 10, Token);
+        Assert.Equal(2, sender.SearchCalls);
+
+        sender.Block = new TaskCompletionSource();
+        sender.IgnoreCancellation = true;
+        var slow = source.CountAsync(Token);
+        await sender.Started.Task.WaitAsync(Token);
+        browse.Scope = BrowseScope.RecentlyImported;
+        sender.Block.SetResult();
+        await slow;
+        sender.Block = null;
+        browse.Scope = BrowseScope.All;
+        var calls = sender.SearchCalls;
+        await source.CountAsync(Token);
+
+        Assert.Equal(calls + 1, sender.SearchCalls);
+    }
+
+    [Fact]
     public async Task Ids_FollowTheSearchOrder_FromAnItemOn_AcrossPages()
     {
         await OpenLibraryAsync(5);

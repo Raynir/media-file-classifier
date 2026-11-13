@@ -2,6 +2,7 @@ using System.Text.Json;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
+using MediaFileClassifier.Testing.Files;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Settings;
@@ -13,12 +14,14 @@ public sealed class SettingsStoreTests : IDisposable
 {
     private static readonly ChoiceSetting<DayOfWeek> Day = new("test.day", SettingScope.App, SettingCategories.General, "Setting_Day", DayOfWeek.Monday);
 
-    private readonly string dataDirectory = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
+    private readonly string dataDirectory;
     private readonly AppPaths appPaths;
     private readonly FakeLibraryValues library = new();
 
     public SettingsStoreTests()
     {
+        dataDirectory = temp.Combine("data");
         appPaths = new AppPaths(dataDirectory);
     }
 
@@ -145,10 +148,7 @@ public sealed class SettingsStoreTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(dataDirectory))
-        {
-            Directory.Delete(dataDirectory, recursive: true);
-        }
+        temp.Dispose();
     }
 
     private JsonSettingsService CreateService() => new(appPaths, NullLogger<JsonSettingsService>.Instance);

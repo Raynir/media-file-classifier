@@ -31,10 +31,11 @@ public sealed class SearchMediaQueryHandler(
     public async Task<MediaSearchResults> Handle(SearchMediaQuery request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        var filter = request.Filters.ApplyTo(request.Filter, filters);
 
         if (request.ReferenceImage is { } image)
         {
-            return await SearchByImageAsync(request, image, cancellationToken).ConfigureAwait(false);
+            return await SearchByImageAsync(request, image, filter, cancellationToken).ConfigureAwait(false);
         }
 
         var text = SearchText.Normalise(request.Text);
@@ -43,7 +44,7 @@ public sealed class SearchMediaQueryHandler(
             var listed = await index.SearchAsync(
                 new SearchQuery
                 {
-                    Filter = request.Filters.ApplyTo(request.Filter, filters),
+                    Filter = filter,
                     Sort = request.Sort == SortMode.Relevance ? SortMode.Date : request.Sort,
                     ReverseSort = request.ReverseSort,
                     Offset = request.Offset,
@@ -60,7 +61,7 @@ public sealed class SearchMediaQueryHandler(
             {
                 Text = text,
                 Vector = vector,
-                Filter = request.Filters.ApplyTo(request.Filter, filters),
+                Filter = filter,
                 Sort = request.Sort,
                 ReverseSort = request.ReverseSort,
                 Offset = request.Offset,
@@ -87,7 +88,7 @@ public sealed class SearchMediaQueryHandler(
 
     // No relevance cut (decided for E09-S04): the text thresholds don't fit image-to-image similarities, which are much
     // higher; E09-S05 measures one. The index returns at most its vector candidate limit, ranked by similarity.
-    private async Task<MediaSearchResults> SearchByImageAsync(SearchMediaQuery request, ReferenceImage image, CancellationToken cancellationToken)
+    private async Task<MediaSearchResults> SearchByImageAsync(SearchMediaQuery request, ReferenceImage image, SearchFilter filter, CancellationToken cancellationToken)
     {
         var (vector, status) = await EncodeImageAsync(image, cancellationToken).ConfigureAwait(false);
         if (vector is null)
@@ -99,7 +100,7 @@ public sealed class SearchMediaQueryHandler(
             new SearchQuery
             {
                 Vector = vector,
-                Filter = request.Filters.ApplyTo(request.Filter, filters),
+                Filter = filter,
                 Sort = request.Sort,
                 ReverseSort = request.ReverseSort,
                 Offset = request.Offset,

@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Search.Filters;
+using MediaFileClassifier.UseCases.Tests.Search.Filters;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
 using MediaFileClassifier.UseCases.Search.SearchResults;
@@ -119,6 +120,27 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
 
         Assert.Null(source.SimilarTo);
         Assert.Equal(Videos, source.Filters);
+    }
+
+    [Fact]
+    public async Task FiltersThatAreUnavailable_BrowsePlainly_UntilTheyBecomeAvailable()
+    {
+        await OpenLibraryAsync(3);
+        var filter = new TestFilter<BooleanValue>("toggled", FilterValueKind.Boolean);
+        filter.SetAvailable(false);
+        var registered = new SearchResultSource(browse, sender, new FilterRegistry([filter]));
+        var changed = 0;
+        registered.Changed += (_, _) => changed++;
+
+        registered.SetFilters(FilterState.Empty.Set("toggled", new BooleanValue(true)));
+        Assert.Equal(3, await registered.CountAsync(Token));
+        Assert.Equal(0, sender.SearchCalls);
+
+        filter.SetAvailable(true);
+        await registered.CountAsync(Token);
+
+        Assert.Equal(2, changed);
+        Assert.Equal(1, sender.SearchCalls);
     }
 
     [Fact]

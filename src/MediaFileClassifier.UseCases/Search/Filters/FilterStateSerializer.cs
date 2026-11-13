@@ -20,7 +20,8 @@ public sealed partial class FilterStateSerializer(FilterRegistry registry, ILogg
     /// </summary>
     public const int Version = 1;
 
-    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+    // A value missing one of its properties is unreadable, rather than read with a default that filters differently.
+    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web) { RespectRequiredConstructorParameters = true };
 
     /// <summary>
     /// Writes a state.
@@ -55,7 +56,14 @@ public sealed partial class FilterStateSerializer(FilterRegistry registry, ILogg
         JsonArray? filters;
         try
         {
-            filters = JsonNode.Parse(json)?["filters"] as JsonArray;
+            var root = JsonNode.Parse(json);
+            if (root?["version"] is JsonValue version && version.TryGetValue<int>(out var number) && number > Version)
+            {
+                LogNewerVersion(number);
+                return FilterState.Empty;
+            }
+
+            filters = root?["filters"] as JsonArray;
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException)
         {
@@ -88,6 +96,9 @@ public sealed partial class FilterStateSerializer(FilterRegistry registry, ILogg
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The saved filter state isn't valid JSON; no filter is restored")]
     private partial void LogUnreadable(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The saved filter state has format version {FormatVersion}, newer than this app reads; no filter is restored")]
+    private partial void LogNewerVersion(int formatVersion);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Skipped the saved filter {FilterId}: no such filter is registered")]
     private partial void LogUnknownFilter(string? filterId);

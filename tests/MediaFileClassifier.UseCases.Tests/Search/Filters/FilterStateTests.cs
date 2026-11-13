@@ -78,6 +78,14 @@ public sealed class FilterStateTests
     }
 
     [Fact]
+    public void ANewerFormatVersion_GivesNoFilter() =>
+        Assert.True(Serializer.Deserialize("""{"version":2,"filters":[{"id":"favorite","value":{"value":true}}]}""").IsEmpty);
+
+    [Fact]
+    public void AValueMissingAProperty_IsSkipped_NotReadWithADefault() =>
+        Assert.True(Serializer.Deserialize("""{"version":1,"filters":[{"id":"favorite","value":{}},{"id":"size","value":{"min":1}}]}""").IsEmpty);
+
+    [Fact]
     public void Values_CompareByContent_InAnyOrder()
     {
         Assert.Equal(new MultiSelectValue(["b", "a", "a"]), new MultiSelectValue(["a", "b"]));

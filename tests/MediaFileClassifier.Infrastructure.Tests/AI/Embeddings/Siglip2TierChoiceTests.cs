@@ -4,6 +4,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
+using MediaFileClassifier.Testing.Hardware;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 
@@ -73,7 +74,7 @@ public sealed class Siglip2TierChoiceTests : IDisposable
             [Standard] = await ImportAsync(Standard),
             [Compact] = await ImportAsync(Compact),
         };
-        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FixedHardware(machine)), new Siglip2Options(), catalog);
+        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FakeHardwareInfo(machine)), new Siglip2Options(), catalog);
 
         await provider.CheckHealthAsync(Token);
 
@@ -84,7 +85,7 @@ public sealed class Siglip2TierChoiceTests : IDisposable
     public async Task Provider_StoreChanges_ChoosesAgain()
     {
         var standard = await ImportAsync(Standard);
-        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog);
+        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FakeHardwareInfo(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog);
         await provider.CheckHealthAsync(Token);
         Assert.Equal(standard.ContentHash, provider.Model.FileHash);
 
@@ -102,7 +103,7 @@ public sealed class Siglip2TierChoiceTests : IDisposable
     {
         var standard = await ImportAsync(Standard);
         var compact = await ImportAsync(Compact);
-        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog);
+        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FakeHardwareInfo(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog);
         await provider.CheckHealthAsync(Token);
         Assert.Equal(compact.ContentHash, provider.Model.FileHash);
 
@@ -117,7 +118,7 @@ public sealed class Siglip2TierChoiceTests : IDisposable
     public async Task Provider_GpuTierFailsToLoad_WithNoCpuTierInstalled_StaysAndThrows()
     {
         var compact = await ImportAsync(Compact);
-        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog);
+        using var provider = new Siglip2EmbeddingProvider(store, new OnnxSessionFactory(hardware: new FakeHardwareInfo(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog);
 
         await Assert.ThrowsAsync<AiProviderException>(() => provider.EmbedTextsAsync(["a cat"], Token));
         await provider.CheckHealthAsync(Token);
@@ -138,7 +139,7 @@ public sealed class Siglip2TierChoiceTests : IDisposable
         var compact = await ImportAsync(Compact);
         var overrides = new FakeOverrides();
         using var provider = new Siglip2EmbeddingProvider(
-            store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog, overrides);
+            store, new OnnxSessionFactory(hardware: new FakeHardwareInfo(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog, overrides);
         await provider.CheckHealthAsync(Token);
         Assert.Equal(compact.ContentHash, provider.Model.FileHash);
 
@@ -163,7 +164,7 @@ public sealed class Siglip2TierChoiceTests : IDisposable
         var overrides = new FakeOverrides();
         overrides.Set(provider: null, tierId: Compact);
         using var provider = new Siglip2EmbeddingProvider(
-            store, new OnnxSessionFactory(hardware: new FixedHardware(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog, overrides);
+            store, new OnnxSessionFactory(hardware: new FakeHardwareInfo(ExecutionProvider.DirectMl)), new Siglip2Options(), catalog, overrides);
 
         await provider.CheckHealthAsync(Token);
 
@@ -186,17 +187,6 @@ public sealed class Siglip2TierChoiceTests : IDisposable
         }
 
         return await store.ImportAsync(new ModelImportRequest(Siglip2Model.ModelId, Siglip2Model.Version, tierId, "SigLIP 2", files), null, Token);
-    }
-
-    private sealed class FixedHardware(ExecutionProvider provider) : IHardwareInfo
-    {
-        public HardwareProfile Profile { get; } = new("X64", 8, 16L << 30, []);
-
-        public ExecutionProvider PreferredExecutionProvider => provider;
-
-        public GpuInfo? PreferredGpu => null;
-
-        public int DefaultParallelism => 4;
     }
 
     private sealed class FakeOverrides : IHardwareOverrides

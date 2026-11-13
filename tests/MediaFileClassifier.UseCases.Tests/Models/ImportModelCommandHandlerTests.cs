@@ -1,4 +1,5 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.UseCases.Models.ImportModel;
 
 namespace MediaFileClassifier.UseCases.Tests.Models;
@@ -29,7 +30,7 @@ public sealed class ImportModelCommandHandlerTests
                 new ModelTier("compact", "Compact", [File("vision", "vision_model.onnx"), File("text", "text_model_fp16.onnx")]),
                 new ModelTier("standard", "Standard", [File("vision", "vision_model.onnx"), File("text", "text_model.onnx")]),
             ]);
-        handler = new ImportModelCommandHandler(new FakeCatalog(entry), store);
+        handler = new ImportModelCommandHandler(new SingleEntryModelCatalog(entry), store);
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -65,15 +66,6 @@ public sealed class ImportModelCommandHandlerTests
     }
 
     private static ModelCatalogFile File(string role, string name) => new(role, name, new Uri($"https://example.com/{name}"), 1, Hash);
-
-    private sealed class FakeCatalog(ModelCatalogEntry entry) : IModelCatalog
-    {
-        public IReadOnlyList<ModelCatalogEntry> Entries => [entry];
-
-        public ModelCatalogEntry? Find(string modelId) => modelId == entry.ModelId ? entry : null;
-
-        public ModelCatalogEntry? GetDefault(ModelPurpose purpose) => purpose == entry.Purpose ? entry : null;
-    }
 
     private sealed class FakeStore : IModelStore
     {

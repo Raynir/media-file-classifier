@@ -1,6 +1,7 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
+using MediaFileClassifier.Testing.Files;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Onnx;
 
@@ -12,11 +13,11 @@ public sealed class OnnxModelProviderTests : IDisposable
 {
     private const int Width = 4;
 
-    private readonly string directory = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
 
     public OnnxModelProviderTests()
     {
-        Directory.CreateDirectory(directory);
+        Directory.CreateDirectory(temp.Path);
     }
 
     [Fact]
@@ -68,7 +69,7 @@ public sealed class OnnxModelProviderTests : IDisposable
     [Fact]
     public async Task EmbedTexts_CorruptModelFile_ThrowsProviderError()
     {
-        await File.WriteAllTextAsync(Path.Combine(directory, "tiny.onnx"), "not a model", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(temp.Combine("tiny.onnx"), "not a model", TestContext.Current.CancellationToken);
         using var provider = CreateProvider(writeModel: false);
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
@@ -96,7 +97,7 @@ public sealed class OnnxModelProviderTests : IDisposable
     [Fact]
     public void Create_PreferredProviderNotInRuntime_FallsBackToCpu()
     {
-        var path = Path.Combine(directory, "tiny.onnx");
+        var path = temp.Combine("tiny.onnx");
         TinyOnnxModel.WriteIdentity(path, Width);
 
         // The CPU test runtime has no DirectML.
@@ -107,7 +108,7 @@ public sealed class OnnxModelProviderTests : IDisposable
 
     public void Dispose()
     {
-        Directory.Delete(directory, recursive: true);
+        temp.Dispose();
     }
 
     private static float Length(ReadOnlySpan<float> vector)
@@ -123,7 +124,7 @@ public sealed class OnnxModelProviderTests : IDisposable
 
     private TinyTextEmbedder CreateProvider(bool writeModel)
     {
-        var path = Path.Combine(directory, "tiny.onnx");
+        var path = temp.Combine("tiny.onnx");
         if (writeModel)
         {
             TinyOnnxModel.WriteIdentity(path, Width);

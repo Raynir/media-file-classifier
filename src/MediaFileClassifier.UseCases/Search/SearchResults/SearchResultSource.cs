@@ -1,10 +1,12 @@
 using System.Collections.Concurrent;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
+using MediaFileClassifier.UseCases.Search.Filters;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.LoadReferenceImage;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
@@ -44,7 +46,8 @@ public sealed record SimilarSource(Id<MediaItem> ItemId, string Name, DateTimeOf
 /// something to look for, the image-to-image search while a reference image is set (E09-S04), and the browse results
 /// of <see cref="LibraryItemsSource"/> otherwise. Changing the text, the reference image, the less relevant option or
 /// the browse scope starts a new search and cancels the one still running. A search covers the selected scope (folder,
-/// subfolder, recently imported); the filters (E10) will add to it.
+/// subfolder, recently imported) and the active filters (E10-S01). With filters set and nothing to search for, the
+/// browse results come from the search index too, newest import first like plain browsing.
 /// "Find similar" (E09-S03) is the third kind of search: <see cref="SetSimilarTo"/> lists the items like one item, with
 /// that item first, marked Source; it doesn't count in the summary's total (D053). Text typed or a reference image
 /// replaces it, and it replaces a reference image.
@@ -55,6 +58,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
 
     private readonly LibraryItemsSource browse;
     private readonly ISender sender;
+    private readonly FilterRegistry? filterRegistry;
     private readonly Lock syncRoot = new();
     private readonly SearchPageCache pages = new();
     private ActiveSearch current = ActiveSearch.None;
@@ -64,10 +68,25 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     /// </summary>
     /// <param name="browse">The results while there's no search text.</param>
     /// <param name="sender">Sends the queries.</param>
-    public SearchResultSource(LibraryItemsSource browse, ISender sender)
+    /// <param name="filterRegistry">The registered filters, to tell which active filters apply; without it every
+    /// active filter counts.</param>
+    public SearchResultSource(LibraryItemsSource browse, ISender sender, FilterRegistry? filterRegistry = null)
     {
         this.browse = browse;
         this.sender = sender;
+        this.filterRegistry = filterRegistry;
+        foreach (var filter in filterRegistry?.All ?? [])
+        {
+            // A filter that comes or goes changes what an active filter state means: search again.
+            filter.AvailabilityChanged += (_, _) =>
+            {
+                if (current.Filters.Get(filter.Id) is not null)
+                {
+                    Replace(old => Create(old.Text, old.ShowLessRelevant, ScopeFilter(), old.Image, old.Similar, old.Filters));
+                }
+            };
+        }
+
         browse.Changed += (_, _) =>
         {
             // The scope or the items changed: a search starts over inside the new scope, on the current items.
@@ -106,6 +125,11 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     public SimilarSource? SimilarTo => current.Similar;
 
     /// <summary>
+    /// Gets the active filters (E10-S01). They apply to every kind of search and to browsing.
+    /// </summary>
+    public FilterState Filters => current.Filters;
+
+    /// <summary>
     /// Gets what the search showed last, or <see langword="null"/> while browsing.
     /// </summary>
     public SearchSummary? Summary { get; private set; }
@@ -123,7 +147,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         // Blank text leaves an image-to-image or "find similar" search alone: only text to look for replaces them.
         Replace(old => old.Text == value || (value.Length == 0 && (old.Image is not null || old.Similar is not null))
             ? null
-            : new ActiveSearch(value, showLessRelevant: false, ScopeFilter()));
+            : Create(value, showLessRelevant: false, ScopeFilter(), filters: old.Filters));
     }
 
     /// <summary>
@@ -134,7 +158,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     public void SetReferenceImage(ReferenceImage? image) =>
         Replace(old => ReferenceEquals(old.Image, image) || (image is null && old.Image is null)
             ? null
-            : new ActiveSearch(string.Empty, showLessRelevant: false, ScopeFilter(), image));
+            : Create(string.Empty, showLessRelevant: false, ScopeFilter(), image, filters: old.Filters));
 
     /// <summary>
     /// Starts a "find similar" search for an item (E09-S03), replacing the text or image search.
@@ -143,25 +167,36 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     public void SetSimilarTo(SimilarSource similarTo)
     {
         ArgumentNullException.ThrowIfNull(similarTo);
-        Replace(old => old.Similar == similarTo ? null : new ActiveSearch(string.Empty, showLessRelevant: false, ScopeFilter(), similar: similarTo));
+        Replace(old => old.Similar == similarTo ? null : Create(string.Empty, showLessRelevant: false, ScopeFilter(), similar: similarTo, filters: old.Filters));
     }
 
     /// <summary>
     /// Leaves the "find similar" search and goes back to browsing; does nothing when it isn't one.
     /// </summary>
-    public void ClearSimilar() => Replace(old => old.Similar is null ? null : ActiveSearch.None);
+    public void ClearSimilar() => Replace(old => old.Similar is null ? null : Create(string.Empty, showLessRelevant: false, ScopeFilter(), filters: old.Filters));
+
+    /// <summary>
+    /// Sets the active filters (E10-S01-T03) and runs the current search, or browsing, again with them. The text,
+    /// reference image or "find similar" item stays; the source of a "find similar" search is still pinned first.
+    /// </summary>
+    /// <param name="filters">The filters; <see cref="FilterState.Empty"/> clears them.</param>
+    public void SetFilters(FilterState filters)
+    {
+        ArgumentNullException.ThrowIfNull(filters);
+        Replace(old => old.Filters.Equals(filters) ? null : Create(old.Text, old.ShowLessRelevant, ScopeFilter(), old.Image, old.Similar, filters));
+    }
 
     /// <summary>
     /// Runs the current "find similar" search again, e.g. once its item has been analyzed (E09-S03-T03).
     /// </summary>
-    public void RefreshSimilar() => Replace(old => old.Similar is { } similar ? new ActiveSearch(string.Empty, old.ShowLessRelevant, old.Filter, similar: similar) : null);
+    public void RefreshSimilar() => Replace(old => old.Similar is { } similar ? Create(string.Empty, old.ShowLessRelevant, old.Filter, similar: similar, filters: old.Filters) : null);
 
     /// <summary>
     /// Includes or leaves out the less relevant semantic matches of the current search.
     /// </summary>
     /// <param name="show">Whether to include them.</param>
     public void SetShowLessRelevant(bool show) =>
-        Replace(old => old.IsSearch && old.ShowLessRelevant != show ? new ActiveSearch(old.Text, show, old.Filter, old.Image) : null);
+        Replace(old => old.IsSearch && old.ShowLessRelevant != show ? Create(old.Text, show, old.Filter, old.Image, filters: old.Filters) : null);
 
     /// <inheritdoc />
     public async Task<int> CountAsync(CancellationToken cancellationToken)
@@ -370,6 +405,19 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         return new SearchFilter { FolderId = filter.FolderId, Subfolder = filter.Subfolder, ImportedSince = filter.ImportedSince };
     }
 
+    private ActiveSearch Create(
+        string text,
+        bool showLessRelevant,
+        SearchFilter filter,
+        ReferenceImage? image = null,
+        SimilarSource? similar = null,
+        FilterState? filters = null)
+    {
+        var state = filters ?? FilterState.Empty;
+        var hasConditions = filterRegistry is null ? !state.IsEmpty : state.ToConditions(filterRegistry).Count > 0;
+        return new ActiveSearch(text, showLessRelevant, filter, image, similar, state, hasConditions);
+    }
+
     private void Restart()
     {
         ActiveSearch old;
@@ -381,7 +429,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
                 return;
             }
 
-            current = new ActiveSearch(old.Text, old.ShowLessRelevant, ScopeFilter(), old.Image, old.Similar);
+            current = Create(old.Text, old.ShowLessRelevant, ScopeFilter(), old.Image, old.Similar, old.Filters);
         }
 
         old.Cancellation.Cancel();
@@ -421,7 +469,14 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         SummaryChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private sealed class ActiveSearch(string text, bool showLessRelevant, SearchFilter filter, ReferenceImage? image = null, SimilarSource? similar = null)
+    private sealed class ActiveSearch(
+        string text,
+        bool showLessRelevant,
+        SearchFilter filter,
+        ReferenceImage? image = null,
+        SimilarSource? similar = null,
+        FilterState? filters = null,
+        bool hasConditions = false)
     {
         public static ActiveSearch None { get; } = new(string.Empty, showLessRelevant: false, SearchFilter.None);
 
@@ -435,7 +490,13 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
 
         public SimilarSource? Similar { get; } = similar;
 
-        public bool IsSearch => Text.Length > 0 || Image is not null || Similar is not null;
+        public FilterState Filters { get; } = filters ?? FilterState.Empty;
+
+        // Filters alone make a search too: browsing through the search index, which applies them. A state whose filters
+        // are all unregistered or unavailable filters nothing, so it browses plainly.
+        public bool IsSearch => Text.Length > 0 || Image is not null || Similar is not null || hasConditions;
+
+        private bool IsBrowse => Text.Length == 0 && Image is null && Similar is null;
 
         // How many results come before the hits: the source of a "find similar" search.
         public int Pinned => Similar is null ? 0 : 1;
@@ -447,12 +508,16 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         public ConcurrentDictionary<Id<MediaItem>, ResultMatch> Matches { get; } = new();
 
         public IRequest<MediaSearchResults> Query(int offset, int limit, bool includeFields) => Similar is { } similar
-            ? new FindSimilarQuery(similar.ItemId) { Filter = Filter, Offset = offset, Limit = limit }
+            ? new FindSimilarQuery(similar.ItemId) { Filter = Filter, Filters = Filters, Offset = offset, Limit = limit }
             : new SearchMediaQuery
             {
                 Text = Text,
                 ReferenceImage = Image,
                 Filter = Filter,
+                Filters = Filters,
+
+                // Filtered browsing keeps close to the plain browse order (newest item ID, i.e. newest import) until sorting (E10-S04).
+                Sort = IsBrowse ? SortMode.ImportDate : SortMode.Relevance,
                 Offset = offset,
                 Limit = limit,
                 IncludeMatchedFields = includeFields,

@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Embeddings;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.UseCases.Search.Filters;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
 using MediatR;
 
@@ -15,7 +16,8 @@ namespace MediaFileClassifier.UseCases.Search.FindSimilar;
 /// </summary>
 /// <param name="index">The search index.</param>
 /// <param name="session">The open library, to read the item's embeddings.</param>
-public sealed class FindSimilarQueryHandler(ISearchIndex index, ILibrarySession session) : IRequestHandler<FindSimilarQuery, MediaSearchResults>
+/// <param name="filters">The registered filters, for the request's <see cref="FindSimilarQuery.Filters"/>.</param>
+public sealed class FindSimilarQueryHandler(ISearchIndex index, ILibrarySession session, FilterRegistry filters) : IRequestHandler<FindSimilarQuery, MediaSearchResults>
 {
     /// <inheritdoc />
     public async Task<MediaSearchResults> Handle(FindSimilarQuery request, CancellationToken cancellationToken)
@@ -37,7 +39,7 @@ public sealed class FindSimilarQueryHandler(ISearchIndex index, ILibrarySession 
             new SearchQuery
             {
                 Vector = SearchVector.FromItem(modelId, request.ItemId),
-                Filter = request.Filter,
+                Filter = request.Filters.ApplyTo(request.Filter, filters),
                 Sort = request.Sort,
                 ReverseSort = request.ReverseSort,
                 Offset = request.Offset,

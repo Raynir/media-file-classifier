@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
 
 namespace MediaFileClassifier.Infrastructure.Abstractions.Search;
 
@@ -90,4 +91,10 @@ public sealed record SearchFilter
     /// Gets the earliest import time to keep, e.g. for Recently imported (D053), or <c>null</c>.
     /// </summary>
     public DateTimeOffset? ImportedSince { get; init; }
+
+    /// <summary>
+    /// Gets the conditions of registered filters (E10-S01), or <c>null</c>. Each must hold, like the conditions above;
+    /// the search service builds their SQL without knowing the filters.
+    /// </summary>
+    public IReadOnlyList<FilterCondition>? Conditions { get; init; }
 }

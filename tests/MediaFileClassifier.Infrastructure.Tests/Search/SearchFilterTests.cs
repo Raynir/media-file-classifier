@@ -5,7 +5,10 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
+using MediaFileClassifier.Infrastructure.DataAccess.Search.Filters;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
+using MediaFileClassifier.Infrastructure.Tests.Media;
 using Microsoft.Data.Sqlite;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Search;
@@ -129,7 +132,24 @@ public sealed class SearchFilterTests(SearchFilterTests.Library library) : IClas
             ["subfolder with backslashes"] = (new SearchFilter { Subfolder = @"\album\" }, [1, 3]),
             ["imported since"] = (new SearchFilter { ImportedSince = Start.AddHours(1) }, [3]),
             ["combined"] = (new SearchFilter { MediaTypes = [MediaType.Image, MediaType.AnimatedImage], IsFavorite = false, Statuses = [MediaItemStatus.Error] }, [3]),
+
+            // Registered filters (E10-S01) build their own SQL through IFilterSql.
+            ["registered type video"] = (Registered((Types, ["Video"])), [2]),
+            ["registered types, unknown ignored"] = (Registered((Types, ["image", "AnimatedImage", "Hologram"])), [1, 3]),
+            ["registered type unknown only"] = (Registered((Types, ["Hologram"])), []),
+            ["registered format jpeg"] = (Registered((Formats, ["jpeg"])), [1]),
+            ["registered formats gif and mp4"] = (Registered((Formats, ["gif", "mp4"])), [2, 3]),
+            ["registered format unknown"] = (Registered((Formats, ["tiff"])), []),
+            ["registered type and format"] = (Registered((Types, ["Image", "AnimatedImage"]), (Formats, ["gif", "mp4"])), [3]),
+            ["registered and typed fields"] = (Registered((Types, ["Image", "AnimatedImage"])) with { IsFavorite = false }, [3]),
         };
+
+        private static MediaTypeFilter Types { get; } = new();
+
+        private static FileFormatFilter Formats { get; } = new(FormatTestSupport.CreateRegistry());
+
+        private static SearchFilter Registered(params (IFilterDefinition Filter, string[] Values)[] conditions) =>
+            new() { Conditions = [.. conditions.Select(condition => new FilterCondition(condition.Filter, new MultiSelectValue(condition.Values)))] };
 
         public async ValueTask InitializeAsync()
         {

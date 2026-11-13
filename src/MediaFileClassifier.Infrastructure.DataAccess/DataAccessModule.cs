@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,10 @@ public static class DataAccessModule
         // Library settings live in the open library (E02-S02); this replaces the "no library" storage of AddInfrastructure.
         services.Replace(ServiceDescriptor.Singleton<ILibrarySettingValues, OpenLibrarySettingValues>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, Database.DatabaseExceptionClassifier>());
+
+        // Filters (E10-S01): the file format filter needs the format registry of AddMedia().
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.MediaTypeFilter>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.FileFormatFilter>());
         return services;
     }
 }

@@ -86,6 +86,19 @@ public sealed class FindSimilarQueryHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task FindSimilar_AppliesTheActiveFilters()
+    {
+        var sample = await bed.AddItemAsync(1, vector: [1, 0, 0, 0]);
+        await bed.AddItemAsync(2, vector: [1, 0.05f, 0, 0]);
+        var favorite = await bed.AddItemAsync(3, vector: [1, 0.3f, 0, 0], configure: item => item.SetFavorite(true, bed.Library.Clock.Tick()));
+
+        var results = await SendAsync(new FindSimilarQuery(sample.Id) { Filters = SearchTestBed.FavoritesOnly });
+
+        Assert.Equal([favorite.Id], results.Hits.Select(hit => hit.ItemId));
+        Assert.Equal(1, results.TotalCount);
+    }
+
+    [Fact]
     public async Task FindSimilar_ItemWithoutAnEmbedding_IsNotAnalyzed()
     {
         var unanalyzed = await bed.AddItemAsync(1);
@@ -102,7 +115,7 @@ public sealed class FindSimilarQueryHandlerTests : IAsyncLifetime
     public async Task FindSimilar_NoLibrary_IsUnavailable()
     {
         var sample = await bed.AddItemAsync(1, vector: [1, 0, 0, 0]);
-        var handler = new FindSimilarQueryHandler(bed.Index, new TestSession(null));
+        var handler = new FindSimilarQueryHandler(bed.Index, new TestSession(null), SearchTestBed.Filters);
 
         var results = await handler.Handle(new FindSimilarQuery(sample.Id), Token);
 
@@ -111,5 +124,5 @@ public sealed class FindSimilarQueryHandlerTests : IAsyncLifetime
     }
 
     private Task<MediaSearchResults> SendAsync(FindSimilarQuery query) =>
-        new FindSimilarQueryHandler(bed.Index, bed.Session).Handle(query, Token);
+        new FindSimilarQueryHandler(bed.Index, bed.Session, SearchTestBed.Filters).Handle(query, Token);
 }

@@ -82,6 +82,27 @@ public sealed class SearchMediaQueryHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Search_TextAndBrowsing_ApplyTheActiveFilters()
+    {
+        var provider = new FakeEmbeddingProvider(dimension: Dimension);
+        var model = await RegisterAsync(provider);
+        var plain = await bed.AddItemAsync(1, title: "red car");
+        var favorite = await bed.AddItemAsync(2, title: "red car", configure: item => item.SetFavorite(true, bed.Library.Clock.Tick()));
+        await SetVectorAsync(model, plain, Around("red car", 0.9f));
+        await SetVectorAsync(model, favorite, Around("red car", 0.9f));
+        using var handler = Create(provider);
+
+        var text = await handler.SearchAsync(new SearchMediaQuery { Text = "red car", Filters = SearchTestBed.FavoritesOnly });
+        var browse = await handler.SearchAsync(new SearchMediaQuery { Filters = SearchTestBed.FavoritesOnly });
+
+        Assert.Equal(SearchMode.Hybrid, text.Mode);
+        Assert.Equal([favorite.Id], text.Hits.Select(hit => hit.ItemId));
+        Assert.Equal(SearchMode.Browse, browse.Mode);
+        Assert.Equal([favorite.Id], browse.Hits.Select(hit => hit.ItemId));
+        Assert.Equal(1, browse.TotalCount);
+    }
+
+    [Fact]
     public async Task Search_EmptyText_BrowsesNewestTakenFirst()
     {
         var provider = new FakeEmbeddingProvider(dimension: Dimension);
@@ -328,7 +349,7 @@ public sealed class SearchMediaQueryHandlerTests : IAsyncLifetime
     {
         var registry = new AiProviderRegistry(provider is null ? [] : [provider], bed.Library.Clock);
         var encoder = new SemanticQueryEncoder(registry, bed.Session, bed.Library.Clock);
-        return new TestHandler(encoder, new SearchMediaQueryHandler(bed.Index, encoder, registry, NullLogger<SearchMediaQueryHandler>.Instance));
+        return new TestHandler(encoder, new SearchMediaQueryHandler(bed.Index, encoder, registry, SearchTestBed.Filters, NullLogger<SearchMediaQueryHandler>.Instance));
     }
 
     private sealed class TestHandler(SemanticQueryEncoder encoder, SearchMediaQueryHandler handler) : IDisposable

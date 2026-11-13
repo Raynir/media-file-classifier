@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -8,8 +9,11 @@ using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.LoadReferenceImage;
+using MediaFileClassifier.UseCases.Search.SearchMedia;
 using MediaFileClassifier.UseCases.Search.SearchResults;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Ui.Search;
 
@@ -35,7 +39,10 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     private readonly Localizer localizer;
     private readonly ThumbnailLoader? thumbnails;
     private readonly AnalyzeNow? analyzeNow;
+    private readonly ILogger logger;
     private readonly DispatcherTimer timer;
+    private long lastKeystroke;
+    private string lastTyped = string.Empty;
     private bool settingImage;
     private CancellationTokenSource? thumbnailLoading;
     private ThumbnailLease? thumbnailLease;
@@ -50,6 +57,7 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     /// <param name="delay">The keystroke pause, or <see langword="null"/> for <see cref="DefaultDelay"/>.</param>
     /// <param name="thumbnails">Loads the "find similar" chip's thumbnail, or <see langword="null"/> for none.</param>
     /// <param name="analyzeNow">Analyzes an item without an embedding, or <see langword="null"/> to not offer it.</param>
+    /// <param name="logger">Logger; it gets the time from the last keystroke to the results (E09-S02-T03).</param>
     public SearchBarViewModel(
         SearchResultSource source,
         ISender sender,
@@ -57,8 +65,10 @@ public sealed partial class SearchBarViewModel : ViewModelBase
         Localizer localizer,
         TimeSpan? delay = null,
         ThumbnailLoader? thumbnails = null,
-        AnalyzeNow? analyzeNow = null)
+        AnalyzeNow? analyzeNow = null,
+        ILogger<SearchBarViewModel>? logger = null)
     {
+        this.logger = logger ?? NullLogger<SearchBarViewModel>.Instance;
         this.source = source;
         this.sender = sender;
         this.picker = picker;
@@ -67,6 +77,7 @@ public sealed partial class SearchBarViewModel : ViewModelBase
         this.analyzeNow = analyzeNow;
         timer = new DispatcherTimer { Interval = delay ?? DefaultDelay };
         timer.Tick += (_, _) => Submit();
+        source.SummaryChanged += (_, _) => LogLatency();
         source.Changed += (_, _) =>
         {
             // "Find similar" starts from a command, and the results follow the browse scope on any thread.
@@ -331,9 +342,31 @@ public sealed partial class SearchBarViewModel : ViewModelBase
             RemoveImage();
         }
 
+        lastTyped = value;
+        lastKeystroke = Stopwatch.GetTimestamp();
         timer.Stop();
         timer.Start();
     }
+
+    // The time from the last keystroke to the results being known: the pause, the search and the hand-over to this
+    // thread. Logged once per typed text, so the real numbers can be compared with the budget of D031.
+    private void LogLatency()
+    {
+        // Only the summary of the text that was typed counts: another search's summary says nothing about typing.
+        if (source.Summary is not { } summary || summary.Text.Length == 0 || summary.Text != lastTyped)
+        {
+            return;
+        }
+
+        var typedAt = Interlocked.Exchange(ref lastKeystroke, 0);
+        if (typedAt != 0)
+        {
+            LogKeystrokeToResults(logger, Stopwatch.GetElapsedTime(typedAt).TotalMilliseconds, summary.Mode, summary.Semantic, summary.TotalCount);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Search as you type: {Milliseconds:F0} ms from the last keystroke to the results ({Mode}, semantic {Semantic}, {Total} results)")]
+    private static partial void LogKeystrokeToResults(ILogger logger, double milliseconds, SearchMode mode, SemanticSearchStatus semantic, int total);
 
     private bool CanClear() => Text.Length > 0 || ReferenceImage is not null || ImageError is not null || SimilarTo is not null;
 

@@ -43,9 +43,23 @@ The `SearchIndex` migration adds, in raw SQL:
 - **Item date:** date taken, converted to UTC with its offset when known, else the file modification time.
 - **Relevance cut (E09-S01-T03):** with `SearchQuery.RelevanceCut`, a hit that only the vector search found is "less relevant" unless its similarity minus the query's mean similarity over the library clears `MinCentredSimilarity`, or its raw similarity clears `MinSimilarity`. Less relevant hits are dropped after fusion (so the others keep their order) and counted in `SearchResults.LessRelevantCount`; `IncludeLessRelevant` returns them marked `SearchHit.IsLessRelevant`. The mean comes from a running sum of each item's first vector per model, kept in `ModelVectors`. Keyword matches are never cut.
 
+## Registered filters (E10-S01)
+
+A filter is an `IFilterDefinition` (`Infrastructure.Abstractions/Search/Filters`) registered as a singleton; derive from `FilterDefinition<TValue>`. It declares its ID, display name resource key, panel order, kind (multi-select, range, date range, boolean, include/exclude) and value type, whether it is available, and its SQL condition, which it writes through `IFilterSql` (`media_item` and `technical_metadata` columns, the item date, parameters, `LIKE`). `FilterRegistry` (UseCases) collects them. The active filters are a `FilterState` (filter ID → `FilterValue`), which `FilterStateSerializer` writes as `{"version":1,"filters":[{"id":"media-type","value":{"values":["Video"]}}]}`. `SearchMediaQuery.Filters` and `FindSimilarQuery.Filters` turn the state into `SearchFilter.Conditions`, which `SearchSql` ANDs into the same `WHERE` as the fixed filters, so every path applies them. Filters of different IDs combine with AND; values within one filter follow its kind (any of a multi-select). Unavailable filters don't apply. `SearchResultSource.SetFilters` applies them to every search and to browsing; with filters and no text, browsing goes through the search index, newest import first.
+
 ## Unified text search (E09-S01)
 
 `SearchMediaQuery` (MediatR, `UseCases/Search/SearchMedia`) is the call the search bar makes. It normalises the text (`SearchText`: NFC, invisible characters out, white space collapsed, 256 characters at most), encodes it with `SemanticQueryEncoder`, and runs one `ISearchIndex` query with both text and vector. Empty text browses by date taken, newest first. If the model is missing, the vector index isn't ready or encoding fails, the keyword results come back alone and `MediaSearchResults.Semantic` says why. The relevance cut per model is in `SemanticRelevanceThresholds`; a model without an entry shows every neighbour.
+
+## Search as you type (E09-S02)
+
+`SearchBarViewModel` searches 300 ms after the last keystroke (`DefaultDelay`), `SearchResultSource` cancels the search before it, and a search that was replaced never hands its answer on, even when it had finished. Two caches make going back instant: `SemanticQueryEncoder` keeps 256 query vectors, and `SearchPageCache` keeps the first page of the last 32 text searches (64 cached answers) (reset when the scope or items change; answers that lack the semantic search for a reason that can pass are never kept). The time from the last keystroke to the results is logged (`Search as you type: N ms ...`).
+
+`production` also searches every prefix of the keyword queries (hybrid, no filter). On 100k items and 28 CPUs: p50 221 ms, p95 3.9 s, max 7.8 s (1-2 letters p95 5.1 s, 3-5 letters 0.8 s, 6+ letters 2.0 s), without the encoder and the pause. The D031 budget of 300 ms is **not met**: short prefixes match most of the library because every word is a prefix (D221 and MFC-89's decision). Bottlenecks are filed as tasks.
+
+## Known follow-ups
+
+- A text or image search that ran while the vector index was still loading (`SemanticSearchStatus.IndexNotReady`) is not run again when the index finishes loading; the user has to search again (found in PR #58, MFC-93). Such answers are not cached.
 
 ## Benchmark
 

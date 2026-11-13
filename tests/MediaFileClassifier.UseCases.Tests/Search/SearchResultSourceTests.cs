@@ -1,10 +1,15 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
+using MediaFileClassifier.UseCases.Search.Filters;
+using MediaFileClassifier.UseCases.Tests.Search.Filters;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
 using MediaFileClassifier.UseCases.Search.SearchResults;
@@ -39,6 +44,8 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
+    private static FilterState Videos { get; } = FilterState.Empty.Set("media-type", new MultiSelectValue(["Video"]));
+
     public async ValueTask DisposeAsync()
     {
         if (library is not null)
@@ -58,6 +65,102 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
         Assert.Equal(3, (await source.GetPageAsync(0, 10, Token)).Count);
         Assert.Null(source.Summary);
         Assert.Equal(0, sender.SearchCalls);
+    }
+
+    [Fact]
+    public async Task Filters_WithNoText_BrowseThroughTheSearch_NewestImportFirst()
+    {
+        await OpenLibraryAsync(3);
+        var items = library!.ItemList.Items;
+        sender.Hits = [new SearchHit(items[1].Id, 0, null, null, SearchFields.None)];
+        var changed = 0;
+        source.Changed += (_, _) => changed++;
+
+        source.SetFilters(Videos);
+        var count = await source.CountAsync(Token);
+
+        Assert.Equal(1, changed);
+        Assert.Equal(1, count);
+        Assert.Equal(Videos, source.Filters);
+        Assert.Equal(Videos, sender.LastQuery!.Filters);
+        Assert.Equal(SortMode.ImportDate, sender.LastQuery.Sort);
+        Assert.True(string.IsNullOrEmpty(sender.LastQuery.Text));
+        Assert.Equal([items[1].Id], (await source.GetPageAsync(0, 10, Token)).Select(item => item.Id));
+    }
+
+    [Fact]
+    public async Task Filters_ApplyToTextSearch_AndStayWhenTheTextChanges()
+    {
+        await OpenLibraryAsync(2);
+        source.SetFilters(Videos);
+        source.SetText("car");
+        await source.CountAsync(Token);
+
+        Assert.Equal(Videos, sender.LastQuery!.Filters);
+        Assert.Equal(SortMode.Relevance, sender.LastQuery.Sort);
+
+        source.SetText(string.Empty);
+        await source.CountAsync(Token);
+
+        Assert.Equal(Videos, source.Filters);
+        Assert.Equal(Videos, sender.LastQuery.Filters);
+    }
+
+    [Fact]
+    public async Task Filters_ApplyToFindSimilar_AndStayWhenItIsCleared()
+    {
+        await OpenLibraryAsync(2);
+        var items = library!.ItemList.Items;
+        source.SetFilters(Videos);
+        source.SetSimilarTo(new SimilarSource(items[0].Id, "IMG_0.jpg"));
+        await source.CountAsync(Token);
+
+        Assert.Equal(Videos, sender.LastSimilar!.Filters);
+
+        source.ClearSimilar();
+
+        Assert.Null(source.SimilarTo);
+        Assert.Equal(Videos, source.Filters);
+    }
+
+    [Fact]
+    public async Task FiltersThatAreUnavailable_BrowsePlainly_UntilTheyBecomeAvailable()
+    {
+        await OpenLibraryAsync(3);
+        var filter = new TestFilter<BooleanValue>("toggled", FilterValueKind.Boolean);
+        filter.SetAvailable(false);
+        var registered = new SearchResultSource(browse, sender, new FilterRegistry([filter]));
+        var changed = 0;
+        registered.Changed += (_, _) => changed++;
+
+        registered.SetFilters(FilterState.Empty.Set("toggled", new BooleanValue(true)));
+        Assert.Equal(3, await registered.CountAsync(Token));
+        Assert.Equal(0, sender.SearchCalls);
+
+        filter.SetAvailable(true);
+        await registered.CountAsync(Token);
+
+        Assert.Equal(2, changed);
+        Assert.Equal(1, sender.SearchCalls);
+    }
+
+    [Fact]
+    public async Task ClearingTheFilters_GoesBackToPlainBrowsing()
+    {
+        await OpenLibraryAsync(3);
+        source.SetFilters(Videos);
+        await source.CountAsync(Token);
+        var calls = sender.SearchCalls;
+        var changed = 0;
+        source.Changed += (_, _) => changed++;
+
+        source.SetFilters(FilterState.Empty.Set("media-type", new MultiSelectValue(["Video"])));
+        source.SetFilters(FilterState.Empty);
+
+        Assert.Equal(1, changed);
+        Assert.Equal(3, await source.CountAsync(Token));
+        Assert.Equal(calls, sender.SearchCalls);
+        Assert.Null(source.Summary);
     }
 
     [Fact]
@@ -168,6 +271,147 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
         sender.Block.SetResult();
 
         Assert.Empty(await running);
+    }
+
+    [Fact]
+    public async Task ASearchReplacedWhileItsAnswerIsComplete_ShowsNothingOfIt()
+    {
+        await OpenLibraryAsync(2);
+        var items = library!.ItemList.Items;
+        sender.Hits = [new SearchHit(items[0].Id, 1, 1, null, SearchFields.Title)];
+        sender.Block = new TaskCompletionSource();
+        sender.IgnoreCancellation = true;
+        source.SetText("first");
+        var page = source.GetPageAsync(0, 10, Token);
+        var count = source.CountAsync(Token);
+        await sender.Started.Task.WaitAsync(Token);
+
+        source.SetText("second");
+        sender.Block.SetResult();
+
+        Assert.Empty(await page);
+        Assert.Equal(0, await count);
+        Assert.Null(source.Summary);
+        Assert.Null(source.GetMatch(items[0].Id));
+    }
+
+    [Fact]
+    public async Task TypingQuickly_OnlyTheLastTextShowsResults_AndEveryEarlierSearchEndsQuietly()
+    {
+        await OpenLibraryAsync(2);
+        var items = library!.ItemList.Items;
+        sender.Hits = [new SearchHit(items[1].Id, 1, 1, null, SearchFields.Title)];
+        sender.Block = new TaskCompletionSource();
+        var running = new List<Task<IReadOnlyList<MediaItemSummary>>>();
+        foreach (var text in new[] { "b", "bo", "boa", "boat" })
+        {
+            source.SetText(text);
+            running.Add(source.GetPageAsync(0, 10, Token));
+        }
+
+        await sender.Started.Task.WaitAsync(Token);
+        sender.Block.SetResult();
+        var pages = await Task.WhenAll(running);
+
+        Assert.All(pages[..3], earlier => Assert.Empty(earlier));
+        Assert.Equal([items[1].Id], pages[3].Select(item => item.Id));
+        Assert.Equal("boat", source.Text);
+    }
+
+    [Fact]
+    public async Task GoingBackToARecentText_ShowsItsFirstPageWithoutSearchingAgain()
+    {
+        await OpenLibraryAsync(2);
+        var items = library!.ItemList.Items;
+        sender.Hits = [new SearchHit(items[1].Id, 1, 1, null, SearchFields.Title)];
+
+        source.SetText("boat");
+        await source.CountAsync(Token);
+        await source.GetPageAsync(0, 10, Token);
+        Assert.Equal(2, sender.SearchCalls);
+
+        source.SetText("boa");
+        await source.CountAsync(Token);
+        await source.GetPageAsync(0, 10, Token);
+        Assert.Equal(4, sender.SearchCalls);
+
+        // Back to the first text: the count, the page and the match reasons all come from the cache.
+        source.SetText("boat");
+        var count = await source.CountAsync(Token);
+        var page = await source.GetPageAsync(0, 10, Token);
+
+        Assert.Equal(4, sender.SearchCalls);
+        Assert.Equal(1, count);
+        Assert.Equal([items[1].Id], page.Select(item => item.Id));
+        Assert.Equal(SearchFields.Title, source.GetMatch(items[1].Id)!.Fields);
+        Assert.Equal(1, source.Summary!.TotalCount);
+    }
+
+    [Fact]
+    public async Task TheCache_IsKeyedByTheOptionsAndTheScope_AndForgetsWhenTheScopeOrItemsChange()
+    {
+        await OpenLibraryAsync(2);
+        var folder = library!.FolderList.Folders[0];
+        source.SetText("boat");
+        await source.CountAsync(Token);
+        source.SetShowLessRelevant(true);
+        await source.CountAsync(Token);
+        Assert.Equal(2, sender.SearchCalls);
+
+        source.SetShowLessRelevant(false);
+        await source.CountAsync(Token);
+        Assert.Equal(2, sender.SearchCalls);
+
+        browse.Scope = new FolderScope(folder.Id);
+        await source.CountAsync(Token);
+        browse.Scope = BrowseScope.All;
+        await source.CountAsync(Token);
+        Assert.Equal(4, sender.SearchCalls);
+    }
+
+    [Theory]
+    [InlineData(SemanticSearchStatus.IndexNotReady)]
+    [InlineData(SemanticSearchStatus.ModelMissing)]
+    [InlineData(SemanticSearchStatus.Failed)]
+    public async Task AnAnswerWithoutTheSemanticSearchForAReasonThatPasses_IsNotCached(SemanticSearchStatus semantic)
+    {
+        await OpenLibraryAsync(1);
+        sender.Semantic = semantic;
+        source.SetText("boat");
+        await source.CountAsync(Token);
+
+        source.SetText("boa");
+        source.SetText("boat");
+        sender.Semantic = SemanticSearchStatus.Used;
+        await source.CountAsync(Token);
+
+        Assert.Equal(2, sender.SearchCalls);
+        Assert.Equal(SemanticSearchStatus.Used, source.Summary!.Semantic);
+    }
+
+    [Fact]
+    public async Task OnlyFirstPagesAreCached_AndAnAnswerThatStartedBeforeAChangeIsNotKept()
+    {
+        await OpenLibraryAsync(1);
+        sender.Hits = [];
+        source.SetText("boat");
+        await source.GetPageAsync(5, 10, Token);
+        await source.GetPageAsync(5, 10, Token);
+        Assert.Equal(2, sender.SearchCalls);
+
+        sender.Block = new TaskCompletionSource();
+        sender.IgnoreCancellation = true;
+        var slow = source.CountAsync(Token);
+        await sender.Started.Task.WaitAsync(Token);
+        browse.Scope = BrowseScope.RecentlyImported;
+        sender.Block.SetResult();
+        await slow;
+        sender.Block = null;
+        browse.Scope = BrowseScope.All;
+        var calls = sender.SearchCalls;
+        await source.CountAsync(Token);
+
+        Assert.Equal(calls + 1, sender.SearchCalls);
     }
 
     [Fact]
@@ -285,6 +529,8 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
 
         public TaskCompletionSource? Block { get; set; }
 
+        public bool IgnoreCancellation { get; set; }
+
         public TaskCompletionSource Started { get; } = new();
 
         public int SearchCalls { get; private set; }
@@ -313,7 +559,7 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
             if (Block is { } block)
             {
                 Started.TrySetResult();
-                await block.Task.WaitAsync(cancellationToken);
+                await block.Task.WaitAsync(IgnoreCancellation ? CancellationToken.None : cancellationToken);
             }
 
             var page = Hits.Skip(query.Offset).Take(query.Limit).ToList();

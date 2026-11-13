@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.UseCases.Search.Filters;
 using MediaFileClassifier.UseCases.Search.LoadReferenceImage;
 using MediatR;
 
@@ -27,6 +28,11 @@ public sealed record SearchMediaQuery : IRequest<MediaSearchResults>
     /// Gets the structured filters. They apply to every mode.
     /// </summary>
     public SearchFilter Filter { get; init; } = SearchFilter.None;
+
+    /// <summary>
+    /// Gets the active filters (E10-S01). They apply on top of <see cref="Filter"/>.
+    /// </summary>
+    public FilterState Filters { get; init; } = FilterState.Empty;
 
     /// <summary>
     /// Gets the order. <see cref="SortMode.Relevance"/> in browse mode means date taken, newest first (E10-S04).

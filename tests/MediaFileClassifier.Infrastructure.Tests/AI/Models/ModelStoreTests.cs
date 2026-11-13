@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Models;
+using MediaFileClassifier.Testing.Files;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Models;
 
@@ -13,15 +14,15 @@ public sealed class ModelStoreTests : IDisposable
 
     private static readonly DateTimeOffset Now = new(2026, 11, 5, 10, 0, 0, TimeSpan.Zero);
 
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly string sources;
     private readonly ModelStore store;
 
     public ModelStoreTests()
     {
-        sources = Path.Combine(root, "sources");
+        sources = temp.Combine("sources");
         Directory.CreateDirectory(sources);
-        store = new ModelStore(Path.Combine(root, "models"), new FixedTimeProvider(Now));
+        store = new ModelStore(temp.Combine("models"), new FixedTimeProvider(Now));
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -178,16 +179,16 @@ public sealed class ModelStoreTests : IDisposable
     {
         var (path, _) = WriteSource("vision.onnx", 100);
         var model = await store.ImportAsync(Request(new ModelFileSource("vision", path)), null, Token);
-        var holidays = Path.Combine(root, "Holidays.mfclib");
+        var holidays = temp.Combine("Holidays.mfclib");
         await store.RecordUsageAsync("siglip2", "1", model.ContentHash, holidays, Token);
         await store.RecordUsageAsync("siglip2", "1", model.ContentHash.ToUpperInvariant(), holidays + Path.DirectorySeparatorChar, Token);
-        await store.RecordUsageAsync("siglip2", "1", model.ContentHash, Path.Combine(root, "Work.mfclib"), Token);
+        await store.RecordUsageAsync("siglip2", "1", model.ContentHash, temp.Combine("Work.mfclib"), Token);
 
         var unconfirmed = await store.DeleteAsync("siglip2", "1", Standard, confirmed: false, Token);
 
         Assert.False(unconfirmed.Deleted);
         Assert.True(unconfirmed.NeedsConfirmation);
-        Assert.Equal([holidays, Path.Combine(root, "Work.mfclib")], unconfirmed.UsingLibraries);
+        Assert.Equal([holidays, temp.Combine("Work.mfclib")], unconfirmed.UsingLibraries);
         Assert.NotNull(await store.FindAsync("siglip2", "1", Standard, Token));
 
         var confirmed = await store.DeleteAsync("siglip2", "1", Standard, confirmed: true, Token);
@@ -251,7 +252,7 @@ public sealed class ModelStoreTests : IDisposable
     public void Dispose()
     {
         store.Dispose();
-        Directory.Delete(root, recursive: true);
+        temp.Dispose();
     }
 
     [Fact]
@@ -266,7 +267,7 @@ public sealed class ModelStoreTests : IDisposable
         var model = await store.ImportAsync(Request(new ModelFileSource("vision", path, sha256)), null, Token);
         Assert.Equal(1, raised);
 
-        await store.RecordUsageAsync("siglip2", "1", model.ContentHash, Path.Combine(root, "Holidays.mfclib"), Token);
+        await store.RecordUsageAsync("siglip2", "1", model.ContentHash, temp.Combine("Holidays.mfclib"), Token);
         await store.DeleteAsync("siglip2", "1", Standard, confirmed: false, Token);
         Assert.Equal(1, raised);
 

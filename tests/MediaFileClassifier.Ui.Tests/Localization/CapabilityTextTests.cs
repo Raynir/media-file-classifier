@@ -1,6 +1,4 @@
-using System.Globalization;
 using System.Reflection;
-using System.Resources;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Ui.Localization;
 
@@ -64,9 +62,5 @@ public sealed class CapabilityTextTests
         Assert.False(value.StartsWith('!'), $"Strings.resx has no '{key}'.");
     }
 
-    private static Localizer CreateLocalizer() => new(
-        new ResourceManager("MediaFileClassifier.Ui.Resources.Strings", typeof(Localizer).Assembly))
-    {
-        Culture = CultureInfo.GetCultureInfo("en-US"),
-    };
+    private static Localizer CreateLocalizer() => TestLocalizer.EnUs();
 }

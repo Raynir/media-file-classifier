@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
+using MediaFileClassifier.Testing.Hardware;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Onnx;
 
@@ -68,19 +69,8 @@ public sealed class ExecutionProviderStatusTests
 
     private static ExecutionProviderStatus Create(ExecutionProvider preferred, GpuInfo? gpu, params ExecutionProvider[] runtime)
     {
-        var hardware = new FixedHardware(preferred, gpu);
+        var hardware = new FakeHardwareInfo(preferred, gpu);
         var factory = new OnnxSessionFactory(hardware: hardware) { AvailableProviders = () => runtime };
         return new ExecutionProviderStatus(factory, hardware) { IsAndroid = false };
-    }
-
-    private sealed class FixedHardware(ExecutionProvider provider, GpuInfo? gpu) : IHardwareInfo
-    {
-        public HardwareProfile Profile { get; } = new("X64", 8, 16L << 30, gpu is null ? [] : [gpu]);
-
-        public ExecutionProvider PreferredExecutionProvider => provider;
-
-        public GpuInfo? PreferredGpu => gpu;
-
-        public int DefaultParallelism => 4;
     }
 }

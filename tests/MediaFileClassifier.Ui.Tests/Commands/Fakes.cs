@@ -1,9 +1,6 @@
-using System.Globalization;
-using System.Resources;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
-using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
 
 namespace MediaFileClassifier.Ui.Tests.Commands;
@@ -59,19 +56,6 @@ internal sealed class FakeAppPaths : IAppPaths
     public string CacheDirectory => Path.Combine(DataDirectory, "cache");
 
     public string SettingsFile => Path.Combine(DataDirectory, "settings.json");
-}
-
-/// <summary>
-/// Creates localizers that tests can switch without affecting <see cref="Localizer.Current"/>,
-/// which other tests read in parallel.
-/// </summary>
-internal static class TestLocalizer
-{
-    public static Localizer Create() => new(
-        new ResourceManager("MediaFileClassifier.Ui.Resources.Strings", typeof(Localizer).Assembly))
-    {
-        Culture = CultureInfo.GetCultureInfo("en-US"),
-    };
 }
 
 /// <summary>

@@ -7,6 +7,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Analysis.AnalyzeItems;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
@@ -342,7 +343,7 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
     /// Answers <see cref="FindSimilarQuery"/> with no hits and <see cref="AnalyzeItemsCommand"/> with a job, and passes
     /// the other requests on.
     /// </summary>
-    private sealed class StubSender(ISender inner) : ISender
+    private sealed class StubSender(ISender inner) : ForwardingSender(inner)
     {
         public SemanticSearchStatus Semantic { get; set; } = SemanticSearchStatus.Used;
 
@@ -350,7 +351,7 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
 
         public List<AnalyzeItemsCommand> Analyses { get; } = [];
 
-        public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        public override async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
             switch (request)
             {
@@ -360,19 +361,8 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
                     Analyses.Add(analyze);
                     return JobQueued ? (TResponse)(object)Id<ProcessingJob>.New() : default!;
                 default:
-                    return await inner.Send(request, cancellationToken);
+                    return await base.Send(request, cancellationToken);
             }
         }
-
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest => inner.Send(request, cancellationToken);
-
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => inner.Send(request, cancellationToken);
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) =>
-            inner.CreateStream(request, cancellationToken);
-
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) =>
-            inner.CreateStream(request, cancellationToken);
     }
 }

@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.UseCases.Models.DeleteModel;
 using MediaFileClassifier.UseCases.Models.DownloadModel;
 using MediaFileClassifier.UseCases.Models.GetModels;
@@ -26,8 +27,8 @@ public sealed class ModelManagementHandlerTests
             new ModelTier("compact", "Compact", [File("vision", 300), File("text", 100)]) { Precision = "fp16-text" },
         ]);
 
-    private readonly FakeStore store = new();
-    private readonly FakeCatalog catalog = new();
+    private readonly InMemoryModelStore store = new();
+    private readonly SingleEntryModelCatalog catalog = new(Entry);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -105,15 +106,6 @@ public sealed class ModelManagementHandlerTests
     private static InstalledModel Installed(string id, string tier, long size) =>
         new(id, "1.0", tier, id, "MIT", null, @"C:\models", [new InstalledModelFile("vision", "vision.onnx", size, new string('a', 64))], "hash", DateTimeOffset.UnixEpoch);
 
-    private sealed class FakeCatalog : IModelCatalog
-    {
-        public IReadOnlyList<ModelCatalogEntry> Entries => [Entry];
-
-        public ModelCatalogEntry? Find(string modelId) => modelId == Entry.ModelId ? Entry : null;
-
-        public ModelCatalogEntry? GetDefault(ModelPurpose purpose) => purpose == Entry.Purpose ? Entry : null;
-    }
-
     private sealed class FakeDownloader : IModelDownloader
     {
         public string? TierId { get; private set; }
@@ -123,49 +115,6 @@ public sealed class ModelManagementHandlerTests
             TierId = tierId;
             return Task.FromResult(Installed(entry.ModelId, tierId, 1));
         }
-    }
-
-    private sealed class FakeStore : IModelStore
-    {
-        public event EventHandler? ModelsChanged
-        {
-            add { }
-            remove { }
-        }
-
-        public List<InstalledModel> Installed { get; } = [];
-
-        public IReadOnlyList<string> Using { get; set; } = [];
-
-        public int Deletes { get; private set; }
-
-        public (string, string, string)? DeletedTier { get; private set; }
-
-        public Action OnDelete { get; set; } = () => { };
-
-        public string RootDirectory => @"C:\models";
-
-        public Task<IReadOnlyList<InstalledModel>> GetInstalledAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<InstalledModel>>(Installed);
-
-        public Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => Task.FromResult(Using);
-
-        public Task<ModelDeletionResult> DeleteAsync(string modelId, string version, string tierId, bool confirmed, CancellationToken cancellationToken)
-        {
-            OnDelete();
-            Deletes++;
-            DeletedTier = (modelId, version, tierId);
-            return Task.FromResult(new ModelDeletionResult(Deleted: true, Using));
-        }
-
-        public Task<InstalledModel?> FindAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<IReadOnlyList<InstalledModel>> FindTiersAsync(string modelId, string version, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<InstalledModel> ImportAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task RecordUsageAsync(string modelId, string version, string contentHash, string libraryPath, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private sealed class FakePreloadable : IPreloadableAiProvider

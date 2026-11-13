@@ -4,6 +4,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Files;
+using MediaFileClassifier.Testing.Files;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Files;
 
@@ -12,7 +13,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Files;
 /// </summary>
 public sealed class FolderScanTests : IDisposable
 {
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly FileSystemMediaFileSource source = new();
     private readonly FolderHandle folder;
     private readonly List<string> links = [];
@@ -20,15 +21,15 @@ public sealed class FolderScanTests : IDisposable
 
     public FolderScanTests()
     {
-        Directory.CreateDirectory(Path.Combine(root, "2024", "trip"));
-        Directory.CreateDirectory(Path.Combine(root, "raw"));
-        File.WriteAllText(Path.Combine(root, "top.jpg"), "top");
-        File.WriteAllText(Path.Combine(root, "2024", "trip", "a.jpg"), "a");
-        File.WriteAllText(Path.Combine(root, "raw", "b.jpg"), "b");
-        var hidden = Path.Combine(root, "Thumbs.db");
+        Directory.CreateDirectory(temp.Combine("2024", "trip"));
+        Directory.CreateDirectory(temp.Combine("raw"));
+        File.WriteAllText(temp.Combine("top.jpg"), "top");
+        File.WriteAllText(temp.Combine("2024", "trip", "a.jpg"), "a");
+        File.WriteAllText(temp.Combine("raw", "b.jpg"), "b");
+        var hidden = temp.Combine("Thumbs.db");
         File.WriteAllText(hidden, "hidden");
         File.SetAttributes(hidden, FileAttributes.Hidden);
-        folder = LocalFolder.ToHandle(root);
+        folder = LocalFolder.ToHandle(temp.Path);
     }
 
     /// <summary>
@@ -69,7 +70,7 @@ public sealed class FolderScanTests : IDisposable
     public async Task ScanAsync_FileNotStoredLocally_IsReportedAsCloudPlaceholder()
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "File attributes for cloud files exist only on Windows.");
-        File.SetAttributes(Path.Combine(root, "raw", "b.jpg"), FileAttributes.Offline);
+        File.SetAttributes(temp.Combine("raw", "b.jpg"), FileAttributes.Offline);
 
         var entries = await ScanAsync(new FolderScanOptions());
 
@@ -107,8 +108,8 @@ public sealed class FolderScanTests : IDisposable
     public async Task ScanAsync_LinkLoop_IsSkippedAndReported()
     {
         // A link from deep inside the tree back to its root: following it would never end.
-        var link = Path.Combine(root, "2024", "trip", "loop");
-        CreateFolderLink(link, root);
+        var link = temp.Combine("2024", "trip", "loop");
+        CreateFolderLink(link, temp.Path);
         links.Add(link);
 
         var entries = await ScanAsync(new FolderScanOptions());
@@ -120,9 +121,9 @@ public sealed class FolderScanTests : IDisposable
     [Fact]
     public async Task ScanAsync_UnreadableFolder_IsReportedAndTheScanGoesOn()
     {
-        Directory.CreateDirectory(Path.Combine(root, "locked"));
-        File.WriteAllText(Path.Combine(root, "locked", "secret.jpg"), "secret");
-        DenyListing(Path.Combine(root, "locked"));
+        Directory.CreateDirectory(temp.Combine("locked"));
+        File.WriteAllText(temp.Combine("locked", "secret.jpg"), "secret");
+        DenyListing(temp.Combine("locked"));
 
         var entries = await ScanAsync(new FolderScanOptions());
 
@@ -135,7 +136,7 @@ public sealed class FolderScanTests : IDisposable
     [Fact]
     public async Task ScanAsync_MissingFolder_Throws()
     {
-        var missing = LocalFolder.ToHandle(Path.Combine(root, "missing"));
+        var missing = LocalFolder.ToHandle(temp.Combine("missing"));
 
         await Assert.ThrowsAsync<DirectoryNotFoundException>(
             async () => await source.ScanAsync(missing, new FolderScanOptions(), TestContext.Current.CancellationToken)
@@ -165,10 +166,7 @@ public sealed class FolderScanTests : IDisposable
             Directory.Delete(link);
         }
 
-        if (Directory.Exists(root))
-        {
-            Directory.Delete(root, recursive: true);
-        }
+        temp.Dispose();
     }
 
     private static string[] Paths(IEnumerable<FolderScanEntry> entries, FolderScanEntryKind kind) =>

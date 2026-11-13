@@ -2,6 +2,7 @@ using System.Text.Json;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Settings;
+using MediaFileClassifier.Testing.Files;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Settings;
@@ -11,11 +12,13 @@ namespace MediaFileClassifier.Infrastructure.Tests.Settings;
 /// </summary>
 public sealed class JsonSettingsServiceTests : IDisposable
 {
-    private readonly string dataDirectory = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
+    private readonly string dataDirectory;
     private readonly AppPaths appPaths;
 
     public JsonSettingsServiceTests()
     {
+        dataDirectory = temp.Combine("data");
         appPaths = new AppPaths(dataDirectory);
     }
 
@@ -155,10 +158,7 @@ public sealed class JsonSettingsServiceTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(dataDirectory))
-        {
-            Directory.Delete(dataDirectory, recursive: true);
-        }
+        temp.Dispose();
     }
 
     private JsonSettingsService CreateService() => new(appPaths, NullLogger<JsonSettingsService>.Instance);

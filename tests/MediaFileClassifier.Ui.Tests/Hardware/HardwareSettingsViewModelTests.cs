@@ -1,14 +1,11 @@
-using System.Globalization;
-using System.Resources;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Testing.Settings;
-using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.ViewModels.Hardware;
 using MediaFileClassifier.UseCases.Hardware.GetHardwareStatus;
 using MediaFileClassifier.UseCases.Hardware.RunBenchmark;
 using MediaFileClassifier.UseCases.Settings.SetSettingValue;
-using MediatR;
 
 namespace MediaFileClassifier.Ui.Tests.Hardware;
 
@@ -19,11 +16,11 @@ namespace MediaFileClassifier.Ui.Tests.Hardware;
 public sealed class HardwareSettingsViewModelTests
 {
     private readonly InMemorySettingsStore store = new();
-    private readonly FakeSender sender;
+    private readonly HardwareSender sender;
 
     public HardwareSettingsViewModelTests()
     {
-        sender = new FakeSender(store);
+        sender = new HardwareSender(store);
     }
 
     [Fact]
@@ -113,21 +110,18 @@ public sealed class HardwareSettingsViewModelTests
     }
 
     private HardwareSettingsViewModel Create() =>
-        new(sender, store, new Localizer(new ResourceManager("MediaFileClassifier.Ui.Resources.Strings", typeof(Localizer).Assembly))
-        {
-            Culture = CultureInfo.GetCultureInfo("en-US"),
-        });
+        new(sender, store, TestLocalizer.EnUs());
 
     /// <summary>
     /// Answers the hardware use cases.
     /// </summary>
-    private sealed class FakeSender(InMemorySettingsStore store) : ISender
+    private sealed class HardwareSender(InMemorySettingsStore store) : FakeSender
     {
         private BenchmarkReport? report;
 
         public Exception? BenchmarkFailure { get; set; }
 
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        protected override object? Handle(object request)
         {
             object response;
             switch (request)
@@ -151,7 +145,7 @@ public sealed class HardwareSettingsViewModelTests
                 case RunBenchmarkCommand run:
                     if (BenchmarkFailure is { } failure)
                     {
-                        return Task.FromException<TResponse>(failure);
+                        throw failure;
                     }
 
                     run.Progress?.Report("siglip2.image standard on DirectMl");
@@ -165,17 +159,7 @@ public sealed class HardwareSettingsViewModelTests
                     throw new NotSupportedException(request.GetType().Name);
             }
 
-            return Task.FromResult((TResponse)response);
+            return response;
         }
-
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest => throw new NotSupportedException();
-
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
-
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

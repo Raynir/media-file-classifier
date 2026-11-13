@@ -3,7 +3,6 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
-using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
@@ -22,7 +21,7 @@ public sealed class ItemEmbeddingAnalyzerTests : IAsyncLifetime
 {
     private readonly FakeEmbeddingProvider provider = new(dimension: 8);
     private readonly StubFrameSampler sampler = new();
-    private readonly UsageStore store = new();
+    private readonly InMemoryModelStore store = new();
     private LibraryTestBed bed = null!;
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -173,32 +172,5 @@ public sealed class ItemEmbeddingAnalyzerTests : IAsyncLifetime
             }).ToList();
             return Task.FromResult(new FrameSample { Frames = frames, FramesRead = Frames });
         }
-    }
-
-    private sealed class UsageStore : IModelStore
-    {
-        public event EventHandler? ModelsChanged
-        {
-            add { }
-            remove { }
-        }
-
-        public string RootDirectory => "models";
-
-        public Task RecordUsageAsync(string modelId, string version, string contentHash, string libraryPath, CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task<InstalledModel?> FindAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => Task.FromResult<InstalledModel?>(null);
-
-        public Task<IReadOnlyList<InstalledModel>> FindTiersAsync(string modelId, string version, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<InstalledModel>>([]);
-
-        public Task<IReadOnlyList<InstalledModel>> GetInstalledAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<InstalledModel> ImportAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<ModelDeletionResult> DeleteAsync(string modelId, string version, string tierId, bool confirmed, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

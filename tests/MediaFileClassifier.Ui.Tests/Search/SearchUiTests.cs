@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Resources;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -10,6 +8,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Tests.Browser;
@@ -30,10 +29,7 @@ namespace MediaFileClassifier.Ui.Tests.Search;
 /// </summary>
 public sealed class SearchUiTests
 {
-    private readonly Localizer localizer = new(new ResourceManager("MediaFileClassifier.Ui.Resources.Strings", typeof(Localizer).Assembly))
-    {
-        Culture = CultureInfo.GetCultureInfo("en-US"),
-    };
+    private readonly Localizer localizer = TestLocalizer.EnUs();
 
     [Theory]
     [InlineData(SearchFields.Tags, false, false, "Matched in: Tags")]
@@ -475,7 +471,7 @@ public sealed class SearchUiTests
     private static SearchResultSource CreateSource(StubSender sender) =>
         new(new LibraryItemsSource(sender, new FakeBrowserSession(open: false), TimeProvider.System), sender);
 
-    private sealed class StubSender : ISender
+    private sealed class StubSender : FakeSender
     {
         public int Total { get; set; }
 
@@ -495,7 +491,7 @@ public sealed class SearchUiTests
 
         public TaskCompletionSource? LoadDelay { get; init; }
 
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        public override Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
             if (request is FindSimilarQuery)
             {
@@ -523,16 +519,6 @@ public sealed class SearchUiTests
 
             throw new NotSupportedException();
         }
-
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest => throw new NotSupportedException();
-
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
-
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private sealed class StubPicker : IReferenceImagePicker

@@ -7,6 +7,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.AI.Models;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
+using MediaFileClassifier.Testing.Files;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
@@ -20,7 +21,7 @@ public sealed class WaitingForModelTests : IAsyncLifetime
     private const string EmbedStage = "test.embed";
     private const string ThumbnailStage = "test.thumbnail";
 
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly byte[] modelFile = RandomNumberGenerator.GetBytes(1024);
     private LibraryTestBed bed = null!;
     private ModelStore store = null!;
@@ -33,7 +34,7 @@ public sealed class WaitingForModelTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         bed = await LibraryTestBed.CreateAsync();
-        store = new ModelStore(Path.Combine(root, "models"), TimeProvider.System);
+        store = new ModelStore(temp.Combine("models"), TimeProvider.System);
         catalog = new ModelCatalog($$"""
             {
               "models": [
@@ -66,10 +67,7 @@ public sealed class WaitingForModelTests : IAsyncLifetime
         availability.Dispose();
         store.Dispose();
         await bed.DisposeAsync();
-        if (Directory.Exists(root))
-        {
-            Directory.Delete(root, recursive: true);
-        }
+        temp.Dispose();
     }
 
     [Fact]
@@ -180,8 +178,8 @@ public sealed class WaitingForModelTests : IAsyncLifetime
     private async Task InstallModelAsync()
     {
         var entry = catalog.Find("embedder")!;
-        Directory.CreateDirectory(root);
-        var source = Path.Combine(root, "vision.onnx");
+        Directory.CreateDirectory(temp.Path);
+        var source = temp.Combine("vision.onnx");
         await File.WriteAllBytesAsync(source, modelFile, Token);
         await store.ImportAsync(
             new ModelImportRequest(entry.ModelId, entry.Version, entry.DefaultTier, entry.DisplayName, [new ModelFileSource("vision", source, entry.Default.Files[0].Sha256)]),

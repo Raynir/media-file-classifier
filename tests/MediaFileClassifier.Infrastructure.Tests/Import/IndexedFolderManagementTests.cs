@@ -4,6 +4,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
+using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.UseCases.Import.ImportFolders;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
 using MediaFileClassifier.UseCases.Libraries.ChangeFolderRules;
@@ -18,33 +19,26 @@ namespace MediaFileClassifier.Infrastructure.Tests.Import;
 /// </summary>
 public sealed class IndexedFolderManagementTests : IAsyncLifetime
 {
-    private readonly string parent = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private ImportTestBed bed = null!;
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     // The bed's folder is a child of a folder of the test's own, so a parent folder can be added too.
-    private string Child => Path.Combine(parent, "child");
+    private string Child => temp.Combine("child");
 
     public async ValueTask InitializeAsync() => bed = await ImportTestBed.CreateAsync(root: Child);
 
     public async ValueTask DisposeAsync()
     {
         await bed.DisposeAsync();
-        try
-        {
-            Directory.Delete(parent, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A file may still be locked; the temp folder is cleaned up eventually.
-        }
+        temp.Dispose();
     }
 
     [Fact]
     public async Task AddFolder_ImportsItsItems()
     {
-        var other = Directory.CreateDirectory(Path.Combine(parent, "other")).FullName;
+        var other = Directory.CreateDirectory(temp.Combine("other")).FullName;
         File.Copy(Testing.Media.SampleMedia.JpegWithExif, Path.Combine(other, "a.jpg"));
 
         var result = await bed.Sender.Send(new AddLibraryFoldersCommand([new FolderHandle(other, "other")]), Token);
@@ -82,7 +76,7 @@ public sealed class IndexedFolderManagementTests : IAsyncLifetime
         child.ChangeRules(new FolderRules { ExcludePatterns = [FolderRules.ForSubfolder("raw")] });
         await bed.Library.Folders.UpdateAsync(child, Token);
 
-        var result = await bed.Sender.Send(new AddLibraryFoldersCommand([new FolderHandle(parent, "parent")]), Token);
+        var result = await bed.Sender.Send(new AddLibraryFoldersCommand([new FolderHandle(temp.Path, "parent")]), Token);
         await bed.WaitUntilIdleAsync();
 
         var added = Assert.Single(result.Added);

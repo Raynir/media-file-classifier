@@ -2,12 +2,12 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.ImportFolders;
 using MediaFileClassifier.UseCases.Import.Stages;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
 using MediaFileClassifier.UseCases.Tests.Libraries;
-using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.UseCases.Tests.Import;
@@ -80,33 +80,14 @@ public sealed class ImportUseCaseTests
         Assert.Empty(started);
     }
 
-    private sealed class RecordingSender : ISender
+    private sealed class RecordingSender : FakeSender
     {
         public List<object> Sent { get; } = [];
 
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        protected override object? Handle(object request)
         {
             Sent.Add(request);
-            return Task.FromResult(default(TResponse)!);
+            return null;
         }
-
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest
-        {
-            Sent.Add(request);
-            return Task.CompletedTask;
-        }
-
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default)
-        {
-            Sent.Add(request);
-            return Task.FromResult<object?>(null);
-        }
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
-
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
     }
 }

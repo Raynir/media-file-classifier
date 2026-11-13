@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Files;
+using MediaFileClassifier.Testing.Files;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Files;
 
@@ -8,19 +9,19 @@ namespace MediaFileClassifier.Infrastructure.Tests.Files;
 /// </summary>
 public sealed class FileSystemMediaFileSourceTests : IDisposable
 {
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly FileSystemMediaFileSource source = new();
     private readonly FolderHandle folder;
 
     public FileSystemMediaFileSourceTests()
     {
-        Directory.CreateDirectory(Path.Combine(root, "2024", "trip"));
-        File.WriteAllText(Path.Combine(root, "top.jpg"), "top");
-        File.WriteAllText(Path.Combine(root, "2024", "trip", "фото с пробелом.jpg"), "nested");
-        var hidden = Path.Combine(root, "Thumbs.db");
+        Directory.CreateDirectory(temp.Combine("2024", "trip"));
+        File.WriteAllText(temp.Combine("top.jpg"), "top");
+        File.WriteAllText(temp.Combine("2024", "trip", "фото с пробелом.jpg"), "nested");
+        var hidden = temp.Combine("Thumbs.db");
         File.WriteAllText(hidden, "hidden");
         File.SetAttributes(hidden, FileAttributes.Hidden);
-        folder = LocalFolder.ToHandle(root);
+        folder = LocalFolder.ToHandle(temp.Path);
     }
 
     [Fact]
@@ -68,7 +69,7 @@ public sealed class FileSystemMediaFileSourceTests : IDisposable
     public async Task GetStatAsync_ExistingFile_ReturnsSizeAndTime()
     {
         var lastWrite = new DateTime(2024, 5, 1, 12, 0, 0, DateTimeKind.Utc);
-        File.SetLastWriteTimeUtc(Path.Combine(root, "top.jpg"), lastWrite);
+        File.SetLastWriteTimeUtc(temp.Combine("top.jpg"), lastWrite);
 
         var stat = await source.GetStatAsync(new FileLocation(folder, "top.jpg"), TestContext.Current.CancellationToken);
 
@@ -101,14 +102,11 @@ public sealed class FileSystemMediaFileSourceTests : IDisposable
     public async Task IsAvailableAsync_IsTrueOnlyForAFolderThatCanBeListed()
     {
         Assert.True(await source.IsAvailableAsync(folder, TestContext.Current.CancellationToken));
-        Assert.False(await source.IsAvailableAsync(LocalFolder.ToHandle(Path.Combine(root, "unplugged")), TestContext.Current.CancellationToken));
+        Assert.False(await source.IsAvailableAsync(LocalFolder.ToHandle(temp.Combine("unplugged")), TestContext.Current.CancellationToken));
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(root))
-        {
-            Directory.Delete(root, recursive: true);
-        }
+        temp.Dispose();
     }
 }

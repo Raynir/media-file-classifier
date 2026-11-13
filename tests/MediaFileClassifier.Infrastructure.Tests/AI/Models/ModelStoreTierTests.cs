@@ -4,6 +4,8 @@ using System.Text.Json.Nodes;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Models;
+using MediaFileClassifier.Testing.AI;
+using MediaFileClassifier.Testing.Files;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Models;
 
@@ -16,24 +18,24 @@ public sealed class ModelStoreTierTests : IDisposable
     private const string Standard = "standard";
     private const string Compact = "compact";
 
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly string sources;
     private readonly string models;
     private readonly (string Path, string Sha256) vision;
     private readonly (string Path, string Sha256) text;
     private readonly (string Path, string Sha256) textFp16;
-    private readonly FakeCatalog catalog;
+    private readonly SingleEntryModelCatalog catalog;
     private readonly ModelStore store;
 
     public ModelStoreTierTests()
     {
-        sources = Path.Combine(root, "sources");
-        models = Path.Combine(root, "models");
+        sources = temp.Combine("sources");
+        models = temp.Combine("models");
         Directory.CreateDirectory(sources);
         vision = WriteSource("vision_model.onnx", 300);
         text = WriteSource("text_model.onnx", 200);
         textFp16 = WriteSource("text_model_fp16.onnx", 100);
-        catalog = new FakeCatalog(Entry());
+        catalog = new SingleEntryModelCatalog(Entry());
         store = new ModelStore(models, TimeProvider.System, catalog: catalog);
     }
 
@@ -70,7 +72,7 @@ public sealed class ModelStoreTierTests : IDisposable
     {
         await store.ImportAsync(Request(Standard), null, Token);
         var compact = await store.ImportAsync(Request(Compact), null, Token);
-        var library = Path.Combine(root, "Holidays.mfclib");
+        var library = temp.Combine("Holidays.mfclib");
 
         await store.RecordUsageAsync("siglip2", "1", compact.ContentHash, library, Token);
 
@@ -87,7 +89,7 @@ public sealed class ModelStoreTierTests : IDisposable
     public async Task Legacy_FolderIsMovedIntoTheTierWhoseFilesItHas(string tierId)
     {
         var installed = await MakeLegacyAsync(tierId);
-        var library = Path.Combine(root, "Holidays.mfclib");
+        var library = temp.Combine("Holidays.mfclib");
         await File.WriteAllTextAsync(Path.Combine(models, "usage.json"), JsonSerializer.Serialize(new Dictionary<string, string[]> { ["siglip2/1"] = [library] }), Token);
         using var reopened = new ModelStore(models, TimeProvider.System, catalog: catalog);
 
@@ -177,7 +179,7 @@ public sealed class ModelStoreTierTests : IDisposable
     public void Dispose()
     {
         store.Dispose();
-        Directory.Delete(root, recursive: true);
+        temp.Dispose();
     }
 
     /// <summary>
@@ -235,14 +237,5 @@ public sealed class ModelStoreTierTests : IDisposable
         var path = Path.Combine(sources, name);
         System.IO.File.WriteAllBytes(path, bytes);
         return (path, Convert.ToHexStringLower(SHA256.HashData(bytes)));
-    }
-
-    private sealed class FakeCatalog(ModelCatalogEntry entry) : IModelCatalog
-    {
-        public IReadOnlyList<ModelCatalogEntry> Entries => [entry];
-
-        public ModelCatalogEntry? Find(string modelId) => modelId == entry.ModelId ? entry : null;
-
-        public ModelCatalogEntry? GetDefault(ModelPurpose purpose) => purpose == entry.Purpose ? entry : null;
     }
 }

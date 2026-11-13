@@ -20,7 +20,7 @@ public sealed class ShellCommandsTests
 {
     private readonly ShellLayout layout = new();
     private readonly ThemeService theme = new(new InMemorySettingsStore());
-    private readonly Localizer localizer = TestLocalizer.Create();
+    private readonly Localizer localizer = TestLocalizer.EnUs();
     private readonly FakeCapabilityGate capabilities = new();
     private readonly FakeFolderLauncher folderLauncher = new();
     private readonly FakeAppPaths paths = new();

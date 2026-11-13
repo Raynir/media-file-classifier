@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
+using MediaFileClassifier.Infrastructure.Tests.TestSupport;
 
 namespace MediaFileClassifier.Infrastructure.Tests.DataAccess;
 
@@ -7,6 +8,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.DataAccess;
 /// Stress test of the serialized writer (D072, E01-S03-T04): bulk ingestion from two jobs, user edits and UI reads at
 /// the same time.
 /// </summary>
+[Collection(TimingTestsCollection.Name)]
 public sealed class WriteConcurrencyTests
 {
     private const int ItemsPerJob = 10_000;

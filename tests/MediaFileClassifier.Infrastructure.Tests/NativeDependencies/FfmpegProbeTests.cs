@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.NativeDependencies;
+using MediaFileClassifier.Testing.Files;
 
 namespace MediaFileClassifier.Infrastructure.Tests.NativeDependencies;
 
@@ -8,23 +9,23 @@ namespace MediaFileClassifier.Infrastructure.Tests.NativeDependencies;
 /// </summary>
 public sealed class FfmpegProbeTests : IDisposable
 {
-    private readonly string directory = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
 
     public FfmpegProbeTests()
     {
-        Directory.CreateDirectory(directory);
+        Directory.CreateDirectory(temp.Path);
     }
 
     [Fact]
     public void Capabilities_IncludeVideoAnalysis()
     {
-        Assert.Contains(KnownCapabilities.VideoAnalysis, new FfmpegProbe([directory]).Capabilities);
+        Assert.Contains(KnownCapabilities.VideoAnalysis, new FfmpegProbe([temp.Path]).Capabilities);
     }
 
     [Fact]
     public async Task ProbeAsync_NoFfmpeg_IsUnavailableWithInstallHint()
     {
-        var status = await new FfmpegProbe([directory]).ProbeAsync(TestContext.Current.CancellationToken);
+        var status = await new FfmpegProbe([temp.Path]).ProbeAsync(TestContext.Current.CancellationToken);
 
         Assert.False(status.IsAvailable);
         Assert.Equal(CapabilityReasons.FfmpegMissing(), status.Problem);
@@ -35,7 +36,7 @@ public sealed class FfmpegProbeTests : IDisposable
     {
         WriteExecutable("ffmpeg");
 
-        var status = await new FfmpegProbe([directory]).ProbeAsync(TestContext.Current.CancellationToken);
+        var status = await new FfmpegProbe([temp.Path]).ProbeAsync(TestContext.Current.CancellationToken);
 
         Assert.False(status.IsAvailable);
         Assert.Equal(CapabilityReasons.FfprobeNotFound, status.Problem?.Code);
@@ -47,7 +48,7 @@ public sealed class FfmpegProbeTests : IDisposable
         WriteExecutable("ffmpeg");
         WriteExecutable("ffprobe");
 
-        var status = await new FfmpegProbe([directory]).ProbeAsync(TestContext.Current.CancellationToken);
+        var status = await new FfmpegProbe([temp.Path]).ProbeAsync(TestContext.Current.CancellationToken);
 
         Assert.False(status.IsAvailable);
         Assert.Equal(CapabilityReasons.DependencyFailedToRun, status.Problem?.Code);
@@ -72,12 +73,9 @@ public sealed class FfmpegProbeTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(directory))
-        {
-            Directory.Delete(directory, recursive: true);
-        }
+        temp.Dispose();
     }
 
     private void WriteExecutable(string name)
-        => File.WriteAllText(Path.Combine(directory, OperatingSystem.IsWindows() ? name + ".exe" : name), "not an executable");
+        => File.WriteAllText(temp.Combine(OperatingSystem.IsWindows() ? name + ".exe" : name), "not an executable");
 }

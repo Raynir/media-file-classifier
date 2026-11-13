@@ -55,6 +55,8 @@
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
     <!-- Testing -->
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <!-- Opt-in with the hangdump option; the version matches the Microsoft.Testing.Platform that xunit.v3 brings. -->
+    <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.5.1" />
     <PackageVersion Include="Avalonia.Headless" Version="12.1.4" />
   </ItemGroup>
 </Project>

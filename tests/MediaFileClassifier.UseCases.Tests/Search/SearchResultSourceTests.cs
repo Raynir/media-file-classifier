@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Search.Filters;
@@ -519,7 +520,7 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
     /// <summary>
     /// Answers <see cref="SearchMediaQuery"/> with the hits the test sets, and passes the other requests on.
     /// </summary>
-    private sealed class StubSender(ISender inner) : ISender
+    private sealed class StubSender(ISender inner) : ForwardingSender(inner)
     {
         public IReadOnlyList<SearchHit> Hits { get; set; } = [];
 
@@ -539,7 +540,7 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
 
         public FindSimilarQuery? LastSimilar { get; private set; }
 
-        public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        public override async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
             if (request is FindSimilarQuery similar)
             {
@@ -551,7 +552,7 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
 
             if (request is not SearchMediaQuery query)
             {
-                return await inner.Send(request, cancellationToken);
+                return await base.Send(request, cancellationToken);
             }
 
             SearchCalls++;
@@ -566,16 +567,5 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
             var mode = Semantic == SemanticSearchStatus.Used ? SearchMode.Hybrid : SearchMode.Keyword;
             return (TResponse)(object)new MediaSearchResults(page, Hits.Count, [], mode, Semantic, LessRelevantCount);
         }
-
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest => inner.Send(request, cancellationToken);
-
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => inner.Send(request, cancellationToken);
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) =>
-            inner.CreateStream(request, cancellationToken);
-
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) =>
-            inner.CreateStream(request, cancellationToken);
     }
 }

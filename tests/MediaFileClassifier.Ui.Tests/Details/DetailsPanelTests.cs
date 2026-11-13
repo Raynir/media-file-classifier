@@ -10,6 +10,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Previews;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Media.Thumbnails;
+using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
@@ -33,18 +34,11 @@ namespace MediaFileClassifier.Ui.Tests.Details;
 /// </summary>
 public sealed class DetailsPanelTests : IDisposable
 {
-    private readonly string folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"))).FullName;
+    private readonly TemporaryFolder temp = new();
 
     public void Dispose()
     {
-        try
-        {
-            Directory.Delete(folder, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A bitmap may still hold a file; the temp folder is cleaned up eventually.
-        }
+        temp.Dispose();
     }
 
     [Fact]
@@ -236,7 +230,7 @@ public sealed class DetailsPanelTests : IDisposable
 
     private string WriteImage(string name, int width, int height)
     {
-        var path = Path.Combine(folder, name);
+        var path = temp.Combine(name);
         using var bitmap = new SKBitmap(width, height);
         bitmap.Erase(SKColors.Teal);
         using var data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
@@ -257,7 +251,7 @@ public sealed class DetailsPanelTests : IDisposable
         {
             this.test = test;
             original = test.WriteImage("original.png", 400, 300);
-            corrupt = Path.Combine(test.folder, "corrupt.png");
+            corrupt = test.temp.Combine("corrupt.png");
             File.WriteAllBytes(corrupt, [1, 2, 3, 4]);
             Source = new FakeResultSource(count);
             Selection = new SelectionModel(() => Source);
@@ -309,7 +303,7 @@ public sealed class DetailsPanelTests : IDisposable
             var index = Source.Ids.ToList().IndexOf(query.ItemId);
             var path = Corrupt ? corrupt : original;
             var location = new ItemLocation(
-                query.ItemId, new FileLocation(new FolderHandle(test.folder, "Photos"), Path.GetFileName(path)), path, "Photos", Availability);
+                query.ItemId, new FileLocation(new FolderHandle(test.temp.Path, "Photos"), Path.GetFileName(path)), path, "Photos", Availability);
             var technical = new TechnicalMetadata
             {
                 ItemId = query.ItemId,

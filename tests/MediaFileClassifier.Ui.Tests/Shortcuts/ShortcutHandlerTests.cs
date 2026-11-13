@@ -92,7 +92,7 @@ public sealed class ShortcutHandlerTests
                         reference.IsOpen = !reference.IsOpen;
                     })),
             ],
-            Commands.TestLocalizer.Create(),
+            TestLocalizer.EnUs(),
             new Commands.FakeCapabilityGate());
         var keymap = new Keymap(commands,
         [

@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Models;
+using MediaFileClassifier.Testing.Files;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Models;
 
@@ -11,7 +12,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.AI.Models;
 /// </summary>
 public sealed class ModelDownloaderTests : IDisposable
 {
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly ModelStore store;
     private readonly FakeHandler handler = new();
     private readonly byte[] vision = RandomNumberGenerator.GetBytes(3 * 1024 * 1024 + 17);
@@ -21,7 +22,7 @@ public sealed class ModelDownloaderTests : IDisposable
 
     public ModelDownloaderTests()
     {
-        store = new ModelStore(Path.Combine(root, "models"), TimeProvider.System);
+        store = new ModelStore(temp.Combine("models"), TimeProvider.System);
         entry = new ModelCatalogEntry(
             "siglip2",
             "1",
@@ -44,10 +45,7 @@ public sealed class ModelDownloaderTests : IDisposable
     {
         store.Dispose();
         handler.Dispose();
-        if (Directory.Exists(root))
-        {
-            Directory.Delete(root, recursive: true);
-        }
+        temp.Dispose();
     }
 
     [Fact]

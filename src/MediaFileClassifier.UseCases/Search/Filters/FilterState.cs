@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
 
 namespace MediaFileClassifier.UseCases.Search.Filters;
@@ -66,6 +67,19 @@ public sealed class FilterState : IEquatable<FilterState>
         return [.. registry.All
             .Where(filter => filter.IsAvailable && values.TryGetValue(filter.Id, out var value) && filter.ValueType.IsInstanceOfType(value))
             .Select(filter => new FilterCondition(filter, values[filter.Id]))];
+    }
+
+    /// <summary>
+    /// Adds these filters' conditions to a search filter (E10-S01-T03).
+    /// </summary>
+    /// <param name="filter">The search filter, e.g. the browse scope.</param>
+    /// <param name="registry">The registered filters.</param>
+    /// <returns>The search filter with the conditions added, or <paramref name="filter"/> if there are none.</returns>
+    public SearchFilter ApplyTo(SearchFilter filter, FilterRegistry registry)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+        var conditions = ToConditions(registry);
+        return conditions.Count == 0 ? filter : filter with { Conditions = [.. filter.Conditions ?? [], .. conditions] };
     }
 
     /// <inheritdoc />

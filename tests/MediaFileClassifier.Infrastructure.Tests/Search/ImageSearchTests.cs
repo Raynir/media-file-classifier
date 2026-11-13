@@ -77,6 +77,21 @@ public sealed class ImageSearchTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Search_ReferenceImage_AppliesTheActiveFilters()
+    {
+        var provider = ImageProvider();
+        var model = await RegisterAsync(provider);
+        await AddAsync(model, 1, 0.95f);
+        var favorite = await AddAsync(model, 2, 0.5f, item => item.SetFavorite(true, bed.Library.Clock.Tick()));
+        using var handler = Create(provider);
+
+        var results = await handler.SearchAsync(new SearchMediaQuery { ReferenceImage = Reference(), Filters = SearchTestBed.FavoritesOnly });
+
+        Assert.Equal(SearchMode.Image, results.Mode);
+        Assert.Equal([favorite.Id], results.Hits.Select(hit => hit.ItemId));
+    }
+
+    [Fact]
     public async Task Search_ReferenceImage_IsEncodedOnceForAllPages_AndNotAddedToTheLibrary()
     {
         var provider = ImageProvider();
@@ -150,7 +165,7 @@ public sealed class ImageSearchTests : IAsyncLifetime
         }
 
         using var encoder = new SemanticQueryEncoder(registry, bed.Session, bed.Library.Clock);
-        var handler = new SearchMediaQueryHandler(bed.Index, encoder, registry, NullLogger<SearchMediaQueryHandler>.Instance);
+        var handler = new SearchMediaQueryHandler(bed.Index, encoder, registry, SearchTestBed.Filters, NullLogger<SearchMediaQueryHandler>.Instance);
         var load = new LoadReferenceImageQueryHandler(CreateRegistry());
         for (var i = 0; i < files.Count; i++)
         {
@@ -211,7 +226,7 @@ public sealed class ImageSearchTests : IAsyncLifetime
     {
         var registry = new AiProviderRegistry(provider is null ? [] : [provider], bed.Library.Clock);
         var encoder = new SemanticQueryEncoder(registry, bed.Session, bed.Library.Clock);
-        return new TestHandler(encoder, new SearchMediaQueryHandler(bed.Index, encoder, registry, NullLogger<SearchMediaQueryHandler>.Instance));
+        return new TestHandler(encoder, new SearchMediaQueryHandler(bed.Index, encoder, registry, SearchTestBed.Filters, NullLogger<SearchMediaQueryHandler>.Instance));
     }
 
     private sealed class TestHandler(SemanticQueryEncoder encoder, SearchMediaQueryHandler handler) : IDisposable

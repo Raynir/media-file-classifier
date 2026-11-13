@@ -3,8 +3,12 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
+using MediaFileClassifier.Infrastructure.DataAccess.Search.Filters;
 using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
+using MediaFileClassifier.Infrastructure.Tests.Media;
+using MediaFileClassifier.UseCases.Search.Filters;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Search;
@@ -14,6 +18,16 @@ namespace MediaFileClassifier.Infrastructure.Tests.Search;
 /// </summary>
 internal sealed class SearchTestBed : IAsyncDisposable
 {
+    /// <summary>
+    /// Gets the registered filters of the app: the media type and file format filters (E10-S01).
+    /// </summary>
+    public static FilterRegistry Filters { get; } = new([new MediaTypeFilter(), new FileFormatFilter(FormatTestSupport.CreateRegistry()), new FavoriteTestFilter()]);
+
+    /// <summary>
+    /// Gets the active filters that keep only favorites, through a filter registered by the tests alone.
+    /// </summary>
+    public static FilterState FavoritesOnly { get; } = FilterState.Empty.Set(FavoriteTestFilter.FilterId, new BooleanValue(true));
+
     private SearchTestBed(LibraryTestBed library, TestSession session, SearchIndex index)
     {
         Library = library;
@@ -123,4 +137,23 @@ internal sealed class TestSession(IOpenLibrary? library) : ILibrarySession
         CurrentChanged?.Invoke(this, EventArgs.Empty);
         return Task.CompletedTask;
     }
+}
+
+/// <summary>
+/// A filter only the tests register, so they show a new filter reaches every search mode with no change to the search
+/// service (E10-S01).
+/// </summary>
+internal sealed class FavoriteTestFilter : FilterDefinition<BooleanValue>
+{
+    public const string FilterId = "test-favorite";
+
+    public override string Id => FilterId;
+
+    public override string DisplayNameKey => "Filter_TestFavorite";
+
+    public override int Order => 1000;
+
+    public override FilterValueKind Kind => FilterValueKind.Boolean;
+
+    protected override string? ToSql(BooleanValue value, IFilterSql sql) => $"{sql.MediaItem("is_favorite")} = {sql.Parameter(value.Value)}";
 }

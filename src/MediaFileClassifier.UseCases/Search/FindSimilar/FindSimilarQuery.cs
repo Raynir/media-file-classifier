@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.UseCases.Search.Filters;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
 using MediatR;
 
@@ -19,6 +20,11 @@ public sealed record FindSimilarQuery(Id<MediaItem> ItemId) : IRequest<MediaSear
     /// Gets the structured filters, such as the browse scope.
     /// </summary>
     public SearchFilter Filter { get; init; } = SearchFilter.None;
+
+    /// <summary>
+    /// Gets the active filters (E10-S01). They apply on top of <see cref="Filter"/>.
+    /// </summary>
+    public FilterState Filters { get; init; } = FilterState.Empty;
 
     /// <summary>
     /// Gets the order; <see cref="SortMode.Relevance"/> is most similar first.

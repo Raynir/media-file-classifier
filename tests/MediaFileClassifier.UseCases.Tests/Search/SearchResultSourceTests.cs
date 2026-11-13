@@ -2,9 +2,12 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
+using MediaFileClassifier.UseCases.Search.Filters;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
 using MediaFileClassifier.UseCases.Search.SearchResults;
@@ -39,6 +42,8 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
+    private static FilterState Videos { get; } = FilterState.Empty.Set("media-type", new MultiSelectValue(["Video"]));
+
     public async ValueTask DisposeAsync()
     {
         if (library is not null)
@@ -58,6 +63,81 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
         Assert.Equal(3, (await source.GetPageAsync(0, 10, Token)).Count);
         Assert.Null(source.Summary);
         Assert.Equal(0, sender.SearchCalls);
+    }
+
+    [Fact]
+    public async Task Filters_WithNoText_BrowseThroughTheSearch_NewestImportFirst()
+    {
+        await OpenLibraryAsync(3);
+        var items = library!.ItemList.Items;
+        sender.Hits = [new SearchHit(items[1].Id, 0, null, null, SearchFields.None)];
+        var changed = 0;
+        source.Changed += (_, _) => changed++;
+
+        source.SetFilters(Videos);
+        var count = await source.CountAsync(Token);
+
+        Assert.Equal(1, changed);
+        Assert.Equal(1, count);
+        Assert.Equal(Videos, source.Filters);
+        Assert.Equal(Videos, sender.LastQuery!.Filters);
+        Assert.Equal(SortMode.ImportDate, sender.LastQuery.Sort);
+        Assert.True(string.IsNullOrEmpty(sender.LastQuery.Text));
+        Assert.Equal([items[1].Id], (await source.GetPageAsync(0, 10, Token)).Select(item => item.Id));
+    }
+
+    [Fact]
+    public async Task Filters_ApplyToTextSearch_AndStayWhenTheTextChanges()
+    {
+        await OpenLibraryAsync(2);
+        source.SetFilters(Videos);
+        source.SetText("car");
+        await source.CountAsync(Token);
+
+        Assert.Equal(Videos, sender.LastQuery!.Filters);
+        Assert.Equal(SortMode.Relevance, sender.LastQuery.Sort);
+
+        source.SetText(string.Empty);
+        await source.CountAsync(Token);
+
+        Assert.Equal(Videos, source.Filters);
+        Assert.Equal(Videos, sender.LastQuery.Filters);
+    }
+
+    [Fact]
+    public async Task Filters_ApplyToFindSimilar_AndStayWhenItIsCleared()
+    {
+        await OpenLibraryAsync(2);
+        var items = library!.ItemList.Items;
+        source.SetFilters(Videos);
+        source.SetSimilarTo(new SimilarSource(items[0].Id, "IMG_0.jpg"));
+        await source.CountAsync(Token);
+
+        Assert.Equal(Videos, sender.LastSimilar!.Filters);
+
+        source.ClearSimilar();
+
+        Assert.Null(source.SimilarTo);
+        Assert.Equal(Videos, source.Filters);
+    }
+
+    [Fact]
+    public async Task ClearingTheFilters_GoesBackToPlainBrowsing()
+    {
+        await OpenLibraryAsync(3);
+        source.SetFilters(Videos);
+        await source.CountAsync(Token);
+        var calls = sender.SearchCalls;
+        var changed = 0;
+        source.Changed += (_, _) => changed++;
+
+        source.SetFilters(FilterState.Empty.Set("media-type", new MultiSelectValue(["Video"])));
+        source.SetFilters(FilterState.Empty);
+
+        Assert.Equal(1, changed);
+        Assert.Equal(3, await source.CountAsync(Token));
+        Assert.Equal(calls, sender.SearchCalls);
+        Assert.Null(source.Summary);
     }
 
     [Fact]

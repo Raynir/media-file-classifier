@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.UseCases.Embeddings;
+using MediaFileClassifier.UseCases.Search.Filters;
 using MediaFileClassifier.UseCases.Search.LoadReferenceImage;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -17,11 +18,13 @@ namespace MediaFileClassifier.UseCases.Search.SearchMedia;
 /// <param name="index">The search index.</param>
 /// <param name="encoder">The query encoder.</param>
 /// <param name="registry">The AI providers, to find the text model's relevance threshold.</param>
+/// <param name="filters">The registered filters, for the request's <see cref="SearchMediaQuery.Filters"/>.</param>
 /// <param name="logger">Logger.</param>
 public sealed class SearchMediaQueryHandler(
     ISearchIndex index,
     SemanticQueryEncoder encoder,
     IAiProviderRegistry registry,
+    FilterRegistry filters,
     ILogger<SearchMediaQueryHandler> logger) : IRequestHandler<SearchMediaQuery, MediaSearchResults>
 {
     /// <inheritdoc />
@@ -40,7 +43,7 @@ public sealed class SearchMediaQueryHandler(
             var listed = await index.SearchAsync(
                 new SearchQuery
                 {
-                    Filter = request.Filter,
+                    Filter = request.Filters.ApplyTo(request.Filter, filters),
                     Sort = request.Sort == SortMode.Relevance ? SortMode.Date : request.Sort,
                     ReverseSort = request.ReverseSort,
                     Offset = request.Offset,
@@ -57,7 +60,7 @@ public sealed class SearchMediaQueryHandler(
             {
                 Text = text,
                 Vector = vector,
-                Filter = request.Filter,
+                Filter = request.Filters.ApplyTo(request.Filter, filters),
                 Sort = request.Sort,
                 ReverseSort = request.ReverseSort,
                 Offset = request.Offset,
@@ -96,7 +99,7 @@ public sealed class SearchMediaQueryHandler(
             new SearchQuery
             {
                 Vector = vector,
-                Filter = request.Filter,
+                Filter = request.Filters.ApplyTo(request.Filter, filters),
                 Sort = request.Sort,
                 ReverseSort = request.ReverseSort,
                 Offset = request.Offset,

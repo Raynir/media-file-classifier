@@ -6,6 +6,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Added
 
+- Testing rules in `docs/testing.md`, and shared test helpers in `tests/MediaFileClassifier.Testing` (`FakeSender`, `ForwardingSender`, `FakeHardwareInfo`, `InMemoryModelStore`, `SingleEntryModelCatalog`, `TemporaryFolder`) and `Ui.Tests` (`TestServices`, `TestLocalizer`, `FakeModelDialogs`) that replace the copies in about 40 test files. `dotnet test -- --hangdump --hangdump-timeout 3m` dumps the stacks of a hung run (MFC-992).
 - Model and hardware settings under Settings › AI & Models. Models lists every tier of every catalogue model, installed or not, plus installed models the catalogue doesn't know, with size, precision, license and status: Download (with consent) or Import from file for a missing tier, Verify (hashes the files again) and Delete (asks first, naming the libraries that use the model) for an installed one. Hardware shows the detected execution provider and graphics card, lets you choose the provider (Automatic, CPU, DirectML, CUDA) and the model tier (Automatic, Standard, Compact), with the ones this computer or build can't use disabled and the reason shown, and runs the benchmark and shows its results. The choices are kept in `settings.json` and apply from the next analysis (E17-S08).
 - Filter model: filters are registered definitions (media type and file format so far) that build their own SQL, so a new filter reaches text search, image search, Find similar and browsing with no change to the search service. Different filters combine with AND, the values of one filter with OR. The active filters serialise to and from JSON for saved searches and for restoring them at start; filters no longer registered are skipped. With filters set and no search text, browsing shows the matching items, newest import first (E10-S01).
 - Search as you type: a search that was replaced while its answer was on the way no longer shows that answer, the first page of the last 32 text searches is cached so going back (for example deleting a character) is instant, the time from the last keystroke to the results is logged, and the production benchmark searches every prefix of a query. Short prefixes are still slow at 100k items (about 3.9 s p95), so the 300 ms target of D031 isn't met yet (E09-S02).
@@ -25,6 +26,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Two timing tests that failed only in a full `dotnet test` (`WriteConcurrencyTests` and `JobSchedulerTests`) now run alone, in a non-parallel collection (MFC-992).
 - A finished job no longer stays in the progress summary and the status bar when its last work items finish at the same time (MFC-985).
 - The SigLIP 2 quality test (`Siglip2QualityTests`) is opt-in: it skips unless `MFC_QUALITY_TESTS=1`, so it no longer uses every CPU core in a full `dotnet test` and starves the timing tests. Opt-in tests are documented in `docs/development-workflow.md` (MFC-986).
 

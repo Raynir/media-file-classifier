@@ -55,7 +55,18 @@ A filter is an `IFilterDefinition` (`Infrastructure.Abstractions/Search/Filters`
 
 `SearchBarViewModel` searches 300 ms after the last keystroke (`DefaultDelay`), `SearchResultSource` cancels the search before it, and a search that was replaced never hands its answer on, even when it had finished. Two caches make going back instant: `SemanticQueryEncoder` keeps 256 query vectors, and `SearchPageCache` keeps the first page of the last 32 text searches (64 cached answers) (reset when the scope or items change; answers that lack the semantic search for a reason that can pass are never kept). The time from the last keystroke to the results is logged (`Search as you type: N ms ...`).
 
-`production` also searches every prefix of the keyword queries (hybrid, no filter). On 100k items and 28 CPUs: p50 221 ms, p95 3.9 s, max 7.8 s (1-2 letters p95 5.1 s, 3-5 letters 0.8 s, 6+ letters 2.0 s), without the encoder and the pause. The D031 budget of 300 ms is **not met**: short prefixes match most of the library because every word is a prefix (D221 and MFC-89's decision). Bottlenecks are filed as tasks.
+`production` also searches every prefix of the keyword queries (hybrid, no filter, limit 100). MFC-91 searched each prefix once: on 100k items and 28 CPUs, p50 221 ms, p95 3.9 s, max 7.8 s (1-2 letters p95 5.1 s, 3-5 letters 0.8 s, 6+ letters 2.0 s), without the encoder and the pause.
+
+MFC-991 repeats it: one warm-up pass, then 3 runs of each of the 235 prefixes (705 samples; `--typing-runs` changes the 3). It also times the real SigLIP 2 text encoder (uncached) on the same prefixes, and adds the 300 ms pause arithmetically (nothing sleeps). The library holds synthetic vectors, so the encoder's output is only timed, not searched with. **Baseline for MFC-988, 989 and 990** (100k items, 28 logical CPUs, Windows 11, .NET 10.0.15, DirectML build of ONNX Runtime; ms):
+
+| Letters typed | Samples | Search p50 | Search p95 | Search max | Encoder p50 | Encoder p95 | End to end p50 | End to end p95 | End to end max |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1 to 2 | 150 | 242 | 3,732 | 4,842 | 22 | 37 | 579 | 4,054 | 5,164 |
+| 3 to 5 | 213 | 196 | 762 | 3,150 | 22 | 25 | 517 | 1,091 | 3,471 |
+| 6 or more | 342 | 271 | 1,903 | 4,936 | 22 | 35 | 597 | 2,223 | 5,259 |
+| all | 705 | 241 | 3,165 | 4,936 | 22 | 35 | 567 | 3,484 | 5,259 |
+
+The D031 budget of 300 ms is **not met**, and the encoder is not the cause (about 22 ms, within its 50 ms budget). The 300 ms pause alone uses the whole budget if it is counted in it, so end to end (p50 567 ms) can only meet it if the pause is shortened or left out of the target (MFC-990); the search alone has a p50 of 241 ms but a p95 of 3.2 s. The tail is the same as in MFC-91: short prefixes match most of the library. Another full run gave a search p50 of 175 ms for all prefixes and p95 of 3.4 s, so p50 moves by about 50 ms between runs on this machine while p95 stays at 3-4 s; compare p95 and the buckets, and rerun before judging a change of less than 25%.
 
 ## Known follow-ups
 

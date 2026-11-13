@@ -3,6 +3,7 @@ using System.Text;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using Microsoft.Data.Sqlite;
 
@@ -13,7 +14,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Search;
 /// <c>d</c>, and join <c>media_item</c> as <c>m</c> and <c>technical_metadata</c> as <c>t</c> only when
 /// <see cref="NeedsMediaItem"/> and <see cref="NeedsTechnicalMetadata"/> say so. Every value is a parameter; only numbers the code formats itself go into the text.
 /// </summary>
-internal sealed class SearchSql
+internal sealed class SearchSql : IFilterSql
 {
     // The item date: date taken, converted to UTC with its offset when known, else the file modification time. Dates
     // taken are wall-clock milliseconds and offsets milliseconds (D071).
@@ -45,6 +46,20 @@ internal sealed class SearchSql
     public string Joins =>
         (NeedsMediaItem ? """JOIN "media_item" m ON m."id" = d."item_id" """ : string.Empty)
         + (NeedsTechnicalMetadata ? """LEFT JOIN "technical_metadata" t ON t."item_id" = d."item_id" """ : string.Empty);
+
+    /// <inheritdoc />
+    public string ItemId => "d.\"item_id\"";
+
+    /// <inheritdoc />
+    string IFilterSql.ItemDate
+    {
+        get
+        {
+            NeedsTechnicalMetadata = true;
+            NeedsMediaItem = true;
+            return ItemDate;
+        }
+    }
 
     /// <summary>
     /// Quotes a term as an FTS5 string, so its characters are never read as query syntax.
@@ -88,6 +103,33 @@ internal sealed class SearchSql
         parameters.Add(new SqliteParameter(name, value ?? DBNull.Value));
         return name;
     }
+
+    /// <inheritdoc />
+    public string MediaItem(string column)
+    {
+        NeedsMediaItem = true;
+        return "m." + Column(column);
+    }
+
+    /// <inheritdoc />
+    public string TechnicalMetadata(string column)
+    {
+        NeedsTechnicalMetadata = true;
+        return "t." + Column(column);
+    }
+
+    /// <inheritdoc />
+    public string Parameter(object? value) => Add(value);
+
+    /// <inheritdoc />
+    public string Like(string expression, string pattern)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(expression);
+        return $"{expression} LIKE {Add(pattern)} ESCAPE '{SqlLike.EscapeCharacter}'";
+    }
+
+    /// <inheritdoc />
+    public string EscapeLike(string text) => SqlLike.Escape(text);
 
     /// <summary>
     /// Builds the condition of a filter. Excluded items never pass (D048, D024); <c>search_document</c> mirrors the flag,
@@ -186,6 +228,15 @@ internal sealed class SearchSql
             conditions.Add($"""m."imported_at" >= {Add(since.ToUnixTimeMilliseconds())}""");
         }
 
+        // Registered filters (E10-S01) build their own conditions through IFilterSql, which joins what they read.
+        foreach (var condition in filter.Conditions ?? [])
+        {
+            if (condition.ToSql(this) is { Length: > 0 } sql)
+            {
+                conditions.Add("(" + sql + ")");
+            }
+        }
+
         NeedsMediaItem |= conditions.Any(ReadsMediaItem);
         return string.Join(" AND ", conditions);
     }
@@ -233,6 +284,12 @@ internal sealed class SearchSql
 
     // Every column of media_item is written as m."column", and no other alias ends in m.
     private static bool ReadsMediaItem(string sql) => sql.Contains("m.\"", StringComparison.Ordinal);
+
+    // Column names go into the SQL text, so only plain identifiers pass.
+    private static string Column(string column) =>
+        column is { Length: > 0 } && column.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '_')
+            ? "\"" + column + "\""
+            : throw new ArgumentException($"'{column}' isn't a column name.", nameof(column));
 
     private static string Numbers(IEnumerable<int> values)
     {

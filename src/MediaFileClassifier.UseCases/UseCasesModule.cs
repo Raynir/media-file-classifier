@@ -30,6 +30,7 @@ public static class UseCasesModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<SettingRegistry>();
+        services.TryAddSingleton<Search.Filters.FilterRegistry>();
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();

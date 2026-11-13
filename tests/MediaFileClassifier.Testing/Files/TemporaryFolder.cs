@@ -1,12 +1,12 @@
 namespace MediaFileClassifier.Testing.Files;
 
 /// <summary>
-/// A unique folder under <c>%TEMP%\mfc-tests</c>, deleted with everything in it on dispose. Deleting retries a few
-/// times, because SQLite connections and the operating system release files late.
+/// A unique folder under <c>%TEMP%\mfc-tests</c>, deleted with everything in it on dispose. Deleting retries for about a second,
+/// because SQLite connections and the operating system release files late.
 /// </summary>
 public sealed class TemporaryFolder : IDisposable
 {
-    private const int DeleteAttempts = 5;
+    private const int DeleteAttempts = 20;
 
     /// <summary>
     /// Creates the folder.
@@ -50,7 +50,7 @@ public sealed class TemporaryFolder : IDisposable
                     return; // The OS cleans the temp folder eventually.
                 }
 
-                Thread.Sleep(50 * attempt);
+                Thread.Sleep(50);
             }
         }
     }

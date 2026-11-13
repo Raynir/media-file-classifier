@@ -10,10 +10,10 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.ThumbnailTileSize;
-using MediatR;
 
 namespace MediaFileClassifier.Ui.Tests.Browser;
 
@@ -217,36 +217,26 @@ internal sealed class FakeJobSystem : IJobSystem
 /// <summary>
 /// Answers the tile size requests from memory, synchronously.
 /// </summary>
-internal sealed class FakeTileSizeSender : ISender
+internal sealed class FakeTileSizeSender : FakeSender
 {
     public int? StoredSize { get; set; } = LibrarySettings.DefaultThumbnailTileSize;
 
     public List<int> Saved { get; } = [];
 
-    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) => request switch
+    protected override object? Handle(object request)
     {
-        GetThumbnailTileSizeQuery => Task.FromResult((TResponse)(object)StoredSize!),
-        _ => throw new NotSupportedException(),
-    };
-
-    public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-        where TRequest : IRequest
-    {
-        if (request is SetThumbnailTileSizeCommand command)
+        switch (request)
         {
-            Saved.Add(command.Size);
-            StoredSize = command.Size;
-            return Task.CompletedTask;
+            case GetThumbnailTileSizeQuery:
+                return StoredSize;
+            case SetThumbnailTileSizeCommand command:
+                Saved.Add(command.Size);
+                StoredSize = command.Size;
+                return null;
+            default:
+                throw new NotSupportedException();
         }
-
-        throw new NotSupportedException();
     }
-
-    public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-    public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-    public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }
 
 /// <summary>

@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Models;
+using MediaFileClassifier.Testing.AI;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Models;
 
@@ -22,7 +23,7 @@ public sealed class ModelStoreTierTests : IDisposable
     private readonly (string Path, string Sha256) vision;
     private readonly (string Path, string Sha256) text;
     private readonly (string Path, string Sha256) textFp16;
-    private readonly FakeCatalog catalog;
+    private readonly SingleEntryModelCatalog catalog;
     private readonly ModelStore store;
 
     public ModelStoreTierTests()
@@ -33,7 +34,7 @@ public sealed class ModelStoreTierTests : IDisposable
         vision = WriteSource("vision_model.onnx", 300);
         text = WriteSource("text_model.onnx", 200);
         textFp16 = WriteSource("text_model_fp16.onnx", 100);
-        catalog = new FakeCatalog(Entry());
+        catalog = new SingleEntryModelCatalog(Entry());
         store = new ModelStore(models, TimeProvider.System, catalog: catalog);
     }
 
@@ -235,14 +236,5 @@ public sealed class ModelStoreTierTests : IDisposable
         var path = Path.Combine(sources, name);
         System.IO.File.WriteAllBytes(path, bytes);
         return (path, Convert.ToHexStringLower(SHA256.HashData(bytes)));
-    }
-
-    private sealed class FakeCatalog(ModelCatalogEntry entry) : IModelCatalog
-    {
-        public IReadOnlyList<ModelCatalogEntry> Entries => [entry];
-
-        public ModelCatalogEntry? Find(string modelId) => modelId == entry.ModelId ? entry : null;
-
-        public ModelCatalogEntry? GetDefault(ModelPurpose purpose) => purpose == entry.Purpose ? entry : null;
     }
 }

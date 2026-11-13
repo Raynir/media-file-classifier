@@ -4,6 +4,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
+using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Hardware;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
@@ -17,14 +18,14 @@ public sealed class Siglip2TierChoiceTests : IDisposable
     private const string Standard = "standard";
     private const string Compact = "compact";
 
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly ModelCatalog catalog = new();
     private readonly ModelStore store;
 
     public Siglip2TierChoiceTests()
     {
-        Directory.CreateDirectory(root);
-        store = new ModelStore(Path.Combine(root, "models"), TimeProvider.System, catalog: catalog);
+        Directory.CreateDirectory(temp.Path);
+        store = new ModelStore(temp.Combine("models"), TimeProvider.System, catalog: catalog);
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -129,7 +130,7 @@ public sealed class Siglip2TierChoiceTests : IDisposable
     public void Dispose()
     {
         store.Dispose();
-        Directory.Delete(root, recursive: true);
+        temp.Dispose();
     }
 
     [Fact]
@@ -181,7 +182,7 @@ public sealed class Siglip2TierChoiceTests : IDisposable
         var files = new List<ModelFileSource>();
         foreach (var file in tier.Files)
         {
-            var path = Path.Combine(root, tierId + "-" + file.FileName);
+            var path = temp.Combine(tierId + "-" + file.FileName);
             await File.WriteAllTextAsync(path, tierId + file.Role, Token);
             files.Add(new ModelFileSource(file.Role, path, FileName: file.FileName));
         }

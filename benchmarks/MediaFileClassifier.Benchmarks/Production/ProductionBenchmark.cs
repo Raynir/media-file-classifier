@@ -9,9 +9,13 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Domain.Searches;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.DataAccess;
 using MediaFileClassifier.Infrastructure.Search;
 using Microsoft.Data.Sqlite;
@@ -39,12 +43,15 @@ internal static class ProductionBenchmark
           --queries 50           Queries per scenario.
           --cpus <n>             Run on the first n logical CPUs only, to approximate a smaller machine.
           --rebuild              Copy and populate again even if the copy exists.
+          --typing-runs 3        Runs per prefix in the search-as-you-type scenario, after one warm-up pass.
           --out <path>           Where the report goes (default: artifacts\benchmarks).
         """;
 
     private const double BudgetMs = 200;
 
     private const string ModelName = "siglip2-bench";
+
+    private const double PauseMs = 300;
 
     private static readonly string[][] KeywordQueries =
     [
@@ -55,6 +62,27 @@ internal static class ProductionBenchmark
     ];
 
     private static string[]? sampleIds;
+
+    // The real text encoder, timed on the same prefixes. Null when the SigLIP 2 model is not installed.
+    private static async Task<ITextEmbeddingProvider?> TryCreateEncoderAsync()
+    {
+        try
+        {
+            var provider = new ServiceCollection()
+                .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+                .AddSingleton<IAppPaths>(new BenchmarkAppPaths())
+                .AddAi()
+                .BuildServiceProvider()
+                .GetRequiredService<Siglip2EmbeddingProvider>();
+            await provider.EmbedTextsAsync(["warm up"], CancellationToken.None);
+            return provider;
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine($"Text encoder unavailable: {exception.GetType().Name}: {exception.Message}");
+            return null;
+        }
+    }
 
     public static int Run(string[] args)
     {
@@ -201,37 +229,82 @@ internal static class ProductionBenchmark
             }
         }
 
-        // Search as you type (E09-S02-T03): the app searches the text once the typing pauses, and a pause can come after
-        // any letter, so every prefix of a query is a search of its own. A query vector stands in for the text encoder.
-        Log(string.Empty);
-        Log("Search as you type: hybrid search of every prefix of the keyword queries, no filter. The text encoder (D031: < 50 ms) and the pause before searching come on top.");
-        Log(string.Empty);
-        Log("| Letters typed | Searches | p50 | p95 | max |");
-        Log("|---|--:|--:|--:|--:|");
+        // Search as you type (E09-S02-T03, MFC-991): the app searches the text once the typing pauses, and a pause can come
+        // after any letter, so every prefix of a query is a search of its own. Each prefix is searched once as a warm-up
+        // pass (not counted), then TypingRuns times. A query vector stands in for the text encoder in the search, and the
+        // real encoder is timed on the same prefixes next to it.
         var prefixes = KeywordQueries
             .Select(words => string.Join(' ', words))
             .SelectMany(text => Enumerable.Range(1, text.Length).Select(length => (Text: text[..length], Length: length)))
             .ToList();
-        for (var i = 0; i < 5; i++)
-        {
-            await index.SearchAsync(new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count] });
-        }
+        var encoder = await TryCreateEncoderAsync();
+        Log(string.Empty);
+        Log($"Search as you type (MFC-991): {prefixes.Count} prefixes of the keyword queries, hybrid, no filter, limit 100. One warm-up pass, then {options.TypingRuns} runs per prefix ({prefixes.Count * options.TypingRuns:N0} samples).");
+        Log(string.Empty);
 
-        var typing = new List<(int Length, double Ms)>();
         for (var i = 0; i < prefixes.Count; i++)
         {
-            var q = new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count], Limit = 100 };
-            var watch = Stopwatch.StartNew();
-            await index.SearchAsync(q);
-            typing.Add((prefixes[i].Length, watch.Elapsed.TotalMilliseconds));
+            await index.SearchAsync(new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count], Limit = 100 });
+            if (encoder is not null)
+            {
+                await encoder.EmbedTextsAsync([prefixes[i].Text.ToLowerInvariant()], CancellationToken.None);
+            }
         }
 
-        foreach (var (label, selector) in new (string, Func<int, bool>)[] { ("1 to 2", n => n <= 2), ("3 to 5", n => n is >= 3 and <= 5), ("6 or more", n => n >= 6), ("all", _ => true) })
+        var typing = new List<(int Length, double SearchMs, double? EncodeMs)>();
+        for (var run = 0; run < options.TypingRuns; run++)
         {
-            var times = typing.Where(t => selector(t.Length)).Select(t => t.Ms).ToList();
+            for (var i = 0; i < prefixes.Count; i++)
+            {
+                var q = new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count], Limit = 100 };
+                double? encodeMs = null;
+                if (encoder is not null)
+                {
+                    var encodeWatch = Stopwatch.StartNew();
+                    await encoder.EmbedTextsAsync([prefixes[i].Text.ToLowerInvariant()], CancellationToken.None);
+                    encodeMs = encodeWatch.Elapsed.TotalMilliseconds;
+                }
+
+                var watch = Stopwatch.StartNew();
+                await index.SearchAsync(q);
+                typing.Add((prefixes[i].Length, watch.Elapsed.TotalMilliseconds, encodeMs));
+            }
+        }
+
+        var buckets = new (string, Func<int, bool>)[] { ("1 to 2", n => n <= 2), ("3 to 5", n => n is >= 3 and <= 5), ("6 or more", n => n >= 6), ("all", _ => true) };
+        Log("Search alone (the encoder and the pause come on top). Latency in ms.");
+        Log(string.Empty);
+        Log("| Letters typed | Samples | p50 | p95 | max |");
+        Log("|---|--:|--:|--:|--:|");
+        foreach (var (label, selector) in buckets)
+        {
+            var times = typing.Where(t => selector(t.Length)).Select(t => t.SearchMs).ToList();
             var summary = LatencySummary.From(times);
             allWithin &= label != "all" || summary.P95 < BudgetMs;
             Log(string.Create(CultureInfo.InvariantCulture, $"| {label} | {times.Count} | {summary.P50:F1} | {summary.P95:F1} | {summary.Max:F1} |"));
+        }
+
+        if (encoder is null)
+        {
+            Log(string.Empty);
+            Log("End to end: skipped, the text embedding model is not installed.");
+        }
+        else
+        {
+            Log(string.Empty);
+            Log($"Text encoder alone (uncached), and end to end = encoder + search + the {PauseMs} ms pause (added, not slept). Latency in ms.");
+            Log(string.Empty);
+            Log("| Letters typed | Encoder p50 | Encoder p95 | End to end p50 | End to end p95 | End to end max |");
+            Log("|---|--:|--:|--:|--:|--:|");
+            foreach (var (label, selector) in buckets)
+            {
+                var rows = typing.Where(t => selector(t.Length)).ToList();
+                var enc = LatencySummary.From(rows.Select(t => t.EncodeMs!.Value).ToList());
+                var total = LatencySummary.From(rows.Select(t => t.EncodeMs!.Value + t.SearchMs + PauseMs).ToList());
+                Log(string.Create(CultureInfo.InvariantCulture, $"| {label} | {enc.P50:F1} | {enc.P95:F1} | {total.P50:F1} | {total.P95:F1} | {total.Max:F1} |"));
+            }
+
+            (encoder as IDisposable)?.Dispose();
         }
 
         await session.SetCurrentAsync(null);
@@ -369,7 +442,8 @@ internal static class ProductionBenchmark
         int? Cpus,
         bool Rebuild,
         bool IsChild,
-        string OutDirectory)
+        string OutDirectory,
+        int TypingRuns)
     {
         public static Options Parse(string[] args)
         {
@@ -382,7 +456,8 @@ internal static class ProductionBenchmark
                 null,
                 false,
                 false,
-                Path.Combine("artifacts", "benchmarks"));
+                Path.Combine("artifacts", "benchmarks"),
+                3);
             for (var i = 0; i < args.Length; i++)
             {
                 string Next() => i + 1 < args.Length ? args[++i] : throw new ArgumentException($"{args[i]} needs a value.");
@@ -395,6 +470,7 @@ internal static class ProductionBenchmark
                     "--queries" => options with { Queries = int.Parse(Next(), CultureInfo.InvariantCulture) },
                     "--cpus" => options with { Cpus = int.Parse(Next(), CultureInfo.InvariantCulture) },
                     "--rebuild" => options with { Rebuild = true },
+                    "--typing-runs" => options with { TypingRuns = int.Parse(Next(), CultureInfo.InvariantCulture) },
                     "--child" => options with { IsChild = true },
                     "--out" => options with { OutDirectory = Next() },
                     _ => throw new ArgumentException($"Unknown option {args[i]}."),
@@ -420,5 +496,19 @@ internal static class ProductionBenchmark
             CurrentChanged?.Invoke(this, EventArgs.Empty);
             return Task.CompletedTask;
         }
+    }
+
+    // The app's own data folder, where the model is installed.
+    private sealed class BenchmarkAppPaths : IAppPaths
+    {
+        private static readonly string Root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MediaFileClassifier");
+
+        public string DataDirectory => Root;
+
+        public string CacheDirectory => Path.Combine(Root, "cache");
+
+        public string LogsDirectory => Path.Combine(Root, "logs");
+
+        public string SettingsFile => Path.Combine(Root, "settings.json");
     }
 }

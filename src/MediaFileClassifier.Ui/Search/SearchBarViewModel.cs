@@ -42,6 +42,7 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     private readonly ILogger logger;
     private readonly DispatcherTimer timer;
     private long lastKeystroke;
+    private string lastTyped = string.Empty;
     private bool settingImage;
     private CancellationTokenSource? thumbnailLoading;
     private ThumbnailLease? thumbnailLease;
@@ -341,6 +342,7 @@ public sealed partial class SearchBarViewModel : ViewModelBase
             RemoveImage();
         }
 
+        lastTyped = value;
         lastKeystroke = Stopwatch.GetTimestamp();
         timer.Stop();
         timer.Start();
@@ -350,8 +352,14 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     // thread. Logged once per typed text, so the real numbers can be compared with the budget of D031.
     private void LogLatency()
     {
+        // Only the summary of the text that was typed counts: another search's summary says nothing about typing.
+        if (source.Summary is not { } summary || summary.Text.Length == 0 || summary.Text != lastTyped)
+        {
+            return;
+        }
+
         var typedAt = Interlocked.Exchange(ref lastKeystroke, 0);
-        if (typedAt != 0 && source.Summary is { } summary && summary.Text.Length > 0)
+        if (typedAt != 0)
         {
             LogKeystrokeToResults(logger, Stopwatch.GetElapsedTime(typedAt).TotalMilliseconds, summary.Mode, summary.Semantic, summary.TotalCount);
         }

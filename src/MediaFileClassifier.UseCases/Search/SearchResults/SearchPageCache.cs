@@ -10,9 +10,10 @@ namespace MediaFileClassifier.UseCases.Search.SearchResults;
 internal sealed class SearchPageCache
 {
     /// <summary>
-    /// The number of searches kept. A page is at most <see cref="MaxCachedLimit"/> hits, so this stays small.
+    /// The number of answers kept, two for each search (its count and its page). A page is at most
+    /// <see cref="MaxCachedLimit"/> hits, so this stays small.
     /// </summary>
-    public const int Capacity = 32;
+    public const int Capacity = 64;
 
     /// <summary>
     /// The largest page that is kept: the pages the grid asks for, not the reading of every ID of a search.
@@ -34,20 +35,6 @@ internal sealed class SearchPageCache
             lock (gate)
             {
                 return version;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets the number of cached searches.
-    /// </summary>
-    public int Count
-    {
-        get
-        {
-            lock (gate)
-            {
-                return entries.Count;
             }
         }
     }

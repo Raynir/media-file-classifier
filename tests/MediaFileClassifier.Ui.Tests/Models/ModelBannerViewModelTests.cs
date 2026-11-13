@@ -14,7 +14,7 @@ namespace MediaFileClassifier.Ui.Tests.Models;
 public sealed class ModelBannerViewModelTests
 {
     private readonly ModelSender sender = new();
-    private readonly FakeDialogs dialogs = new();
+    private readonly FakeModelDialogs dialogs = new();
 
     [Fact]
     public async Task Refresh_ModelMissing_ShowsDownloadAndImport()
@@ -141,23 +141,6 @@ public sealed class ModelBannerViewModelTests
 
     private ModelBannerViewModel Create() =>
         new(sender, dialogs, TestLocalizer.EnUs());
-
-    private sealed class FakeDialogs : IModelDialogs
-    {
-        public bool Agree { get; set; }
-
-        public int Confirmations { get; private set; }
-
-        public IReadOnlyList<string> Picked { get; set; } = [];
-
-        public Task<bool> ConfirmDownloadAsync(ModelOffer offer)
-        {
-            Confirmations++;
-            return Task.FromResult(Agree);
-        }
-
-        public Task<IReadOnlyList<string>> PickModelFilesAsync() => Task.FromResult(Picked);
-    }
 
     /// <summary>
     /// Answers the model use cases.

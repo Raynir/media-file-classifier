@@ -3,7 +3,6 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Ui.Shell;
-using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -80,7 +79,7 @@ public sealed class QuitGuardTests
     [Fact]
     public void Confirmation_Commands_Answer()
     {
-        var confirmation = new QuitConfirmationViewModel(1, TestLocalizer.Create());
+        var confirmation = new QuitConfirmationViewModel(1, TestLocalizer.EnUs());
         var answers = new List<bool>();
         confirmation.Answered += (_, quit) => answers.Add(quit);
 
@@ -94,7 +93,7 @@ public sealed class QuitGuardTests
     private QuitGuard Guard()
     {
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-        return new QuitGuard(jobs, settings, TestLocalizer.Create(), NullLogger<QuitGuard>.Instance);
+        return new QuitGuard(jobs, settings, TestLocalizer.EnUs(), NullLogger<QuitGuard>.Instance);
     }
 
     private sealed class FakeJobSystem : IJobSystem

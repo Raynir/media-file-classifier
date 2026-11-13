@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Resources;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -31,10 +29,7 @@ namespace MediaFileClassifier.Ui.Tests.Search;
 /// </summary>
 public sealed class SearchUiTests
 {
-    private readonly Localizer localizer = new(new ResourceManager("MediaFileClassifier.Ui.Resources.Strings", typeof(Localizer).Assembly))
-    {
-        Culture = CultureInfo.GetCultureInfo("en-US"),
-    };
+    private readonly Localizer localizer = TestLocalizer.EnUs();
 
     [Theory]
     [InlineData(SearchFields.Tags, false, false, "Matched in: Tags")]

@@ -1,8 +1,6 @@
 using System.Globalization;
-using System.Resources;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Testing.UseCases;
-using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.UseCases.Models.DeleteModel;
@@ -191,10 +189,7 @@ public sealed class ModelManagementViewModelTests
         installed ? DateTimeOffset.UnixEpoch : null);
 
     private ModelManagementViewModel Create() =>
-        new(sender, dialogs, new Localizer(new ResourceManager("MediaFileClassifier.Ui.Resources.Strings", typeof(Localizer).Assembly))
-        {
-            Culture = CultureInfo.GetCultureInfo("en-US"),
-        });
+        new(sender, dialogs, TestLocalizer.EnUs());
 
     private sealed class FakeDialogs : IModelDialogs
     {

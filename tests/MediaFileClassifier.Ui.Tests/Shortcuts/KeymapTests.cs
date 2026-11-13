@@ -19,7 +19,7 @@ public sealed class KeymapTests
     [Fact]
     public void DefaultKeymap_HasNoConflictsOrUnknownCommands()
     {
-        var localizer = TestLocalizer.Create();
+        var localizer = TestLocalizer.EnUs();
         var registry = new CommandRegistry(
             [
                 new ShellCommands(new ShellLayout(), new ThemeService(new InMemorySettingsStore()), localizer, new FakeAppPaths(), new FakeFolderLauncher()),
@@ -98,7 +98,7 @@ public sealed class KeymapTests
     [Fact]
     public void Find_SkipsHiddenCommands()
     {
-        var localizer = TestLocalizer.Create();
+        var localizer = TestLocalizer.EnUs();
         var registry = new CommandRegistry(
             [new Contributor(new AppCommand("hidden", CommandGroups.Help, 0, "hidden", () => { }) { IsVisible = false })],
             localizer,
@@ -118,7 +118,7 @@ public sealed class KeymapTests
     internal static CommandRegistry Registry(params string[] ids)
         => new(
             [new Contributor([.. ids.Select(id => new AppCommand(id, CommandGroups.Help, 0, id, () => { }))])],
-            TestLocalizer.Create(),
+            TestLocalizer.EnUs(),
             new FakeCapabilityGate());
 
     private sealed class Contributor(params AppCommand[] commands) : ICommandContributor

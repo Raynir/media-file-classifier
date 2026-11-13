@@ -1,10 +1,7 @@
-using System.Globalization;
-using System.Resources;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Testing.UseCases;
-using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels.Hardware;
 using MediaFileClassifier.UseCases.Hardware.GetHardwareStatus;
 using MediaFileClassifier.UseCases.Hardware.RunBenchmark;
@@ -113,10 +110,7 @@ public sealed class HardwareSettingsViewModelTests
     }
 
     private HardwareSettingsViewModel Create() =>
-        new(sender, store, new Localizer(new ResourceManager("MediaFileClassifier.Ui.Resources.Strings", typeof(Localizer).Assembly))
-        {
-            Culture = CultureInfo.GetCultureInfo("en-US"),
-        });
+        new(sender, store, TestLocalizer.EnUs());
 
     /// <summary>
     /// Answers the hardware use cases.

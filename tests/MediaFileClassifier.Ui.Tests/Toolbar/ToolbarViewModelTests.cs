@@ -65,7 +65,7 @@ public sealed class ToolbarViewModelTests
 
     private static AppCommand Command(string id, bool isVisible = true)
     {
-        var registry = new CommandRegistry([], TestLocalizer.Create(), new FakeCapabilityGate());
+        var registry = new CommandRegistry([], TestLocalizer.EnUs(), new FakeCapabilityGate());
         return registry.Add(new AppCommand(id, CommandGroups.Tools, 0, id, () => { }) { IsVisible = isVisible });
     }
 }

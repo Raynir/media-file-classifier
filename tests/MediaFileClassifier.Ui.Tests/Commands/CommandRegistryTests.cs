@@ -8,7 +8,7 @@ namespace MediaFileClassifier.Ui.Tests.Commands;
 /// </summary>
 public sealed class CommandRegistryTests
 {
-    private readonly Localizer localizer = TestLocalizer.Create();
+    private readonly Localizer localizer = TestLocalizer.EnUs();
     private readonly FakeCapabilityGate capabilities = new();
 
     [Fact]

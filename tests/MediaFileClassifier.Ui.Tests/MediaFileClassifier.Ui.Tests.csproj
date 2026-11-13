@@ -14,6 +14,7 @@
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Jobs/MediaFileClassifier.Infrastructure.Jobs.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Media/MediaFileClassifier.Infrastructure.Media.csproj" />
     <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
     <PackageReference Include="Avalonia.Headless" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>

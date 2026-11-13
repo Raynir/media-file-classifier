@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/MediaFileClassifier.Domain/MediaFileClassifier.Domain.csproj" />
     <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
   </ItemGroup>
 
   <ItemGroup>

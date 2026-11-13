@@ -7,7 +7,7 @@ namespace MediaFileClassifier.Testing.UseCases;
 /// doesn't implement the five <c>ISender</c> members. A request without a handler, or a handler that throws,
 /// gives a faulted task (like an async handler), with <see cref="NotSupportedException"/> naming the request in
 /// the first case. A subclass can override <see cref="Handle"/> to switch on the
-/// request instead.
+/// request instead, or override <c>Send&lt;TResponse&gt;</c> when the answer must be asynchronous.
 /// </summary>
 public class FakeSender : ISender
 {
@@ -38,7 +38,7 @@ public class FakeSender : ISender
         On<TRequest>(_ => response);
 
     /// <inheritdoc />
-    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+    public virtual Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
         try
         {

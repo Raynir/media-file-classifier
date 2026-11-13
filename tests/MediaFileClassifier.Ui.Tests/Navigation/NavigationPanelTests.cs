@@ -1,19 +1,9 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
-using MediaFileClassifier.Infrastructure;
-using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
-using MediaFileClassifier.Infrastructure.Abstractions.Paths;
-using MediaFileClassifier.Infrastructure.Abstractions.Platform;
-using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
-using MediaFileClassifier.Infrastructure.DataAccess;
-using MediaFileClassifier.Infrastructure.Files;
-using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Ui.Navigation;
 using MediaFileClassifier.Ui.Shell;
-using MediaFileClassifier.Ui.Tests.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
-using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
@@ -28,37 +18,19 @@ namespace MediaFileClassifier.Ui.Tests.Navigation;
 /// </summary>
 public sealed class NavigationPanelTests : IAsyncDisposable
 {
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
-    private readonly ServiceProvider services;
-
-    public NavigationPanelTests()
-    {
-        var platform = new Commands.FakePlatformServices(new AppPaths(Path.Combine(root, "app")));
-        services = new ServiceCollection()
-            .AddLogging()
-            .AddSingleton<IAppPaths>(platform.Paths)
-            .AddSingleton<IPlatformServices>(platform)
-            .AddSingleton<Platform.ICapabilityGate>(new Commands.FakeCapabilityGate())
-            .AddSingleton<IMediaFileSource, FileSystemMediaFileSource>()
-            .AddSingleton<IThumbnailCache, NoThumbnails>()
-            .AddInfrastructure()
-            .AddDataAccess()
-            .AddUseCases()
-            .AddUi()
-            .BuildServiceProvider();
-    }
+    private readonly TestServices app = TestServices.Build();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    private IOpenLibrary Library => services.GetRequiredService<ILibrarySession>().Current!;
+    private IOpenLibrary Library => app.Services.GetRequiredService<ILibrarySession>().Current!;
 
-    private LibraryItemsSource Source => services.GetRequiredService<LibraryItemsSource>();
+    private LibraryItemsSource Source => app.Services.GetRequiredService<LibraryItemsSource>();
 
     [Fact]
     public async Task Panel_ShowsTheSectionsWithCounts_AndEachEntryScopesTheBrowser()
     {
         var (photos, _) = await CreateLibraryAsync();
-        var panel = services.GetRequiredService<NavigationPanelViewModel>();
+        var panel = app.Services.GetRequiredService<NavigationPanelViewModel>();
 
         await panel.ActivateAsync();
 
@@ -98,7 +70,7 @@ public sealed class NavigationPanelTests : IAsyncDisposable
     public async Task Refresh_UpdatesCountsAndExpandedSubfolders_AndARemovedFolderFallsBackToAllMedia()
     {
         var (photos, videos) = await CreateLibraryAsync();
-        var panel = services.GetRequiredService<NavigationPanelViewModel>();
+        var panel = app.Services.GetRequiredService<NavigationPanelViewModel>();
         await panel.ActivateAsync();
         var photosEntry = Entry(panel, "photos");
         photosEntry.IsExpanded = true;
@@ -106,7 +78,7 @@ public sealed class NavigationPanelTests : IAsyncDisposable
         panel.Select(Entry(panel, "videos"));
 
         await Library.Items.AddRangeAsync([Item(photos, "2025/new.jpg"), Item(photos, "2024/more.jpg")], Token);
-        await services.GetRequiredService<ISender>().Send(new RemoveFolderCommand(videos.Id), Token);
+        await app.Services.GetRequiredService<ISender>().Send(new RemoveFolderCommand(videos.Id), Token);
         await panel.RefreshAsync();
 
         Assert.Equal([6, 5], panel.Sections[0].Entries.Select(entry => entry.Count));
@@ -124,7 +96,7 @@ public sealed class NavigationPanelTests : IAsyncDisposable
         var (photos, _) = await CreateLibraryAsync();
         photos.MarkOffline(DateTimeOffset.UtcNow);
         await Library.Folders.UpdateAsync(photos, Token);
-        var panel = services.GetRequiredService<NavigationPanelViewModel>();
+        var panel = app.Services.GetRequiredService<NavigationPanelViewModel>();
 
         await panel.ActivateAsync();
 
@@ -140,8 +112,8 @@ public sealed class NavigationPanelTests : IAsyncDisposable
     public async Task CollapsingASection_IsRememberedInTheLayout()
     {
         await CreateLibraryAsync();
-        var panel = services.GetRequiredService<NavigationPanelViewModel>();
-        var layout = services.GetRequiredService<ShellLayout>();
+        var panel = app.Services.GetRequiredService<NavigationPanelViewModel>();
+        var layout = app.Services.GetRequiredService<ShellLayout>();
 
         panel.Sections[1].IsExpanded = false;
 
@@ -155,11 +127,11 @@ public sealed class NavigationPanelTests : IAsyncDisposable
     {
         await CreateLibraryAsync();
         var panel = new NavigationPanelViewModel(
-            [.. services.GetServices<INavigationContributor>(), new TestContributor()],
+            [.. app.Services.GetServices<INavigationContributor>(), new TestContributor()],
             Source,
-            services.GetRequiredService<ILibrarySession>(),
-            services.GetRequiredService<ShellLayout>(),
-            services.GetRequiredService<Ui.Libraries.LibraryDialogs>());
+            app.Services.GetRequiredService<ILibrarySession>(),
+            app.Services.GetRequiredService<ShellLayout>(),
+            app.Services.GetRequiredService<Ui.Libraries.LibraryDialogs>());
 
         await panel.RefreshAsync();
 
@@ -167,15 +139,7 @@ public sealed class NavigationPanelTests : IAsyncDisposable
         Assert.Equal(1, Assert.Single(panel.Sections[1].Entries).Count);
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
-        await services.DisposeAsync();
-        if (Directory.Exists(root))
-        {
-            Directory.Delete(root, recursive: true);
-        }
-    }
+    public ValueTask DisposeAsync() => app.DisposeAsync();
 
     private static NavigationEntry Entry(NavigationPanelViewModel panel, string label) =>
         panel.Sections.Single(section => section.Key == FolderNavigation.SectionKey).Entries.Single(entry => entry.Label == label);
@@ -190,9 +154,9 @@ public sealed class NavigationPanelTests : IAsyncDisposable
 
     private async Task<(IndexedFolder Photos, IndexedFolder Videos)> CreateLibraryAsync()
     {
-        await services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", root), Token);
-        var photos = IndexedFolder.Create(Library.Library.Id, Path.Combine(root, "photos"), Path.Combine(root, "photos"), DateTimeOffset.UtcNow);
-        var videos = IndexedFolder.Create(Library.Library.Id, Path.Combine(root, "videos"), Path.Combine(root, "videos"), DateTimeOffset.UtcNow);
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var photos = IndexedFolder.Create(Library.Library.Id, Path.Combine(app.Root, "photos"), Path.Combine(app.Root, "photos"), DateTimeOffset.UtcNow);
+        var videos = IndexedFolder.Create(Library.Library.Id, Path.Combine(app.Root, "videos"), Path.Combine(app.Root, "videos"), DateTimeOffset.UtcNow);
         await Library.Folders.AddAsync(photos, Token);
         await Library.Folders.AddAsync(videos, Token);
         var excluded = Item(photos, "2024/excluded.jpg");

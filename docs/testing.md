@@ -23,7 +23,7 @@ How tests are written, shared and run. xunit v3 on Microsoft.Testing.Platform (M
 
 | Helper | Project | Use |
 |---|---|---|
-| `FakeSender` | `Testing` | MediatR `ISender` with handlers by request type (`On<TRequest>(...)`), or override `Handle` to switch on the request |
+| `FakeSender` | `Testing` | MediatR `ISender` base: override `Handle` to switch on the request |
 | `ForwardingSender` | `Testing` | An `ISender` that passes everything to an inner (real) sender; override `Send` to answer some requests |
 | `FakeHardwareInfo` | `Testing` | `IHardwareInfo` with a preferred provider, optional GPU, cores, memory and parallelism |
 | `InMemoryModelStore`, `SingleEntryModelCatalog` | `Testing` | `IModelStore` and `IModelCatalog` without files |

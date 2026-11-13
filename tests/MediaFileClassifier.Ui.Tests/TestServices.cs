@@ -90,8 +90,14 @@ internal sealed class TestServices : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await Services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
-        await Services.DisposeAsync();
-        folder.Dispose();
+        try
+        {
+            await Services.GetRequiredService<ILibrarySession>().SetCurrentAsync(null);
+            await Services.DisposeAsync();
+        }
+        finally
+        {
+            folder.Dispose();
+        }
     }
 }

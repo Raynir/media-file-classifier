@@ -7,6 +7,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../tools/MediaFileClassifier.Evaluation/MediaFileClassifier.Evaluation.csproj" />
+    <ProjectReference Include="../MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
+    <Using Include="MediaFileClassifier.Testing.Files" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 

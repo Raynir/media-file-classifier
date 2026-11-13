@@ -4,6 +4,7 @@ using MediaFileClassifier.Infrastructure.AI.Benchmarks;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
 using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
+using MediaFileClassifier.Testing.Hardware;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Benchmarks;
@@ -94,7 +95,7 @@ public sealed class BenchmarkTests : IDisposable
         var old = Report(Entry(Siglip2Benchmark.ImageAnalyzer, "standard", ExecutionProvider.Cpu, 14));
         await results.SaveAsync(old, CancellationToken.None);
         var lines = new List<string>();
-        var runner = new Siglip2Benchmark(new Siglip2StubStore(null), new OnnxSessionFactory(), new CpuOnly(), results, new Siglip2Options(), TimeProvider.System);
+        var runner = new Siglip2Benchmark(new Siglip2StubStore(null), new OnnxSessionFactory(), new FakeHardwareInfo(), results, new Siglip2Options(), TimeProvider.System);
 
         var report = await runner.RunAsync(new Lines(lines), CancellationToken.None);
 
@@ -134,16 +135,5 @@ public sealed class BenchmarkTests : IDisposable
     private sealed class Lines(List<string> lines) : IProgress<string>
     {
         public void Report(string value) => lines.Add(value);
-    }
-
-    private sealed class CpuOnly : IHardwareInfo
-    {
-        public HardwareProfile Profile { get; } = new("X64", 8, 16L << 30, []);
-
-        public ExecutionProvider PreferredExecutionProvider => ExecutionProvider.Cpu;
-
-        public GpuInfo? PreferredGpu => null;
-
-        public int DefaultParallelism => 4;
     }
 }

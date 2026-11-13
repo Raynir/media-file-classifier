@@ -27,6 +27,7 @@ using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
+using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Hardware;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Import;
@@ -46,7 +47,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Import;
 internal sealed class ImportTestBed : IAsyncDisposable
 {
     private readonly ServiceProvider services;
-    private bool ownsRoot;
+    private TemporaryFolder? ownedRoot;
 
     private ImportTestBed(LibraryTestBed library, string root, IndexedFolder folder, ServiceProvider services, ImportTestSettings settings)
     {
@@ -83,8 +84,8 @@ internal sealed class ImportTestBed : IAsyncDisposable
     /// </summary>
     public static async Task<ImportTestBed> CreateAsync(int cpu = 2, string? root = null, Action<IServiceCollection>? configure = null)
     {
-        var ownsRoot = root is null;
-        root ??= Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+        var ownedRoot = root is null ? new TemporaryFolder() : null;
+        root ??= ownedRoot!.Path;
         Directory.CreateDirectory(root);
         var library = await LibraryTestBed.CreateAsync();
         var folder = IndexedFolder.Create(library.Library.Library.Id, root, root, LibraryTestBed.Start);
@@ -125,7 +126,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
             .AddMedia()
             .AddUseCases()
             .BuildServiceProvider();
-        var bed = new ImportTestBed(library, root, folder, services, settings) { ownsRoot = ownsRoot };
+        var bed = new ImportTestBed(library, root, folder, services, settings) { ownedRoot = ownedRoot };
         await bed.Jobs.StartAsync(library.Library, Token);
         return bed;
     }
@@ -182,19 +183,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
         await Jobs.StopAsync();
         await services.DisposeAsync();
         await LibraryBed.DisposeAsync();
-        if (!ownsRoot)
-        {
-            return;
-        }
-
-        try
-        {
-            Directory.Delete(Root, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A file may still be locked by a test; the temp folder is cleaned up eventually.
-        }
+        ownedRoot?.Dispose();
     }
 }
 

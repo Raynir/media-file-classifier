@@ -27,6 +27,7 @@ using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
+using MediaFileClassifier.Testing.Hardware;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.ImportFolders;
@@ -108,7 +109,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddSingleton<ICapabilityService>(capabilities)
             .AddSingleton<ISettingsService>(settings)
-            .AddSingleton<IHardwareInfo>(new ImportTestHardware())
+            .AddSingleton<IHardwareInfo>(new FakeHardwareInfo(memoryBytes: 8L << 30))
             .AddSingleton<IMediaFileSource, FileSystemMediaFileSource>()
             .AddSingleton<IFolderDiscovery, FolderDiscovery>()
             .AddSingleton<IFileHasher, XxHashFileHasher>()
@@ -237,18 +238,4 @@ internal sealed class ImportTestSettings : ISettingsService
     public void Save(AppSettings settings) => Current = settings;
 
     public AppSettings Update(Func<AppSettings, AppSettings> change) => Current = change(Current);
-}
-
-/// <summary>
-/// A fixed machine.
-/// </summary>
-internal sealed class ImportTestHardware : IHardwareInfo
-{
-    public HardwareProfile Profile { get; } = new("X64", 8, 8L << 30, []);
-
-    public ExecutionProvider PreferredExecutionProvider => ExecutionProvider.Cpu;
-
-    public GpuInfo? PreferredGpu => null;
-
-    public int DefaultParallelism => 4;
 }

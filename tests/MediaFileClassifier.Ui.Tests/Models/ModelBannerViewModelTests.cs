@@ -1,5 +1,4 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
-using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.UseCases.Models.DownloadModel;
 using MediaFileClassifier.UseCases.Models.GetModelOffer;

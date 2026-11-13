@@ -1,11 +1,9 @@
 using System.Globalization;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Testing.UseCases;
-using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.UseCases.Models.DeleteModel;
 using MediaFileClassifier.UseCases.Models.DownloadModel;
-using MediaFileClassifier.UseCases.Models.GetModelOffer;
 using MediaFileClassifier.UseCases.Models.GetModels;
 using MediaFileClassifier.UseCases.Models.GetModelUsage;
 using MediaFileClassifier.UseCases.Models.ImportModel;
@@ -20,7 +18,7 @@ namespace MediaFileClassifier.Ui.Tests.Models;
 public sealed class ModelManagementViewModelTests
 {
     private readonly ModelSender sender = new();
-    private readonly FakeDialogs dialogs = new();
+    private readonly FakeModelDialogs dialogs = new();
 
     [Fact]
     public async Task Refresh_ShowsOneRowPerTier_WithItsState()
@@ -190,23 +188,6 @@ public sealed class ModelManagementViewModelTests
 
     private ModelManagementViewModel Create() =>
         new(sender, dialogs, TestLocalizer.EnUs());
-
-    private sealed class FakeDialogs : IModelDialogs
-    {
-        public bool Agree { get; set; }
-
-        public ModelOffer? Offer { get; private set; }
-
-        public IReadOnlyList<string> Picked { get; set; } = [];
-
-        public Task<bool> ConfirmDownloadAsync(ModelOffer offer)
-        {
-            Offer = offer;
-            return Task.FromResult(Agree);
-        }
-
-        public Task<IReadOnlyList<string>> PickModelFilesAsync() => Task.FromResult(Picked);
-    }
 
     /// <summary>
     /// Answers the model use cases.

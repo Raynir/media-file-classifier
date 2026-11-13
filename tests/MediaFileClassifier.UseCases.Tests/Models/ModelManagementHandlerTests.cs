@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.UseCases.Models.DeleteModel;
 using MediaFileClassifier.UseCases.Models.DownloadModel;
 using MediaFileClassifier.UseCases.Models.GetModels;
@@ -27,7 +28,7 @@ public sealed class ModelManagementHandlerTests
         ]);
 
     private readonly FakeStore store = new();
-    private readonly FakeCatalog catalog = new();
+    private readonly SingleEntryModelCatalog catalog = new(Entry);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -104,15 +105,6 @@ public sealed class ModelManagementHandlerTests
 
     private static InstalledModel Installed(string id, string tier, long size) =>
         new(id, "1.0", tier, id, "MIT", null, @"C:\models", [new InstalledModelFile("vision", "vision.onnx", size, new string('a', 64))], "hash", DateTimeOffset.UnixEpoch);
-
-    private sealed class FakeCatalog : IModelCatalog
-    {
-        public IReadOnlyList<ModelCatalogEntry> Entries => [Entry];
-
-        public ModelCatalogEntry? Find(string modelId) => modelId == Entry.ModelId ? Entry : null;
-
-        public ModelCatalogEntry? GetDefault(ModelPurpose purpose) => purpose == Entry.Purpose ? Entry : null;
-    }
 
     private sealed class FakeDownloader : IModelDownloader
     {

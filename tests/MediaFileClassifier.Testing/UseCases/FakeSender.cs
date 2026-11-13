@@ -4,8 +4,9 @@ namespace MediaFileClassifier.Testing.UseCases;
 
 /// <summary>
 /// A MediatR <see cref="ISender"/> that answers requests from handlers registered by request type, so a test
-/// doesn't implement the five <c>ISender</c> members. A request without a handler throws
-/// <see cref="NotSupportedException"/> naming it. A subclass can override <see cref="Handle"/> to switch on the
+/// doesn't implement the five <c>ISender</c> members. A request without a handler, or a handler that throws,
+/// gives a faulted task (like an async handler), with <see cref="NotSupportedException"/> naming the request in
+/// the first case. A subclass can override <see cref="Handle"/> to switch on the
 /// request instead.
 /// </summary>
 public class FakeSender : ISender
@@ -37,20 +38,45 @@ public class FakeSender : ISender
         On<TRequest>(_ => response);
 
     /// <inheritdoc />
-    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) =>
-        Task.FromResult((TResponse)Handle(request)!);
+    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return Task.FromResult((TResponse)Handle(request)!);
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException<TResponse>(ex);
+        }
+    }
 
     /// <inheritdoc />
     public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
         where TRequest : IRequest
     {
-        Handle(request);
-        return Task.CompletedTask;
+        try
+        {
+            Handle(request);
+            return Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException(ex);
+        }
     }
 
     /// <inheritdoc />
-    public Task<object?> Send(object request, CancellationToken cancellationToken = default) =>
-        Task.FromResult(Handle(request));
+    public Task<object?> Send(object request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return Task.FromResult(Handle(request));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException<object?>(ex);
+        }
+    }
 
     /// <inheritdoc />
     public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) =>

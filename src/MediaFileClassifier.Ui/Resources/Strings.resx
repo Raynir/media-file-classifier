@@ -1560,4 +1560,175 @@
   <data name="Filter_TagRemoveExcluded" xml:space="preserve">
     <value>Stop excluding the tag {0}</value>
   </data>
+  <data name="Profile_Heading" xml:space="preserve">
+    <value>Analysis profile</value>
+  </data>
+  <data name="Profile_Help" xml:space="preserve">
+    <value>Which analyzers run on new items of the open library, and which model each one uses. Changes apply to items analysed from now on.</value>
+  </data>
+  <data name="Profile_NoLibrary" xml:space="preserve">
+    <value>Open a library to change its analysis profile.</value>
+  </data>
+  <data name="Profile_LoadFailed" xml:space="preserve">
+    <value>The analysis profile couldn't be read.</value>
+  </data>
+  <data name="Profile_SaveFailed" xml:space="preserve">
+    <value>The analysis profile couldn't be saved. The previous settings are shown.</value>
+  </data>
+  <data name="Profile_Analyzer_embedding" xml:space="preserve">
+    <value>Search index</value>
+  </data>
+  <data name="Profile_AnalyzerHelp_embedding" xml:space="preserve">
+    <value>Lets you search by description. Turn it off only if you never search this library.</value>
+  </data>
+  <data name="Profile_Analyzer_describer" xml:space="preserve">
+    <value>Descriptions and tags</value>
+  </data>
+  <data name="Profile_AnalyzerHelp_describer" xml:space="preserve">
+    <value>Writes a description and tags for each image or video frame.</value>
+  </data>
+  <data name="Profile_Analyzer_ocr" xml:space="preserve">
+    <value>Text in images</value>
+  </data>
+  <data name="Profile_AnalyzerHelp_ocr" xml:space="preserve">
+    <value>Reads text that appears in images, so you can search for it.</value>
+  </data>
+  <data name="Profile_Provider" xml:space="preserve">
+    <value>Provider</value>
+  </data>
+  <data name="Profile_Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="Profile_Automatic" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="Profile_AnyModel" xml:space="preserve">
+    <value>Any model</value>
+  </data>
+  <data name="Profile_MissingProvider" xml:space="preserve">
+    <value>{0} (not available)</value>
+  </data>
+  <data name="Profile_MissingModel" xml:space="preserve">
+    <value>{0} (not available)</value>
+  </data>
+  <data name="Profile_MaxTags" xml:space="preserve">
+    <value>Most tags per item</value>
+  </data>
+  <data name="Profile_MaxTagsHelp" xml:space="preserve">
+    <value>Leave empty for no limit.</value>
+  </data>
+  <data name="Profile_Language" xml:space="preserve">
+    <value>Description language</value>
+  </data>
+  <data name="Profile_LanguageApp" xml:space="preserve">
+    <value>Same as the app</value>
+  </data>
+  <data name="Profile_LanguageEnglish" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Profile_LanguageRussian" xml:space="preserve">
+    <value>Russian</value>
+  </data>
+  <data name="Profile_NoteDisabled" xml:space="preserve">
+    <value>Turned off. New items skip this step.</value>
+  </data>
+  <data name="Profile_NoteProviderMissing" xml:space="preserve">
+    <value>The chosen provider isn't available, so items skip this step. Choose another provider or Automatic.</value>
+  </data>
+  <data name="Profile_NoteNoProvider" xml:space="preserve">
+    <value>No provider is set up for this step. Install a model above, or add an endpoint below.</value>
+  </data>
+  <data name="Profile_NoteUnhealthy" xml:space="preserve">
+    <value>The provider isn't ready.</value>
+  </data>
+  <data name="Endpoints_Heading" xml:space="preserve">
+    <value>Endpoints</value>
+  </data>
+  <data name="Endpoints_Help" xml:space="preserve">
+    <value>Servers that run models for you, such as LM Studio or Ollama, through an OpenAI-compatible address. A server on another computer receives your images, so each one needs your confirmation.</value>
+  </data>
+  <data name="Endpoints_None" xml:space="preserve">
+    <value>No endpoints yet.</value>
+  </data>
+  <data name="Endpoints_Add" xml:space="preserve">
+    <value>Add endpoint</value>
+  </data>
+  <data name="Endpoints_UseLmStudio" xml:space="preserve">
+    <value>Use LM Studio</value>
+  </data>
+  <data name="Endpoints_AddLmStudio" xml:space="preserve">
+    <value>Add it</value>
+  </data>
+  <data name="Endpoints_LmStudioFound" xml:space="preserve">
+    <value>LM Studio is running on this computer ({0} models found).</value>
+  </data>
+  <data name="Endpoints_LmStudioConnected" xml:space="preserve">
+    <value>Found LM Studio with {0} models. Choose one and save.</value>
+  </data>
+  <data name="Endpoints_LmStudioNotRunning" xml:space="preserve">
+    <value>LM Studio isn't answering at {0}. Start its local server (Developer tab), then test again.</value>
+  </data>
+  <data name="Endpoints_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Endpoints_Address" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="Endpoints_AddressPlaceholder" xml:space="preserve">
+    <value>http://127.0.0.1:1234/v1</value>
+  </data>
+  <data name="Endpoints_ApiKey" xml:space="preserve">
+    <value>API key</value>
+  </data>
+  <data name="Endpoints_ApiKeyHelp" xml:space="preserve">
+    <value>Only needed by cloud services. It's kept until the app closes and never written to disk.</value>
+  </data>
+  <data name="Endpoints_ApiKeyHeld" xml:space="preserve">
+    <value>A key is kept until the app closes. Type a new one to replace it.</value>
+  </data>
+  <data name="Endpoints_Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="Endpoints_ModelHelp" xml:space="preserve">
+    <value>Test the connection to list the models the server offers.</value>
+  </data>
+  <data name="Endpoints_RemoteConfirm" xml:space="preserve">
+    <value>I understand, and I want to send my images to this server</value>
+  </data>
+  <data name="Endpoints_Test" xml:space="preserve">
+    <value>Test connection</value>
+  </data>
+  <data name="Endpoints_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Endpoints_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Endpoints_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Endpoints_Connected" xml:space="preserve">
+    <value>Connected. The server offers {0} models.</value>
+  </data>
+  <data name="Endpoints_ConnectedNoModels" xml:space="preserve">
+    <value>Connected, but the server lists no models. Load one in the server.</value>
+  </data>
+  <data name="Endpoints_TestFailed" xml:space="preserve">
+    <value>The connection couldn't be tested.</value>
+  </data>
+  <data name="Endpoints_Saved" xml:space="preserve">
+    <value>Saved.</value>
+  </data>
+  <data name="Endpoints_SavedNoModel" xml:space="preserve">
+    <value>Saved. Choose a model to use this endpoint.</value>
+  </data>
+  <data name="Endpoints_InvalidUrl" xml:space="preserve">
+    <value>Enter a full address that starts with http:// or https://.</value>
+  </data>
+  <data name="Endpoints_SaveFailed" xml:space="preserve">
+    <value>The endpoint couldn't be saved.</value>
+  </data>
+  <data name="Endpoints_SummaryNoModel" xml:space="preserve">
+    <value>{0} · no model chosen</value>
+  </data>
 </root>

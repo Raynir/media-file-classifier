@@ -56,6 +56,12 @@ public sealed record AppSettings
     = SettingValues.Empty;
 
     /// <summary>
+    /// The OpenAI-compatible endpoints the user configured, or <c>null</c> if none were saved yet (E17-S02-T02).
+    /// Added without a schema bump: a file without it reads as <c>null</c>. API keys aren't stored.
+    /// </summary>
+    public IReadOnlyList<AiEndpointSettings>? AiEndpoints { get; init; }
+
+    /// <summary>
     /// Background processing: pool sizes, resuming, and the quit confirmation (E05-S01).
     /// </summary>
     public ProcessingSettings Processing

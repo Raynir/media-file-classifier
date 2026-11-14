@@ -1,0 +1,142 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Analysis"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Analysis.EndpointsView"
+             x:DataType="vm:EndpointsViewModel">
+  <!--
+    Endpoints (E17-S02-T02), in the AI & Models settings. Provisional layout: E17-S02-T00 has no mockups yet.
+    States: LM Studio found (note with a button), connection failed (error line), host that isn't this computer
+    (warning and a confirmation that Test needs), connected (model count and the model list).
+    Tab order: endpoint list, Add, LM Studio, then the form: name, address, API key, model, confirmation,
+    Test connection, Save, Remove, Cancel.
+  -->
+  <StackPanel Spacing="{DynamicResource Space.S}">
+    <TextBlock Classes="Secondary"
+               Margin="{DynamicResource Padding.Compact}"
+               Text="{l:Loc Endpoints_Help}"
+               TextWrapping="Wrap" />
+
+    <!-- LM Studio found at its usual address. -->
+    <DockPanel Margin="{DynamicResource Padding.Compact}" IsVisible="{Binding HasLmStudioNote}">
+      <Button DockPanel.Dock="Right"
+              Content="{l:Loc Endpoints_AddLmStudio}"
+              Command="{Binding UseLmStudioCommand}" />
+      <TextBlock x:Name="LmStudioNoteText"
+                 Text="{Binding LmStudioNote}"
+                 VerticalAlignment="Center"
+                 TextWrapping="Wrap"
+                 AutomationProperties.LiveSetting="Polite" />
+    </DockPanel>
+
+    <TextBlock Classes="Secondary"
+               Margin="{DynamicResource Padding.Compact}"
+               Text="{l:Loc Endpoints_None}"
+               IsVisible="{Binding IsEmpty}"
+               TextWrapping="Wrap" />
+
+    <ListBox x:Name="EndpointList"
+             ItemsSource="{Binding Endpoints}"
+             SelectedItem="{Binding SelectedEndpoint}"
+             IsVisible="{Binding !IsEmpty}"
+             AutomationProperties.Name="{l:Loc Endpoints_Heading}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:EndpointItem">
+          <StackPanel>
+            <TextBlock Text="{Binding Name}" />
+            <TextBlock Classes="Tertiary" Text="{Binding Summary}" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" Margin="{DynamicResource Padding.Compact}">
+      <Button x:Name="AddButton" Content="{l:Loc Endpoints_Add}" Command="{Binding AddCommand}" />
+      <Button x:Name="LmStudioButton" Content="{l:Loc Endpoints_UseLmStudio}" Command="{Binding UseLmStudioCommand}" />
+    </StackPanel>
+
+    <!-- The form. -->
+    <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding IsEditing}">
+      <DockPanel Margin="{DynamicResource Padding.Compact}">
+        <TextBlock Text="{l:Loc Endpoints_Name}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+        <TextBox x:Name="NameBox" Text="{Binding Name}" MinWidth="{DynamicResource Size.SettingControl}" AutomationProperties.Name="{l:Loc Endpoints_Name}" />
+      </DockPanel>
+
+      <DockPanel Margin="{DynamicResource Padding.Compact}">
+        <TextBlock Text="{l:Loc Endpoints_Address}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+        <TextBox x:Name="AddressBox"
+                 Text="{Binding BaseUrl}"
+                 PlaceholderText="{l:Loc Endpoints_AddressPlaceholder}"
+                 MinWidth="{DynamicResource Size.SettingControl}"
+                 AutomationProperties.Name="{l:Loc Endpoints_Address}" />
+      </DockPanel>
+
+      <!-- Host that isn't this computer. -->
+      <StackPanel Margin="{DynamicResource Padding.Compact}" Spacing="{DynamicResource Space.XS}" IsVisible="{Binding HasRemoteWarning}">
+        <TextBlock x:Name="RemoteWarningText"
+                   Foreground="{DynamicResource Brush.Status.Pending.Foreground}"
+                   Text="{Binding RemoteWarning}"
+                   TextWrapping="Wrap"
+                   AutomationProperties.LiveSetting="Assertive" />
+        <CheckBox x:Name="RemoteConfirmBox"
+                  Content="{l:Loc Endpoints_RemoteConfirm}"
+                  IsChecked="{Binding RemoteHostConfirmed}" />
+      </StackPanel>
+
+      <DockPanel Margin="{DynamicResource Padding.Compact}">
+        <TextBlock Text="{l:Loc Endpoints_ApiKey}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+        <TextBox x:Name="ApiKeyBox"
+                 Text="{Binding ApiKey}"
+                 PasswordChar="●"
+                 MinWidth="{DynamicResource Size.SettingControl}"
+                 AutomationProperties.Name="{l:Loc Endpoints_ApiKey}" />
+      </DockPanel>
+      <TextBlock Classes="Tertiary" Margin="{DynamicResource Padding.Compact}" Text="{Binding ApiKeyNote}" TextWrapping="Wrap" />
+
+      <DockPanel Margin="{DynamicResource Padding.Compact}">
+        <TextBlock Text="{l:Loc Endpoints_Model}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+        <AutoCompleteBox x:Name="ModelBox"
+                         Text="{Binding Model}"
+                         ItemsSource="{Binding Models}"
+                         FilterMode="None"
+                         MinimumPrefixLength="0"
+                         MinWidth="{DynamicResource Size.SettingControl}"
+                         AutomationProperties.Name="{l:Loc Endpoints_Model}" />
+      </DockPanel>
+      <TextBlock Classes="Tertiary" Margin="{DynamicResource Padding.Compact}" Text="{l:Loc Endpoints_ModelHelp}" TextWrapping="Wrap" />
+
+      <!-- Result of the test: connected, failed, or needs confirmation. -->
+      <TextBlock x:Name="StatusText"
+                 Margin="{DynamicResource Padding.Compact}"
+                 Text="{Binding Status}"
+                 IsVisible="{Binding IsStatusSuccess}"
+                 TextWrapping="Wrap"
+                 AutomationProperties.LiveSetting="Polite" />
+      <TextBlock x:Name="StatusWarningText"
+                 Margin="{DynamicResource Padding.Compact}"
+                 Foreground="{DynamicResource Brush.Status.Pending.Foreground}"
+                 Text="{Binding Status}"
+                 IsVisible="{Binding IsStatusWarning}"
+                 TextWrapping="Wrap"
+                 AutomationProperties.LiveSetting="Polite" />
+      <TextBlock x:Name="StatusErrorText"
+                 Margin="{DynamicResource Padding.Compact}"
+                 Foreground="{DynamicResource Brush.Status.Error.Foreground}"
+                 Text="{Binding Status}"
+                 IsVisible="{Binding IsStatusError}"
+                 TextWrapping="Wrap"
+                 AutomationProperties.LiveSetting="Assertive" />
+      <ProgressBar IsIndeterminate="True"
+                   Margin="{DynamicResource Padding.Compact}"
+                   IsVisible="{Binding IsTesting}"
+                   AutomationProperties.Name="{l:Loc Endpoints_Test}" />
+
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" Margin="{DynamicResource Padding.Compact}">
+        <Button x:Name="TestButton" Content="{l:Loc Endpoints_Test}" Command="{Binding TestCommand}" />
+        <Button x:Name="SaveButton" Content="{l:Loc Endpoints_Save}" Command="{Binding SaveCommand}" />
+        <Button x:Name="RemoveButton" Content="{l:Loc Endpoints_Remove}" Command="{Binding RemoveCommand}" IsVisible="{Binding IsExisting}" />
+        <Button x:Name="CancelButton" Content="{l:Loc Endpoints_Cancel}" Command="{Binding CancelCommand}" />
+      </StackPanel>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

@@ -14,6 +14,21 @@ public sealed class ImageDescriptionContractTests
         """;
 
     [Fact]
+    public void Schema_LimitsEveryTextAndList_SoAGrammarStopsRunawayOutput()
+    {
+        var properties = ImageDescriptionContract.Schema.GetProperty("properties");
+
+        Assert.Equal(ImageDescriptionContract.MaxTitleLength, properties.GetProperty("title").GetProperty("maxLength").GetInt32());
+        Assert.Equal(ImageDescriptionContract.MaxDescriptionLength, properties.GetProperty("description").GetProperty("maxLength").GetInt32());
+        Assert.Equal(ImageDescriptionContract.MaxSummaryLength, properties.GetProperty("summary").GetProperty("maxLength").GetInt32());
+        foreach (var list in new[] { "tags", "objects", "scenes", "actions", "emotions" })
+        {
+            Assert.Equal(ImageDescriptionContract.MaxListItems, properties.GetProperty(list).GetProperty("maxItems").GetInt32());
+            Assert.Equal(ImageDescriptionContract.MaxListItemLength, properties.GetProperty(list).GetProperty("items").GetProperty("maxLength").GetInt32());
+        }
+    }
+
+    [Fact]
     public void Schema_RequiresEveryFieldAndAllowsNoOthers()
     {
         var schema = ImageDescriptionContract.Schema;

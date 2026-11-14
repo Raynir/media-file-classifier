@@ -247,13 +247,15 @@ public sealed class SearchStoreTests : IAsyncLifetime
         var byPath = await AddItemAsync(2);
         await EditAsync(byPath, DescriptiveField.Title, "unrelated");
 
-        // "0001" is a word of the first item's title, and only a path substring of IMG_00010.
+        // "0001" is a word of the first item's title, and only a word prefix of IMG_00010. A heavier title keeps the
+        // order fixed: with equal weights BM25 prefers the shorter file name.
         var pathOnly = await AddItemAsync(10);
-        var top = await bed.Library.Search.FindKeywordMatchesAsync(Search("0001") with { NeedsTotal = false }, Token);
+        var search = Search("0001") with { Weights = KeywordFieldWeights.Default with { Title = 4 } };
+        var top = await bed.Library.Search.FindKeywordMatchesAsync(search with { NeedsTotal = false }, Token);
 
         Assert.Equal([titled.Id, pathOnly.Id], top.Matches.Select(match => match.ItemId));
         Assert.Equal(2, top.TotalCount);
-        Assert.Equal((await bed.Library.Search.FindKeywordMatchesAsync(Search("0001"), Token)).Matches, top.Matches);
+        Assert.Equal((await bed.Library.Search.FindKeywordMatchesAsync(search, Token)).Matches, top.Matches);
     }
 
     [Fact]

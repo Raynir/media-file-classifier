@@ -29,6 +29,45 @@ internal sealed record CommandOptions
 
     public bool FailBelowBaseline { get; init; }
 
+    /// <summary>
+    /// The OpenAI-compatible endpoint for <c>analyze</c>.
+    /// </summary>
+    public string? Endpoint { get; init; }
+
+    /// <summary>
+    /// The vision model on the endpoint, for <c>analyze</c>, or whose stored analysis the keyword and hybrid systems read.
+    /// </summary>
+    public string? Vlm { get; init; }
+
+    /// <summary>
+    /// The stored analysis file, instead of <c>&lt;data&gt;/analysis/&lt;vlm&gt;.json</c>.
+    /// </summary>
+    public string? Analysis { get; init; }
+
+    /// <summary>
+    /// The language the describer writes in (the profile language).
+    /// </summary>
+    public string Language { get; init; } = "en";
+
+    /// <summary>
+    /// The RRF constant k for the app's search, instead of the default.
+    /// </summary>
+    public double? RrfK { get; init; }
+
+    public double? KeywordWeight { get; init; }
+
+    public double? VectorWeight { get; init; }
+
+    /// <summary>
+    /// BM25 field weights, e.g. <c>title=4,tags=3,filename=2</c>; fields not named keep their defaults.
+    /// </summary>
+    public string? FieldWeights { get; init; }
+
+    /// <summary>
+    /// The relevance cut as <c>centred,raw</c>, or <c>none</c>.
+    /// </summary>
+    public string? Threshold { get; init; }
+
     public static CommandOptions Parse(IReadOnlyList<string> args)
     {
         var options = new CommandOptions();
@@ -45,11 +84,28 @@ internal sealed record CommandOptions
                 "--media" => options with { Media = Path.GetFullPath(Value(args, ref i, name)) },
                 "--files" => options with { CheckFiles = true },
                 "--fail-below-baseline" => options with { FailBelowBaseline = true },
+                "--endpoint" => options with { Endpoint = Value(args, ref i, name) },
+                "--vlm" => options with { Vlm = Value(args, ref i, name) },
+                "--analysis" => options with { Analysis = Path.GetFullPath(Value(args, ref i, name)) },
+                "--language" => options with { Language = Value(args, ref i, name) },
+                "--rrf-k" => options with { RrfK = Number(args, ref i, name) },
+                "--keyword-weight" => options with { KeywordWeight = Number(args, ref i, name) },
+                "--vector-weight" => options with { VectorWeight = Number(args, ref i, name) },
+                "--field-weights" => options with { FieldWeights = Value(args, ref i, name) },
+                "--threshold" => options with { Threshold = Value(args, ref i, name) },
                 _ => throw new ArgumentException($"Unknown option '{name}'."),
             };
         }
 
         return options;
+    }
+
+    private static double Number(IReadOnlyList<string> args, ref int i, string name)
+    {
+        var text = Value(args, ref i, name);
+        return double.TryParse(text, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value
+            : throw new ArgumentException($"Option '{name}' needs a number, not '{text}'.");
     }
 
     private static string Value(IReadOnlyList<string> args, ref int i, string name)

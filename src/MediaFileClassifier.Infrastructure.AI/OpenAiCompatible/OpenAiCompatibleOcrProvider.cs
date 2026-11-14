@@ -19,6 +19,12 @@ public sealed class OpenAiCompatibleOcrProvider(string id, string displayName, O
     /// </summary>
     internal const string NoTextMarker = "<no text>";
 
+    /// <summary>
+    /// The most tokens a transcription may take, so a model that repeats a line stops instead of filling its context.
+    /// A dense page of text is about 1,500 tokens. An answer cut off here is cleaned by <see cref="OcrLoopTrimmer"/>.
+    /// </summary>
+    internal const int MaxOutputTokens = 2048;
+
     private const string PromptVersion = "ocr-1";
 
     private const string Prompt =
@@ -31,10 +37,15 @@ public sealed class OpenAiCompatibleOcrProvider(string id, string displayName, O
         ArgumentNullException.ThrowIfNull(image);
 
         ChatMessage[] messages = [new(ChatRole.User, [new TextContent(Prompt), ToDataContent(image)])];
-        var (response, duration) = await GetResponseAsync(messages, new ChatOptions { Temperature = 0 }, cancellationToken)
+        var (response, duration) = await GetResponseAsync(messages, new ChatOptions { Temperature = 0, MaxOutputTokens = MaxOutputTokens }, cancellationToken)
             .ConfigureAwait(false);
 
         var text = response.Text.Trim();
+        if (response.FinishReason == ChatFinishReason.Length)
+        {
+            text = OcrLoopTrimmer.TrimCutOff(text);
+        }
+
         if (text.Equals(NoTextMarker, StringComparison.OrdinalIgnoreCase))
         {
             text = string.Empty;

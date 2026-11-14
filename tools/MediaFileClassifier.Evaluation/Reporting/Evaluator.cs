@@ -50,8 +50,11 @@ public static class Evaluator
         {
             var ranked = await system.SearchAsync(query, ResultLimit, cancellationToken);
             var relevant = query.Relevant.ToHashSet(StringComparer.Ordinal);
-            var recall = RetrievalMetrics.RecallAt(RecallCutoff, ranked, relevant);
-            var rank = RetrievalMetrics.ReciprocalRank(ranked, relevant);
+
+            // A query that should return nothing has no relevant items, so recall and MRR don't apply to it.
+            var none = IsNone(query.Category);
+            var recall = none ? 0 : RetrievalMetrics.RecallAt(RecallCutoff, ranked, relevant);
+            var rank = none ? 0 : RetrievalMetrics.ReciprocalRank(ranked, relevant);
             var score = new QueryScore(
                 query.Id,
                 query.Language,
@@ -68,13 +71,30 @@ public static class Evaluator
         var languages = scores
             .GroupBy(s => s.Score.Language)
             .OrderBy(g => g.Key, StringComparer.Ordinal)
-            .Select(g => new LanguageScore(g.Key, g.Count(), Mean(g, s => s.Recall), Mean(g, s => s.Rank)))
+            .Select(g =>
+            {
+                var ranked = g.Where(s => !IsNone(s.Score.Category)).ToList();
+                var none = g.Where(s => IsNone(s.Score.Category)).ToList();
+                return new LanguageScore(
+                    g.Key,
+                    ranked.Count,
+                    ranked.Count == 0 ? 0 : Mean(ranked, s => s.Recall),
+                    ranked.Count == 0 ? 0 : Mean(ranked, s => s.Rank),
+                    none.Count,
+                    Shown(none));
+            })
             .ToList();
         var categories = scores
             .GroupBy(s => (s.Score.Language, s.Score.Category))
             .OrderBy(g => g.Key.Category, StringComparer.Ordinal)
             .ThenBy(g => g.Key.Language, StringComparer.Ordinal)
-            .Select(g => new CategoryScore(g.Key.Language, g.Key.Category, g.Count(), Mean(g, s => s.Recall), Mean(g, s => s.Rank)))
+            .Select(g => new CategoryScore(
+                g.Key.Language,
+                g.Key.Category,
+                g.Count(),
+                Mean(g, s => s.Recall),
+                Mean(g, s => s.Rank),
+                IsNone(g.Key.Category) ? Shown([.. g]) : null))
             .ToList();
         return new SearchSection(ResultLimit, languages, categories, [.. scores.Select(s => s.Score)]);
     }
@@ -110,6 +130,11 @@ public static class Evaluator
     }
 
     private static double Ratio(int edits, int length) => length == 0 ? (edits == 0 ? 0 : 1) : (double)edits / length;
+
+    private static bool IsNone(string category) => category == QueryCategories.None;
+
+    private static double? Shown(IReadOnlyList<(QueryScore Score, double Recall, double Rank)> queries) =>
+        queries.Count == 0 ? null : Round((double)queries.Count(q => q.Score.Returned > 0) / queries.Count);
 
     private static double Mean<T>(IEnumerable<T> values, Func<T, double> selector) => Round(values.Average(selector));
 

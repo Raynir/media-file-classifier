@@ -43,6 +43,13 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
         var request = Assert.Single(server.ChatRequests);
         Assert.Contains("\"json_schema\"", request, StringComparison.Ordinal);
         Assert.Contains(ImageDescriptionContract.SchemaName, request, StringComparison.Ordinal);
+        var compact = request.Replace(" ", string.Empty, StringComparison.Ordinal);
+        Assert.Contains($"\"max_completion_tokens\":{ImageDescriptionContract.MaxOutputTokens}", compact, StringComparison.Ordinal);
+
+        // The limits stay schema keywords, so a grammar-based server enforces them; not moved into the descriptions.
+        Assert.Contains($"\"maxItems\":{ImageDescriptionContract.MaxListItems}", compact, StringComparison.Ordinal);
+        Assert.Contains($"\"maxLength\":{ImageDescriptionContract.MaxTitleLength}", compact, StringComparison.Ordinal);
+        Assert.DoesNotContain("maxItems:", compact, StringComparison.Ordinal);
     }
 
     [Fact]

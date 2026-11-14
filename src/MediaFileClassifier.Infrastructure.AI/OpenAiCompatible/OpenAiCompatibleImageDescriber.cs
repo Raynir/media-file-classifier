@@ -18,10 +18,16 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
         "You describe photos and video frames for a personal media library, so they can be found by searching. "
         + "Describe only what is visible. Answer with a single JSON object that matches the schema, and nothing else.";
 
-    private static readonly ChatResponseFormat ResponseFormat = ChatResponseFormat.ForJsonSchema(
-        ImageDescriptionContract.Schema,
+    private const string SchemaDescription = "Description of an image.";
+
+    // The schema as written, with its maxItems and maxLength. Microsoft.Extensions.AI rewrites a ChatResponseFormat
+    // schema for OpenAI's strict mode, which moves those keywords into the descriptions; a server that builds a grammar
+    // from the schema (llama.cpp, LM Studio) then lets a small model repeat one tag until it runs out of tokens. Handing
+    // the OpenAI client its own response format keeps them.
+    private static readonly OpenAI.Chat.ChatResponseFormat SchemaResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
         ImageDescriptionContract.SchemaName,
-        "Description of an image.");
+        BinaryData.FromString(ImageDescriptionContract.Schema.GetRawText()),
+        SchemaDescription);
 
     private readonly bool useSchemaResponseFormat;
 
@@ -64,7 +70,9 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
         var chatOptions = new ChatOptions
         {
             Temperature = 0.2f,
-            ResponseFormat = useSchemaResponseFormat ? ResponseFormat : ChatResponseFormat.Json,
+            MaxOutputTokens = ImageDescriptionContract.MaxOutputTokens,
+            ResponseFormat = useSchemaResponseFormat ? null : ChatResponseFormat.Json,
+            RawRepresentationFactory = useSchemaResponseFormat ? _ => new OpenAI.Chat.ChatCompletionOptions { ResponseFormat = SchemaResponseFormat } : null,
         };
 
         var (response, duration) = await GetResponseAsync(messages, chatOptions, cancellationToken).ConfigureAwait(false);

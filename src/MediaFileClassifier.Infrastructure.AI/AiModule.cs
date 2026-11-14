@@ -33,6 +33,7 @@ public static class AiModule
         services.TryAddSingleton(new Siglip2Options());
         services.TryAddSingleton<Siglip2EmbeddingProvider>();
         services.AddSingleton<IAiProvider>(provider => provider.GetRequiredService<Siglip2EmbeddingProvider>());
+        services.TryAddSingleton<IAiEndpointService, OpenAiCompatible.AiEndpointService>();
         services.TryAddSingleton<IModelCatalog, ModelCatalog>();
         services.TryAddSingleton<Benchmarks.BenchmarkResultStore>();
         services.TryAddSingleton<IBenchmarkResults>(provider => provider.GetRequiredService<Benchmarks.BenchmarkResultStore>());

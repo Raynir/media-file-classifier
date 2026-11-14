@@ -16,6 +16,7 @@ using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Theming;
 using MediaFileClassifier.Ui.Toolbar;
 using MediaFileClassifier.Ui.ViewModels;
+using MediaFileClassifier.Ui.ViewModels.Analysis;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.Ui.ViewModels.Hardware;
@@ -24,6 +25,7 @@ using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
+using MediaFileClassifier.Ui.Views.Analysis;
 using MediaFileClassifier.Ui.Views.Browser;
 using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.Ui.Views.Hardware;
@@ -71,7 +73,9 @@ public static class UiModule
             .Register<ThumbnailSizeViewModel, ThumbnailSizeView>()
             .Register<SearchBarViewModel, SearchBarView>()
             .Register<ModelManagementViewModel, ModelManagementView>()
-            .Register<HardwareSettingsViewModel, HardwareSettingsView>());
+            .Register<HardwareSettingsViewModel, HardwareSettingsView>()
+            .Register<AnalysisProfileViewModel, AnalysisProfileView>()
+            .Register<EndpointsViewModel, EndpointsView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -109,6 +113,14 @@ public static class UiModule
         services.AddSingleton<HardwareSettingsViewModel>();
         services.AddSingleton(provider => new CustomSettingsSection(
             SettingCategories.AiModels, "Hardware_Heading", provider.GetRequiredService<HardwareSettingsViewModel>) { Order = 1100 });
+
+        // Analysis profile and endpoints (E17-S02): more sections of AI & Models.
+        services.AddSingleton<AnalysisProfileViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.AiModels, "Profile_Heading", provider.GetRequiredService<AnalysisProfileViewModel>) { Order = 1200 });
+        services.AddSingleton<EndpointsViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.AiModels, "Endpoints_Heading", provider.GetRequiredService<EndpointsViewModel>) { Order = 1300 });
 
         // Navigation panel (E13-S02). Features add sections through INavigationContributor.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INavigationContributor, LibraryNavigation>());

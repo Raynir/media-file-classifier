@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.DataAccess.Search.Filters;
 using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Infrastructure.Tests.Media;
+using MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
 using MediaFileClassifier.Testing.Media;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -29,6 +30,8 @@ public sealed class CoreFilterCorpusTests(CoreFilterCorpusTests.Corpus corpus) :
     private static MediaTypeFilter Types { get; } = new();
 
     private static FileFormatFilter Formats { get; } = new(FormatTestSupport.CreateRegistry());
+
+    private static ResolutionFilter Resolution { get; } = new();
 
     public static TheoryData<string[], string[]> MediaTypeCases() => new()
     {
@@ -82,6 +85,43 @@ public sealed class CoreFilterCorpusTests(CoreFilterCorpusTests.Corpus corpus) :
             new FilterCondition(Formats, new MultiSelectValue(["gif", "webp"])));
 
         Assert.Equal(["gif-static.gif", "webp.webp"], names, StringComparer.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(600, null, new[] { "ocr-text.png" })]
+    [InlineData(null, 600, new[] { "jpeg-exif.jpg" })]
+    public async Task ResolutionFilter_RotatedPortraitPhoto_CountsAsShown(int? minWidth, int? minHeight, string[] expected)
+    {
+        // jpeg-exif.jpg is stored 640 × 480 with EXIF orientation 6, so it's shown 480 × 640. ocr-text.png is 640 × 200; every
+        // other file is smaller.
+        var names = await corpus.SearchAsync(new FilterCondition(Resolution, new ResolutionValue(null, minWidth, minHeight)));
+
+        Assert.Equal(expected, names, StringComparer.Ordinal);
+    }
+
+    [Fact]
+    public async Task ResolutionFilter_RotatedPortraitVideo_CountsAsShown()
+    {
+        Assert.SkipUnless(ThumbnailTestSupport.HasFfmpeg, "FFmpeg isn't installed on this machine, so videos have no dimensions.");
+
+        // video-portrait.mp4 is stored 160 × 90 with a display rotation (D106), so it's shown 90 × 160.
+        var wide = await corpus.SearchAsync(new FilterCondition(Types, new MultiSelectValue(["Video"])), new FilterCondition(Resolution, new ResolutionValue(null, 150, null)));
+        var tall = await corpus.SearchAsync(new FilterCondition(Types, new MultiSelectValue(["Video"])), new FilterCondition(Resolution, new ResolutionValue(null, null, 150)));
+
+        Assert.DoesNotContain("video-portrait.mp4", wide);
+        Assert.Contains("video-portrait.mp4", tall);
+    }
+
+    [Theory]
+    [InlineData(ResolutionFilter.Small, true)]
+    [InlineData(ResolutionFilter.Hd, false)]
+    public async Task ResolutionFilter_Presets_OnTheCorpus(string preset, bool rotatedPhotoMatches)
+    {
+        // Every file of the corpus is under 800 pixels on its long side; none is HD.
+        var names = await corpus.SearchAsync(new FilterCondition(Types, new MultiSelectValue(["Image"])), new FilterCondition(Resolution, new ResolutionValue(preset, null, null)));
+
+        Assert.Equal(rotatedPhotoMatches, names.Contains("jpeg-exif.jpg"));
+        Assert.DoesNotContain("corrupt.jpg", names);
     }
 
     /// <summary>

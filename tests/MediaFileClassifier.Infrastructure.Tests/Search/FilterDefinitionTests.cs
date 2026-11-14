@@ -33,6 +33,7 @@ public sealed class FilterDefinitionTests
                 (MediaTypeFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
                 (FileFormatFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
                 (DateFilter.FilterId, FilterValueKind.DateRange, typeof(DateRangeValue)),
+                (ResolutionFilter.FilterId, FilterValueKind.Resolution, typeof(ResolutionValue)),
             ],
             registry.All.Select(filter => (filter.Id, filter.Kind, filter.ValueType)));
         Assert.All(registry.All, filter => Assert.True(filter.IsAvailable));

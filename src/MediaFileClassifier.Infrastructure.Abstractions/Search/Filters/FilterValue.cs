@@ -96,6 +96,20 @@ public sealed record DateRangeValue(string? Preset, DateTimeOffset? From, DateTi
 }
 
 /// <summary>
+/// The value of a <see cref="FilterValueKind.Resolution"/> filter: a preset the filter defines (e.g. <c>hd</c>), or a
+/// minimum displayed width and height in pixels. A preset wins over the minimums.
+/// </summary>
+/// <param name="Preset">The preset's ID, or <see langword="null"/> for custom minimums.</param>
+/// <param name="MinWidth">The smallest displayed width, or <see langword="null"/>.</param>
+/// <param name="MinHeight">The smallest displayed height, or <see langword="null"/>.</param>
+public sealed record ResolutionValue(string? Preset, int? MinWidth, int? MinHeight) : FilterValue
+{
+    /// <inheritdoc />
+    [JsonIgnore]
+    public override bool IsEmpty => string.IsNullOrWhiteSpace(Preset) && MinWidth is null && MinHeight is null;
+}
+
+/// <summary>
 /// The value of a <see cref="FilterValueKind.Boolean"/> filter. Both <see langword="true"/> and
 /// <see langword="false"/> filter; a filter that's off isn't in the filter state at all.
 /// </summary>

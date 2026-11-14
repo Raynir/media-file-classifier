@@ -31,6 +31,7 @@ public static class DataAccessModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.MediaTypeFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.FileFormatFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.DateFilter>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.ResolutionFilter>());
         return services;
     }
 }

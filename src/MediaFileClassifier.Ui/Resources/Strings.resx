@@ -1425,4 +1425,19 @@
   <data name="Filter_Date_LastYear" xml:space="preserve">
     <value>Last year</value>
   </data>
+  <data name="Filter_Resolution" xml:space="preserve">
+    <value>Resolution</value>
+  </data>
+  <data name="Filter_Resolution_Small" xml:space="preserve">
+    <value>Small (under 800 px)</value>
+  </data>
+  <data name="Filter_Resolution_Hd" xml:space="preserve">
+    <value>HD or better</value>
+  </data>
+  <data name="Filter_Resolution_FullHd" xml:space="preserve">
+    <value>Full HD or better</value>
+  </data>
+  <data name="Filter_Resolution_4K" xml:space="preserve">
+    <value>4K or better</value>
+  </data>
 </root>

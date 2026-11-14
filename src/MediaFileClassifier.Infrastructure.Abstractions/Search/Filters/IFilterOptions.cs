@@ -2,7 +2,8 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
 
 /// <summary>
 /// The values a <see cref="FilterValueKind.MultiSelect"/> or <see cref="FilterValueKind.IncludeExclude"/> filter offers,
-/// for the filter panel's check boxes or picker. A filter definition implements it when it has a list to offer.
+/// for the filter panel's check boxes or picker, and the presets of a <see cref="FilterValueKind.DateRange"/> or
+/// <see cref="FilterValueKind.Resolution"/> filter. A filter definition implements it when it has a list to offer.
 /// </summary>
 public interface IFilterOptions
 {

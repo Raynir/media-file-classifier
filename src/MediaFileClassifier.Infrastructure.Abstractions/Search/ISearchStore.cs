@@ -96,7 +96,16 @@ public sealed record KeywordSearch(
     SortMode Sort,
     bool Reverse,
     int Offset,
-    int Limit);
+    int Limit)
+{
+    /// <summary>
+    /// Gets a value indicating whether <see cref="KeywordMatches.TotalCount"/> must count every match. When it's
+    /// <see langword="false"/> and the first page is asked for by relevance, a page that is full comes from the best
+    /// BM25 matches alone, without collecting, counting and ordering the whole match set (MFC-989), and its total is
+    /// the page's own count. The page is the same either way.
+    /// </summary>
+    public bool NeedsTotal { get; init; } = true;
+}
 
 /// <summary>
 /// A page of keyword matches.

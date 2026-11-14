@@ -223,6 +223,62 @@ public sealed class SearchStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task TopMatches_FullPage_IsThePageOfTheFullQuery()
+    {
+        for (var i = 1; i <= 12; i++)
+        {
+            var item = await AddItemAsync(i);
+            await EditAsync(item, DescriptiveField.Title, string.Join(' ', Enumerable.Repeat("lake", i % 4 + 1)) + " shore");
+        }
+
+        var full = await bed.Library.Search.FindKeywordMatchesAsync(Search("la") with { Limit = 5 }, Token);
+        var top = await bed.Library.Search.FindKeywordMatchesAsync(Search("la") with { Limit = 5, NeedsTotal = false }, Token);
+
+        Assert.Equal(full.Matches, top.Matches);
+        Assert.Equal(12, full.TotalCount);
+        Assert.Equal(5, top.TotalCount);
+    }
+
+    [Fact]
+    public async Task TopMatches_ShortPage_FallsBackToEveryMatch_WithPathSubstringHitsLast()
+    {
+        var titled = await AddItemAsync(1);
+        await EditAsync(titled, DescriptiveField.Title, "IMG 0001 copy");
+        var byPath = await AddItemAsync(2);
+        await EditAsync(byPath, DescriptiveField.Title, "unrelated");
+
+        // "0001" is a word of the first item's title, and only a path substring of IMG_00010.
+        var pathOnly = await AddItemAsync(10);
+        var top = await bed.Library.Search.FindKeywordMatchesAsync(Search("0001") with { NeedsTotal = false }, Token);
+
+        Assert.Equal([titled.Id, pathOnly.Id], top.Matches.Select(match => match.ItemId));
+        Assert.Equal(2, top.TotalCount);
+        Assert.Equal((await bed.Library.Search.FindKeywordMatchesAsync(Search("0001"), Token)).Matches, top.Matches);
+    }
+
+    [Fact]
+    public async Task TopMatches_AppliesTheFilter()
+    {
+        var videos = new List<Id<MediaItem>>();
+        for (var i = 1; i <= 6; i++)
+        {
+            var item = i % 2 == 0 ? await AddItemAsync(i, MediaType.Video) : await AddItemAsync(i);
+            await EditAsync(item, DescriptiveField.Title, "harbour");
+            if (i % 2 == 0)
+            {
+                videos.Add(item.Id);
+            }
+        }
+
+        var filter = new SearchFilter { MediaTypes = [MediaType.Video] };
+        var top = await bed.Library.Search.FindKeywordMatchesAsync(Search("h", filter) with { Limit = 2, NeedsTotal = false }, Token);
+        var full = await bed.Library.Search.FindKeywordMatchesAsync(Search("h", filter) with { Limit = 2 }, Token);
+
+        Assert.Equal(full.Matches, top.Matches);
+        Assert.All(top.Matches, match => Assert.Contains(match.ItemId, videos));
+    }
+
+    [Fact]
     public async Task Paging_ReportsTheTotalOnEveryPage()
     {
         for (var i = 1; i <= 5; i++)
@@ -295,9 +351,11 @@ public sealed class SearchStoreTests : IAsyncLifetime
     internal static KeywordSearch Search(string text, SearchFilter? filter = null) =>
         new(text.Split(' ', StringSplitOptions.RemoveEmptyEntries), filter ?? SearchFilter.None, KeywordFieldWeights.Default, SortMode.Relevance, false, 0, 100);
 
-    private async Task<MediaItem> AddItemAsync(int number)
+    private async Task<MediaItem> AddItemAsync(int number, MediaType type = MediaType.Image)
     {
-        var item = bed.NewItem(number);
+        var item = type == MediaType.Image
+            ? bed.NewItem(number)
+            : MediaItem.Discover(bed.Folder.Id, RelativePath.From($"album/VID_{number:D5}.mp4"), type, 1000 + number, bed.Clock.Tick(), bed.Clock.Tick(), (UInt128)number * 104729, bed.Clock.Tick());
         await bed.Library.Items.AddAsync(item, Token);
         return item;
     }

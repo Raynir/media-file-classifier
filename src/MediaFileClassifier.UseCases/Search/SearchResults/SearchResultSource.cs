@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
+using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediaFileClassifier.UseCases.Search.Filters;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
 using MediaFileClassifier.UseCases.Search.LoadReferenceImage;
@@ -384,10 +385,43 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
             return await browse.GetIdsAsync(offset, limit, newest, cancellationToken).ConfigureAwait(false);
         }
 
-        // In a search the order is the relevance order, so "from this result on" is from its position.
+        // The results added up to the boundary are the ones whose UUIDv7 isn't newer, in any order (E10-S04-T02).
         var ids = await AllIdsAsync(search, cancellationToken).ConfigureAwait(false);
-        var start = newest is { } from ? Math.Max(0, ids.IndexOf(from)) : 0;
-        return [.. ids.Skip(start + offset).Take(limit)];
+        return [.. (newest is { } boundary ? ids.Where(id => ItemSelection.IsUpTo(id, boundary)) : ids).Skip(offset).Take(limit)];
+    }
+
+    /// <inheritdoc />
+    public async Task<Id<MediaItem>?> GetNewestIdAsync(CancellationToken cancellationToken)
+    {
+        var search = current;
+        var ids = await browse.GetIdsAsync(0, 1, null, cancellationToken).ConfigureAwait(false);
+        Id<MediaItem>? newest = ids.Count == 0 ? null : ids[0];
+        if (!search.IsSearch)
+        {
+            return newest;
+        }
+
+        // Every result is in the browse scope, whose newest item is first in the item list; the pinned source of a
+        // "find similar" search may come from outside it.
+        if (search.Similar is { } similar && (newest is not { } scopeNewest || !ItemSelection.IsUpTo(similar.ItemId, scopeNewest)))
+        {
+            newest = similar.ItemId;
+        }
+
+        return newest;
+    }
+
+    /// <inheritdoc />
+    public async Task<int> CountNewerAsync(Id<MediaItem> newest, CancellationToken cancellationToken)
+    {
+        var search = current;
+        if (!search.IsSearch)
+        {
+            return await browse.PositionOfAsync(newest, cancellationToken).ConfigureAwait(false);
+        }
+
+        var ids = await AllIdsAsync(search, cancellationToken).ConfigureAwait(false);
+        return ids.Count(id => !ItemSelection.IsUpTo(id, newest));
     }
 
     /// <inheritdoc />

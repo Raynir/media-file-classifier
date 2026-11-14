@@ -137,6 +137,27 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task SelectAll_InAnotherOrder_CoversTheResultsUpToTheNewestItem_WhateverTheirPosition()
+    {
+        await OpenLibraryAsync(4);
+        var byAge = library!.ItemList.Items.Select(item => item.Id).ToList();
+        var fresh = new SearchResultSource(browse, sender);
+
+        // Date order puts the newest import second and the oldest first.
+        sender.Hits = [.. new[] { byAge[0], byAge[3], byAge[1], byAge[2] }.Select(id => new SearchHit(id, 0, null, null, SearchFields.None))];
+        IMediaResultSource results = fresh;
+
+        var newest = await results.GetNewestIdAsync(Token);
+
+        Assert.Equal(byAge[3], newest);
+        Assert.Equal(4, (await results.GetIdsAsync(0, int.MaxValue, newest, Token)).Count);
+        Assert.Equal([byAge[0], byAge[1]], await results.GetIdsAsync(0, int.MaxValue, byAge[1], Token));
+        Assert.Equal([byAge[1]], await results.GetIdsAsync(1, 5, byAge[1], Token));
+        Assert.Equal(2, await results.CountNewerAsync(byAge[1], Token));
+        Assert.Equal(0, await results.CountNewerAsync(byAge[3], Token));
+    }
+
+    [Fact]
     public async Task Sort_AppliesToFindSimilar()
     {
         await OpenLibraryAsync(2);
@@ -498,7 +519,7 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Ids_FollowTheSearchOrder_FromAnItemOn_AcrossPages()
+    public async Task Ids_FollowTheSearchOrder_UpToAnItem_AcrossPages()
     {
         await OpenLibraryAsync(5);
         var items = library!.ItemList.Items;
@@ -506,12 +527,13 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
         source.SetText("sign");
 
         var all = await source.GetIdsAsync(0, 10, null, Token);
-        var fromItem = await source.GetIdsAsync(1, 10, items[1].Id, Token);
-        var fromItemOn = await source.GetIdsAsync(0, 10, items[1].Id, Token);
+        var upToItem = await source.GetIdsAsync(0, 10, items[1].Id, Token);
+        var upToItemSkipped = await source.GetIdsAsync(1, 10, items[1].Id, Token);
 
+        // Items are in the order they were added, so "up to item 1" keeps items 0 and 1, in the search order.
         Assert.Equal([items[3].Id, items[1].Id, items[4].Id, items[0].Id], all);
-        Assert.Equal([items[4].Id, items[0].Id], fromItem);
-        Assert.Equal([items[1].Id, items[4].Id, items[0].Id], fromItemOn);
+        Assert.Equal([items[1].Id, items[0].Id], upToItem);
+        Assert.Equal([items[0].Id], upToItemSkipped);
         Assert.Equal(2, await source.PositionOfAsync(items[4].Id, Token));
         Assert.Equal(
             new HashSet<Id<MediaItem>> { items[4].Id },
@@ -595,6 +617,9 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
         {
             library.ItemList.Items.Add(MediaItem.Discover(folder.Id, RelativePath.From($"album/IMG_{number}.jpg"), MediaType.Image, 100, Now, Now, null, Now));
         }
+
+        // The fake lists items newest first by when they were added; keep that the UUIDv7 order, as in a library.
+        library.ItemList.Items.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
 
         await session.SetCurrentAsync(library);
     }

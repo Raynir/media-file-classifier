@@ -186,17 +186,14 @@ public sealed partial class SelectionModel(Func<IMediaResultSource> results) : O
         }
 
         var stamp = ++version;
-        var count = ResultCount;
-        Id<MediaItem>? first = KnownId?.Invoke(0);
-        if (first is null)
-        {
-            // Ask the source for both, so the count matches the boundary even before the grid's next refresh.
-            var newestTask = results().GetIdsAsync(0, 1, null, CancellationToken.None);
-            var countTask = results().CountAsync(CancellationToken.None);
-            var found = await newestTask;
-            count = await countTask;
-            first = found.Count > 0 ? found[0] : null;
-        }
+
+        // The boundary is the newest item that can be a result, not result 0: in another order than newest import
+        // (E10-S04) result 0 can be any item. Ask the source for both, so the count matches the boundary even before
+        // the grid's next refresh.
+        var newestTask = results().GetNewestIdAsync(CancellationToken.None);
+        var countTask = results().CountAsync(CancellationToken.None);
+        var first = await newestTask;
+        var count = await countTask;
 
         if (stamp != version || first is not { } boundary)
         {
@@ -267,7 +264,7 @@ public sealed partial class SelectionModel(Func<IMediaResultSource> results) : O
         var existing = check.Count == 0
             ? new HashSet<Id<MediaItem>>()
             : await results().GetExistingIdsAsync(check, CancellationToken.None);
-        var newerTask = boundary is { } all ? results().PositionOfAsync(all, CancellationToken.None) : Task.FromResult(0);
+        var newerTask = boundary is { } all ? results().CountNewerAsync(all, CancellationToken.None) : Task.FromResult(0);
         var focusTask = PositionAsync(focusId, focusIndex, existing, resultCount);
         var anchorTask = PositionAsync(anchorItem, anchorIndex, existing, resultCount);
         await Task.WhenAll(newerTask, focusTask, anchorTask);

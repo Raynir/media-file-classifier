@@ -44,6 +44,7 @@ internal static class ProductionBenchmark
           --cpus <n>             Run on the first n logical CPUs only, to approximate a smaller machine.
           --rebuild              Copy and populate again even if the copy exists.
           --typing-runs 3        Runs per prefix in the search-as-you-type scenario, after one warm-up pass.
+          --typing-sort Relevance  Order of the search-as-you-type searches (MFC-762: Name, Date, Size, ImportDate).
           --out <path>           Where the report goes (default: artifacts\benchmarks).
         """;
 
@@ -230,6 +231,47 @@ internal static class ProductionBenchmark
             }
         }
 
+        // Sorting (E10-S04-T01, MFC-762): page through every item in each order, both directions, and check that no item
+        // is shown twice or left out. Pages of 1,000; the latency is per page.
+        Log(string.Empty);
+        Log("Sort paging (MFC-762): every item, in pages of 1,000, in each order and direction. Latency per page in ms.");
+        Log(string.Empty);
+        Log("| Order | Filter | Pages | Items | Unique | p50 | p95 | max | No gaps or duplicates |");
+        Log("|---|---|--:|--:|--:|--:|--:|--:|:-:|");
+        foreach (var (filterName, filter) in filters.Take(2))
+        {
+            foreach (var sort in new[] { SortMode.Name, SortMode.Date, SortMode.Size, SortMode.ImportDate })
+            {
+                foreach (var reverse in new[] { false, true })
+                {
+                    var seen = new HashSet<Id<MediaItem>>();
+                    var times = new List<double>();
+                    var listed = 0;
+                    var total = -1;
+                    for (var offset = 0; ; offset += 1000)
+                    {
+                        var watch = Stopwatch.StartNew();
+                        var page = await index.SearchAsync(new SearchQuery { Filter = filter, Sort = sort, ReverseSort = reverse, Offset = offset, Limit = 1000 });
+                        times.Add(watch.Elapsed.TotalMilliseconds);
+                        total = page.TotalCount;
+                        listed += page.Hits.Count;
+                        seen.UnionWith(page.Hits.Select(hit => hit.ItemId));
+                        if (page.Hits.Count < 1000)
+                        {
+                            break;
+                        }
+                    }
+
+                    var complete = listed == total && seen.Count == total;
+                    allWithin &= complete;
+                    var summary = LatencySummary.From(times);
+                    Log(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"| {sort}{(reverse ? ", reversed" : string.Empty)} | {filterName} | {times.Count} | {listed:N0} | {seen.Count:N0} | {summary.P50:F1} | {summary.P95:F1} | {summary.Max:F1} | {(complete ? "yes" : "**no**")} |"));
+                }
+            }
+        }
+
         // Search as you type (E09-S02-T03, MFC-991): the app searches the text once the typing pauses, and a pause can come
         // after any letter, so every prefix of a query is a search of its own. Each prefix is searched once as a warm-up
         // pass (not counted), then TypingRuns times. A query vector stands in for the text encoder in the search, and the
@@ -240,12 +282,12 @@ internal static class ProductionBenchmark
             .ToList();
         var encoder = await TryCreateEncoderAsync();
         Log(string.Empty);
-        Log($"Search as you type (MFC-991): {prefixes.Count} prefixes of the keyword queries, hybrid, no filter, limit 100. One warm-up pass, then {options.TypingRuns} runs per prefix ({prefixes.Count * options.TypingRuns:N0} samples).");
+        Log($"Search as you type (MFC-991): {prefixes.Count} prefixes of the keyword queries, hybrid, no filter, limit 100, sorted by {options.TypingSort}. One warm-up pass, then {options.TypingRuns} runs per prefix ({prefixes.Count * options.TypingRuns:N0} samples).");
         Log(string.Empty);
 
         for (var i = 0; i < prefixes.Count; i++)
         {
-            await index.SearchAsync(new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count], Limit = 100 });
+            await index.SearchAsync(new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count], Limit = 100, Sort = options.TypingSort });
             if (encoder is not null)
             {
                 await encoder.EmbedTextsAsync([prefixes[i].Text.ToLowerInvariant()], CancellationToken.None);
@@ -257,7 +299,7 @@ internal static class ProductionBenchmark
         {
             for (var i = 0; i < prefixes.Count; i++)
             {
-                var q = new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count], Limit = 100 };
+                var q = new SearchQuery { Text = prefixes[i].Text, Vector = queryVectors[i % queryVectors.Count], Limit = 100, Sort = options.TypingSort };
                 double? encodeMs = null;
                 if (encoder is not null)
                 {
@@ -472,7 +514,8 @@ internal static class ProductionBenchmark
         bool Rebuild,
         bool IsChild,
         string OutDirectory,
-        int TypingRuns)
+        int TypingRuns,
+        SortMode TypingSort = SortMode.Relevance)
     {
         public static Options Parse(string[] args)
         {
@@ -500,6 +543,7 @@ internal static class ProductionBenchmark
                     "--cpus" => options with { Cpus = int.Parse(Next(), CultureInfo.InvariantCulture) },
                     "--rebuild" => options with { Rebuild = true },
                     "--typing-runs" => options with { TypingRuns = Math.Max(1, int.Parse(Next(), CultureInfo.InvariantCulture)) },
+                    "--typing-sort" => options with { TypingSort = Enum.Parse<SortMode>(Next(), ignoreCase: true) },
                     "--child" => options with { IsChild = true },
                     "--out" => options with { OutDirectory = Next() },
                     _ => throw new ArgumentException($"Unknown option {args[i]}."),

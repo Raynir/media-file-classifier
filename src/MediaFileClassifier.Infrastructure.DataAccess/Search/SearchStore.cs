@@ -110,17 +110,10 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
         ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
 
         var sql = new SearchSql();
-        var where = sql.Where(filter);
-        if (onlyDocumentIds is not null)
-        {
-            where += $"""
-                 AND d."doc_id" IN (SELECT "value" FROM json_each({sql.Add(JsonSerializer.Serialize(onlyDocumentIds))}))
-                """;
-        }
-
+        var where = OnlyDocuments(sql, sql.Where(filter), onlyDocumentIds);
         var orderBy = sql.OrderBy(sort, reverse);
         var text = $"""
-            SELECT d."doc_id", d."item_id", count(*) OVER ()
+            SELECT d."doc_id", d."item_id"
             FROM "search_document" d
             {sql.Joins}
             WHERE {where}
@@ -128,44 +121,40 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
             LIMIT {sql.Add(limit)} OFFSET {sql.Add(offset)}
             """;
 
+        // Counted on its own: a count(*) OVER () window would read and sort every row, so no sort key index could give
+        // the page (MFC-762).
+        var countSql = new SearchSql();
+        var countWhere = OnlyDocuments(countSql, countSql.Where(filter), onlyDocumentIds);
+        var countText = $"""
+            SELECT count(*) FROM "search_document" d {countSql.Joins} WHERE {countWhere}
+            """;
+
         return connections.ReadAsync(
             async (db, token) =>
             {
                 var documents = new List<SearchDocument>();
-                var total = 0;
                 await QueryAsync(
                     db,
                     text,
                     sql.Parameters,
-                    reader =>
-                    {
-                        documents.Add(new SearchDocument(DocumentId(reader, 0), ItemId(reader, 1)));
-                        total = reader.GetInt32(2);
-                    },
+                    reader => documents.Add(new SearchDocument(DocumentId(reader, 0), ItemId(reader, 1))),
                     token).ConfigureAwait(false);
 
-                if (documents.Count == 0 && offset > 0)
-                {
-                    // Past the last page the window count isn't read; count separately.
-                    var countSql = new SearchSql();
-                    var countWhere = countSql.Where(filter);
-                    if (onlyDocumentIds is not null)
-                    {
-                        countWhere += $"""
-                             AND d."doc_id" IN (SELECT "value" FROM json_each({countSql.Add(JsonSerializer.Serialize(onlyDocumentIds))}))
-                            """;
-                    }
-
-                    var countText = $"""
-                        SELECT count(*) FROM "search_document" d {countSql.Joins} WHERE {countWhere}
-                        """;
-                    total = await ExecuteScalarIntAsync(db, countText, countSql.Parameters, token).ConfigureAwait(false);
-                }
-
+                // A short first page is the whole list.
+                var total = offset == 0 && documents.Count < limit
+                    ? documents.Count
+                    : await ExecuteScalarIntAsync(db, countText, countSql.Parameters, token).ConfigureAwait(false);
                 return new DocumentPage(documents, total);
             },
             cancellationToken);
     }
+
+    private static string OnlyDocuments(SearchSql sql, string where, IReadOnlyCollection<int>? documentIds) =>
+        documentIds is null
+            ? where
+            : where + $"""
+                 AND d."doc_id" IN (SELECT "value" FROM json_each({sql.Add(JsonSerializer.Serialize(documentIds))}))
+                """;
 
     /// <inheritdoc />
     public Task<IReadOnlyDictionary<int, SearchFields>> GetMatchedFieldsAsync(
@@ -316,6 +305,10 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
                 await db.Database.ExecuteSqlRawAsync(
                     """DELETE FROM "search_filename" WHERE "rowid" NOT IN (SELECT "doc_id" FROM "search_document")""",
                     token).ConfigureAwait(false);
+                await db.Database.ExecuteSqlRawAsync(
+                    """DELETE FROM "search_sort" WHERE "doc_id" NOT IN (SELECT "doc_id" FROM "search_document")""",
+                    token).ConfigureAwait(false);
+                await db.Database.ExecuteSqlRawAsync(SearchSchema.FillSortStatement, token).ConfigureAwait(false);
                 return await ExecuteScalarIntAsync(db, """SELECT count(*) FROM "search_document" """, [], token).ConfigureAwait(false);
             },
             cancellationToken).ConfigureAwait(false);

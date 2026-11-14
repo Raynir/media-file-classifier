@@ -723,10 +723,6 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         return best;
     }
 
-    /// <summary>
-    /// Starts a work item on the thread pool. Called under the lock, so the work item is registered as running
-    /// before it can finish.
-    /// </summary>
     // Deleting old jobs is housekeeping: a failure to do it must not fail the work item that triggered it.
     private async Task PruneJobsAsync()
     {
@@ -740,6 +736,10 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Starts a work item on the thread pool. Called under the lock, so the work item is registered as running
+    /// before it can finish.
+    /// </summary>
     private void StartWorkItem(WorkItem workItem, PoolState pool)
     {
         pool.Running++;

@@ -87,7 +87,16 @@ public sealed partial class JobSystem(
             await StopCurrentAsync().ConfigureAwait(false);
 
             var requeued = await library.Jobs.RequeueRunningAsync(clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
-            await JobRetentionPruner.PruneAsync(library.Jobs, retention ?? JobRetention.Default, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await JobRetentionPruner.PruneAsync(library.Jobs, retention ?? JobRetention.Default, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                // Housekeeping: old jobs stay until the next time, and the library still opens.
+                LogPruneFailed(exception);
+            }
+
             var pending = await library.Jobs.CountPendingAsync(cancellationToken).ConfigureAwait(false);
             var processing = settings.Current.Processing;
             var startPaused = pending > 0 && processing.ResumeOnOpen == ResumeMode.Ask;
@@ -145,4 +154,7 @@ public sealed partial class JobSystem(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Stopped processing for {Directory}")]
     private partial void LogStopped(string directory);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Old finished jobs couldn't be deleted")]
+    private partial void LogPruneFailed(Exception exception);
 }

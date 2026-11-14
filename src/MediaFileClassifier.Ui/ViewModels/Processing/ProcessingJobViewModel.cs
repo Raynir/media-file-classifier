@@ -161,10 +161,15 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
             return;
         }
 
-        Failures.Clear();
-        foreach (var failure in failures)
+        // Leave the list alone when nothing changed, so the scroll position, focus and a click in progress survive the
+        // panel's regular refresh.
+        if (!Failures.Select(row => row.Failure.WorkItemId).SequenceEqual(failures.Select(row => row.Failure.WorkItemId)))
         {
-            Failures.Add(failure);
+            Failures.Clear();
+            foreach (var failure in failures)
+            {
+                Failures.Add(failure);
+            }
         }
 
         HasNoFailuresListed = Failures.Count == 0;

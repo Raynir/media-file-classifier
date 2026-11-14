@@ -32,6 +32,9 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
             [.. Items.Where(item => ids.Contains(item.Id)).Select(item => new MediaItemSummary(
                 item.Id, item.FileName, item.FileFormat, item.MediaType, item.SizeBytes, item.FileModifiedAt, item.Status, item.StatusReason, null, false))]);
 
+    public Task<IReadOnlyList<Id<MediaItem>>> GetFilteredIdsAsync(MediaItemFilter filter, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. Enumerable.Reverse(Items).Select(item => item.Id)]);
+
     public Task<int> CountNewerAsync(Id<MediaItem> id, CancellationToken cancellationToken = default) =>
         Task.FromResult(Items.Count - 1 - Items.FindIndex(item => item.Id == id));
 

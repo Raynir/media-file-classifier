@@ -195,6 +195,16 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<Id<MediaItem>>> GetFilteredIdsAsync(MediaItemFilter filter, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        return connections.ReadAsync<IReadOnlyList<Id<MediaItem>>>(
+            async (db, token) => await Filter(db, filter).OrderByDescending(item => item.Id).Select(item => item.Id).ToListAsync(token).ConfigureAwait(false),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<MediaItemSummary>> GetSummariesByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ids);

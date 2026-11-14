@@ -1521,6 +1521,9 @@
   <data name="Endpoints_Address" xml:space="preserve">
     <value>Address</value>
   </data>
+  <data name="Endpoints_AddressPlaceholder" xml:space="preserve">
+    <value>http://127.0.0.1:1234/v1</value>
+  </data>
   <data name="Endpoints_ApiKey" xml:space="preserve">
     <value>API key</value>
   </data>

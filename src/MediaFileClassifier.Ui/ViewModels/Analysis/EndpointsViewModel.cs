@@ -312,7 +312,7 @@ public sealed partial class EndpointsViewModel : ViewModelBase
         try
         {
             var result = await sender.Send(
-                new TestAiEndpointQuery(BaseUrl, string.IsNullOrEmpty(ApiKey) ? null : ApiKey, RemoteHostConfirmed),
+                new TestAiEndpointQuery(BaseUrl, string.IsNullOrEmpty(ApiKey) ? null : ApiKey, RemoteHostConfirmed, editingId.Length > 0 ? editingId : null),
                 cancellation.Token);
             ShowResult(result);
         }

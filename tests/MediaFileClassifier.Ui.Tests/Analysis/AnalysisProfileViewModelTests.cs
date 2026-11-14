@@ -138,6 +138,21 @@ public sealed class AnalysisProfileViewModelTests
     }
 
     [Fact]
+    public async Task QuickChanges_AreSavedOneAfterAnother_NoneIsLost()
+    {
+        var page = Create();
+        await page.RefreshAsync();
+
+        page.Analyzers[2].Enabled = false;
+        page.Analyzers[0].Enabled = false;
+        await WaitAsync(() => sender.Saved.Count == 2);
+
+        var last = sender.Saved.Last();
+        Assert.False(last.Find(AnalyzerKeys.Ocr)!.Enabled);
+        Assert.False(last.Find(AnalyzerKeys.Embedding)!.Enabled);
+    }
+
+    [Fact]
     public async Task AnAnalyzerWithoutAProvider_IsMarkedUnavailable_WithWhatToDo()
     {
         sender.Choices = [Siglip];

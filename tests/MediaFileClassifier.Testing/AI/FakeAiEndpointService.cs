@@ -76,9 +76,9 @@ public sealed class FakeAiEndpointService : IAiEndpointService
     }
 
     /// <inheritdoc />
-    public Task<EndpointTestResult> TestAsync(string baseUrl, string? apiKey, bool remoteHostConfirmed, CancellationToken cancellationToken)
+    public Task<EndpointTestResult> TestAsync(string baseUrl, string? apiKey, bool remoteHostConfirmed, CancellationToken cancellationToken, string? endpointId = null)
     {
-        Tests.Add((baseUrl, apiKey, remoteHostConfirmed));
+        Tests.Add((baseUrl, apiKey ?? (endpointId is not null ? keys.GetValueOrDefault(endpointId) : null), remoteHostConfirmed));
         return Task.FromResult(baseUrl == IAiEndpointService.LmStudioBaseUrl ? LmStudio : Result);
     }
 

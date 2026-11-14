@@ -55,7 +55,15 @@ public sealed partial class AiEndpointService : IAiEndpointService, IDisposable
         ownsHttp = http is null;
         foreach (var endpoint in Endpoints)
         {
-            TryRegister(endpoint);
+            try
+            {
+                TryRegister(endpoint);
+            }
+            catch (ArgumentException ex)
+            {
+                // A hand-edited file with a repeated ID must not stop the app from starting.
+                LogRegisterFailed(ex, endpoint.Id);
+            }
         }
     }
 
@@ -155,7 +163,7 @@ public sealed partial class AiEndpointService : IAiEndpointService, IDisposable
         TestAsync(IAiEndpointService.LmStudioBaseUrl, null, false, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<EndpointTestResult> TestAsync(string baseUrl, string? apiKey, bool remoteHostConfirmed, CancellationToken cancellationToken)
+    public async Task<EndpointTestResult> TestAsync(string baseUrl, string? apiKey, bool remoteHostConfirmed, CancellationToken cancellationToken, string? endpointId = null)
     {
         var url = NormalizeBaseUrl(baseUrl);
         if (url is null)
@@ -169,6 +177,11 @@ public sealed partial class AiEndpointService : IAiEndpointService, IDisposable
         }
 
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(url.ToString().TrimEnd('/') + "/models"));
+        if (string.IsNullOrWhiteSpace(apiKey) && endpointId is not null)
+        {
+            apiKey = apiKeys.GetValueOrDefault(endpointId);
+        }
+
         if (!string.IsNullOrWhiteSpace(apiKey))
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
@@ -294,6 +307,9 @@ public sealed partial class AiEndpointService : IAiEndpointService, IDisposable
     }
 
     private static string ProviderId(string endpointId, string capability) => $"{ProviderIds.OpenAiCompatible}:{endpointId}:{capability}";
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The endpoint {EndpointId} couldn't be registered")]
+    private partial void LogRegisterFailed(Exception exception, string endpointId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Testing the endpoint {Url} failed")]
     private partial void LogTestFailed(Exception exception, Uri url);

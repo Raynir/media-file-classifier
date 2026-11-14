@@ -63,6 +63,36 @@ public sealed class AiEndpointServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Test_OfASavedEndpoint_UsesTheHeldKey_WhenNoneIsTyped()
+    {
+        handler.Reply(HttpStatusCode.OK, Models);
+        using var service = CreateService();
+        var saved = service.Save(new AiEndpointSettings(string.Empty, "Cloud", "https://api.example.com/v1", "m", true), "held");
+
+        await service.TestAsync(saved.BaseUrl, null, true, Token, saved.Id);
+
+        Assert.Equal("Bearer held", handler.Requests.Single().Headers.Authorization!.ToString());
+    }
+
+    [Fact]
+    public void ANewService_SkipsAStoredEndpointWhoseIdIsRepeated_InsteadOfFailing()
+    {
+        var settings = new JsonSettingsService(appPaths, NullLogger<JsonSettingsService>.Instance);
+        settings.Update(current => current with
+        {
+            AiEndpoints =
+            [
+                new AiEndpointSettings("same", "A", "http://127.0.0.1:1234/v1", "m"),
+                new AiEndpointSettings("same", "B", "http://127.0.0.1:1234/v1", "m"),
+            ],
+        });
+
+        using var service = new AiEndpointService(settings, registry);
+
+        Assert.Single(registry.GetProviders<IImageDescriber>());
+    }
+
+    [Fact]
     public async Task DetectLmStudio_WhenItsServerRuns_ListsTheModels()
     {
         handler.Reply(HttpStatusCode.OK, Models);

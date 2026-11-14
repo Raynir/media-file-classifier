@@ -81,8 +81,9 @@ public interface IAiEndpointService
     /// <param name="apiKey">The API key, or <c>null</c>.</param>
     /// <param name="remoteHostConfirmed">Whether the user confirmed a host that isn't this computer.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="endpointId">A saved endpoint whose held key is used when <paramref name="apiKey"/> is empty.</param>
     /// <returns>The result. Never throws for a server that's down.</returns>
-    Task<EndpointTestResult> TestAsync(string baseUrl, string? apiKey, bool remoteHostConfirmed, CancellationToken cancellationToken);
+    Task<EndpointTestResult> TestAsync(string baseUrl, string? apiKey, bool remoteHostConfirmed, CancellationToken cancellationToken, string? endpointId = null);
 
     /// <summary>
     /// Looks for LM Studio's local server at <see cref="LmStudioBaseUrl"/> and lists its models.

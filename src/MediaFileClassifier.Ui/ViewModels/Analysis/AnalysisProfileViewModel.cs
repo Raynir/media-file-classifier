@@ -24,6 +24,7 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
     private readonly Localizer localizer;
     private readonly IAiEndpointService? endpoints;
     private readonly ILogger logger;
+    private readonly SemaphoreSlim saving = new(1, 1);
     private AnalysisProfile? profile;
     private int refreshes;
 
@@ -137,6 +138,8 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
         {
             endpoints.Changed -= OnEndpointsChanged;
         }
+
+        saving.Dispose();
     }
 
     private void Show(AnalysisProfileEditorModel? model)
@@ -159,14 +162,16 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
 
     private async Task SaveAsync(AnalyzerCardViewModel card)
     {
-        if (profile is null)
-        {
-            return;
-        }
-
-        var updated = profile.With(card.ToSettings(profile.Find(card.Analyzer)));
+        // One save at a time, each built from the profile the previous one stored, so quick changes don't overwrite each other.
+        await saving.WaitAsync();
         try
         {
+            if (profile is null)
+            {
+                return;
+            }
+
+            var updated = profile.With(card.ToSettings(profile.Find(card.Analyzer)));
             await sender.Send(new UpdateAnalysisProfileCommand(updated));
             profile = updated;
             Error = string.Empty;
@@ -177,6 +182,10 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
             LogSaveFailed(ex);
             await RefreshAsync();
             Error = localizer.Get("Profile_SaveFailed");
+        }
+        finally
+        {
+            saving.Release();
         }
     }
 

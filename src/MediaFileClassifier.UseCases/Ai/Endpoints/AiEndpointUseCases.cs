@@ -70,7 +70,8 @@ public sealed class RemoveAiEndpointCommandHandler(IAiEndpointService endpoints)
 /// <param name="BaseUrl">The base URL as typed.</param>
 /// <param name="ApiKey">The API key, or <c>null</c>.</param>
 /// <param name="RemoteHostConfirmed">Whether the user confirmed a host that isn't this computer.</param>
-public sealed record TestAiEndpointQuery(string BaseUrl, string? ApiKey, bool RemoteHostConfirmed) : IRequest<EndpointTestResult>;
+/// <param name="EndpointId">A saved endpoint whose held key is used when no key is given.</param>
+public sealed record TestAiEndpointQuery(string BaseUrl, string? ApiKey, bool RemoteHostConfirmed, string? EndpointId = null) : IRequest<EndpointTestResult>;
 
 /// <summary>
 /// Handles <see cref="TestAiEndpointQuery"/>.
@@ -83,7 +84,7 @@ public sealed class TestAiEndpointQueryHandler(IAiEndpointService endpoints)
     public Task<EndpointTestResult> Handle(TestAiEndpointQuery request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return endpoints.TestAsync(request.BaseUrl, request.ApiKey, request.RemoteHostConfirmed, cancellationToken);
+        return endpoints.TestAsync(request.BaseUrl, request.ApiKey, request.RemoteHostConfirmed, cancellationToken, request.EndpointId);
     }
 }
 

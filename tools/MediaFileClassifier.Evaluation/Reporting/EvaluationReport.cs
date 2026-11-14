@@ -44,9 +44,29 @@ public sealed record SearchSection(
     IReadOnlyList<CategoryScore> Categories,
     IReadOnlyList<QueryScore> Queries);
 
-public sealed record LanguageScore(string Language, int Queries, double RecallAt10, double Mrr);
+/// <summary>
+/// Search scores of one language. Recall@10 and MRR average the queries with relevant items (<paramref name="Queries"/>);
+/// the queries that should return nothing are counted apart.
+/// </summary>
+/// <param name="Language">The language.</param>
+/// <param name="Queries">The queries with relevant items.</param>
+/// <param name="RecallAt10">Mean capped recall@10.</param>
+/// <param name="Mrr">Mean reciprocal rank.</param>
+/// <param name="NoneQueries">The queries that should return nothing (category <c>none</c>).</param>
+/// <param name="NoneShown">The share of those that returned any result; lower is better. Null without such queries.</param>
+public sealed record LanguageScore(string Language, int Queries, double RecallAt10, double Mrr, int NoneQueries = 0, double? NoneShown = null);
 
-public sealed record CategoryScore(string Language, string Category, int Queries, double RecallAt10, double Mrr);
+/// <summary>
+/// Search scores of one category in one language. For the <c>none</c> category, recall@10 and MRR are 0 and
+/// <paramref name="NoneShown"/> is the share of its queries that returned any result.
+/// </summary>
+/// <param name="Language">The language.</param>
+/// <param name="Category">The category.</param>
+/// <param name="Queries">The queries.</param>
+/// <param name="RecallAt10">Mean capped recall@10.</param>
+/// <param name="Mrr">Mean reciprocal rank.</param>
+/// <param name="NoneShown">For the <c>none</c> category, the share of its queries that returned any result.</param>
+public sealed record CategoryScore(string Language, string Category, int Queries, double RecallAt10, double Mrr, double? NoneShown = null);
 
 public sealed record QueryScore(
     string Id,
@@ -71,7 +91,7 @@ public sealed record ImageScore(string Id, string Script, string Origin, int Ref
 /// <summary>
 /// One headline metric against the previous run and the baseline threshold.
 /// </summary>
-/// <param name="Metric"><c>recall@10</c>, <c>mrr</c> or <c>ocr-cer</c>.</param>
+/// <param name="Metric"><c>recall@10</c>, <c>mrr</c>, <c>none-shown</c> (lower is better) or <c>ocr-cer</c> (lower is better).</param>
 /// <param name="Group">The language for search metrics, the script group for OCR.</param>
 /// <param name="Value">This run's value.</param>
 /// <param name="Previous">The previous run's value, if there was one.</param>

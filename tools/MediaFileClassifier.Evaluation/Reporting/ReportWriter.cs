@@ -42,9 +42,25 @@ public static class ReportWriter
             text.Append('\n');
             Line(text, "| Category | Language | Queries | Recall@10 | MRR |");
             Line(text, "|---|---|--:|--:|--:|");
-            foreach (var c in search.Categories)
+            foreach (var c in search.Categories.Where(c => c.NoneShown is null))
             {
                 Line(text, $"| {c.Category} | {c.Language} | {c.Queries} | {Number(c.RecallAt10)} | {Number(c.Mrr)} |");
+            }
+
+            var none = search.Queries.Where(q => q.Category == Data.QueryCategories.None).ToList();
+            if (none.Count > 0)
+            {
+                text.Append('\n');
+                Line(text, $"## Queries that should return nothing");
+                text.Append('\n');
+                Line(text, $"{none.Count(q => q.Returned > 0)} of {none.Count} showed results.");
+                text.Append('\n');
+                Line(text, "| Query | Results |");
+                Line(text, "|---|--:|");
+                foreach (var q in none.Where(q => q.Returned > 0).OrderByDescending(q => q.Returned).ThenBy(q => q.Id, StringComparer.Ordinal))
+                {
+                    Line(text, $"| {q.Id} | {q.Returned} |");
+                }
             }
 
             text.Append('\n');
@@ -52,13 +68,13 @@ public static class ReportWriter
             text.Append('\n');
             Line(text, "| Query | Category | Relevant | First relevant at | Recall@10 |");
             Line(text, "|---|---|--:|--:|--:|");
-            foreach (var q in search.Queries.OrderBy(q => q.RecallAt10).ThenBy(q => q.ReciprocalRank).ThenBy(q => q.Id, StringComparer.Ordinal).Take(WorstQueries))
+            foreach (var q in search.Queries.Where(q => q.Category != Data.QueryCategories.None).OrderBy(q => q.RecallAt10).ThenBy(q => q.ReciprocalRank).ThenBy(q => q.Id, StringComparer.Ordinal).Take(WorstQueries))
             {
                 Line(text, $"| {q.Id} | {q.Category} | {q.Relevant} | {q.FirstRelevantRank?.ToString(CultureInfo.InvariantCulture) ?? "-"} | {Number(q.RecallAt10)} |");
             }
 
             var unknown = search.Queries.SelectMany(q => q.UnknownIds).Distinct(StringComparer.Ordinal).Count();
-            var empty = search.Queries.Count(q => q.Returned == 0);
+            var empty = search.Queries.Count(q => q.Returned == 0 && q.Category != Data.QueryCategories.None);
             if (unknown > 0 || empty > 0)
             {
                 text.Append('\n');

@@ -55,8 +55,9 @@ Accepted: CC0, Public Domain, CC BY and CC BY-SA (2.0–4.0, ported versions too
 ```
 
 - **Relevance is binary**, and **every** relevant item of the corpus is listed, not just one.
-- **Languages:** English and Russian (D029), 105 and 110 queries. Most queries come in pairs with the same labels, so the two languages can be compared directly; some are language-specific (synonyms, text in a sign).
+- **Languages:** English and Russian (D029), 139 and 142 queries. Most queries come in pairs with the same labels, so the two languages can be compared directly; some are language-specific (synonyms, text in a sign).
 - **Categories:** `object`, `scene`, `synonym`, `text` (text visible in the image), `abstract` (mood or idea), `distractor` (look-alikes must rank lower), `media` (the kind of file, such as an animated flag or a phone screenshot). Reports break the scores down by category.
+- **Search-specific categories (E09-S05):** `filename` (a fragment of the file name, such as `Pelmeni`, `2016-10-03` or `Донецк`; relevant are the items whose file name contains it, where the file name is the Commons title, see "Keyword and hybrid search" below), `tag` (one tag-style word, such as `autumn` or `чёрно-белое`; relevant are the items with that manifest tag, reviewed) and `none` (nothing in the corpus matches, such as `a giraffe` or `фывапролдж`). A `none` query lists no relevant items; it is left out of recall@10 and MRR and scored by **none-shown** below.
 - `notes` records doubtful labels and why a look-alike isn't relevant.
 
 ## OCR ground truth
@@ -71,6 +72,7 @@ Accepted: CC0, Public Domain, CC BY and CC BY-SA (2.0–4.0, ported versions too
 
 - **Recall@10 (capped):** relevant items in the first 10 results, divided by the number of relevant items or 10, whichever is smaller. A perfect ranking scores 1 even for a query with more than 10 relevant items. Averaged over the queries of each language.
 - **MRR:** one over the rank of the first relevant result, 0 if none is returned, over the first 100 results. Averaged per language.
+- **None-shown:** the share of the `none` queries that return any result; lower is better. Recall@10 and MRR average only the other queries.
 - **CER:** the edit distance between the OCR output and the ground truth, divided by the length of the ground truth, summed over images (total edits over total characters). Both texts are Unicode-normalized (NFC) and every run of whitespace, line breaks included, becomes one space. Case, punctuation and ё are kept. Missing output counts as fully wrong.
 
 Every value is rounded to four decimals, and the computation has no randomness, so two runs on the same input give identical numbers.

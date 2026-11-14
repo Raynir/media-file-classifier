@@ -42,5 +42,14 @@ public static class QueryCategories
         "abstract",    // a mood or idea: "loneliness", "celebration"
         "distractor",  // look-alikes must rank below the real thing: "a cat, not a lynx"
         "media",       // the kind of file: "an animated GIF of a flag", "a screenshot of an error"
+        "filename",    // a fragment of the file name: "Pelmeni", "2016-10-03" (E09-S05)
+        "tag",         // a one-word, tag-style query: "autumn", "чёрно-белое" (E09-S05)
+        None,          // nothing in the data set should match: "a giraffe" (E09-S05); no relevant items
     ];
+
+    /// <summary>
+    /// The category of queries that should return nothing. They have no relevant items, so they're left out of
+    /// recall@10 and MRR and scored by whether any result is shown.
+    /// </summary>
+    public const string None = "none";
 }

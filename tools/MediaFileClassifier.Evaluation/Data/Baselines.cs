@@ -17,6 +17,12 @@ public sealed record Baselines
     public IReadOnlyDictionary<string, double?> Mrr { get; init; } = new Dictionary<string, double?>();
 
     /// <summary>
+    /// The maximum share of the queries that should return nothing (category <c>none</c>) that still show a result,
+    /// per query language.
+    /// </summary>
+    public IReadOnlyDictionary<string, double?> NoneShown { get; init; } = new Dictionary<string, double?>();
+
+    /// <summary>
     /// The maximum OCR character error rate per script group.
     /// </summary>
     public IReadOnlyDictionary<string, double?> OcrCer { get; init; } = new Dictionary<string, double?>();

@@ -19,14 +19,16 @@ public static class ReportComparer
             var before = previous?.Search?.Languages.FirstOrDefault(l => l.Language == language.Language);
             comparisons.Add(Higher("recall@10", language.Language, language.RecallAt10, before?.RecallAt10, baselines.RecallAt10));
             comparisons.Add(Higher("mrr", language.Language, language.Mrr, before?.Mrr, baselines.Mrr));
+            if (language.NoneShown is { } shown)
+            {
+                comparisons.Add(Lower("none-shown", language.Language, shown, before?.NoneShown, baselines.NoneShown));
+            }
         }
 
         foreach (var script in report.Ocr?.Scripts ?? [])
         {
             var before = previous?.Ocr?.Scripts.FirstOrDefault(s => s.Script == script.Script);
-            var threshold = baselines.OcrCer.GetValueOrDefault(script.Script);
-            var status = threshold is null ? NoBaseline : script.Cer <= threshold ? Pass : Below;
-            comparisons.Add(new MetricComparison("ocr-cer", script.Script, script.Cer, before?.Cer, Delta(script.Cer, before?.Cer), threshold, status));
+            comparisons.Add(Lower("ocr-cer", script.Script, script.Cer, before?.Cer, baselines.OcrCer));
         }
 
         return report with
@@ -41,6 +43,13 @@ public static class ReportComparer
     {
         var threshold = thresholds.GetValueOrDefault(group);
         var status = threshold is null ? NoBaseline : value >= threshold ? Pass : Below;
+        return new MetricComparison(metric, group, value, previous, Delta(value, previous), threshold, status);
+    }
+
+    private static MetricComparison Lower(string metric, string group, double value, double? previous, IReadOnlyDictionary<string, double?> thresholds)
+    {
+        var threshold = thresholds.GetValueOrDefault(group);
+        var status = threshold is null ? NoBaseline : value <= threshold ? Pass : Below;
         return new MetricComparison(metric, group, value, previous, Delta(value, previous), threshold, status);
     }
 

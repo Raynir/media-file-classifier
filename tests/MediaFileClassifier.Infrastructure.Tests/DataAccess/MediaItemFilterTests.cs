@@ -53,6 +53,31 @@ public sealed class MediaItemFilterTests : IAsyncLifetime
         Assert.Equal(expected, (await bed.Library.Items.GetSummariesAsync(filter, 0, 100, Token)).Count);
     }
 
+    [Theory]
+    [InlineData("Фото", 2)]
+    [InlineData("фото", 2)]
+    [InlineData("ФОТО/Ещё", 1)]
+    [InlineData("фото/ещё", 1)]
+    [InlineData("фот", 0)]
+    public async Task Subfolder_IgnoresCaseInEveryAlphabet(string subfolder, int expected)
+    {
+        await bed.Library.Items.AddRangeAsync([Item(bed.Folder, "Фото/a.jpg"), Item(bed.Folder, "Фото/Ещё/b.jpg"), Item(bed.Folder, "Фотограф/c.jpg")], Token);
+        var filter = new MediaItemFilter { FolderId = bed.Folder.Id, Subfolder = subfolder };
+
+        Assert.Equal(expected, await bed.Library.Items.CountAsync(filter, Token));
+        Assert.Equal(expected, (await bed.Library.Items.GetSummariesAsync(filter, 0, 100, Token)).Count);
+    }
+
+    [Fact]
+    public async Task GetSubfoldersAsync_FindsTheChildrenOfAFolderTypedInAnotherCase()
+    {
+        await bed.Library.Items.AddRangeAsync([Item(bed.Folder, "Фото/Ещё/b.jpg"), Item(bed.Folder, "Фото/Ещё/c.jpg")], Token);
+
+        var subfolders = await bed.Library.Items.GetSubfoldersAsync(bed.Folder.Id, "фото", Token);
+
+        Assert.Equal(["Ещё:2"], subfolders.Select(folder => $"{folder.Name}:{folder.Count}"));
+    }
+
     [Fact]
     public async Task ImportedSince_ShowsOnlyRecentItems()
     {

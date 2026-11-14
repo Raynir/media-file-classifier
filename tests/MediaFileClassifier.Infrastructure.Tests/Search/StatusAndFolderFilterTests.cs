@@ -19,13 +19,13 @@ public sealed class StatusAndFolderFilterTests(StatusAndFolderFilterTests.Librar
     public static TheoryData<string[], string[]> StatusCases() => new()
     {
         { [StatusFilter.Pending], ["lookalike", "trip"] },
-        { [StatusFilter.Indexed], ["offline-sub", "root", "year"] },
+        { [StatusFilter.Indexed], ["offline-sub", "photo-lower", "photo-upper", "root", "year"] },
         { [StatusFilter.Error], ["percent"] },
         { [StatusFilter.Missing], ["offline-root"] },
         { [StatusFilter.Pending, StatusFilter.Error], ["lookalike", "percent", "trip"] },
 
         // Values ignore case; unknown ones (e.g. from a newer version) are ignored.
-        { ["INDEXED", "excluded"], ["offline-sub", "root", "year"] },
+        { ["INDEXED", "excluded"], ["offline-sub", "photo-lower", "photo-upper", "root", "year"] },
         { ["excluded"], [] },
     };
 
@@ -43,8 +43,12 @@ public sealed class StatusAndFolderFilterTests(StatusAndFolderFilterTests.Librar
         { ["A/100%"], true, ["percent"] },
 
         // Any of several folders, the Offline one included.
-        { ["A/2024", "B"], true, ["offline-root", "offline-sub", "trip", "year"] },
+        { ["A/2024", "B"], true, ["offline-root", "offline-sub", "photo-lower", "photo-upper", "trip", "year"] },
         { ["B"], false, ["offline-root"] },
+
+        // Folder names ignore case in every alphabet, as on Windows and in the folder tree.
+        { ["B/ФОТО"], true, ["photo-lower", "photo-upper"] },
+        { ["B/фото"], false, ["photo-lower", "photo-upper"] },
 
         // A folder ID that can't be read, or that no folder has, matches nothing.
         { ["not-a-folder"], true, [] },
@@ -79,6 +83,15 @@ public sealed class StatusAndFolderFilterTests(StatusAndFolderFilterTests.Librar
     }
 
     [Fact]
+    public async Task FixedLists_IgnoreThePrefix_ThePanelNarrowsByTheShownText()
+    {
+        // e.g. the start of a translated label, which no value ID has.
+        Assert.Equal(4, (await new StatusFilter().GetOptionsAsync("Ош", Token)).Count);
+        Assert.Equal(Enum.GetNames<MediaType>().Length, (await new MediaTypeFilter().GetOptionsAsync("Ви", Token)).Count);
+        Assert.Equal(4, (await new ResolutionFilter().GetOptionsAsync("x", Token)).Count);
+    }
+
+    [Fact]
     public async Task FolderOptions_ListTheIndexedFolders_MarkingOfflineOnes()
     {
         var options = await library.FolderFilter.GetOptionsAsync(null, Token);
@@ -92,6 +105,7 @@ public sealed class StatusAndFolderFilterTests(StatusAndFolderFilterTests.Librar
     [InlineData("A", new[] { "A/100%", "A/2024", "A/2024x" }, new[] { "100%", "2024", "2024x" })]
     [InlineData("A/2024", new[] { "A/2024/Trips" }, new[] { "Trips" })]
     [InlineData("A/2024/Trips", new string[0], new string[0])]
+    [InlineData("B", new[] { "B/2024", "B/Фото" }, new[] { "2024", "Фото" })]
     [InlineData("not-a-folder", new string[0], new string[0])]
     public async Task FolderOptions_ListASubfoldersChildren(string prefix, string[] values, string[] names)
     {
@@ -118,7 +132,7 @@ public sealed class StatusAndFolderFilterTests(StatusAndFolderFilterTests.Librar
 
         Assert.NotNull(condition);
         Assert.DoesNotContain("Secret", condition, StringComparison.Ordinal);
-        Assert.Equal([library.Resolve("A"), "Secret/%", "Secret/%/%"], sql.Parameters.Select(parameter => parameter.Value));
+        Assert.Equal([library.Resolve("A"), "SECRET/%", "SECRET/%/%"], sql.Parameters.Select(parameter => parameter.Value));
     }
 
     /// <summary>
@@ -170,6 +184,10 @@ public sealed class StatusAndFolderFilterTests(StatusAndFolderFilterTests.Librar
             await AddAsync("percent", online, "100%/percent.jpg", MediaItemStatus.Error);
             await AddAsync("offline-root", offline.Id, "offline-root.jpg", MediaItemStatus.Missing);
             await AddAsync("offline-sub", offline.Id, "2024/offline-sub.jpg", MediaItemStatus.Pending, MediaItemStatus.Indexed);
+
+            // One folder on disk, its name stored in two cases (e.g. renamed by case between scans).
+            await AddAsync("photo-upper", offline.Id, "Фото/a.jpg", MediaItemStatus.Pending, MediaItemStatus.Indexed);
+            await AddAsync("photo-lower", offline.Id, "фото/b.jpg", MediaItemStatus.Pending, MediaItemStatus.Indexed);
         }
 
         public ValueTask DisposeAsync() => bed.DisposeAsync();

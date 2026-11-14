@@ -11,7 +11,9 @@ public interface IFilterOptions
     /// <summary>
     /// Gets the values to offer.
     /// </summary>
-    /// <param name="prefix">Text typed into a picker, to narrow the list, or <see langword="null"/> for every value.</param>
+    /// <param name="prefix">Text typed into a picker, to narrow the list, or <see langword="null"/> for every value. A fixed
+    /// list (e.g. statuses or presets) ignores it and always returns every value, since the panel narrows it by the
+    /// localised text it shows; dynamic lists (tags, folders) use it.</param>
     /// <param name="cancellationToken">Cancels the lookup.</param>
     /// <returns>The values, in display order.</returns>
     ValueTask<IReadOnlyList<FilterOption>> GetOptionsAsync(string? prefix, CancellationToken cancellationToken);

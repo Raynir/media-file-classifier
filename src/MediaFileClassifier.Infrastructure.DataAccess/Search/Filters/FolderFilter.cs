@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
+using MediaFileClassifier.Infrastructure.DataAccess.Database;
 
 namespace MediaFileClassifier.Infrastructure.DataAccess.Search.Filters;
 
@@ -86,12 +87,14 @@ internal sealed class FolderFilter(ILibrarySession session) : FilterDefinition<F
             var condition = $"{sql.MediaItem("folder_id")} = {sql.Parameter(folderId.ToString())}";
             if (subfolder.Length > 0)
             {
-                // Paths are relative to the indexed folder, with '/' separators.
-                var inside = sql.EscapeLike(subfolder) + "/%";
-                condition += $" AND {sql.Like(path, inside)}";
+                // Paths are relative to the indexed folder, with '/' separators. Folder names ignore case in every
+                // alphabet, as on Windows and in the folder tree, so both sides are upper-cased.
+                var folded = $"{LibraryConnectionFactory.FoldCase}({path})";
+                var inside = sql.EscapeLike(subfolder.ToUpperInvariant()) + "/%";
+                condition += $" AND {sql.Like(folded, inside)}";
                 if (!value.IncludeSubfolders)
                 {
-                    condition += $" AND NOT {sql.Like(path, inside + "/%")}";
+                    condition += $" AND NOT {sql.Like(folded, inside + "/%")}";
                 }
             }
             else if (!value.IncludeSubfolders)

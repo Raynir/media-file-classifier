@@ -31,7 +31,6 @@ internal sealed class MediaTypeFilter : FilterDefinition<MultiSelectValue>, IFil
     public ValueTask<IReadOnlyList<FilterOption>> GetOptionsAsync(string? prefix, CancellationToken cancellationToken) =>
         ValueTask.FromResult<IReadOnlyList<FilterOption>>(
             [.. Enum.GetNames<MediaType>()
-                .Where(name => string.IsNullOrEmpty(prefix) || name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 .Select(name => new FilterOption(name, "Filter_MediaType_" + name))]);
 
     /// <inheritdoc />

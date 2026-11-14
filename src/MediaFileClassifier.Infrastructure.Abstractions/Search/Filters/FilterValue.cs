@@ -173,7 +173,8 @@ public sealed record IncludeExcludeValue : FilterValue
 /// <summary>
 /// The value of a <see cref="FilterValueKind.Folder"/> filter: indexed folders or subfolders, each written as the
 /// folder's ID, or the ID, <c>/</c> and the subfolder's path inside it (e.g. <c>{id}/2024/Trips</c>). An item matches if
-/// it is in any of them, directly or, with <see cref="IncludeSubfolders"/>, in a subfolder.
+/// it is in any of them, directly or, with <see cref="IncludeSubfolders"/>, in a subfolder. Each is kept with <c>/</c>
+/// separators and no empty segments, so <c>{id}\2024\</c> and <c>{id}/2024</c> are one value.
 /// </summary>
 public sealed record FolderValue : FilterValue
 {
@@ -184,7 +185,7 @@ public sealed record FolderValue : FilterValue
     /// <param name="includeSubfolders">Whether items in their subfolders match too.</param>
     public FolderValue(IReadOnlyList<string>? folders, bool includeSubfolders)
     {
-        Folders = Normalise(folders);
+        Folders = Normalise(folders?.Select(Canonical));
         IncludeSubfolders = includeSubfolders;
     }
 
@@ -208,4 +209,7 @@ public sealed record FolderValue : FilterValue
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Hash(Folders), IncludeSubfolders);
+
+    private static string Canonical(string folder) =>
+        string.Join('/', (folder ?? string.Empty).Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries));
 }

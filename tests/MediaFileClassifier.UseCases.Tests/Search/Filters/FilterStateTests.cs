@@ -51,6 +51,15 @@ public sealed class FilterStateTests
     }
 
     [Fact]
+    public void FolderValues_KeepEachFolderOnce_HoweverItIsWritten()
+    {
+        var value = new FolderValue(["f1/2024", @"f1\2024\", "f1//2024/", "f1"], includeSubfolders: true);
+
+        Assert.Equal(["f1", "f1/2024"], value.Folders);
+        Assert.Equal(new FolderValue(["f1", "f1/2024"], includeSubfolders: true), value);
+    }
+
+    [Fact]
     public void TheEmptyState_SurvivesARoundTrip()
     {
         var json = FilterStateSerializer.Serialize(FilterState.Empty);

@@ -60,7 +60,6 @@ internal sealed class StatusFilter : FilterDefinition<MultiSelectValue>, IFilter
     public ValueTask<IReadOnlyList<FilterOption>> GetOptionsAsync(string? prefix, CancellationToken cancellationToken) =>
         ValueTask.FromResult<IReadOnlyList<FilterOption>>(
             [.. Values
-                .Where(value => string.IsNullOrEmpty(prefix) || value.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 .Select(value => new FilterOption(value.Value, value.Key))]);
 
     /// <inheritdoc />

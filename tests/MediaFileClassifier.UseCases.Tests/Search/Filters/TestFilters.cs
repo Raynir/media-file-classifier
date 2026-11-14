@@ -50,5 +50,7 @@ internal static class TestFilters
 
     public static TestFilter<ResolutionValue> Resolution { get; } = new("resolution", FilterValueKind.Resolution, 600);
 
-    public static IReadOnlyList<IFilterDefinition> All { get; } = [Type, Size, Date, Favorite, Tags, Resolution];
+    public static TestFilter<FolderValue> Folder { get; } = new("folder", FilterValueKind.Folder, 700);
+
+    public static IReadOnlyList<IFilterDefinition> All { get; } = [Type, Size, Date, Favorite, Tags, Resolution, Folder];
 }

@@ -20,7 +20,8 @@ public sealed class FilterStateTests
         .Set("date", new DateRangeValue(null, new DateTimeOffset(2024, 3, 10, 12, 0, 0, TimeSpan.FromHours(2)), new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero)))
         .Set("favorite", new BooleanValue(false))
         .Set("tags", new IncludeExcludeValue(["beach", "Пляж"], ["work"], matchAll: true))
-        .Set("resolution", new ResolutionValue(null, 1920, null));
+        .Set("resolution", new ResolutionValue(null, 1920, null))
+        .Set("folder", new FolderValue(["0192f0aa-0000-7000-8000-000000000001/2024/Trips", "0192f0aa-0000-7000-8000-000000000002"], includeSubfolders: false));
 
     [Fact]
     public void EveryKindOfValue_SurvivesARoundTrip()
@@ -125,6 +126,6 @@ public sealed class FilterStateTests
 
         var conditions = state.ToConditions(registry);
 
-        Assert.Equal(["size", "date", "favorite", "tags", "resolution"], conditions.Select(condition => condition.Definition.Id));
+        Assert.Equal(["size", "date", "favorite", "tags", "resolution", "folder"], conditions.Select(condition => condition.Definition.Id));
     }
 }

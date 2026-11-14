@@ -43,6 +43,12 @@ public static class ImageDescriptionContract
 
     public const int MaxListItemLength = 60;
 
+    /// <summary>
+    /// The most tokens a description may take, a backstop if a model ignores the schema's limits. Every field at its
+    /// limit is about 11,000 characters, roughly 3,000 tokens.
+    /// </summary>
+    public const int MaxOutputTokens = 4096;
+
     private static readonly JsonDocumentOptions DocumentOptions = new()
     {
         AllowTrailingCommas = true,
@@ -195,6 +201,30 @@ public static class ImageDescriptionContract
                 if (context.Path.IsEmpty && context.TypeInfo.Type == typeof(Dto))
                 {
                     schema["additionalProperties"] = false;
+                }
+
+                // The limits the repair cuts to, also in the schema: a server that turns the schema into a grammar
+                // (llama.cpp, LM Studio) then can't let a small model repeat one tag until the context is full.
+                if (context.PropertyInfo is { } property)
+                {
+                    if (property.PropertyType == typeof(string))
+                    {
+                        // The JSON name (camel case) of the property.
+                        schema["maxLength"] = property.Name.ToUpperInvariant() switch
+                        {
+                            "TITLE" => MaxTitleLength,
+                            "SUMMARY" => MaxSummaryLength,
+                            _ => MaxDescriptionLength,
+                        };
+                    }
+                    else
+                    {
+                        schema["maxItems"] = MaxListItems;
+                        if (schema["items"] is JsonObject items)
+                        {
+                            items["maxLength"] = MaxListItemLength;
+                        }
+                    }
                 }
 
                 return schema;

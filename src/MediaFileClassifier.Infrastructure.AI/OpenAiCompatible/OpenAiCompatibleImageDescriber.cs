@@ -64,6 +64,7 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
         var chatOptions = new ChatOptions
         {
             Temperature = 0.2f,
+            MaxOutputTokens = ImageDescriptionContract.MaxOutputTokens,
             ResponseFormat = useSchemaResponseFormat ? ResponseFormat : ChatResponseFormat.Json,
         };
 

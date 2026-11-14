@@ -110,7 +110,9 @@ public sealed class OpenAiCompatibleProviderTests : IDisposable
         Assert.Equal("STOP\nSlow down", output.Value.Text);
         Assert.Equal(new ModelIdentity(ProviderIds.OpenAiCompatible, "google/gemma-4-e2b"), output.Model);
         Assert.Equal("ocr-1", output.PromptVersion);
-        Assert.Contains("data:image/png;base64,AQID", Assert.Single(server.ChatRequests), StringComparison.Ordinal);
+        var request = Assert.Single(server.ChatRequests);
+        Assert.Contains("data:image/png;base64,AQID", request, StringComparison.Ordinal);
+        Assert.Contains($"\"max_completion_tokens\":{OpenAiCompatibleOcrProvider.MaxOutputTokens}", request.Replace(" ", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
     }
 
     [Fact]

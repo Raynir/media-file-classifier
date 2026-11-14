@@ -43,6 +43,7 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
         var request = Assert.Single(server.ChatRequests);
         Assert.Contains("\"json_schema\"", request, StringComparison.Ordinal);
         Assert.Contains(ImageDescriptionContract.SchemaName, request, StringComparison.Ordinal);
+        Assert.Contains($"\"max_completion_tokens\":{ImageDescriptionContract.MaxOutputTokens}", request.Replace(" ", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
     }
 
     [Fact]

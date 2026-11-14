@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels;
@@ -76,6 +77,11 @@ public sealed partial class FilterBarViewModel : ViewModelBase
     public ObservableCollection<QuickFilterViewModel> QuickFilters { get; } = [];
 
     /// <summary>
+    /// Gets a chip for each filter in force, in panel order (E10-S02-T02).
+    /// </summary>
+    public ObservableCollection<FilterChipViewModel> Chips { get; } = [];
+
+    /// <summary>
     /// Gets a value indicating whether the bar shows: there is a filter to set.
     /// </summary>
     public bool IsVisible => Editors.Count > 0;
@@ -95,6 +101,12 @@ public sealed partial class FilterBarViewModel : ViewModelBase
     /// Gets a task that completes when the options of the multi-select filters are loaded.
     /// </summary>
     public Task OptionsLoaded => Task.WhenAll(optionLoads);
+
+    /// <summary>
+    /// Removes every filter in force (E10-S02-T02).
+    /// </summary>
+    [RelayCommand]
+    public void ClearAll() => source.SetFilters(Editors.Aggregate(source.Filters, (state, editor) => state.Remove(editor.Id)));
 
     partial void OnActiveCountChanged(int value) => OnPropertyChanged(nameof(ButtonText));
 
@@ -136,6 +148,7 @@ public sealed partial class FilterBarViewModel : ViewModelBase
         {
             await editor.LoadOptionsAsync().ConfigureAwait(true);
             editor.Load(source.Filters.Get(editor.Id));
+            UpdateChips(source.Filters);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -167,6 +180,33 @@ public sealed partial class FilterBarViewModel : ViewModelBase
 
         ActiveCount = Editors.Count(editor => state.Get(editor.Id) is not null);
         UpdateQuickFilters(state);
+        UpdateChips(state);
+    }
+
+    private void UpdateChips(FilterState state)
+    {
+        var chips = new List<FilterChipViewModel>();
+        foreach (var editor in Editors)
+        {
+            if (state.Get(editor.Id) is { } value)
+            {
+                var text = editor.Describe(value);
+                chips.Add(new FilterChipViewModel(
+                    editor.Id,
+                    text.Length == 0 ? editor.Title : localizer.Format("Filter_Chip", editor.Title, text),
+                    localizer.Format("Filter_ChipRemove", editor.Title),
+                    () => Apply(current => current.Remove(editor.Id))));
+            }
+        }
+
+        if (!chips.SequenceEqual(Chips))
+        {
+            Chips.Clear();
+            foreach (var chip in chips)
+            {
+                Chips.Add(chip);
+            }
+        }
     }
 
     private void UpdateQuickFilters(FilterState state)

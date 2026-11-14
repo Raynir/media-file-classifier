@@ -146,6 +146,58 @@ public sealed class FilterBarViewModelTests
         Assert.Equal(3, editor.Options.Count);
     });
 
+    [Fact]
+    public Task Chips_ShowEveryFilterInForce_WithItsNameAndValue() => TestApp.RunAsync(() =>
+    {
+        var bar = Create(out var source, TestFilters.Kinds, TestFilters.Megapixels, TestFilters.Tags);
+        Pump.Until(() => bar.OptionsLoaded.IsCompleted);
+
+        source.SetFilters(FilterState.Empty
+            .Set("test-kind", new MultiSelectValue(["jpeg", "Video"]))
+            .Set("test-range", new RangeValue(2, null))
+            .Set("test-tags", new IncludeExcludeValue(["cat"], ["dog"], matchAll: false)));
+        Pump.Until(() => bar.Chips.Count == 3);
+
+        Assert.Equal(["Type: Video, JPEG", "!Filter_Test_range!: ≥ 2", "!Filter_Test_tags!: cat; not dog"], bar.Chips.Select(chip => chip.Text));
+    });
+
+    [Fact]
+    public Task RemovingAChip_RemovesThatFilterAndKeepsTheOthers() => TestApp.RunAsync(() =>
+    {
+        var bar = Create(out var source, TestFilters.Favorites, TestFilters.Megapixels);
+        source.SetFilters(FilterState.Empty.Set("favorite", new BooleanValue(true)).Set("test-range", new RangeValue(1, 2)));
+        Pump.Until(() => bar.Chips.Count == 2);
+
+        bar.Chips.Single(chip => chip.FilterId == "favorite").RemoveCommand.Execute(null);
+
+        Assert.Null(source.Filters.Get("favorite"));
+        Assert.NotNull(source.Filters.Get("test-range"));
+        Pump.Until(() => bar.Chips.Count == 1);
+        Assert.False(Editor<BooleanFilterViewModel>(bar, "favorite").IsOn);
+    });
+
+    [Fact]
+    public Task ClearAll_RemovesEveryFilter_AndTheChips() => TestApp.RunAsync(() =>
+    {
+        var bar = Create(out var source, TestFilters.Favorites, TestFilters.Megapixels);
+        source.SetFilters(FilterState.Empty.Set("favorite", new BooleanValue(true)).Set("test-range", new RangeValue(1, 2)));
+        Pump.Until(() => bar.Chips.Count == 2);
+
+        bar.ClearAllCommand.Execute(null);
+
+        Assert.True(source.Filters.IsEmpty);
+        Pump.Until(() => bar.Chips.Count == 0);
+        Assert.Equal("Filters", bar.ButtonText);
+    });
+
+    [Fact]
+    public Task Chips_AreEmptyWithoutFilters() => TestApp.RunAsync(() =>
+    {
+        var bar = Create(out _, TestFilters.Favorites);
+
+        Assert.Empty(bar.Chips);
+    });
+
     private FilterBarViewModel Create(out SearchResultSource source, params IFilterDefinition[] filters)
     {
         var sender = new FakeSender();

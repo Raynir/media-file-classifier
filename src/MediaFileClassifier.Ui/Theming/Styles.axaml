@@ -113,6 +113,13 @@
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Selected}" />
     </Style>
 
+  <Style Selector="Border.ActiveFilterChip">
+    <Setter Property="Background" Value="{DynamicResource Brush.State.Hover}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+    <Setter Property="Padding" Value="12,0,2,0" />
+    <Setter Property="Margin" Value="0,0,4,4" />
+  </Style>
+
   <!-- Icon-only buttons, e.g. panel toggles -->
   <Style Selector="Button.Icon">
     <Setter Property="Width" Value="{DynamicResource Size.Control}" />

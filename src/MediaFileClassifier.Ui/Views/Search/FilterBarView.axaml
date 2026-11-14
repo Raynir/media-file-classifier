@@ -10,6 +10,7 @@
     panel, so the other filters sit in a flyout under the "Filters" button (provisional until the T00 design is signed
     off). The row wraps in a narrow window.
   -->
+  <StackPanel>
   <WrapPanel Orientation="Horizontal" Margin="{DynamicResource Padding.Compact}">
     <ItemsControl x:Name="QuickFilters" ItemsSource="{Binding QuickFilters}">
       <ItemsControl.ItemsPanel>
@@ -41,4 +42,35 @@
       </Button.Flyout>
     </Button>
   </WrapPanel>
+
+  <!-- The filters in force (E10-S02-T02): one chip each, a remove button on every chip and Clear all. -->
+  <WrapPanel x:Name="ActiveFilters"
+             Orientation="Horizontal"
+             Margin="{DynamicResource Padding.Compact}"
+             IsVisible="{Binding Chips.Count, Converter={x:Static v:FilterBarView.IsPositive}}">
+    <ItemsControl ItemsSource="{Binding Chips}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <WrapPanel Orientation="Horizontal" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:FilterChipViewModel">
+          <Border Classes="ActiveFilterChip">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+              <TextBlock Text="{Binding Text}" VerticalAlignment="Center" MaxWidth="320" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}" />
+              <Button Classes="Icon Small"
+                      Command="{Binding RemoveCommand}"
+                      ToolTip.Tip="{Binding RemoveLabel}"
+                      AutomationProperties.Name="{Binding RemoveLabel}">
+                <PathIcon Classes="Small" Data="{StaticResource Icon.Close}" />
+              </Button>
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <HyperlinkButton x:Name="ClearAllButton" Content="{l:Loc Filter_ClearAll}" Command="{Binding ClearAllCommand}" />
+  </WrapPanel>
+  </StackPanel>
 </UserControl>

@@ -1494,4 +1494,13 @@
   <data name="Filter_TagsExcluding" xml:space="preserve">
     <value>not {0}</value>
   </data>
+  <data name="Filter_Chip" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Filter_ChipRemove" xml:space="preserve">
+    <value>Remove the {0} filter</value>
+  </data>
+  <data name="Filter_ClearAll" xml:space="preserve">
+    <value>Clear all</value>
+  </data>
 </root>

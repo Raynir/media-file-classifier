@@ -6,6 +6,8 @@ using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Processing;
+using MediaFileClassifier.UseCases.Import.RetryFailedItems;
+using MediaFileClassifier.UseCases.Processing.CancelJob;
 using MediaFileClassifier.UseCases.Processing.GetProcessingQueue;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -40,6 +42,11 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
         this.localizer = localizer;
         this.logger = logger ?? NullLogger<ProcessingPanelViewModel>.Instance;
     }
+
+    /// <summary>
+    /// The number of unfinished work items from which cancelling a job asks for confirmation (E05-S03-T02).
+    /// </summary>
+    public const int LargeJobThreshold = 100;
 
     /// <summary>
     /// Raised when the panel asks to be closed.
@@ -113,7 +120,7 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
             seen.Add(job.Id);
             if (!rows.TryGetValue(job.Id, out var row))
             {
-                row = rows[job.Id] = new ProcessingJobViewModel(job, localizer);
+                row = rows[job.Id] = new ProcessingJobViewModel(job, localizer, this);
             }
             else
             {
@@ -157,6 +164,44 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Cancels a job and lists the jobs again.
+    /// </summary>
+    /// <param name="row">The job's row.</param>
+    /// <returns>A task that completes when the lists are up to date.</returns>
+    internal async Task CancelJobAsync(ProcessingJobViewModel row)
+    {
+        try
+        {
+            await sender.Send(new CancelJobCommand(row.Id));
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+            LogActionFailed(exception);
+        }
+
+        await RefreshAsync();
+    }
+
+    /// <summary>
+    /// Queues the failed items of a job again and lists the jobs again.
+    /// </summary>
+    /// <param name="row">The job's row.</param>
+    /// <returns>A task that completes when the lists are up to date.</returns>
+    internal async Task RetryFailedAsync(ProcessingJobViewModel row)
+    {
+        try
+        {
+            await sender.Send(new RetryFailedItemsCommand(JobId: row.Id));
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException or ArgumentException)
+        {
+            LogActionFailed(exception);
+        }
+
+        await RefreshAsync();
+    }
+
     [RelayCommand]
     private void Close() => CloseRequested?.Invoke(this, EventArgs.Empty);
 
@@ -175,6 +220,9 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
             rows[progress.JobId].Update(progress);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A processing panel action couldn't run")]
+    private partial void LogActionFailed(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The processing panel couldn't list the jobs")]
     private partial void LogRefreshFailed(Exception exception);

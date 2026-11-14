@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
@@ -16,6 +17,7 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
 {
     private readonly Localizer localizer;
     private readonly ProgressText text;
+    private readonly ProcessingPanelViewModel? panel;
     private QueueJob job;
     private JobProgress? live;
 
@@ -24,13 +26,15 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
     /// </summary>
     /// <param name="job">The job.</param>
     /// <param name="localizer">UI strings.</param>
-    public ProcessingJobViewModel(QueueJob job, Localizer localizer)
+    /// <param name="panel">The panel that runs the row's actions, or <see langword="null"/> for a row without actions.</param>
+    public ProcessingJobViewModel(QueueJob job, Localizer localizer, ProcessingPanelViewModel? panel = null)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(localizer);
 
         this.job = job;
         this.localizer = localizer;
+        this.panel = panel;
         text = new ProgressText(localizer);
         Id = job.Id;
         Refresh();
@@ -106,6 +110,23 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
     public partial string? RetryingText { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether the job can be cancelled: it isn't finished.
+    /// </summary>
+    public bool CanCancel => !job.IsFinished;
+
+    /// <summary>
+    /// Gets the question waiting for an answer before the job is cancelled, or <see langword="null"/>.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsConfirmingCancel))]
+    public partial string? CancelQuestion { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the row asks to confirm cancelling a large job.
+    /// </summary>
+    public bool IsConfirmingCancel => CancelQuestion is not null;
+
+    /// <summary>
     /// Updates the job from a new list, e.g. after it started or finished.
     /// </summary>
     /// <param name="updated">The job as it is now.</param>
@@ -116,6 +137,12 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
         job = updated;
         OnPropertyChanged(nameof(State));
         OnPropertyChanged(nameof(IsFinished));
+        OnPropertyChanged(nameof(CanCancel));
+        if (job.IsFinished)
+        {
+            CancelQuestion = null;
+        }
+
         Refresh();
     }
 
@@ -128,6 +155,48 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
         live = progress;
         OnPropertyChanged(nameof(Pending));
         Refresh();
+    }
+
+    /// <summary>
+    /// Cancels the job at once, or asks first when it still has a lot of work (D-draft: 100 items or more).
+    /// </summary>
+    [RelayCommand]
+    private async Task CancelAsync()
+    {
+        if (panel is null || job.IsFinished)
+        {
+            return;
+        }
+
+        if (Pending >= ProcessingPanelViewModel.LargeJobThreshold)
+        {
+            CancelQuestion = localizer.Format("Processing_CancelConfirm", Format.Number(Pending));
+            return;
+        }
+
+        await panel.CancelJobAsync(this);
+    }
+
+    [RelayCommand]
+    private async Task ConfirmCancelAsync()
+    {
+        CancelQuestion = null;
+        if (panel is not null)
+        {
+            await panel.CancelJobAsync(this);
+        }
+    }
+
+    [RelayCommand]
+    private void KeepRunning() => CancelQuestion = null;
+
+    [RelayCommand]
+    private async Task RetryFailedAsync()
+    {
+        if (panel is not null)
+        {
+            await panel.RetryFailedAsync(this);
+        }
     }
 
     private void Refresh()

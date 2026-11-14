@@ -9,6 +9,8 @@ using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.Tests.Shell;
 using MediaFileClassifier.Ui.ViewModels.Processing;
+using MediaFileClassifier.UseCases.Import.RetryFailedItems;
+using MediaFileClassifier.UseCases.Processing.CancelJob;
 using MediaFileClassifier.UseCases.Processing.GetProcessingQueue;
 
 namespace MediaFileClassifier.Ui.Tests.Processing;
@@ -182,6 +184,84 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task Cancel_ASmallJob_CancelsAtOnce_AndListsTheJobsAgain()
+    {
+        var job = Job("Analyze 5 items", ProcessingJobState.Queued, total: 5, pending: ProcessingPanelViewModel.LargeJobThreshold - 1);
+        sender.Queue = new ProcessingQueue([job], []);
+        await panel.RefreshAsync(Token);
+        var calls = sender.Calls;
+        var row = Assert.Single(panel.Queued);
+
+        await row.CancelCommand.ExecuteAsync(null);
+
+        Assert.Equal(new CancelJobCommand(job.Id), Assert.Single(sender.Commands));
+        Assert.False(row.IsConfirmingCancel);
+        Assert.True(sender.Calls > calls);
+    }
+
+    [Fact]
+    public async Task Cancel_ALargeJob_AsksFirst_AndKeepDoesNothing()
+    {
+        var job = Job("Import photos", ProcessingJobState.Running, total: 500, done: 100, pending: ProcessingPanelViewModel.LargeJobThreshold);
+        sender.Queue = new ProcessingQueue([job], []);
+        await panel.RefreshAsync(Token);
+        var row = Assert.Single(panel.Active);
+
+        await row.CancelCommand.ExecuteAsync(null);
+
+        Assert.True(row.IsConfirmingCancel);
+        Assert.Contains("100 items", row.CancelQuestion, StringComparison.Ordinal);
+        Assert.Empty(sender.Commands);
+
+        row.KeepRunningCommand.Execute(null);
+
+        Assert.False(row.IsConfirmingCancel);
+        Assert.Empty(sender.Commands);
+    }
+
+    [Fact]
+    public async Task Cancel_ALargeJob_CancelsOnceConfirmed()
+    {
+        var job = Job("Import photos", ProcessingJobState.Running, total: 500, done: 100, pending: 400);
+        sender.Queue = new ProcessingQueue([job], []);
+        await panel.RefreshAsync(Token);
+        var row = Assert.Single(panel.Active);
+        await row.CancelCommand.ExecuteAsync(null);
+
+        await row.ConfirmCancelCommand.ExecuteAsync(null);
+
+        Assert.Equal(new CancelJobCommand(job.Id), Assert.Single(sender.Commands));
+        Assert.False(row.IsConfirmingCancel);
+    }
+
+    [Fact]
+    public async Task Cancel_IsNotOfferedForAFinishedJob()
+    {
+        var job = Job("Rescan", ProcessingJobState.Completed, total: 10, done: 10) with { FinishedAt = Now };
+        sender.Queue = new ProcessingQueue([], [job]);
+        await panel.RefreshAsync(Token);
+        var row = Assert.Single(panel.Recent);
+
+        await row.CancelCommand.ExecuteAsync(null);
+
+        Assert.False(row.CanCancel);
+        Assert.Empty(sender.Commands);
+    }
+
+    [Fact]
+    public async Task RetryFailed_RetriesTheJobsFailedItems()
+    {
+        var job = Job("Import photos", ProcessingJobState.Failed, total: 10, done: 7) with { Failed = 3, FinishedAt = Now };
+        sender.Queue = new ProcessingQueue([], [job]);
+        await panel.RefreshAsync(Token);
+        var row = Assert.Single(panel.Recent);
+
+        await row.RetryFailedCommand.ExecuteAsync(null);
+
+        Assert.Equal(new RetryFailedItemsCommand(JobId: job.Id), Assert.Single(sender.Commands));
+    }
+
     private static QueueJob Job(string description, ProcessingJobState state, int total, int done = 0, int pending = 0) =>
         new(Id<ProcessingJob>.New(), "import", description, state, Now, Now, null, total, done, 0, pending == 0 ? total - done : pending);
 
@@ -194,10 +274,21 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
 
         public int Calls { get; private set; }
 
+        public List<object> Commands { get; } = [];
+
         protected override object? Handle(object request)
         {
-            Calls++;
-            return request is GetProcessingQueueQuery ? Queue : throw new NotSupportedException();
+            switch (request)
+            {
+                case GetProcessingQueueQuery:
+                    Calls++;
+                    return Queue;
+                case CancelJobCommand or RetryFailedItemsCommand:
+                    Commands.Add(request);
+                    return request is CancelJobCommand ? true : new RetryFailedItemsResult(1, 0);
+                default:
+                    throw new NotSupportedException();
+            }
         }
     }
 }

@@ -34,6 +34,18 @@
                        IsIndeterminate="{Binding IsIndeterminate}"
                        IsVisible="{Binding ShowsProgress}" />
           <TextBlock Classes="Secondary" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Detail}" />
+          <!-- A large job is confirmed here, in its row, like the folders dialog does. -->
+          <DockPanel IsVisible="{Binding IsConfirmingCancel}">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+              <Button Classes="accent" Content="{l:Loc Processing_CancelConfirmYes}" Command="{Binding ConfirmCancelCommand}" />
+              <Button Content="{l:Loc Processing_Keep}" Command="{Binding KeepRunningCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding CancelQuestion}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </DockPanel>
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" IsVisible="{Binding !IsConfirmingCancel}">
+            <Button Content="{l:Loc Processing_RetryFailed}" Command="{Binding RetryFailedCommand}" IsVisible="{Binding HasFailures}" />
+            <Button Content="{l:Loc Processing_Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding CanCancel}" />
+          </StackPanel>
         </StackPanel>
       </Border>
     </DataTemplate>

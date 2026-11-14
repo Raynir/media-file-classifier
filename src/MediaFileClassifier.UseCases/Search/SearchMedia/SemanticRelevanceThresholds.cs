@@ -13,6 +13,9 @@ public static class SemanticRelevanceThresholds
     /// SigLIP 2 base-patch16-256 (D092). On the corpus (345 items, 215 English and Russian queries, 20 nonsense
     /// queries): 88% (en) and 89% (ru) of the relevant items in the top 10 stay visible, 96% and 98% of real queries
     /// keep a result, and 2 of 20 nonsense queries show one item. No nonsense query reached a raw similarity of 0.13.
+    /// The E09-S05 tuning pass (351 items, 281 queries) kept it: 0.05 / 0.12 raised hybrid recall@10 (en 0.93 to
+    /// 0.97, ru 0.74 to 0.80) but 16 of 20 nonsense queries then showed results; 0.09 / 0.15 hid every nonsense query
+    /// but dropped recall to 0.88 (en) and 0.58 (ru).
     /// </summary>
     public static SemanticRelevanceCut Siglip2Base { get; } = new(MinCentredSimilarity: 0.07f, MinSimilarity: 0.13f);
 

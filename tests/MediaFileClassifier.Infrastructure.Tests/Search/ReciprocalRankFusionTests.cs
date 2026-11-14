@@ -11,7 +11,7 @@ public sealed class ReciprocalRankFusionTests
     [Fact]
     public void Fuse_ScoresEachDocumentOverBothLists()
     {
-        var fused = ReciprocalRankFusion.Fuse([1, 2, 3], [3, 4, 1], SearchRankingOptions.Default);
+        var fused = ReciprocalRankFusion.Fuse([1, 2, 3], [3, 4, 1], SearchRankingOptions.Default with { RrfK = 60 });
 
         // 1: 1/61 + 1/63, 3: 1/63 + 1/61, 2: 1/62, 4: 1/62. Ties go to the better single rank, then to the keyword list.
         Assert.Equal([1, 3, 2, 4], fused.Select(hit => hit.DocumentId));

@@ -28,7 +28,7 @@ public sealed class RankingArgumentsTests
         Assert.Equal(SearchRankingOptions.Default.VectorWeight, settings.Ranking.VectorWeight);
         Assert.Equal(KeywordFieldWeights.Default with { Title = 6, OcrText = 0.5 }, settings.Ranking.FieldWeights);
         Assert.Equal(new SemanticRelevanceCut(0.05f, 0.12f), settings.Cut);
-        Assert.Equal("title=6,description=1,tags=3,ocr=0.5,transcript=1,other=1,filename=2", settings.Describe()["field-weights"]);
+        Assert.Equal("title=6,description=1,tags=1,ocr=0.5,transcript=1,other=1,filename=1", settings.Describe()["field-weights"]);
     }
 
     [Fact]

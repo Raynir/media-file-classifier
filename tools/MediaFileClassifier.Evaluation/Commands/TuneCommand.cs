@@ -20,7 +20,7 @@ internal static class TuneCommand
 
     private static readonly (string Name, string Weights)[] FieldWeightSets =
     [
-        ("default", "title=4,description=1,tags=3,ocr=1,transcript=1,other=1,filename=2"),
+        ("untuned", "title=4,description=1,tags=3,ocr=1,transcript=1,other=1,filename=2"),
         ("flat", "title=1,description=1,tags=1,ocr=1,transcript=1,other=1,filename=1"),
         ("text-up", "title=4,description=2,tags=3,ocr=2,transcript=1,other=1,filename=2"),
         ("name-tags-up", "title=4,description=1,tags=5,ocr=1,transcript=1,other=1,filename=5"),

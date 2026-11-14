@@ -8,7 +8,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Search.Filters;
 /// short and the long side, so they keep portrait and landscape items alike. Items without dimensions yet never match,
 /// and an unknown preset matches nothing.
 /// </summary>
-internal sealed class ResolutionFilter : FilterDefinition<ResolutionValue>, IFilterOptions
+internal sealed class ResolutionFilter : FilterDefinition<ResolutionValue>, IFilterPresets
 {
     /// <summary>
     /// The filter's ID.
@@ -35,12 +35,12 @@ internal sealed class ResolutionFilter : FilterDefinition<ResolutionValue>, IFil
     /// </summary>
     public const string UltraHd = "4k";
 
-    private static readonly (string Preset, string Key)[] Presets =
+    private static readonly IReadOnlyList<FilterPreset> PresetList =
     [
-        (Small, "Filter_Resolution_Small"),
-        (Hd, "Filter_Resolution_Hd"),
-        (FullHd, "Filter_Resolution_FullHd"),
-        (UltraHd, "Filter_Resolution_4K"),
+        new(Small, "Filter_Resolution_Small"),
+        new(Hd, "Filter_Resolution_Hd"),
+        new(FullHd, "Filter_Resolution_FullHd"),
+        new(UltraHd, "Filter_Resolution_4K"),
     ];
 
     /// <inheritdoc />
@@ -55,16 +55,8 @@ internal sealed class ResolutionFilter : FilterDefinition<ResolutionValue>, IFil
     /// <inheritdoc />
     public override FilterValueKind Kind => FilterValueKind.Resolution;
 
-    /// <summary>
-    /// Lists the presets, in the order the panel shows them.
-    /// </summary>
-    /// <param name="prefix">Ignored: the list is fixed, and the panel narrows it by the text it shows.</param>
-    /// <param name="cancellationToken">Not used.</param>
-    /// <returns>The presets: their IDs and display-name keys.</returns>
-    public ValueTask<IReadOnlyList<FilterOption>> GetOptionsAsync(string? prefix, CancellationToken cancellationToken) =>
-        ValueTask.FromResult<IReadOnlyList<FilterOption>>(
-            [.. Presets
-                .Select(preset => new FilterOption(preset.Preset, preset.Key))]);
+    /// <inheritdoc />
+    public IReadOnlyList<FilterPreset> Presets => PresetList;
 
     /// <inheritdoc />
     protected override string? ToSql(ResolutionValue value, IFilterSql sql)

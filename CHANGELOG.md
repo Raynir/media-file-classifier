@@ -31,6 +31,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- The browse Subfolder scope (the folder tree and the results grid) ignores case in every alphabet, like the folder filter: `Фото` and `фото` are one folder. The date and resolution filters list their presets through `IFilterPresets` only (MFC-993).
 - Two timing tests that failed only in a full `dotnet test` (`WriteConcurrencyTests` and `JobSchedulerTests`) now run alone, in a non-parallel collection (MFC-992).
 - A finished job no longer stays in the progress summary and the status bar when its last work items finish at the same time (MFC-985).
 - The SigLIP 2 quality test (`Siglip2QualityTests`) is opt-in: it skips unless `MFC_QUALITY_TESTS=1`, so it no longer uses every CPU core in a full `dotnet test` and starves the timing tests. Opt-in tests are documented in `docs/development-workflow.md` (MFC-986).

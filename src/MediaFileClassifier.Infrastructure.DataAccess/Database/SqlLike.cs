@@ -22,10 +22,11 @@ internal static class SqlLike
             .Replace("_", EscapeCharacter + "_", StringComparison.Ordinal);
 
     /// <summary>
-    /// Makes the pattern of everything inside a subfolder.
+    /// Makes the pattern of everything inside a subfolder, in upper case: match it against the path folded with
+    /// <see cref="LibraryConnectionFactory.FoldCase"/>, so folder names ignore case in every alphabet (D310).
     /// </summary>
     /// <param name="subfolder">The subfolder, with <c>/</c> or <c>\</c> separators; <c>null</c> or empty for none.</param>
     /// <returns>The pattern, or <c>null</c> if there's no subfolder.</returns>
     public static string? SubfolderPattern(string? subfolder) =>
-        subfolder?.Replace('\\', '/').Trim('/') is { Length: > 0 } trimmed ? Escape(trimmed) + "/%" : null;
+        subfolder?.Replace('\\', '/').Trim('/') is { Length: > 0 } trimmed ? Escape(trimmed.ToUpperInvariant()) + "/%" : null;
 }

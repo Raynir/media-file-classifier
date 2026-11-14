@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.Search.Filters"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:v="using:MediaFileClassifier.Ui.Views.Search"
+             x:Class="MediaFileClassifier.Ui.Views.Search.FilterBarView"
+             x:DataType="vm:FilterBarViewModel">
+  <!--
+    The filters above the results (E10-S02). The wireframes put the quick chips in the results header and have no filter
+    panel, so the other filters sit in a flyout under the "Filters" button (provisional until the T00 design is signed
+    off). The row wraps in a narrow window.
+  -->
+  <WrapPanel Orientation="Horizontal" Margin="{DynamicResource Padding.Compact}">
+    <ItemsControl x:Name="QuickFilters" ItemsSource="{Binding QuickFilters}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Orientation="Horizontal" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:QuickFilterViewModel">
+          <Button Classes="FilterChip"
+                  Classes.Selected="{Binding IsChecked}"
+                  Content="{Binding Text}"
+                  Command="{Binding ApplyCommand}"
+                  AutomationProperties.Name="{Binding Text}" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Button x:Name="FiltersButton"
+            Classes="FilterChip"
+            Classes.Selected="{Binding ActiveCount, Converter={x:Static v:FilterBarView.IsPositive}}"
+            Content="{Binding ButtonText}"
+            AutomationProperties.Name="{l:Loc Filter_Button}"
+            ToolTip.Tip="{l:Loc Filter_ButtonTip}">
+      <Button.Flyout>
+        <Flyout Placement="BottomEdgeAlignedLeft" ShowMode="Standard">
+          <v:FilterPanelView DataContext="{Binding}" />
+        </Flyout>
+      </Button.Flyout>
+    </Button>
+  </WrapPanel>
+</UserControl>

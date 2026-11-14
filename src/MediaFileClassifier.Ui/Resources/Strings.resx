@@ -1407,4 +1407,91 @@
   <data name="Hardware_Speed" xml:space="preserve">
     <value>{0} per second</value>
   </data>
+  <data name="Filter_MediaType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Filter_MediaType_Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="Filter_MediaType_AnimatedImage" xml:space="preserve">
+    <value>Animated image</value>
+  </data>
+  <data name="Filter_MediaType_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="Filter_FileFormat" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="Filter_Quick_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Filter_Quick_Images" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="Filter_Quick_Videos" xml:space="preserve">
+    <value>Videos</value>
+  </data>
+  <data name="Filter_Quick_Favorites" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="Filter_Button" xml:space="preserve">
+    <value>Filters</value>
+  </data>
+  <data name="Filter_ButtonActive" xml:space="preserve">
+    <value>Filters ({0})</value>
+  </data>
+  <data name="Filter_ButtonTip" xml:space="preserve">
+    <value>Choose which items to show</value>
+  </data>
+  <data name="Filter_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Filter_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Filter_AnyTime" xml:space="preserve">
+    <value>Any time</value>
+  </data>
+  <data name="Filter_DatePreset" xml:space="preserve">
+    <value>Date range</value>
+  </data>
+  <data name="Filter_DateFromBox" xml:space="preserve">
+    <value>From date</value>
+  </data>
+  <data name="Filter_DateToBox" xml:space="preserve">
+    <value>To date</value>
+  </data>
+  <data name="Filter_DateFrom" xml:space="preserve">
+    <value>from {0}</value>
+  </data>
+  <data name="Filter_DateUntil" xml:space="preserve">
+    <value>until {0}</value>
+  </data>
+  <data name="Filter_RangeFrom" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="Filter_RangeTo" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="Filter_TagsPlaceholder" xml:space="preserve">
+    <value>Add a tag (Enter includes, Shift+Enter excludes)</value>
+  </data>
+  <data name="Filter_TagsInclude" xml:space="preserve">
+    <value>Include this tag</value>
+  </data>
+  <data name="Filter_TagsExclude" xml:space="preserve">
+    <value>Exclude this tag</value>
+  </data>
+  <data name="Filter_TagsMatchAll" xml:space="preserve">
+    <value>Items must have all included tags</value>
+  </data>
+  <data name="Filter_TagsIncluded" xml:space="preserve">
+    <value>Included</value>
+  </data>
+  <data name="Filter_TagsExcluded" xml:space="preserve">
+    <value>Excluded</value>
+  </data>
+  <data name="Filter_TagsExcluding" xml:space="preserve">
+    <value>not {0}</value>
+  </data>
 </root>

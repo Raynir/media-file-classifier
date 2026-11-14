@@ -51,7 +51,8 @@ internal static class ProductionBenchmark
 
     private const string ModelName = "siglip2-bench";
 
-    private const double PauseMs = 300;
+    // SearchBarViewModel.DefaultDelay (MFC-990: 300 ms until then).
+    private const double PauseMs = 200;
 
     private static readonly string[][] KeywordQueries =
     [
@@ -251,7 +252,7 @@ internal static class ProductionBenchmark
             }
         }
 
-        var typing = new List<(int Length, double SearchMs, double? EncodeMs)>();
+        var typing = new List<(int Length, double SearchMs, double? EncodeMs, int Prefix)>();
         for (var run = 0; run < options.TypingRuns; run++)
         {
             for (var i = 0; i < prefixes.Count; i++)
@@ -267,7 +268,7 @@ internal static class ProductionBenchmark
 
                 var watch = Stopwatch.StartNew();
                 await index.SearchAsync(q);
-                typing.Add((prefixes[i].Length, watch.Elapsed.TotalMilliseconds, encodeMs));
+                typing.Add((prefixes[i].Length, watch.Elapsed.TotalMilliseconds, encodeMs, i));
             }
         }
 
@@ -305,6 +306,34 @@ internal static class ProductionBenchmark
             }
 
             (encoder as IDisposable)?.Dispose();
+
+            // MFC-990: the typing pause against searches started and cancelled, from the times measured above.
+            // The prefixes of each query are consecutive in the list, one per length.
+            var queryTimes = new List<IReadOnlyList<IReadOnlyList<double>>>();
+            var offset = 0;
+            foreach (var text in KeywordQueries.Select(words => string.Join(' ', words)))
+            {
+                var start = offset;
+                queryTimes.Add([.. Enumerable.Range(start, text.Length)
+                    .Select(index => (IReadOnlyList<double>)[.. typing.Where(t => t.Prefix == index).Select(t => t.SearchMs + t.EncodeMs!.Value)])]);
+                offset += text.Length;
+            }
+
+            Log(string.Empty);
+            Log($"Typing pause (MFC-990): each query typed {TypingSimulation.Trials} times with log-normal gaps between keystrokes (sigma {TypingSimulation.GapSigma}), using the encoder + search times above. A search starts after a gap longer than the pause and after the last keystroke; it is cancelled when the next one starts before it is done.");
+            Log(string.Empty);
+            Log("| Median gap between keystrokes | Pause | Searches per query | Cancelled per query | Last keystroke to results p50 | p95 |");
+            Log("|--:|--:|--:|--:|--:|--:|");
+            foreach (var gap in new[] { 150.0, 250.0 })
+            {
+                foreach (var pause in new[] { 150.0, 200.0, 250.0, 300.0 })
+                {
+                    var result = TypingSimulation.Run(queryTimes, pause, gap, seed: 42);
+                    Log(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"| {gap:F0} ms | {pause:F0} ms | {result.SearchesPerQuery:F2} | {result.CancelledPerQuery:F2} | {result.LastKeystrokeToResults.P50:F0} | {result.LastKeystrokeToResults.P95:F0} |"));
+                }
+            }
         }
 
         await session.SetCurrentAsync(null);

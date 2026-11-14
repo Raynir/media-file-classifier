@@ -58,7 +58,7 @@
         <DataTemplate x:DataType="vm:FilterChipViewModel">
           <Border Classes="ActiveFilterChip">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
-              <TextBlock Text="{Binding Text}" VerticalAlignment="Center" MaxWidth="320" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}" />
+              <TextBlock Text="{Binding Text}" VerticalAlignment="Center" MaxWidth="{DynamicResource Size.FilterChip.MaxWidth}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}" />
               <Button Classes="Icon Small"
                       Command="{Binding RemoveCommand}"
                       ToolTip.Tip="{Binding RemoveLabel}"

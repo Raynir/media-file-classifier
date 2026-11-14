@@ -5,8 +5,8 @@
              xmlns:v="using:MediaFileClassifier.Ui.Views.Search"
              x:Class="MediaFileClassifier.Ui.Views.Search.FilterPanelView"
              x:DataType="vm:FilterBarViewModel"
-             Width="320"
-             MaxHeight="480">
+             Width="{DynamicResource Size.FilterPanel}"
+             MaxHeight="{DynamicResource Size.FilterPanel.MaxHeight}">
   <!--
     The filter panel in the Filters flyout (E10-S02-T01): one control per available filter, chosen by the filter's kind
     (multi-select check boxes, date presets and range, number range, tag include and exclude, yes/no). A filter
@@ -16,7 +16,7 @@
 
 
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-    <ItemsControl ItemsSource="{Binding Editors}" Margin="0,0,0,12">
+    <ItemsControl ItemsSource="{Binding Editors}" Margin="{DynamicResource Padding.FilterGroup}">
       <ItemsControl.DataTemplates>
     <DataTemplate DataType="vm:MultiSelectFilterViewModel" x:DataType="vm:MultiSelectFilterViewModel">
       <StackPanel Spacing="{DynamicResource Space.XS}">
@@ -64,12 +64,12 @@
       <StackPanel Spacing="{DynamicResource Space.XS}">
         <TextBlock Classes="Secondary" Text="{Binding Title}" />
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
-        <TextBox Width="96"
+        <TextBox Width="{DynamicResource Size.FilterRangeBox}"
                  Text="{Binding MinText}"
                  PlaceholderText="{l:Loc Filter_RangeFrom}"
                  AutomationProperties.Name="{l:Loc Filter_RangeFrom}" />
         <TextBlock Text="–" VerticalAlignment="Center" />
-        <TextBox Width="96"
+        <TextBox Width="{DynamicResource Size.FilterRangeBox}"
                  Text="{Binding MaxText}"
                  PlaceholderText="{l:Loc Filter_RangeTo}"
                  AutomationProperties.Name="{l:Loc Filter_RangeTo}" />

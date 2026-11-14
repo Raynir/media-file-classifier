@@ -50,11 +50,23 @@ public sealed class ProgressText(Localizer localizer)
 
         return string.Join(Environment.NewLine, summary.Jobs.Select(job =>
         {
-            var stage = job.CurrentStage;
-            var line = localizer.Format("Progress_JobLine", job.Description, Counts(stage is null ? string.Empty : StageName(stage.Stage) ?? stage.Stage, stage, job.IsTotalGrowing));
+            var line = localizer.Format("Progress_JobLine", job.Description, CurrentWork(job));
             line = job.Retrying > 0 ? localizer.Format("Progress_Retrying", line, Format.Number(job.Retrying)) : line;
             return job.Failed > 0 ? localizer.Format("Progress_Failed", line, Format.Number(job.Failed)) : line;
         }));
+    }
+
+    /// <summary>
+    /// Gets what a job is doing now, with its counts: "Fingerprinting: 120 of 340".
+    /// </summary>
+    /// <param name="job">The job's progress.</param>
+    /// <returns>The text.</returns>
+    public string CurrentWork(JobProgress job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+
+        var stage = job.CurrentStage;
+        return Counts(stage is null ? string.Empty : StageName(stage.Stage) ?? stage.Stage, stage, job.IsTotalGrowing);
     }
 
     /// <summary>

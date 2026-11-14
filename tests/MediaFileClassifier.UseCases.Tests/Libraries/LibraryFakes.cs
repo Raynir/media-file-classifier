@@ -191,7 +191,7 @@ internal sealed class FakeSettingsService : ISettingsService
 }
 
 /// <summary>
-/// A job repository with no jobs.
+/// A job repository whose jobs and counts the test sets.
 /// </summary>
 internal sealed class FakeJobRepository : IJobRepository
 {
@@ -211,7 +211,40 @@ internal sealed class FakeJobRepository : IJobRepository
             ? new ProcessingJob { Id = id, Type = "analysis", Description = "Analyze 1 item", State = jobState, CreatedAt = DateTimeOffset.UnixEpoch }
             : null);
 
-    public Task<IReadOnlyList<ProcessingJob>> GetUnfinishedJobsAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ProcessingJob>>([]);
+    public Task<IReadOnlyList<ProcessingJob>> GetUnfinishedJobsAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ProcessingJob>>([.. Unfinished]);
+
+    /// <summary>
+    /// Gets the jobs <see cref="GetUnfinishedJobsAsync"/> returns.
+    /// </summary>
+    public List<ProcessingJob> Unfinished { get; } = [];
+
+    /// <summary>
+    /// Gets the jobs <see cref="GetRecentJobsAsync"/> returns, newest first.
+    /// </summary>
+    public List<ProcessingJob> Recent { get; } = [];
+
+    /// <summary>
+    /// Gets the work item counts <see cref="CountWorkAsync"/> returns for the jobs asked for.
+    /// </summary>
+    public List<WorkItemCount> Counts { get; } = [];
+
+    /// <summary>
+    /// Gets the failures <see cref="CountFailuresAsync"/> returns.
+    /// </summary>
+    public Dictionary<Id<ProcessingJob>, int> Failures { get; } = [];
+
+    public Task<IReadOnlyList<ProcessingJob>> GetRecentJobsAsync(int limit, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ProcessingJob>>([.. Recent.Take(limit)]);
+
+    public Task<IReadOnlyList<WorkItemCount>> CountWorkAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<WorkItemCount>>([.. Counts.Where(count => jobIds.Contains(count.JobId))]);
+
+    public Task<IReadOnlyDictionary<Id<ProcessingJob>, int>> CountFailuresAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyDictionary<Id<ProcessingJob>, int>>(Failures);
+
+    /// <summary>
+    /// Gets the work items <see cref="GetFailedWorkItemsAsync"/> returns.
+    /// </summary>
+    public List<WorkItem> FailedWork { get; } = [];
+
+    public Task<IReadOnlyList<WorkItem>> GetFailedWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<WorkItem>>([.. FailedWork.Where(item => item.JobId == jobId)]);
 
     public Task<IReadOnlyList<WorkItem>> GetQueuedAsync(ResourcePool pool, int limit, IReadOnlyCollection<Id<WorkItem>> excluding, IReadOnlyCollection<string>? excludingStages = null, DateTimeOffset? dueBy = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
@@ -234,6 +267,8 @@ internal sealed class FakeJobRepository : IJobRepository
     public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<int> PruneFinishedJobsAsync(int keepLast, DateTimeOffset olderThan, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<int> MarkWaitingForModelAsync(IReadOnlyCollection<string> stages, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

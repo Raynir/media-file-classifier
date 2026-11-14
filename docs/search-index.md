@@ -103,6 +103,21 @@ Same benchmark after MFC-988 (ms):
 
 The rerun of the baseline before the change gave a search p95 of 3.9 s (1-2 letters 5.0 s), so the p95 fell about 8 times. The user confirmed that D031's 300 ms is counted from the end of the typing pause (encoder and search), not from the last keystroke.
 
+### MFC-989: top matches for the hybrid candidates
+
+The keyword half of a hybrid search needs only the 200 best BM25 matches (`SearchRankingOptions.CandidateLimit`) and never their total, so it asks with `KeywordSearch.NeedsTotal = false`. When the first page is asked for by relevance, `SearchStore` then runs just the FTS5 match with BM25, the filter and `ORDER BY rank LIMIT n`, which SQLite sorts keeping only the top rows. A full page is exactly the page the full query gives, since hits found only as a path substring rank after every BM25 match. A shorter page falls back to the full query (intersection, path substrings, count). The keyword-only path keeps its exact total. Measured on the SQL alone: 50-180 ms down to 12-61 ms for broad prefixes.
+
+Same benchmark after MFC-989 (ms; a first run while other builds were busy gave an encoder p50 of 231 ms and was discarded):
+
+| Letters typed | Samples | Search p50 | Search p95 | Search max | Encoder p50 | Encoder p95 | End to end p50 | End to end p95 | End to end max |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1 to 2 | 150 | 96 | 118 | 127 | 23 | 24 | 419 | 441 | 450 |
+| 3 to 5 | 213 | 131 | 512 | 735 | 23 | 25 | 456 | 836 | 1,061 |
+| 6 or more | 342 | 233 | 514 | 710 | 23 | 25 | 557 | 837 | 1,034 |
+| all | 705 | 179 | 497 | 735 | 23 | 25 | 503 | 820 | 1,061 |
+
+Broad prefixes (1-2 letters) are now within D031 (encoder + search p95 about 142 ms). The p95 of longer prefixes stays at about 500 ms: the matched fields of the first page cost 60-220 ms per 100 rows for prefixes of 4 or more letters, which have no prefix index, plus the vector half. The user chose to leave that as it is for now (other options were working the fields out in C# from the row text, or more prefix indexes).
+
 ## Known follow-ups
 
 - A text or image search that ran while the vector index was still loading (`SemanticSearchStatus.IndexNotReady`) is not run again when the index finishes loading; the user has to search again (found in PR #58, MFC-93). Such answers are not cached.

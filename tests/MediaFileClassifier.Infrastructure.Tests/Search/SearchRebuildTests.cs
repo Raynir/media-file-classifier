@@ -63,6 +63,16 @@ public sealed class SearchRebuildTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task DroppedSortKeys_NeedARebuild()
+    {
+        Assert.False(await bed.Library.Library.Search.IsRebuildNeededAsync(Token));
+
+        await ExecuteAsync("""DROP TABLE "search_sort";""");
+
+        Assert.True(await bed.Library.Library.Search.IsRebuildNeededAsync(Token));
+    }
+
+    [Fact]
     public async Task StaleExcludedFlag_IsRepairedByRebuild()
     {
         await ExecuteAsync("""UPDATE "media_item" SET "status" = 5 WHERE "rowid" % 3 = 0""");

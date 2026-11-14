@@ -132,6 +132,8 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
         return connections.ReadAsync(
             async (db, token) =>
             {
+                // One read transaction, so the page and the total come from the same snapshot while items are added.
+                await using var snapshot = await db.Database.BeginTransactionAsync(token).ConfigureAwait(false);
                 var documents = new List<SearchDocument>();
                 await QueryAsync(
                     db,
@@ -249,10 +251,10 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
             {
                 var exists = await ExecuteScalarIntAsync(
                     db,
-                    """SELECT count(*) FROM "sqlite_master" WHERE "name" IN ('search_document', 'search_text', 'search_filename', 'search_state')""",
+                    """SELECT count(*) FROM "sqlite_master" WHERE "name" IN ('search_document', 'search_text', 'search_filename', 'search_state', 'search_sort')""",
                     [],
                     token).ConfigureAwait(false);
-                if (exists < 4)
+                if (exists < 5)
                 {
                     return true;
                 }

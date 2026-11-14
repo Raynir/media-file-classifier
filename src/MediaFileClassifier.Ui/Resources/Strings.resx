@@ -1503,4 +1503,13 @@
   <data name="Filter_ClearAll" xml:space="preserve">
     <value>Clear all</value>
   </data>
+  <data name="Setting_RestoreFilters" xml:space="preserve">
+    <value>Restore the filters on startup</value>
+  </data>
+  <data name="Setting_RestoreFilters_Help" xml:space="preserve">
+    <value>When on, the filters you had set when you last used a library come back when it opens.</value>
+  </data>
+  <data name="Setting_LastFilters" xml:space="preserve">
+    <value>Last filters</value>
+  </data>
 </root>

@@ -45,8 +45,11 @@ public sealed partial class FilterBarViewModel : ViewModelBase
     /// <param name="source">The search results the filters apply to.</param>
     /// <param name="registry">The registered filters.</param>
     /// <param name="localizer">UI strings.</param>
-    public FilterBarViewModel(SearchResultSource source, FilterRegistry registry, Localizer localizer)
+    /// <param name="persistence">Keeps the filters across restarts (E10-S02-T03). The bar doesn't call it; taking it
+    /// makes the container build it together with the filter UI, so it listens from the start.</param>
+    public FilterBarViewModel(SearchResultSource source, FilterRegistry registry, Localizer localizer, FilterStatePersistence? persistence = null)
     {
+        _ = persistence;
         this.source = source;
         this.registry = registry;
         this.localizer = localizer;

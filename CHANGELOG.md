@@ -34,6 +34,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- "Analyze search results" with no search active reads the browse list in one go, so deleting items meanwhile (remove missing, removing a folder) can no longer skip some. "Analyze pending items" leaves out items that an analysis run finished while the list was read, so they are neither counted nor analyzed again (MFC-995).
 - "Analyze pending items", folder analysis and "Analyze search results" no longer skip items when the scope changes while it is read (for example pending items being analyzed by a running job): the scope's item ids are read in one query (or from the search's own list of hits) before the items are loaded, so the run covers every item the scope had when it started (MFC-994).
 - The browse Subfolder scope (the folder tree and the results grid) ignores case in every alphabet, like the folder filter: `Фото` and `фото` are one folder. The date and resolution filters list their presets through `IFilterPresets` only (MFC-993).
 - Two timing tests that failed only in a full `dotnet test` (`WriteConcurrencyTests` and `JobSchedulerTests`) now run alone, in a non-parallel collection (MFC-992).

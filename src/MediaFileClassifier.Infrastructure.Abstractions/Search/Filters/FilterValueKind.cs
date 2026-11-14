@@ -29,4 +29,14 @@ public enum FilterValueKind
     /// Values to include, all or any of them, and values to exclude (<see cref="IncludeExcludeValue"/>).
     /// </summary>
     IncludeExclude,
+
+    /// <summary>
+    /// A resolution preset, or a minimum displayed width and height (<see cref="ResolutionValue"/>).
+    /// </summary>
+    Resolution,
+
+    /// <summary>
+    /// Indexed folders and subfolders, with or without what's inside their subfolders (<see cref="FolderValue"/>).
+    /// </summary>
+    Folder,
 }

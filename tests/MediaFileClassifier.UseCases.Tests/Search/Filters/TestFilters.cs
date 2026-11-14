@@ -48,5 +48,9 @@ internal static class TestFilters
 
     public static TestFilter<IncludeExcludeValue> Tags { get; } = new("tags", FilterValueKind.IncludeExclude, 500);
 
-    public static IReadOnlyList<IFilterDefinition> All { get; } = [Type, Size, Date, Favorite, Tags];
+    public static TestFilter<ResolutionValue> Resolution { get; } = new("resolution", FilterValueKind.Resolution, 600);
+
+    public static TestFilter<FolderValue> Folder { get; } = new("folder", FilterValueKind.Folder, 700);
+
+    public static IReadOnlyList<IFilterDefinition> All { get; } = [Type, Size, Date, Favorite, Tags, Resolution, Folder];
 }

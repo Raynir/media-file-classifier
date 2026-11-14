@@ -72,4 +72,14 @@ public interface IItemMetadataRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The tags, most used first.</returns>
     Task<IReadOnlyList<(TagName Tag, int ItemCount)>> GetUserTagsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the effective tags (user, AI and technical, as <see cref="ItemMetadata.GetEffectiveTags"/> resolves them) that
+    /// start with a prefix, ignoring case, with the number of items each, e.g. for the tag filter's autocompletion.
+    /// </summary>
+    /// <param name="prefix">The text the tags start with, or <c>null</c> or empty for every tag.</param>
+    /// <param name="limit">The most tags to return.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The tags, most used first, then by name.</returns>
+    Task<IReadOnlyList<(TagName Tag, int ItemCount)>> GetEffectiveTagsAsync(string? prefix, int limit, CancellationToken cancellationToken = default);
 }

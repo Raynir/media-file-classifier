@@ -23,14 +23,23 @@ public sealed class FilterDefinitionTests
         using var services = FormatTestSupport.CreateServices();
         var collection = new ServiceCollection();
         collection.AddSingleton(services.GetRequiredService<Abstractions.Formats.IMediaFormatRegistry>());
+        collection.AddSingleton<Abstractions.Libraries.ILibrarySession>(new TestSession(null));
         collection.AddDataAccess();
         using var provider = collection.BuildServiceProvider();
 
         var registry = new FilterRegistry(provider.GetServices<IFilterDefinition>());
 
-        Assert.Equal([MediaTypeFilter.FilterId, FileFormatFilter.FilterId], registry.All.Select(filter => filter.Id));
-        Assert.All(registry.All, filter => Assert.Equal(FilterValueKind.MultiSelect, filter.Kind));
-        Assert.All(registry.All, filter => Assert.Equal(typeof(MultiSelectValue), filter.ValueType));
+        Assert.Equal(
+            [
+                (MediaTypeFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
+                (FileFormatFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
+                (DateFilter.FilterId, FilterValueKind.DateRange, typeof(DateRangeValue)),
+                (ResolutionFilter.FilterId, FilterValueKind.Resolution, typeof(ResolutionValue)),
+                (StatusFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
+                (FolderFilter.FilterId, FilterValueKind.Folder, typeof(FolderValue)),
+                (TagsFilter.FilterId, FilterValueKind.IncludeExclude, typeof(IncludeExcludeValue)),
+            ],
+            registry.All.Select(filter => (filter.Id, filter.Kind, filter.ValueType)));
         Assert.All(registry.All, filter => Assert.True(filter.IsAvailable));
     }
 

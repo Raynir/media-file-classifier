@@ -96,6 +96,20 @@ public sealed record DateRangeValue(string? Preset, DateTimeOffset? From, DateTi
 }
 
 /// <summary>
+/// The value of a <see cref="FilterValueKind.Resolution"/> filter: a preset the filter defines (e.g. <c>hd</c>), or a
+/// minimum displayed width and height in pixels. A preset wins over the minimums.
+/// </summary>
+/// <param name="Preset">The preset's ID, or <see langword="null"/> for custom minimums.</param>
+/// <param name="MinWidth">The smallest displayed width, or <see langword="null"/>.</param>
+/// <param name="MinHeight">The smallest displayed height, or <see langword="null"/>.</param>
+public sealed record ResolutionValue(string? Preset, int? MinWidth, int? MinHeight) : FilterValue
+{
+    /// <inheritdoc />
+    [JsonIgnore]
+    public override bool IsEmpty => string.IsNullOrWhiteSpace(Preset) && MinWidth is null && MinHeight is null;
+}
+
+/// <summary>
 /// The value of a <see cref="FilterValueKind.Boolean"/> filter. Both <see langword="true"/> and
 /// <see langword="false"/> filter; a filter that's off isn't in the filter state at all.
 /// </summary>
@@ -154,4 +168,48 @@ public sealed record IncludeExcludeValue : FilterValue
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Hash(Include), Hash(Exclude), MatchAll);
+}
+
+/// <summary>
+/// The value of a <see cref="FilterValueKind.Folder"/> filter: indexed folders or subfolders, each written as the
+/// folder's ID, or the ID, <c>/</c> and the subfolder's path inside it (e.g. <c>{id}/2024/Trips</c>). An item matches if
+/// it is in any of them, directly or, with <see cref="IncludeSubfolders"/>, in a subfolder. Each is kept with <c>/</c>
+/// separators and no empty segments, so <c>{id}\2024\</c> and <c>{id}/2024</c> are one value.
+/// </summary>
+public sealed record FolderValue : FilterValue
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FolderValue"/> class.
+    /// </summary>
+    /// <param name="folders">The folders and subfolders, in any order.</param>
+    /// <param name="includeSubfolders">Whether items in their subfolders match too.</param>
+    public FolderValue(IReadOnlyList<string>? folders, bool includeSubfolders)
+    {
+        Folders = Normalise(folders?.Select(Canonical));
+        IncludeSubfolders = includeSubfolders;
+    }
+
+    /// <summary>
+    /// Gets the folders and subfolders, sorted.
+    /// </summary>
+    public IReadOnlyList<string> Folders { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether items in the subfolders of <see cref="Folders"/> match too.
+    /// </summary>
+    public bool IncludeSubfolders { get; }
+
+    /// <inheritdoc />
+    [JsonIgnore]
+    public override bool IsEmpty => Folders.Count == 0;
+
+    /// <inheritdoc />
+    public bool Equals(FolderValue? other) =>
+        other is not null && IncludeSubfolders == other.IncludeSubfolders && Folders.SequenceEqual(other.Folders, StringComparer.Ordinal);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Hash(Folders), IncludeSubfolders);
+
+    private static string Canonical(string folder) =>
+        string.Join('/', (folder ?? string.Empty).Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries));
 }

@@ -14,12 +14,12 @@ The engine under search (E09) and filtering (E10): keyword search with FTS5, vec
 | `IEmbeddingRepository` (`EmbeddingRepository`) | `Repositories`, `DataAccess/Repositories` | The only write path for embeddings; raises `Changed` after each commit. `IOpenLibrary.Embeddings`. |
 | `RebuildSearchIndexCommand` | `UseCases/Search/RebuildSearchIndex` | "Rebuild or refresh the index" (spec 1.2). |
 
-## Schema (version 6)
+## Schema (version 6, prefixes changed in 11)
 
 The `SearchIndex` migration adds, in raw SQL:
 
 - `search_document(doc_id INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT UNIQUE)`: a stable integer per item, shared by the keyword and vector indexes. AUTOINCREMENT, so a deleted item's ID is never reused and a stale vector can't attach to a new item. `media_item.rowid` isn't used, because `VACUUM` (backups, D073) may renumber it.
-- `search_text`: FTS5 with `unicode61 remove_diacritics 2` (D029) and prefix indexes for 2 and 3 characters. Columns: `title`, `description` (with the summary), `tags`, `ocr_text`, `transcript`, `other` (notes and the list fields), `file_name` (the path in the folder).
+- `search_text`: FTS5 with `unicode61 remove_diacritics 2` (D029) and prefix indexes for 1, 2 and 3 characters (1 since schema 11, MFC-988: the `SearchPrefixIndex` migration recreates the table and copies its rows, so no rebuild is needed). Columns: `title`, `description` (with the summary), `tags`, `ocr_text`, `transcript`, `other` (notes and the list fields), `file_name` (the path in the folder).
 - `search_filename`: FTS5 `trigram` index of the path, for substring matches.
 - `search_state`: `rebuild_needed` marks an index whose metadata columns must be recomputed. The migration sets it for libraries that have items; the app rebuilds in the background when it opens such a library.
 - Triggers on `media_item` insert, path update and delete keep documents and paths in step.
@@ -87,6 +87,21 @@ MFC-991 repeats it: one warm-up pass, then 3 runs of each of the 235 prefixes (7
 | all | 705 | 241 | 3,165 | 4,936 | 22 | 35 | 567 | 3,484 | 5,259 |
 
 The D031 budget of 300 ms is **not met**, and the encoder is not the cause (about 22 ms, within its 50 ms budget). The 300 ms pause alone uses the whole budget if it is counted in it, so end to end (p50 567 ms) can only meet it if the pause is shortened or left out of the target (MFC-990); the search alone has a p50 of 241 ms but a p95 of 3.2 s. The tail is the same as in MFC-91: short prefixes match most of the library. Another full run gave a search p50 of 175 ms for all prefixes and p95 of 3.4 s, so p50 moves by about 50 ms between runs on this machine while p95 stays at 3-4 s; compare p95 and the buckets, and rerun before judging a change of less than 25%.
+
+### MFC-988: one-character prefixes
+
+The tail was not the search SQL (at most about 370 ms for any prefix) but the matched fields of the first page (`GetMatchedFieldsAsync`). It runs one FTS5 lookup per result row, and a one-character prefix had no prefix index, so each lookup read every token starting with that letter: about 32 ms per row, 3-4 s for 100 rows ("b", and the last word of "train s" or "red c", which is why the 6+ bucket had the tail too). Two- and three-character prefixes took about 1 ms for all 100 rows. The 1-character prefix index (schema 11) brings the lookup to about 2 ms and makes the index about 22% larger (92 MB to 112 MB of FTS data at 100k items). Upgrading copies the index rows when the library opens: about 7 s at 100k items, once.
+
+Same benchmark after MFC-988 (ms):
+
+| Letters typed | Samples | Search p50 | Search p95 | Search max | Encoder p50 | Encoder p95 | End to end p50 | End to end p95 | End to end max |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1 to 2 | 150 | 206 | 282 | 322 | 23 | 29 | 530 | 604 | 644 |
+| 3 to 5 | 213 | 195 | 539 | 819 | 23 | 30 | 519 | 861 | 1,149 |
+| 6 or more | 342 | 255 | 529 | 754 | 23 | 29 | 576 | 854 | 1,077 |
+| all | 705 | 221 | 484 | 819 | 23 | 29 | 545 | 805 | 1,149 |
+
+The rerun of the baseline before the change gave a search p95 of 3.9 s (1-2 letters 5.0 s), so the p95 fell about 8 times. The user confirmed that D031's 300 ms is counted from the end of the typing pause (encoder and search), not from the last keystroke.
 
 ## Known follow-ups
 

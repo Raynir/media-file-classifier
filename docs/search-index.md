@@ -73,11 +73,11 @@ The date and resolution filters list their presets through `IFilterOptions` (val
 
 ## Search as you type (E09-S02)
 
-`SearchBarViewModel` searches 300 ms after the last keystroke (`DefaultDelay`), `SearchResultSource` cancels the search before it, and a search that was replaced never hands its answer on, even when it had finished. Two caches make going back instant: `SemanticQueryEncoder` keeps 256 query vectors, and `SearchPageCache` keeps the first page of the last 32 text searches (64 cached answers) (reset when the scope or items change; answers that lack the semantic search for a reason that can pass are never kept). The time from the last keystroke to the results is logged (`Search as you type: N ms ...`).
+`SearchBarViewModel` searches 200 ms after the last keystroke (`DefaultDelay`; 300 ms until MFC-990), `SearchResultSource` cancels the search before it, and a search that was replaced never hands its answer on, even when it had finished. Two caches make going back instant: `SemanticQueryEncoder` keeps 256 query vectors, and `SearchPageCache` keeps the first page of the last 32 text searches (64 cached answers) (reset when the scope or items change; answers that lack the semantic search for a reason that can pass are never kept). The time from the last keystroke to the results is logged (`Search as you type: N ms ...`).
 
 `production` also searches every prefix of the keyword queries (hybrid, no filter, limit 100). MFC-91 searched each prefix once: on 100k items and 28 CPUs, p50 221 ms, p95 3.9 s, max 7.8 s (1-2 letters p95 5.1 s, 3-5 letters 0.8 s, 6+ letters 2.0 s), without the encoder and the pause.
 
-MFC-991 repeats it: one warm-up pass, then 3 runs of each of the 235 prefixes (705 samples; `--typing-runs` changes the 3). It also times the real SigLIP 2 text encoder (uncached) on the same prefixes, and adds the 300 ms pause arithmetically (nothing sleeps). The library holds synthetic vectors, so the encoder's output is only timed, not searched with. **Baseline for MFC-988, 989 and 990** (100k items, 28 logical CPUs, Windows 11, .NET 10.0.15, DirectML build of ONNX Runtime; ms):
+MFC-991 repeats it: one warm-up pass, then 3 runs of each of the 235 prefixes (705 samples; `--typing-runs` changes the 3). It also times the real SigLIP 2 text encoder (uncached) on the same prefixes, and adds the pause arithmetically (nothing sleeps; 300 ms until MFC-990, 200 ms since). The library holds synthetic vectors, so the encoder's output is only timed, not searched with. **Baseline for MFC-988, 989 and 990** (100k items, 28 logical CPUs, Windows 11, .NET 10.0.15, DirectML build of ONNX Runtime; ms):
 
 | Letters typed | Samples | Search p50 | Search p95 | Search max | Encoder p50 | Encoder p95 | End to end p50 | End to end p95 | End to end max |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
@@ -117,6 +117,19 @@ Same benchmark after MFC-989 (ms; a first run while other builds were busy gave 
 | all | 705 | 179 | 497 | 735 | 23 | 25 | 503 | 820 | 1,061 |
 
 Broad prefixes (1-2 letters) are now within D031 (encoder + search p95 about 142 ms). The p95 of longer prefixes stays at about 500 ms: the matched fields of the first page cost 60-220 ms per 100 rows for prefixes of 4 or more letters, which have no prefix index, plus the vector half. The user chose to leave that as it is for now (other options were working the fields out in C# from the row text, or more prefix indexes).
+
+### MFC-990: typing pause of 200 ms
+
+D031's 300 ms is counted from the end of the pause, so the pause is chosen for how fast results feel against how many searches it starts. The benchmark simulates typing each query 200 times with log-normal gaps between keystrokes (sigma 0.5) for a fast typist (median gap 150 ms) and a slower one (250 ms), using the measured encoder + search time of each prefix (`TypingSimulation`). A search starts after a gap longer than the pause and after the last keystroke, and it is cancelled when the next one starts before it is done (typing alone doesn't cancel it, as in the app). Searches started and cancelled per typed query:
+
+| Pause | Fast typist: started | cancelled | Slower typist: started | cancelled |
+|--:|--:|--:|--:|--:|
+| 150 ms | 5.2 | 2.2 | 8.1 | 3.5 |
+| 200 ms | 3.4 | 1.0 | 6.6 | 2.4 |
+| 250 ms | 2.3 | 0.4 | 5.2 | 1.5 |
+| 300 ms | 1.7 | 0.2 | 4.0 | 0.9 |
+
+The results arrive the pause plus the encoder and search after the last keystroke, so every 50 ms off the pause shows them 50 ms sooner. The user chose 200 ms: 100 ms sooner than before, at about one cancelled search per query for a fast typist and 2.4 for a slower one, which the cheaper searches after MFC-988 and 989 allow. The simulated gaps are a model, not recorded typing; the app logs the time from the last keystroke to the results, so real numbers can check it.
 
 ## Known follow-ups
 

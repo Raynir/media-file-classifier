@@ -29,9 +29,9 @@ namespace MediaFileClassifier.Ui.Search;
 public sealed partial class SearchBarViewModel : ViewModelBase
 {
     /// <summary>
-    /// How long the text must rest before it is searched (D031).
+    /// How long the text must rest before it is searched (MFC-990). D031's 300 ms budget starts when it ends.
     /// </summary>
-    public static readonly TimeSpan DefaultDelay = TimeSpan.FromMilliseconds(300);
+    public static readonly TimeSpan DefaultDelay = TimeSpan.FromMilliseconds(200);
 
     private readonly SearchResultSource source;
     private readonly ISender sender;

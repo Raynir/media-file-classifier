@@ -127,7 +127,8 @@ public sealed class SemanticQueryEncoderTests : IAsyncLifetime
         await encoder.WaitForPreloadAsync();
         await encoder.EncodeTextAsync("warm up", Token);
 
-        // The class runs in the non-parallel timing collection; the best of three rounds still absorbs a noisy machine.
+        // The class runs alone in this assembly (timing collection) and the best of three rounds absorbs noise. Other test
+        // projects and a loaded LM Studio model (GPU memory) can still slow it: unload models before a full run.
         var medians = new List<double>();
         for (var round = 0; round < 3 && (medians.Count == 0 || medians.Min() >= 50); round++)
         {

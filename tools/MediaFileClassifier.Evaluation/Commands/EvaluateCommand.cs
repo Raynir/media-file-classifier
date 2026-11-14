@@ -29,9 +29,9 @@ internal static class EvaluateCommand
             : await ScoreAppSystemAsync(options, data, clock, output, cancellationToken);
 
         var directory = options.Out ?? Path.Combine(data.Directory, "reports");
-        var path = Finish(report, data, directory, output);
+        var (path, compared) = Finish(report, data, directory, output);
         output.WriteLine($"Report: {path}");
-        return options.FailBelowBaseline && ReportStore.Read(Path.ChangeExtension(path, ".json"))!.Comparisons.Any(c => c.Status == ReportComparer.Below) ? 3 : 0;
+        return options.FailBelowBaseline && compared.Comparisons.Any(c => c.Status == ReportComparer.Below) ? 3 : 0;
     }
 
     /// <summary>
@@ -42,15 +42,15 @@ internal static class EvaluateCommand
     /// <param name="data">The data set.</param>
     /// <param name="directory">The reports folder.</param>
     /// <param name="output">Where the summary goes.</param>
-    /// <returns>The path of the Markdown report.</returns>
-    internal static string Finish(EvaluationReport report, EvaluationData data, string directory, TextWriter output)
+    /// <returns>The path of the Markdown report and the compared report.</returns>
+    internal static (string Path, EvaluationReport Report) Finish(EvaluationReport report, EvaluationData data, string directory, TextWriter output)
     {
         var previous = ReportStore.FindPrevious(directory, report.System, report.CreatedAt);
         var (reference, referenceName) = FindReference(data, directory, report.System, output);
         report = ReportComparer.Compare(report, previous?.Report, previous?.Name, data.Baselines, reference, referenceName);
         var path = ReportStore.Write(directory, report);
         Print(report, output);
-        return path;
+        return (path, report);
     }
 
     internal static void Print(EvaluationReport report, TextWriter output)

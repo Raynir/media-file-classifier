@@ -26,7 +26,13 @@ public sealed class AnalyzeScopeCommandHandler(ISender sender) : IRequestHandler
         return new AnalyzeScopeResult(jobId, items.Count);
     }
 
-    private static string? Describe(AnalysisScope scope, int count) => scope switch
+    /// <summary>
+    /// Names the job of a scope for the processing panel.
+    /// </summary>
+    /// <param name="scope">The scope.</param>
+    /// <param name="count">How many items it covers.</param>
+    /// <returns>The description, or <see langword="null"/> to let the job command describe it.</returns>
+    public static string? Describe(AnalysisScope scope, int count) => scope switch
     {
         AnalysisScope.PendingScope => $"Analyze {count} pending items",
         AnalysisScope.SearchResultsScope => $"Analyze {count} search results",

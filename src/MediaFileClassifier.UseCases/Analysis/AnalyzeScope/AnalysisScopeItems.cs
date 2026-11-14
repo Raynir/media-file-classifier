@@ -1,0 +1,24 @@
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Media;
+
+namespace MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
+
+/// <summary>
+/// The items an <see cref="AnalysisScope"/> resolved to (E06-S06-T02), with the counts the time estimate needs.
+/// Missing items are left out, since there is no file to analyze.
+/// </summary>
+/// <param name="ItemIds">The items.</param>
+/// <param name="Images">How many are images or animated images.</param>
+/// <param name="Videos">How many are videos.</param>
+public sealed record AnalysisScopeItems(IReadOnlyList<Id<MediaItem>> ItemIds, int Images, int Videos)
+{
+    /// <summary>
+    /// Gets a scope with no items.
+    /// </summary>
+    public static AnalysisScopeItems Empty { get; } = new([], 0, 0);
+
+    /// <summary>
+    /// Gets how many items there are.
+    /// </summary>
+    public int Count => ItemIds.Count;
+}

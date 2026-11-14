@@ -41,9 +41,14 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
         sender = new StubSender(services.GetRequiredService<ISender>());
         browse = services.GetRequiredService<LibraryItemsSource>();
         source = new SearchResultSource(browse, sender);
+
+        // Most tests browse in the M1 order (D177), which the item list gives without the search.
+        source.SetSort(ItemListOrder);
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    private static SortChoice ItemListOrder { get; } = new(SortMode.ImportDate, Descending: true);
 
     private static FilterState Videos { get; } = FilterState.Empty.Set("media-type", new MultiSelectValue(["Video"]));
 
@@ -66,6 +71,82 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
         Assert.Equal(3, (await source.GetPageAsync(0, 10, Token)).Count);
         Assert.Null(source.Summary);
         Assert.Equal(0, sender.SearchCalls);
+    }
+
+    [Fact]
+    public async Task Browsing_ByDefault_SortsByDateTaken_ThroughTheSearch_WithoutASummary()
+    {
+        await OpenLibraryAsync(3);
+        var items = library!.ItemList.Items;
+        var fresh = new SearchResultSource(browse, sender);
+        sender.Hits = [new SearchHit(items[2].Id, 0, null, null, SearchFields.None), new SearchHit(items[0].Id, 0, null, null, SearchFields.None)];
+
+        var count = await fresh.CountAsync(Token);
+
+        Assert.Equal(SortChoice.BrowseDefault, fresh.Sort);
+        Assert.False(fresh.IsSearchContext);
+        Assert.Equal(2, count);
+        Assert.Equal(SortMode.Date, sender.LastQuery!.Sort);
+        Assert.False(sender.LastQuery.ReverseSort);
+        Assert.True(string.IsNullOrEmpty(sender.LastQuery.Text));
+        Assert.Null(fresh.Summary);
+        Assert.Equal([items[2].Id, items[0].Id], (await fresh.GetPageAsync(0, 10, Token)).Select(item => item.Id));
+    }
+
+    [Fact]
+    public async Task Sort_IsRememberedSeparately_ForSearchingAndBrowsing()
+    {
+        await OpenLibraryAsync(2);
+        var changed = 0;
+        source.Changed += (_, _) => changed++;
+
+        source.SetSort(new SortChoice(SortMode.Name, Descending: false));
+        await source.CountAsync(Token);
+        Assert.Equal((SortMode.Name, false), (sender.LastQuery!.Sort, sender.LastQuery.ReverseSort));
+
+        source.SetText("car");
+        Assert.True(source.IsSearchContext);
+        Assert.Equal(SortChoice.SearchDefault, source.Sort);
+        await source.CountAsync(Token);
+        Assert.Equal(SortMode.Relevance, sender.LastQuery.Sort);
+
+        source.SetSort(new SortChoice(SortMode.Size, Descending: false));
+        await source.CountAsync(Token);
+        Assert.Equal((SortMode.Size, true), (sender.LastQuery.Sort, sender.LastQuery.ReverseSort));
+
+        source.SetText(string.Empty);
+        await source.CountAsync(Token);
+        Assert.Equal((SortMode.Name, false), (sender.LastQuery.Sort, sender.LastQuery.ReverseSort));
+        Assert.Equal(new SortChoice(SortMode.Name, false), source.BrowseSort);
+        Assert.Equal(new SortChoice(SortMode.Size, false), source.SearchSort);
+        Assert.Equal(4, changed);
+    }
+
+    [Fact]
+    public void Sort_RelevanceWhileBrowsing_AndTheSameOrderAgain_ChangeNothing()
+    {
+        var changed = 0;
+        source.Changed += (_, _) => changed++;
+
+        source.SetSort(SortChoice.SearchDefault);
+        source.SetSort(ItemListOrder);
+        source.SetSorts(SortChoice.SearchDefault, SortChoice.SearchDefault);
+
+        Assert.Equal(0, changed);
+        Assert.Equal(ItemListOrder, source.BrowseSort);
+    }
+
+    [Fact]
+    public async Task Sort_AppliesToFindSimilar()
+    {
+        await OpenLibraryAsync(2);
+        var items = library!.ItemList.Items;
+        source.SetSimilarTo(new SimilarSource(items[0].Id, "IMG_0.jpg"));
+        source.SetSort(new SortChoice(SortMode.Date, Descending: false));
+
+        await source.CountAsync(Token);
+
+        Assert.Equal((SortMode.Date, true), (sender.LastSimilar!.Sort, sender.LastSimilar.ReverseSort));
     }
 
     [Fact]
@@ -131,6 +212,7 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
         var filter = new TestFilter<BooleanValue>("toggled", FilterValueKind.Boolean);
         filter.SetAvailable(false);
         var registered = new SearchResultSource(browse, sender, new FilterRegistry([filter]));
+        registered.SetSort(ItemListOrder);
         var changed = 0;
         registered.Changed += (_, _) => changed++;
 

@@ -1919,4 +1919,34 @@
     <value>Queued {0} for analysis. The processing panel shows the progress.</value>
     <comment>{0} is Folders_Items or Folders_ItemsOne.</comment>
   </data>
+  <data name="Sort_Label" xml:space="preserve">
+    <value>Sort by</value>
+  </data>
+  <data name="Sort_Relevance" xml:space="preserve">
+    <value>Relevance</value>
+  </data>
+  <data name="Sort_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Sort_Date" xml:space="preserve">
+    <value>Date taken</value>
+  </data>
+  <data name="Sort_Size" xml:space="preserve">
+    <value>File size</value>
+  </data>
+  <data name="Sort_ImportDate" xml:space="preserve">
+    <value>Date imported</value>
+  </data>
+  <data name="Sort_Ascending" xml:space="preserve">
+    <value>Ascending</value>
+  </data>
+  <data name="Sort_Descending" xml:space="preserve">
+    <value>Descending</value>
+  </data>
+  <data name="Setting_SearchSort" xml:space="preserve">
+    <value>Search order</value>
+  </data>
+  <data name="Setting_BrowseSort" xml:space="preserve">
+    <value>Browse order</value>
+  </data>
 </root>

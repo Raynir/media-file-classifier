@@ -88,6 +88,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <param name="contextMenu">Builds the context menu, or <see langword="null"/> for none.</param>
     /// <param name="notice">The notice above the results while a search is on, or <see langword="null"/> for none.</param>
     /// <param name="filters">The filter chips and panel above the results, or <see langword="null"/> for none.</param>
+    /// <param name="sort">The sort control above the results, or <see langword="null"/> for none.</param>
     public ThumbnailGridViewModel(
         IMediaResultSource source,
         ThumbnailLoader loader,
@@ -97,10 +98,12 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         SelectionModel selection,
         BrowserContextMenu? contextMenu = null,
         SearchNoticeViewModel? notice = null,
-        FilterBarViewModel? filters = null)
+        FilterBarViewModel? filters = null,
+        SortBarViewModel? sort = null)
     {
         Notice = notice;
         Filters = filters;
+        Sort = sort;
         this.source = source;
         annotations = source as IResultAnnotations;
         this.loader = loader;
@@ -159,6 +162,11 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// Gets the filter chips and panel above the results (E10-S02), or <see langword="null"/>.
     /// </summary>
     public FilterBarViewModel? Filters { get; }
+
+    /// <summary>
+    /// Gets the sort control at the end of the results header (E10-S04-T02), or <see langword="null"/>.
+    /// </summary>
+    public SortBarViewModel? Sort { get; }
 
     /// <summary>
     /// Gets the selection.

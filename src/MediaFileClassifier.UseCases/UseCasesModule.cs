@@ -33,6 +33,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Search.Filters.FilterRegistry>();
         services.TryAddSingleton<Search.Filters.FilterStateSerializer>();
         services.TryAddSingleton<Search.Filters.FilterStatePersistence>();
+        services.TryAddSingleton<Search.SearchResults.SortStatePersistence>();
         services.AddSetting(Search.Filters.FilterSettings.RestoreOnStart);
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();

@@ -138,10 +138,15 @@
   </UserControl.Resources>
 
   <DockPanel>
-    <!-- Quick filters and the Filters flyout (E10-S02). -->
-    <Border DockPanel.Dock="Top" IsVisible="{Binding Filters.IsVisible, FallbackValue=False}">
-      <searchViews:FilterBarView DataContext="{Binding Filters}" />
-    </Border>
+    <!-- The results header: quick filters and the Filters flyout (E10-S02), and the sort control at its end (E10-S04). -->
+    <DockPanel DockPanel.Dock="Top">
+      <Panel DockPanel.Dock="Right" IsVisible="{Binding Sort, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <searchViews:SortBarView DataContext="{Binding Sort}" />
+      </Panel>
+      <Border IsVisible="{Binding Filters.IsVisible, FallbackValue=False}">
+        <searchViews:FilterBarView DataContext="{Binding Filters}" />
+      </Border>
+    </DockPanel>
     <!-- Search notice (E09-S01-T05): result count, hints and the less relevant option. -->
     <Border DockPanel.Dock="Top"
             IsVisible="{Binding Notice.IsVisible}"

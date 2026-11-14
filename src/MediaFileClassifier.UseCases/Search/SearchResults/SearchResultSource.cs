@@ -46,8 +46,10 @@ public sealed record SimilarSource(Id<MediaItem> ItemId, string Name, DateTimeOf
 /// something to look for, the image-to-image search while a reference image is set (E09-S04), and the browse results
 /// of <see cref="LibraryItemsSource"/> otherwise. Changing the text, the reference image, the less relevant option or
 /// the browse scope starts a new search and cancels the one still running. A search covers the selected scope (folder,
-/// subfolder, recently imported) and the active filters (E10-S01). With filters set and nothing to search for, the
-/// browse results come from the search index too, newest import first like plain browsing.
+/// subfolder, recently imported) and the active filters (E10-S01). With filters set and nothing to search for, or with
+/// any browse order other than newest import first (D177), the browse results come from the search index too.
+/// The order is remembered separately for searching and for browsing (E10-S04-T02): <see cref="SetSort"/> changes the one
+/// in use, which depends on whether there's something to search for.
 /// "Find similar" (E09-S03) is the third kind of search: <see cref="SetSimilarTo"/> lists the items like one item, with
 /// that item first, marked Source; it doesn't count in the summary's total (D053). Text typed or a reference image
 /// replaces it, and it replaces a reference image.
@@ -61,7 +63,9 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     private readonly FilterRegistry? filterRegistry;
     private readonly Lock syncRoot = new();
     private readonly SearchPageCache pages = new();
-    private ActiveSearch current = ActiveSearch.None;
+    private SortChoice searchSort = SortChoice.SearchDefault;
+    private SortChoice browseSort = SortChoice.BrowseDefault;
+    private ActiveSearch current;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SearchResultSource"/> class.
@@ -75,6 +79,9 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         this.browse = browse;
         this.sender = sender;
         this.filterRegistry = filterRegistry;
+
+        // Each source has its own: browsing by date goes through the search, and replacing it cancels it.
+        current = Create(string.Empty, showLessRelevant: false, SearchFilter.None);
         foreach (var filter in filterRegistry?.All ?? [])
         {
             // A filter that comes or goes changes what an active filter state means: search again.
@@ -128,6 +135,28 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     /// Gets the active filters (E10-S01). They apply to every kind of search and to browsing.
     /// </summary>
     public FilterState Filters => current.Filters;
+
+    /// <summary>
+    /// Gets a value indicating whether there's something to search for (text, a reference image or a "find similar"
+    /// item), so the results use <see cref="SearchSort"/> and can be sorted by relevance; otherwise they use
+    /// <see cref="BrowseSort"/>.
+    /// </summary>
+    public bool IsSearchContext => current.IsSearchContext;
+
+    /// <summary>
+    /// Gets the order of the results shown now: <see cref="SearchSort"/> or <see cref="BrowseSort"/>.
+    /// </summary>
+    public SortChoice Sort => current.Sort;
+
+    /// <summary>
+    /// Gets the order used while searching; relevance by default.
+    /// </summary>
+    public SortChoice SearchSort => searchSort;
+
+    /// <summary>
+    /// Gets the order used while browsing; date taken, newest first, by default.
+    /// </summary>
+    public SortChoice BrowseSort => browseSort;
 
     /// <summary>
     /// Gets what the search showed last, or <see langword="null"/> while browsing.
@@ -187,6 +216,63 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     }
 
     /// <summary>
+    /// Changes the order of the results shown now (E10-S04-T02): <see cref="SearchSort"/> while searching,
+    /// <see cref="BrowseSort"/> while browsing, where relevance means nothing and is ignored.
+    /// </summary>
+    /// <param name="sort">The order.</param>
+    public void SetSort(SortChoice sort)
+    {
+        ArgumentNullException.ThrowIfNull(sort);
+        Replace(old =>
+        {
+            if (old.IsSearchContext)
+            {
+                if (searchSort == sort)
+                {
+                    return null;
+                }
+
+                searchSort = sort;
+            }
+            else
+            {
+                if (browseSort == sort || sort.Mode == SortMode.Relevance)
+                {
+                    return null;
+                }
+
+                browseSort = sort;
+            }
+
+            return Create(old.Text, old.ShowLessRelevant, ScopeFilter(), old.Image, old.Similar, old.Filters);
+        });
+    }
+
+    /// <summary>
+    /// Sets both orders at once, e.g. the ones remembered from the last session, and shows the results again in the one
+    /// that applies. A relevance order for browsing is ignored.
+    /// </summary>
+    /// <param name="search">The order while searching.</param>
+    /// <param name="browse">The order while browsing.</param>
+    public void SetSorts(SortChoice search, SortChoice browse)
+    {
+        ArgumentNullException.ThrowIfNull(search);
+        ArgumentNullException.ThrowIfNull(browse);
+        Replace(old =>
+        {
+            var browseOrder = browse.Mode == SortMode.Relevance ? browseSort : browse;
+            if (searchSort == search && browseSort == browseOrder)
+            {
+                return null;
+            }
+
+            searchSort = search;
+            browseSort = browseOrder;
+            return Create(old.Text, old.ShowLessRelevant, ScopeFilter(), old.Image, old.Similar, old.Filters);
+        });
+    }
+
+    /// <summary>
     /// Runs the current "find similar" search again, e.g. once its item has been analyzed (E09-S03-T03).
     /// </summary>
     public void RefreshSimilar() => Replace(old => old.Similar is { } similar ? Create(string.Empty, old.ShowLessRelevant, old.Filter, similar: similar, filters: old.Filters) : null);
@@ -217,7 +303,10 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
                 var results = await SendAsync(search.Query(0, 1, includeFields: false), token).ConfigureAwait(false);
                 if (ReferenceEquals(current, search))
                 {
-                    SetSummary(new SearchSummary(search.Text, results.Mode, results.Semantic, results.TotalCount, results.LessRelevantCount, search.ShowLessRelevant, search.Similar));
+                    // Plain browsing in another order is a search only underneath: it has no notice.
+                    SetSummary(search.HasSummary
+                        ? new SearchSummary(search.Text, results.Mode, results.Semantic, results.TotalCount, results.LessRelevantCount, search.ShowLessRelevant, search.Similar)
+                        : null);
                 }
 
                 return results.TotalCount + search.Pinned;
@@ -415,7 +504,8 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     {
         var state = filters ?? FilterState.Empty;
         var hasConditions = filterRegistry is null ? !state.IsEmpty : state.ToConditions(filterRegistry).Count > 0;
-        return new ActiveSearch(text, showLessRelevant, filter, image, similar, state, hasConditions);
+        var isSearchContext = text.Length > 0 || image is not null || similar is not null;
+        return new ActiveSearch(text, showLessRelevant, filter, image, similar, state, hasConditions, isSearchContext ? searchSort : browseSort);
     }
 
     private void Restart()
@@ -476,9 +566,11 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         ReferenceImage? image = null,
         SimilarSource? similar = null,
         FilterState? filters = null,
-        bool hasConditions = false)
+        bool hasConditions = false,
+        SortChoice? sort = null)
     {
-        public static ActiveSearch None { get; } = new(string.Empty, showLessRelevant: false, SearchFilter.None);
+        // The order of the M1 browse results (D177), which the library's item list gives without the search index.
+        private static readonly SortChoice RepositoryOrder = new(SortMode.ImportDate, Descending: true);
 
         public string Text { get; } = text;
 
@@ -492,11 +584,16 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
 
         public FilterState Filters { get; } = filters ?? FilterState.Empty;
 
+        public SortChoice Sort { get; } = sort ?? SortChoice.BrowseDefault;
+
+        public bool IsSearchContext => Text.Length > 0 || Image is not null || Similar is not null;
+
         // Filters alone make a search too: browsing through the search index, which applies them. A state whose filters
         // are all unregistered or unavailable filters nothing, so it browses plainly.
-        public bool IsSearch => Text.Length > 0 || Image is not null || Similar is not null || hasConditions;
+        public bool HasSummary => IsSearchContext || hasConditions;
 
-        private bool IsBrowse => Text.Length == 0 && Image is null && Similar is null;
+        // Browsing in any order but the item list's goes through the search index, which has the sort keys (E10-S04).
+        public bool IsSearch => HasSummary || Sort != RepositoryOrder;
 
         // How many results come before the hits: the source of a "find similar" search.
         public int Pinned => Similar is null ? 0 : 1;
@@ -508,7 +605,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
         public ConcurrentDictionary<Id<MediaItem>, ResultMatch> Matches { get; } = new();
 
         public IRequest<MediaSearchResults> Query(int offset, int limit, bool includeFields) => Similar is { } similar
-            ? new FindSimilarQuery(similar.ItemId) { Filter = Filter, Filters = Filters, Offset = offset, Limit = limit }
+            ? new FindSimilarQuery(similar.ItemId) { Filter = Filter, Filters = Filters, Sort = Sort.Mode, ReverseSort = Sort.ReverseSort, Offset = offset, Limit = limit }
             : new SearchMediaQuery
             {
                 Text = Text,
@@ -516,8 +613,8 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
                 Filter = Filter,
                 Filters = Filters,
 
-                // Filtered browsing keeps close to the plain browse order (newest item ID, i.e. newest import) until sorting (E10-S04).
-                Sort = IsBrowse ? SortMode.ImportDate : SortMode.Relevance,
+                Sort = Sort.Mode,
+                ReverseSort = Sort.ReverseSort,
                 Offset = offset,
                 Limit = limit,
                 IncludeMatchedFields = includeFields,

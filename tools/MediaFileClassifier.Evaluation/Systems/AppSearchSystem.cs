@@ -194,7 +194,7 @@ public sealed class AppSearchSystem : IRetrievalSystem, IAsyncDisposable
             {
                 Directory.Delete(libraryDirectory, recursive: true);
             }
-            catch (IOException)
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
                 // A temporary folder; Windows may still hold the database file for a moment.
             }

@@ -217,7 +217,7 @@ public static class ImageDescriptionContract
                             _ => MaxDescriptionLength,
                         };
                     }
-                    else
+                    else if (property.PropertyType.IsAssignableTo(typeof(IEnumerable<string>)))
                     {
                         schema["maxItems"] = MaxListItems;
                         if (schema["items"] is JsonObject items)

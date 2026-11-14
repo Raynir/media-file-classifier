@@ -49,7 +49,12 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
             _ => throw new ArgumentException("Unknown analysis scope.", nameof(request)),
         };
 
-        var present = summaries.Where(summary => summary.Status != MediaItemStatus.Missing).ToList();
+        // Pending is read as a snapshot of ids, so an item that an analysis run finished meanwhile is dropped here, by
+        // the status read with its summary: it isn't counted and isn't queued again (MFC-995).
+        var present = summaries
+            .Where(summary => summary.Status != MediaItemStatus.Missing
+                && (request.Scope is not AnalysisScope.PendingScope || summary.Status == MediaItemStatus.Pending))
+            .ToList();
         return new AnalysisScopeItems(
             present.ConvertAll(summary => summary.Id),
             present.Count(summary => summary.MediaType != MediaType.Video),
@@ -78,20 +83,9 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
         return [.. distinct.Where(found.ContainsKey).Select(id => found[id])];
     }
 
-    // The ids of the current view. A search answers from the list of hits it read once for the search, so the order
-    // holds while the pages are read; browsing is by offset, where an item added meanwhile can only repeat one (the
-    // caller removes repeats), never hide one. An item deleted meanwhile can still shift the offset: a rare case.
-    private async Task<List<Id<MediaItem>>> ViewIdsAsync(CancellationToken cancellationToken)
-    {
-        var all = new List<Id<MediaItem>>();
-        while (true)
-        {
-            var batch = await view.GetIdsAsync(all.Count, PageSize, null, cancellationToken).ConfigureAwait(false);
-            all.AddRange(batch);
-            if (batch.Count < PageSize)
-            {
-                return all;
-            }
-        }
-    }
+    // The ids of the current view, read in one go: a snapshot, so items deleted meanwhile (remove missing, removing a
+    // folder) can't shift the pages and hide others (MFC-995, D329). A search answers from the list of hits it read once
+    // for the search; browsing is one ordered read of the ids.
+    private Task<IReadOnlyList<Id<MediaItem>>> ViewIdsAsync(CancellationToken cancellationToken) =>
+        view.GetIdsAsync(0, int.MaxValue, null, cancellationToken);
 }

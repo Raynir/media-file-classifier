@@ -64,14 +64,14 @@ public sealed class AnalyzeScopeTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Pending_StillFindsEveryItemOfTheStart_WhenTheyLeavePendingDuringTheRead()
+    public async Task Pending_LeavesOutItemsThatLeftPendingDuringTheRead()
     {
         var items = await AddManyAsync(2500, MediaItemStatus.Pending);
 
-        var resolved = await ResolveWhileAsync(AnalysisScope.Pending, async () => await ChangeStatusAsync(items, MediaItemStatus.Indexed));
+        var resolved = await ResolveWhileAsync(AnalysisScope.Pending, async () => await ChangeStatusAsync(items.Take(100).ToList(), MediaItemStatus.Indexed));
 
-        Assert.Equal(items.Select(item => item.Id).ToHashSet(), resolved.ItemIds.ToHashSet());
-        Assert.Equal(items.Count, resolved.Count);
+        Assert.Equal(items.Skip(100).Select(item => item.Id).ToHashSet(), resolved.ItemIds.ToHashSet());
+        Assert.Equal(2400, resolved.Count);
     }
 
     [Fact]
@@ -95,6 +95,25 @@ public sealed class AnalyzeScopeTests : IAsyncLifetime
 
         Assert.Equal(items.Select(item => item.Id).ToHashSet(), resolved.ItemIds.ToHashSet());
         Assert.Equal(items.Count, resolved.ItemIds.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task SearchResults_WithoutASearch_StillFindEveryRemainingItem_WhenItemsAreDeletedDuringTheRead()
+    {
+        var items = await AddManyAsync(2500, MediaItemStatus.Pending);
+        var deleted = items.OrderByDescending(item => item.Id.Value).Take(100).Select(item => item.Id).ToList();
+        view.AfterIdPage = async () =>
+        {
+            view.AfterIdPage = null;
+            foreach (var id in deleted)
+            {
+                await bed.Library.Library.Items.DeleteAsync(id, Token);
+            }
+        };
+
+        var resolved = await ResolveAsync(AnalysisScope.SearchResults);
+
+        Assert.Equal(items.Select(item => item.Id).Except(deleted).ToHashSet(), resolved.ItemIds.ToHashSet());
     }
 
     [Fact]

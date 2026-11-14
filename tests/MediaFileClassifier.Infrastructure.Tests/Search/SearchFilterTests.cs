@@ -141,6 +141,7 @@ public sealed class SearchFilterTests(SearchFilterTests.Library library) : IClas
             ["registered formats gif and mp4"] = (Registered((Formats, ["gif", "mp4"])), [2, 3]),
             ["registered format unknown"] = (Registered((Formats, ["tiff"])), []),
             ["registered type and format"] = (Registered((Types, ["Image", "AnimatedImage"]), (Formats, ["gif", "mp4"])), [3]),
+            ["registered date range, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new DateFilter(TimeProvider.System), new DateRangeValue(null, new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero)))] }, [3]),
             ["registered and typed fields"] = (Registered((Types, ["Image", "AnimatedImage"])) with { IsFavorite = false }, [3]),
         };
 

@@ -28,9 +28,13 @@ public sealed class FilterDefinitionTests
 
         var registry = new FilterRegistry(provider.GetServices<IFilterDefinition>());
 
-        Assert.Equal([MediaTypeFilter.FilterId, FileFormatFilter.FilterId], registry.All.Select(filter => filter.Id));
-        Assert.All(registry.All, filter => Assert.Equal(FilterValueKind.MultiSelect, filter.Kind));
-        Assert.All(registry.All, filter => Assert.Equal(typeof(MultiSelectValue), filter.ValueType));
+        Assert.Equal(
+            [
+                (MediaTypeFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
+                (FileFormatFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
+                (DateFilter.FilterId, FilterValueKind.DateRange, typeof(DateRangeValue)),
+            ],
+            registry.All.Select(filter => (filter.Id, filter.Kind, filter.ValueType)));
         Assert.All(registry.All, filter => Assert.True(filter.IsAvailable));
     }
 

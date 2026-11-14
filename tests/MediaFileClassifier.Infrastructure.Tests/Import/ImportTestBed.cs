@@ -4,27 +4,38 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.AI.Imaging;
 using MediaFileClassifier.Infrastructure.Capabilities;
 using MediaFileClassifier.Infrastructure.Discovery;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Infrastructure.Hashing;
 using MediaFileClassifier.Infrastructure.Jobs;
+using MediaFileClassifier.Infrastructure.Jobs.Errors;
 using MediaFileClassifier.Infrastructure.Media;
+using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
+using MediaFileClassifier.Testing.Files;
+using MediaFileClassifier.Testing.Settings;
+using MediaFileClassifier.Testing.Hardware;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.ImportFolders;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -37,7 +48,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Import;
 internal sealed class ImportTestBed : IAsyncDisposable
 {
     private readonly ServiceProvider services;
-    private bool ownsRoot;
+    private TemporaryFolder? ownedRoot;
 
     private ImportTestBed(LibraryTestBed library, string root, IndexedFolder folder, ServiceProvider services, ImportTestSettings settings)
     {
@@ -72,10 +83,10 @@ internal sealed class ImportTestBed : IAsyncDisposable
     /// <summary>
     /// Creates the bed. A given root folder is kept afterwards; otherwise a new temporary one is made and deleted.
     /// </summary>
-    public static async Task<ImportTestBed> CreateAsync(int cpu = 2, string? root = null)
+    public static async Task<ImportTestBed> CreateAsync(int cpu = 2, string? root = null, Action<IServiceCollection>? configure = null)
     {
-        var ownsRoot = root is null;
-        root ??= Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+        var ownedRoot = root is null ? new TemporaryFolder() : null;
+        root ??= ownedRoot!.Path;
         Directory.CreateDirectory(root);
         var library = await LibraryTestBed.CreateAsync();
         var folder = IndexedFolder.Create(library.Library.Library.Id, root, root, LibraryTestBed.Start);
@@ -88,11 +99,24 @@ internal sealed class ImportTestBed : IAsyncDisposable
             capabilities.SetAvailable(KnownCapabilities.VideoAnalysis);
         }
 
-        var services = new ServiceCollection()
+        var collection = new ServiceCollection();
+        configure?.Invoke(collection);
+
+        // The analysis stage (E06-S01) is registered by AddUseCases; without providers it skips every analyzer.
+        collection.TryAddSingleton<IAiProviderRegistry>(new AiProviderRegistry([], library.Clock));
+        collection.TryAddSingleton<IAnalysisImageDecoder, SkiaAnalysisImageDecoder>();
+        collection.TryAddSingleton<IModelStore>(new Siglip2StubStore(null));
+        // Automatic analysis (E06-S06) would queue analysis jobs after every import; these tests only look at the import.
+        var analysisSettings = new InMemorySettingsStore { IsLibraryOpen = true };
+        analysisSettings.SetValue(KnownSettings.AnalyzeAutomatically, false);
+        collection.TryAddSingleton<ISettingsStore>(analysisSettings);
+        collection.TryAddSingleton(TimeProvider.System);
+        collection.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, AiExceptionClassifier>());
+        var services = collection
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddSingleton<ICapabilityService>(capabilities)
             .AddSingleton<ISettingsService>(settings)
-            .AddSingleton<IHardwareInfo>(new ImportTestHardware())
+            .AddSingleton<IHardwareInfo>(new FakeHardwareInfo(memoryBytes: 8L << 30))
             .AddSingleton<IMediaFileSource, FileSystemMediaFileSource>()
             .AddSingleton<IFolderDiscovery, FolderDiscovery>()
             .AddSingleton<IFileHasher, XxHashFileHasher>()
@@ -101,11 +125,14 @@ internal sealed class ImportTestBed : IAsyncDisposable
             .AddSingleton<ILibrarySession>(new BedSession(library))
             .AddSingleton<RegisteredRecorder>()
             .AddSingleton<INotificationHandler<MediaItemRegistered>>(provider => provider.GetRequiredService<RegisteredRecorder>())
+
+            // Retries of transient failures (E05-S04) don't wait in tests.
+            .AddSingleton(new RetryPolicy(5, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(40)))
             .AddJobs()
             .AddMedia()
             .AddUseCases()
             .BuildServiceProvider();
-        var bed = new ImportTestBed(library, root, folder, services, settings) { ownsRoot = ownsRoot };
+        var bed = new ImportTestBed(library, root, folder, services, settings) { ownedRoot = ownedRoot };
         await bed.Jobs.StartAsync(library.Library, Token);
         return bed;
     }
@@ -162,19 +189,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
         await Jobs.StopAsync();
         await services.DisposeAsync();
         await LibraryBed.DisposeAsync();
-        if (!ownsRoot)
-        {
-            return;
-        }
-
-        try
-        {
-            Directory.Delete(Root, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A file may still be locked by a test; the temp folder is cleaned up eventually.
-        }
+        ownedRoot?.Dispose();
     }
 }
 
@@ -218,16 +233,4 @@ internal sealed class ImportTestSettings : ISettingsService
     public void Save(AppSettings settings) => Current = settings;
 
     public AppSettings Update(Func<AppSettings, AppSettings> change) => Current = change(Current);
-}
-
-/// <summary>
-/// A fixed machine.
-/// </summary>
-internal sealed class ImportTestHardware : IHardwareInfo
-{
-    public HardwareProfile Profile { get; } = new("X64", 8, 8L << 30, []);
-
-    public ExecutionProvider PreferredExecutionProvider => ExecutionProvider.Cpu;
-
-    public int DefaultParallelism => 4;
 }

@@ -5,6 +5,8 @@ using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Search;
+using MediaFileClassifier.UseCases.Browsing;
 
 namespace MediaFileClassifier.Ui.ViewModels.Browser;
 
@@ -63,6 +65,28 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
         nameof(DurationText),
         nameof(IsAnimated))]
     public partial MediaItemSummary? Item { get; private set; }
+
+    /// <summary>
+    /// Gets why the item is in the search results, or <see langword="null"/> while browsing.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MatchReason), nameof(IsLessRelevant), nameof(IsSource))]
+    public partial ResultMatch? Match { get; private set; }
+
+    /// <summary>
+    /// Gets the tooltip that says why the item matched, e.g. <c>Matched in: Tags</c>, or <see langword="null"/>.
+    /// </summary>
+    public string? MatchReason => MatchReasonText.For(Match, Localizer.Current);
+
+    /// <summary>
+    /// Gets a value indicating whether the item is a less relevant search result, which shows dimmed.
+    /// </summary>
+    public bool IsLessRelevant => Match?.IsLessRelevant ?? false;
+
+    /// <summary>
+    /// Gets a value indicating whether the tile is the item a "find similar" search started from, marked Source (D053).
+    /// </summary>
+    public bool IsSource => Match?.IsSource ?? false;
 
     /// <summary>
     /// Gets the thumbnail, or <see langword="null"/> while it loads or when there's none, so the cell shows its
@@ -135,7 +159,8 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
     /// <param name="index">The result position.</param>
     /// <param name="item">The item, or <see langword="null"/> while its page loads.</param>
     /// <param name="size">The thumbnail size the grid uses now.</param>
-    public void Show(int index, MediaItemSummary? item, ThumbnailSize size)
+    /// <param name="match">Why the item is in the search results, or <see langword="null"/>.</param>
+    public void Show(int index, MediaItemSummary? item, ThumbnailSize size, ResultMatch? match = null)
     {
         if (item is null && Item is not null && Index == index)
         {
@@ -143,6 +168,7 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
             return;
         }
 
+        Match = match;
         var keep = item is not null && Item is { } current && current.Id == item.Id && current.FileModifiedAt == item.FileModifiedAt
             && current.ThumbnailFailed == item.ThumbnailFailed && size == thumbnailSize && (Thumbnail is not null || loading is not null);
         Index = index;

@@ -27,6 +27,33 @@ public sealed class EvaluatorTests
     }
 
     [Fact]
+    public async Task EvaluateAsync_ScoresNoneQueriesApartFromRecallAndMrr()
+    {
+        var data = TestData.Data with
+        {
+            Queries =
+            [
+                .. TestData.Queries,
+                new EvalQuery { Id = "en-002", Language = "en", Category = QueryCategories.None, Text = "a giraffe", Relevant = [] },
+                new EvalQuery { Id = "en-003", Language = "en", Category = QueryCategories.None, Text = "asdfghjkl", Relevant = [] },
+            ],
+        };
+        var results = new ResultsFile(TestData.Results with
+        {
+            Search = new Dictionary<string, IReadOnlyList<string>>(TestData.Results.Search!) { ["en-002"] = ["lynx"] },
+        });
+
+        var report = await Evaluator.EvaluateAsync(data, results.Name, results, null, TestData.FirstRun, CancellationToken.None);
+
+        var search = Assert.IsType<SearchSection>(report.Search);
+        var en = search.Languages.Single(l => l.Language == "en");
+        Assert.Equal((1, 1.0, 0.5, 2, 0.5), (en.Queries, en.RecallAt10, en.Mrr, en.NoneQueries, en.NoneShown));
+        Assert.Null(search.Languages.Single(l => l.Language == "ru").NoneShown);
+        Assert.Equal(0.5, search.Categories.Single(c => c.Category == QueryCategories.None).NoneShown);
+        Assert.Null(search.Categories.Single(c => c.Category == "object" && c.Language == "en").NoneShown);
+    }
+
+    [Fact]
     public async Task EvaluateAsync_ScoresOcrPerScriptAndOverall()
     {
         var report = await Evaluate();

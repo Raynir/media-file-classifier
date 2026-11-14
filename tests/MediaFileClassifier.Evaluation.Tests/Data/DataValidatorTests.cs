@@ -25,6 +25,24 @@ public sealed class DataValidatorTests
     }
 
     [Fact]
+    public void Validate_NoneQueries_MustListNoRelevantItems()
+    {
+        var data = TestData.Data with
+        {
+            Queries =
+            [
+                .. TestData.Queries,
+                new EvalQuery { Id = "en-002", Language = "en", Category = QueryCategories.None, Text = "a giraffe", Relevant = [] },
+                new EvalQuery { Id = "en-003", Language = "en", Category = QueryCategories.None, Text = "a lynx", Relevant = ["lynx"] },
+            ],
+        };
+
+        var errors = DataValidator.Validate(data, checkFiles: false);
+
+        Assert.Equal(["queries: en-003 should return nothing, so it can't list relevant items"], errors);
+    }
+
+    [Fact]
     public void Validate_ReportsDuplicatesAndUnknownValues()
     {
         var data = TestData.Data with

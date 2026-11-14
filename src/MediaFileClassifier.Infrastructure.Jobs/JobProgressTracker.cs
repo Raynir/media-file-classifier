@@ -14,10 +14,12 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// The estimated time remaining divides the pending work items by the throughput of the last
 /// <see cref="ThroughputWindow"/> (a shorter window right after the start), and is shown once
 /// <see cref="MinimumFinishedForEstimate"/> work items finished and <see cref="MinimumElapsedForEstimate"/> passed.
-/// It's hidden while a job's total still grows.
+/// It's hidden while a job's total still grows. Until those thresholds are met, a job type with a known rate (the
+/// benchmark's, E06-S08-T04) is estimated from that rate, so the first minutes of a run show a time too.
 /// </remarks>
 /// <param name="clock">Clock.</param>
-public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
+/// <param name="hints">Throughputs known before a job runs, or <see langword="null"/> for none.</param>
+public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hints = null) : IJobProgress
 {
     /// <summary>
     /// How many finished work items the estimate needs.
@@ -54,13 +56,24 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
                     return ProgressSummary.Empty;
                 }
 
-                var snapshots = jobs.Select(job => job.ToProgress(now)).ToList();
+                var snapshots = jobs.Select(job => job.ToProgress(now, () => hints?.ItemsPerSecond(job.Job.Type))).ToList();
                 var remaining = snapshots.Any(job => job.IsTotalGrowing)
                     ? null
-                    : overall.Estimate(snapshots.Sum(job => job.Pending), now);
+                    : overall.Estimate(snapshots.Sum(job => job.Pending), now) ?? SumOfJobEstimates(snapshots);
                 return new ProgressSummary(snapshots, remaining);
             }
         }
+    }
+
+    /// <summary>
+    /// The total of the jobs' own estimates, when every job with pending work has one (some are from known rates).
+    /// </summary>
+    private static TimeSpan? SumOfJobEstimates(List<JobProgress> snapshots)
+    {
+        var pending = snapshots.Where(job => job.Pending > 0).ToList();
+        return pending.Count > 0 && pending.All(job => job.TimeRemaining is not null)
+            ? TimeSpan.FromTicks(pending.Sum(job => job.TimeRemaining!.Value.Ticks))
+            : null;
     }
 
     /// <summary>
@@ -133,6 +146,9 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
                 jobs.Add(counters);
             }
 
+            // The new work reopens a job that was reported finished.
+            counters.IsJobFinished = false;
+
             foreach (var workItem in workItems)
             {
                 counters.Stage(workItem.Stage, workItem.ItemId is null).Add(WorkItemState.Queued, 1);
@@ -174,7 +190,8 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
     }
 
     /// <summary>
-    /// Counts a work item that stopped running, and forgets its job when the job is finished.
+    /// Counts a work item that stopped running, and forgets its job when the job was reported finished and has no
+    /// pending work left.
     /// </summary>
     /// <param name="workItem">The work item in its new state: completed, failed, cancelled, or queued again.</param>
     /// <param name="job">Its job after the change.</param>
@@ -191,6 +208,19 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
             }
 
             var stage = counters.Stage(workItem.Stage, workItem.ItemId is null);
+
+            // A failure that's retried later (or parked until its provider is back) stays pending, as retrying. Work
+            // waiting for a missing model (a Configuration failure that isn't parked) isn't retrying: it waits (D037).
+            if (workItem is { State: WorkItemState.Queued, RetryAt: not null }
+                && (workItem.ErrorCategory != ErrorCategory.Configuration || workItem.IsParked))
+            {
+                counters.Retrying.Add(workItem.Id);
+            }
+            else
+            {
+                counters.Retrying.Remove(workItem.Id);
+            }
+
             switch (workItem.State)
             {
                 case WorkItemState.Completed or WorkItemState.Failed:
@@ -207,8 +237,15 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
                     break;
             }
 
+            // Work items finishing together reach the tracker in any order, so an earlier item can report the job as still
+            // running after the last one reported it finished. A finished report is kept until new work reopens the job.
+            if (ProcessingJobStateTransitions.IsFinished(job.State))
+            {
+                counters.IsJobFinished = true;
+            }
+
             // Work being added to the job right now is already counted, and reopens the job.
-            if (ProcessingJobStateTransitions.IsFinished(job.State) && !counters.HasPending)
+            if (counters.IsJobFinished && !counters.HasPending)
             {
                 jobs.Remove(counters);
             }
@@ -253,6 +290,16 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
 
         public Throughput Throughput { get; } = new(since);
 
+        /// <summary>
+        /// Gets or sets whether a finished work item reported the job finished since work was last added to it.
+        /// </summary>
+        public bool IsJobFinished { get; set; }
+
+        /// <summary>
+        /// Gets the work items that failed and were queued again for a retry since tracking started.
+        /// </summary>
+        public HashSet<Id<WorkItem>> Retrying { get; } = [];
+
         public bool IsEmpty => stages.All(stage => stage.Total == 0);
 
         public bool HasPending => stages.Any(stage => stage.Total > stage.Done + stage.Failed);
@@ -269,17 +316,23 @@ public sealed class JobProgressTracker(TimeProvider clock) : IJobProgress
             return counters;
         }
 
-        public JobProgress ToProgress(DateTimeOffset now)
+        public JobProgress ToProgress(DateTimeOffset now, Func<double?> knownRate)
         {
             var progress = new JobProgress(
                 Job.Id,
                 Job.Type,
                 Job.Description,
                 [.. stages.Where(stage => stage.Total > 0).Select(stage => new StageProgress(stage.Stage, stage.Total, stage.Done, stage.Failed, stage.IsWholeTarget))],
-                null);
-            return progress.IsTotalGrowing ? progress : progress with { TimeRemaining = Throughput.Estimate(progress.Pending, now) };
+                null)
+            {
+                Retrying = Retrying.Count,
+            };
+            return progress.IsTotalGrowing ? progress : progress with { TimeRemaining = Throughput.Estimate(progress.Pending, now) ?? Seeded(progress.Pending, knownRate()) };
         }
     }
+
+    private static TimeSpan? Seeded(int pending, double? itemsPerSecond) =>
+        pending > 0 && itemsPerSecond is > 0 ? TimeSpan.FromSeconds(pending / itemsPerSecond.Value) : null;
 
     /// <summary>
     /// The counters of one stage of a job.

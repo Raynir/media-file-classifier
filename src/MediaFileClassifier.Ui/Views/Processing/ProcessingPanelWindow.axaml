@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Processing"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Processing.ProcessingPanelWindow"
+        x:DataType="vm:ProcessingPanelViewModel"
+        Title="{l:Loc Processing_Title}"
+        Width="640"
+        Height="560"
+        MinWidth="440"
+        MinHeight="320"
+        CanResize="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- Hosts the shared processing panel on the desktop; it isn't modal, so work goes on beside it. -->
+  <ContentControl Content="{Binding}" />
+</Window>

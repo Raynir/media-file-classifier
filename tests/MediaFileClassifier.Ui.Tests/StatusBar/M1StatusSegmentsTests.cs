@@ -2,6 +2,7 @@ using Avalonia.Threading;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
@@ -11,7 +12,6 @@ using MediaFileClassifier.Ui.Tests.Browser;
 using MediaFileClassifier.Ui.Tests.Shell;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.UseCases.Libraries.CountOfflineFolders;
-using MediatR;
 
 namespace MediaFileClassifier.Ui.Tests.StatusBar;
 
@@ -112,23 +112,14 @@ public sealed class M1StatusSegmentsTests
     /// <summary>
     /// Answers the offline folder count the test sets.
     /// </summary>
-    private sealed class FakeOfflineSender : ISender
+    private sealed class FakeOfflineSender : FakeSender
     {
         public int Offline { get; set; }
 
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) => request switch
+        protected override object? Handle(object request) => request switch
         {
-            CountOfflineFoldersQuery => Task.FromResult((TResponse)(object)Offline),
+            CountOfflineFoldersQuery => Offline,
             _ => throw new NotSupportedException(),
         };
-
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest => throw new NotSupportedException();
-
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

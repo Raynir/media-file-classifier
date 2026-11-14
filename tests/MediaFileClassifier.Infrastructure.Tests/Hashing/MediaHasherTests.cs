@@ -3,6 +3,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Infrastructure.Hashing;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
+using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Media;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Hashing;
@@ -12,7 +13,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Hashing;
 /// </summary>
 public sealed class MediaHasherTests : IAsyncLifetime
 {
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly MediaHasher hasher = new(new FileSystemMediaFileSource(), new XxHashFileHasher(), new SkiaPerceptualHasher());
     private LibraryTestBed bed = null!;
 
@@ -20,17 +21,17 @@ public sealed class MediaHasherTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        Directory.CreateDirectory(Path.Combine(root, "copies"));
-        File.Copy(SampleMedia.JpegWithExif, Path.Combine(root, "original.jpg"));
-        File.Copy(SampleMedia.JpegWithExif, Path.Combine(root, "copies", "renamed.jpg"));
-        File.Copy(SampleMedia.WebP, Path.Combine(root, "other.webp"));
+        Directory.CreateDirectory(temp.Combine("copies"));
+        File.Copy(SampleMedia.JpegWithExif, temp.Combine("original.jpg"));
+        File.Copy(SampleMedia.JpegWithExif, temp.Combine("copies", "renamed.jpg"));
+        File.Copy(SampleMedia.WebP, temp.Combine("other.webp"));
         bed = await LibraryTestBed.CreateAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
         await bed.DisposeAsync();
-        Directory.Delete(root, recursive: true);
+        temp.Dispose();
     }
 
     [Fact]
@@ -87,7 +88,7 @@ public sealed class MediaHasherTests : IAsyncLifetime
     private async Task<FileHashes> HashAsync(string relativePath) =>
         await hasher.ComputeMissingAsync(Location(relativePath), Length(relativePath), MediaType.Image, new FileHashes(), Token);
 
-    private FileLocation Location(string relativePath) => new(LocalFolder.ToHandle(root), relativePath);
+    private FileLocation Location(string relativePath) => new(LocalFolder.ToHandle(temp.Path), relativePath);
 
-    private long Length(string relativePath) => new FileInfo(Path.Combine(root, relativePath)).Length;
+    private long Length(string relativePath) => new FileInfo(temp.Combine(relativePath)).Length;
 }

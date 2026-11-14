@@ -10,10 +10,10 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.ThumbnailTileSize;
-using MediatR;
 
 namespace MediaFileClassifier.Ui.Tests.Browser;
 
@@ -144,13 +144,22 @@ internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
 
         public IFolderRepository Folders => throw new NotSupportedException();
 
-        public IMediaItemRepository Items => throw new NotSupportedException();
+        // LibraryItemsSource, which the search box needs, reads this when it is created; it only watches it for changes.
+        public IMediaItemRepository Items => null!;
 
         public IItemMetadataRepository Metadata => throw new NotSupportedException();
 
         public IModelRegistrationRepository Models => throw new NotSupportedException();
 
         public IJobRepository Jobs => throw new NotSupportedException();
+
+        public IKeyframeRepository Keyframes => throw new NotSupportedException();
+
+        public IAnalyzerStateRepository AnalyzerStates => throw new NotSupportedException();
+
+        public MediaFileClassifier.Infrastructure.Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
+
+        public MediaFileClassifier.Infrastructure.Abstractions.Search.ISearchStore Search => throw new NotSupportedException();
 
         public ILibraryMaintenance Maintenance => throw new NotSupportedException();
 
@@ -208,36 +217,26 @@ internal sealed class FakeJobSystem : IJobSystem
 /// <summary>
 /// Answers the tile size requests from memory, synchronously.
 /// </summary>
-internal sealed class FakeTileSizeSender : ISender
+internal sealed class FakeTileSizeSender : FakeSender
 {
     public int? StoredSize { get; set; } = LibrarySettings.DefaultThumbnailTileSize;
 
     public List<int> Saved { get; } = [];
 
-    public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) => request switch
+    protected override object? Handle(object request)
     {
-        GetThumbnailTileSizeQuery => Task.FromResult((TResponse)(object)StoredSize!),
-        _ => throw new NotSupportedException(),
-    };
-
-    public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-        where TRequest : IRequest
-    {
-        if (request is SetThumbnailTileSizeCommand command)
+        switch (request)
         {
-            Saved.Add(command.Size);
-            StoredSize = command.Size;
-            return Task.CompletedTask;
+            case GetThumbnailTileSizeQuery:
+                return StoredSize;
+            case SetThumbnailTileSizeCommand command:
+                Saved.Add(command.Size);
+                StoredSize = command.Size;
+                return null;
+            default:
+                throw new NotSupportedException();
         }
-
-        throw new NotSupportedException();
     }
-
-    public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-    public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-    public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }
 
 /// <summary>
@@ -265,6 +264,16 @@ internal static class Pump
         while (!condition())
         {
             Assert.True(DateTime.UtcNow < deadline, "Timed out waiting on the UI thread.");
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(5);
+        }
+    }
+
+    public static void For(TimeSpan duration)
+    {
+        var deadline = DateTime.UtcNow + duration;
+        while (DateTime.UtcNow < deadline)
+        {
             Dispatcher.UIThread.RunJobs();
             Thread.Sleep(5);
         }

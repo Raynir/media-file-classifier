@@ -1,3 +1,4 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.UseCases.Browsing;
@@ -5,6 +6,7 @@ using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.Stages;
 using MediaFileClassifier.UseCases.Libraries.RemoveFolder;
+using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -28,10 +30,20 @@ public static class UseCasesModule
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<SettingRegistry>();
+        services.TryAddSingleton<Search.Filters.FilterRegistry>();
+        services.TryAddSingleton<Search.Filters.FilterStateSerializer>();
+        services.TryAddSingleton<Search.Filters.FilterStatePersistence>();
+        services.TryAddSingleton<Search.SearchResults.SortStatePersistence>();
+        services.AddSetting(Search.Filters.FilterSettings.RestoreOnStart);
         services.TryAddSingleton<LibraryItemsSource>();
-        services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<LibraryItemsSource>());
+        services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
+        services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
+        services.TryAddSingleton<Search.SearchResults.SearchResultSource>();
+        services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<Search.SearchResults.SearchResultSource>());
+        services.TryAddSingleton<Search.FindSimilar.AnalyzeNow>();
         services.AddSetting(KnownSettings.OpenAiCompatibleEndpoint);
         services.AddSetting(KnownSettings.AnalyzeAutomatically);
+        services.TryAddSingleton<Analysis.AutoAnalyze.AutoAnalyzeBatcher>();
         services.AddSetting(KnownSettings.RetainedPreviousRuns);
         services.AddSetting(Libraries.OpenLibrary.LibraryStartupSettings.OpenLastLibrary);
 
@@ -41,6 +53,13 @@ public static class UseCasesModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, MediaStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ContentHashStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RemoveFolderStage>());
+        services.TryAddSingleton<MoveDetector>();
+        services.TryAddSingleton<Reconciler>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RescanCheckStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RefreshMediaStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Analysis.Pipeline.AnalysisStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, ImportExceptionClassifier>());
         return services;
     }
 }

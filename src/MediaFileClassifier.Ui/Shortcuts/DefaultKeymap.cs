@@ -1,5 +1,7 @@
 using Avalonia.Input;
 using MediaFileClassifier.Ui.Browser;
+using MediaFileClassifier.Ui.Libraries;
+using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 
@@ -17,6 +19,9 @@ public static class DefaultKeymap
     /// </summary>
     public static IReadOnlyList<ShortcutBinding> Bindings { get; } =
     [
+        // Library (E02-S03): Add folder, also on the toolbar (E13-S03).
+        Bind(LibraryCommands.AddFolder, PhysicalKey.O, KeyModifiers.Control | KeyModifiers.Shift),
+
         // View (E13-S01)
         Bind(ShellCommands.ToggleNavigation, PhysicalKey.Digit1, KeyModifiers.Control),
         Bind(ShellCommands.ToggleDetails, PhysicalKey.Digit2, KeyModifiers.Control),
@@ -34,6 +39,7 @@ public static class DefaultKeymap
         Bind(ItemCommands.OpenInDefaultApp, PhysicalKey.O, KeyModifiers.Control),
         Bind(ItemCommands.Reveal, PhysicalKey.R, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
         Bind(ItemCommands.CopyPath, PhysicalKey.C, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
+        Bind(FindSimilarCommands.FindSimilar, PhysicalKey.F, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
 
         // Preview and details panel (E14-S05): previous and next, and Enter opens the item in its default app.
         Bind(BrowserCommands.PreviousItem, PhysicalKey.ArrowLeft, scope: ShortcutScopes.Viewer),

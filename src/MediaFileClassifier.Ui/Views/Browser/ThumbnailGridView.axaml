@@ -5,12 +5,14 @@
              xmlns:controls="using:MediaFileClassifier.Ui.Controls"
              xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:search="using:MediaFileClassifier.Ui.Search"
+             xmlns:searchViews="using:MediaFileClassifier.Ui.Views.Search"
              x:Class="MediaFileClassifier.Ui.Views.Browser.ThumbnailGridView"
              x:DataType="vm:ThumbnailGridViewModel"
              sc:Shortcuts.Scope="browser">
   <!--
     Virtualised thumbnail grid (E14-S01). Provisional layout after the Figma tile (node 26:1127, D095) until the
-    E14-S01-T00 design. The size slider sits above the grid until the toolbar slot exists (E13-S03).
+    E14-S01-T00 design. The size slider is in the toolbar's View slot (ThumbnailSizeView, E13-S03).
   -->
   <UserControl.Styles>
     <Style Selector="views|ThumbnailRowPanel">
@@ -24,6 +26,10 @@
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="ClipToBounds" Value="True" />
       <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <!-- A search result below the relevance threshold, shown on request (E09-S01-T03). -->
+    <Style Selector="Border.ThumbnailTile.LessRelevant">
+      <Setter Property="Opacity" Value="0.55" />
     </Style>
     <Style Selector="Border.ThumbnailTile:pointerover">
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Hover}" />
@@ -76,6 +82,8 @@
       <Border Classes="ThumbnailTile"
               Classes.Selected="{Binding IsSelected}"
               Classes.Focused="{Binding IsFocused}"
+              Classes.LessRelevant="{Binding IsLessRelevant}"
+              ToolTip.Tip="{Binding MatchReason}"
               Width="{Binding Width}"
               AutomationProperties.Name="{Binding FileName}">
         <Panel>
@@ -114,6 +122,13 @@
                       AutomationProperties.Name="{l:Loc Tile_Animated}">
                 <Path Data="{StaticResource Icon.Media.AnimatedImage}" />
               </Border>
+              <!-- The source of a "find similar" search (E09-S03, D053). -->
+              <Border Classes="TileMarker"
+                      IsVisible="{Binding IsSource}"
+                      HorizontalAlignment="Left"
+                      AutomationProperties.Name="{l:Loc Search_SourceBadge}">
+                <TextBlock Text="{l:Loc Search_SourceBadge}" FontSize="{DynamicResource FontSize.Caption}" />
+              </Border>
             </Panel>
           </DockPanel>
           <Border Classes="SelectionFill" IsVisible="{Binding IsSelected}" />
@@ -123,28 +138,34 @@
   </UserControl.Resources>
 
   <DockPanel>
-    <StackPanel DockPanel.Dock="Top"
-                Orientation="Horizontal"
-                HorizontalAlignment="Right"
-                Margin="{DynamicResource Padding.Header}"
-                Spacing="{DynamicResource Space.S}">
-      <PathIcon Classes="Small" Data="{StaticResource Icon.Media.Image}" VerticalAlignment="Center" />
-      <!-- The range and step are ThumbnailGridViewModel.MinTileSize, MaxTileSize and TileSizeStep. -->
-      <Slider x:Name="SizeSlider"
-              Width="160"
-              VerticalAlignment="Center"
-              Minimum="96"
-              Maximum="384"
-              SmallChange="32"
-              LargeChange="32"
-              TickFrequency="32"
-              IsSnapToTickEnabled="True"
-              Value="{Binding TileSize}"
-              ToolTip.Tip="{l:Loc Browser_TileSize}"
-              AutomationProperties.Name="{l:Loc Browser_TileSize}" />
-      <PathIcon Data="{StaticResource Icon.Media.Image}" VerticalAlignment="Center" />
-    </StackPanel>
-
+    <!-- The results header: quick filters and the Filters flyout (E10-S02), and the sort control at its end (E10-S04). -->
+    <DockPanel DockPanel.Dock="Top">
+      <Panel DockPanel.Dock="Right" IsVisible="{Binding Sort, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <searchViews:SortBarView DataContext="{Binding Sort}" />
+      </Panel>
+      <Border IsVisible="{Binding Filters.IsVisible, FallbackValue=False}">
+        <searchViews:FilterBarView DataContext="{Binding Filters}" />
+      </Border>
+    </DockPanel>
+    <!-- Search notice (E09-S01-T05): result count, hints and the less relevant option. -->
+    <Border DockPanel.Dock="Top"
+            IsVisible="{Binding Notice.IsVisible}"
+            Padding="{DynamicResource Padding.Compact}">
+      <StackPanel Orientation="Horizontal"
+                  Spacing="{DynamicResource Space.M}"
+                  DataContext="{Binding Notice}"
+                  x:DataType="search:SearchNoticeViewModel">
+        <TextBlock Classes="Secondary" Text="{Binding Message}" VerticalAlignment="Center" />
+        <TextBlock Classes="Secondary"
+                   Text="{Binding Hint}"
+                   IsVisible="{Binding Hint, Converter={x:Static ObjectConverters.IsNotNull}}"
+                   VerticalAlignment="Center" />
+        <HyperlinkButton
+                Content="{Binding LessRelevantText}"
+                Command="{Binding ToggleLessRelevantCommand}"
+                IsVisible="{Binding LessRelevantText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+    </Border>
     <Panel>
       <ScrollViewer x:Name="Scroller"
                     HorizontalScrollBarVisibility="Disabled"

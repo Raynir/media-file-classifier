@@ -1,6 +1,10 @@
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Jobs.Errors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Infrastructure.Jobs;
 
@@ -20,6 +24,13 @@ public static class JobsModule
         services.TryAddSingleton<IJobSystem, JobSystem>();
         services.TryAddSingleton<JobProgressTracker>();
         services.TryAddSingleton<IJobProgress>(provider => provider.GetRequiredService<JobProgressTracker>());
+        services.TryAddSingleton<IErrorClassifier, ErrorClassifier>();
+        services.TryAddSingleton(RetryPolicy.Default);
+        services.TryAddSingleton(JobRetention.Default);
+        services.TryAddSingleton<IProviderCircuitBreaker>(provider => new ProviderCircuitBreaker(
+            provider.GetRequiredService<TimeProvider>(),
+            provider.GetService<ILogger<ProviderCircuitBreaker>>(),
+            provider.GetService<IAiProviderRegistry>()));
         return services;
     }
 }

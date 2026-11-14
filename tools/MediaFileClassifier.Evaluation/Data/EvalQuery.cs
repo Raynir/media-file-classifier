@@ -42,5 +42,21 @@ public static class QueryCategories
         "abstract",    // a mood or idea: "loneliness", "celebration"
         "distractor",  // look-alikes must rank below the real thing: "a cat, not a lynx"
         "media",       // the kind of file: "an animated GIF of a flag", "a screenshot of an error"
+        "filename",    // a fragment of the file name: "Pelmeni", "2016-10-03" (E09-S05)
+        "tag",         // a one-word, tag-style query: "autumn", "чёрно-белое" (E09-S05)
+        None,          // nothing in the data set should match: "a giraffe" (E09-S05); no relevant items
     ];
+
+    /// <summary>
+    /// The category of queries that should return nothing. They have no relevant items, so they're left out of
+    /// recall@10 and MRR and scored by whether any result is shown.
+    /// </summary>
+    public const string None = "none";
+
+    /// <summary>
+    /// The categories E09-S05 added for the app's keyword and hybrid search. Vector similarity alone can't answer them
+    /// (a file name, a tag, nothing at all), so the embedding regression run (<c>--system siglip2</c>) leaves them out
+    /// and the D094 minimums keep their meaning.
+    /// </summary>
+    public static IReadOnlyList<string> SearchSpecific { get; } = ["filename", "tag", None];
 }

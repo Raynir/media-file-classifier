@@ -96,6 +96,28 @@ public sealed class SkiaPerceptualHasherTests
         Assert.Equal(2, PerceptualHash.Distance(0b1010, 0b0110));
     }
 
+    [Fact]
+    public void ComputeFromPixels_DecodedPng_GivesTheSameHashAsTheFile()
+    {
+        // PNGs decode at full size, so both paths see the same pixels.
+        using var codec = SKCodec.Create(SampleMedia.PngWithAlpha);
+        var info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        using var bitmap = new SKBitmap(info);
+        Assert.Equal(SKCodecResult.Success, codec.GetPixels(info, bitmap.GetPixels()));
+
+        var fromPixels = hasher.ComputeFromPixels(bitmap.GetPixelSpan(), bitmap.Width, bitmap.Height);
+
+        Assert.Equal(Hash(SampleMedia.PngWithAlpha), fromPixels);
+    }
+
+    [Theory]
+    [InlineData(0, 1, 0)]
+    [InlineData(2, 2, 15)]
+    public void ComputeFromPixels_BufferOfWrongSize_Throws(int width, int height, int bytes)
+    {
+        Assert.ThrowsAny<ArgumentException>(() => hasher.ComputeFromPixels(new byte[bytes], width, height));
+    }
+
     private static byte[] Reencode(string path, double scale, SKEncodedImageFormat format, int quality)
     {
         using var bitmap = SKBitmap.Decode(path);

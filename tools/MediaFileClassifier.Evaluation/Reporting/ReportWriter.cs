@@ -22,15 +22,37 @@ public static class ReportWriter
         Line(text, report.Previous is null
             ? $"- Previous run: none, so there are no deltas."
             : $"- Previous run: {report.Previous}{(report.PreviousUsedOtherInputs == true ? " (different labels, so deltas compare different questions)" : string.Empty)}");
+        if (report.Reference is not null)
+        {
+            Line(text, $"- Baseline run: {report.Reference}{(report.ReferenceUsedOtherInputs == true ? " (different labels, so deltas compare different questions)" : string.Empty)}");
+        }
+
+        if (report.Parameters is { Count: > 0 } parameters)
+        {
+            Line(text, $"- Settings: {string.Join("; ", parameters.Select(p => $"{p.Key} {p.Value}"))}");
+        }
+
         text.Append('\n');
 
         Line(text, $"## Summary");
         text.Append('\n');
-        Line(text, "| Metric | Group | Value | Change | Baseline | Status |");
-        Line(text, "|---|---|--:|--:|--:|---|");
-        foreach (var c in report.Comparisons)
+        if (report.Reference is null)
         {
-            Line(text, $"| {c.Metric} | {c.Group} | {Number(c.Value)} | {Signed(c.Delta)} | {(c.Threshold is null ? "-" : Number(c.Threshold.Value))} | {c.Status} |");
+            Line(text, "| Metric | Group | Value | Change | Baseline | Status |");
+            Line(text, "|---|---|--:|--:|--:|---|");
+            foreach (var c in report.Comparisons)
+            {
+                Line(text, $"| {c.Metric} | {c.Group} | {Number(c.Value)} | {Signed(c.Delta)} | {(c.Threshold is null ? "-" : Number(c.Threshold.Value))} | {c.Status} |");
+            }
+        }
+        else
+        {
+            Line(text, "| Metric | Group | Value | Baseline run | vs baseline run | Change | Baseline | Status |");
+            Line(text, "|---|---|--:|--:|--:|--:|--:|---|");
+            foreach (var c in report.Comparisons)
+            {
+                Line(text, $"| {c.Metric} | {c.Group} | {Number(c.Value)} | {Optional(c.Reference)} | {Signed(c.ReferenceDelta)} | {Signed(c.Delta)} | {Optional(c.Threshold)} | {c.Status} |");
+            }
         }
 
         text.Append('\n');
@@ -42,9 +64,25 @@ public static class ReportWriter
             text.Append('\n');
             Line(text, "| Category | Language | Queries | Recall@10 | MRR |");
             Line(text, "|---|---|--:|--:|--:|");
-            foreach (var c in search.Categories)
+            foreach (var c in search.Categories.Where(c => c.NoneShown is null))
             {
                 Line(text, $"| {c.Category} | {c.Language} | {c.Queries} | {Number(c.RecallAt10)} | {Number(c.Mrr)} |");
+            }
+
+            var none = search.Queries.Where(q => q.Category == Data.QueryCategories.None).ToList();
+            if (none.Count > 0)
+            {
+                text.Append('\n');
+                Line(text, $"## Queries that should return nothing");
+                text.Append('\n');
+                Line(text, $"{none.Count(q => q.Returned > 0)} of {none.Count} showed results.");
+                text.Append('\n');
+                Line(text, "| Query | Results |");
+                Line(text, "|---|--:|");
+                foreach (var q in none.Where(q => q.Returned > 0).OrderByDescending(q => q.Returned).ThenBy(q => q.Id, StringComparer.Ordinal))
+                {
+                    Line(text, $"| {q.Id} | {q.Returned} |");
+                }
             }
 
             text.Append('\n');
@@ -52,13 +90,13 @@ public static class ReportWriter
             text.Append('\n');
             Line(text, "| Query | Category | Relevant | First relevant at | Recall@10 |");
             Line(text, "|---|---|--:|--:|--:|");
-            foreach (var q in search.Queries.OrderBy(q => q.RecallAt10).ThenBy(q => q.ReciprocalRank).ThenBy(q => q.Id, StringComparer.Ordinal).Take(WorstQueries))
+            foreach (var q in search.Queries.Where(q => q.Category != Data.QueryCategories.None).OrderBy(q => q.RecallAt10).ThenBy(q => q.ReciprocalRank).ThenBy(q => q.Id, StringComparer.Ordinal).Take(WorstQueries))
             {
                 Line(text, $"| {q.Id} | {q.Category} | {q.Relevant} | {q.FirstRelevantRank?.ToString(CultureInfo.InvariantCulture) ?? "-"} | {Number(q.RecallAt10)} |");
             }
 
             var unknown = search.Queries.SelectMany(q => q.UnknownIds).Distinct(StringComparer.Ordinal).Count();
-            var empty = search.Queries.Count(q => q.Returned == 0);
+            var empty = search.Queries.Count(q => q.Returned == 0 && q.Category != Data.QueryCategories.None);
             if (unknown > 0 || empty > 0)
             {
                 text.Append('\n');
@@ -93,6 +131,8 @@ public static class ReportWriter
     }
 
     private static string Number(double value) => value.ToString("0.0000", CultureInfo.InvariantCulture);
+
+    private static string Optional(double? value) => value is null ? "-" : Number(value.Value);
 
     private static string Signed(double? value) => value switch
     {

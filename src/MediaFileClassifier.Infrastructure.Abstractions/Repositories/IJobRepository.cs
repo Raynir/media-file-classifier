@@ -46,18 +46,77 @@ public interface IJobRepository
     Task<IReadOnlyList<ProcessingJob>> GetUnfinishedJobsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the jobs that finished (completed, failed or cancelled), the most recently finished first (E05-S03-T01).
+    /// </summary>
+    /// <param name="limit">Maximum number of jobs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The jobs.</returns>
+    Task<IReadOnlyList<ProcessingJob>> GetRecentJobsAsync(int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the work items of some jobs by job, stage and state (E05-S03-T01), e.g. for the processing panel's rows.
+    /// </summary>
+    /// <param name="jobIds">The jobs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The counts, in no particular order.</returns>
+    Task<IReadOnlyList<WorkItemCount>> CountWorkAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the failures of some jobs that still need attention (E05-S03-T01): failed work items whose media item is
+    /// still in error, or that have no media item. A failure the user retried successfully isn't counted, though its
+    /// work item stays <see cref="WorkItemState.Failed"/> as a record.
+    /// </summary>
+    /// <param name="jobIds">The jobs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The failure count per job; jobs without failures are left out.</returns>
+    Task<IReadOnlyDictionary<Id<ProcessingJob>, int>> CountFailuresAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the failed work items of a job that still need attention (E05-S03-T03), the same ones
+    /// <see cref="CountFailuresAsync"/> counts: failed work items whose media item is still in error, or that have no
+    /// media item.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The failed work items, oldest first.</returns>
+    Task<IReadOnlyList<WorkItem>> GetFailedWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets queued work items of a pool in the order they should run: highest priority first, then oldest.
     /// </summary>
     /// <param name="pool">The pool.</param>
     /// <param name="limit">Maximum number of items.</param>
     /// <param name="excluding">Work items to leave out, e.g. those the caller already holds.</param>
+    /// <param name="excludingStages">Stages to leave out, e.g. those waiting for a model, or <see langword="null"/>.</param>
+    /// <param name="dueBy">Leaves out retries due after this time (E05-S04-T02), or <see langword="null"/> to include them.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The work items.</returns>
     Task<IReadOnlyList<WorkItem>> GetQueuedAsync(
         ResourcePool pool,
         int limit,
         IReadOnlyCollection<Id<WorkItem>> excluding,
+        IReadOnlyCollection<string>? excludingStages = null,
+        DateTimeOffset? dueBy = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets when the next queued retry is due (E05-S04-T02).
+    /// </summary>
+    /// <param name="after">Only retries due after this time count.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    /// The earliest retry time after <paramref name="after"/>, or <see langword="null"/> if there's none. Parked work
+    /// (<see cref="WorkItem.IsParked"/>) doesn't count.
+    /// </returns>
+    Task<DateTimeOffset?> GetNextRetryAtAsync(DateTimeOffset after, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Releases every parked work item (E05-S04-T03), so it may start at once.
+    /// </summary>
+    /// <param name="now">Current time, the released work's retry time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of work items released.</returns>
+    Task<int> ReleaseParkedAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets the queued work items for some media items, e.g. those on screen (E05-S01-T03).
@@ -76,7 +135,8 @@ public interface IJobRepository
     Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Counts the work items still to do (queued or running) in the whole library.
+    /// Counts the work items still to do (queued or running) in the whole library. Work of jobs that wait for a model
+    /// isn't counted: it can't run until the model is installed (D037).
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of work items.</returns>
@@ -129,4 +189,44 @@ public interface IJobRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of work items put back.</returns>
     Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes old finished jobs with their work items (E05-S03-T04): the finished jobs beyond the newest
+    /// <paramref name="keepLast"/> by finish time, and the finished jobs that finished before
+    /// <paramref name="olderThan"/>. A job that isn't finished is never deleted, and the state is checked again as the
+    /// rows are deleted, so a finished job that new work woke up in the meantime stays.
+    /// </summary>
+    /// <param name="keepLast">How many of the most recently finished jobs to keep.</param>
+    /// <param name="olderThan">Finished jobs that finished before this time are deleted.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of jobs deleted.</returns>
+    Task<int> PruneFinishedJobsAsync(int keepLast, DateTimeOffset olderThan, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Puts the jobs that can't go on without a model into <see cref="ProcessingJobState.WaitingForModel"/>: queued or
+    /// running jobs with nothing running, whose queued work is all in the given stages (D037).
+    /// </summary>
+    /// <param name="stages">The stages whose model is missing.</param>
+    /// <param name="now">The current time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>How many jobs started waiting.</returns>
+    Task<int> MarkWaitingForModelAsync(IReadOnlyCollection<string> stages, DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Queues every job that waits for a model again, after a model was installed. Jobs whose model is still missing
+    /// wait again at the next dispatch.
+    /// </summary>
+    /// <param name="now">The current time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>How many jobs were queued.</returns>
+    Task<int> ResumeWaitingForModelAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores <see cref="ProcessingJob.Result"/> of a job, replacing an earlier one.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="result">The result, as JSON.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist.</returns>
+    Task<bool> SetResultAsync(Id<ProcessingJob> jobId, string result, CancellationToken cancellationToken = default);
 }

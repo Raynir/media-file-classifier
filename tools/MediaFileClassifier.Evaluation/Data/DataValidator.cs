@@ -121,7 +121,14 @@ public static partial class DataValidator
                 errors.Add($"queries: {query.Id} has no text");
             }
 
-            if (query.Relevant.Count == 0)
+            if (query.Category == QueryCategories.None)
+            {
+                if (query.Relevant.Count > 0)
+                {
+                    errors.Add($"queries: {query.Id} should return nothing, so it can't list relevant items");
+                }
+            }
+            else if (query.Relevant.Count == 0)
             {
                 errors.Add($"queries: {query.Id} has no relevant items");
             }

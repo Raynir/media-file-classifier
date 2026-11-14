@@ -55,8 +55,9 @@ Accepted: CC0, Public Domain, CC BY and CC BY-SA (2.0–4.0, ported versions too
 ```
 
 - **Relevance is binary**, and **every** relevant item of the corpus is listed, not just one.
-- **Languages:** English and Russian (D029), 105 and 110 queries. Most queries come in pairs with the same labels, so the two languages can be compared directly; some are language-specific (synonyms, text in a sign).
+- **Languages:** English and Russian (D029), 139 and 142 queries. Most queries come in pairs with the same labels, so the two languages can be compared directly; some are language-specific (synonyms, text in a sign).
 - **Categories:** `object`, `scene`, `synonym`, `text` (text visible in the image), `abstract` (mood or idea), `distractor` (look-alikes must rank lower), `media` (the kind of file, such as an animated flag or a phone screenshot). Reports break the scores down by category.
+- **Search-specific categories (E09-S05):** `filename` (a fragment of the file name, such as `Pelmeni`, `2016-10-03` or `Донецк`; relevant are the items whose file name contains it, where the file name is the Commons title, see "Keyword and hybrid search" below), `tag` (one tag-style word, such as `autumn` or `чёрно-белое`; relevant are the items with that manifest tag, reviewed) and `none` (nothing in the corpus matches, such as `a giraffe` or `фывапролдж`). A `none` query lists no relevant items; it is left out of recall@10 and MRR and scored by **none-shown** below.
 - `notes` records doubtful labels and why a look-alike isn't relevant.
 
 ## OCR ground truth
@@ -71,6 +72,7 @@ Accepted: CC0, Public Domain, CC BY and CC BY-SA (2.0–4.0, ported versions too
 
 - **Recall@10 (capped):** relevant items in the first 10 results, divided by the number of relevant items or 10, whichever is smaller. A perfect ranking scores 1 even for a query with more than 10 relevant items. Averaged over the queries of each language.
 - **MRR:** one over the rank of the first relevant result, 0 if none is returned, over the first 100 results. Averaged per language.
+- **None-shown:** the share of the `none` queries that return any result; lower is better. Recall@10 and MRR average only the other queries.
 - **CER:** the edit distance between the OCR output and the ground truth, divided by the length of the ground truth, summed over images (total edits over total characters). Both texts are Unicode-normalized (NFC) and every run of whitespace, line breaks included, becomes one space. Case, punctuation and ё are kept. Missing output counts as fully wrong.
 
 Every value is rounded to four decimals, and the computation has no randomness, so two runs on the same input give identical numbers.
@@ -102,7 +104,35 @@ dotnet run --project tools/MediaFileClassifier.Evaluation -- evaluate --results 
 - `evaluate` writes `eval/reports/<yyyy-MM-dd_HHmmss>_<system>.json` and `.md`. The report shows each metric, the change from the previous report of the same system, the baseline and its status, scores per category, and the weakest queries. If the labels changed since the previous run, the report says so, because the deltas then compare different questions.
 - `--fail-below-baseline` exits with code 3 when a metric is worse than its baseline, for CI later.
 
+To score the app's own SigLIP 2 pipeline instead of a results file (E06-S03-T05), give the model folder:
+
+```powershell
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate --system siglip2 --models models/siglip2 --fail-below-baseline
+```
+
+`Siglip2System` embeds each item with `Siglip2EmbeddingProvider`: one vector for a photo, screenshot or document, and the mean of the keyframes' vectors for a GIF or video, sampled by the app's `FrameSampler` (videos need FFmpeg). Each query is encoded by the text tower and ranked by cosine similarity. It takes about 1.5 minutes on an i7-14700HX. It scores the content categories only: the search-specific ones (`filename`, `tag`, `none`, E09-S05) ask for keyword search, which vector similarity alone can't do, so the D094 minimums keep their meaning.
+
+`threshold --models models/siglip2` measures the semantic relevance cut (E09-S01-T03): for raw, centred (minus the query's mean over the corpus) and z-scored similarity, it prints how many relevant items of the real queries stay visible and how many results 20 built-in nonsense queries still get at each threshold, then the same for the app's rule in `SemanticRelevanceThresholds`. First run (2026-11-09): raw cosine overlaps badly (nonsense top-1 0.07–0.12, relevant median 0.12 en / 0.10 ru); the app's rule, centred ≥ 0.07 or raw ≥ 0.13, keeps 88% (en) and 89% (ru) of the relevant items in the top 10, and 2 of 20 nonsense queries show one item.
+
 Commit the reports of public runs, so the next run compares against a shared history. A second run of the same system within the same second gets a `-2` suffix instead of replacing the first report.
+
+### Keyword and hybrid search (E09-S05)
+
+The app's own search runs over the corpus as `--system app-hybrid` (what the search bar does), `app-vector` (vector results alone) or `app-keyword` (keyword results alone). `AppSearchSystem` builds a temporary library with the app's repositories: each item gets its SigLIP 2 vector (as `Siglip2System` computes it) and, as its metadata, what the app's describer and OCR wrote for it. It then searches with the app's `SearchIndex` the way `SearchMediaQueryHandler` does: the normalised text, the lower-cased query encoded by the text tower, and the relevance cut on hits only the vector search found. An item's file name is its Commons title with the corpus file's extension (`Gatta randagia Livorno.jpg`); the synthetic items keep their own names (`synth-001.png`).
+
+The AI analysis is stored once, so every run indexes the same text. `analyze` runs the app's `OpenAiCompatibleImageDescriber` and `OpenAiCompatibleOcrProvider` over the corpus, with the inputs `ItemAnalyzers` gives them: a still image is described at 1024 px and read at 2048 px on its longest edge; a video or GIF is described from its middle keyframe and read on every keyframe. It writes `eval/analysis/<model>.json` after each item and skips the items already there, so a stopped run resumes. The committed file is from `qwen/qwen3-vl-4b` in LM Studio, describing in English (the profile language); about 11 s per still image on a GPU with 8 GB. `qwen/qwen3-vl-8b` was too slow there: OCR images of 2048 px filled the GPU memory, and a photo took 1 to 2 minutes.
+
+```powershell
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- analyze                  # LM Studio at localhost:1234, qwen/qwen3-vl-4b
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate --system app-hybrid --models models/siglip2
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate --system app-hybrid --models models/siglip2 --rrf-k 30 --field-weights title=4,tags=5
+```
+
+The ranking settings default to the app's (`SearchRankingOptions.Default`, `SemanticRelevanceThresholds`); `--rrf-k`, `--keyword-weight`, `--vector-weight`, `--field-weights` and `--threshold` (`centred,raw` or `none`) try other values without a rebuild. The report lists the settings it ran with. `tune` scores a fixed grid of them in one process and writes `reports/<date>_tune-app-hybrid.md` (E09-S05-T03).
+
+### Baseline runs
+
+`baselines.json` `references` pins one report per system, by name: its untuned baseline run. Every later run of that system shows each headline metric's change from it, both in the console and in the report's summary table ("Baseline run" and "vs baseline run"), next to the change from the previous run. If the labels changed since the baseline run, the report says so.
 
 ## Baselines
 
@@ -135,7 +165,7 @@ Personal media never goes into the repository. To measure on your own photos:
 
 The data-consistency check runs in CI on every build: `PublicDataSetTests` validates the committed manifest, queries and OCR truth without the media.
 
-The model run is manual for now, because no model exists yet: the spike runs the models, writes a results file, and runs `evaluate` as above. To run the public subset in CI later (E01-S11-T02), a job needs:
+The model run is manual. The embedding regression test (E06-S03-T05) is the command above, run after any change to the SigLIP 2 model, its preprocessing, the tokenizer or the keyframe sampler. The same run is the xunit test `Siglip2QualityTests` in `MediaFileClassifier.Evaluation.Tests`. It is opt-in (`MFC_QUALITY_TESTS=1`, see [Development workflow](development-workflow.md#opt-in-tests)) and also skips when `models/siglip2` (or `MFC_SIGLIP2_DIR`) or `eval/corpus` is missing, so it never runs in CI today. The first run's numbers, against the D094 baselines: recall@10 0.959 (en) and 0.816 (ru), MRR 0.983 and 0.831. To run the public subset in CI later (E01-S11-T02), a job needs:
 
 - the corpus: `fetch-corpus.ps1` with `GH_TOKEN: ${{ github.token }}`, cached by the release tag;
 - the model files, cached by model hash (D030), and a CPU ONNX runtime;

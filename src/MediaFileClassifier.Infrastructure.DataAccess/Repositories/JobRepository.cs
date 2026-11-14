@@ -60,7 +60,8 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                         return false;
                     }
 
-                    if (ProcessingJobStateTransitions.IsFinished(job.State))
+                    // New work wakes a finished job, and one waiting for a model: the new work may not need it.
+                    if (ProcessingJobStateTransitions.IsFinished(job.State) || job.State == ProcessingJobState.WaitingForModel)
                     {
                         db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Queued, now));
                     }
@@ -95,19 +96,92 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<ProcessingJob>> GetRecentJobsAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+
+        return connections.ReadAsync<IReadOnlyList<ProcessingJob>>(
+            async (db, token) => await db.ProcessingJobs
+                .Where(job => job.State == ProcessingJobState.Completed || job.State == ProcessingJobState.Failed || job.State == ProcessingJobState.Cancelled)
+                .OrderByDescending(job => job.FinishedAt)
+                .ThenByDescending(job => job.Id)
+                .Take(limit)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<WorkItemCount>> CountWorkAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(jobIds);
+
+        var ids = jobIds.ToList();
+        return connections.ReadAsync<IReadOnlyList<WorkItemCount>>(
+            async (db, token) =>
+            {
+                var groups = await db.WorkItems
+                    .Where(item => ids.Contains(item.JobId))
+                    .GroupBy(item => new { item.JobId, item.Stage, item.State, IsWholeTarget = item.ItemId == null })
+                    .Select(group => new { group.Key.JobId, group.Key.Stage, group.Key.State, group.Key.IsWholeTarget, Count = group.Count() })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                return [.. groups.Select(group => new WorkItemCount(group.JobId, group.Stage, group.State, group.IsWholeTarget, group.Count))];
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyDictionary<Id<ProcessingJob>, int>> CountFailuresAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(jobIds);
+
+        var ids = jobIds.ToList();
+        return connections.ReadAsync<IReadOnlyDictionary<Id<ProcessingJob>, int>>(
+            async (db, token) =>
+            {
+                var counts = await db.WorkItems
+                    .Where(item => item.State == WorkItemState.Failed && ids.Contains(item.JobId))
+                    .Where(item => item.ItemId == null || db.MediaItems.Any(media => media.Id == item.ItemId && media.Status == MediaItemStatus.Error))
+                    .GroupBy(item => item.JobId)
+                    .Select(group => new { JobId = group.Key, Count = group.Count() })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                return counts.ToDictionary(count => count.JobId, count => count.Count);
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<WorkItem>> GetFailedWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<WorkItem>>(
+            async (db, token) => await db.WorkItems
+                .Where(item => item.JobId == jobId && item.State == WorkItemState.Failed)
+                .Where(item => item.ItemId == null || db.MediaItems.Any(media => media.Id == item.ItemId && media.Status == MediaItemStatus.Error))
+                .OrderBy(item => item.CreatedAt)
+                .ThenBy(item => item.Id)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<WorkItem>> GetQueuedAsync(
         ResourcePool pool,
         int limit,
         IReadOnlyCollection<Id<WorkItem>> excluding,
+        IReadOnlyCollection<string>? excludingStages = null,
+        DateTimeOffset? dueBy = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
         ArgumentNullException.ThrowIfNull(excluding);
 
         var excluded = excluding.ToList();
+        var excludedStages = excludingStages?.ToList() ?? [];
         return connections.ReadAsync<IReadOnlyList<WorkItem>>(
             async (db, token) => await db.WorkItems
-                .Where(item => item.State == WorkItemState.Queued && item.Pool == pool && !excluded.Contains(item.Id))
+                .Where(item => item.State == WorkItemState.Queued && item.Pool == pool && !excluded.Contains(item.Id) && !excludedStages.Contains(item.Stage))
+                .Where(item => dueBy == null || item.RetryAt == null || item.RetryAt <= dueBy)
                 .OrderByDescending(item => item.Priority)
                 .ThenBy(item => item.CreatedAt)
                 .ThenBy(item => item.Id)
@@ -116,6 +190,26 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                 .ConfigureAwait(false),
             cancellationToken);
     }
+
+    /// <inheritdoc />
+    public Task<DateTimeOffset?> GetNextRetryAtAsync(DateTimeOffset after, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync(
+            async (db, token) => await db.WorkItems
+                .Where(item => item.State == WorkItemState.Queued && item.RetryAt > after && item.RetryAt != WorkItem.ParkedUntil)
+                .OrderBy(item => item.RetryAt)
+                .Select(item => item.RetryAt)
+                .FirstOrDefaultAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> ReleaseParkedAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        writer.ExecuteAsync(
+            async (db, token) => await db.WorkItems
+                .Where(item => item.State == WorkItemState.Queued && item.RetryAt == WorkItem.ParkedUntil)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.RetryAt, now), token)
+                .ConfigureAwait(false),
+            cancellationToken);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<WorkItem>> GetQueuedForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default)
@@ -145,7 +239,11 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
     /// <inheritdoc />
     public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync(
-            (db, token) => db.WorkItems.CountAsync(item => item.State == WorkItemState.Queued || item.State == WorkItemState.Running, token),
+            (db, token) => db.WorkItems.CountAsync(
+                item => item.State == WorkItemState.Running
+                    || (item.State == WorkItemState.Queued
+                        && db.ProcessingJobs.Any(job => job.Id == item.JobId && job.State != ProcessingJobState.WaitingForModel)),
+                token),
             cancellationToken);
 
     /// <inheritdoc />
@@ -181,6 +279,12 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                 var running = stored.ChangeState(WorkItemState.Running, now);
                 db.Entry(stored).CurrentValues.SetValues(running);
                 var job = await db.ProcessingJobs.AsTracking().SingleAsync(job => job.Id == workItem.JobId, token).ConfigureAwait(false);
+                if (job.State == ProcessingJobState.WaitingForModel)
+                {
+                    // The model arrived between the scheduler reading the work and starting it.
+                    db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Queued, now));
+                }
+
                 if (job.State == ProcessingJobState.Queued)
                 {
                     db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Running, now));
@@ -227,6 +331,17 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
     }
 
     /// <inheritdoc />
+    public async Task<bool> SetResultAsync(Id<ProcessingJob> jobId, string result, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        return await writer.ExecuteAsync(
+            async (db, token) => await db.ProcessingJobs.Where(job => job.Id == jobId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(job => job.Result, result), token).ConfigureAwait(false) > 0,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default) =>
         writer.ExecuteAsync(
             async (db, token) =>
@@ -250,6 +365,43 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<int> PruneFinishedJobsAsync(int keepLast, DateTimeOffset olderThan, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(keepLast);
+
+        // Everything happens in one write, so no other write can wake a job between choosing it and deleting it; the
+        // state is checked in the delete as well, in case a job isn't what it was.
+        return writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var finished = db.ProcessingJobs.Where(job =>
+                    (job.State == ProcessingJobState.Completed || job.State == ProcessingJobState.Failed || job.State == ProcessingJobState.Cancelled)
+                    && job.FinishedAt != null);
+                var beyondLimit = await finished
+                    .OrderByDescending(job => job.FinishedAt)
+                    .ThenByDescending(job => job.Id)
+                    .Skip(keepLast)
+                    .Select(job => job.Id)
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                var tooOld = await finished.Where(job => job.FinishedAt < olderThan).Select(job => job.Id).ToListAsync(token).ConfigureAwait(false);
+
+                var deleted = 0;
+                foreach (var batch in beyondLimit.Union(tooOld).Chunk(MediaItemRepository.BatchSize))
+                {
+                    deleted += await db.ProcessingJobs
+                        .Where(job => batch.Contains(job.Id)
+                            && (job.State == ProcessingJobState.Completed || job.State == ProcessingJobState.Failed || job.State == ProcessingJobState.Cancelled))
+                        .ExecuteDeleteAsync(token)
+                        .ConfigureAwait(false);
+                }
+
+                return deleted;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
         writer.ExecuteAsync(
             async (db, token) =>
@@ -266,6 +418,57 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
 
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
                 return count;
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> MarkWaitingForModelAsync(IReadOnlyCollection<string> stages, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stages);
+        if (stages.Count == 0)
+        {
+            return Task.FromResult(0);
+        }
+
+        var waiting = stages.ToList();
+        return writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var jobs = await db.ProcessingJobs.AsTracking()
+                    .Where(job => job.State == ProcessingJobState.Queued || job.State == ProcessingJobState.Running)
+                    .Where(job => db.WorkItems.Any(item => item.JobId == job.Id && item.State == WorkItemState.Queued && waiting.Contains(item.Stage)))
+                    .Where(job => !db.WorkItems.Any(
+                        item => item.JobId == job.Id
+                            && (item.State == WorkItemState.Running || (item.State == WorkItemState.Queued && !waiting.Contains(item.Stage)))))
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                foreach (var job in jobs)
+                {
+                    db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.WaitingForModel, now));
+                }
+
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return jobs.Count;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<int> ResumeWaitingForModelAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var jobs = await db.ProcessingJobs.AsTracking()
+                    .Where(job => job.State == ProcessingJobState.WaitingForModel)
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                foreach (var job in jobs)
+                {
+                    db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Queued, now));
+                }
+
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return jobs.Count;
             },
             cancellationToken);
 }

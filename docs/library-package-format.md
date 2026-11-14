@@ -102,7 +102,7 @@ Table and column names below are the draft; E07-S08-T01 fixes them. Foreign keys
 | `items` | `id` | `folder_id`, `path`, `media_type`, `size_bytes`, `file_created_at`, `file_modified_at`, `imported_at`, `fingerprint`, `content_hash`, `perceptual_hash`, `review_status`, `review_status_changed_at`, `is_favorite`, `favorite_changed_at`, `source_status` |
 | `technical_metadata` | `item_id` | the `TechnicalMetadata` properties, `raw_metadata_json`, `extracted_at` |
 | `technical_field_values` | `item_id`, `field` | `value`, `read_at` |
-| `keyframes` | `id` | `item_id`, `index`, `timestamp_ms`, `frame_number` |
+| `keyframes` | `id` | `item_id`, `index`, `timestamp_ms`, `frame_number`, `perceptual_hash` |
 | `model_registrations` | `id` | `provider_id`, `model_name`, `version`, `file_hash`, `embedding_dimension`, `registered_at` |
 | `analysis_runs` | `id` | `item_id`, `analyzer`, `provider_id`, `model_id`, `model_version`, `prompt_version`, `started_at`, `completed_at`, `rejected_at` |
 | `ai_field_values` | `run_id`, `field` | `value`, `model_id`, `confidence`, `created_at` |

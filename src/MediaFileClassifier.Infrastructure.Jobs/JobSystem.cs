@@ -1,9 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Infrastructure.Jobs.Errors;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Infrastructure.Jobs;
@@ -18,13 +22,23 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// <param name="progress">The progress counters of the open library (E05-S02).</param>
 /// <param name="clock">Clock.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="models">Which models are installed, so stages that need a missing one wait (D037).</param>
+/// <param name="classifier">Classifies failures, so transient ones are retried (E05-S04).</param>
+/// <param name="retryPolicy">When transient failures are retried, or <see langword="null"/> for the default.</param>
+/// <param name="breaker">Pauses unavailable AI providers (E05-S04-T03).</param>
+/// <param name="retention">How long finished jobs are kept, or <see langword="null"/> for the default (E05-S03-T04).</param>
 public sealed partial class JobSystem(
     IEnumerable<IStageHandler> handlers,
     ISettingsService settings,
     IHardwareInfo hardware,
     JobProgressTracker progress,
     TimeProvider clock,
-    ILogger<JobSystem> logger) : IJobSystem, IDisposable
+    ILogger<JobSystem> logger,
+    IModelAvailability? models = null,
+    IErrorClassifier? classifier = null,
+    RetryPolicy? retryPolicy = null,
+    IProviderCircuitBreaker? breaker = null,
+    JobRetention? retention = null) : IJobSystem, IDisposable
 {
     /// <summary>
     /// Default concurrency limit of the I/O pool.
@@ -73,13 +87,23 @@ public sealed partial class JobSystem(
             await StopCurrentAsync().ConfigureAwait(false);
 
             var requeued = await library.Jobs.RequeueRunningAsync(clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await JobRetentionPruner.PruneAsync(library.Jobs, retention ?? JobRetention.Default, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                // Housekeeping: old jobs stay until the next time, and the library still opens.
+                LogPruneFailed(exception);
+            }
+
             var pending = await library.Jobs.CountPendingAsync(cancellationToken).ConfigureAwait(false);
             var processing = settings.Current.Processing;
             var startPaused = pending > 0 && processing.ResumeOnOpen == ResumeMode.Ask;
             progress.Reset(
                 await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false),
                 await library.Jobs.CountUnfinishedWorkAsync(cancellationToken).ConfigureAwait(false));
-            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger);
+            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger, models, classifier, retryPolicy, breaker, retention);
             scheduler.Start(startPaused);
             current = scheduler;
             LogStarted(library.Layout.RootDirectory, pending, requeued, startPaused);
@@ -130,4 +154,7 @@ public sealed partial class JobSystem(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Stopped processing for {Directory}")]
     private partial void LogStopped(string directory);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Old finished jobs couldn't be deleted")]
+    private partial void LogPruneFailed(Exception exception);
 }

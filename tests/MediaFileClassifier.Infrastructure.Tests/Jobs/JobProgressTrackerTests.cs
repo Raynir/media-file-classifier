@@ -42,6 +42,30 @@ public sealed class JobProgressTrackerTests
     }
 
     [Fact]
+    public void RetriedWork_IsCountedAsRetrying_NotAsFailed_UntilItFinishes()
+    {
+        var job = NewJob();
+        var items = Items(job, "describe", 3);
+        tracker.AddWork(job, items);
+        WorkItem Running(WorkItem item) => item.ChangeState(WorkItemState.Running, Start);
+
+        tracker.Finished(Running(items[0]).ScheduleRetry(Start.AddSeconds(2), ErrorCategory.Transient, "down", countsAsRetry: true, Start), job);
+        tracker.Finished(Running(items[1]).Park(ErrorCategory.Transient, "down", Start), job);
+
+        tracker.Finished(Running(items[2]).ScheduleRetry(Start.AddMinutes(1), ErrorCategory.Configuration, "model missing", countsAsRetry: false, Start), job);
+
+        var progress = Assert.Single(tracker.Current.Jobs);
+        Assert.Equal((2, 0, 3), (progress.Retrying, progress.Failed, progress.Pending));
+        Assert.Equal(2, tracker.Current.Retrying);
+
+        Finish(job, items[0], WorkItemState.Completed);
+        Finish(job, items[1], WorkItemState.Failed);
+
+        progress = Assert.Single(tracker.Current.Jobs);
+        Assert.Equal((0, 1), (progress.Retrying, progress.Failed));
+    }
+
+    [Fact]
     public void FinishedJob_IsForgotten()
     {
         var job = NewJob();
@@ -51,6 +75,39 @@ public sealed class JobProgressTrackerTests
         Finish(job, items[0], WorkItemState.Completed);
         Finish(job with { State = ProcessingJobState.Completed }, items[1], WorkItemState.Completed);
 
+        Assert.Same(ProgressSummary.Empty, tracker.Current);
+    }
+
+    [Fact]
+    public void FinishedJob_ReportedBeforeAnEarlierItem_IsForgotten()
+    {
+        var job = NewJob();
+        var items = Items(job, "stage", 2);
+        tracker.AddWork(job, items);
+
+        // Two items finished together: the database saw the first one while the job ran and the last one complete it,
+        // but the threads reached the tracker in the other order.
+        Finish(job with { State = ProcessingJobState.Completed }, items[1], WorkItemState.Completed);
+        Finish(job with { State = ProcessingJobState.Running }, items[0], WorkItemState.Completed);
+
+        Assert.Same(ProgressSummary.Empty, tracker.Current);
+    }
+
+    [Fact]
+    public void FinishedJob_GettingNewWorkLater_IsKeptUntilTheNewWorkFinishes()
+    {
+        var job = NewJob();
+        var first = Items(job, "stage", 2);
+        tracker.AddWork(job, first);
+        Finish(job with { State = ProcessingJobState.Completed }, first[1], WorkItemState.Completed);
+
+        // New work reopens the job before the stale report of the earlier item arrives.
+        var more = Items(job, "stage", 1);
+        tracker.AddWork(job, more);
+        Finish(job with { State = ProcessingJobState.Running }, first[0], WorkItemState.Completed);
+        Assert.Equal(1, Assert.Single(tracker.Current.Jobs).Pending);
+
+        Finish(job with { State = ProcessingJobState.Completed }, more[0], WorkItemState.Completed);
         Assert.Same(ProgressSummary.Empty, tracker.Current);
     }
 
@@ -77,6 +134,44 @@ public sealed class JobProgressTrackerTests
         RunSteadily(job, "stage", count: 100, perSecond: 10, left: 100);
 
         Assert.InRange(tracker.Current.Jobs[0].TimeRemaining!.Value.TotalSeconds, 9, 11);
+    }
+
+    [Fact]
+    public void KnownRate_GivesAnEstimateBeforeAnyItemFinished_AndTheMeasuredRateTakesOverLater()
+    {
+        var seeded = new JobProgressTracker(clock, new FixedHints("import", 5));
+        var job = NewJob();
+        var items = Items(job, "stage", 100);
+        seeded.AddWork(job, items);
+
+        // Nothing finished: 100 items at the benchmark's 5 per second.
+        Assert.Equal(TimeSpan.FromSeconds(20), seeded.Current.Jobs[0].TimeRemaining);
+        Assert.Equal(TimeSpan.FromSeconds(20), seeded.Current.TimeRemaining);
+
+        // Measured: 20 items in 5 s (4 per second), 80 left, so 20 s as well, from the measurement.
+        for (var i = 0; i < 20; i++)
+        {
+            clock.Advance(TimeSpan.FromMilliseconds(250));
+            seeded.Finished(items[i].ChangeState(WorkItemState.Running, clock.GetUtcNow()).ChangeState(WorkItemState.Completed, clock.GetUtcNow()), job);
+        }
+
+        Assert.InRange(seeded.Current.Jobs[0].TimeRemaining!.Value.TotalSeconds, 15, 25);
+    }
+
+    [Fact]
+    public void KnownRate_IsOnlyUsedForItsOwnJobType()
+    {
+        var seeded = new JobProgressTracker(clock, new FixedHints("other-type", 5));
+        var job = NewJob();
+        seeded.AddWork(job, Items(job, "stage", 10));
+
+        Assert.Null(seeded.Current.Jobs[0].TimeRemaining);
+        Assert.Null(seeded.Current.TimeRemaining);
+    }
+
+    private sealed class FixedHints(string jobType, double rate) : IThroughputHints
+    {
+        public double? ItemsPerSecond(string type) => type == jobType ? rate : null;
     }
 
     [Fact]

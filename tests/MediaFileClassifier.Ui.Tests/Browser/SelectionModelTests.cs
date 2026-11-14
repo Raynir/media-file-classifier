@@ -92,8 +92,9 @@ public sealed class SelectionModelTests
         await selection.SelectAllAsync();
         await selection.ApplyAsync(99_999, SelectionGesture.Toggle);
 
+        // One ID is read: the newest item, the boundary in any order (E10-S04).
         Assert.Equal(0, source.PageRequests);
-        Assert.Equal(0, source.IdRequests);
+        Assert.Equal(1, source.IdRequests);
         Assert.Equal(99_999, selection.Count);
         Assert.True(selection.IsAll);
         Assert.False(selection.IsSelected(source.Ids[99_999]));

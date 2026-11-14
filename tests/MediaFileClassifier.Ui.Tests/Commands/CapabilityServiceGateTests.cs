@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Resources;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
@@ -69,11 +67,7 @@ public sealed class CapabilityServiceGateTests
         Assert.True(gate.Check("no.such-capability").IsAvailable);
     }
 
-    private static Localizer CreateLocalizer() => new(
-        new ResourceManager("MediaFileClassifier.Ui.Resources.Strings", typeof(Localizer).Assembly))
-    {
-        Culture = CultureInfo.GetCultureInfo("en-US"),
-    };
+    private static Localizer CreateLocalizer() => TestLocalizer.EnUs();
 
     private sealed class FakeCapabilityService(params CapabilityDefinition[] definitions) : ICapabilityService
     {

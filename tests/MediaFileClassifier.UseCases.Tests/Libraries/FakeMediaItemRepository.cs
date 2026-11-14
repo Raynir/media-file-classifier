@@ -15,6 +15,8 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
 
     public List<MediaItem> Items { get; } = [];
 
+    public int ChangedHandlerCount => Changed?.GetInvocationList().Length ?? 0;
+
     public void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
 
     public Task<MediaItem?> GetAsync(Id<MediaItem> id, CancellationToken cancellationToken = default) =>
@@ -24,6 +26,14 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
         Task.FromResult<IReadOnlyList<MediaItemSummary>>(
             [.. Enumerable.Reverse(Items).Skip(offset).Take(limit).Select(item => new MediaItemSummary(
                 item.Id, item.FileName, item.FileFormat, item.MediaType, item.SizeBytes, item.FileModifiedAt, item.Status, item.StatusReason, null, false))]);
+
+    public Task<IReadOnlyList<MediaItemSummary>> GetSummariesByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MediaItemSummary>>(
+            [.. Items.Where(item => ids.Contains(item.Id)).Select(item => new MediaItemSummary(
+                item.Id, item.FileName, item.FileFormat, item.MediaType, item.SizeBytes, item.FileModifiedAt, item.Status, item.StatusReason, null, false))]);
+
+    public Task<IReadOnlyList<Id<MediaItem>>> GetFilteredIdsAsync(MediaItemFilter filter, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. Enumerable.Reverse(Items).Select(item => item.Id)]);
 
     public Task<int> CountNewerAsync(Id<MediaItem> id, CancellationToken cancellationToken = default) =>
         Task.FromResult(Items.Count - 1 - Items.FindIndex(item => item.Id == id));
@@ -91,4 +101,6 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
     public Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<Id<MediaItem>>> DeleteMissingAsync(int limit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }

@@ -90,6 +90,33 @@ public sealed class ReportComparerTests
     }
 
     [Fact]
+    public async Task Compare_TreatsNoneShownAsAMaximum_AndTheWriterListsTheQueriesThatShowedResults()
+    {
+        var data = TestData.Data with
+        {
+            Queries =
+            [
+                .. TestData.Queries,
+                new EvalQuery { Id = "en-002", Language = "en", Category = QueryCategories.None, Text = "a giraffe", Relevant = [] },
+            ],
+        };
+        var results = new ResultsFile(TestData.Results with
+        {
+            Search = new Dictionary<string, IReadOnlyList<string>>(TestData.Results.Search!) { ["en-002"] = ["lynx", "sign"] },
+        });
+        var evaluated = await Evaluator.EvaluateAsync(data, results.Name, results, null, TestData.FirstRun, CancellationToken.None);
+
+        var report = ReportComparer.Compare(evaluated, null, null, new Baselines { NoneShown = new Dictionary<string, double?> { ["en"] = 0.5 } });
+        var markdown = ReportWriter.Write(report);
+
+        Assert.Equal(ReportComparer.Below, Status(report, "none-shown", "en"));
+        Assert.DoesNotContain(report.Comparisons, c => c.Metric == "none-shown" && c.Group == "ru");
+        Assert.Contains("1 of 1 showed results.", markdown, StringComparison.Ordinal);
+        Assert.Contains("| en-002 | 2 |", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("| en-002 | none |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Writer_RendersTheSummaryAndWarnings()
     {
         var report = ReportComparer.Compare(await Evaluate(TestData.Results), null, null, new Baselines());

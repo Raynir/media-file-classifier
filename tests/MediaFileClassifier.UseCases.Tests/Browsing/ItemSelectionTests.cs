@@ -1,8 +1,10 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Searches;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.UseCases.Browsing.Selection;
+using MediaFileClassifier.UseCases.Search.SearchResults;
 using MediaFileClassifier.UseCases.Tests.Libraries;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +27,9 @@ public sealed class ItemSelectionTests : IDisposable
             .AddSingleton<ILibrarySession>(session)
             .AddUseCases()
             .BuildServiceProvider();
+
+        // These cover the M1 item list (D177), which browsing uses in newest-import order (E10-S04).
+        services.GetRequiredService<SearchResultSource>().SetSort(new SortChoice(SortMode.ImportDate, Descending: true));
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;

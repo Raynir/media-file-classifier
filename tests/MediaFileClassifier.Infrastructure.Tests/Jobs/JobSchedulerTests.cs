@@ -4,6 +4,7 @@ using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
+using MediaFileClassifier.Infrastructure.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
@@ -11,6 +12,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
 /// <summary>
 /// Tests for <see cref="JobScheduler"/> against a real library database (E05-S01-T02).
 /// </summary>
+[Collection(TimingTestsCollection.Name)]
 public sealed class JobSchedulerTests : IAsyncLifetime
 {
     private LibraryTestBed bed = null!;

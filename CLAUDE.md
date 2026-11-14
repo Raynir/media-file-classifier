@@ -40,6 +40,10 @@ dotnet build src/MediaFileClassifier.App.Android -t:Run  # Android head: needs t
 - Trailing commas in multi-line initializers.
 - XML doc comments are checked when present, but not required.
 
+## Testing
+
+Rules for writing, sharing and running tests: `docs/testing.md`. Shared fakes and helpers live in `tests/MediaFileClassifier.Testing`.
+
 ## Branches and commits (D064, docs/development-workflow.md)
 
 - **GitFlow:** `main`, `develop`, `feature/MFC-<key>-<description>`, `release/<version>` and `hotfix/<version>`. Feature branches start from `develop`.

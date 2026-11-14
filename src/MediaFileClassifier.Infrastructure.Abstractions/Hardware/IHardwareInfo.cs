@@ -17,6 +17,12 @@ public interface IHardwareInfo
     ExecutionProvider PreferredExecutionProvider { get; }
 
     /// <summary>
+    /// Gets the graphics adapter a GPU execution provider runs on: the one with the most dedicated memory, so a laptop
+    /// with integrated and discrete graphics uses the discrete GPU. <c>null</c> when no adapter qualifies.
+    /// </summary>
+    GpuInfo? PreferredGpu { get; }
+
+    /// <summary>
     /// Gets the default number of files processed in parallel.
     /// </summary>
     int DefaultParallelism { get; }

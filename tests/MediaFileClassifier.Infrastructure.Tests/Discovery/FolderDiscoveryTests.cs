@@ -7,6 +7,7 @@ using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Files;
 using MediaFileClassifier.Infrastructure.Tests.Media;
+using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Media;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -17,7 +18,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Discovery;
 /// </summary>
 public sealed class FolderDiscoveryTests : IAsyncLifetime
 {
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly List<string> links = [];
     private readonly CountingFileSource source = new(new FileSystemMediaFileSource());
     private LibraryTestBed bed = null!;
@@ -27,7 +28,7 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(temp.Path);
         bed = await LibraryTestBed.CreateAsync();
         discovery = new FolderDiscovery(
             source,
@@ -166,8 +167,8 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
     public async Task DiscoverAsync_ReportsSkippedLinks()
     {
         Copy(SampleMedia.JpegWithExif, "a/photo.jpg");
-        var link = Path.Combine(root, "a", "loop");
-        FolderScanTests.CreateFolderLink(link, root);
+        var link = temp.Combine("a", "loop");
+        FolderScanTests.CreateFolderLink(link, temp.Path);
         links.Add(link);
         var folder = await AddFolderAsync(new FolderRules());
 
@@ -256,7 +257,7 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
     [Fact]
     public async Task DiscoverAsync_MissingFolder_Throws()
     {
-        var folder = IndexedFolder.Create(bed.Library.Library.Id, root, Path.Combine(root, "missing"), bed.Clock.Tick());
+        var folder = IndexedFolder.Create(bed.Library.Library.Id, temp.Path, temp.Combine("missing"), bed.Clock.Tick());
 
         await Assert.ThrowsAsync<DirectoryNotFoundException>(() => discovery.DiscoverAsync(bed.Library, folder, cancellationToken: Token));
     }
@@ -269,15 +270,12 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
             Directory.Delete(link);
         }
 
-        if (Directory.Exists(root))
-        {
-            Directory.Delete(root, recursive: true);
-        }
+        temp.Dispose();
     }
 
     private async Task<IndexedFolder> AddFolderAsync(FolderRules rules)
     {
-        var folder = IndexedFolder.Create(bed.Library.Library.Id, root, root, bed.Clock.Tick());
+        var folder = IndexedFolder.Create(bed.Library.Library.Id, temp.Path, temp.Path, bed.Clock.Tick());
         folder.ChangeRules(rules);
         await bed.Library.Folders.AddAsync(folder, Token);
         return folder;
@@ -288,7 +286,7 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
 
     private string Copy(string source, string relativePath)
     {
-        var path = Path.Combine(root, relativePath);
+        var path = temp.Combine(relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.Copy(source, path);
         return path;
@@ -296,7 +294,7 @@ public sealed class FolderDiscoveryTests : IAsyncLifetime
 
     private void Write(string relativePath, string content)
     {
-        var path = Path.Combine(root, relativePath);
+        var path = temp.Combine(relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, content);
     }

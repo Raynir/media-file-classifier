@@ -54,9 +54,25 @@ public sealed partial class FolderDiscovery(
         ArgumentNullException.ThrowIfNull(folder);
 
         var known = await library.Items.GetFileStatesAsync(folder.Id, cancellationToken).ConfigureAwait(false);
-        var run = new Run(this, library, folder, known, progress, registered);
+        var run = new Run(this, library, folder, known, progress, registered, collect: false);
         await run.ScanAsync(cancellationToken).ConfigureAwait(false);
         return run.ToResult();
+    }
+
+    /// <inheritdoc />
+    public async Task<FolderSnapshot> SnapshotAsync(
+        IOpenLibrary library,
+        IndexedFolder folder,
+        IProgress<DiscoveryProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+        ArgumentNullException.ThrowIfNull(folder);
+
+        var known = await library.Items.GetFileStatesAsync(folder.Id, cancellationToken).ConfigureAwait(false);
+        var run = new Run(this, library, folder, known, progress, registered: null, collect: true);
+        await run.ScanAsync(cancellationToken).ConfigureAwait(false);
+        return new FolderSnapshot { Result = run.ToResult(), KnownFiles = run.KnownFiles, NewFiles = run.NewFiles };
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Discovery in {Folder}: can't list {Path}: {Error}")]
@@ -97,7 +113,8 @@ public sealed partial class FolderDiscovery(
         IndexedFolder folder,
         IReadOnlyList<MediaItemFileState> known,
         IProgress<DiscoveryProgress>? progress,
-        Func<IReadOnlyList<MediaItem>, CancellationToken, Task>? registered)
+        Func<IReadOnlyList<MediaItem>, CancellationToken, Task>? registered,
+        bool collect)
     {
         // Paths compare as stored: the scan reports a file's name the same way each time.
         private readonly Dictionary<string, MediaItemFileState> knownFiles = known.ToDictionary(state => state.Path.Value, StringComparer.Ordinal);
@@ -107,6 +124,8 @@ public sealed partial class FolderDiscovery(
         private readonly Stopwatch sincePendingStarted = new();
         private readonly List<string> unreadableFolders = [];
         private readonly List<string> skippedLinks = [];
+        private readonly List<MediaFileStat> knownFound = [];
+        private readonly List<MediaItem> newFound = [];
         private int foldersScanned;
         private int filesFound;
         private int itemsRegistered;
@@ -167,6 +186,11 @@ public sealed partial class FolderDiscovery(
                 skippedLinks.Count);
         }
 
+        // Filled only by a snapshot (collect), which registers nothing.
+        public IReadOnlyList<MediaFileStat> KnownFiles => knownFound;
+
+        public IReadOnlyList<MediaItem> NewFiles => newFound;
+
         public DiscoveryResult ToResult() => new()
         {
             FoldersScanned = foldersScanned,
@@ -192,6 +216,11 @@ public sealed partial class FolderDiscovery(
             if (knownFiles.TryGetValue(file.RelativePath, out var state))
             {
                 filesFound++;
+                if (collect)
+                {
+                    knownFound.Add(file);
+                }
+
                 if (state.SizeBytes == file.Length && state.FileModifiedAt == ToStoredPrecision(file.LastModifiedUtc))
                 {
                     unchanged++;
@@ -297,6 +326,13 @@ public sealed partial class FolderDiscovery(
             }
 
             MediaItem[] batch = [.. pending];
+            if (collect)
+            {
+                newFound.AddRange(batch);
+                pending.Clear();
+                return;
+            }
+
             await library.Items.AddRangeAsync(batch, cancellationToken).ConfigureAwait(false);
             itemsRegistered += batch.Length;
             pending.Clear();

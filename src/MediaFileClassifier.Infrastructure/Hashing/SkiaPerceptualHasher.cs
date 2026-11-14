@@ -38,6 +38,19 @@ public sealed class SkiaPerceptualHasher : IPerceptualHasher
         return luma is null ? null : HashLuma(luma);
     }
 
+    /// <inheritdoc />
+    public ulong ComputeFromPixels(ReadOnlySpan<byte> rgba, int width, int height)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        if (rgba.Length != width * height * 4)
+        {
+            throw new ArgumentException($"The buffer has {rgba.Length} bytes, not {width * height * 4}.", nameof(rgba));
+        }
+
+        return HashLuma(Downsample(rgba, width, height));
+    }
+
     /// <summary>
     /// Hashes a <see cref="SampleSize"/>×<see cref="SampleSize"/> luma grid, row-major.
     /// </summary>

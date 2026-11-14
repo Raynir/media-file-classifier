@@ -1,0 +1,112 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Processing"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Processing.ProcessingPanelView"
+             x:DataType="vm:ProcessingPanelViewModel">
+  <UserControl.Resources>
+    <ItemsPanelTemplate x:Key="JobsPanel">
+      <StackPanel Spacing="{DynamicResource Space.XS}" />
+    </ItemsPanelTemplate>
+    <DataTemplate x:Key="JobTemplate" x:DataType="vm:ProcessingJobViewModel">
+      <Border Classes="Panel" Padding="{DynamicResource Padding.Control}">
+        <StackPanel Spacing="{DynamicResource Space.XS}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+              <Border Classes="StatusBadge Pending" IsVisible="{Binding RetryingText, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                  <PathIcon Data="{StaticResource Icon.Status.Pending}" />
+                  <TextBlock Text="{Binding RetryingText}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="StatusBadge Error" IsVisible="{Binding HasFailures}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                  <PathIcon Data="{StaticResource Icon.Status.Error}" />
+                  <TextBlock Text="{Binding FailedText}" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+            <TextBlock Text="{Binding Description}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Description}" />
+          </DockPanel>
+          <ProgressBar Minimum="0"
+                       Maximum="100"
+                       Value="{Binding Progress}"
+                       IsIndeterminate="{Binding IsIndeterminate}"
+                       IsVisible="{Binding ShowsProgress}" />
+          <TextBlock Classes="Secondary" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Detail}" />
+          <!-- A large job is confirmed here, in its row, like the folders dialog does. -->
+          <DockPanel IsVisible="{Binding IsConfirmingCancel}">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+              <Button Classes="accent" Content="{l:Loc Processing_CancelConfirmYes}" Command="{Binding ConfirmCancelCommand}" />
+              <Button Content="{l:Loc Processing_Keep}" Command="{Binding KeepRunningCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding CancelQuestion}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </DockPanel>
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" IsVisible="{Binding !IsConfirmingCancel}">
+            <ToggleButton Content="{l:Loc Processing_ShowFailures}" IsChecked="{Binding IsShowingFailures, Mode=OneWay}" Command="{Binding ToggleFailuresCommand}" IsVisible="{Binding HasFailures}" />
+            <Button Content="{l:Loc Processing_RetryFailed}" Command="{Binding RetryFailedCommand}" IsVisible="{Binding HasFailures}" />
+            <Button Content="{l:Loc Processing_Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding CanCancel}" />
+          </StackPanel>
+          <!-- The failures of the job, with Retry and Reveal file (E05-S03-T03). -->
+          <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding IsShowingFailures}">
+            <TextBlock Classes="Secondary" Text="{l:Loc Processing_NoFailuresLeft}" IsVisible="{Binding HasNoFailuresListed}" />
+            <ItemsControl ItemsSource="{Binding Failures}" ItemsPanel="{StaticResource JobsPanel}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FailedItemViewModel">
+                  <Border Classes="Panel" Padding="{DynamicResource Padding.Control}">
+                    <DockPanel>
+                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+                        <Button Content="{l:Loc Processing_Retry}" Command="{Binding RetryCommand}" IsVisible="{Binding CanRetry}" />
+                        <Button Content="{l:Loc Processing_RevealFile}" Command="{Binding RevealCommand}" IsVisible="{Binding CanReveal}" />
+                      </StackPanel>
+                      <StackPanel>
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
+                        <TextBlock Classes="Secondary" Text="{Binding Stage}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="Secondary" Text="{Binding Error}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <!-- Provisional processing panel (D095): Figma has no screen for it, so it follows the app's existing styles. -->
+  <Grid Margin="{DynamicResource Padding.Panel}" RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource Space.S}">
+    <TextBlock Grid.Row="0" Classes="Title" Text="{l:Loc Processing_Title}" />
+
+    <Panel Grid.Row="1">
+      <TextBlock Classes="Secondary"
+                 Text="{l:Loc Processing_Empty}"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding IsEmpty}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+      <ScrollViewer IsVisible="{Binding !IsEmpty}">
+        <StackPanel Spacing="{DynamicResource Space.M}">
+          <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding Active.Count}">
+            <TextBlock Classes="Label" Text="{l:Loc Processing_Active}" />
+            <ItemsControl ItemsSource="{Binding Active}" ItemTemplate="{StaticResource JobTemplate}" ItemsPanel="{StaticResource JobsPanel}" />
+          </StackPanel>
+          <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding Queued.Count}">
+            <TextBlock Classes="Label" Text="{l:Loc Processing_Queued}" />
+            <ItemsControl ItemsSource="{Binding Queued}" ItemTemplate="{StaticResource JobTemplate}" ItemsPanel="{StaticResource JobsPanel}" />
+          </StackPanel>
+          <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding Recent.Count}">
+            <TextBlock Classes="Label" Text="{l:Loc Processing_Recent}" />
+            <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource JobTemplate}" ItemsPanel="{StaticResource JobsPanel}" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Panel>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+      <Button Content="{l:Loc Processing_Close}" Command="{Binding CloseCommand}" IsCancel="True" />
+    </StackPanel>
+  </Grid>
+
+</UserControl>

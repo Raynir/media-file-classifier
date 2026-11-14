@@ -3,14 +3,16 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Browsing.Selection;
-using MediatR;
+using MediaFileClassifier.UseCases.Import.RetryFailedItems;
 
 namespace MediaFileClassifier.Ui.Tests.Browser;
 
@@ -155,12 +157,44 @@ public sealed class ItemCommandsTests
             lines.Order());
     }
 
+    [Fact]
+    public async Task RetrySelected_IsInTheMenu_AndRetriesTheSelectedItems()
+    {
+        var bed = new Bed(10, extraFor: bed => new RetryCommands(bed.Sender, bed.Selection, Localizer.Current));
+        await bed.Selection.ApplyAsync(2, SelectionGesture.Replace);
+        await bed.Selection.ApplyAsync(4, SelectionGesture.Toggle);
+
+        var command = bed.Menu.Build().OfType<AppCommand>().Single(entry => entry.Id == RetryCommands.RetrySelected);
+        await command.ExecuteAsync();
+
+        var sent = Assert.Single(bed.Retries);
+        Assert.Null(sent.JobId);
+        Assert.Equal(new HashSet<Id<MediaItem>> { bed.Source.Ids[2], bed.Source.Ids[4] }, sent.ItemIds!.ToHashSet());
+    }
+
+    [Fact]
+    public async Task RetryLibrary_RetriesEveryFailedItem_OnlyWithALibraryOpen()
+    {
+        var session = new FakeBrowserSession(open: false);
+        var bed = new Bed(10, extraFor: bed => new RetryCommands(bed.Sender, bed.Selection, Localizer.Current, session));
+        var command = bed.Registry[RetryCommands.RetryLibrary];
+        Assert.False(command.IsEnabled);
+
+        await session.SetCurrentAsync(new FakeBrowserSession().Current);
+        command.Refresh();
+
+        await command.ExecuteAsync();
+
+        var sent = Assert.Single(bed.Retries);
+        Assert.Equal((null, null), (sent.JobId, sent.ItemIds));
+    }
+
     /// <summary>
     /// A selection over fake results, with the item commands and the context menu around it.
     /// </summary>
     private sealed class Bed
     {
-        public Bed(int count, bool canReveal = true, ICommandContributor? extra = null)
+        public Bed(int count, bool canReveal = true, ICommandContributor? extra = null, Func<Bed, ICommandContributor>? extraFor = null)
         {
             Source = new FakeResultSource(count);
             Selection = new SelectionModel(() => Source);
@@ -168,6 +202,7 @@ public sealed class ItemCommandsTests
             Selection.Reset(count);
             Platform = new RecordingPlatform(canReveal);
             Commands = new ItemCommands(Selection, new LocationSender(this), Platform, Clipboard, Localizer.Current);
+            extra ??= extraFor?.Invoke(this);
             Registry = new CommandRegistry(extra is null ? [Commands] : [Commands, extra], Localizer.Current, new FakeCapabilityGate());
             Menu = new BrowserContextMenu(Registry, Localizer.Current);
         }
@@ -206,25 +241,27 @@ public sealed class ItemCommandsTests
         }
 
         public IReadOnlyList<Id<MediaItem>> Resolve(ItemSelection selection) => [.. Source.Ids.Where(selection.Contains)];
+
+        public List<RetryFailedItemsCommand> Retries { get; } = [];
+
+        public FakeSender Sender => new LocationSender(this);
+
+        public RetryFailedItemsResult Retry(RetryFailedItemsCommand command)
+        {
+            Retries.Add(command);
+            return new RetryFailedItemsResult(command.ItemIds?.Count ?? 0, 0);
+        }
     }
 
-    private sealed class LocationSender(Bed bed) : ISender
+    private sealed class LocationSender(Bed bed) : FakeSender
     {
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) => request switch
+        protected override object? Handle(object request) => request switch
         {
-            GetItemLocationsQuery query => Task.FromResult((TResponse)(object)query.ItemIds.Select(bed.Locate).ToList()),
-            ResolveItemSelectionQuery query => Task.FromResult((TResponse)bed.Resolve(query.Selection)),
+            GetItemLocationsQuery query => query.ItemIds.Select(bed.Locate).ToList(),
+            ResolveItemSelectionQuery query => bed.Resolve(query.Selection),
+            RetryFailedItemsCommand command => bed.Retry(command),
             _ => throw new NotSupportedException(),
         };
-
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest => throw new NotSupportedException();
-
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-
-        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private sealed class RecordingPlatform(bool canReveal) : IPlatformServices

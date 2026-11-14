@@ -21,6 +21,19 @@ internal sealed class LibraryConnectionFactory(string databasePath)
     /// </summary>
     public const int BusyTimeoutMilliseconds = 5000;
 
+    /// <summary>
+    /// The name of the SQL function every connection has that upper-cases text in every alphabet
+    /// (<see cref="string.ToUpperInvariant"/>), e.g. to compare paths ignoring case.
+    /// </summary>
+    public const string FoldCase = "fold_case";
+
+    /// <summary>
+    /// The name of the SQL function every connection has that makes the natural name sort key of a path
+    /// (<see cref="Search.NaturalSortKey"/>). The <c>search_sort</c> triggers call it, so a connection without it
+    /// can't add items or change their paths.
+    /// </summary>
+    public const string NaturalKey = "natural_key";
+
     private const string Pragmas =
         "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;";
 
@@ -53,6 +66,10 @@ internal sealed class LibraryConnectionFactory(string databasePath)
             await using var command = connection.CreateCommand();
             command.CommandText = Pragmas;
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+            // SQLite's upper() and LIKE ignore case for ASCII only; paths compare ignoring case in every alphabet with this.
+            connection.CreateFunction(FoldCase, (string? text) => text?.ToUpperInvariant(), isDeterministic: true);
+            connection.CreateFunction(NaturalKey, (string? path) => Search.NaturalSortKey.Create(path), isDeterministic: true);
             return connection;
         }
         catch

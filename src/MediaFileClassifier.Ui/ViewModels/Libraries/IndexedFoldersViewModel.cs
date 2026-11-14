@@ -4,7 +4,10 @@ using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Ui.Analysis;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Rescan;
+using MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
 using MediaFileClassifier.UseCases.Libraries;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
 using MediaFileClassifier.UseCases.Libraries.ChangeFolderRules;
@@ -26,6 +29,8 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     private readonly IPlatformServices platform;
     private readonly IMediaFileSource files;
     private readonly Localizer localizer;
+    private readonly RescanRunner? rescan;
+    private readonly AnalysisRunner? analysis;
     private Func<Task>? confirmed;
     private bool refreshing;
 
@@ -36,8 +41,12 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// <param name="platform">Folder pickers.</param>
     /// <param name="files">Finds where a picked subfolder is.</param>
     /// <param name="localizer">UI strings.</param>
-    public IndexedFoldersViewModel(ISender sender, IPlatformServices platform, IMediaFileSource files, Localizer localizer)
+    /// <param name="rescan">Starts the rescan of the selected folder, or <c>null</c> where there's none.</param>
+    /// <param name="analysis">Starts the analysis of the selected folder, or <c>null</c> where there's none.</param>
+    public IndexedFoldersViewModel(ISender sender, IPlatformServices platform, IMediaFileSource files, Localizer localizer, RescanRunner? rescan = null, AnalysisRunner? analysis = null)
     {
+        this.rescan = rescan;
+        this.analysis = analysis;
         this.sender = sender;
         this.platform = platform;
         this.files = files;
@@ -64,7 +73,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection), nameof(RulesTitle))]
-    [NotifyCanExecuteChangedFor(nameof(RemoveCommand), nameof(ExcludeSubfolderCommand), nameof(ApplyRulesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveCommand), nameof(RescanCommand), nameof(AnalyzeCommand), nameof(ExcludeSubfolderCommand), nameof(ApplyRulesCommand))]
     public partial IndexedFolderViewModel? SelectedFolder { get; set; }
 
     /// <summary>
@@ -256,6 +265,36 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
 
             await RefreshAsync();
         });
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task RescanAsync()
+    {
+        if (rescan is null || SelectedFolder is not { } row)
+        {
+            return;
+        }
+
+        var (outcome, message) = await rescan.StartAsync(row.Folder.Id);
+        Message = message ?? localizer.Format("Rescan_Started", row.Path);
+        if (outcome == UseCases.Rescan.StartRescan.StartRescanOutcome.Started)
+        {
+            await RefreshAsync();
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task AnalyzeAsync()
+    {
+        if (analysis is null || SelectedFolder is not { } row)
+        {
+            return;
+        }
+
+        if (await analysis.StartAsync(AnalysisScope.Folder(row.Folder.Id)) is { } result)
+        {
+            Message = localizer.Format("Analyze_Queued", IndexedFolderViewModel.ItemCountText(localizer, result.ItemCount));
+        }
     }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]

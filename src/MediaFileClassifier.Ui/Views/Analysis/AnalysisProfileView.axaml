@@ -1,0 +1,122 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Analysis"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Analysis.AnalysisProfileView"
+             x:DataType="vm:AnalysisProfileViewModel">
+  <!--
+    Analysis profile (E17-S02-T01), in the AI & Models settings. Provisional layout: E17-S02-T00 has no mockups yet.
+    One block per analyzer. Tab order: for each analyzer, the switch, provider, model, then its options.
+    A note under an analyzer says why it can't run (no provider, provider down, model missing).
+  -->
+  <StackPanel Spacing="{DynamicResource Space.S}">
+    <TextBlock Classes="Secondary"
+               Margin="{DynamicResource Padding.Compact}"
+               Text="{l:Loc Profile_Help}"
+               TextWrapping="Wrap" />
+
+    <TextBlock x:Name="NoLibraryText"
+               Classes="Secondary"
+               Margin="{DynamicResource Padding.Compact}"
+               Text="{l:Loc Profile_NoLibrary}"
+               IsVisible="{Binding HasNoLibrary}"
+               TextWrapping="Wrap" />
+
+    <TextBlock Foreground="{DynamicResource Brush.Status.Error.Foreground}"
+               Margin="{DynamicResource Padding.Compact}"
+               Text="{Binding Error}"
+               IsVisible="{Binding HasError}"
+               AutomationProperties.LiveSetting="Assertive"
+               TextWrapping="Wrap" />
+
+    <ItemsControl ItemsSource="{Binding Analyzers}" IsVisible="{Binding HasLibrary}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:AnalyzerCardViewModel">
+          <StackPanel Margin="{DynamicResource Padding.Compact}" Spacing="{DynamicResource Space.XS}">
+            <DockPanel>
+              <ToggleSwitch DockPanel.Dock="Right"
+                            IsChecked="{Binding Enabled}"
+                            OnContent="{x:Null}"
+                            OffContent="{x:Null}"
+                            AutomationProperties.Name="{Binding Title}" />
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Classes="Subtitle" Text="{Binding Title}" />
+                <TextBlock Classes="Secondary" Text="{Binding Description}" TextWrapping="Wrap" />
+              </StackPanel>
+            </DockPanel>
+
+            <DockPanel>
+              <TextBlock Text="{l:Loc Profile_Provider}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+              <ComboBox ItemsSource="{Binding ProviderOptions}"
+                        SelectedItem="{Binding SelectedProvider}"
+                        MinWidth="{DynamicResource Size.SettingControl}"
+                        IsEnabled="{Binding Enabled}"
+                        AutomationProperties.Name="{l:Loc Profile_Provider}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ProfileOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </DockPanel>
+
+            <DockPanel>
+              <TextBlock Text="{l:Loc Profile_Model}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+              <ComboBox ItemsSource="{Binding ModelOptions}"
+                        SelectedItem="{Binding SelectedModel}"
+                        MinWidth="{DynamicResource Size.SettingControl}"
+                        IsEnabled="{Binding Enabled}"
+                        AutomationProperties.Name="{l:Loc Profile_Model}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ProfileOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </DockPanel>
+
+            <!-- Describer options. -->
+            <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding HasDescriberOptions}">
+              <DockPanel>
+                <TextBlock Text="{l:Loc Profile_MaxTags}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+                <NumericUpDown Value="{Binding MaxTags}"
+                               Minimum="0"
+                               Maximum="100"
+                               Increment="1"
+                               FormatString="0"
+                               MinWidth="{DynamicResource Size.SettingControl}"
+                               IsEnabled="{Binding Enabled}"
+                               AutomationProperties.Name="{l:Loc Profile_MaxTags}" />
+              </DockPanel>
+              <TextBlock Classes="Tertiary" Text="{l:Loc Profile_MaxTagsHelp}" TextWrapping="Wrap" />
+              <DockPanel>
+                <TextBlock Text="{l:Loc Profile_Language}" Width="{DynamicResource Size.SettingControl}" VerticalAlignment="Center" />
+                <ComboBox ItemsSource="{Binding Languages}"
+                          SelectedItem="{Binding SelectedLanguage}"
+                          MinWidth="{DynamicResource Size.SettingControl}"
+                          IsEnabled="{Binding Enabled}"
+                          AutomationProperties.Name="{l:Loc Profile_Language}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ProfileOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </DockPanel>
+            </StackPanel>
+
+            <TextBlock Foreground="{DynamicResource Brush.Status.Pending.Foreground}"
+                       Text="{Binding Note}"
+                       IsVisible="{Binding IsWarning}"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite" />
+            <TextBlock Classes="Tertiary"
+                       Text="{Binding Note}"
+                       IsVisible="{Binding IsInfo}"
+                       TextWrapping="Wrap" />
+          </StackPanel>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>

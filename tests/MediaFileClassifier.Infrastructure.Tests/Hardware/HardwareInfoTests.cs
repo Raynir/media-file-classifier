@@ -35,6 +35,31 @@ public sealed class HardwareInfoTests
         Assert.Equal(ExecutionProvider.DirectMl, HardwareInfo.ChooseExecutionProvider(hardware));
     }
 
+    [Fact]
+    public void ChooseGpu_IntegratedAndDiscrete_PicksMostDedicatedMemory()
+    {
+        var hardware = Profile(
+            8,
+            new GpuInfo("Intel(R) Iris Xe", "Intel", 2 * Gigabyte, AdapterIndex: 0),
+            new GpuInfo("NVIDIA GeForce RTX 4060 Laptop", "NVIDIA", 8 * Gigabyte, AdapterIndex: 1));
+
+        Assert.Equal(1, HardwareInfo.ChooseGpu(hardware)?.AdapterIndex);
+    }
+
+    [Fact]
+    public void ChooseGpu_Tie_PicksTheFirstListed()
+    {
+        var hardware = Profile(8, new GpuInfo("A", "AMD", 8 * Gigabyte, 0), new GpuInfo("B", "AMD", 8 * Gigabyte, 1));
+
+        Assert.Equal(0, HardwareInfo.ChooseGpu(hardware)?.AdapterIndex);
+    }
+
+    [Fact]
+    public void ChooseGpu_NoAdapterWithEnoughMemory_IsNull()
+    {
+        Assert.Null(HardwareInfo.ChooseGpu(Profile(8, new GpuInfo("Intel(R) UHD Graphics", "Intel", 128 * 1024 * 1024))));
+    }
+
     [Theory]
     [InlineData(1, 1)]
     [InlineData(2, 1)]

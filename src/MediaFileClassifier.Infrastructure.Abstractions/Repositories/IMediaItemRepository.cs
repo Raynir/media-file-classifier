@@ -188,6 +188,24 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(MediaItemFilter filter, int offset, int limit, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the IDs of every item a filter shows, newest first, in one read: a snapshot of the filter at that moment,
+    /// so items that change while a caller works through the list can't shift it (MFC-994).
+    /// </summary>
+    /// <param name="filter">Which items to show.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The IDs.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> GetFilteredIdsAsync(MediaItemFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the tile summaries of the given items, e.g. the hits of a search page (E09-S01). Items that no longer
+    /// exist are left out.
+    /// </summary>
+    /// <param name="ids">The item IDs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The summaries, in no particular order.</returns>
+    Task<IReadOnlyList<MediaItemSummary>> GetSummariesByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Counts the items a filter shows that were added after an item: its position in
     /// <see cref="GetSummariesAsync(MediaItemFilter, int, int, CancellationToken)"/>.
     /// </summary>
@@ -276,4 +294,13 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The deleted items, so the caller can delete their thumbnails; empty when the folder has none left.</returns>
     Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes up to <paramref name="limit"/> items whose status is Missing, as <see cref="DeleteAsync"/> does, in one
+    /// short write. The status is checked in the same write, so an item that came back meanwhile stays (E02-S04-T04).
+    /// </summary>
+    /// <param name="limit">The most items to delete.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The deleted items, so the caller can delete their thumbnails; empty when none are left.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> DeleteMissingAsync(int limit, CancellationToken cancellationToken = default);
 }

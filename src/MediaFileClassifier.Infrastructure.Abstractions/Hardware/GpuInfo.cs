@@ -6,4 +6,7 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 /// <param name="Name">Adapter name, e.g. "NVIDIA GeForce RTX 4070".</param>
 /// <param name="Vendor">Vendor name, e.g. "NVIDIA", or the PCI vendor ID when unknown.</param>
 /// <param name="DedicatedMemoryBytes">Dedicated video memory, in bytes. Integrated adapters report little or none.</param>
-public sealed record GpuInfo(string Name, string Vendor, long DedicatedMemoryBytes);
+/// <param name="AdapterIndex">
+/// The adapter's position in the platform's enumeration (DXGI on Windows), which DirectML takes as its device ID.
+/// </param>
+public sealed record GpuInfo(string Name, string Vendor, long DedicatedMemoryBytes, int AdapterIndex = 0);

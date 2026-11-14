@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Libraries;
+using MediaFileClassifier.Testing.Files;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Libraries;
 
@@ -8,12 +9,12 @@ namespace MediaFileClassifier.Infrastructure.Tests.Libraries;
 /// </summary>
 public sealed class LibraryLocationsTests : IDisposable
 {
-    private readonly string root = Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"));
+    private readonly TemporaryFolder temp = new();
     private readonly LibraryLocations locations = new();
 
     public LibraryLocationsTests()
     {
-        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(temp.Path);
     }
 
     [Fact]
@@ -27,32 +28,32 @@ public sealed class LibraryLocationsTests : IDisposable
     [Fact]
     public void Inspect_MissingFolder_IsJudgedByItsParent()
     {
-        var info = locations.Inspect(Path.Combine(root, "new", "deeper"), "Family");
+        var info = locations.Inspect(temp.Combine("new", "deeper"), "Family");
 
         Assert.True(info.IsWritable);
         Assert.True(info.FreeBytes > 0);
         Assert.False(info.IsInsideLibrary);
         Assert.False(info.LibraryExists);
-        Assert.Empty(Directory.EnumerateFileSystemEntries(root));
+        Assert.Empty(Directory.EnumerateFileSystemEntries(temp.Path));
     }
 
     [Fact]
     public void Inspect_FindsAnExistingLibraryAndFoldersInsideLibraries()
     {
-        var library = Directory.CreateDirectory(Path.Combine(root, "Family.mfc"));
+        var library = Directory.CreateDirectory(temp.Combine("Family.mfc"));
         File.WriteAllText(Path.Combine(library.FullName, LibraryLayout.DatabaseFileName), string.Empty);
 
-        Assert.True(locations.Inspect(root, "Family").LibraryExists);
-        Assert.False(locations.Inspect(root, "Trips").LibraryExists);
+        Assert.True(locations.Inspect(temp.Path, "Family").LibraryExists);
+        Assert.False(locations.Inspect(temp.Path, "Trips").LibraryExists);
         Assert.True(locations.Inspect(Path.Combine(library.FullName, "thumbnails"), "Trips").IsInsideLibrary);
     }
 
     [Fact]
     public void Inspect_EmptyLibraryFolder_DoesNotCountAsExisting()
     {
-        Directory.CreateDirectory(Path.Combine(root, "Family.mfc"));
+        Directory.CreateDirectory(temp.Combine("Family.mfc"));
 
-        Assert.False(locations.Inspect(root, "Family").LibraryExists);
+        Assert.False(locations.Inspect(temp.Path, "Family").LibraryExists);
     }
 
     [Fact]
@@ -64,7 +65,7 @@ public sealed class LibraryLocationsTests : IDisposable
         }
 
         // A read-only attribute on a folder doesn't stop file creation on Windows, so deny it in the ACL instead.
-        var folder = Directory.CreateDirectory(Path.Combine(root, "locked"));
+        var folder = Directory.CreateDirectory(temp.Combine("locked"));
         var security = System.IO.FileSystemAclExtensions.GetAccessControl(folder);
         var rule = new System.Security.AccessControl.FileSystemAccessRule(
             System.Security.Principal.WindowsIdentity.GetCurrent().User!,
@@ -100,7 +101,7 @@ public sealed class LibraryLocationsTests : IDisposable
         Assert.Equal(2, changes);
     }
 
-    public void Dispose() => Directory.Delete(root, recursive: true);
+    public void Dispose() => temp.Dispose();
 
     private sealed class ClosableLibrary : IOpenLibrary
     {
@@ -119,6 +120,14 @@ public sealed class LibraryLocationsTests : IDisposable
         public Abstractions.Repositories.IModelRegistrationRepository Models => throw new NotSupportedException();
 
         public Abstractions.Repositories.IJobRepository Jobs => throw new NotSupportedException();
+
+        public Abstractions.Repositories.IKeyframeRepository Keyframes => throw new NotSupportedException();
+
+        public Abstractions.Repositories.IAnalyzerStateRepository AnalyzerStates => throw new NotSupportedException();
+
+        public Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
+
+        public Abstractions.Search.ISearchStore Search => throw new NotSupportedException();
 
         public ILibraryMaintenance Maintenance => throw new NotSupportedException();
 

@@ -74,7 +74,7 @@ public sealed partial class AnimatedImageThumbnailer(ImageThumbnailer stills, IL
     /// Decodes a frame onto the canvas, which holds the previous frame. A frame that builds on an earlier one is drawn
     /// over the canvas; if the codec can't use the canvas for that, it decodes the earlier frames itself.
     /// </summary>
-    private static void DecodeFrame(SKCodec codec, SKBitmap canvas, int index, int requiredFrame)
+    internal static void DecodeFrame(SKCodec codec, SKBitmap canvas, int index, int requiredFrame)
     {
         if (requiredFrame < 0)
         {

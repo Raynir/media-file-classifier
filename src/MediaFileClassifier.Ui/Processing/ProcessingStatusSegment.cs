@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.StatusBar;
@@ -6,11 +7,12 @@ namespace MediaFileClassifier.Ui.Processing;
 
 /// <summary>
 /// The processing indicator in the status bar (E05-S02-T03): what the jobs are doing and how long they'll take, shown
-/// whenever a job is active. Clicking it opens the processing panel once that exists (E05-S03).
+/// whenever a job is active. Clicking it opens the processing panel (E05-S03).
 /// </summary>
 /// <param name="feed">The throttled job progress.</param>
 /// <param name="localizer">UI strings.</param>
-public sealed class ProcessingStatusSegment(ProgressFeed feed, Localizer localizer) : IStatusBarContributor
+/// <param name="panel">Opens the processing panel, or <see langword="null"/> where there's no window for it.</param>
+public sealed class ProcessingStatusSegment(ProgressFeed feed, Localizer localizer, ProcessingPanelPresenter? panel = null) : IStatusBarContributor
 {
     /// <summary>
     /// The segment ID.
@@ -25,7 +27,7 @@ public sealed class ProcessingStatusSegment(ProgressFeed feed, Localizer localiz
     {
         ArgumentNullException.ThrowIfNull(statusBar);
 
-        segment = statusBar.Add(new StatusBarSegment(SegmentId, StatusBarSide.Right, 0) { IconKey = "Icon.Status.Pending" });
+        segment = statusBar.Add(new StatusBarSegment(SegmentId, StatusBarSide.Right, 0) { IconKey = "Icon.Status.Pending", Command = panel is null ? null : new RelayCommand(panel.Show) });
         feed.Updated += (_, summary) => Show(summary);
         localizer.Changed += (_, _) => Show(feed.Current);
         Show(feed.Current);

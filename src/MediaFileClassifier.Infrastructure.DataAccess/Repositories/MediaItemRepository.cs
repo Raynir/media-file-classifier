@@ -24,8 +24,6 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     /// </summary>
     public const int BatchSize = 100;
 
-    private const string LikeEscape = "\\";
-
     /// <inheritdoc />
     public event EventHandler? Changed;
 
@@ -192,38 +190,73 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
 
         return connections.ReadAsync<IReadOnlyList<MediaItemSummary>>(
+            (db, token) => ToSummariesAsync(db, Filter(db, filter).OrderByDescending(item => item.Id).Skip(offset).Take(limit), token),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<Id<MediaItem>>> GetFilteredIdsAsync(MediaItemFilter filter, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        return connections.ReadAsync<IReadOnlyList<Id<MediaItem>>>(
+            async (db, token) => await Filter(db, filter).OrderByDescending(item => item.Id).Select(item => item.Id).ToListAsync(token).ConfigureAwait(false),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItemSummary>> GetSummariesByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyList<MediaItemSummary>>([]);
+        }
+
+        return connections.ReadAsync<IReadOnlyList<MediaItemSummary>>(
             async (db, token) =>
             {
-                var rows = await (
-                    from item in Filter(db, filter).OrderByDescending(item => item.Id).Skip(offset).Take(limit)
-                    join metadata in db.TechnicalMetadata on item.Id equals metadata.ItemId into found
-                    from metadata in found.DefaultIfEmpty()
-                    orderby item.Id descending
-                    select new
-                    {
-                        item.Id,
-                        item.Path,
-                        item.MediaType,
-                        item.SizeBytes,
-                        item.FileModifiedAt,
-                        item.Status,
-                        item.StatusReason,
-                        Duration = metadata == null ? null : metadata.Duration,
-                        Warnings = metadata == null ? null : metadata.Warnings,
-                    }).ToListAsync(token).ConfigureAwait(false);
-                return [.. rows.Select(row => new MediaItemSummary(
-                    row.Id,
-                    row.Path.FileName,
-                    row.Path.Extension,
-                    row.MediaType,
-                    row.SizeBytes,
-                    row.FileModifiedAt,
-                    row.Status,
-                    row.StatusReason,
-                    row.Duration,
-                    row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false))];
+                var summaries = new List<MediaItemSummary>(ids.Count);
+                foreach (var batch in ids.Chunk(5000))
+                {
+                    summaries.AddRange(await ToSummariesAsync(db, db.MediaItems.Where(item => batch.Contains(item.Id)), token).ConfigureAwait(false));
+                }
+
+                return summaries;
             },
             cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<MediaItemSummary>> ToSummariesAsync(LibraryDbContext db, IQueryable<MediaItem> items, CancellationToken token)
+    {
+        var rows = await (
+            from item in items
+            join metadata in db.TechnicalMetadata on item.Id equals metadata.ItemId into found
+            from metadata in found.DefaultIfEmpty()
+            orderby item.Id descending
+            select new
+            {
+                item.Id,
+                item.Path,
+                item.MediaType,
+                item.SizeBytes,
+                item.FileModifiedAt,
+                item.Status,
+                item.StatusReason,
+                Duration = metadata == null ? null : metadata.Duration,
+                Warnings = metadata == null ? null : metadata.Warnings,
+            }).ToListAsync(token).ConfigureAwait(false);
+        return [.. rows.Select(row => new MediaItemSummary(
+            row.Id,
+            row.Path.FileName,
+            row.Path.Extension,
+            row.MediaType,
+            row.SizeBytes,
+            row.FileModifiedAt,
+            row.Status,
+            row.StatusReason,
+            row.Duration,
+            row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false))];
     }
 
     /// <inheritdoc />
@@ -494,6 +527,32 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
         return deleted;
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> DeleteMissingAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+
+        var deleted = await writer.ExecuteAsync<IReadOnlyList<Id<MediaItem>>>(
+            async (db, token) =>
+            {
+                var ids = await db.MediaItems.Where(item => item.Status == MediaItemStatus.Missing).OrderBy(item => item.Id).Select(item => item.Id)
+                    .Take(limit).ToListAsync(token).ConfigureAwait(false);
+                if (ids.Count > 0)
+                {
+                    await db.MediaItems.Where(item => ids.Contains(item.Id)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                }
+
+                return ids;
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (deleted.Count > 0)
+        {
+            RaiseChanged();
+        }
+
+        return deleted;
+    }
+
     // The items a filter shows; a null filter shows every item, the Excluded ones too.
     private static IQueryable<MediaItem> Filter(LibraryDbContext db, MediaItemFilter? filter, IQueryable<MediaItem>? items = null)
     {
@@ -509,10 +568,9 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
             items = items.Where(item => item.FolderId == folderId);
         }
 
-        if (filter.Subfolder?.Replace('\\', '/').Trim('/') is { Length: > 0 } subfolder)
+        if (SqlLike.SubfolderPattern(filter.Subfolder) is { } pattern)
         {
-            var pattern = EscapeLike(subfolder) + "/%";
-            items = items.Where(item => EF.Functions.Like((string)(object)item.Path, pattern, LikeEscape));
+            items = items.Where(item => EF.Functions.Like(LibraryDbContext.FoldCase((string)(object)item.Path), pattern, SqlLike.EscapeCharacter));
         }
 
         if (filter.ImportedSince is { } since)
@@ -520,11 +578,11 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
             items = items.Where(item => item.ImportedAt >= since);
         }
 
+        if (filter.Status is { } status)
+        {
+            items = items.Where(item => item.Status == status);
+        }
+
         return items;
     }
-
-    private static string EscapeLike(string value) =>
-        value.Replace(LikeEscape, LikeEscape + LikeEscape, StringComparison.Ordinal)
-            .Replace("%", LikeEscape + "%", StringComparison.Ordinal)
-            .Replace("_", LikeEscape + "_", StringComparison.Ordinal);
 }

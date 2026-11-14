@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Models"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Models.ModelDownloadConsentWindow"
+        x:DataType="vm:ModelDownloadConsentViewModel"
+        Title="{l:Loc ModelConsent_Title}"
+        Width="480"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- The download consent (D032): size, license and source before anything is downloaded. Plain Fluent (D095). -->
+  <DockPanel Margin="{DynamicResource Padding.Panel}">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}" Margin="{DynamicResource Padding.Group}">
+      <Button x:Name="ConfirmButton" Classes="accent" Content="{Binding DownloadLabel}" Command="{Binding DownloadCommand}" IsDefault="True" />
+      <Button x:Name="CancelButton" Content="{l:Loc ModelConsent_Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+    </StackPanel>
+    <StackPanel Spacing="{DynamicResource Space.S}">
+      <TextBlock Classes="Secondary" Text="{l:Loc ModelConsent_Intro}" TextWrapping="Wrap" />
+      <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource Space.S}" ColumnSpacing="{DynamicResource Space.L}">
+        <TextBlock Grid.Row="0" Classes="Secondary" Text="{l:Loc ModelConsent_Model}" />
+        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ModelName" Text="{Binding ModelName}" TextWrapping="Wrap" />
+        <TextBlock Grid.Row="1" Classes="Secondary" Text="{l:Loc ModelConsent_Size}" />
+        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="Size" Text="{Binding Size}" />
+        <TextBlock Grid.Row="2" Classes="Secondary" Text="{l:Loc ModelConsent_License}" />
+        <HyperlinkButton Grid.Row="2" Grid.Column="1" x:Name="License" Content="{Binding License}" NavigateUri="{Binding LicenseUrl}" />
+        <TextBlock Grid.Row="3" Classes="Secondary" Text="{l:Loc ModelConsent_Source}" />
+        <HyperlinkButton Grid.Row="3" Grid.Column="1" x:Name="Source" Content="{Binding Source.Host}" NavigateUri="{Binding Source}" />
+      </Grid>
+    </StackPanel>
+  </DockPanel>
+</Window>

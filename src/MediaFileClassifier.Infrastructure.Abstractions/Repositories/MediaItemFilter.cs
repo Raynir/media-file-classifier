@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Domain.Media;
 
 namespace MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 
@@ -29,4 +30,10 @@ public sealed record MediaItemFilter
     /// Gets the earliest import time to show, e.g. for Recently imported (D053), or <c>null</c>.
     /// </summary>
     public DateTimeOffset? ImportedSince { get; init; }
+
+    /// <summary>
+    /// Gets the status to show, e.g. <see cref="MediaItemStatus.Missing"/> for the missing items filter (E02-S04-T04),
+    /// or <c>null</c> for every status but Excluded.
+    /// </summary>
+    public MediaItemStatus? Status { get; init; }
 }

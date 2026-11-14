@@ -92,7 +92,21 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IModelRegistrationRepository Models => throw new NotSupportedException();
 
-    public IJobRepository Jobs { get; } = new FakeJobRepository();
+    public FakeJobRepository JobList { get; } = new();
+
+    public IJobRepository Jobs => JobList;
+
+    public IKeyframeRepository Keyframes => throw new NotSupportedException();
+
+    public IAnalyzerStateRepository? AnalyzerStateList { get; set; }
+
+    public IAnalyzerStateRepository AnalyzerStates => AnalyzerStateList ?? throw new NotSupportedException();
+
+    public IEmbeddingRepository? EmbeddingList { get; set; }
+
+    public IEmbeddingRepository Embeddings => EmbeddingList ?? throw new NotSupportedException();
+
+    public MediaFileClassifier.Infrastructure.Abstractions.Search.ISearchStore Search => throw new NotSupportedException();
 
     public ILibraryMaintenance Maintenance => throw new NotSupportedException();
 
@@ -177,19 +191,66 @@ internal sealed class FakeSettingsService : ISettingsService
 }
 
 /// <summary>
-/// A job repository with no jobs.
+/// A job repository whose jobs and counts the test sets.
 /// </summary>
 internal sealed class FakeJobRepository : IJobRepository
 {
+    public Task<bool> SetResultAsync(Id<ProcessingJob> jobId, string result, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
     public Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<ProcessingJob?> GetJobAsync(Id<ProcessingJob> id, CancellationToken cancellationToken = default) => Task.FromResult<ProcessingJob?>(null);
+    /// <summary>
+    /// Gets or sets the state every job is in, for <see cref="GetJobAsync"/>; <see langword="null"/> for no jobs.
+    /// </summary>
+    public ProcessingJobState? JobState { get; set; }
 
-    public Task<IReadOnlyList<ProcessingJob>> GetUnfinishedJobsAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ProcessingJob>>([]);
+    public Task<ProcessingJob?> GetJobAsync(Id<ProcessingJob> id, CancellationToken cancellationToken = default) =>
+        Task.FromResult(JobState is { } jobState
+            ? new ProcessingJob { Id = id, Type = "analysis", Description = "Analyze 1 item", State = jobState, CreatedAt = DateTimeOffset.UnixEpoch }
+            : null);
 
-    public Task<IReadOnlyList<WorkItem>> GetQueuedAsync(ResourcePool pool, int limit, IReadOnlyCollection<Id<WorkItem>> excluding, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<IReadOnlyList<ProcessingJob>> GetUnfinishedJobsAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ProcessingJob>>([.. Unfinished]);
+
+    /// <summary>
+    /// Gets the jobs <see cref="GetUnfinishedJobsAsync"/> returns.
+    /// </summary>
+    public List<ProcessingJob> Unfinished { get; } = [];
+
+    /// <summary>
+    /// Gets the jobs <see cref="GetRecentJobsAsync"/> returns, newest first.
+    /// </summary>
+    public List<ProcessingJob> Recent { get; } = [];
+
+    /// <summary>
+    /// Gets the work item counts <see cref="CountWorkAsync"/> returns for the jobs asked for.
+    /// </summary>
+    public List<WorkItemCount> Counts { get; } = [];
+
+    /// <summary>
+    /// Gets the failures <see cref="CountFailuresAsync"/> returns.
+    /// </summary>
+    public Dictionary<Id<ProcessingJob>, int> Failures { get; } = [];
+
+    public Task<IReadOnlyList<ProcessingJob>> GetRecentJobsAsync(int limit, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<ProcessingJob>>([.. Recent.Take(limit)]);
+
+    public Task<IReadOnlyList<WorkItemCount>> CountWorkAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<WorkItemCount>>([.. Counts.Where(count => jobIds.Contains(count.JobId))]);
+
+    public Task<IReadOnlyDictionary<Id<ProcessingJob>, int>> CountFailuresAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyDictionary<Id<ProcessingJob>, int>>(Failures);
+
+    /// <summary>
+    /// Gets the work items <see cref="GetFailedWorkItemsAsync"/> returns.
+    /// </summary>
+    public List<WorkItem> FailedWork { get; } = [];
+
+    public Task<IReadOnlyList<WorkItem>> GetFailedWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<WorkItem>>([.. FailedWork.Where(item => item.JobId == jobId)]);
+
+    public Task<IReadOnlyList<WorkItem>> GetQueuedAsync(ResourcePool pool, int limit, IReadOnlyCollection<Id<WorkItem>> excluding, IReadOnlyCollection<string>? excludingStages = null, DateTimeOffset? dueBy = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<DateTimeOffset?> GetNextRetryAtAsync(DateTimeOffset after, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<int> ReleaseParkedAsync(DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<WorkItem>> GetQueuedForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
@@ -206,6 +267,12 @@ internal sealed class FakeJobRepository : IJobRepository
     public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<int> PruneFinishedJobsAsync(int keepLast, DateTimeOffset olderThan, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<int> MarkWaitingForModelAsync(IReadOnlyCollection<string> stages, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<int> ResumeWaitingForModelAsync(DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }
 
 /// <summary>

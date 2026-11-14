@@ -46,6 +46,11 @@ public sealed record ProcessingJob
 
     public string? LastError { get; init; }
 
+    /// <summary>
+    /// Gets what the job tells the UI when it finishes, as JSON, e.g. the counts of a rescan (E02-S04-T06), or <c>null</c>.
+    /// </summary>
+    public string? Result { get; init; }
+
     public required DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset? StartedAt { get; init; }

@@ -27,6 +27,9 @@ public sealed class HardwareInfo(IHardwareDetector detector) : IHardwareInfo
     public ExecutionProvider PreferredExecutionProvider => ChooseExecutionProvider(Profile);
 
     /// <inheritdoc />
+    public GpuInfo? PreferredGpu => ChooseGpu(Profile);
+
+    /// <inheritdoc />
     public int DefaultParallelism => ChooseParallelism(Profile);
 
     /// <summary>
@@ -35,7 +38,29 @@ public sealed class HardwareInfo(IHardwareDetector detector) : IHardwareInfo
     /// <param name="hardware">Detected hardware.</param>
     /// <returns>The execution provider to try first.</returns>
     public static ExecutionProvider ChooseExecutionProvider(HardwareProfile hardware)
-        => hardware.Gpus.Any(gpu => gpu.DedicatedMemoryBytes >= MinimumGpuMemoryBytes) ? ExecutionProvider.DirectMl : ExecutionProvider.Cpu;
+        => ChooseGpu(hardware) is null ? ExecutionProvider.Cpu : ExecutionProvider.DirectMl;
+
+    /// <summary>
+    /// Chooses the adapter with the most dedicated memory, if it has at least <see cref="MinimumGpuMemoryBytes"/>. On a
+    /// tie, the first one listed wins.
+    /// </summary>
+    /// <param name="hardware">Detected hardware.</param>
+    /// <returns>The adapter, or <c>null</c> when none qualifies.</returns>
+    public static GpuInfo? ChooseGpu(HardwareProfile hardware)
+    {
+        ArgumentNullException.ThrowIfNull(hardware);
+
+        GpuInfo? best = null;
+        foreach (var gpu in hardware.Gpus)
+        {
+            if (gpu.DedicatedMemoryBytes >= MinimumGpuMemoryBytes && gpu.DedicatedMemoryBytes > (best?.DedicatedMemoryBytes ?? 0))
+            {
+                best = gpu;
+            }
+        }
+
+        return best;
+    }
 
     /// <summary>
     /// Uses half the logical processors, from 1 to <see cref="MaximumParallelism"/>, so the machine stays responsive.

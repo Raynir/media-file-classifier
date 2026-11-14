@@ -268,10 +268,14 @@ internal sealed class SearchSql : IFilterSql
             _ => [("""s."imported_at" """, false)],
         };
 
-        NeedsSortKeys |= sort != SortMode.Relevance || relevance is null;
+        var bySortKey = sort != SortMode.Relevance || relevance is null;
+        NeedsSortKeys |= bySortKey;
 
+        // The same document ID through s when a sort key orders: an ORDER BY of one table's columns lets SQLite read a
+        // page off the sort key's index (which holds the ID) instead of sorting every row.
+        var documentId = bySortKey ? """s."doc_id" """ : """d."doc_id" """;
         var builder = new StringBuilder();
-        foreach (var (expression, ascending) in keys.Append(("""d."doc_id" """, keys[^1].Ascending)))
+        foreach (var (expression, ascending) in keys.Append((documentId, keys[^1].Ascending)))
         {
             if (builder.Length > 0)
             {

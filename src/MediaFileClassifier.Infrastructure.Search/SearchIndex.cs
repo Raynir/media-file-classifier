@@ -191,7 +191,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
         var keywordTask = terms.Count == 0
             ? Task.FromResult(new KeywordMatches([], 0))
             : store.FindKeywordMatchesAsync(
-                new KeywordSearch(terms, query.Filter, query.Ranking.FieldWeights, SortMode.Relevance, false, 0, limit),
+                new KeywordSearch(terms, query.Filter, query.Ranking.FieldWeights, SortMode.Relevance, false, 0, limit) { NeedsTotal = false },
                 cancellationToken);
 
         // The filter runs as SQL; its documents become the mask the scorer checks (D067). Excluded items are never in it.

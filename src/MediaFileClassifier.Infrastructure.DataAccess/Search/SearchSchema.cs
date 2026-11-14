@@ -1,9 +1,9 @@
 namespace MediaFileClassifier.Infrastructure.DataAccess.Search;
 
 /// <summary>
-/// The keyword index's tables and triggers, as the <c>SearchIndex</c> migration creates them. A rebuild runs these
-/// statements first, so it also repairs an index whose tables were dropped. Keep them identical to the migration; a
-/// test compares the two.
+/// The keyword index's tables and triggers, as the <c>SearchIndex</c> migration creates them, with the prefix index
+/// of the <c>SearchPrefixIndex</c> migration (MFC-988). A rebuild runs these statements first, so it also repairs an
+/// index whose tables were dropped. Keep them identical to the migrations; a test compares the two.
 /// </summary>
 internal static class SearchSchema
 {
@@ -33,7 +33,7 @@ internal static class SearchSchema
         CREATE VIRTUAL TABLE IF NOT EXISTS "search_text" USING fts5(
             "title", "description", "tags", "ocr_text", "transcript", "other", "file_name",
             tokenize = 'unicode61 remove_diacritics 2',
-            prefix = '2 3'
+            prefix = '1 2 3'
         );
         """,
         """

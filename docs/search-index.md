@@ -14,12 +14,12 @@ The engine under search (E09) and filtering (E10): keyword search with FTS5, vec
 | `IEmbeddingRepository` (`EmbeddingRepository`) | `Repositories`, `DataAccess/Repositories` | The only write path for embeddings; raises `Changed` after each commit. `IOpenLibrary.Embeddings`. |
 | `RebuildSearchIndexCommand` | `UseCases/Search/RebuildSearchIndex` | "Rebuild or refresh the index" (spec 1.2). |
 
-## Schema (version 6)
+## Schema (version 6, prefixes changed in 11)
 
 The `SearchIndex` migration adds, in raw SQL:
 
 - `search_document(doc_id INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT UNIQUE)`: a stable integer per item, shared by the keyword and vector indexes. AUTOINCREMENT, so a deleted item's ID is never reused and a stale vector can't attach to a new item. `media_item.rowid` isn't used, because `VACUUM` (backups, D073) may renumber it.
-- `search_text`: FTS5 with `unicode61 remove_diacritics 2` (D029) and prefix indexes for 2 and 3 characters. Columns: `title`, `description` (with the summary), `tags`, `ocr_text`, `transcript`, `other` (notes and the list fields), `file_name` (the path in the folder).
+- `search_text`: FTS5 with `unicode61 remove_diacritics 2` (D029) and prefix indexes for 1, 2 and 3 characters (1 since schema 11, MFC-988: the `SearchPrefixIndex` migration recreates the table and copies its rows, so no rebuild is needed). Columns: `title`, `description` (with the summary), `tags`, `ocr_text`, `transcript`, `other` (notes and the list fields), `file_name` (the path in the folder).
 - `search_filename`: FTS5 `trigram` index of the path, for substring matches.
 - `search_state`: `rebuild_needed` marks an index whose metadata columns must be recomputed. The migration sets it for libraries that have items; the app rebuilds in the background when it opens such a library.
 - Triggers on `media_item` insert, path update and delete keep documents and paths in step.
@@ -73,11 +73,11 @@ The date and resolution filters list their presets through `IFilterOptions` (val
 
 ## Search as you type (E09-S02)
 
-`SearchBarViewModel` searches 300 ms after the last keystroke (`DefaultDelay`), `SearchResultSource` cancels the search before it, and a search that was replaced never hands its answer on, even when it had finished. Two caches make going back instant: `SemanticQueryEncoder` keeps 256 query vectors, and `SearchPageCache` keeps the first page of the last 32 text searches (64 cached answers) (reset when the scope or items change; answers that lack the semantic search for a reason that can pass are never kept). The time from the last keystroke to the results is logged (`Search as you type: N ms ...`).
+`SearchBarViewModel` searches 200 ms after the last keystroke (`DefaultDelay`; 300 ms until MFC-990), `SearchResultSource` cancels the search before it, and a search that was replaced never hands its answer on, even when it had finished. Two caches make going back instant: `SemanticQueryEncoder` keeps 256 query vectors, and `SearchPageCache` keeps the first page of the last 32 text searches (64 cached answers) (reset when the scope or items change; answers that lack the semantic search for a reason that can pass are never kept). The time from the last keystroke to the results is logged (`Search as you type: N ms ...`).
 
 `production` also searches every prefix of the keyword queries (hybrid, no filter, limit 100). MFC-91 searched each prefix once: on 100k items and 28 CPUs, p50 221 ms, p95 3.9 s, max 7.8 s (1-2 letters p95 5.1 s, 3-5 letters 0.8 s, 6+ letters 2.0 s), without the encoder and the pause.
 
-MFC-991 repeats it: one warm-up pass, then 3 runs of each of the 235 prefixes (705 samples; `--typing-runs` changes the 3). It also times the real SigLIP 2 text encoder (uncached) on the same prefixes, and adds the 300 ms pause arithmetically (nothing sleeps). The library holds synthetic vectors, so the encoder's output is only timed, not searched with. **Baseline for MFC-988, 989 and 990** (100k items, 28 logical CPUs, Windows 11, .NET 10.0.15, DirectML build of ONNX Runtime; ms):
+MFC-991 repeats it: one warm-up pass, then 3 runs of each of the 235 prefixes (705 samples; `--typing-runs` changes the 3). It also times the real SigLIP 2 text encoder (uncached) on the same prefixes, and adds the pause arithmetically (nothing sleeps; 300 ms until MFC-990, 200 ms since). The library holds synthetic vectors, so the encoder's output is only timed, not searched with. **Baseline for MFC-988, 989 and 990** (100k items, 28 logical CPUs, Windows 11, .NET 10.0.15, DirectML build of ONNX Runtime; ms):
 
 | Letters typed | Samples | Search p50 | Search p95 | Search max | Encoder p50 | Encoder p95 | End to end p50 | End to end p95 | End to end max |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
@@ -87,6 +87,49 @@ MFC-991 repeats it: one warm-up pass, then 3 runs of each of the 235 prefixes (7
 | all | 705 | 241 | 3,165 | 4,936 | 22 | 35 | 567 | 3,484 | 5,259 |
 
 The D031 budget of 300 ms is **not met**, and the encoder is not the cause (about 22 ms, within its 50 ms budget). The 300 ms pause alone uses the whole budget if it is counted in it, so end to end (p50 567 ms) can only meet it if the pause is shortened or left out of the target (MFC-990); the search alone has a p50 of 241 ms but a p95 of 3.2 s. The tail is the same as in MFC-91: short prefixes match most of the library. Another full run gave a search p50 of 175 ms for all prefixes and p95 of 3.4 s, so p50 moves by about 50 ms between runs on this machine while p95 stays at 3-4 s; compare p95 and the buckets, and rerun before judging a change of less than 25%.
+
+### MFC-988: one-character prefixes
+
+The tail was not the search SQL (at most about 370 ms for any prefix) but the matched fields of the first page (`GetMatchedFieldsAsync`). It runs one FTS5 lookup per result row, and a one-character prefix had no prefix index, so each lookup read every token starting with that letter: about 32 ms per row, 3-4 s for 100 rows ("b", and the last word of "train s" or "red c", which is why the 6+ bucket had the tail too). Two- and three-character prefixes took about 1 ms for all 100 rows. The 1-character prefix index (schema 11) brings the lookup to about 2 ms and makes the index about 22% larger (92 MB to 112 MB of FTS data at 100k items). Upgrading copies the index rows when the library opens: about 7 s at 100k items, once.
+
+Same benchmark after MFC-988 (ms):
+
+| Letters typed | Samples | Search p50 | Search p95 | Search max | Encoder p50 | Encoder p95 | End to end p50 | End to end p95 | End to end max |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1 to 2 | 150 | 206 | 282 | 322 | 23 | 29 | 530 | 604 | 644 |
+| 3 to 5 | 213 | 195 | 539 | 819 | 23 | 30 | 519 | 861 | 1,149 |
+| 6 or more | 342 | 255 | 529 | 754 | 23 | 29 | 576 | 854 | 1,077 |
+| all | 705 | 221 | 484 | 819 | 23 | 29 | 545 | 805 | 1,149 |
+
+The rerun of the baseline before the change gave a search p95 of 3.9 s (1-2 letters 5.0 s), so the p95 fell about 8 times. The user confirmed that D031's 300 ms is counted from the end of the typing pause (encoder and search), not from the last keystroke.
+
+### MFC-989: top matches for the hybrid candidates
+
+The keyword half of a hybrid search needs only the 200 best BM25 matches (`SearchRankingOptions.CandidateLimit`) and never their total, so it asks with `KeywordSearch.NeedsTotal = false`. When the first page is asked for by relevance, `SearchStore` then runs just the FTS5 match with BM25, the filter and `ORDER BY rank LIMIT n`, which SQLite sorts keeping only the top rows. A full page is exactly the page the full query gives, since hits found only as a path substring rank after every BM25 match. A shorter page falls back to the full query (intersection, path substrings, count). The keyword-only path keeps its exact total. Measured on the SQL alone: 50-180 ms down to 12-61 ms for broad prefixes.
+
+Same benchmark after MFC-989 (ms; a first run while other builds were busy gave an encoder p50 of 231 ms and was discarded):
+
+| Letters typed | Samples | Search p50 | Search p95 | Search max | Encoder p50 | Encoder p95 | End to end p50 | End to end p95 | End to end max |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1 to 2 | 150 | 96 | 118 | 127 | 23 | 24 | 419 | 441 | 450 |
+| 3 to 5 | 213 | 131 | 512 | 735 | 23 | 25 | 456 | 836 | 1,061 |
+| 6 or more | 342 | 233 | 514 | 710 | 23 | 25 | 557 | 837 | 1,034 |
+| all | 705 | 179 | 497 | 735 | 23 | 25 | 503 | 820 | 1,061 |
+
+Broad prefixes (1-2 letters) are now within D031 (encoder + search p95 about 142 ms). The p95 of longer prefixes stays at about 500 ms: the matched fields of the first page cost 60-220 ms per 100 rows for prefixes of 4 or more letters, which have no prefix index, plus the vector half. The user chose to leave that as it is for now (other options were working the fields out in C# from the row text, or more prefix indexes).
+
+### MFC-990: typing pause of 200 ms
+
+D031's 300 ms is counted from the end of the pause, so the pause is chosen for how fast results feel against how many searches it starts. The benchmark simulates typing each query 200 times with log-normal gaps between keystrokes (sigma 0.5) for a fast typist (median gap 150 ms) and a slower one (250 ms), using the measured encoder + search time of each prefix (`TypingSimulation`). A search starts after a gap longer than the pause and after the last keystroke, and it is cancelled when the next one starts before it is done (typing alone doesn't cancel it, as in the app). Searches started and cancelled per typed query:
+
+| Pause | Fast typist: started | cancelled | Slower typist: started | cancelled |
+|--:|--:|--:|--:|--:|
+| 150 ms | 5.2 | 2.2 | 8.1 | 3.5 |
+| 200 ms | 3.4 | 1.0 | 6.6 | 2.4 |
+| 250 ms | 2.3 | 0.4 | 5.2 | 1.5 |
+| 300 ms | 1.7 | 0.2 | 4.0 | 0.9 |
+
+The results arrive the pause plus the encoder and search after the last keystroke, so every 50 ms off the pause shows them 50 ms sooner. The user chose 200 ms: 100 ms sooner than before, at about one cancelled search per query for a fast typist and 2.4 for a slower one, which the cheaper searches after MFC-988 and 989 allow. The started counts don't depend on the machine's load, but the cancelled counts do: a final run while other builds were busy (encoder p95 345 ms instead of 25 ms) gave 0.76 and 1.96 cancelled per query at 200 ms, and search p95 numbers that aren't comparable, so the clean MFC-989 table above stays the reference for search times (the pause adds a constant). The simulated gaps are a model, not recorded typing; the app logs the time from the last keystroke to the results, so real numbers can check it.
 
 ## Known follow-ups
 

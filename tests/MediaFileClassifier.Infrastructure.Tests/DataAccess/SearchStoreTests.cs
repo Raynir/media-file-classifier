@@ -207,6 +207,77 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Equal(SearchFields.Title | SearchFields.OcrText | SearchFields.FileName, fields[document]);
     }
 
+    [Theory]
+    [InlineData("l")]
+    [InlineData("k")]
+    public async Task MatchedFields_OneLetterPrefix_NamesTheFields(string term)
+    {
+        var item = await AddItemAsync(1);
+        await EditAsync(item, DescriptiveField.Title, "Lighthouse");
+        await EditAsync(item, DescriptiveField.OcrText, "Keep out");
+        var document = Assert.Single((await bed.Library.Search.FindKeywordMatchesAsync(Search(term), Token)).Matches).DocumentId;
+
+        var fields = await bed.Library.Search.GetMatchedFieldsAsync([document], [term], Token);
+
+        Assert.Equal(term == "l" ? SearchFields.Title : SearchFields.OcrText, fields[document]);
+    }
+
+    [Fact]
+    public async Task TopMatches_FullPage_IsThePageOfTheFullQuery()
+    {
+        for (var i = 1; i <= 12; i++)
+        {
+            var item = await AddItemAsync(i);
+            await EditAsync(item, DescriptiveField.Title, string.Join(' ', Enumerable.Repeat("lake", i % 4 + 1)) + " shore");
+        }
+
+        var full = await bed.Library.Search.FindKeywordMatchesAsync(Search("la") with { Limit = 5 }, Token);
+        var top = await bed.Library.Search.FindKeywordMatchesAsync(Search("la") with { Limit = 5, NeedsTotal = false }, Token);
+
+        Assert.Equal(full.Matches, top.Matches);
+        Assert.Equal(12, full.TotalCount);
+        Assert.Equal(5, top.TotalCount);
+    }
+
+    [Fact]
+    public async Task TopMatches_ShortPage_FallsBackToEveryMatch_WithPathSubstringHitsLast()
+    {
+        var titled = await AddItemAsync(1);
+        await EditAsync(titled, DescriptiveField.Title, "IMG 0001 copy");
+        var byPath = await AddItemAsync(2);
+        await EditAsync(byPath, DescriptiveField.Title, "unrelated");
+
+        // "0001" is a word of the first item's title, and only a path substring of IMG_00010.
+        var pathOnly = await AddItemAsync(10);
+        var top = await bed.Library.Search.FindKeywordMatchesAsync(Search("0001") with { NeedsTotal = false }, Token);
+
+        Assert.Equal([titled.Id, pathOnly.Id], top.Matches.Select(match => match.ItemId));
+        Assert.Equal(2, top.TotalCount);
+        Assert.Equal((await bed.Library.Search.FindKeywordMatchesAsync(Search("0001"), Token)).Matches, top.Matches);
+    }
+
+    [Fact]
+    public async Task TopMatches_AppliesTheFilter()
+    {
+        var videos = new List<Id<MediaItem>>();
+        for (var i = 1; i <= 6; i++)
+        {
+            var item = i % 2 == 0 ? await AddItemAsync(i, MediaType.Video) : await AddItemAsync(i);
+            await EditAsync(item, DescriptiveField.Title, "harbour");
+            if (i % 2 == 0)
+            {
+                videos.Add(item.Id);
+            }
+        }
+
+        var filter = new SearchFilter { MediaTypes = [MediaType.Video] };
+        var top = await bed.Library.Search.FindKeywordMatchesAsync(Search("h", filter) with { Limit = 2, NeedsTotal = false }, Token);
+        var full = await bed.Library.Search.FindKeywordMatchesAsync(Search("h", filter) with { Limit = 2 }, Token);
+
+        Assert.Equal(full.Matches, top.Matches);
+        Assert.All(top.Matches, match => Assert.Contains(match.ItemId, videos));
+    }
+
     [Fact]
     public async Task Paging_ReportsTheTotalOnEveryPage()
     {
@@ -251,12 +322,40 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Empty(await FindAsync("lighthouse"));
     }
 
+    [Fact]
+    public async Task UpgradeFromVersion10_KeepsTheIndexedText_AndAddsOneLetterPrefixes()
+    {
+        var item = await AddItemAsync(7);
+        await EditAsync(item, DescriptiveField.Title, "lighthouse");
+        await bed.Library.DisposeAsync();
+        using (var probe = new DesignTimeLibraryDbContextFactory().CreateDbContext([]))
+        {
+            var beforePrefixes = probe.Database.GetMigrations().TakeWhile(migration => !migration.EndsWith("_SearchPrefixIndex", StringComparison.Ordinal)).Last();
+            await using var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token);
+            await db.GetService<IMigrator>().MigrateAsync(beforePrefixes, cancellationToken: Token);
+        }
+
+        SqliteConnection.ClearAllPools();
+        Assert.Contains("prefix = '2 3'", await ReadTextTableSqlAsync(), StringComparison.Ordinal);
+        await bed.OpenAgainAsync();
+
+        Assert.Contains("prefix = '1 2 3'", await ReadTextTableSqlAsync(), StringComparison.Ordinal);
+        Assert.False(await bed.Library.Search.IsRebuildNeededAsync(Token));
+        Assert.Equal([item.Id], await FindAsync("lighthouse"));
+        Assert.Equal([item.Id], await FindAsync("l"));
+        var added = await AddItemAsync(8);
+        await EditAsync(added, DescriptiveField.Title, "harbour");
+        Assert.Equal([added.Id], await FindAsync("h"));
+    }
+
     internal static KeywordSearch Search(string text, SearchFilter? filter = null) =>
         new(text.Split(' ', StringSplitOptions.RemoveEmptyEntries), filter ?? SearchFilter.None, KeywordFieldWeights.Default, SortMode.Relevance, false, 0, 100);
 
-    private async Task<MediaItem> AddItemAsync(int number)
+    private async Task<MediaItem> AddItemAsync(int number, MediaType type = MediaType.Image)
     {
-        var item = bed.NewItem(number);
+        var item = type == MediaType.Image
+            ? bed.NewItem(number)
+            : MediaItem.Discover(bed.Folder.Id, RelativePath.From($"album/VID_{number:D5}.mp4"), type, 1000 + number, bed.Clock.Tick(), bed.Clock.Tick(), (UInt128)number * 104729, bed.Clock.Tick());
         await bed.Library.Items.AddAsync(item, Token);
         return item;
     }
@@ -266,6 +365,15 @@ public sealed class SearchStoreTests : IAsyncLifetime
 
     private async Task<IReadOnlyList<Id<MediaItem>>> FindAsync(string text) =>
         [.. (await bed.Library.Search.FindKeywordMatchesAsync(Search(text), Token)).Matches.Select(match => match.ItemId)];
+
+    private async Task<string> ReadTextTableSqlAsync()
+    {
+        await using var connection = new SqliteConnection($"Data Source={bed.Temporary.DatabasePath};Pooling=False");
+        await connection.OpenAsync(Token);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """SELECT "sql" FROM "sqlite_master" WHERE "name" = 'search_text'""";
+        return (string)(await command.ExecuteScalarAsync(Token))!;
+    }
 
     private async Task<long> CountIndexRowsAsync()
     {

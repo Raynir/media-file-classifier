@@ -43,65 +43,31 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
             return Task.FromResult(new KeywordMatches([], 0));
         }
 
-        var sql = new SearchSql();
-        var text = new StringBuilder("WITH ");
-        for (var i = 0; i < terms.Count; i++)
-        {
-            var term = terms[i];
-            text.Append(CultureInfo.InvariantCulture, $"""m{i}("doc_id") AS (SELECT "rowid" FROM "search_text" WHERE "search_text" MATCH {sql.Add(SearchSql.QuoteFts(term) + "*")}""");
-            if (SearchSql.IsSubstringSearchable(term))
-            {
-                text.Append(CultureInfo.InvariantCulture, $""" UNION SELECT "rowid" FROM "search_filename" WHERE "search_filename" MATCH {sql.Add(SearchSql.QuoteFts(term))}""");
-            }
-
-            text.Append("), ");
-        }
-
-        text.Append("""hits("doc_id") AS (""")
-            .AppendJoin(" INTERSECT ", Enumerable.Range(0, terms.Count).Select(i => $"""SELECT "doc_id" FROM m{i}"""))
-            .Append("), ");
-
-        // BM25 over the documents whose words match every term. Hits that matched a term only as a path substring
-        // aren't in it and rank last.
         var all = string.Join(" AND ", terms.Select(term => SearchSql.QuoteFts(term) + "*"));
-        text.Append(CultureInfo.InvariantCulture, $"""ranked("doc_id", "rank") AS MATERIALIZED (SELECT "rowid", bm25("search_text", {Weights(search.Weights)}) FROM "search_text" WHERE "search_text" MATCH {sql.Add(all)}) """);
-
-        var where = sql.Where(search.Filter);
-        var orderBy = sql.OrderBy(search.Sort, search.Reverse, relevance: "r.\"rank\"");
-        text.Append(CultureInfo.InvariantCulture, $"""
-            SELECT d."doc_id", d."item_id", r."rank", count(*) OVER ()
-            FROM hits h
-            JOIN "search_document" d ON d."doc_id" = h."doc_id"
-            {sql.Joins}
-            LEFT JOIN ranked r ON r."doc_id" = h."doc_id"
-            WHERE {where}
-            ORDER BY {orderBy}
-            LIMIT {sql.Add(search.Limit)} OFFSET {sql.Add(search.Offset)}
-            """);
+        var fast = search is { NeedsTotal: false, Sort: SortMode.Relevance, Reverse: false, Offset: 0 } ? TopMatchesQuery(search, all) : ((string Text, IReadOnlyList<SqliteParameter> Parameters)?)null;
+        var (text, parameters) = AllMatchesQuery(search, terms, all);
 
         return connections.ReadAsync(
             async (db, token) =>
             {
-                var matches = new List<KeywordMatch>();
-                var total = 0;
-                await QueryAsync(
-                    db,
-                    text.ToString(),
-                    sql.Parameters,
-                    reader =>
-                    {
-                        var score = reader.IsDBNull(2) ? double.NegativeInfinity : -reader.GetDouble(2);
-                        matches.Add(new KeywordMatch(DocumentId(reader, 0), ItemId(reader, 1), score));
-                        total = reader.GetInt32(3);
-                    },
-                    token).ConfigureAwait(false);
-
-                if (matches.Count == 0 && search.Offset > 0)
+                // A full page of the best BM25 matches is the page the full query would give: hits found only as a path
+                // substring rank after every BM25 match.
+                if (fast is { } top)
                 {
-                    total = await CountKeywordMatchesAsync(search, token).ConfigureAwait(false);
+                    var best = await ReadMatchesAsync(db, top.Text, top.Parameters, withTotal: false, token).ConfigureAwait(false);
+                    if (best.Matches.Count == search.Limit)
+                    {
+                        return best with { TotalCount = best.Matches.Count };
+                    }
                 }
 
-                return new KeywordMatches(matches, total);
+                var page = await ReadMatchesAsync(db, text, parameters, withTotal: true, token).ConfigureAwait(false);
+                if (page.Matches.Count == 0 && search.Offset > 0)
+                {
+                    page = page with { TotalCount = await CountKeywordMatchesAsync(search, token).ConfigureAwait(false) };
+                }
+
+                return page;
             },
             cancellationToken);
     }
@@ -386,6 +352,89 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
         progress?.Report(1);
     }
 
+    // Every match: hits of each term (word prefix, or path substring for 3+ characters), intersected, with BM25 over the
+    // documents whose words match every term, counted and ordered as a whole.
+    private static (string Text, IReadOnlyList<SqliteParameter> Parameters) AllMatchesQuery(KeywordSearch search, List<string> terms, string all)
+    {
+        var sql = new SearchSql();
+        var text = new StringBuilder("WITH ");
+        for (var i = 0; i < terms.Count; i++)
+        {
+            var term = terms[i];
+            text.Append(CultureInfo.InvariantCulture, $"""m{i}("doc_id") AS (SELECT "rowid" FROM "search_text" WHERE "search_text" MATCH {sql.Add(SearchSql.QuoteFts(term) + "*")}""");
+            if (SearchSql.IsSubstringSearchable(term))
+            {
+                text.Append(CultureInfo.InvariantCulture, $""" UNION SELECT "rowid" FROM "search_filename" WHERE "search_filename" MATCH {sql.Add(SearchSql.QuoteFts(term))}""");
+            }
+
+            text.Append("), ");
+        }
+
+        text.Append("""hits("doc_id") AS (""")
+            .AppendJoin(" INTERSECT ", Enumerable.Range(0, terms.Count).Select(i => $"""SELECT "doc_id" FROM m{i}"""))
+            .Append("), ");
+
+        // BM25 over the documents whose words match every term. Hits that matched a term only as a path substring
+        // aren't in it and rank last.
+        text.Append(CultureInfo.InvariantCulture, $"""ranked("doc_id", "rank") AS MATERIALIZED (SELECT "rowid", bm25("search_text", {Weights(search.Weights)}) FROM "search_text" WHERE "search_text" MATCH {sql.Add(all)}) """);
+
+        var where = sql.Where(search.Filter);
+        var orderBy = sql.OrderBy(search.Sort, search.Reverse, relevance: "r.\"rank\"");
+        text.Append(CultureInfo.InvariantCulture, $"""
+            SELECT d."doc_id", d."item_id", r."rank", count(*) OVER ()
+            FROM hits h
+            JOIN "search_document" d ON d."doc_id" = h."doc_id"
+            {sql.Joins}
+            LEFT JOIN ranked r ON r."doc_id" = h."doc_id"
+            WHERE {where}
+            ORDER BY {orderBy}
+            LIMIT {sql.Add(search.Limit)} OFFSET {sql.Add(search.Offset)}
+            """);
+        return (text.ToString(), sql.Parameters);
+    }
+
+    // The best BM25 matches of the first page only (MFC-989): no intersection, no count, and SQLite keeps just the top
+    // rows while it sorts. Same order as the full query's: rank, then document ID.
+    private static (string Text, IReadOnlyList<SqliteParameter> Parameters) TopMatchesQuery(KeywordSearch search, string all)
+    {
+        var sql = new SearchSql();
+        var match = sql.Add(all);
+        var where = sql.Where(search.Filter);
+        var text = $"""
+            SELECT d."doc_id", d."item_id", f."rank"
+            FROM (SELECT "rowid" AS "doc_id", bm25("search_text", {Weights(search.Weights)}) AS "rank" FROM "search_text" WHERE "search_text" MATCH {match}) f
+            JOIN "search_document" d ON d."doc_id" = f."doc_id"
+            {sql.Joins}
+            WHERE {where}
+            ORDER BY f."rank" ASC, d."doc_id" ASC
+            LIMIT {sql.Add(search.Limit)}
+            """;
+        return (text, sql.Parameters);
+    }
+
+    private static async Task<KeywordMatches> ReadMatchesAsync(
+        LibraryDbContext db,
+        string text,
+        IReadOnlyList<SqliteParameter> parameters,
+        bool withTotal,
+        CancellationToken cancellationToken)
+    {
+        var matches = new List<KeywordMatch>();
+        var total = 0;
+        await QueryAsync(
+            db,
+            text,
+            parameters,
+            reader =>
+            {
+                var score = reader.IsDBNull(2) ? double.NegativeInfinity : -reader.GetDouble(2);
+                matches.Add(new KeywordMatch(DocumentId(reader, 0), ItemId(reader, 1), score));
+                total = withTotal ? reader.GetInt32(3) : matches.Count;
+            },
+            cancellationToken).ConfigureAwait(false);
+        return new KeywordMatches(matches, total);
+    }
+
     /// <summary>
     /// Writes an item's metadata columns, in the caller's transaction.
     /// </summary>
@@ -507,7 +556,7 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
 
     private async Task<int> CountKeywordMatchesAsync(KeywordSearch search, CancellationToken cancellationToken)
     {
-        var all = await FindKeywordMatchesAsync(search with { Offset = 0, Limit = 1 }, cancellationToken).ConfigureAwait(false);
+        var all = await FindKeywordMatchesAsync(search with { Offset = 0, Limit = 1, NeedsTotal = true }, cancellationToken).ConfigureAwait(false);
         return all.TotalCount;
     }
 }

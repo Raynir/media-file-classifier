@@ -44,12 +44,33 @@ public interface IMediaResultSource
     /// <summary>
     /// Gets result IDs in result order without loading the items (E14-S03), for range selection and Select all.
     /// </summary>
-    /// <param name="offset">Number of results to skip, counted from <paramref name="newest"/> when it's given.</param>
+    /// <param name="offset">Number of results to skip, counted among the ones <paramref name="newest"/> lets through.</param>
     /// <param name="limit">Maximum number of IDs.</param>
     /// <param name="newest">If given, only this result and the ones added before it.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The IDs.</returns>
     Task<IReadOnlyList<Id<MediaItem>>> GetIdsAsync(int offset, int limit, Id<MediaItem>? newest, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the newest item that is or could be in the results now (E10-S04-T02): the boundary of Select all, which
+    /// covers every result added up to it, in any order. The default suits results listed newest first.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The item, or <see langword="null"/> when there are no results.</returns>
+    async Task<Id<MediaItem>?> GetNewestIdAsync(CancellationToken cancellationToken)
+    {
+        var first = await GetIdsAsync(0, 1, null, cancellationToken).ConfigureAwait(false);
+        return first.Count == 0 ? null : first[0];
+    }
+
+    /// <summary>
+    /// Counts the results added after an item (E10-S04-T02), e.g. since Select all. The default suits results listed
+    /// newest first, where that is the item's position.
+    /// </summary>
+    /// <param name="newest">The item.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The count.</returns>
+    Task<int> CountNewerAsync(Id<MediaItem> newest, CancellationToken cancellationToken) => PositionOfAsync(newest, cancellationToken);
 
     /// <summary>
     /// Finds which of the given items are still in the results (E14-S03), so a selection survives a refresh.

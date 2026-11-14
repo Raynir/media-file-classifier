@@ -10,7 +10,7 @@ From left to right, in this order at every window width:
 |------|-----------|-------|
 | Search | The search bar with the similarity and reference image chips (E09-S01, E09-S03, E09-S04) | Fills what the others leave, and at least `Size.Toolbar.SearchMin` (160) |
 | Filter | The filter button and the active filter chips (E10-S02) | As wide as its view |
-| Sort | The sort control (E10-S04) | As wide as its view |
+| Sort | Empty: the sort control (E10-S04) sits at the end of the results header, next to the filters, as in the wireframes | — |
 | View | The thumbnail size slider (E14-S01-T05, `ThumbnailSizeView`), and later the grid/list toggle (E14-S02) | As wide as its view |
 
 - **Filling a slot:** a feature implements `IToolbarContributor`, registers it with `TryAddEnumerable` in its module, and in `Register` sets the slot (`toolbar.Search = ...`) to a view model. The toolbar shows the view that `ViewLocator` maps to it, so register the view there too. An empty slot takes no space, except Search, which is the free space.

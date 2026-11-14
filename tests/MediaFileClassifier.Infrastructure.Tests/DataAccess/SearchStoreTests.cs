@@ -348,6 +348,48 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Equal([added.Id], await FindAsync("h"));
     }
 
+    [Fact]
+    public async Task UpgradeFromVersion11_FillsTheSortKeys()
+    {
+        var first = await AddItemAsync(10);
+        var second = await AddItemAsync(9);
+        await bed.Library.DisposeAsync();
+        using (var probe = new DesignTimeLibraryDbContextFactory().CreateDbContext([]))
+        {
+            var beforeSortKeys = probe.Database.GetMigrations().TakeWhile(migration => !migration.EndsWith("_SearchSortKeys", StringComparison.Ordinal)).Last();
+            await using var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token);
+            await db.GetService<IMigrator>().MigrateAsync(beforeSortKeys, cancellationToken: Token);
+        }
+
+        SqliteConnection.ClearAllPools();
+        await bed.OpenAgainAsync();
+
+        Assert.False(await bed.Library.Search.IsRebuildNeededAsync(Token));
+        Assert.Equal([second.Id, first.Id], await ListAsync(SortMode.Name));
+        Assert.Equal([first.Id, second.Id], await ListAsync(SortMode.Size));
+        var added = await AddItemAsync(1);
+        Assert.Equal([added.Id, second.Id, first.Id], await ListAsync(SortMode.Name));
+    }
+
+    [Fact]
+    public async Task List_ReportsTheTotalOnEveryPage()
+    {
+        for (var i = 1; i <= 5; i++)
+        {
+            await AddItemAsync(i);
+        }
+
+        var first = await bed.Library.Search.ListAsync(SearchFilter.None, SortMode.Name, false, 0, 2, cancellationToken: Token);
+        var last = await bed.Library.Search.ListAsync(SearchFilter.None, SortMode.Name, false, 4, 2, cancellationToken: Token);
+        var past = await bed.Library.Search.ListAsync(SearchFilter.None, SortMode.Name, false, 10, 2, cancellationToken: Token);
+        var whole = await bed.Library.Search.ListAsync(SearchFilter.None, SortMode.Name, false, 0, 10, cancellationToken: Token);
+
+        Assert.Equal((2, 5), (first.Documents.Count, first.TotalCount));
+        Assert.Equal((1, 5), (last.Documents.Count, last.TotalCount));
+        Assert.Equal((0, 5), (past.Documents.Count, past.TotalCount));
+        Assert.Equal((5, 5), (whole.Documents.Count, whole.TotalCount));
+    }
+
     internal static KeywordSearch Search(string text, SearchFilter? filter = null) =>
         new(text.Split(' ', StringSplitOptions.RemoveEmptyEntries), filter ?? SearchFilter.None, KeywordFieldWeights.Default, SortMode.Relevance, false, 0, 100);
 
@@ -362,6 +404,9 @@ public sealed class SearchStoreTests : IAsyncLifetime
 
     private Task EditAsync(MediaItem item, DescriptiveField field, string text) =>
         bed.Library.Metadata.UpdateAsync(item.Id, metadata => metadata.EditValue(field, FieldValue.FromText(text), bed.Clock.Tick()), Token);
+
+    private async Task<IReadOnlyList<Id<MediaItem>>> ListAsync(SortMode sort) =>
+        [.. (await bed.Library.Search.ListAsync(SearchFilter.None, sort, false, 0, 100, cancellationToken: Token)).Documents.Select(document => document.ItemId)];
 
     private async Task<IReadOnlyList<Id<MediaItem>>> FindAsync(string text) =>
         [.. (await bed.Library.Search.FindKeywordMatchesAsync(Search(text), Token)).Matches.Select(match => match.ItemId)];

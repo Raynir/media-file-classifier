@@ -11,17 +11,15 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Search;
 
 /// <summary>
 /// Translates filters, orders and keyword terms into SQL (E01-S04-T05). Queries start from <c>search_document</c> as
-/// <c>d</c>, and join <c>media_item</c> as <c>m</c> and <c>technical_metadata</c> as <c>t</c> only when
-/// <see cref="NeedsMediaItem"/> and <see cref="NeedsTechnicalMetadata"/> say so. Every value is a parameter; only numbers the code formats itself go into the text.
+/// <c>d</c>, and join <c>media_item</c> as <c>m</c>, <c>technical_metadata</c> as <c>t</c> and <c>search_sort</c> as
+/// <c>s</c> only when <see cref="NeedsMediaItem"/>, <see cref="NeedsTechnicalMetadata"/> and <see cref="NeedsSortKeys"/>
+/// say so. Every value is a parameter; only numbers the code formats itself go into the text.
 /// </summary>
 internal sealed class SearchSql : IFilterSql
 {
     // The item date: date taken, converted to UTC with its offset when known, else the file modification time. Dates
     // taken are wall-clock milliseconds and offsets milliseconds (D071).
     private const string ItemDate = """coalesce(t."date_taken" - coalesce(t."date_taken_offset", 0), m."file_modified_at")""";
-
-    // The file name: the path after its last '/'. rtrim strips the trailing non-slash characters, which leaves the folder.
-    private const string FileName = """substr(m."path", length(rtrim(m."path", replace(m."path", '/', ''))) + 1)""";
 
     private readonly List<SqliteParameter> parameters = [];
 
@@ -41,10 +39,17 @@ internal sealed class SearchSql : IFilterSql
     public bool NeedsTechnicalMetadata { get; private set; }
 
     /// <summary>
-    /// Gets the joins of <c>media_item</c> and <c>technical_metadata</c> to <c>d</c>, each only if it's needed.
+    /// Gets whether the SQL built so far reads <c>s</c>, so the query must join <c>search_sort</c>.
+    /// </summary>
+    public bool NeedsSortKeys { get; private set; }
+
+    /// <summary>
+    /// Gets the joins of <c>search_sort</c>, <c>media_item</c> and <c>technical_metadata</c> to <c>d</c>, each only if
+    /// it's needed. <c>search_sort</c> is an inner join, so SQLite can read a page of a sort key's index first.
     /// </summary>
     public string Joins =>
-        (NeedsMediaItem ? """JOIN "media_item" m ON m."id" = d."item_id" """ : string.Empty)
+        (NeedsSortKeys ? """JOIN "search_sort" s ON s."doc_id" = d."doc_id" """ : string.Empty)
+        + (NeedsMediaItem ? """JOIN "media_item" m ON m."id" = d."item_id" """ : string.Empty)
         + (NeedsTechnicalMetadata ? """LEFT JOIN "technical_metadata" t ON t."item_id" = d."item_id" """ : string.Empty);
 
     /// <inheritdoc />
@@ -242,7 +247,10 @@ internal sealed class SearchSql : IFilterSql
     }
 
     /// <summary>
-    /// Builds an <c>ORDER BY</c> list. Every order ends with the document ID, so pages never overlap.
+    /// Builds an <c>ORDER BY</c> list (E10-S04-T01). The sort keys come from <c>search_sort</c>, whose indexes give a
+    /// page without sorting every item: the natural name key (<see cref="NaturalSortKey"/>), the item date, the size and
+    /// the import time. Every order ends with the document ID in the direction of the key before it, so the order is
+    /// total and pages never overlap or skip.
     /// </summary>
     /// <param name="sort">The order.</param>
     /// <param name="reverse">Whether to reverse it.</param>
@@ -253,23 +261,21 @@ internal sealed class SearchSql : IFilterSql
     {
         (string Expression, bool Ascending)[] keys = sort switch
         {
-            SortMode.Name => [($"{FileName} COLLATE NOCASE", true), ("""m."path" """, true)],
-            SortMode.Date => [(ItemDate, false)],
-            SortMode.Size => [("""m."size_bytes" """, false)],
-            SortMode.ImportDate => [("""m."imported_at" """, false), ("""m."id" """, false)],
-            _ when relevance is not null => [($"{relevance} IS NULL", true), (relevance, true)],
-            _ => [("""m."id" """, false)],
+            SortMode.Name => [("""s."name_key" """, true)],
+            SortMode.Date => [("""s."item_date" """, false)],
+            SortMode.Size => [("""s."size_bytes" """, false)],
+            _ when sort == SortMode.Relevance && relevance is not null => [($"{relevance} IS NULL", true), (relevance, true)],
+            _ => [("""s."imported_at" """, false)],
         };
 
-        if (sort == SortMode.Date)
-        {
-            NeedsTechnicalMetadata = true;
-        }
+        var bySortKey = sort != SortMode.Relevance || relevance is null;
+        NeedsSortKeys |= bySortKey;
 
-        NeedsMediaItem |= keys.Any(key => ReadsMediaItem(key.Expression));
-
+        // The same document ID through s when a sort key orders: an ORDER BY of one table's columns lets SQLite read a
+        // page off the sort key's index (which holds the ID) instead of sorting every row.
+        var documentId = bySortKey ? """s."doc_id" """ : """d."doc_id" """;
         var builder = new StringBuilder();
-        foreach (var (expression, ascending) in keys.Append(("""d."doc_id" """, keys[^1].Ascending)))
+        foreach (var (expression, ascending) in keys.Append((documentId, keys[^1].Ascending)))
         {
             if (builder.Length > 0)
             {

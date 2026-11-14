@@ -50,6 +50,8 @@ public sealed class SearchRebuildTests : IAsyncLifetime
     [InlineData("DELETE FROM \"search_text\"; DELETE FROM \"search_filename\"; DELETE FROM \"search_document\";")]
     [InlineData("DELETE FROM \"search_text\" WHERE \"rowid\" % 2 = 0; UPDATE \"search_text\" SET \"title\" = 'garbage';")]
     [InlineData("UPDATE \"search_document\" SET \"excluded\" = 1 - \"excluded\";")]
+    [InlineData("DELETE FROM \"search_sort\" WHERE \"doc_id\" % 2 = 0; UPDATE \"search_sort\" SET \"name_key\" = NULL, \"item_date\" = 0, \"size_bytes\" = -\"size_bytes\", \"imported_at\" = NULL;")]
+    [InlineData("DROP TABLE \"search_sort\";")]
     public async Task DeletedIndex_RebuildsToIdenticalResults(string damage)
     {
         var before = await RunQueriesAsync();
@@ -58,6 +60,16 @@ public sealed class SearchRebuildTests : IAsyncLifetime
         await bed.Index.RebuildAsync(cancellationToken: Token);
 
         Assert.Equal(before, await RunQueriesAsync());
+    }
+
+    [Fact]
+    public async Task DroppedSortKeys_NeedARebuild()
+    {
+        Assert.False(await bed.Library.Library.Search.IsRebuildNeededAsync(Token));
+
+        await ExecuteAsync("""DROP TABLE "search_sort";""");
+
+        Assert.True(await bed.Library.Library.Search.IsRebuildNeededAsync(Token));
     }
 
     [Fact]
@@ -79,7 +91,8 @@ public sealed class SearchRebuildTests : IAsyncLifetime
 
         await ExecuteAsync("""
             DROP TRIGGER "search_item_insert"; DROP TRIGGER "search_item_path"; DROP TRIGGER "search_item_delete";
-            DROP TABLE "search_text"; DROP TABLE "search_filename"; DROP TABLE "search_document"; DROP TABLE "search_state";
+            DROP TRIGGER "search_item_sort"; DROP TRIGGER "search_technical_insert"; DROP TRIGGER "search_technical_date"; DROP TRIGGER "search_technical_delete";
+            DROP TABLE "search_text"; DROP TABLE "search_filename"; DROP TABLE "search_document"; DROP TABLE "search_state"; DROP TABLE "search_sort";
             """);
         await bed.Index.RebuildAsync(cancellationToken: Token);
 
@@ -147,6 +160,10 @@ public sealed class SearchRebuildTests : IAsyncLifetime
             new() { Text = "forest", Vector = bed.Vector(0.1f, 1, 0.3f, 0.1f) },
             new() { Text = "bridge", Vector = bed.Vector(0.5f, 0.5f, 0.5f, 0.1f), Filter = new SearchFilter { Formats = ["jpg"] } },
             new() { Text = "lighthouse", Sort = Domain.Searches.SortMode.Name },
+            new() { Sort = Domain.Searches.SortMode.Name },
+            new() { Sort = Domain.Searches.SortMode.Date, ReverseSort = true },
+            new() { Sort = Domain.Searches.SortMode.Size },
+            new() { Sort = Domain.Searches.SortMode.ImportDate },
         };
 
         var lines = new List<string>();

@@ -180,6 +180,7 @@ public static class UiModule
             analyzeNow: provider.GetService<ILibrarySession>() is null ? null : provider.GetRequiredService<AnalyzeNow>()));
         services.AddSingleton<SearchNoticeViewModel>();
         services.AddSingleton<FilterBarViewModel>();
+        services.AddSingleton<SortBarViewModel>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, SearchToolbar>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, FindSimilarCommands>());
 

@@ -26,6 +26,7 @@ public static class JobsModule
         services.TryAddSingleton<IJobProgress>(provider => provider.GetRequiredService<JobProgressTracker>());
         services.TryAddSingleton<IErrorClassifier, ErrorClassifier>();
         services.TryAddSingleton(RetryPolicy.Default);
+        services.TryAddSingleton(JobRetention.Default);
         services.TryAddSingleton<IProviderCircuitBreaker>(provider => new ProviderCircuitBreaker(
             provider.GetRequiredService<TimeProvider>(),
             provider.GetService<ILogger<ProviderCircuitBreaker>>(),

@@ -274,6 +274,82 @@ public sealed class JobRepositoryTests : IAsyncLifetime
         Assert.Empty(await bed.Library.Jobs.GetFailedWorkItemsAsync(Id<ProcessingJob>.New(), Token));
     }
 
+    [Fact]
+    public async Task PruneFinishedJobsAsync_KeepsTheJobsThatFinishedLast_AndDeletesTheRestWithTheirWorkItems()
+    {
+        var jobs = new List<ProcessingJob>();
+        for (var i = 0; i < 5; i++)
+        {
+            jobs.Add(await AddFinishedJobAsync(Now.AddMinutes(i), ProcessingJobState.Completed));
+        }
+
+        var deleted = await bed.Library.Jobs.PruneFinishedJobsAsync(2, DateTimeOffset.MinValue, Token);
+
+        Assert.Equal(3, deleted);
+        Assert.All(jobs.Take(3), job => Assert.Null(bed.Library.Jobs.GetJobAsync(job.Id, Token).Result));
+        Assert.All(jobs.Skip(3), job => Assert.NotNull(bed.Library.Jobs.GetJobAsync(job.Id, Token).Result));
+        Assert.All(jobs.Take(3), job => Assert.Empty(bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token).Result));
+        Assert.All(jobs.Skip(3), job => Assert.NotEmpty(bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token).Result));
+    }
+
+    [Fact]
+    public async Task PruneFinishedJobsAsync_DeletesJobsThatFinishedBeforeTheLimit_EvenWithinTheKeptCount()
+    {
+        var old = await AddFinishedJobAsync(Now.AddDays(-40), ProcessingJobState.Failed);
+        var recent = await AddFinishedJobAsync(Now.AddDays(-1), ProcessingJobState.Completed);
+
+        var deleted = await bed.Library.Jobs.PruneFinishedJobsAsync(50, Now.AddDays(-30), Token);
+
+        Assert.Equal(1, deleted);
+        Assert.Null(await bed.Library.Jobs.GetJobAsync(old.Id, Token));
+        Assert.NotNull(await bed.Library.Jobs.GetJobAsync(recent.Id, Token));
+    }
+
+    [Fact]
+    public async Task PruneFinishedJobsAsync_NeverDeletesUnfinishedJobs()
+    {
+        var (queued, queuedItems) = NewJob(2);
+        await bed.Library.Jobs.AddJobAsync(queued, queuedItems, Token);
+        var (running, runningItems) = NewJob(1);
+        await bed.Library.Jobs.AddJobAsync(running, runningItems, Token);
+        await bed.Library.Jobs.StartAsync(runningItems[0], Now, Token);
+
+        var deleted = await bed.Library.Jobs.PruneFinishedJobsAsync(0, Now.AddYears(10), Token);
+
+        Assert.Equal(0, deleted);
+        Assert.NotNull(await bed.Library.Jobs.GetJobAsync(queued.Id, Token));
+        Assert.NotNull(await bed.Library.Jobs.GetJobAsync(running.Id, Token));
+        Assert.Equal(2, (await bed.Library.Jobs.GetWorkItemsAsync(queued.Id, Token)).Count);
+    }
+
+    [Fact]
+    public async Task PruneFinishedJobsAsync_KeepsAFinishedJobThatNewWorkWokeUp()
+    {
+        var woken = await AddFinishedJobAsync(Now.AddDays(-40), ProcessingJobState.Completed);
+        var asleep = await AddFinishedJobAsync(Now.AddDays(-40), ProcessingJobState.Completed);
+        var more = WorkItem.Create(woken.Id, null, "stage", ResourcePool.Cpu, 0, null, Now);
+        Assert.True(await bed.Library.Jobs.AddWorkItemsAsync(woken.Id, [more], Now, Token));
+
+        var deleted = await bed.Library.Jobs.PruneFinishedJobsAsync(0, Now.AddDays(-30), Token);
+
+        Assert.Equal(1, deleted);
+        Assert.Equal(ProcessingJobState.Queued, (await bed.Library.Jobs.GetJobAsync(woken.Id, Token))!.State);
+        Assert.Contains(more.Id, (await bed.Library.Jobs.GetWorkItemsAsync(woken.Id, Token)).Select(item => item.Id));
+        Assert.Null(await bed.Library.Jobs.GetJobAsync(asleep.Id, Token));
+    }
+
+    private async Task<ProcessingJob> AddFinishedJobAsync(DateTimeOffset finishedAt, ProcessingJobState state)
+    {
+        var (job, items) = NewJob(1);
+        await bed.Library.Jobs.AddJobAsync(job, items, Token);
+        var running = await bed.Library.Jobs.StartAsync(items[0], finishedAt, Token);
+        var workState = state == ProcessingJobState.Completed ? WorkItemState.Completed : WorkItemState.Failed;
+        await bed.Library.Jobs.FinishAsync(running!.ChangeState(workState, finishedAt, workState == WorkItemState.Failed ? "broken" : null), finishedAt, Token);
+        var finished = await bed.Library.Jobs.GetJobAsync(job.Id, Token);
+        Assert.True(ProcessingJobStateTransitions.IsFinished(finished!.State));
+        return finished;
+    }
+
     private static ProcessingJob NewJobRecord() =>
         new() { Id = Id<ProcessingJob>.New(), Type = "test", Description = "Test job", Priority = (int)JobPriority.Import, CreatedAt = Now };
 

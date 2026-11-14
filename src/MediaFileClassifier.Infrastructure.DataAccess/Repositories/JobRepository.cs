@@ -365,6 +365,43 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<int> PruneFinishedJobsAsync(int keepLast, DateTimeOffset olderThan, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(keepLast);
+
+        // Everything happens in one write, so no other write can wake a job between choosing it and deleting it; the
+        // state is checked in the delete as well, in case a job isn't what it was.
+        return writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var finished = db.ProcessingJobs.Where(job =>
+                    (job.State == ProcessingJobState.Completed || job.State == ProcessingJobState.Failed || job.State == ProcessingJobState.Cancelled)
+                    && job.FinishedAt != null);
+                var beyondLimit = await finished
+                    .OrderByDescending(job => job.FinishedAt)
+                    .ThenByDescending(job => job.Id)
+                    .Skip(keepLast)
+                    .Select(job => job.Id)
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                var tooOld = await finished.Where(job => job.FinishedAt < olderThan).Select(job => job.Id).ToListAsync(token).ConfigureAwait(false);
+
+                var deleted = 0;
+                foreach (var batch in beyondLimit.Union(tooOld).Chunk(MediaItemRepository.BatchSize))
+                {
+                    deleted += await db.ProcessingJobs
+                        .Where(job => batch.Contains(job.Id)
+                            && (job.State == ProcessingJobState.Completed || job.State == ProcessingJobState.Failed || job.State == ProcessingJobState.Cancelled))
+                        .ExecuteDeleteAsync(token)
+                        .ConfigureAwait(false);
+                }
+
+                return deleted;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
         writer.ExecuteAsync(
             async (db, token) =>

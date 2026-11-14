@@ -191,6 +191,18 @@ public interface IJobRepository
     Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Deletes old finished jobs with their work items (E05-S03-T04): the finished jobs beyond the newest
+    /// <paramref name="keepLast"/> by finish time, and the finished jobs that finished before
+    /// <paramref name="olderThan"/>. A job that isn't finished is never deleted, and the state is checked again as the
+    /// rows are deleted, so a finished job that new work woke up in the meantime stays.
+    /// </summary>
+    /// <param name="keepLast">How many of the most recently finished jobs to keep.</param>
+    /// <param name="olderThan">Finished jobs that finished before this time are deleted.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of jobs deleted.</returns>
+    Task<int> PruneFinishedJobsAsync(int keepLast, DateTimeOffset olderThan, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Puts the jobs that can't go on without a model into <see cref="ProcessingJobState.WaitingForModel"/>: queued or
     /// running jobs with nothing running, whose queued work is all in the given stages (D037).
     /// </summary>

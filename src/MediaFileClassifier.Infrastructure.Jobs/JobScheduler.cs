@@ -47,6 +47,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private readonly ILogger logger;
     private readonly IErrorClassifier classifier;
     private readonly RetryPolicy retryPolicy;
+    private readonly JobRetention retention;
     private readonly IProviderCircuitBreaker? breaker;
     private readonly Lock gate = new();
     private readonly Dictionary<ResourcePool, PoolState> pools;
@@ -89,6 +90,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// <param name="classifier">Classifies failures, or <see langword="null"/> for the .NET exception rules only.</param>
     /// <param name="retryPolicy">When transient failures are retried, or <see langword="null"/> for <see cref="RetryPolicy.Default"/>.</param>
     /// <param name="breaker">Pauses unavailable AI providers, or <see langword="null"/> to retry their failures like any other.</param>
+    /// <param name="retention">How long finished jobs are kept, or <see langword="null"/> for <see cref="JobRetention.Default"/>.</param>
     public JobScheduler(
         IOpenLibrary library,
         IEnumerable<IStageHandler> handlers,
@@ -99,9 +101,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         IModelAvailability? models = null,
         IErrorClassifier? classifier = null,
         RetryPolicy? retryPolicy = null,
-        IProviderCircuitBreaker? breaker = null)
+        IProviderCircuitBreaker? breaker = null,
+        JobRetention? retention = null)
     {
         Library = library;
+        this.retention = retention ?? JobRetention.Default;
         this.breaker = breaker;
         if (breaker is not null)
         {
@@ -723,6 +727,19 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// Starts a work item on the thread pool. Called under the lock, so the work item is registered as running
     /// before it can finish.
     /// </summary>
+    // Deleting old jobs is housekeeping: a failure to do it must not fail the work item that triggered it.
+    private async Task PruneJobsAsync()
+    {
+        try
+        {
+            await JobRetentionPruner.PruneAsync(Library.Jobs, retention, clock.GetUtcNow(), CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            LogPruneFailed(exception);
+        }
+    }
+
     private void StartWorkItem(WorkItem workItem, PoolState pool)
     {
         pool.Running++;
@@ -744,6 +761,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             var (finished, parkedFor) = await HandleAsync(workItem, cancellation.Token).ConfigureAwait(false);
             var job = await Library.Jobs.FinishAsync(finished, clock.GetUtcNow(), CancellationToken.None).ConfigureAwait(false);
             progress.Finished(finished, job);
+            if (ProcessingJobStateTransitions.IsFinished(job.State))
+            {
+                await PruneJobsAsync().ConfigureAwait(false);
+            }
+
             if (parkedFor is not null)
             {
                 // The circuit may have closed before the parked state was written, so its release missed this one.
@@ -1004,6 +1026,9 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The stage {Stage} couldn't record the failure of work item {WorkItemId}")]
     private partial void LogFailureNotRecorded(Exception exception, string workItemId, string stage);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Old finished jobs couldn't be deleted")]
+    private partial void LogPruneFailed(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The state of work item {WorkItemId} ({Stage}) couldn't be recorded")]
     private partial void LogWorkItemNotRecorded(Exception exception, string workItemId, string stage);

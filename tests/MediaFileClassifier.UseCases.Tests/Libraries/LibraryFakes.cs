@@ -268,6 +268,8 @@ internal sealed class FakeJobRepository : IJobRepository
 
     public Task<int> RequeueRunningAsync(DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+    public Task<int> PruneFinishedJobsAsync(int keepLast, DateTimeOffset olderThan, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
     public Task<int> MarkWaitingForModelAsync(IReadOnlyCollection<string> stages, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<int> ResumeWaitingForModelAsync(DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();

@@ -26,6 +26,7 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// <param name="classifier">Classifies failures, so transient ones are retried (E05-S04).</param>
 /// <param name="retryPolicy">When transient failures are retried, or <see langword="null"/> for the default.</param>
 /// <param name="breaker">Pauses unavailable AI providers (E05-S04-T03).</param>
+/// <param name="retention">How long finished jobs are kept, or <see langword="null"/> for the default (E05-S03-T04).</param>
 public sealed partial class JobSystem(
     IEnumerable<IStageHandler> handlers,
     ISettingsService settings,
@@ -36,7 +37,8 @@ public sealed partial class JobSystem(
     IModelAvailability? models = null,
     IErrorClassifier? classifier = null,
     RetryPolicy? retryPolicy = null,
-    IProviderCircuitBreaker? breaker = null) : IJobSystem, IDisposable
+    IProviderCircuitBreaker? breaker = null,
+    JobRetention? retention = null) : IJobSystem, IDisposable
 {
     /// <summary>
     /// Default concurrency limit of the I/O pool.
@@ -85,13 +87,14 @@ public sealed partial class JobSystem(
             await StopCurrentAsync().ConfigureAwait(false);
 
             var requeued = await library.Jobs.RequeueRunningAsync(clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            await JobRetentionPruner.PruneAsync(library.Jobs, retention ?? JobRetention.Default, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
             var pending = await library.Jobs.CountPendingAsync(cancellationToken).ConfigureAwait(false);
             var processing = settings.Current.Processing;
             var startPaused = pending > 0 && processing.ResumeOnOpen == ResumeMode.Ask;
             progress.Reset(
                 await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false),
                 await library.Jobs.CountUnfinishedWorkAsync(cancellationToken).ConfigureAwait(false));
-            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger, models, classifier, retryPolicy, breaker);
+            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger, models, classifier, retryPolicy, breaker, retention);
             scheduler.Start(startPaused);
             current = scheduler;
             LogStarted(library.Layout.RootDirectory, pending, requeued, startPaused);

@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
+using MediaFileClassifier.Infrastructure.DataAccess.Database.Conversions;
 using MediaFileClassifier.Infrastructure.DataAccess.Search;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -103,14 +104,17 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
 
-        // tag_key is the tag in upper case (D071), so an upper-case prefix ignores case in every alphabet.
-        var key = string.IsNullOrWhiteSpace(prefix) ? string.Empty : TagName.From(prefix).Value.ToUpperInvariant();
+        // tag_key is the tag in upper case (D071), so an upper-case prefix ignores case in every alphabet. A range on it,
+        // unlike LIKE, uses its index: every key that starts with the prefix sorts below the prefix and U+10FFFF.
+        var key = string.IsNullOrWhiteSpace(prefix) ? string.Empty : TagKeyGenerator.KeyOf(TagName.From(prefix));
 
         // Only numbers and SQL the code writes itself go into the text; the prefix and the limit are parameters.
+        // Excluded items never reach the results, so their tags aren't offered.
         var sql = $"""
             SELECT min(a."tag") AS Tag, count(DISTINCT a."item_id") AS ItemCount
             FROM "tag_assignment" a
-            WHERE a."tag_key" LIKE $prefix ESCAPE '{SqlLike.EscapeCharacter}' AND {EffectiveTagSql.Condition("a")}
+            JOIN "media_item" m ON m."id" = a."item_id"
+            WHERE a."tag_key" >= $from AND a."tag_key" < $to AND m."status" <> {(int)MediaItemStatus.Excluded} AND {EffectiveTagSql.Condition("a")}
             GROUP BY a."tag_key"
             ORDER BY ItemCount DESC, a."tag_key"
             LIMIT $limit
@@ -119,7 +123,7 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             async (db, token) =>
             {
                 var tags = await db.Database
-                    .SqlQueryRaw<UserTagRow>(sql, new SqliteParameter("$prefix", SqlLike.Escape(key) + "%"), new SqliteParameter("$limit", limit))
+                    .SqlQueryRaw<UserTagRow>(sql, new SqliteParameter("$from", key), new SqliteParameter("$to", key + "􏿿"), new SqliteParameter("$limit", limit))
                     .ToListAsync(token)
                     .ConfigureAwait(false);
                 return [.. tags.Select(tag => (TagName.From(tag.Tag), tag.ItemCount))];

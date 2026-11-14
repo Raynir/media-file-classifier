@@ -58,6 +58,7 @@ public sealed class TagsFilterTests(TagsFilterTests.Library library) : IClassFix
     [InlineData("п", new[] { "Пляж" })]
     [InlineData("%", new string[0])]
     [InlineData("mountain", new string[0])]
+    [InlineData("pr", new string[0])]
     public async Task Options_ListEffectiveTags_ByPrefix_MostUsedFirst(string? prefix, string[] expected)
     {
         var options = await library.Filter.GetOptionsAsync(prefix, Token);
@@ -132,6 +133,9 @@ public sealed class TagsFilterTests(TagsFilterTests.Library library) : IClassFix
             });
             await AddAsync("technical", metadata => metadata.SetTechnicalTags([TagName.From("sea"), TagName.From("Пляж")], Now()));
             await AddAsync("untagged", _ => { });
+
+            // Excluded items never reach the results, so autocompletion leaves their tags out.
+            await AddAsync("excluded", metadata => metadata.AddTag(TagName.From("Private"), Now()), item => item.ChangeStatus(MediaItemStatus.Excluded, Now()));
         }
 
         public ValueTask DisposeAsync() => bed.DisposeAsync();
@@ -145,9 +149,9 @@ public sealed class TagsFilterTests(TagsFilterTests.Library library) : IClassFix
             metadata.ApplyRun(run, [], [.. tags.Select(tag => TagAssignment.Ai(run, TagName.From(tag), 0.8, Now()))], 1);
         }
 
-        private async Task AddAsync(string name, Action<ItemMetadata> tag)
+        private async Task AddAsync(string name, Action<ItemMetadata> tag, Action<MediaItem>? configure = null)
         {
-            var item = await bed.AddItemAsync(names.Count + 1);
+            var item = await bed.AddItemAsync(names.Count + 1, configure: configure);
             await bed.Library.Library.Metadata.UpdateAsync(item.Id, tag, Token);
             names[item.Id] = name;
         }

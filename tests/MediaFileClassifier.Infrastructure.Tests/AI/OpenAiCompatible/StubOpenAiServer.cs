@@ -18,6 +18,8 @@ internal sealed class StubOpenAiServer : HttpMessageHandler
 
     public HttpStatusCode ChatStatus { get; set; } = HttpStatusCode.OK;
 
+    public string ChatFinishReason { get; set; } = "stop";
+
     public HttpClient CreateClient() => new(this, disposeHandler: false);
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -43,7 +45,7 @@ internal sealed class StubOpenAiServer : HttpMessageHandler
                 @object = "chat.completion",
                 created = 0,
                 model = Models[0],
-                choices = new[] { new { index = 0, message = new { role = "assistant", content }, finish_reason = "stop" } },
+                choices = new[] { new { index = 0, message = new { role = "assistant", content }, finish_reason = ChatFinishReason } },
                 usage = new { prompt_tokens = 1, completion_tokens = 1, total_tokens = 2 },
             });
         }

@@ -143,6 +143,20 @@ public sealed class OpenAiCompatibleProviderTests : IDisposable
         Assert.False(output.Value.HasText);
     }
 
+    [Theory]
+    [InlineData("length", "CA\n5")]
+    [InlineData("stop", "CA\n5\n5\n5\n5\n5\n5\n5")]
+    public async Task RecognizeText_LoopIsTrimmedOnlyWhenCutOff(string finishReason, string expected)
+    {
+        server.ChatAnswers.Enqueue("CA\n5\n5\n5\n5\n5\n5\n5");
+        server.ChatFinishReason = finishReason;
+        using var provider = CreateOcr();
+
+        var output = await provider.RecognizeTextAsync(Image, TestContext.Current.CancellationToken);
+
+        Assert.Equal(expected, output.Value.Text);
+    }
+
     [Fact]
     public async Task RecognizeText_ServerError_ThrowsProviderError()
     {

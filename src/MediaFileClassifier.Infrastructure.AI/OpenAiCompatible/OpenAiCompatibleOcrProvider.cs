@@ -21,7 +21,7 @@ public sealed class OpenAiCompatibleOcrProvider(string id, string displayName, O
 
     /// <summary>
     /// The most tokens a transcription may take, so a model that repeats a line stops instead of filling its context.
-    /// A dense page of text is about 1,500 tokens.
+    /// A dense page of text is about 1,500 tokens. An answer cut off here is cleaned by <see cref="OcrLoopTrimmer"/>.
     /// </summary>
     internal const int MaxOutputTokens = 2048;
 
@@ -41,6 +41,11 @@ public sealed class OpenAiCompatibleOcrProvider(string id, string displayName, O
             .ConfigureAwait(false);
 
         var text = response.Text.Trim();
+        if (response.FinishReason == ChatFinishReason.Length)
+        {
+            text = OcrLoopTrimmer.TrimCutOff(text);
+        }
+
         if (text.Equals(NoTextMarker, StringComparison.OrdinalIgnoreCase))
         {
             text = string.Empty;

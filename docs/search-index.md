@@ -9,7 +9,7 @@ The engine under search (E09) and filtering (E10): keyword search with FTS5, vec
 | `ISearchIndex`, `SearchQuery`, `SearchFilter`, `SearchResults` | `Infrastructure.Abstractions/Search` | The interface the use cases call. |
 | `SearchIndex` | `Infrastructure.Search` | Follows the library session, loads the vectors, runs the modes and fuses the lists. Registered by `AddSearch()`. |
 | `VectorIndex`, `ModelVectors` | `Infrastructure.Search/Vectors` | One contiguous half-precision array per model, scored with `TensorPrimitives.Dot`, split across cores above 8,192 vectors. |
-| `ReciprocalRankFusion` | `Infrastructure.Search/Ranking` | `Σ weight / (k + rank)`; k = 60, weights 1 and 1, 200 candidates per list by default (`SearchRankingOptions`). |
+| `ReciprocalRankFusion` | `Infrastructure.Search/Ranking` | `Σ weight / (k + rank)`; k = 10, weights 1 and 1, 200 candidates per list by default (`SearchRankingOptions`, tuned in E09-S05). |
 | `ISearchStore` (`SearchStore`) | `Infrastructure.Abstractions/Search`, `DataAccess/Search` | The FTS5 index, filter and order SQL, matched fields, and the rebuild. `IOpenLibrary.Search`. |
 | `IEmbeddingRepository` (`EmbeddingRepository`) | `Repositories`, `DataAccess/Repositories` | The only write path for embeddings; raises `Changed` after each commit. `IOpenLibrary.Embeddings`. |
 | `RebuildSearchIndexCommand` | `UseCases/Search/RebuildSearchIndex` | "Rebuild or refresh the index" (spec 1.2). |
@@ -37,7 +37,7 @@ The `SearchIndex` migration adds, in raw SQL:
 ## Queries
 
 - **Words:** split on white space; words without a letter or digit are dropped; at most 16. Each word is an FTS5 string, so punctuation is never query syntax. Every word must match as a prefix in any field, or as a path substring if it has 3+ characters.
-- **Keyword ranking:** BM25 with field weights title 4, tags 3, file name 2, others 1, over the documents whose words match every term; documents that matched a word only as a path substring rank after them.
+- **Keyword ranking:** BM25 with every field weighted 1 by default (`KeywordFieldWeights`, tuned in E09-S05), over the documents whose words match every term; documents that matched a word only as a path substring rank after them.
 - **Vector:** the filter's SQL returns document IDs, which become a mask the scorer checks. An item scores as its best vector. Excluded items are never in the mask.
 - **Hybrid:** the top 200 of each list, fused by RRF. Ties go to the better single rank, then the keyword list, then the lower document ID.
 - **Other orders** (name, date, size, import date; E10-S04) work in every mode: for vector and hybrid queries the ranked set (the 200 best candidates of each list, after the relevance cut) is sorted in SQL; keyword-only queries sort every match. Each order ends with the document ID in the same direction, so paging never shows an item twice or skips one. A list (no text, no vector) reads a page off the sort key's index: the `ORDER BY` names only `search_sort` columns (`s."doc_id"` as the tie-breaker, not `d."doc_id"`, which would make SQLite sort every row), and the total is counted separately, since a `count(*) OVER ()` window reads every row too. Natural directions: name A to Z, the others newest or largest first; `ReverseSort` flips them. `SortMode.Relevance` without text or vector lists the newest imports first.
@@ -143,6 +143,35 @@ D031's 300 ms is counted from the end of the pause, so the pause is chosen for h
 | 300 ms | 1.7 | 0.2 | 4.0 | 0.9 |
 
 The results arrive the pause plus the encoder and search after the last keystroke, so every 50 ms off the pause shows them 50 ms sooner. The user chose 200 ms: 100 ms sooner than before, at about one cancelled search per query for a fast typist and 2.4 for a slower one, which the cheaper searches after MFC-988 and 989 allow. The started counts don't depend on the machine's load, but the cancelled counts do: a final run while other builds were busy (encoder p95 345 ms instead of 25 ms) gave 0.76 and 1.96 cancelled per query at 200 ms, and search p95 numbers that aren't comparable, so the clean MFC-989 table above stays the reference for search times (the pause adds a constant). The simulated gaps are a model, not recorded typing; the app logs the time from the last keystroke to the results, so real numbers can check it.
+
+## Relevance tuning (E09-S05)
+
+The ranking settings are code defaults; the evaluation tool's flags override them for a run, and the app has no setting for them.
+
+| Setting | Where | Default | Flag |
+|---|---|---|---|
+| RRF k | `SearchRankingOptions.RrfK` | 10 (was 60) | `--rrf-k` |
+| Keyword and vector list weights | `SearchRankingOptions.KeywordWeight`, `VectorWeight` | 1 and 1 | `--keyword-weight`, `--vector-weight` |
+| Candidates per list | `SearchRankingOptions.CandidateLimit` | 200 | none (changing it changes search cost) |
+| BM25 field weights | `KeywordFieldWeights` | 1 for every field (was title 4, tags 3, file name 2, others 1) | `--field-weights title=4,tags=3,...` |
+| Semantic relevance cut | `SemanticRelevanceThresholds.Siglip2Base` | centred 0.07, raw 0.13 | `--threshold centred,raw` or `none` |
+
+How they were picked: the corpus (351 items, 139 English and 142 Russian queries, 20 of them that should find nothing) was described and read once by the app's own describer and OCR with `qwen/qwen3-vl-4b` (`eval/analysis/`), then indexed by the app's `SearchIndex` (`app-hybrid`, `app-vector`, `app-keyword`; see `docs/evaluation-corpus.md`). The untuned run is pinned in `eval/baselines.json` `references`. `tune` scored RRF k 10/30/60 × keyword weight 0.5/1/1.5/2 × four field-weight sets × three thresholds (`eval/reports/2026-11-14_163213_tune-app-hybrid.md`).
+
+| Run | Recall@10 en | Recall@10 ru | MRR en | MRR ru | Nonsense queries with results en / ru |
+|---|--:|--:|--:|--:|--:|
+| Untuned hybrid (baseline run) | 0.9288 | 0.7407 | 0.9638 | 0.8040 | 0.1 / 0.9 |
+| **Tuned hybrid (k 10, flat field weights)** | **0.9304** | **0.7407** | **0.9716** | **0.8040** | 0.1 / 0.9 |
+| Vector only, same threshold | 0.7905 | 0.6726 | 0.8682 | 0.7352 | 0.1 / 0.9 |
+| Keyword only | 0.7160 | 0.1787 | 0.8220 | 0.2311 | 0 / 0 |
+| Hybrid, threshold 0.05 / 0.12 | 0.9682 | 0.8026 | 0.9774 | 0.8353 | 0.6 / 1.0 |
+| Hybrid, threshold 0.09 / 0.15 | 0.8812 | 0.5800 | 0.9561 | 0.6962 | 0 / 0 |
+
+- The ranking settings move the numbers little: across the whole grid at the current threshold, recall@10 stays within 0.925 to 0.932 (en) and doesn't change (ru). The tuned row is the only one that is better or equal on every metric; keyword weight 0.5 gives the best English MRR (0.9755) but costs Russian MRR (0.7907).
+- The threshold decides most of it. Looser cuts find more (+0.04 en, +0.06 ru) but then most nonsense queries show results; stricter cuts hide nonsense entirely but lose a fifth of the Russian recall. The cut stays where E09-S01 put it.
+- Hybrid beats vector-only by 0.14 (en) and 0.07 (ru) recall@10. Russian stays lower because the descriptions and tags are in English (the profile language), so a Russian query finds them only through SigLIP 2; abstract and tag-style Russian queries are the weakest categories.
+- Flat field weights mean a word in the title no longer outranks the same word as a prefix in a shorter file name; on the corpus that cost nothing (the filename and tag categories keep their scores).
+- The headline "below" status in these reports compares with `baselines.json`'s minimums, which were set for the `siglip2` system on the content categories only; the app systems also score the filename, tag and none categories.
 
 ## Known follow-ups
 

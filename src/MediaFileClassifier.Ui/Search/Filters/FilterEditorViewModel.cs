@@ -88,6 +88,14 @@ public abstract class FilterEditorViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Rewrites what the user typed as the value the filter really uses, e.g. a number clamped to its bounds. Called
+    /// when the control loses focus, so text being typed isn't rewritten under the cursor.
+    /// </summary>
+    public virtual void Normalize()
+    {
+    }
+
+    /// <summary>
     /// Sets the control from a value.
     /// </summary>
     /// <param name="value">The value, or <see langword="null"/> for none.</param>

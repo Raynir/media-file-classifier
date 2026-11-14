@@ -20,11 +20,11 @@
       </ItemsControl.ItemsPanel>
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="vm:QuickFilterViewModel">
-          <Button Classes="FilterChip"
-                  Classes.Selected="{Binding IsChecked}"
-                  Content="{Binding Text}"
-                  Command="{Binding ApplyCommand}"
-                  AutomationProperties.Name="{Binding Text}" />
+          <ToggleButton Classes="FilterChip"
+                        IsChecked="{Binding IsChecked, Mode=OneWay}"
+                        Content="{Binding Text}"
+                        Command="{Binding ApplyCommand}"
+                        AutomationProperties.Name="{Binding Text}" />
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>

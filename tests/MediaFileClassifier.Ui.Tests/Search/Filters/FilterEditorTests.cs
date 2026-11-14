@@ -121,6 +121,28 @@ public sealed class FilterEditorTests
     }
 
     [Fact]
+    public void Range_Normalize_RewritesTheBoxesWithTheValuesInForce()
+    {
+        var editor = new RangeFilterViewModel(TestFilters.Megapixels, localizer) { MinText = "-5", MaxText = "abc" };
+
+        editor.Normalize();
+
+        Assert.Equal("0", editor.MinText);
+        Assert.Equal(string.Empty, editor.MaxText);
+    }
+
+    [Fact]
+    public void Resolution_Normalize_ClearsBoxesThatAreNotNumbers()
+    {
+        var editor = new ResolutionFilterViewModel(TestFilters.Resolution, localizer) { MinWidthText = "1920", MinHeightText = "abc" };
+
+        editor.Normalize();
+
+        Assert.Equal("1920", editor.MinWidthText);
+        Assert.Equal(string.Empty, editor.MinHeightText);
+    }
+
+    [Fact]
     public void Range_MinAboveMax_IsSwapped()
     {
         var editor = new RangeFilterViewModel(TestFilters.Megapixels, localizer) { MinText = "9", MaxText = "3" };

@@ -84,6 +84,9 @@ public sealed partial class RangeFilterViewModel : FilterEditorViewModel
     }
 
     /// <inheritdoc />
+    public override void Normalize() => Load(Value);
+
+    /// <inheritdoc />
     protected override void LoadCore(FilterValue? value)
     {
         var range = value as RangeValue;

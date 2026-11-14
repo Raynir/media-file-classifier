@@ -87,6 +87,9 @@ public sealed partial class ResolutionFilterViewModel : FilterEditorViewModel
     }
 
     /// <inheritdoc />
+    public override void Normalize() => Load(Value);
+
+    /// <inheritdoc />
     protected override void LoadCore(FilterValue? value)
     {
         var resolution = value as ResolutionValue;

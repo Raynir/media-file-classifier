@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Ui.ViewModels;
@@ -37,5 +38,12 @@ public sealed partial class QuickFilterViewModel : ViewModelBase
     /// Applies the filter.
     /// </summary>
     [RelayCommand]
-    public void Apply() => apply();
+    public void Apply()
+    {
+        apply();
+
+        // A toggle button flips itself when clicked; telling it the state again, after the search has updated it,
+        // puts it right when the click changed nothing (clicking the chip already in force).
+        Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(IsChecked)));
+    }
 }

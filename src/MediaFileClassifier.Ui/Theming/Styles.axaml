@@ -108,6 +108,18 @@
       <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
       <Setter Property="Margin" Value="0,0,4,4" />
     </Style>
+    <Style Selector="ToggleButton.FilterChip">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+      <Setter Property="Margin" Value="0,0,4,4" />
+    </Style>
+    <Style Selector="ToggleButton.FilterChip:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Selected}" />
+    </Style>
     <Style Selector="Button.FilterChip.Selected">
       <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Selected}" />

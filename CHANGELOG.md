@@ -4,6 +4,11 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Changed
+
+- The describer asks for at most 15 tags (the schema's `maxItems`, as its description already said) and sends a presence penalty of 1.5, which stops near-duplicate tags such as "cat calm", "cat still" (D350; OCR requests are unchanged).
+- `evaluate` computes its exit code from the report it just built instead of reading the JSON file back; the query encoder's latency test runs in the non-parallel timing collection.
+
 ## M2 — 2026-11-15
 
 ### Added

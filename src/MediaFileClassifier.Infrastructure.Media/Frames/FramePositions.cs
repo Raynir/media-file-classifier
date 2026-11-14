@@ -15,11 +15,7 @@ internal static class FramePositions
     /// <param name="duration">The duration.</param>
     /// <param name="options">The options.</param>
     /// <returns>The count.</returns>
-    public static int Count(TimeSpan duration, FrameSamplingOptions options)
-    {
-        var slices = duration > TimeSpan.Zero ? Math.Floor(duration / options.Interval) : 0;
-        return (int)Math.Clamp(slices, options.MinFrames, options.MaxFrames);
-    }
+    public static int Count(TimeSpan duration, FrameSamplingOptions options) => options.FrameCount(duration);
 
     /// <summary>
     /// Gets the positions to read in a video. Only the start when the duration is unknown.

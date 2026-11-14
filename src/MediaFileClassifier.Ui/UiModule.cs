@@ -1,3 +1,4 @@
+using MediaFileClassifier.Ui.Analysis;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
@@ -137,6 +138,9 @@ public static class UiModule
         services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RetryCommands>());
+        services.TryAddSingleton<IAnalysisDialogs, AnalysisDialogs>();
+        services.TryAddSingleton<AnalysisRunner>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, AnalysisCommands>());
 
         // Media browser (E14-S01).
         services.AddSingleton<ThumbnailBitmapCache>();

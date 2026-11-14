@@ -28,6 +28,21 @@ public sealed record EvaluationReport
     /// </summary>
     public bool? PreviousUsedOtherInputs { get; init; }
 
+    /// <summary>
+    /// Gets the system's pinned baseline run every run is compared with (E09-S05), from <c>baselines.json</c>.
+    /// </summary>
+    public string? Reference { get; init; }
+
+    /// <summary>
+    /// Gets whether the baseline run scored other labels or data, so its deltas compare different questions.
+    /// </summary>
+    public bool? ReferenceUsedOtherInputs { get; init; }
+
+    /// <summary>
+    /// Gets the settings the system ran with, e.g. the ranking weights of the app's search.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? Parameters { get; init; }
+
     public IReadOnlyList<MetricComparison> Comparisons { get; init; } = [];
 }
 
@@ -98,6 +113,8 @@ public sealed record ImageScore(string Id, string Script, string Origin, int Ref
 /// <param name="Delta">Value minus Previous.</param>
 /// <param name="Threshold">The baseline, if set: a minimum for search, a maximum for OCR.</param>
 /// <param name="Status"><c>pass</c>, <c>below</c> (worse than the baseline) or <c>no baseline</c>.</param>
+/// <param name="Reference">The value in the system's pinned baseline run (<c>baselines.json</c> <c>references</c>), if any.</param>
+/// <param name="ReferenceDelta">Value minus Reference.</param>
 public sealed record MetricComparison(
     string Metric,
     string Group,
@@ -105,4 +122,6 @@ public sealed record MetricComparison(
     double? Previous,
     double? Delta,
     double? Threshold,
-    string Status);
+    string Status,
+    double? Reference = null,
+    double? ReferenceDelta = null);

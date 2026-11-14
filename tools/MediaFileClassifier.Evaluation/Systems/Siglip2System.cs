@@ -1,22 +1,9 @@
 using MediaFileClassifier.Domain.Analysis;
-using MediaFileClassifier.Domain.Identity;
-using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Evaluation.Data;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
-using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
-using MediaFileClassifier.Infrastructure.Abstractions.Formats;
-using MediaFileClassifier.Infrastructure.Abstractions.Frames;
-using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
-using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
-using MediaFileClassifier.Infrastructure.Capabilities;
-using MediaFileClassifier.Infrastructure.Hashing;
-using MediaFileClassifier.Infrastructure.Media;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Evaluation.Systems;
 
@@ -31,7 +18,7 @@ namespace MediaFileClassifier.Evaluation.Systems;
 public sealed class Siglip2System : IRetrievalSystem, IDisposable
 {
     private readonly Siglip2EmbeddingProvider provider;
-    private readonly ServiceProvider services;
+    private readonly CorpusMedia media = new();
     private readonly Dictionary<string, float[]> vectors = new(StringComparer.Ordinal);
     private readonly Action<string> log;
 
@@ -47,14 +34,6 @@ public sealed class Siglip2System : IRetrievalSystem, IDisposable
 
         this.log = log;
         provider = new Siglip2EmbeddingProvider(new DirectoryModelStore(Path.GetFullPath(modelDirectory)), new OnnxSessionFactory(), new Siglip2Options());
-        var capabilities = new CapabilityService([], NullLogger<CapabilityService>.Instance);
-        capabilities.SetAvailable(KnownCapabilities.VideoAnalysis);
-        services = new ServiceCollection()
-            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
-            .AddSingleton<ICapabilityService>(capabilities)
-            .AddSingleton<IPerceptualHasher, SkiaPerceptualHasher>()
-            .AddMedia()
-            .BuildServiceProvider();
     }
 
     /// <inheritdoc />
@@ -112,6 +91,23 @@ public sealed class Siglip2System : IRetrievalSystem, IDisposable
     }
 
     /// <summary>
+    /// Gets the vector of each indexed item, by item ID.
+    /// </summary>
+    internal IReadOnlyDictionary<string, float[]> Vectors => vectors;
+
+    /// <summary>
+    /// Encodes a text with the text tower, as given.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The normalised vector.</returns>
+    internal async Task<float[]> EmbedTextAsync(string text, CancellationToken cancellationToken)
+    {
+        var output = await provider.EmbedTextsAsync([text], cancellationToken).ConfigureAwait(false);
+        return output.Value[0].ToArray();
+    }
+
+    /// <summary>
     /// Scores every indexed item against a text query, for picking the relevance threshold (E09-S01-T03).
     /// </summary>
     /// <param name="text">The query text.</param>
@@ -128,39 +124,24 @@ public sealed class Siglip2System : IRetrievalSystem, IDisposable
     public void Dispose()
     {
         provider.Dispose();
-        services.Dispose();
+        media.Dispose();
     }
 
     private async Task<float[]?> EmbedItemAsync(string path, CancellationToken cancellationToken)
     {
-        var content = new MediaContent(Id<MediaItem>.New(), DateTimeOffset.UnixEpoch, _ => Task.FromResult<Stream>(File.OpenRead(path))) { LocalPath = path };
-        MediaFormatDetection format;
-        await using (var stream = await content.OpenReadAsync(cancellationToken).ConfigureAwait(false))
+        var file = await media.LoadAsync(path, cancellationToken).ConfigureAwait(false);
+        if (file.Frames is { } frames)
         {
-            format = await services.GetRequiredService<IMediaFormatRegistry>().DetectAsync(stream, Path.GetFileName(path), cancellationToken).ConfigureAwait(false);
-        }
-
-        if (!format.IsSupported)
-        {
-            throw new InvalidDataException($"{path} isn't a supported media file: {format.Rejection}");
-        }
-
-        if (format.MediaType is MediaType.Video or MediaType.AnimatedImage)
-        {
-            var metadata = await format.Handler!.MetadataExtractor.ExtractAsync(content, format, cancellationToken).ConfigureAwait(false);
-            var sample = await services.GetRequiredService<IFrameSampler>().SampleAsync(content, format, metadata, FrameSamplingOptions.Default, cancellationToken).ConfigureAwait(false);
-            if (sample.Frames.Count == 0)
+            if (frames.Count == 0)
             {
                 return null;
             }
 
-            var frames = sample.Frames.Select(frame => AiImage.FromRgba(frame.Pixels, frame.Width, frame.Height, $"frame {frame.Index}")).ToList();
             var embedded = await provider.EmbedImagesAsync(frames, cancellationToken).ConfigureAwait(false);
             return KeyframeAggregation.MeanEmbedding(embedded.Value);
         }
 
-        var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-        var output = await provider.EmbedImagesAsync([new AiImage(bytes, "image/*", Path.GetFileName(path))], cancellationToken).ConfigureAwait(false);
+        var output = await provider.EmbedImagesAsync([new AiImage(file.Bytes!, "image/*", Path.GetFileName(path))], cancellationToken).ConfigureAwait(false);
         return output.Value[0].ToArray();
     }
 

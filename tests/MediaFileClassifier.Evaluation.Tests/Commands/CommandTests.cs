@@ -28,6 +28,34 @@ public sealed class CommandTests
     }
 
     [Fact]
+    public async Task Evaluate_WithAPinnedBaselineRun_ShowsTheChangeFromItOnEveryRun()
+    {
+        using var temporary = new TemporaryFolder();
+        var folder = TestData.WriteFolder(temporary);
+        var results = Path.Combine(folder, "results.json");
+        var options = CommandOptions.Parse(["--data", folder, "--results", results]);
+        Assert.Equal(0, await EvaluateCommand.RunAsync(options, new FixedClock(TestData.FirstRun), TextWriter.Null, CancellationToken.None));
+        File.WriteAllText(Path.Combine(folder, EvaluationData.BaselinesFile), """{ "references": { "Test System 1": "2026-11-01_090000_test-system-1" } }""");
+
+        // A better second run: ru-001 now finds both cats first.
+        var better = TestData.Results with
+        {
+            Search = new Dictionary<string, IReadOnlyList<string>>(TestData.Results.Search!) { ["ru-001"] = ["cat-1", "cat-2"] },
+        };
+        File.WriteAllText(results, System.Text.Json.JsonSerializer.Serialize(better, EvaluationJson.Options));
+        using var output = new StringWriter();
+        Assert.Equal(0, await EvaluateCommand.RunAsync(options, new FixedClock(TestData.FirstRun.AddDays(1)), output, CancellationToken.None));
+
+        var latest = Directory.GetFiles(Path.Combine(folder, "reports"), "*.json").Max(StringComparer.Ordinal)!;
+        var report = ReportStore.Read(latest)!;
+        var recall = report.Comparisons.Single(c => c.Metric == "recall@10" && c.Group == "ru");
+        Assert.Equal("2026-11-01_090000_test-system-1.json", report.Reference);
+        Assert.Equal((0.25, 0.5, 0.25), (recall.Reference, recall.Value, recall.ReferenceDelta));
+        Assert.Contains("recall@10  ru        0.5000  +0.2500  no baseline", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("| recall@10 | ru | 0.5000 | 0.2500 | +0.2500 | +0.2500 | - | no baseline |", File.ReadAllText(Path.ChangeExtension(latest, ".md")), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Evaluate_FailBelowBaseline_ReturnsThree()
     {
         using var temporary = new TemporaryFolder();

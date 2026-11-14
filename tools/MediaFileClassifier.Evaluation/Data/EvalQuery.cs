@@ -52,4 +52,11 @@ public static class QueryCategories
     /// recall@10 and MRR and scored by whether any result is shown.
     /// </summary>
     public const string None = "none";
+
+    /// <summary>
+    /// The categories E09-S05 added for the app's keyword and hybrid search. Vector similarity alone can't answer them
+    /// (a file name, a tag, nothing at all), so the embedding regression run (<c>--system siglip2</c>) leaves them out
+    /// and the D094 minimums keep their meaning.
+    /// </summary>
+    public static IReadOnlyList<string> SearchSpecific { get; } = ["filename", "tag", None];
 }

@@ -22,15 +22,37 @@ public static class ReportWriter
         Line(text, report.Previous is null
             ? $"- Previous run: none, so there are no deltas."
             : $"- Previous run: {report.Previous}{(report.PreviousUsedOtherInputs == true ? " (different labels, so deltas compare different questions)" : string.Empty)}");
+        if (report.Reference is not null)
+        {
+            Line(text, $"- Baseline run: {report.Reference}{(report.ReferenceUsedOtherInputs == true ? " (different labels, so deltas compare different questions)" : string.Empty)}");
+        }
+
+        if (report.Parameters is { Count: > 0 } parameters)
+        {
+            Line(text, $"- Settings: {string.Join("; ", parameters.Select(p => $"{p.Key} {p.Value}"))}");
+        }
+
         text.Append('\n');
 
         Line(text, $"## Summary");
         text.Append('\n');
-        Line(text, "| Metric | Group | Value | Change | Baseline | Status |");
-        Line(text, "|---|---|--:|--:|--:|---|");
-        foreach (var c in report.Comparisons)
+        if (report.Reference is null)
         {
-            Line(text, $"| {c.Metric} | {c.Group} | {Number(c.Value)} | {Signed(c.Delta)} | {(c.Threshold is null ? "-" : Number(c.Threshold.Value))} | {c.Status} |");
+            Line(text, "| Metric | Group | Value | Change | Baseline | Status |");
+            Line(text, "|---|---|--:|--:|--:|---|");
+            foreach (var c in report.Comparisons)
+            {
+                Line(text, $"| {c.Metric} | {c.Group} | {Number(c.Value)} | {Signed(c.Delta)} | {(c.Threshold is null ? "-" : Number(c.Threshold.Value))} | {c.Status} |");
+            }
+        }
+        else
+        {
+            Line(text, "| Metric | Group | Value | Baseline run | vs baseline run | Change | Baseline | Status |");
+            Line(text, "|---|---|--:|--:|--:|--:|--:|---|");
+            foreach (var c in report.Comparisons)
+            {
+                Line(text, $"| {c.Metric} | {c.Group} | {Number(c.Value)} | {Optional(c.Reference)} | {Signed(c.ReferenceDelta)} | {Signed(c.Delta)} | {Optional(c.Threshold)} | {c.Status} |");
+            }
         }
 
         text.Append('\n');
@@ -109,6 +131,8 @@ public static class ReportWriter
     }
 
     private static string Number(double value) => value.ToString("0.0000", CultureInfo.InvariantCulture);
+
+    private static string Optional(double? value) => value is null ? "-" : Number(value.Value);
 
     private static string Signed(double? value) => value switch
     {

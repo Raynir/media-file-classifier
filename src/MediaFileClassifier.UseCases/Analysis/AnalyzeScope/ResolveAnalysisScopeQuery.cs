@@ -65,8 +65,9 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
     // Items that were deleted since the ids were read are left out.
     private static async Task<List<MediaItemSummary>> ByIdsAsync(IOpenLibrary library, IReadOnlyList<Id<MediaItem>> ids, CancellationToken cancellationToken)
     {
-        var found = new Dictionary<Id<MediaItem>, MediaItemSummary>(ids.Count);
-        foreach (var chunk in ids.Distinct().Chunk(PageSize))
+        var distinct = ids.Distinct().ToList();
+        var found = new Dictionary<Id<MediaItem>, MediaItemSummary>(distinct.Count);
+        foreach (var chunk in distinct.Chunk(PageSize))
         {
             foreach (var summary in await library.Items.GetSummariesByIdsAsync(chunk, cancellationToken).ConfigureAwait(false))
             {
@@ -74,12 +75,12 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
             }
         }
 
-        return [.. ids.Distinct().Where(found.ContainsKey).Select(id => found[id])];
+        return [.. distinct.Where(found.ContainsKey).Select(id => found[id])];
     }
 
     // The ids of the current view. A search answers from the list of hits it read once for the search, so the order
     // holds while the pages are read; browsing is by offset, where an item added meanwhile can only repeat one (the
-    // caller removes repeats), never hide one.
+    // caller removes repeats), never hide one. An item deleted meanwhile can still shift the offset: a rare case.
     private async Task<List<Id<MediaItem>>> ViewIdsAsync(CancellationToken cancellationToken)
     {
         var all = new List<Id<MediaItem>>();

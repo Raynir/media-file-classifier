@@ -37,13 +37,15 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
         var summaries = request.Scope switch
         {
             AnalysisScope.ItemsScope items => await ByIdsAsync(library, [.. items.ItemIds.Distinct()], cancellationToken).ConfigureAwait(false),
-            AnalysisScope.FolderScope folder => await PagesAsync(
-                (offset, limit, token) => library.Items.GetSummariesAsync(new MediaItemFilter { FolderId = folder.FolderId, Subfolder = folder.Subfolder }, offset, limit, token),
+            AnalysisScope.FolderScope folder => await ByIdsAsync(
+                library,
+                await library.Items.GetFilteredIdsAsync(new MediaItemFilter { FolderId = folder.FolderId, Subfolder = folder.Subfolder }, cancellationToken).ConfigureAwait(false),
                 cancellationToken).ConfigureAwait(false),
-            AnalysisScope.PendingScope => await PagesAsync(
-                (offset, limit, token) => library.Items.GetSummariesAsync(new MediaItemFilter { Status = MediaItemStatus.Pending }, offset, limit, token),
+            AnalysisScope.PendingScope => await ByIdsAsync(
+                library,
+                await library.Items.GetFilteredIdsAsync(new MediaItemFilter { Status = MediaItemStatus.Pending }, cancellationToken).ConfigureAwait(false),
                 cancellationToken).ConfigureAwait(false),
-            AnalysisScope.SearchResultsScope => await PagesAsync((offset, limit, token) => view.GetPageAsync(offset, limit, token), cancellationToken).ConfigureAwait(false),
+            AnalysisScope.SearchResultsScope => await ByIdsAsync(library, await ViewIdsAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false),
             _ => throw new ArgumentException("Unknown analysis scope.", nameof(request)),
         };
 
@@ -59,25 +61,32 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
     private static int VideoFrames(MediaItemSummary video) =>
         video.Duration is { } duration && duration > TimeSpan.Zero ? FrameSamplingOptions.Default.FrameCount(duration) : 1;
 
-    private static async Task<List<MediaItemSummary>> ByIdsAsync(IOpenLibrary library, List<Id<MediaItem>> ids, CancellationToken cancellationToken)
+    // The summaries of the given items, in the order of the ids (the repository answers in no particular order).
+    // Items that were deleted since the ids were read are left out.
+    private static async Task<List<MediaItemSummary>> ByIdsAsync(IOpenLibrary library, IReadOnlyList<Id<MediaItem>> ids, CancellationToken cancellationToken)
     {
-        var all = new List<MediaItemSummary>(ids.Count);
-        foreach (var chunk in ids.Chunk(500))
+        var distinct = ids.Distinct().ToList();
+        var found = new Dictionary<Id<MediaItem>, MediaItemSummary>(distinct.Count);
+        foreach (var chunk in distinct.Chunk(PageSize))
         {
-            all.AddRange(await library.Items.GetSummariesByIdsAsync(chunk, cancellationToken).ConfigureAwait(false));
+            foreach (var summary in await library.Items.GetSummariesByIdsAsync(chunk, cancellationToken).ConfigureAwait(false))
+            {
+                found[summary.Id] = summary;
+            }
         }
 
-        return all;
+        return [.. distinct.Where(found.ContainsKey).Select(id => found[id])];
     }
 
-    private static async Task<List<MediaItemSummary>> PagesAsync(
-        Func<int, int, CancellationToken, Task<IReadOnlyList<MediaItemSummary>>> page,
-        CancellationToken cancellationToken)
+    // The ids of the current view. A search answers from the list of hits it read once for the search, so the order
+    // holds while the pages are read; browsing is by offset, where an item added meanwhile can only repeat one (the
+    // caller removes repeats), never hide one. An item deleted meanwhile can still shift the offset: a rare case.
+    private async Task<List<Id<MediaItem>>> ViewIdsAsync(CancellationToken cancellationToken)
     {
-        var all = new List<MediaItemSummary>();
+        var all = new List<Id<MediaItem>>();
         while (true)
         {
-            var batch = await page(all.Count, PageSize, cancellationToken).ConfigureAwait(false);
+            var batch = await view.GetIdsAsync(all.Count, PageSize, null, cancellationToken).ConfigureAwait(false);
             all.AddRange(batch);
             if (batch.Count < PageSize)
             {

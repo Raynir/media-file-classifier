@@ -83,6 +83,21 @@ public sealed class FilterStatePersistenceTests
     }
 
     [Fact]
+    public void WithRestoreOff_ALibraryThatOpens_DoesNotInheritTheFiltersOfThePreviousOne()
+    {
+        store.IsLibraryOpen = true;
+        _ = new FilterStatePersistence(source, store, serializer);
+        source.SetFilters(Videos);
+        store.SetValue(FilterSettings.LastFilters, string.Empty);
+
+        store.IsLibraryOpen = false;
+        store.IsLibraryOpen = true;
+
+        Assert.True(source.Filters.IsEmpty);
+        Assert.Equal(string.Empty, store.Get(FilterSettings.LastFilters));
+    }
+
+    [Fact]
     public void WhenNoLibraryIsOpen_ChangingFilters_SavesNothing()
     {
         _ = new FilterStatePersistence(source, store, serializer);

@@ -121,6 +121,63 @@ public sealed class FilterEditorTests
     }
 
     [Fact]
+    public void Range_MinAboveMax_IsSwapped()
+    {
+        var editor = new RangeFilterViewModel(TestFilters.Megapixels, localizer) { MinText = "9", MaxText = "3" };
+
+        Assert.Equal(new RangeValue(3, 9), editor.Value);
+    }
+
+    [Fact]
+    public void DateRange_FromAfterTo_IsSwapped()
+    {
+        var editor = new DateRangeFilterViewModel(TestFilters.Dates, localizer) { FromDate = new DateTime(2026, 5, 10), ToDate = new DateTime(2026, 5, 1) };
+
+        Assert.Equal(new DateRangeValue(null, new DateTimeOffset(new DateTime(2026, 5, 1)), new DateTimeOffset(new DateTime(2026, 5, 11))), editor.Value);
+    }
+
+    [Fact]
+    public void DateRange_WithPresetsOnlyInTheFilterOptions_ListsThem()
+    {
+        var editor = new DateRangeFilterViewModel(TestFilters.OptionDates, localizer);
+
+        Assert.Equal(["Any time", "Today", "This year"], editor.Presets.Select(preset => preset.Text));
+    }
+
+    [Fact]
+    public void Resolution_PresetWinsOverTheBoxes_AndTypingResetsThePreset()
+    {
+        var editor = new ResolutionFilterViewModel(TestFilters.Resolution, localizer);
+        Assert.Equal(["Any size", "HD or better", "4K or better"], editor.Presets.Select(preset => preset.Text));
+
+        editor.MinWidthText = "1920";
+        Assert.Equal(new ResolutionValue(null, 1920, null), editor.Value);
+
+        editor.SelectedPreset = editor.Presets[1];
+        Assert.Equal(new ResolutionValue("hd", null, null), editor.Value);
+        Assert.Equal(string.Empty, editor.MinWidthText);
+
+        editor.MinHeightText = "1080";
+        Assert.Equal(editor.Presets[0], editor.SelectedPreset);
+        Assert.Equal(new ResolutionValue(null, null, 1080), editor.Value);
+    }
+
+    [Fact]
+    public void Resolution_BoxesThatAreNotPositiveWholeNumbers_AreIgnored()
+    {
+        var editor = new ResolutionFilterViewModel(TestFilters.Resolution, localizer) { MinWidthText = "-4", MinHeightText = "abc" };
+
+        Assert.Null(editor.Value);
+    }
+
+    [Fact]
+    public void Factory_TryCreate_LeavesOutAKindWithoutAControl()
+    {
+        Assert.NotNull(FilterEditorFactory.TryCreate(TestFilters.Resolution, localizer));
+        Assert.Null(FilterEditorFactory.TryCreate(new UnknownKindFilter(), localizer));
+    }
+
+    [Fact]
     public void Boolean_UntickedIsNoFilter()
     {
         var editor = new BooleanFilterViewModel(TestFilters.Favorites, localizer);
@@ -143,6 +200,28 @@ public sealed class FilterEditorTests
 
         Assert.Equal(new IncludeExcludeValue(["cat"], ["dog"], matchAll: true), editor.Value);
         Assert.Equal("cat; not dog", editor.Describe(editor.Value!));
+    }
+
+    [Fact]
+    public void Tags_MovingATagToTheOtherSide_IgnoresCase()
+    {
+        var editor = new TagFilterViewModel(TestFilters.Tags, localizer);
+        editor.AddExclude("cat");
+
+        editor.AddInclude("Cat");
+
+        Assert.Equal(["Cat"], editor.Include);
+        Assert.Empty(editor.Exclude);
+    }
+
+    [Fact]
+    public void Tags_TypedTextSurvivesALoad()
+    {
+        var editor = new TagFilterViewModel(TestFilters.Tags, localizer) { Query = "bi" };
+
+        editor.Load(new IncludeExcludeValue(["cat"], [], matchAll: false));
+
+        Assert.Equal("bi", editor.Query);
     }
 
     [Fact]
@@ -181,5 +260,18 @@ public sealed class FilterEditorTests
 
         Assert.Null(editor.Value);
         Assert.Equal(1, changes);
+    }
+
+    private sealed class UnknownKindFilter : FilterDefinition<BooleanValue>
+    {
+        public override string Id => "unknown";
+
+        public override string DisplayNameKey => "Filter_Unknown";
+
+        public override int Order => 1;
+
+        public override FilterValueKind Kind => (FilterValueKind)99;
+
+        protected override string? ToSql(BooleanValue value, IFilterSql sql) => "1";
     }
 }

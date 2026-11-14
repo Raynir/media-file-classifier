@@ -171,7 +171,6 @@ public sealed partial class TagFilterViewModel : FilterEditorViewModel
         }
 
         MatchAll = tags?.MatchAll ?? false;
-        Query = string.Empty;
     }
 
     partial void OnMatchAllChanged(bool value)
@@ -192,7 +191,11 @@ public sealed partial class TagFilterViewModel : FilterEditorViewModel
             return;
         }
 
-        other.Remove(text);
+        if (other.FirstOrDefault(item => string.Equals(item, text, StringComparison.OrdinalIgnoreCase)) is { } opposite)
+        {
+            other.Remove(opposite);
+        }
+
         if (!target.Contains(text, StringComparer.OrdinalIgnoreCase))
         {
             target.Add(text);

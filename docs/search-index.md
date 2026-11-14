@@ -47,6 +47,20 @@ The `SearchIndex` migration adds, in raw SQL:
 
 A filter is an `IFilterDefinition` (`Infrastructure.Abstractions/Search/Filters`) registered as a singleton; derive from `FilterDefinition<TValue>`. It declares its ID, display name resource key, panel order, kind (multi-select, range, date range, boolean, include/exclude) and value type, whether it is available, and its SQL condition, which it writes through `IFilterSql` (`media_item` and `technical_metadata` columns, the item date, parameters, `LIKE`). `FilterRegistry` (UseCases) collects them. The active filters are a `FilterState` (filter ID → `FilterValue`), which `FilterStateSerializer` writes as `{"version":1,"filters":[{"id":"media-type","value":{"values":["Video"]}}]}`. `SearchMediaQuery.Filters` and `FindSimilarQuery.Filters` turn the state into `SearchFilter.Conditions`, which `SearchSql` ANDs into the same `WHERE` as the fixed filters, so every path applies them. Filters of different IDs combine with AND; values within one filter follow its kind (any of a multi-select). Unavailable filters don't apply. `SearchResultSource.SetFilters` applies them to every search and to browsing; with filters and no text, browsing goes through the search index, newest import first.
 
+### Core filters (E10-S03)
+
+| ID | Order | Kind | Values |
+|---|--:|---|---|
+| `media-type` | 100 | multi-select | `MediaType` names: `Image`, `AnimatedImage`, `Video` |
+| `file-format` | 200 | multi-select | format registry IDs (`jpeg`, `png`, `webp`, `gif`, `mp4`), matched by each format's extensions |
+| `date` | 300 | date range | presets `today`, `last-7-days`, `last-30-days`, `this-year`, `last-year`, or a custom range |
+| `resolution` | 400 | resolution | presets `small`, `hd`, `full-hd`, `4k`, or a minimum displayed width and height |
+
+The date and resolution filters list their presets through `IFilterOptions` (value = preset ID, display name key `Filter_Date_*` / `Filter_Resolution_*`). A preset wins over custom values, and an unknown preset matches nothing.
+
+- **Date** compares in the viewer's local calendar, from `TimeProvider`. A date taken with an unknown offset (D105) is a local clock time already and compares as it is; any other date (date taken with an offset, video creation time, file modification time, or `media_item.file_modified_at` when there is no technical metadata yet) is an instant and compares with the instants at which the range's local days start, found with the local time zone (a midnight skipped by daylight saving time maps to the change, a repeated one to its first occurrence). "Last 7 days" and "last 30 days" are calendar days with today, up to midnight tonight, so items dated in the future are left out. A custom range uses the clock times of `From` (inclusive) and `To` (exclusive), whatever offset they carry.
+- **Resolution** uses the displayed dimensions (orientation 5 to 8 swap width and height). Presets compare the short and the long side, so portrait items count alike: `small` = long side under 800 px, `hd` ≥ 1280 × 720, `full-hd` ≥ 1920 × 1080, `4k` ≥ 3840 × 2160. Items with no dimensions yet never match.
+
 ## Unified text search (E09-S01)
 
 `SearchMediaQuery` (MediatR, `UseCases/Search/SearchMedia`) is the call the search bar makes. It normalises the text (`SearchText`: NFC, invisible characters out, white space collapsed, 256 characters at most), encodes it with `SemanticQueryEncoder`, and runs one `ISearchIndex` query with both text and vector. Empty text browses by date taken, newest first. If the model is missing, the vector index isn't ready or encoding fails, the keyword results come back alone and `MediaSearchResults.Semantic` says why. The relevance cut per model is in `SemanticRelevanceThresholds`; a model without an entry shows every neighbour.

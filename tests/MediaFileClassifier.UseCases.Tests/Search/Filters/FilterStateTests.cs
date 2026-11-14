@@ -19,7 +19,8 @@ public sealed class FilterStateTests
         .Set("size", new RangeValue(1.5, null))
         .Set("date", new DateRangeValue(null, new DateTimeOffset(2024, 3, 10, 12, 0, 0, TimeSpan.FromHours(2)), new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero)))
         .Set("favorite", new BooleanValue(false))
-        .Set("tags", new IncludeExcludeValue(["beach", "Пляж"], ["work"], matchAll: true));
+        .Set("tags", new IncludeExcludeValue(["beach", "Пляж"], ["work"], matchAll: true))
+        .Set("resolution", new ResolutionValue(null, 1920, null));
 
     [Fact]
     public void EveryKindOfValue_SurvivesARoundTrip()
@@ -36,6 +37,14 @@ public sealed class FilterStateTests
     public void ADatePreset_SurvivesARoundTrip()
     {
         var state = FilterState.Empty.Set("date", new DateRangeValue("last-7-days", null, null));
+
+        Assert.Equal(state, Serializer.Deserialize(FilterStateSerializer.Serialize(state)));
+    }
+
+    [Fact]
+    public void AResolutionPreset_SurvivesARoundTrip()
+    {
+        var state = FilterState.Empty.Set("resolution", new ResolutionValue("4k", null, null));
 
         Assert.Equal(state, Serializer.Deserialize(FilterStateSerializer.Serialize(state)));
     }
@@ -116,6 +125,6 @@ public sealed class FilterStateTests
 
         var conditions = state.ToConditions(registry);
 
-        Assert.Equal(["size", "date", "favorite", "tags"], conditions.Select(condition => condition.Definition.Id));
+        Assert.Equal(["size", "date", "favorite", "tags", "resolution"], conditions.Select(condition => condition.Definition.Id));
     }
 }

@@ -12,6 +12,7 @@ public sealed class FilterStatePersistence
     private readonly SearchResultSource source;
     private readonly ISettingsStore store;
     private readonly FilterStateSerializer serializer;
+    private bool isReady;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FilterStatePersistence"/> class.
@@ -31,18 +32,22 @@ public sealed class FilterStatePersistence
 
     private void Restore()
     {
-        if (!store.IsAvailable(SettingScope.Library) || !store.Get(FilterSettings.RestoreOnStart))
+        // Nothing is saved until the library that is open has had its turn: until then the filters still belong to the
+        // previous library, and writing them would put them in this one.
+        isReady = false;
+        if (!store.IsAvailable(SettingScope.Library))
         {
             return;
         }
 
         // A library that opens gets its own filters, or none: the previous library's don't mean anything in it.
-        source.SetFilters(serializer.Deserialize(store.Get(FilterSettings.LastFilters)));
+        source.SetFilters(store.Get(FilterSettings.RestoreOnStart) ? serializer.Deserialize(store.Get(FilterSettings.LastFilters)) : FilterState.Empty);
+        isReady = true;
     }
 
     private void Save()
     {
-        if (!store.IsAvailable(SettingScope.Library))
+        if (!isReady || !store.IsAvailable(SettingScope.Library))
         {
             return;
         }

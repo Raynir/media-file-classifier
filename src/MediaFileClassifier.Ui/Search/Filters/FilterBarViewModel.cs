@@ -131,7 +131,11 @@ public sealed partial class FilterBarViewModel : ViewModelBase
         optionLoads = [];
         foreach (var filter in registry.Available)
         {
-            var editor = FilterEditorFactory.Create(filter, localizer);
+            if (FilterEditorFactory.TryCreate(filter, localizer) is not { } editor)
+            {
+                continue;
+            }
+
             editor.ValueChanged += OnEditorValueChanged;
             if (editor is MultiSelectFilterViewModel multi)
             {

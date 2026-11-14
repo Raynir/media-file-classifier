@@ -18,6 +18,32 @@
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
     <ItemsControl ItemsSource="{Binding Editors}" Margin="{DynamicResource Padding.FilterGroup}">
       <ItemsControl.DataTemplates>
+    <DataTemplate DataType="vm:ResolutionFilterViewModel" x:DataType="vm:ResolutionFilterViewModel">
+      <StackPanel Spacing="{DynamicResource Space.XS}">
+        <TextBlock Classes="Secondary" Text="{Binding Title}" />
+        <ComboBox ItemsSource="{Binding Presets}"
+                  SelectedItem="{Binding SelectedPreset}"
+                  HorizontalAlignment="Stretch"
+                  AutomationProperties.Name="{Binding Title}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:DatePresetViewModel">
+              <TextBlock Text="{Binding Text}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+          <TextBox Width="{DynamicResource Size.FilterRangeBox}"
+                   Text="{Binding MinWidthText}"
+                   PlaceholderText="{l:Loc Filter_ResolutionMinWidth}"
+                   AutomationProperties.Name="{l:Loc Filter_ResolutionMinWidth}" />
+          <TextBlock Text="×" VerticalAlignment="Center" />
+          <TextBox Width="{DynamicResource Size.FilterRangeBox}"
+                   Text="{Binding MinHeightText}"
+                   PlaceholderText="{l:Loc Filter_ResolutionMinHeight}"
+                   AutomationProperties.Name="{l:Loc Filter_ResolutionMinHeight}" />
+        </StackPanel>
+      </StackPanel>
+    </DataTemplate>
     <DataTemplate DataType="vm:MultiSelectFilterViewModel" x:DataType="vm:MultiSelectFilterViewModel">
       <StackPanel Spacing="{DynamicResource Space.XS}">
         <TextBlock Classes="Secondary" Text="{Binding Title}" />
@@ -135,7 +161,7 @@
                       Content="{Binding StringFormat='{}{0}  ×'}"
                       Command="{Binding $parent[ItemsControl].((vm:TagFilterViewModel)DataContext).RemoveIncludeCommand}"
                       CommandParameter="{Binding}"
-                      AutomationProperties.Name="{Binding}" />
+                      AutomationProperties.Name="{Binding Converter={x:Static v:FilterPanelView.RemoveIncludedName}}" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -152,7 +178,7 @@
                       Content="{Binding StringFormat='{}{0}  ×'}"
                       Command="{Binding $parent[ItemsControl].((vm:TagFilterViewModel)DataContext).RemoveExcludeCommand}"
                       CommandParameter="{Binding}"
-                      AutomationProperties.Name="{Binding}" />
+                      AutomationProperties.Name="{Binding Converter={x:Static v:FilterPanelView.RemoveExcludedName}}" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

@@ -18,6 +18,10 @@ internal static class TestFilters
 
     public static FilterDefinition<MultiSelectValue> MediaType { get; } = new TestMediaType();
 
+    public static FilterDefinition<ResolutionValue> Resolution { get; } = new TestResolution();
+
+    public static FilterDefinition<DateRangeValue> OptionDates { get; } = new TestOptionDates();
+
     public static TestBoolean Favorites { get; } = new("favorite", 500);
 
     public static TestBoolean Flag(string id, int order = 600) => new(id, order);
@@ -73,6 +77,39 @@ internal static class TestFilters
         public override FilterValueKind Kind => FilterValueKind.MultiSelect;
 
         protected override string? ToSql(MultiSelectValue value, IFilterSql sql) => "1";
+    }
+
+    // Presets served through IFilterOptions only, as the core date and resolution filters do until they list them.
+    private sealed class TestResolution : FilterDefinition<ResolutionValue>, IFilterOptions
+    {
+        public override string Id => "test-resolution";
+
+        public override string DisplayNameKey => "Filter_Resolution";
+
+        public override int Order => 350;
+
+        public override FilterValueKind Kind => FilterValueKind.Resolution;
+
+        public ValueTask<IReadOnlyList<FilterOption>> GetOptionsAsync(string? prefix, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<FilterOption>>([new FilterOption("hd", "Filter_Resolution_Hd"), new FilterOption("4k", "Filter_Resolution_4K")]);
+
+        protected override string? ToSql(ResolutionValue value, IFilterSql sql) => "1";
+    }
+
+    private sealed class TestOptionDates : FilterDefinition<DateRangeValue>, IFilterOptions
+    {
+        public override string Id => "test-option-date";
+
+        public override string DisplayNameKey => "Filter_Date";
+
+        public override int Order => 310;
+
+        public override FilterValueKind Kind => FilterValueKind.DateRange;
+
+        public ValueTask<IReadOnlyList<FilterOption>> GetOptionsAsync(string? prefix, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<FilterOption>>([new FilterOption("today", "Filter_Date_Today"), new FilterOption("this-year", "Filter_Date_ThisYear")]);
+
+        protected override string? ToSql(DateRangeValue value, IFilterSql sql) => "1";
     }
 
     private sealed class TestDateRange : FilterDefinition<DateRangeValue>, IFilterPresets

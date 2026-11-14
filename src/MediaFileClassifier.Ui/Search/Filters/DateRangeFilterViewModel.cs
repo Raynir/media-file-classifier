@@ -27,7 +27,7 @@ public sealed partial class DateRangeFilterViewModel : FilterEditorViewModel
         Presets =
         [
             anyTime,
-            .. (definition as IFilterPresets)?.Presets.Select(preset => new DatePresetViewModel(preset.Id, TextOf(preset.DisplayNameKey, preset.Id))) ?? [],
+            .. FilterPresetList.Of(definition).Select(preset => new DatePresetViewModel(preset.Id, TextOf(preset.DisplayNameKey, preset.Id))),
         ];
         SelectedPreset = anyTime;
     }
@@ -60,9 +60,10 @@ public sealed partial class DateRangeFilterViewModel : FilterEditorViewModel
     {
         get
         {
+            var (first, last) = FromDate > ToDate ? (ToDate, FromDate) : (FromDate, ToDate);
             DateRangeValue value = SelectedPreset.Id is { } preset
                 ? new(preset, null, null)
-                : new(null, FromDate is { } from ? new DateTimeOffset(from.Date) : null, ToDate is { } to ? new DateTimeOffset(to.Date.AddDays(1)) : null);
+                : new(null, first is { } from ? new DateTimeOffset(from.Date) : null, last is { } to ? new DateTimeOffset(to.Date.AddDays(1)) : null);
             return value.IsEmpty ? null : value;
         }
     }
@@ -95,17 +96,12 @@ public sealed partial class DateRangeFilterViewModel : FilterEditorViewModel
     protected override void LoadCore(FilterValue? value)
     {
         var range = value as DateRangeValue;
-        syncing = true;
-        try
+        Silently(() =>
         {
             SelectedPreset = Presets.FirstOrDefault(item => item.Id is not null && item.Id == range?.Preset) ?? anyTime;
             FromDate = range?.Preset is null ? range?.From?.LocalDateTime.Date : null;
             ToDate = range?.Preset is null && range?.To is { } to ? to.LocalDateTime.AddDays(-1).Date : null;
-        }
-        finally
-        {
-            syncing = false;
-        }
+        });
     }
 
     partial void OnSelectedPresetChanged(DatePresetViewModel value)
@@ -117,10 +113,11 @@ public sealed partial class DateRangeFilterViewModel : FilterEditorViewModel
 
         if (value.Id is not null)
         {
-            syncing = true;
-            FromDate = null;
-            ToDate = null;
-            syncing = false;
+            Silently(() =>
+            {
+                FromDate = null;
+                ToDate = null;
+            });
         }
 
         NotifyChanged();
@@ -129,6 +126,19 @@ public sealed partial class DateRangeFilterViewModel : FilterEditorViewModel
     partial void OnFromDateChanged(DateTime? value) => OnCustomDateChanged(value);
 
     partial void OnToDateChanged(DateTime? value) => OnCustomDateChanged(value);
+
+    private void Silently(Action action)
+    {
+        syncing = true;
+        try
+        {
+            action();
+        }
+        finally
+        {
+            syncing = false;
+        }
+    }
 
     private void OnCustomDateChanged(DateTime? value)
     {
@@ -139,9 +149,7 @@ public sealed partial class DateRangeFilterViewModel : FilterEditorViewModel
 
         if (value is not null && SelectedPreset.Id is not null)
         {
-            syncing = true;
-            SelectedPreset = anyTime;
-            syncing = false;
+            Silently(() => SelectedPreset = anyTime);
         }
 
         NotifyChanged();

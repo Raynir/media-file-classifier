@@ -59,7 +59,8 @@ public sealed partial class RangeFilterViewModel : FilterEditorViewModel
     {
         get
         {
-            var value = new RangeValue(Parse(MinText), Parse(MaxText));
+            var (min, max) = (Parse(MinText), Parse(MaxText));
+            var value = min > max ? new RangeValue(max, min) : new RangeValue(min, max);
             return value.IsEmpty ? null : value;
         }
     }

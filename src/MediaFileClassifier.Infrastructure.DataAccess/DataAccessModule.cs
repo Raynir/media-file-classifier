@@ -30,6 +30,8 @@ public static class DataAccessModule
         // Filters (E10-S01): the file format filter needs the format registry of AddMedia().
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.MediaTypeFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.FileFormatFilter>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.DateFilter>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.ResolutionFilter>());
         return services;
     }
 }

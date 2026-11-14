@@ -20,8 +20,22 @@ public static class FilterEditorFactory
         FilterValueKind.MultiSelect => new MultiSelectFilterViewModel(filter, localizer),
         FilterValueKind.Range => new RangeFilterViewModel(filter, localizer),
         FilterValueKind.DateRange => new DateRangeFilterViewModel(filter, localizer),
+        FilterValueKind.Resolution => new ResolutionFilterViewModel(filter, localizer),
         FilterValueKind.Boolean => new BooleanFilterViewModel(filter, localizer),
         FilterValueKind.IncludeExclude => new TagFilterViewModel(filter, localizer),
         _ => throw new ArgumentOutOfRangeException(nameof(filter), filter.Kind, $"Filter {filter.Id} has a kind without a control."),
     };
+
+    /// <summary>
+    /// Creates the control for a filter, or nothing for a kind without one, so a filter of a kind this UI doesn't know
+    /// yet is left out of the panel instead of breaking it.
+    /// </summary>
+    /// <param name="filter">The filter.</param>
+    /// <param name="localizer">UI strings.</param>
+    /// <returns>The control, or <see langword="null"/>.</returns>
+    public static FilterEditorViewModel? TryCreate(IFilterDefinition filter, Localizer localizer) =>
+        filter.Kind is FilterValueKind.MultiSelect or FilterValueKind.Range or FilterValueKind.DateRange or FilterValueKind.Resolution
+            or FilterValueKind.Boolean or FilterValueKind.IncludeExclude
+            ? Create(filter, localizer)
+            : null;
 }

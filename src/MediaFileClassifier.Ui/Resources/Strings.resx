@@ -1512,4 +1512,52 @@
   <data name="Setting_LastFilters" xml:space="preserve">
     <value>Last filters</value>
   </data>
+  <data name="Filter_Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Filter_Date_Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Filter_Date_Last7Days" xml:space="preserve">
+    <value>Last 7 days</value>
+  </data>
+  <data name="Filter_Date_Last30Days" xml:space="preserve">
+    <value>Last 30 days</value>
+  </data>
+  <data name="Filter_Date_ThisYear" xml:space="preserve">
+    <value>This year</value>
+  </data>
+  <data name="Filter_Date_LastYear" xml:space="preserve">
+    <value>Last year</value>
+  </data>
+  <data name="Filter_Resolution" xml:space="preserve">
+    <value>Resolution</value>
+  </data>
+  <data name="Filter_Resolution_Small" xml:space="preserve">
+    <value>Small (under 800 px)</value>
+  </data>
+  <data name="Filter_Resolution_Hd" xml:space="preserve">
+    <value>HD or better</value>
+  </data>
+  <data name="Filter_Resolution_FullHd" xml:space="preserve">
+    <value>Full HD or better</value>
+  </data>
+  <data name="Filter_Resolution_4K" xml:space="preserve">
+    <value>4K or better</value>
+  </data>
+  <data name="Filter_AnyResolution" xml:space="preserve">
+    <value>Any size</value>
+  </data>
+  <data name="Filter_ResolutionMinWidth" xml:space="preserve">
+    <value>Min width (px)</value>
+  </data>
+  <data name="Filter_ResolutionMinHeight" xml:space="preserve">
+    <value>Min height (px)</value>
+  </data>
+  <data name="Filter_TagRemoveIncluded" xml:space="preserve">
+    <value>Stop including the tag {0}</value>
+  </data>
+  <data name="Filter_TagRemoveExcluded" xml:space="preserve">
+    <value>Stop excluding the tag {0}</value>
+  </data>
 </root>

@@ -113,7 +113,9 @@ internal static class TuneCommand
         text.Append("Ranked by mean recall@10 over both languages, then mean MRR, then mean none-shown (lower first). ");
         text.Append("Field weight sets: ");
         text.Append(string.Join("; ", FieldWeightSets.Select(f => $"{f.Name} = {f.Weights}")));
-        text.Append(". Vector weight 1, 200 candidates per list in every row.\n\n");
+        text.Append(string.Create(
+            CultureInfo.InvariantCulture,
+            $". Vector weight {SearchRankingOptions.Default.VectorWeight}, {SearchRankingOptions.Default.CandidateLimit} candidates per list in every row.\n\n"));
         text.Append("| Mode | RRF k | Keyword weight | Field weights | Threshold | Recall@10 en | Recall@10 ru | MRR en | MRR ru | None-shown en | None-shown ru |\n");
         text.Append("|---|--:|--:|---|---|--:|--:|--:|--:|--:|--:|\n");
         foreach (var row in rows

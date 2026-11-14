@@ -128,7 +128,9 @@ public sealed class SearchFilterTests(SearchFilterTests.Library library) : IClas
             ["user tag nobody has"] = (new SearchFilter { UserTags = [TagName.From("trip"), TagName.From("winter")] }, []),
             ["folder"] = (new SearchFilter { FolderId = folder }, [1, 2, 3]),
             ["other folder"] = (new SearchFilter { FolderId = Id<IndexedFolder>.New() }, []),
-            ["subfolder"] = (new SearchFilter { FolderId = folder, Subfolder = "clips" }, [2]),
+            ["subfolder"] = (new SearchFilter { FolderId = folder, Subfolder = "клипы" }, [2]),
+            ["subfolder, Cyrillic in another case"] = (new SearchFilter { FolderId = folder, Subfolder = "КЛИПЫ" }, [2]),
+            ["subfolder, ASCII in another case"] = (new SearchFilter { Subfolder = "ALBUM" }, [1, 3]),
             ["subfolder with backslashes"] = (new SearchFilter { Subfolder = @"\album\" }, [1, 3]),
             ["imported since"] = (new SearchFilter { ImportedSince = Start.AddHours(1) }, [3]),
             ["combined"] = (new SearchFilter { MediaTypes = [MediaType.Image, MediaType.AnimatedImage], IsFavorite = false, Statuses = [MediaItemStatus.Error] }, [3]),
@@ -144,7 +146,7 @@ public sealed class SearchFilterTests(SearchFilterTests.Library library) : IClas
             ["registered date range, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new DateFilter(TimeProvider.System), new DateRangeValue(null, new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero), new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero)))] }, [3]),
             ["registered resolution preset, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new ResolutionFilter(), new ResolutionValue(ResolutionFilter.Hd, null, null))] }, [1]),
             ["registered status pending or error, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new StatusFilter(), new MultiSelectValue([StatusFilter.Pending, StatusFilter.Error]))] }, [2, 3]),
-            ["registered subfolder, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new FolderFilter(new TestSession(null)), new FolderValue([FolderFilter.ValueOf(folder, "clips")], includeSubfolders: true))] }, [2]),
+            ["registered subfolder, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new FolderFilter(new TestSession(null)), new FolderValue([FolderFilter.ValueOf(folder, "клипы")], includeSubfolders: true))] }, [2]),
             ["registered tags, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new TagsFilter(new TestSession(null)), new IncludeExcludeValue(["TRIP", "beach"], ["winter"], matchAll: true))] }, [1]),
             ["registered and typed fields"] = (Registered((Types, ["Image", "AnimatedImage"])) with { IsFavorite = false }, [3]),
         };
@@ -173,7 +175,7 @@ public sealed class SearchFilterTests(SearchFilterTests.Library library) : IClas
             await Bed.Library.Library.Metadata.AddTagAsync([photo.Id], TagName.From("beach"), Token);
 
             // 2: a video with no technical metadata yet, so its date is the file's: 2026. Pending.
-            var video = await AddAsync(2, MediaItem.Discover(folder, RelativePath.From("clips/VID_2.mp4"), MediaType.Video, 2000, Start, Start.AddDays(-1), 2, Start.AddMinutes(1)), [0.9f, 0.1f, 0, 0]);
+            var video = await AddAsync(2, MediaItem.Discover(folder, RelativePath.From("Клипы/VID_2.mp4"), MediaType.Video, 2000, Start, Start.AddDays(-1), 2, Start.AddMinutes(1)), [0.9f, 0.1f, 0, 0]);
             video.ChangeStatus(MediaItemStatus.Pending, Start);
             await Bed.Library.Library.Items.UpdateAsync(video, Token);
 

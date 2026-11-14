@@ -560,7 +560,7 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
 
         if (SqlLike.SubfolderPattern(filter.Subfolder) is { } pattern)
         {
-            items = items.Where(item => EF.Functions.Like((string)(object)item.Path, pattern, SqlLike.EscapeCharacter));
+            items = items.Where(item => EF.Functions.Like(LibraryDbContext.FoldCase((string)(object)item.Path), pattern, SqlLike.EscapeCharacter));
         }
 
         if (filter.ImportedSince is { } since)

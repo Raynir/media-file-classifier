@@ -114,9 +114,19 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
         configurationBuilder.Properties<LibrarySettings>().HaveConversion<LibrarySettingsConverter>();
     }
 
+    /// <summary>
+    /// Upper-cases a text in every alphabet, with the connection's <c>fold_case</c> function; only for queries.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <returns>The folded text.</returns>
+    public static string FoldCase(string text) => text.ToUpperInvariant();
+
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDbFunction(typeof(LibraryDbContext).GetMethod(nameof(FoldCase), [typeof(string)])!)
+            .HasName(LibraryConnectionFactory.FoldCase);
+
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(LibraryDbContext).Assembly);
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

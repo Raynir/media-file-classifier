@@ -1858,4 +1858,65 @@
   <data name="Processing_NoFailuresLeft" xml:space="preserve">
     <value>Nothing failed anymore.</value>
   </data>
+  <data name="Command_Analyze" xml:space="preserve">
+    <value>_Analyze</value>
+    <comment>Item menu: analyze the selected items.</comment>
+  </data>
+  <data name="Menu_AnalyzeOnly" xml:space="preserve">
+    <value>Analyze only _with</value>
+    <comment>Item submenu: run a single analyzer.</comment>
+  </data>
+  <data name="Command_AnalyzeEmbedding" xml:space="preserve">
+    <value>Search embedding</value>
+  </data>
+  <data name="Command_AnalyzeDescriber" xml:space="preserve">
+    <value>Description and tags</value>
+  </data>
+  <data name="Command_AnalyzeOcr" xml:space="preserve">
+    <value>Text in the image (OCR)</value>
+  </data>
+  <data name="Command_AnalyzePending" xml:space="preserve">
+    <value>Analyze _pending items</value>
+  </data>
+  <data name="Command_AnalyzeResults" xml:space="preserve">
+    <value>Analyze all _results</value>
+  </data>
+  <data name="Folders_Analyze" xml:space="preserve">
+    <value>Analyze</value>
+    <comment>Button in the indexed folders window: analyze the selected folder.</comment>
+  </data>
+  <data name="Analyze_NothingToAnalyze" xml:space="preserve">
+    <value>There is nothing to analyze.</value>
+  </data>
+  <data name="Analyze_NotRunning" xml:space="preserve">
+    <value>Background processing isn't running, so nothing was queued.</value>
+  </data>
+  <data name="Analyze_Confirm" xml:space="preserve">
+    <value>Analyze {0}? This runs in the background and you can keep working.</value>
+    <comment>{0} is Folders_Items or Folders_ItemsOne.</comment>
+  </data>
+  <data name="Analyze_ConfirmEstimate" xml:space="preserve">
+    <value>Analyze {0}? This takes about {1} and runs in the background, so you can keep working.</value>
+    <comment>{0} is Folders_Items or Folders_ItemsOne, {1} an estimated time such as "12 min" (Progress_Minutes). Excludes the time to decode videos.</comment>
+  </data>
+  <data name="Analyze_Start" xml:space="preserve">
+    <value>Analyze</value>
+  </data>
+  <data name="Analyze_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Analyze_BacklogConfirm" xml:space="preserve">
+    <value>{0} imported while automatic analysis was off are waiting to be analyzed. Analyze them now?</value>
+    <comment>{0} is Folders_Items or Folders_ItemsOne.</comment>
+  </data>
+  <data name="Analyze_BacklogNow" xml:space="preserve">
+    <value>Analyze now</value>
+  </data>
+  <data name="Analyze_BacklogLater" xml:space="preserve">
+    <value>Not now</value>
+  </data>
+  <data name="Analyze_Queued" xml:space="preserve">
+    <value>Queued {0} for analysis. The processing panel shows the progress.</value>
+    <comment>{0} is Folders_Items or Folders_ItemsOne.</comment>
+  </data>
 </root>

@@ -92,13 +92,13 @@ public sealed class DateFilterTests(DateFilterTests.Library library) : IClassFix
     }
 
     [Fact]
-    public async Task Options_ListThePresets()
+    public void Presets_ListThePresets()
     {
-        var options = await new DateFilter(TimeProvider.System).GetOptionsAsync(null, Token);
+        var options = new DateFilter(TimeProvider.System).Presets;
 
         Assert.Equal(
             [DateFilter.Today, DateFilter.Last7Days, DateFilter.Last30Days, DateFilter.ThisYear, DateFilter.LastYear],
-            options.Select(option => option.Value));
+            options.Select(option => option.Id));
         Assert.All(options, option => Assert.StartsWith("Filter_Date_", option.DisplayNameKey, StringComparison.Ordinal));
     }
 

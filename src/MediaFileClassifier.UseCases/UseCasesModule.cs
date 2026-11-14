@@ -42,6 +42,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Search.FindSimilar.AnalyzeNow>();
         services.AddSetting(KnownSettings.OpenAiCompatibleEndpoint);
         services.AddSetting(KnownSettings.AnalyzeAutomatically);
+        services.TryAddSingleton<Analysis.AutoAnalyze.AutoAnalyzeBatcher>();
         services.AddSetting(KnownSettings.RetainedPreviousRuns);
         services.AddSetting(Libraries.OpenLibrary.LibraryStartupSettings.OpenLastLibrary);
 

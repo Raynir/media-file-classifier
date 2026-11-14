@@ -48,11 +48,11 @@ public sealed class ResolutionFilterTests(ResolutionFilterTests.Library library)
     }
 
     [Fact]
-    public async Task Options_ListThePresets()
+    public void Presets_ListThePresets()
     {
-        var options = await new ResolutionFilter().GetOptionsAsync(null, Token);
+        var options = new ResolutionFilter().Presets;
 
-        Assert.Equal([ResolutionFilter.Small, ResolutionFilter.Hd, ResolutionFilter.FullHd, ResolutionFilter.UltraHd], options.Select(option => option.Value));
+        Assert.Equal([ResolutionFilter.Small, ResolutionFilter.Hd, ResolutionFilter.FullHd, ResolutionFilter.UltraHd], options.Select(option => option.Id));
         Assert.All(options, option => Assert.StartsWith("Filter_Resolution_", option.DisplayNameKey, StringComparison.Ordinal));
     }
 

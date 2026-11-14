@@ -28,6 +28,7 @@ using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
 using MediaFileClassifier.Testing.Files;
+using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Testing.Hardware;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Import;
@@ -105,6 +106,11 @@ internal sealed class ImportTestBed : IAsyncDisposable
         collection.TryAddSingleton<IAiProviderRegistry>(new AiProviderRegistry([], library.Clock));
         collection.TryAddSingleton<IAnalysisImageDecoder, SkiaAnalysisImageDecoder>();
         collection.TryAddSingleton<IModelStore>(new Siglip2StubStore(null));
+        // Automatic analysis (E06-S06) would queue analysis jobs after every import; these tests only look at the import.
+        var analysisSettings = new InMemorySettingsStore { IsLibraryOpen = true };
+        analysisSettings.SetValue(KnownSettings.AnalyzeAutomatically, false);
+        collection.TryAddSingleton<ISettingsStore>(analysisSettings);
+        collection.TryAddSingleton(TimeProvider.System);
         collection.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, AiExceptionClassifier>());
         var services = collection
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))

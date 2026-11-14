@@ -57,6 +57,7 @@ A filter is an `IFilterDefinition` (`Infrastructure.Abstractions/Search/Filters`
 | `resolution` | 400 | resolution | presets `small`, `hd`, `full-hd`, `4k`, or a minimum displayed width and height |
 | `status` | 500 | multi-select | `pending` (discovered or queued), `indexed`, `error`, `missing` |
 | `folder` | 600 | folder | indexed folders and subfolders (`<folder ID>` or `<folder ID>/<path>`), with or without their subfolders |
+| `tags` | 700 | include/exclude | tags, all (AND) or any (OR) of the included ones and none of the excluded ones |
 
 The date and resolution filters list their presets through `IFilterOptions` (value = preset ID, display name key `Filter_Date_*` / `Filter_Resolution_*`). A preset wins over custom values, and an unknown preset matches nothing.
 
@@ -64,6 +65,7 @@ The date and resolution filters list their presets through `IFilterOptions` (val
 - **Resolution** uses the displayed dimensions (orientation 5 to 8 swap width and height). Presets compare the short and the long side, so portrait items count alike: `small` = long side under 800 px, `hd` ≥ 1280 × 720, `full-hd` ≥ 1920 × 1080, `4k` ≥ 3840 × 2160. Items with no dimensions yet never match.
 - **Status** offers four values through `IFilterOptions` (`Filter_Status_*`); excluded items never reach the results, so there is no value for them. Unknown values are ignored.
 - **Folder** uses `FolderValue(Folders, IncludeSubfolders)` and its own kind, `Folder`. Without subfolders, an item must be directly in the folder: no `/` in its path, or none after the subfolder's. `IFilterOptions` gives the indexed folders by path for no prefix (Offline ones with `FilterOption.IsOffline`, D025: they can still be picked) and the subfolders of a folder or subfolder for its value as the prefix, from the items' paths like the folder tree. A value whose folder ID can't be read matches nothing.
+- **Tags** match effective tags, as `ItemMetadata.GetEffectiveTags` resolves them (`EffectiveTagSql`): user tags; AI tags of a run that is active, completed and not rejected, unless the user rejected the tag on the item; technical tags unless rejected. Tags compare by `tag_key` (upper case, D071), after trimming and collapsing white space. `IFilterOptions` autocompletes from the effective tags starting with the typed text, most items first, at most 20 (`IItemMetadataRepository.GetEffectiveTagsAsync`).
 
 ## Unified text search (E09-S01)
 

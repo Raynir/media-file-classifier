@@ -37,6 +37,7 @@ public sealed class FilterDefinitionTests
                 (ResolutionFilter.FilterId, FilterValueKind.Resolution, typeof(ResolutionValue)),
                 (StatusFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
                 (FolderFilter.FilterId, FilterValueKind.Folder, typeof(FolderValue)),
+                (TagsFilter.FilterId, FilterValueKind.IncludeExclude, typeof(IncludeExcludeValue)),
             ],
             registry.All.Select(filter => (filter.Id, filter.Kind, filter.ValueType)));
         Assert.All(registry.All, filter => Assert.True(filter.IsAvailable));

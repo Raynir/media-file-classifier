@@ -4,6 +4,7 @@ using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using MediaFileClassifier.Infrastructure.DataAccess.Search;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace MediaFileClassifier.Infrastructure.DataAccess.Repositories;
@@ -96,6 +97,35 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
                 return [.. tags.Select(tag => (TagName.From(tag.Tag), tag.ItemCount))];
             },
             cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<(TagName Tag, int ItemCount)>> GetEffectiveTagsAsync(string? prefix, int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+
+        // tag_key is the tag in upper case (D071), so an upper-case prefix ignores case in every alphabet.
+        var key = string.IsNullOrWhiteSpace(prefix) ? string.Empty : TagName.From(prefix).Value.ToUpperInvariant();
+
+        // Only numbers and SQL the code writes itself go into the text; the prefix and the limit are parameters.
+        var sql = $"""
+            SELECT min(a."tag") AS Tag, count(DISTINCT a."item_id") AS ItemCount
+            FROM "tag_assignment" a
+            WHERE a."tag_key" LIKE $prefix ESCAPE '{SqlLike.EscapeCharacter}' AND {EffectiveTagSql.Condition("a")}
+            GROUP BY a."tag_key"
+            ORDER BY ItemCount DESC, a."tag_key"
+            LIMIT $limit
+            """;
+        return connections.ReadAsync<IReadOnlyList<(TagName Tag, int ItemCount)>>(
+            async (db, token) =>
+            {
+                var tags = await db.Database
+                    .SqlQueryRaw<UserTagRow>(sql, new SqliteParameter("$prefix", SqlLike.Escape(key) + "%"), new SqliteParameter("$limit", limit))
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                return [.. tags.Select(tag => (TagName.From(tag.Tag), tag.ItemCount))];
+            },
+            cancellationToken);
+    }
 
     private static async Task<ItemMetadata> LoadAsync(LibraryDbContext db, Id<MediaItem> itemId, CancellationToken cancellationToken)
     {
@@ -199,7 +229,7 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
     }
 
     /// <summary>
-    /// A row of <see cref="GetUserTagsAsync"/>.
+    /// A row of <see cref="GetUserTagsAsync"/> and <see cref="GetEffectiveTagsAsync"/>.
     /// </summary>
     /// <param name="Tag">One spelling of the tag.</param>
     /// <param name="ItemCount">Number of items with the tag.</param>

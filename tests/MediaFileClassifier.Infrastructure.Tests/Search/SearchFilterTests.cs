@@ -145,6 +145,7 @@ public sealed class SearchFilterTests(SearchFilterTests.Library library) : IClas
             ["registered resolution preset, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new ResolutionFilter(), new ResolutionValue(ResolutionFilter.Hd, null, null))] }, [1]),
             ["registered status pending or error, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new StatusFilter(), new MultiSelectValue([StatusFilter.Pending, StatusFilter.Error]))] }, [2, 3]),
             ["registered subfolder, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new FolderFilter(new TestSession(null)), new FolderValue([FolderFilter.ValueOf(folder, "clips")], includeSubfolders: true))] }, [2]),
+            ["registered tags, every path"] = (new SearchFilter { Conditions = [new FilterCondition(new TagsFilter(new TestSession(null)), new IncludeExcludeValue(["TRIP", "beach"], ["winter"], matchAll: true))] }, [1]),
             ["registered and typed fields"] = (Registered((Types, ["Image", "AnimatedImage"])) with { IsFavorite = false }, [3]),
         };
 

@@ -1464,4 +1464,7 @@
   <data name="Filter_Folder_Offline" xml:space="preserve">
     <value>Offline</value>
   </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
 </root>

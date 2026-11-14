@@ -556,7 +556,7 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
 
     private async Task<int> CountKeywordMatchesAsync(KeywordSearch search, CancellationToken cancellationToken)
     {
-        var all = await FindKeywordMatchesAsync(search with { Offset = 0, Limit = 1 }, cancellationToken).ConfigureAwait(false);
+        var all = await FindKeywordMatchesAsync(search with { Offset = 0, Limit = 1, NeedsTotal = true }, cancellationToken).ConfigureAwait(false);
         return all.TotalCount;
     }
 }

@@ -23,7 +23,7 @@ public sealed class ImageDescriptionContractTests
         Assert.Equal(ImageDescriptionContract.MaxSummaryLength, properties.GetProperty("summary").GetProperty("maxLength").GetInt32());
         foreach (var list in new[] { "tags", "objects", "scenes", "actions", "emotions" })
         {
-            Assert.Equal(ImageDescriptionContract.MaxListItems, properties.GetProperty(list).GetProperty("maxItems").GetInt32());
+            Assert.Equal(list == "tags" ? ImageDescriptionContract.MaxTagItems : ImageDescriptionContract.MaxListItems, properties.GetProperty(list).GetProperty("maxItems").GetInt32());
             Assert.Equal(ImageDescriptionContract.MaxListItemLength, properties.GetProperty(list).GetProperty("items").GetProperty("maxLength").GetInt32());
         }
     }
@@ -73,7 +73,7 @@ public sealed class ImageDescriptionContractTests
 
         var result = ImageDescriptionContract.Parse(raw);
 
-        Assert.Equal(ImageDescriptionContract.MaxListItems, result.Value!.Tags.Count);
+        Assert.Equal(ImageDescriptionContract.MaxTagItems, result.Value!.Tags.Count);
         Assert.Equal(["Dog", new string('x', ImageDescriptionContract.MaxListItemLength)], result.Value.Objects);
     }
 

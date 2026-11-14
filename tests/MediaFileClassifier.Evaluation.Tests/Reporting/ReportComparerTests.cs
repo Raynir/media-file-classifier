@@ -41,6 +41,27 @@ public sealed class ReportComparerTests
     }
 
     [Fact]
+    public async Task Compare_HoldsAListedSystemToItsOwnMinimums_AndOthersToTheGlobalOnes()
+    {
+        var baselines = new Baselines
+        {
+            RecallAt10 = new Dictionary<string, double?> { ["en"] = 0.7 },
+            Systems = new Dictionary<string, SystemBaselines>
+            {
+                ["app-keyword"] = new() { RecallAt10 = new Dictionary<string, double?> { ["en"] = 0.1 } },
+            },
+        };
+        var evaluated = await Evaluate(TestData.Results);
+
+        var listed = ReportComparer.Compare(evaluated with { System = "app-keyword" }, null, null, baselines);
+        var unlisted = ReportComparer.Compare(evaluated with { System = "siglip2" }, null, null, baselines);
+
+        Assert.Equal(0.1, listed.Comparisons.Single(c => c.Metric == "recall@10" && c.Group == "en").Threshold);
+        Assert.Equal(ReportComparer.NoBaseline, Status(listed, "mrr", "en"));
+        Assert.Equal(0.7, unlisted.Comparisons.Single(c => c.Metric == "recall@10" && c.Group == "en").Threshold);
+    }
+
+    [Fact]
     public async Task Compare_ShowsTheChangeFromThePreviousRun()
     {
         var previous = await Evaluate(TestData.Results with

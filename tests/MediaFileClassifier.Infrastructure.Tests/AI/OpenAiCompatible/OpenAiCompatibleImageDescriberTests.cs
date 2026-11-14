@@ -48,6 +48,8 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
 
         // The limits stay schema keywords, so a grammar-based server enforces them; not moved into the descriptions.
         Assert.Contains($"\"maxItems\":{ImageDescriptionContract.MaxListItems}", compact, StringComparison.Ordinal);
+        Assert.Contains($"\"maxItems\":{ImageDescriptionContract.MaxTagItems}", compact, StringComparison.Ordinal);
+        Assert.Contains("\"presence_penalty\":1.5", compact, StringComparison.Ordinal);
         Assert.Contains($"\"maxLength\":{ImageDescriptionContract.MaxTitleLength}", compact, StringComparison.Ordinal);
         Assert.DoesNotContain("maxItems:", compact, StringComparison.Ordinal);
     }

@@ -18,6 +18,9 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
         "You describe photos and video frames for a personal media library, so they can be found by searching. "
         + "Describe only what is visible. Answer with a single JSON object that matches the schema, and nothing else.";
 
+    // D350: Qwen recommends 1.5 for its vision-language instruct models; it stops the near-duplicate tags. Not used for OCR (D345).
+    internal const float DescriberPresencePenalty = 1.5f;
+
     private const string SchemaDescription = "Description of an image.";
 
     // The schema as written, with its maxItems and maxLength. Microsoft.Extensions.AI rewrites a ChatResponseFormat
@@ -70,6 +73,7 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
         var chatOptions = new ChatOptions
         {
             Temperature = 0.2f,
+            PresencePenalty = DescriberPresencePenalty,
             MaxOutputTokens = ImageDescriptionContract.MaxOutputTokens,
             ResponseFormat = useSchemaResponseFormat ? null : ChatResponseFormat.Json,
             RawRepresentationFactory = useSchemaResponseFormat ? _ => new OpenAI.Chat.ChatCompletionOptions { ResponseFormat = SchemaResponseFormat } : null,

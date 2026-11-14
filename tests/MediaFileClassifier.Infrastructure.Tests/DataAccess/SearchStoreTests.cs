@@ -177,6 +177,19 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Equal([inTitle.Id, inDescription.Id], await FindAsync("lighthouse"));
     }
 
+    [Fact]
+    public async Task Ranking_WithFlatWeights_DoesNotLetATitleOutrankAShorterFileNamePrefix()
+    {
+        // D346: every field weighs the same, so BM25's length normalisation decides. A word inside a longer title
+        // loses to the same word starting a short file name.
+        var inTitle = await AddItemAsync(1);
+        await EditAsync(inTitle, DescriptiveField.Title, "Lighthouse");
+        var inFileName = MediaItem.Discover(bed.Folder.Id, RelativePath.From("album/lighthouse.jpg"), MediaType.Image, 1002, bed.Clock.Tick(), bed.Clock.Tick(), (UInt128)2 * 104729, bed.Clock.Tick());
+        await bed.Library.Items.AddAsync(inFileName, Token);
+
+        Assert.Equal([inFileName.Id, inTitle.Id], await FindAsync("lighthouse"));
+    }
+
     [Theory]
     [InlineData("\"")]
     [InlineData("-")]

@@ -33,11 +33,14 @@ public static class ReportComparer
         string? referenceName)
     {
         var comparisons = new List<MetricComparison>();
+        var system = baselines.Systems.GetValueOrDefault(report.System);
+        var recallMinimums = system?.RecallAt10 ?? baselines.RecallAt10;
+        var mrrMinimums = system?.Mrr ?? baselines.Mrr;
         foreach (var language in report.Search?.Languages ?? [])
         {
             var before = previous?.Search?.Languages.FirstOrDefault(l => l.Language == language.Language);
-            comparisons.Add(Higher("recall@10", language.Language, language.RecallAt10, before?.RecallAt10, baselines.RecallAt10));
-            comparisons.Add(Higher("mrr", language.Language, language.Mrr, before?.Mrr, baselines.Mrr));
+            comparisons.Add(Higher("recall@10", language.Language, language.RecallAt10, before?.RecallAt10, recallMinimums));
+            comparisons.Add(Higher("mrr", language.Language, language.Mrr, before?.Mrr, mrrMinimums));
             if (language.NoneShown is { } shown)
             {
                 comparisons.Add(Lower("none-shown", language.Language, shown, before?.NoneShown, baselines.NoneShown));

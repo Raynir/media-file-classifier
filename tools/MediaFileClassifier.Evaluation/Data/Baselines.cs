@@ -17,6 +17,13 @@ public sealed record Baselines
     public IReadOnlyDictionary<string, double?> Mrr { get; init; } = new Dictionary<string, double?>();
 
     /// <summary>
+    /// Minimums of one system (<c>app-hybrid</c>, <c>app-vector</c>, <c>app-keyword</c>), by system name. A system listed
+    /// here is held to these recall@10 and MRR values instead of the ones above, which are for the content categories
+    /// of <c>siglip2</c> (D094, D343). Systems not listed use the ones above.
+    /// </summary>
+    public IReadOnlyDictionary<string, SystemBaselines> Systems { get; init; } = new Dictionary<string, SystemBaselines>();
+
+    /// <summary>
     /// The maximum share of the queries that should return nothing (category <c>none</c>) that still show a result,
     /// per query language.
     /// </summary>
@@ -37,4 +44,20 @@ public sealed record Baselines
     /// Who set the values and from which report, for the record.
     /// </summary>
     public string? Note { get; init; }
+}
+
+/// <summary>
+/// The search minimums of one system.
+/// </summary>
+public sealed record SystemBaselines
+{
+    /// <summary>
+    /// The minimum recall@10 per query language.
+    /// </summary>
+    public IReadOnlyDictionary<string, double?> RecallAt10 { get; init; } = new Dictionary<string, double?>();
+
+    /// <summary>
+    /// The minimum MRR per query language.
+    /// </summary>
+    public IReadOnlyDictionary<string, double?> Mrr { get; init; } = new Dictionary<string, double?>();
 }

@@ -220,7 +220,7 @@ internal sealed class SearchSql : IFilterSql
 
         if (SqlLike.SubfolderPattern(filter.Subfolder) is { } pattern)
         {
-            conditions.Add($"""m."path" LIKE {Add(pattern)} ESCAPE '{SqlLike.EscapeCharacter}'""");
+            conditions.Add($"""{LibraryConnectionFactory.FoldCase}(m."path") LIKE {Add(pattern)} ESCAPE '{SqlLike.EscapeCharacter}'""");
         }
 
         if (filter.ImportedSince is { } since)

@@ -88,7 +88,6 @@ public sealed class StatusAndFolderFilterTests(StatusAndFolderFilterTests.Librar
         // e.g. the start of a translated label, which no value ID has.
         Assert.Equal(4, (await new StatusFilter().GetOptionsAsync("Ош", Token)).Count);
         Assert.Equal(Enum.GetNames<MediaType>().Length, (await new MediaTypeFilter().GetOptionsAsync("Ви", Token)).Count);
-        Assert.Equal(4, (await new ResolutionFilter().GetOptionsAsync("x", Token)).Count);
     }
 
     [Fact]

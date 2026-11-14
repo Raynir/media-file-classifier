@@ -14,7 +14,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Search.Filters;
 /// </para>
 /// </summary>
 /// <param name="time">The clock and the local time zone.</param>
-internal sealed class DateFilter(TimeProvider time) : FilterDefinition<DateRangeValue>, IFilterOptions
+internal sealed class DateFilter(TimeProvider time) : FilterDefinition<DateRangeValue>, IFilterPresets
 {
     /// <summary>
     /// The filter's ID.
@@ -46,13 +46,13 @@ internal sealed class DateFilter(TimeProvider time) : FilterDefinition<DateRange
     /// </summary>
     public const string LastYear = "last-year";
 
-    private static readonly (string Preset, string Key)[] Presets =
+    private static readonly IReadOnlyList<FilterPreset> PresetList =
     [
-        (Today, "Filter_Date_Today"),
-        (Last7Days, "Filter_Date_Last7Days"),
-        (Last30Days, "Filter_Date_Last30Days"),
-        (ThisYear, "Filter_Date_ThisYear"),
-        (LastYear, "Filter_Date_LastYear"),
+        new(Today, "Filter_Date_Today"),
+        new(Last7Days, "Filter_Date_Last7Days"),
+        new(Last30Days, "Filter_Date_Last30Days"),
+        new(ThisYear, "Filter_Date_ThisYear"),
+        new(LastYear, "Filter_Date_LastYear"),
     ];
 
     /// <inheritdoc />
@@ -67,16 +67,8 @@ internal sealed class DateFilter(TimeProvider time) : FilterDefinition<DateRange
     /// <inheritdoc />
     public override FilterValueKind Kind => FilterValueKind.DateRange;
 
-    /// <summary>
-    /// Lists the presets, in the order the panel shows them.
-    /// </summary>
-    /// <param name="prefix">Ignored: the list is fixed, and the panel narrows it by the text it shows.</param>
-    /// <param name="cancellationToken">Not used.</param>
-    /// <returns>The presets: their IDs and display-name keys.</returns>
-    public ValueTask<IReadOnlyList<FilterOption>> GetOptionsAsync(string? prefix, CancellationToken cancellationToken) =>
-        ValueTask.FromResult<IReadOnlyList<FilterOption>>(
-            [.. Presets
-                .Select(preset => new FilterOption(preset.Preset, preset.Key))]);
+    /// <inheritdoc />
+    public IReadOnlyList<FilterPreset> Presets => PresetList;
 
     /// <summary>
     /// Resolves a value to local clock times.

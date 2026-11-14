@@ -47,6 +47,18 @@ public sealed record FrameSamplingOptions
     public bool DropBlankFrames { get; init; } = true;
 
     /// <summary>
+    /// Gets how many positions a duration gets: one per <see cref="Interval"/>, rounded down, between
+    /// <see cref="MinFrames"/> and <see cref="MaxFrames"/>.
+    /// </summary>
+    /// <param name="duration">The duration.</param>
+    /// <returns>The count.</returns>
+    public int FrameCount(TimeSpan duration)
+    {
+        var slices = duration > TimeSpan.Zero ? Math.Floor(duration / Interval) : 0;
+        return (int)Math.Clamp(slices, MinFrames, MaxFrames);
+    }
+
+    /// <summary>
     /// Checks the options.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">A value is out of range.</exception>

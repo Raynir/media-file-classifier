@@ -43,6 +43,7 @@ public sealed class AnalyzeScopeTests : IAsyncLifetime
         Assert.Equal(new HashSet<Id<MediaItem>> { pending.Id, pendingVideo.Id }, items.ItemIds.ToHashSet());
         Assert.Equal(1, items.Images);
         Assert.Equal(1, items.Videos);
+        Assert.Equal(1, items.VideoFrames);
     }
 
     [Fact]

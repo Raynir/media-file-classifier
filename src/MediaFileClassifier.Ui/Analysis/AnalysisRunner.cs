@@ -1,4 +1,5 @@
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
 using MediatR;
@@ -38,10 +39,7 @@ public sealed class AnalysisRunner(ISender sender, IAnalysisDialogs dialogs, Loc
         }
 
         if (!alreadyConfirmed && items.Count >= ConfirmFrom
-            && !await dialogs.ConfirmAsync(
-                localizer.Format("Analyze_Confirm", IndexedFolderViewModel.ItemCountText(localizer, items.Count)),
-                localizer.Get("Analyze_Start"),
-                localizer.Get("Analyze_Cancel")))
+            && !await dialogs.ConfirmAsync(await ConfirmTextAsync(items), localizer.Get("Analyze_Start"), localizer.Get("Analyze_Cancel")))
         {
             return null;
         }
@@ -55,5 +53,14 @@ public sealed class AnalysisRunner(ISender sender, IAnalysisDialogs dialogs, Loc
         }
 
         return result;
+    }
+
+    private async Task<string> ConfirmTextAsync(AnalysisScopeItems items)
+    {
+        var count = IndexedFolderViewModel.ItemCountText(localizer, items.Count);
+        var estimate = await sender.Send(new GetAnalysisEstimateQuery(items.Images, items.VideoFrames));
+        return estimate is { } time
+            ? localizer.Format("Analyze_ConfirmEstimate", count, new ProgressText(localizer).TimeLeft(time))
+            : localizer.Format("Analyze_Confirm", count);
     }
 }

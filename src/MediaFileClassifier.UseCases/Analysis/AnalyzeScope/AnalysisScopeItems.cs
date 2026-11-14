@@ -10,7 +10,8 @@ namespace MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
 /// <param name="ItemIds">The items.</param>
 /// <param name="Images">How many are images or animated images.</param>
 /// <param name="Videos">How many are videos.</param>
-public sealed record AnalysisScopeItems(IReadOnlyList<Id<MediaItem>> ItemIds, int Images, int Videos)
+/// <param name="VideoFrames">How many frames the videos get sampled into in all, the work a video costs.</param>
+public sealed record AnalysisScopeItems(IReadOnlyList<Id<MediaItem>> ItemIds, int Images, int Videos, int VideoFrames = 0)
 {
     /// <summary>
     /// Gets a scope with no items.

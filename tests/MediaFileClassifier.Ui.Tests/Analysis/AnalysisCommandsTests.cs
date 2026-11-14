@@ -103,6 +103,26 @@ public sealed class AnalysisCommandsTests
     }
 
     [Fact]
+    public async Task AnalyzeResults_ShowsTheEstimate_WhenARateIsKnown()
+    {
+        var bed = new Bed { Resolved = Items(600), Rate = 10 };
+
+        await bed.RunAsync(AnalysisCommands.AnalyzeResults);
+
+        Assert.Contains("1 min", Assert.Single(bed.Dialogs.Questions));
+    }
+
+    [Fact]
+    public async Task AnalyzeResults_ShowsTheCountOnly_WhenNoRateIsKnown()
+    {
+        var bed = new Bed { Resolved = Items(600), Rate = null };
+
+        await bed.RunAsync(AnalysisCommands.AnalyzeResults);
+
+        Assert.DoesNotContain("about", Assert.Single(bed.Dialogs.Questions));
+    }
+
+    [Fact]
     public async Task Analyze_TellsTheUser_WhenThereIsNothingToAnalyze()
     {
         var bed = new Bed { Resolved = Items(0) };
@@ -201,6 +221,8 @@ public sealed class AnalysisCommandsTests
 
         public int PendingCount { get; set; }
 
+        public double? Rate { get; set; }
+
         public bool JobQueued { get; set; } = true;
 
         private sealed class BedSender(Bed bed) : FakeSender
@@ -215,6 +237,8 @@ public sealed class AnalysisCommandsTests
                         return new AnalysisScopeItems([.. chosen.ItemIds], chosen.ItemIds.Count, 0);
                     case ResolveAnalysisScopeQuery:
                         return bed.Resolved;
+                    case GetAnalysisEstimateQuery estimate:
+                        return GetAnalysisEstimateQueryHandler.Estimate(bed.Rate, estimate.Images, estimate.VideoFrames);
                     case CountLibraryItemsQuery:
                         return bed.PendingCount;
                     case AnalyzeScopeCommand command:

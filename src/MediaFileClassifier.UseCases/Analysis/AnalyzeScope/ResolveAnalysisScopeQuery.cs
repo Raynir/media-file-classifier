@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.UseCases.Browsing;
@@ -50,8 +51,13 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
         return new AnalysisScopeItems(
             present.ConvertAll(summary => summary.Id),
             present.Count(summary => summary.MediaType != MediaType.Video),
-            present.Count(summary => summary.MediaType == MediaType.Video));
+            present.Count(summary => summary.MediaType == MediaType.Video),
+            present.Where(summary => summary.MediaType == MediaType.Video).Sum(VideoFrames));
     }
+
+    // A video with an unknown duration is read at its start only, as the frame sampler does.
+    private static int VideoFrames(MediaItemSummary video) =>
+        video.Duration is { } duration && duration > TimeSpan.Zero ? FrameSamplingOptions.Default.FrameCount(duration) : 1;
 
     private static async Task<List<MediaItemSummary>> ByIdsAsync(IOpenLibrary library, List<Id<MediaItem>> ids, CancellationToken cancellationToken)
     {

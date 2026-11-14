@@ -41,6 +41,11 @@ public static class ImageDescriptionContract
 
     public const int MaxListItems = 30;
 
+    /// <summary>
+    /// The most tags (D350), as the description tells the model. The other lists keep <see cref="MaxListItems"/>.
+    /// </summary>
+    public const int MaxTagItems = 15;
+
     public const int MaxListItemLength = 60;
 
     /// <summary>
@@ -120,7 +125,7 @@ public static class ImageDescriptionContract
             Cut(dto.Title, MaxTitleLength),
             Cut(dto.Description, MaxDescriptionLength),
             Cut(dto.Summary, MaxSummaryLength),
-            CleanList(dto.Tags),
+            CleanList(dto.Tags, MaxTagItems),
             CleanList(dto.Objects),
             CleanList(dto.Scenes),
             CleanList(dto.Actions),
@@ -169,12 +174,12 @@ public static class ImageDescriptionContract
         return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength].TrimEnd();
     }
 
-    private static IReadOnlyList<string> CleanList(IReadOnlyList<string> values) =>
+    private static IReadOnlyList<string> CleanList(IReadOnlyList<string> values, int maxItems = MaxListItems) =>
         values
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => Cut(value, MaxListItemLength))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(MaxListItems)
+            .Take(maxItems)
             .ToList();
 
     private static JsonElement CreateSchema()
@@ -219,7 +224,7 @@ public static class ImageDescriptionContract
                     }
                     else if (property.PropertyType.IsAssignableTo(typeof(IEnumerable<string>)))
                     {
-                        schema["maxItems"] = MaxListItems;
+                        schema["maxItems"] = property.Name.Equals("Tags", StringComparison.OrdinalIgnoreCase) ? MaxTagItems : MaxListItems;
                         if (schema["items"] is JsonObject items)
                         {
                             items["maxLength"] = MaxListItemLength;

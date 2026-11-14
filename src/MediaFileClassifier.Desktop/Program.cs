@@ -5,6 +5,7 @@ using MediaFileClassifier.Desktop.Diagnostics;
 using MediaFileClassifier.Desktop.Platform;
 using MediaFileClassifier.Infrastructure;
 using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
@@ -74,6 +75,9 @@ internal static class Program
 
             // The model catalogue is checked at startup, so a malformed one fails here, not at a user's download (E06-S12).
             host.Services.GetRequiredService<IModelCatalog>();
+
+            // The user's OpenAI-compatible endpoints become providers at startup (E17-S02).
+            host.Services.GetRequiredService<IAiEndpointService>();
 
             // The search index loads the open library's vectors in the background from its first use (D067).
             host.Services.GetRequiredService<ISearchIndex>();

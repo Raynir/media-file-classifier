@@ -1,0 +1,191 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.Search.Filters"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:v="using:MediaFileClassifier.Ui.Views.Search"
+             x:Class="MediaFileClassifier.Ui.Views.Search.FilterPanelView"
+             x:DataType="vm:FilterBarViewModel"
+             Width="{DynamicResource Size.FilterPanel}"
+             MaxHeight="{DynamicResource Size.FilterPanel.MaxHeight}">
+  <!--
+    The filter panel in the Filters flyout (E10-S02-T01): one control per available filter, chosen by the filter's kind
+    (multi-select check boxes, date presets and range, number range, tag include and exclude, yes/no). A filter
+    registered later gets its control without changes here. Each control applies as it changes.
+  -->
+  
+
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <ItemsControl ItemsSource="{Binding Editors}" Margin="{DynamicResource Padding.FilterGroup}">
+      <ItemsControl.DataTemplates>
+    <DataTemplate DataType="vm:ResolutionFilterViewModel" x:DataType="vm:ResolutionFilterViewModel">
+      <StackPanel Spacing="{DynamicResource Space.XS}">
+        <TextBlock Classes="Secondary" Text="{Binding Title}" />
+        <ComboBox ItemsSource="{Binding Presets}"
+                  SelectedItem="{Binding SelectedPreset}"
+                  HorizontalAlignment="Stretch"
+                  AutomationProperties.Name="{Binding Title}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:DatePresetViewModel">
+              <TextBlock Text="{Binding Text}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+          <TextBox Width="{DynamicResource Size.FilterRangeBox}"
+                   Text="{Binding MinWidthText}"
+                   PlaceholderText="{l:Loc Filter_ResolutionMinWidth}"
+                   AutomationProperties.Name="{l:Loc Filter_ResolutionMinWidth}" />
+          <TextBlock Text="×" VerticalAlignment="Center" />
+          <TextBox Width="{DynamicResource Size.FilterRangeBox}"
+                   Text="{Binding MinHeightText}"
+                   PlaceholderText="{l:Loc Filter_ResolutionMinHeight}"
+                   AutomationProperties.Name="{l:Loc Filter_ResolutionMinHeight}" />
+        </StackPanel>
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate DataType="vm:MultiSelectFilterViewModel" x:DataType="vm:MultiSelectFilterViewModel">
+      <StackPanel Spacing="{DynamicResource Space.XS}">
+        <TextBlock Classes="Secondary" Text="{Binding Title}" />
+      <ItemsControl ItemsSource="{Binding Options}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:FilterOptionViewModel">
+            <CheckBox Content="{Binding Text}" IsChecked="{Binding IsChecked}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+          </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="vm:DateRangeFilterViewModel" x:DataType="vm:DateRangeFilterViewModel">
+      <StackPanel Spacing="{DynamicResource Space.XS}">
+        <TextBlock Classes="Secondary" Text="{Binding Title}" />
+      <StackPanel Spacing="{DynamicResource Space.S}">
+        <ComboBox ItemsSource="{Binding Presets}"
+                  SelectedItem="{Binding SelectedPreset}"
+                  HorizontalAlignment="Stretch"
+                  AutomationProperties.Name="{l:Loc Filter_DatePreset}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:DatePresetViewModel">
+              <TextBlock Text="{Binding Text}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="{DynamicResource Space.S}">
+          <CalendarDatePicker Grid.Column="0"
+                              SelectedDate="{Binding FromDate}"
+                              HorizontalAlignment="Stretch"
+                              AutomationProperties.Name="{l:Loc Filter_DateFromBox}" />
+          <TextBlock Grid.Column="1" Text="–" VerticalAlignment="Center" />
+          <CalendarDatePicker Grid.Column="2"
+                              SelectedDate="{Binding ToDate}"
+                              HorizontalAlignment="Stretch"
+                              AutomationProperties.Name="{l:Loc Filter_DateToBox}" />
+        </Grid>
+      </StackPanel>
+          </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="vm:RangeFilterViewModel" x:DataType="vm:RangeFilterViewModel">
+      <StackPanel Spacing="{DynamicResource Space.XS}">
+        <TextBlock Classes="Secondary" Text="{Binding Title}" />
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+        <TextBox Width="{DynamicResource Size.FilterRangeBox}"
+                 Text="{Binding MinText}"
+                 PlaceholderText="{l:Loc Filter_RangeFrom}"
+                 AutomationProperties.Name="{l:Loc Filter_RangeFrom}" />
+        <TextBlock Text="–" VerticalAlignment="Center" />
+        <TextBox Width="{DynamicResource Size.FilterRangeBox}"
+                 Text="{Binding MaxText}"
+                 PlaceholderText="{l:Loc Filter_RangeTo}"
+                 AutomationProperties.Name="{l:Loc Filter_RangeTo}" />
+        <TextBlock Classes="Secondary"
+                   Text="{Binding Unit}"
+                   IsVisible="{Binding Unit, Converter={x:Static ObjectConverters.IsNotNull}}"
+                   VerticalAlignment="Center" />
+      </StackPanel>
+          </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="vm:BooleanFilterViewModel" x:DataType="vm:BooleanFilterViewModel">
+      <CheckBox Content="{Binding Title}" IsChecked="{Binding IsOn}" />
+    </DataTemplate>
+
+    <DataTemplate DataType="vm:TagFilterViewModel" x:DataType="vm:TagFilterViewModel">
+      <StackPanel Spacing="{DynamicResource Space.XS}">
+        <TextBlock Classes="Secondary" Text="{Binding Title}" />
+      <StackPanel Spacing="{DynamicResource Space.S}">
+        <TextBox x:Name="TagBox"
+                 Text="{Binding Query}"
+                 PlaceholderText="{l:Loc Filter_TagsPlaceholder}"
+                 AutomationProperties.Name="{l:Loc Filter_TagsPlaceholder}">
+          <TextBox.KeyBindings>
+            <KeyBinding Gesture="Enter" Command="{Binding AddIncludeCommand}" />
+            <KeyBinding Gesture="Shift+Enter" Command="{Binding AddExcludeCommand}" />
+          </TextBox.KeyBindings>
+        </TextBox>
+        <ItemsControl ItemsSource="{Binding Suggestions}" IsVisible="{Binding HasSuggestions}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <Button Grid.Column="1"
+                        Classes="Icon"
+                        Content="+"
+                        Command="{Binding $parent[ItemsControl].((vm:TagFilterViewModel)DataContext).AddIncludeCommand}"
+                        CommandParameter="{Binding}"
+                        ToolTip.Tip="{l:Loc Filter_TagsInclude}"
+                        AutomationProperties.Name="{l:Loc Filter_TagsInclude}" />
+                <Button Grid.Column="2"
+                        Classes="Icon"
+                        Content="−"
+                        Command="{Binding $parent[ItemsControl].((vm:TagFilterViewModel)DataContext).AddExcludeCommand}"
+                        CommandParameter="{Binding}"
+                        ToolTip.Tip="{l:Loc Filter_TagsExclude}"
+                        AutomationProperties.Name="{l:Loc Filter_TagsExclude}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <CheckBox Content="{l:Loc Filter_TagsMatchAll}" IsChecked="{Binding MatchAll}" />
+        <TextBlock Classes="Secondary" Text="{l:Loc Filter_TagsIncluded}" IsVisible="{Binding Include.Count, Converter={x:Static v:FilterBarView.IsPositive}}" />
+        <ItemsControl ItemsSource="{Binding Include}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <Button Classes="FilterChip"
+                      Content="{Binding StringFormat='{}{0}  ×'}"
+                      Command="{Binding $parent[ItemsControl].((vm:TagFilterViewModel)DataContext).RemoveIncludeCommand}"
+                      CommandParameter="{Binding}"
+                      AutomationProperties.Name="{Binding Converter={x:Static v:FilterPanelView.RemoveIncludedName}}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Classes="Secondary" Text="{l:Loc Filter_TagsExcluded}" IsVisible="{Binding Exclude.Count, Converter={x:Static v:FilterBarView.IsPositive}}" />
+        <ItemsControl ItemsSource="{Binding Exclude}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <Button Classes="FilterChip"
+                      Content="{Binding StringFormat='{}{0}  ×'}"
+                      Command="{Binding $parent[ItemsControl].((vm:TagFilterViewModel)DataContext).RemoveExcludeCommand}"
+                      CommandParameter="{Binding}"
+                      AutomationProperties.Name="{Binding Converter={x:Static v:FilterPanelView.RemoveExcludedName}}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+          </StackPanel>
+    </DataTemplate>
+  </ItemsControl.DataTemplates>
+    </ItemsControl>
+  </ScrollViewer>
+</UserControl>

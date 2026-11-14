@@ -32,6 +32,8 @@ public static class UseCasesModule
         services.TryAddSingleton<SettingRegistry>();
         services.TryAddSingleton<Search.Filters.FilterRegistry>();
         services.TryAddSingleton<Search.Filters.FilterStateSerializer>();
+        services.TryAddSingleton<Search.Filters.FilterStatePersistence>();
+        services.AddSetting(Search.Filters.FilterSettings.RestoreOnStart);
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();

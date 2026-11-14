@@ -162,6 +162,12 @@
   <!-- Layout sizes -->
   <x:Double x:Key="Size.Navigation.Expanded">240</x:Double>
   <x:Double x:Key="Size.Navigation.Collapsed">66</x:Double>
+  <!-- The Filters flyout (E10-S02): its width and tallest height, a number box in a range filter, a chip's widest text. -->
+  <x:Double x:Key="Size.FilterPanel">320</x:Double>
+  <x:Double x:Key="Size.FilterPanel.MaxHeight">480</x:Double>
+  <x:Double x:Key="Size.FilterRangeBox">96</x:Double>
+  <x:Double x:Key="Size.FilterChip.MaxWidth">320</x:Double>
+  <Thickness x:Key="Padding.FilterGroup">0,0,0,12</Thickness>
   <x:Double x:Key="Size.DetailsPanel">320</x:Double>
   <!-- Not in Figma, which only hides the details panel: a strip with the expand button (Size.Control plus Padding.Strip). -->
   <x:Double x:Key="Size.DetailsPanel.Collapsed">42</x:Double>

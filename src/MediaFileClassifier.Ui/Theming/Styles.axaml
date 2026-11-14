@@ -99,6 +99,39 @@
     <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
   </Style>
 
+  <!-- Filter chips (E10-S02): quick filters, active filters and tag chips; .Selected marks the one in force. -->
+    <Style Selector="Button.FilterChip">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+      <Setter Property="Margin" Value="0,0,4,4" />
+    </Style>
+    <Style Selector="ToggleButton.FilterChip">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+      <Setter Property="Margin" Value="0,0,4,4" />
+    </Style>
+    <Style Selector="ToggleButton.FilterChip:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Selected}" />
+    </Style>
+    <Style Selector="Button.FilterChip.Selected">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Selected}" />
+    </Style>
+
+  <Style Selector="Border.ActiveFilterChip">
+    <Setter Property="Background" Value="{DynamicResource Brush.State.Hover}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+    <Setter Property="Padding" Value="12,0,2,0" />
+    <Setter Property="Margin" Value="0,0,4,4" />
+  </Style>
+
   <!-- Icon-only buttons, e.g. panel toggles -->
   <Style Selector="Button.Icon">
     <Setter Property="Width" Value="{DynamicResource Size.Control}" />

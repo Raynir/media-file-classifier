@@ -7,6 +7,7 @@ using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.Navigation;
 using MediaFileClassifier.Ui.Rescan;
 using MediaFileClassifier.Ui.Search;
+using MediaFileClassifier.Ui.Search.Filters;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.Settings;
@@ -171,6 +172,7 @@ public static class UiModule
             thumbnails: provider.GetService<IThumbnailCache>() is null ? null : provider.GetRequiredService<ThumbnailLoader>(),
             analyzeNow: provider.GetService<ILibrarySession>() is null ? null : provider.GetRequiredService<AnalyzeNow>()));
         services.AddSingleton<SearchNoticeViewModel>();
+        services.AddSingleton<FilterBarViewModel>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, SearchToolbar>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, FindSimilarCommands>());
 

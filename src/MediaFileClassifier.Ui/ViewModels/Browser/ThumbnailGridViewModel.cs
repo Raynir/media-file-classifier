@@ -9,6 +9,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Search;
+using MediaFileClassifier.Ui.Search.Filters;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.ThumbnailTileSize;
 using MediatR;
@@ -86,6 +87,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <param name="selection">The selection.</param>
     /// <param name="contextMenu">Builds the context menu, or <see langword="null"/> for none.</param>
     /// <param name="notice">The notice above the results while a search is on, or <see langword="null"/> for none.</param>
+    /// <param name="filters">The filter chips and panel above the results, or <see langword="null"/> for none.</param>
     public ThumbnailGridViewModel(
         IMediaResultSource source,
         ThumbnailLoader loader,
@@ -94,9 +96,11 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         ISender sender,
         SelectionModel selection,
         BrowserContextMenu? contextMenu = null,
-        SearchNoticeViewModel? notice = null)
+        SearchNoticeViewModel? notice = null,
+        FilterBarViewModel? filters = null)
     {
         Notice = notice;
+        Filters = filters;
         this.source = source;
         annotations = source as IResultAnnotations;
         this.loader = loader;
@@ -150,6 +154,11 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// Gets the notice bar above the results while a search is on (E09-S01-T05), or <see langword="null"/>.
     /// </summary>
     public SearchNoticeViewModel? Notice { get; }
+
+    /// <summary>
+    /// Gets the filter chips and panel above the results (E10-S02), or <see langword="null"/>.
+    /// </summary>
+    public FilterBarViewModel? Filters { get; }
 
     /// <summary>
     /// Gets the selection.

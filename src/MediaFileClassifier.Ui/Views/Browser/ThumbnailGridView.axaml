@@ -6,6 +6,7 @@
              xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              xmlns:search="using:MediaFileClassifier.Ui.Search"
+             xmlns:searchViews="using:MediaFileClassifier.Ui.Views.Search"
              x:Class="MediaFileClassifier.Ui.Views.Browser.ThumbnailGridView"
              x:DataType="vm:ThumbnailGridViewModel"
              sc:Shortcuts.Scope="browser">
@@ -137,6 +138,10 @@
   </UserControl.Resources>
 
   <DockPanel>
+    <!-- Quick filters and the Filters flyout (E10-S02). -->
+    <Border DockPanel.Dock="Top" IsVisible="{Binding Filters.IsVisible, FallbackValue=False}">
+      <searchViews:FilterBarView DataContext="{Binding Filters}" />
+    </Border>
     <!-- Search notice (E09-S01-T05): result count, hints and the less relevant option. -->
     <Border DockPanel.Dock="Top"
             IsVisible="{Binding Notice.IsVisible}"

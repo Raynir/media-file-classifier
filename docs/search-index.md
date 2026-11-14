@@ -129,7 +129,7 @@ D031's 300 ms is counted from the end of the pause, so the pause is chosen for h
 | 250 ms | 2.3 | 0.4 | 5.2 | 1.5 |
 | 300 ms | 1.7 | 0.2 | 4.0 | 0.9 |
 
-The results arrive the pause plus the encoder and search after the last keystroke, so every 50 ms off the pause shows them 50 ms sooner. The user chose 200 ms: 100 ms sooner than before, at about one cancelled search per query for a fast typist and 2.4 for a slower one, which the cheaper searches after MFC-988 and 989 allow. The simulated gaps are a model, not recorded typing; the app logs the time from the last keystroke to the results, so real numbers can check it.
+The results arrive the pause plus the encoder and search after the last keystroke, so every 50 ms off the pause shows them 50 ms sooner. The user chose 200 ms: 100 ms sooner than before, at about one cancelled search per query for a fast typist and 2.4 for a slower one, which the cheaper searches after MFC-988 and 989 allow. The started counts don't depend on the machine's load, but the cancelled counts do: a final run while other builds were busy (encoder p95 345 ms instead of 25 ms) gave 0.76 and 1.96 cancelled per query at 200 ms, and search p95 numbers that aren't comparable, so the clean MFC-989 table above stays the reference for search times (the pause adds a constant). The simulated gaps are a model, not recorded typing; the app logs the time from the last keystroke to the results, so real numbers can check it.
 
 ## Known follow-ups
 

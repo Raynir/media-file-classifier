@@ -4,6 +4,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+## M2 — 2026-11-15
+
 ### Added
 
 - Relevance evaluation of the app's own search: the evaluation tool runs the app's describer and OCR over the corpus once (`analyze`, stored in `eval/analysis/`) and scores the real hybrid, vector and keyword search (`app-hybrid`, `app-vector`, `app-keyword`) against a pinned baseline run, with new file-name, tag-style and "should find nothing" queries, ranking flags and a `tune` sweep. The tuned defaults are RRF k 10 (was 60) and every keyword field weighted 1 (was title 4, tags 3, file name 2): hybrid recall@10 0.930 English, 0.741 Russian (+0.002, =), MRR 0.972 and 0.804 (+0.008, =), well above vector-only search. Results and parameters in `docs/search-index.md` (E09-S05).

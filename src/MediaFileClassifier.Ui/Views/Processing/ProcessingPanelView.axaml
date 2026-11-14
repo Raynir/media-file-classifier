@@ -43,8 +43,32 @@
             <TextBlock Text="{Binding CancelQuestion}" TextWrapping="Wrap" VerticalAlignment="Center" />
           </DockPanel>
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" IsVisible="{Binding !IsConfirmingCancel}">
+            <ToggleButton Content="{l:Loc Processing_ShowFailures}" IsChecked="{Binding IsShowingFailures, Mode=OneWay}" Command="{Binding ToggleFailuresCommand}" IsVisible="{Binding HasFailures}" />
             <Button Content="{l:Loc Processing_RetryFailed}" Command="{Binding RetryFailedCommand}" IsVisible="{Binding HasFailures}" />
             <Button Content="{l:Loc Processing_Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding CanCancel}" />
+          </StackPanel>
+          <!-- The failures of the job, with Retry and Reveal file (E05-S03-T03). -->
+          <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding IsShowingFailures}">
+            <TextBlock Classes="Secondary" Text="{l:Loc Processing_NoFailuresLeft}" IsVisible="{Binding HasNoFailuresListed}" />
+            <ItemsControl ItemsSource="{Binding Failures}" ItemsPanel="{StaticResource JobsPanel}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FailedItemViewModel">
+                  <Border Classes="Panel" Padding="{DynamicResource Padding.Control}">
+                    <DockPanel>
+                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+                        <Button Content="{l:Loc Processing_Retry}" Command="{Binding RetryCommand}" IsVisible="{Binding CanRetry}" />
+                        <Button Content="{l:Loc Processing_RevealFile}" Command="{Binding RevealCommand}" IsVisible="{Binding CanReveal}" />
+                      </StackPanel>
+                      <StackPanel>
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
+                        <TextBlock Classes="Secondary" Text="{Binding Stage}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="Secondary" Text="{Binding Error}" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </StackPanel>
         </StackPanel>
       </Border>

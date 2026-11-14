@@ -249,6 +249,31 @@ public sealed class JobRepositoryTests : IAsyncLifetime
         Assert.Equal(2, failures[job.Id]);
     }
 
+    [Fact]
+    public async Task GetFailedWorkItemsAsync_ListsTheFailuresThatNeedAttention_WithTheirMessage()
+    {
+        var media = await AddMediaItemsAsync(2);
+        var job = NewJobRecord();
+        var stillBroken = WorkItem.Create(job.Id, media[0].Id, "fingerprint", ResourcePool.Io, 0, null, Now);
+        var retried = WorkItem.Create(job.Id, media[1].Id, "fingerprint", ResourcePool.Io, 0, null, Now.AddSeconds(1));
+        var wholeTarget = WorkItem.Create(job.Id, null, "discover", ResourcePool.Io, 0, null, Now.AddSeconds(2));
+        await bed.Library.Jobs.AddJobAsync(job, [stillBroken, retried, wholeTarget], Token);
+        foreach (var failing in new[] { stillBroken, retried, wholeTarget })
+        {
+            var running = await bed.Library.Jobs.StartAsync(failing, Now, Token);
+            await bed.Library.Jobs.FinishAsync(running!.ChangeState(WorkItemState.Failed, Now, "broken " + failing.Stage), Now, Token);
+        }
+
+        media[0].MarkFailed(new MediaItemError("fingerprint", null, false), "broken", Now);
+        await bed.Library.Items.UpdateAsync(media[0], Token);
+
+        var failed = await bed.Library.Jobs.GetFailedWorkItemsAsync(job.Id, Token);
+
+        Assert.Equal([stillBroken.Id, wholeTarget.Id], failed.Select(item => item.Id));
+        Assert.Equal("broken fingerprint", failed[0].LastError);
+        Assert.Empty(await bed.Library.Jobs.GetFailedWorkItemsAsync(Id<ProcessingJob>.New(), Token));
+    }
+
     private static ProcessingJob NewJobRecord() =>
         new() { Id = Id<ProcessingJob>.New(), Type = "test", Description = "Test job", Priority = (int)JobPriority.Import, CreatedAt = Now };
 

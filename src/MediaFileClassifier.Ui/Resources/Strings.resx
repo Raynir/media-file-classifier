@@ -1836,4 +1836,26 @@
   <data name="Processing_RetryFailed" xml:space="preserve">
     <value>Retry failed</value>
   </data>
+  <data name="Processing_ShowFailures" xml:space="preserve">
+    <value>Show failures</value>
+  </data>
+  <data name="Processing_HideFailures" xml:space="preserve">
+    <value>Hide failures</value>
+  </data>
+  <data name="Processing_Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Processing_RevealFile" xml:space="preserve">
+    <value>Reveal file</value>
+  </data>
+  <data name="Processing_WholeTarget" xml:space="preserve">
+    <value>The whole step</value>
+    <comment>Title of a failure that is not about one file, e.g. a folder that could not be read.</comment>
+  </data>
+  <data name="Processing_NoErrorMessage" xml:space="preserve">
+    <value>No details were recorded.</value>
+  </data>
+  <data name="Processing_NoFailuresLeft" xml:space="preserve">
+    <value>Nothing failed anymore.</value>
+  </data>
 </root>

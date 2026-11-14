@@ -72,6 +72,16 @@ public interface IJobRepository
     Task<IReadOnlyDictionary<Id<ProcessingJob>, int>> CountFailuresAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the failed work items of a job that still need attention (E05-S03-T03), the same ones
+    /// <see cref="CountFailuresAsync"/> counts: failed work items whose media item is still in error, or that have no
+    /// media item.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The failed work items, oldest first.</returns>
+    Task<IReadOnlyList<WorkItem>> GetFailedWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets queued work items of a pool in the order they should run: highest priority first, then oldest.
     /// </summary>
     /// <param name="pool">The pool.</param>

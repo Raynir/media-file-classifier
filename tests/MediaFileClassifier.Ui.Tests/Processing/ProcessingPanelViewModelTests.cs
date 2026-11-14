@@ -1,5 +1,9 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Paths;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Commands;
@@ -9,8 +13,10 @@ using MediaFileClassifier.Ui.StatusBar;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.Tests.Shell;
 using MediaFileClassifier.Ui.ViewModels.Processing;
+using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Import.RetryFailedItems;
 using MediaFileClassifier.UseCases.Processing.CancelJob;
+using MediaFileClassifier.UseCases.Processing.GetJobFailures;
 using MediaFileClassifier.UseCases.Processing.GetProcessingQueue;
 
 namespace MediaFileClassifier.Ui.Tests.Processing;
@@ -25,12 +31,13 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
     private readonly QueueSender sender = new();
     private readonly FakeJobProgress progress = new();
     private readonly ProgressFeed feed;
+    private readonly RecordingPlatform platform = new();
     private readonly ProcessingPanelViewModel panel;
 
     public ProcessingPanelViewModelTests()
     {
         feed = new ProgressFeed(progress, new ManualTimeProvider(), action => action());
-        panel = new ProcessingPanelViewModel(sender, feed, Localizer.Current);
+        panel = new ProcessingPanelViewModel(sender, feed, Localizer.Current, platform);
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -262,11 +269,97 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
         Assert.Equal(new RetryFailedItemsCommand(JobId: job.Id), Assert.Single(sender.Commands));
     }
 
+    [Fact]
+    public async Task Failures_OpenWithTheFileStageAndError_AndWholeTargetFailuresHaveNoRetryOrReveal()
+    {
+        var job = Job("Import photos", ProcessingJobState.Failed, total: 10, done: 8) with { Failed = 2, FinishedAt = Now };
+        sender.Queue = new ProcessingQueue([], [job]);
+        var itemId = Id<MediaItem>.New();
+        sender.Failures.Add(new FailedWorkItem(Id<WorkItem>.New(), itemId, "broken.jpg", "album/broken.jpg", "import.media", "Unsupported JPEG", ErrorCategory.Permanent));
+        sender.Failures.Add(new FailedWorkItem(Id<WorkItem>.New(), null, null, null, "import.discover", string.Empty, null));
+        await panel.RefreshAsync(Token);
+        var row = Assert.Single(panel.Recent);
+
+        await row.ToggleFailuresCommand.ExecuteAsync(null);
+
+        Assert.True(row.IsShowingFailures);
+        Assert.Equal(2, row.Failures.Count);
+        var file = row.Failures[0];
+        Assert.Equal(("broken.jpg", "Reading metadata and thumbnails", "Unsupported JPEG", true, true), (file.Title, file.Stage, file.Error, file.CanRetry, file.CanReveal));
+        var whole = row.Failures[1];
+        Assert.Equal("No details were recorded.", whole.Error);
+        Assert.False(whole.CanRetry);
+        Assert.False(whole.CanReveal);
+
+        await row.ToggleFailuresCommand.ExecuteAsync(null);
+
+        Assert.Empty(row.Failures);
+    }
+
+    [Fact]
+    public async Task Failures_RetryRetriesOneItem_AndRevealShowsItsFile()
+    {
+        var job = Job("Import photos", ProcessingJobState.Failed, total: 10, done: 9) with { Failed = 1, FinishedAt = Now };
+        sender.Queue = new ProcessingQueue([], [job]);
+        var itemId = Id<MediaItem>.New();
+        sender.Failures.Add(new FailedWorkItem(Id<WorkItem>.New(), itemId, "broken.jpg", "broken.jpg", "import.media", "Unsupported JPEG", null));
+        await panel.RefreshAsync(Token);
+        var row = Assert.Single(panel.Recent);
+        await row.ToggleFailuresCommand.ExecuteAsync(null);
+        var failure = Assert.Single(row.Failures);
+
+        await failure.RevealCommand.ExecuteAsync(null);
+        await failure.RetryCommand.ExecuteAsync(null);
+
+        Assert.Equal(["broken.jpg"], platform.Revealed);
+        var retry = Assert.IsType<RetryFailedItemsCommand>(Assert.Single(sender.Commands));
+        Assert.Equal([itemId], retry.ItemIds);
+    }
+
+    [Fact]
+    public async Task Failures_StayOpenAndReloadWhenTheListRefreshes()
+    {
+        var job = Job("Import photos", ProcessingJobState.Failed, total: 10, done: 9) with { Failed = 1, FinishedAt = Now };
+        sender.Queue = new ProcessingQueue([], [job]);
+        sender.Failures.Add(new FailedWorkItem(Id<WorkItem>.New(), Id<MediaItem>.New(), "a.jpg", "a.jpg", "import.media", "bad", null));
+        await panel.RefreshAsync(Token);
+        var row = Assert.Single(panel.Recent);
+        await row.ToggleFailuresCommand.ExecuteAsync(null);
+
+        sender.Failures.Clear();
+        await panel.RefreshAsync(Token);
+
+        Assert.True(row.IsShowingFailures);
+        Assert.Empty(row.Failures);
+        Assert.True(row.HasNoFailuresListed);
+    }
+
     private static QueueJob Job(string description, ProcessingJobState state, int total, int done = 0, int pending = 0) =>
         new(Id<ProcessingJob>.New(), "import", description, state, Now, Now, null, total, done, 0, pending == 0 ? total - done : pending);
 
     private static ProgressSummary Summary(QueueJob job, TimeSpan? remaining, int retrying, params StageProgress[] stages) =>
         new([new JobProgress(job.Id, job.Type, job.Description, stages, remaining) { Retrying = retrying }], remaining);
+
+    private sealed class RecordingPlatform : IPlatformServices
+    {
+        public List<string> Revealed { get; } = [];
+
+        public IAppPaths Paths => throw new NotSupportedException();
+
+        public bool CanRevealInFileExplorer => true;
+
+        public Task<FolderHandle?> PickFolderAsync(string title, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<FileLocation>> PickFilesAsync(FilePickerRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task RevealInFileExplorerAsync(FileLocation location, CancellationToken cancellationToken = default)
+        {
+            Revealed.Add(location.RelativePath);
+            return Task.CompletedTask;
+        }
+
+        public Task OpenWithDefaultAppAsync(FileLocation location, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
 
     private sealed class QueueSender : FakeSender
     {
@@ -276,6 +369,8 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
 
         public List<object> Commands { get; } = [];
 
+        public List<FailedWorkItem> Failures { get; } = [];
+
         protected override object? Handle(object request)
         {
             switch (request)
@@ -283,6 +378,10 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
                 case GetProcessingQueueQuery:
                     Calls++;
                     return Queue;
+                case GetJobFailuresQuery:
+                    return (IReadOnlyList<FailedWorkItem>)Failures;
+                case GetItemLocationsQuery query:
+                    return (IReadOnlyList<ItemLocation>)[.. query.ItemIds.Select(id => new ItemLocation(id, new FileLocation(new FolderHandle(@"D:\Photos", "Photos"), "broken.jpg"), @"D:\Photos\broken.jpg", "Photos", ItemAvailability.Available))];
                 case CancelJobCommand or RetryFailedItemsCommand:
                     Commands.Add(request);
                     return request is CancelJobCommand ? true : new RetryFailedItemsResult(1, 0);

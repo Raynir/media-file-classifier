@@ -4,10 +4,13 @@ using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Processing;
+using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Import.RetryFailedItems;
 using MediaFileClassifier.UseCases.Processing.CancelJob;
+using MediaFileClassifier.UseCases.Processing.GetJobFailures;
 using MediaFileClassifier.UseCases.Processing.GetProcessingQueue;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -24,6 +27,7 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     private readonly ISender sender;
     private readonly ProgressFeed feed;
     private readonly Localizer localizer;
+    private readonly IPlatformServices? platform;
     private readonly ILogger logger;
     private readonly Dictionary<Id<ProcessingJob>, ProcessingJobViewModel> rows = [];
     private int version;
@@ -34,12 +38,14 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     /// <param name="sender">Gets the jobs.</param>
     /// <param name="feed">The throttled job progress.</param>
     /// <param name="localizer">UI strings.</param>
+    /// <param name="platform">Shows files in the file manager, or <see langword="null"/> for no Reveal file.</param>
     /// <param name="logger">Logger, or <see langword="null"/> for none.</param>
-    public ProcessingPanelViewModel(ISender sender, ProgressFeed feed, Localizer localizer, ILogger<ProcessingPanelViewModel>? logger = null)
+    public ProcessingPanelViewModel(ISender sender, ProgressFeed feed, Localizer localizer, IPlatformServices? platform = null, ILogger<ProcessingPanelViewModel>? logger = null)
     {
         this.sender = sender;
         this.feed = feed;
         this.localizer = localizer;
+        this.platform = platform;
         this.logger = logger ?? NullLogger<ProcessingPanelViewModel>.Instance;
     }
 
@@ -140,6 +146,11 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
         Reconcile(Queued, queued);
         Reconcile(Recent, recent);
         IsEmpty = rows.Count == 0;
+
+        foreach (var row in rows.Values.Where(row => row.IsShowingFailures).ToList())
+        {
+            await row.LoadFailuresAsync();
+        }
     }
 
     // Moves, adds and removes rows, so the rows that stay keep their place and state in the list.
@@ -200,6 +211,77 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
         }
 
         await RefreshAsync();
+    }
+
+    /// <summary>
+    /// Gets the failures of a job that still need attention.
+    /// </summary>
+    /// <param name="row">The job's row.</param>
+    /// <returns>The failures, or none when the library closed.</returns>
+    internal async Task<IReadOnlyList<FailedItemViewModel>> GetFailuresAsync(ProcessingJobViewModel row)
+    {
+        try
+        {
+            var failures = await sender.Send(new GetJobFailuresQuery(row.Id));
+            var canReveal = platform?.CanRevealInFileExplorer == true;
+            return [.. failures.Select(failure => new FailedItemViewModel(failure, localizer, this, canReveal))];
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+            LogActionFailed(exception);
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Queues one failed item again and lists the jobs again.
+    /// </summary>
+    /// <param name="failure">The failure.</param>
+    /// <returns>A task that completes when the lists are up to date.</returns>
+    internal async Task RetryItemAsync(FailedItemViewModel failure)
+    {
+        if (failure.Failure.ItemId is not { } itemId)
+        {
+            return;
+        }
+
+        try
+        {
+            await sender.Send(new RetryFailedItemsCommand(ItemIds: [itemId]));
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException or ArgumentException)
+        {
+            LogActionFailed(exception);
+        }
+
+        await RefreshAsync();
+    }
+
+    /// <summary>
+    /// Shows a failed item's file in the file manager.
+    /// </summary>
+    /// <param name="failure">The failure.</param>
+    /// <returns>A task that completes when the file manager was asked.</returns>
+    internal async Task RevealItemAsync(FailedItemViewModel failure)
+    {
+        if (platform is null || failure.Failure.ItemId is not { } itemId)
+        {
+            return;
+        }
+
+        try
+        {
+            var locations = await sender.Send(new GetItemLocationsQuery([itemId]));
+            if (locations.FirstOrDefault() is { Availability: ItemAvailability.Available } location)
+            {
+                await platform.RevealInFileExplorerAsync(location.Location);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException or System.ComponentModel.Win32Exception or UnauthorizedAccessException or NotSupportedException)
+        {
+            // The file went away since the last scan, or there is no file manager.
+            LogActionFailed(exception);
+        }
     }
 
     [RelayCommand]

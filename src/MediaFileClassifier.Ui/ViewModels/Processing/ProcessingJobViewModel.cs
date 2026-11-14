@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Domain.Identity;
@@ -127,6 +128,49 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
     public bool IsConfirmingCancel => CancelQuestion is not null;
 
     /// <summary>
+    /// Gets the failures listed in the row's details, while <see cref="IsShowingFailures"/>.
+    /// </summary>
+    public ObservableCollection<FailedItemViewModel> Failures { get; } = [];
+
+    /// <summary>
+    /// Gets a value indicating whether the details with the failures are open.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsShowingFailures { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the details are open but there is nothing to list (anymore).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool HasNoFailuresListed { get; private set; }
+
+    /// <summary>
+    /// Lists the job's failures again; the panel calls it while the details are open.
+    /// </summary>
+    /// <returns>A task that completes when the list is up to date.</returns>
+    public async Task LoadFailuresAsync()
+    {
+        if (panel is null)
+        {
+            return;
+        }
+
+        var failures = await panel.GetFailuresAsync(this);
+        if (!IsShowingFailures)
+        {
+            return;
+        }
+
+        Failures.Clear();
+        foreach (var failure in failures)
+        {
+            Failures.Add(failure);
+        }
+
+        HasNoFailuresListed = Failures.Count == 0;
+    }
+
+    /// <summary>
     /// Updates the job from a new list, e.g. after it started or finished.
     /// </summary>
     /// <param name="updated">The job as it is now.</param>
@@ -189,6 +233,21 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
 
     [RelayCommand]
     private void KeepRunning() => CancelQuestion = null;
+
+    [RelayCommand]
+    private async Task ToggleFailuresAsync()
+    {
+        IsShowingFailures = !IsShowingFailures;
+        if (IsShowingFailures)
+        {
+            await LoadFailuresAsync();
+        }
+        else
+        {
+            Failures.Clear();
+            HasNoFailuresListed = false;
+        }
+    }
 
     [RelayCommand]
     private async Task RetryFailedAsync()

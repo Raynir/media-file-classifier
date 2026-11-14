@@ -153,6 +153,18 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<WorkItem>> GetFailedWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<WorkItem>>(
+            async (db, token) => await db.WorkItems
+                .Where(item => item.JobId == jobId && item.State == WorkItemState.Failed)
+                .Where(item => item.ItemId == null || db.MediaItems.Any(media => media.Id == item.ItemId && media.Status == MediaItemStatus.Error))
+                .OrderBy(item => item.CreatedAt)
+                .ThenBy(item => item.Id)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<WorkItem>> GetQueuedAsync(
         ResourcePool pool,
         int limit,

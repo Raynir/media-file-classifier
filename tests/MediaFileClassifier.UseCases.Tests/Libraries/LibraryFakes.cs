@@ -239,6 +239,13 @@ internal sealed class FakeJobRepository : IJobRepository
 
     public Task<IReadOnlyDictionary<Id<ProcessingJob>, int>> CountFailuresAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyDictionary<Id<ProcessingJob>, int>>(Failures);
 
+    /// <summary>
+    /// Gets the work items <see cref="GetFailedWorkItemsAsync"/> returns.
+    /// </summary>
+    public List<WorkItem> FailedWork { get; } = [];
+
+    public Task<IReadOnlyList<WorkItem>> GetFailedWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<WorkItem>>([.. FailedWork.Where(item => item.JobId == jobId)]);
+
     public Task<IReadOnlyList<WorkItem>> GetQueuedAsync(ResourcePool pool, int limit, IReadOnlyCollection<Id<WorkItem>> excluding, IReadOnlyCollection<string>? excludingStages = null, DateTimeOffset? dueBy = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<DateTimeOffset?> GetNextRetryAtAsync(DateTimeOffset after, CancellationToken cancellationToken = default) => throw new NotSupportedException();

@@ -188,6 +188,15 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(MediaItemFilter filter, int offset, int limit, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the IDs of every item a filter shows, newest first, in one read: a snapshot of the filter at that moment,
+    /// so items that change while a caller works through the list can't shift it (MFC-994).
+    /// </summary>
+    /// <param name="filter">Which items to show.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The IDs.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> GetFilteredIdsAsync(MediaItemFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the tile summaries of the given items, e.g. the hits of a search page (E09-S01). Items that no longer
     /// exist are left out.
     /// </summary>

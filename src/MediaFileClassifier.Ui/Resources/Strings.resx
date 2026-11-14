@@ -1560,6 +1560,33 @@
   <data name="Filter_TagRemoveExcluded" xml:space="preserve">
     <value>Stop excluding the tag {0}</value>
   </data>
+  <data name="Filter_Status" xml:space="preserve">
+    <value>Processing status</value>
+  </data>
+  <data name="Filter_Status_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Filter_Status_Indexed" xml:space="preserve">
+    <value>Indexed</value>
+  </data>
+  <data name="Filter_Status_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Filter_Status_Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="Filter_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Filter_Folder_IncludeSubfolders" xml:space="preserve">
+    <value>Include subfolders</value>
+  </data>
+  <data name="Filter_Folder_Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Filter_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
   <data name="Profile_Heading" xml:space="preserve">
     <value>Analysis profile</value>
   </data>

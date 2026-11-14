@@ -58,13 +58,12 @@ internal sealed class ResolutionFilter : FilterDefinition<ResolutionValue>, IFil
     /// <summary>
     /// Lists the presets, in the order the panel shows them.
     /// </summary>
-    /// <param name="prefix">Text the preset IDs start with, or <see langword="null"/> for all.</param>
+    /// <param name="prefix">Ignored: the list is fixed, and the panel narrows it by the text it shows.</param>
     /// <param name="cancellationToken">Not used.</param>
     /// <returns>The presets: their IDs and display-name keys.</returns>
     public ValueTask<IReadOnlyList<FilterOption>> GetOptionsAsync(string? prefix, CancellationToken cancellationToken) =>
         ValueTask.FromResult<IReadOnlyList<FilterOption>>(
             [.. Presets
-                .Where(preset => string.IsNullOrEmpty(prefix) || preset.Preset.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 .Select(preset => new FilterOption(preset.Preset, preset.Key))]);
 
     /// <inheritdoc />

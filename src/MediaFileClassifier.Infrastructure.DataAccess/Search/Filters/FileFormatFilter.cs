@@ -32,7 +32,6 @@ internal sealed class FileFormatFilter(IMediaFormatRegistry formats) : FilterDef
     public ValueTask<IReadOnlyList<FilterOption>> GetOptionsAsync(string? prefix, CancellationToken cancellationToken) =>
         ValueTask.FromResult<IReadOnlyList<FilterOption>>(
             [.. formats.Handlers
-                .Where(handler => string.IsNullOrEmpty(prefix) || handler.FormatId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 .Select(handler => new FilterOption(handler.FormatId, DisplayName: handler.FormatId.ToUpperInvariant()))]);
 
     /// <inheritdoc />

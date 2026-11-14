@@ -60,20 +60,14 @@ internal sealed class TagsFilter(ILibrarySession session) : FilterDefinition<Inc
         var include = Keys(value.Include);
         if (include.Count > 0)
         {
-            if (value.MatchAll)
-            {
-                conditions.AddRange(include.Select(key => Has([key], sql)));
-            }
-            else
-            {
-                conditions.Add(Has(include, sql));
-            }
+            // All of them: one probe counts the item's distinct effective tags among them.
+            conditions.Add(value.MatchAll && include.Count > 1 ? $"{Count(include, sql)} = {include.Count}" : $"EXISTS {Assignments(include, sql)}");
         }
 
         var exclude = Keys(value.Exclude);
         if (exclude.Count > 0)
         {
-            conditions.Add("NOT " + Has(exclude, sql));
+            conditions.Add($"NOT EXISTS {Assignments(exclude, sql)}");
         }
 
         return string.Join(" AND ", conditions);
@@ -83,6 +77,10 @@ internal sealed class TagsFilter(ILibrarySession session) : FilterDefinition<Inc
     private static List<string> Keys(IEnumerable<string> tags) =>
         [.. tags.Select(tag => TagKeyGenerator.KeyOf(TagName.From(tag))).Distinct(StringComparer.Ordinal)];
 
-    private static string Has(IEnumerable<string> keys, IFilterSql sql) =>
-        $"""EXISTS (SELECT 1 FROM "tag_assignment" a WHERE a."item_id" = {sql.ItemId} AND a."tag_key" IN ({string.Join(", ", keys.Select(sql.Parameter))}) AND {EffectiveTagSql.Condition("a")})""";
+    private static string Assignments(IEnumerable<string> keys, IFilterSql sql) => $"(SELECT 1 {From(keys, sql)})";
+
+    private static string Count(IEnumerable<string> keys, IFilterSql sql) => $"""(SELECT count(DISTINCT a."tag_key") {From(keys, sql)})""";
+
+    private static string From(IEnumerable<string> keys, IFilterSql sql) =>
+        $"""FROM "tag_assignment" a WHERE a."item_id" = {sql.ItemId} AND a."tag_key" IN ({string.Join(", ", keys.Select(sql.Parameter))}) AND {EffectiveTagSql.Condition("a")}""";
 }

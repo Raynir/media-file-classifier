@@ -24,6 +24,7 @@ using MediaFileClassifier.Ui.ViewModels.Hardware;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
+using MediaFileClassifier.Ui.ViewModels.Processing;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
 using MediaFileClassifier.Ui.Views.Analysis;
@@ -33,6 +34,7 @@ using MediaFileClassifier.Ui.Views.Hardware;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Models;
 using MediaFileClassifier.Ui.Views.Navigation;
+using MediaFileClassifier.Ui.Views.Processing;
 using MediaFileClassifier.Ui.Views.Search;
 using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.Ui.Views.Toolbar;
@@ -68,6 +70,7 @@ public static class UiModule
             .Register<CreateLibraryViewModel, CreateLibraryView>()
             .Register<ThumbnailGridViewModel, ThumbnailGridView>()
             .Register<IndexedFoldersViewModel, IndexedFoldersView>()
+            .Register<ProcessingPanelViewModel, ProcessingPanelView>()
             .Register<NavigationPanelViewModel, NavigationPanelView>()
             .Register<DetailsPanelViewModel, DetailsPanelView>()
             .Register<ToolbarViewModel, ToolbarView>()
@@ -183,6 +186,9 @@ public static class UiModule
 
         // Processing indicator (E05-S02).
         services.AddSingleton<ProgressFeed>();
+        services.AddSingleton<ProcessingPanelViewModel>();
+        services.AddSingleton<ProcessingPanelPresenter>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ProcessingCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingStatusSegment>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, SelectionStatusSegment>());
 

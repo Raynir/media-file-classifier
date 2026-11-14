@@ -96,6 +96,63 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<ProcessingJob>> GetRecentJobsAsync(int limit, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+
+        return connections.ReadAsync<IReadOnlyList<ProcessingJob>>(
+            async (db, token) => await db.ProcessingJobs
+                .Where(job => job.State == ProcessingJobState.Completed || job.State == ProcessingJobState.Failed || job.State == ProcessingJobState.Cancelled)
+                .OrderByDescending(job => job.FinishedAt)
+                .ThenByDescending(job => job.Id)
+                .Take(limit)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<WorkItemCount>> CountWorkAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(jobIds);
+
+        var ids = jobIds.ToList();
+        return connections.ReadAsync<IReadOnlyList<WorkItemCount>>(
+            async (db, token) =>
+            {
+                var groups = await db.WorkItems
+                    .Where(item => ids.Contains(item.JobId))
+                    .GroupBy(item => new { item.JobId, item.Stage, item.State, IsWholeTarget = item.ItemId == null })
+                    .Select(group => new { group.Key.JobId, group.Key.Stage, group.Key.State, group.Key.IsWholeTarget, Count = group.Count() })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                return [.. groups.Select(group => new WorkItemCount(group.JobId, group.Stage, group.State, group.IsWholeTarget, group.Count))];
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyDictionary<Id<ProcessingJob>, int>> CountFailuresAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(jobIds);
+
+        var ids = jobIds.ToList();
+        return connections.ReadAsync<IReadOnlyDictionary<Id<ProcessingJob>, int>>(
+            async (db, token) =>
+            {
+                var counts = await db.WorkItems
+                    .Where(item => item.State == WorkItemState.Failed && ids.Contains(item.JobId))
+                    .Where(item => item.ItemId == null || db.MediaItems.Any(media => media.Id == item.ItemId && media.Status == MediaItemStatus.Error))
+                    .GroupBy(item => item.JobId)
+                    .Select(group => new { JobId = group.Key, Count = group.Count() })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                return counts.ToDictionary(count => count.JobId, count => count.Count);
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<WorkItem>> GetQueuedAsync(
         ResourcePool pool,
         int limit,

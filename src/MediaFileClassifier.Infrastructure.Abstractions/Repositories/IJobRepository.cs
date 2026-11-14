@@ -46,6 +46,32 @@ public interface IJobRepository
     Task<IReadOnlyList<ProcessingJob>> GetUnfinishedJobsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the jobs that finished (completed, failed or cancelled), the most recently finished first (E05-S03-T01).
+    /// </summary>
+    /// <param name="limit">Maximum number of jobs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The jobs.</returns>
+    Task<IReadOnlyList<ProcessingJob>> GetRecentJobsAsync(int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the work items of some jobs by job, stage and state (E05-S03-T01), e.g. for the processing panel's rows.
+    /// </summary>
+    /// <param name="jobIds">The jobs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The counts, in no particular order.</returns>
+    Task<IReadOnlyList<WorkItemCount>> CountWorkAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Counts the failures of some jobs that still need attention (E05-S03-T01): failed work items whose media item is
+    /// still in error, or that have no media item. A failure the user retried successfully isn't counted, though its
+    /// work item stays <see cref="WorkItemState.Failed"/> as a record.
+    /// </summary>
+    /// <param name="jobIds">The jobs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The failure count per job; jobs without failures are left out.</returns>
+    Task<IReadOnlyDictionary<Id<ProcessingJob>, int>> CountFailuresAsync(IReadOnlyCollection<Id<ProcessingJob>> jobIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets queued work items of a pool in the order they should run: highest priority first, then oldest.
     /// </summary>
     /// <param name="pool">The pool.</param>

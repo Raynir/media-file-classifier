@@ -187,6 +187,68 @@ public sealed class JobRepositoryTests : IAsyncLifetime
         Assert.Empty(await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token));
     }
 
+    [Fact]
+    public async Task GetRecentJobsAsync_ListsFinishedJobsNewestFirst_UpToTheLimit()
+    {
+        var finished = new List<ProcessingJob>();
+        for (var i = 0; i < 3; i++)
+        {
+            var (job, items) = NewJob(1);
+            await bed.Library.Jobs.AddJobAsync(job, items, Token);
+            var running = await bed.Library.Jobs.StartAsync(items[0], Now.AddMinutes(i), Token);
+            finished.Add(await bed.Library.Jobs.FinishAsync(running!.ChangeState(WorkItemState.Completed, Now.AddMinutes(i)), Now.AddMinutes(i), Token));
+        }
+
+        var (unfinished, unfinishedItems) = NewJob(1);
+        await bed.Library.Jobs.AddJobAsync(unfinished, unfinishedItems, Token);
+
+        var recent = await bed.Library.Jobs.GetRecentJobsAsync(2, Token);
+
+        Assert.Equal([finished[2].Id, finished[1].Id], recent.Select(job => job.Id));
+    }
+
+    [Fact]
+    public async Task CountWorkAsync_CountsByStageAndState_ForTheGivenJobsOnly()
+    {
+        var (job, items) = NewJob(3);
+        var (other, otherItems) = NewJob(2);
+        await bed.Library.Jobs.AddJobAsync(job, items, Token);
+        await bed.Library.Jobs.AddJobAsync(other, otherItems, Token);
+        var running = await bed.Library.Jobs.StartAsync(items[0], Now, Token);
+        await bed.Library.Jobs.FinishAsync(running!.ChangeState(WorkItemState.Completed, Now), Now, Token);
+
+        var counts = await bed.Library.Jobs.CountWorkAsync([job.Id], Token);
+
+        Assert.All(counts, count => Assert.Equal(job.Id, count.JobId));
+        Assert.Equal(1, counts.Single(count => count.State == WorkItemState.Completed).Count);
+        Assert.Equal(2, counts.Single(count => count.State == WorkItemState.Queued).Count);
+    }
+
+    [Fact]
+    public async Task CountFailuresAsync_CountsFailuresWhoseItemIsStillInError_OrHasNoItem()
+    {
+        var media = await AddMediaItemsAsync(3);
+        var job = NewJobRecord();
+        var stillBroken = WorkItem.Create(job.Id, media[0].Id, "fingerprint", ResourcePool.Io, 0, null, Now);
+        var retried = WorkItem.Create(job.Id, media[1].Id, "fingerprint", ResourcePool.Io, 0, null, Now.AddSeconds(1));
+        var wholeTarget = WorkItem.Create(job.Id, null, "discover", ResourcePool.Io, 0, null, Now.AddSeconds(2));
+        var fine = WorkItem.Create(job.Id, media[2].Id, "fingerprint", ResourcePool.Io, 0, null, Now.AddSeconds(3));
+        await bed.Library.Jobs.AddJobAsync(job, [stillBroken, retried, wholeTarget, fine], Token);
+        foreach (var failing in new[] { stillBroken, retried, wholeTarget })
+        {
+            var running = await bed.Library.Jobs.StartAsync(failing, Now, Token);
+            await bed.Library.Jobs.FinishAsync(running!.ChangeState(WorkItemState.Failed, Now, "broken"), Now, Token);
+        }
+
+        // Two items are in error; the retried one went back to pending when the user retried it.
+        media[0].MarkFailed(new MediaItemError("fingerprint", null, false), "broken", Now);
+        await bed.Library.Items.UpdateAsync(media[0], Token);
+
+        var failures = await bed.Library.Jobs.CountFailuresAsync([job.Id], Token);
+
+        Assert.Equal(2, failures[job.Id]);
+    }
+
     private static ProcessingJob NewJobRecord() =>
         new() { Id = Id<ProcessingJob>.New(), Type = "test", Description = "Test job", Priority = (int)JobPriority.Import, CreatedAt = Now };
 

@@ -1758,4 +1758,66 @@
   <data name="Endpoints_SummaryNoModel" xml:space="preserve">
     <value>{0} · no model chosen</value>
   </data>
+  <data name="Command_ProcessingQueue" xml:space="preserve">
+    <value>_Processing queue</value>
+    <comment>View menu: opens the window with the running, queued and finished background jobs.</comment>
+  </data>
+  <data name="Processing_Title" xml:space="preserve">
+    <value>Processing queue</value>
+  </data>
+  <data name="Processing_Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Processing_Queued" xml:space="preserve">
+    <value>Queued</value>
+  </data>
+  <data name="Processing_Recent" xml:space="preserve">
+    <value>Recent</value>
+  </data>
+  <data name="Processing_Empty" xml:space="preserve">
+    <value>No background work yet. Imports, analysis and rescans show up here while they run.</value>
+  </data>
+  <data name="Processing_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Processing_State_Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="Processing_State_Queued" xml:space="preserve">
+    <value>Queued</value>
+  </data>
+  <data name="Processing_State_WaitingForModel" xml:space="preserve">
+    <value>Waiting for an AI model</value>
+  </data>
+  <data name="Processing_State_Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Processing_State_Completed" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="Processing_State_Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Processing_State_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Processing_Items_One" xml:space="preserve">
+    <value>1 item</value>
+  </data>
+  <data name="Processing_Items_Other" xml:space="preserve">
+    <value>{0} items</value>
+    <comment>{0} is a number of work items.</comment>
+  </data>
+  <data name="Processing_StateDetail" xml:space="preserve">
+    <value>{0} · {1}</value>
+    <comment>{0} is a job state such as &quot;Completed&quot;, {1} a time or a number of items.</comment>
+  </data>
+  <data name="Processing_FailedCount" xml:space="preserve">
+    <value>{0} failed</value>
+    <comment>{0} is the number of failed items of a job.</comment>
+  </data>
+  <data name="Processing_RetryingCount" xml:space="preserve">
+    <value>{0} retrying</value>
+    <comment>{0} is the number of items waiting for an automatic retry.</comment>
+  </data>
 </root>

@@ -207,6 +207,21 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Equal(SearchFields.Title | SearchFields.OcrText | SearchFields.FileName, fields[document]);
     }
 
+    [Theory]
+    [InlineData("l")]
+    [InlineData("k")]
+    public async Task MatchedFields_OneLetterPrefix_NamesTheFields(string term)
+    {
+        var item = await AddItemAsync(1);
+        await EditAsync(item, DescriptiveField.Title, "Lighthouse");
+        await EditAsync(item, DescriptiveField.OcrText, "Keep out");
+        var document = Assert.Single((await bed.Library.Search.FindKeywordMatchesAsync(Search(term), Token)).Matches).DocumentId;
+
+        var fields = await bed.Library.Search.GetMatchedFieldsAsync([document], [term], Token);
+
+        Assert.Equal(term == "l" ? SearchFields.Title : SearchFields.OcrText, fields[document]);
+    }
+
     [Fact]
     public async Task Paging_ReportsTheTotalOnEveryPage()
     {
@@ -251,6 +266,32 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Empty(await FindAsync("lighthouse"));
     }
 
+    [Fact]
+    public async Task UpgradeFromVersion10_KeepsTheIndexedText_AndAddsOneLetterPrefixes()
+    {
+        var item = await AddItemAsync(7);
+        await EditAsync(item, DescriptiveField.Title, "lighthouse");
+        await bed.Library.DisposeAsync();
+        using (var probe = new DesignTimeLibraryDbContextFactory().CreateDbContext([]))
+        {
+            var beforePrefixes = probe.Database.GetMigrations().TakeWhile(migration => !migration.EndsWith("_SearchPrefixIndex", StringComparison.Ordinal)).Last();
+            await using var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token);
+            await db.GetService<IMigrator>().MigrateAsync(beforePrefixes, cancellationToken: Token);
+        }
+
+        SqliteConnection.ClearAllPools();
+        Assert.Contains("prefix = '2 3'", await ReadTextTableSqlAsync(), StringComparison.Ordinal);
+        await bed.OpenAgainAsync();
+
+        Assert.Contains("prefix = '1 2 3'", await ReadTextTableSqlAsync(), StringComparison.Ordinal);
+        Assert.False(await bed.Library.Search.IsRebuildNeededAsync(Token));
+        Assert.Equal([item.Id], await FindAsync("lighthouse"));
+        Assert.Equal([item.Id], await FindAsync("l"));
+        var added = await AddItemAsync(8);
+        await EditAsync(added, DescriptiveField.Title, "harbour");
+        Assert.Equal([added.Id], await FindAsync("h"));
+    }
+
     internal static KeywordSearch Search(string text, SearchFilter? filter = null) =>
         new(text.Split(' ', StringSplitOptions.RemoveEmptyEntries), filter ?? SearchFilter.None, KeywordFieldWeights.Default, SortMode.Relevance, false, 0, 100);
 
@@ -266,6 +307,15 @@ public sealed class SearchStoreTests : IAsyncLifetime
 
     private async Task<IReadOnlyList<Id<MediaItem>>> FindAsync(string text) =>
         [.. (await bed.Library.Search.FindKeywordMatchesAsync(Search(text), Token)).Matches.Select(match => match.ItemId)];
+
+    private async Task<string> ReadTextTableSqlAsync()
+    {
+        await using var connection = new SqliteConnection($"Data Source={bed.Temporary.DatabasePath};Pooling=False");
+        await connection.OpenAsync(Token);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """SELECT "sql" FROM "sqlite_master" WHERE "name" = 'search_text'""";
+        return (string)(await command.ExecuteScalarAsync(Token))!;
+    }
 
     private async Task<long> CountIndexRowsAsync()
     {

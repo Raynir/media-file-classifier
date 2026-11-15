@@ -219,10 +219,17 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
     private async Task ReindexOutdatedAsync()
     {
         // The prompt names the count, so the button is the confirmation: no second question for a large run (D322).
-        OutdatedCount = 0;
         try
         {
-            await sender.Send(new AnalyzeScopeCommand(AnalysisScope.Outdated));
+            var result = await sender.Send(new AnalyzeScopeCommand(AnalysisScope.Outdated));
+            if (result.JobId is null)
+            {
+                // Nothing was queued (the items changed meanwhile, or background processing isn't running): keep the prompt and say so.
+                Error = localizer.Get("Profile_ReindexFailed");
+                return;
+            }
+
+            OutdatedCount = 0;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Embeddings;
@@ -114,14 +115,15 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
         var removed = 0;
         while (true)
         {
-            var committed = await writer.ExecuteAsync((db, token) => RemoveBatchAsync(db, kept, token), RaiseChanged, cancellationToken).ConfigureAwait(false);
-            var items = committed.Select(change => change.Embeddings.ItemId).Distinct().Count();
-            if (items == 0)
+            // Counted from the rows deleted, not the committed changes: an item without a search document has no change.
+            var processed = new StrongBox<int>();
+            await writer.ExecuteAsync((db, token) => RemoveBatchAsync(db, kept, processed, token), RaiseChanged, cancellationToken).ConfigureAwait(false);
+            if (processed.Value == 0)
             {
                 return removed;
             }
 
-            removed += items;
+            removed += processed.Value;
         }
     }
 
@@ -204,6 +206,7 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
     private static async Task<IReadOnlyList<CommittedEmbeddings>> RemoveBatchAsync(
         LibraryDbContext db,
         List<Id<ModelRegistration>> kept,
+        StrongBox<int> processed,
         CancellationToken cancellationToken)
     {
         var superseded = db.Embeddings.AsNoTracking()
@@ -211,6 +214,7 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
             .Where(embedding => db.Embeddings.Any(other => other.ItemId == embedding.ItemId && kept.Contains(other.ModelId)));
         var itemIds = await superseded.Select(embedding => embedding.ItemId).Distinct().Take(MediaItemRepository.BatchSize)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
+        processed.Value = itemIds.Count;
         if (itemIds.Count == 0)
         {
             return [];

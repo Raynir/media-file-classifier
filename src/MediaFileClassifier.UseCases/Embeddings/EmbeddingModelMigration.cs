@@ -141,6 +141,9 @@ public sealed partial class EmbeddingModelMigration : IDisposable
     private static Id<ModelRegistration>? Newest(IEnumerable<ModelRegistration> models) =>
         models.OrderBy(model => model.RegisteredAt).Select(model => (Id<ModelRegistration>?)model.Id).LastOrDefault();
 
+    // Checks are serialised, so this needs no lock.
+    private IOpenLibrary? cleanedUp;
+
     private async Task<bool> CheckAsync(IOpenLibrary library, CancellationToken cancellationToken)
     {
         var settings = library.Library.Settings;
@@ -170,7 +173,20 @@ public sealed partial class EmbeddingModelMigration : IDisposable
             return true;
         }
 
-        if (target is not { } next || currentIds.Contains(active))
+        if (currentIds.Contains(active))
+        {
+            // A switch interrupted after search moved leaves old vectors behind: finish it once per opened library.
+            if (!ReferenceEquals(cleanedUp, library))
+            {
+                var left = await library.Embeddings.RemoveSupersededAsync(currentIds, cancellationToken).ConfigureAwait(false);
+                cleanedUp = library;
+                LogCleanedUp(left);
+            }
+
+            return false;
+        }
+
+        if (target is not { } next)
         {
             return false;
         }

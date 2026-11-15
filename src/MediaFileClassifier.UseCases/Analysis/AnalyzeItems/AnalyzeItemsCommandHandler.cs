@@ -24,7 +24,9 @@ public sealed partial class AnalyzeItemsCommandHandler(IJobSystem jobs, ILogger<
 
         var perItem = request.ItemAnalyzers;
         var itemIds = request.ItemIds.Distinct()
-            .Where(itemId => perItem is null || !perItem.TryGetValue(itemId, out var analyzers) || analyzers.Count > 0)
+            .Where(itemId => perItem is null
+                ? true
+                : perItem.TryGetValue(itemId, out var analyzers) ? analyzers.Count > 0 : request.Analyzers is not { Count: 0 })
             .ToList();
         if (itemIds.Count == 0 || (request.Analyzers is { Count: 0 } && perItem is null))
         {

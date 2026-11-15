@@ -276,6 +276,18 @@ public sealed class AnalysisProfileViewModelTests
     }
 
     [Fact]
+    public async Task ReindexNow_WhenNothingIsQueued_KeepsThePrompt_AndShowsAnError()
+    {
+        var page = await WithPromptAsync();
+        sender.QueueNothing = true;
+
+        await page.ReindexOutdatedCommand.ExecuteAsync(null);
+
+        Assert.True(page.HasOutdated);
+        Assert.True(page.HasError);
+    }
+
+    [Fact]
     public async Task Later_HidesThePrompt_WithoutQueuingAnything()
     {
         var page = await WithPromptAsync();
@@ -355,6 +367,8 @@ public sealed class AnalysisProfileViewModelTests
 
         public Exception? CountFailure { get; set; }
 
+        public bool QueueNothing { get; set; }
+
         public List<AnalyzeScopeCommand> Queued { get; } = [];
 
         protected override object? Handle(object request)
@@ -374,7 +388,7 @@ public sealed class AnalysisProfileViewModelTests
                     });
                 case AnalyzeScopeCommand command:
                     Queued.Add(command);
-                    return new AnalyzeScopeResult(Id<ProcessingJob>.New(), Outdated);
+                    return new AnalyzeScopeResult(QueueNothing ? null : Id<ProcessingJob>.New(), Outdated);
                 case GetAnalysisProfileQuery:
                     return Profile is null
                         ? null

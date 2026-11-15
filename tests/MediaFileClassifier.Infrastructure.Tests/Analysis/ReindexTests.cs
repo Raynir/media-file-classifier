@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
@@ -78,6 +79,56 @@ public sealed class ReindexTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Interrupted_LeavesEveryItemWhollyOldOrWhollyNew_AndTheRestOutdated()
+    {
+        // The first item's description returns; the others wait until the job is cancelled, then return too late.
+        using var release = new ManualResetEventSlim(false);
+        var started = 0;
+        var slow = new FakeImageDescriber(
+            describe: (_, _) =>
+            {
+                if (Interlocked.Increment(ref started) > 1)
+                {
+                    release.Wait(TimeSpan.FromSeconds(30));
+                }
+
+                return Describe("New");
+            },
+            modelName: "fake-describer-2");
+        var items = await AnalyzedAsync([embedding, describer, slow, ocr], SampleMedia.JpegWithExif, SampleMedia.PngWithAlpha, SampleMedia.WebP);
+        await bed!.Sender.Send(new UpdateAnalysisProfileCommand(Profile(slow)), Token);
+
+        var result = await bed.Sender.Send(new AnalyzeScopeCommand(AnalysisScope.Outdated), Token);
+        var stopwatch = Stopwatch.StartNew();
+        while (Volatile.Read(ref started) < 2)
+        {
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), "The re-index never reached a second item.");
+            await Task.Delay(20, Token);
+        }
+
+        await bed.Jobs.Current!.CancelJobAsync(result.JobId!.Value, Token);
+        release.Set();
+        await bed.WaitUntilIdleAsync();
+
+        var renewed = 0;
+        foreach (var item in items)
+        {
+            var metadata = await bed.Library.Metadata.GetAsync(item.Id, Token);
+            var active = Assert.Single(metadata.Runs, run => run.Analyzer == AnalyzerKeys.Describer && run.IsActive);
+            var prefix = metadata.GetEffectiveValue(DescriptiveField.Title)!.Value.Text!.Split(' ')[0];
+            Assert.Equal($"{prefix} description", metadata.GetEffectiveValue(DescriptiveField.Description)?.Value.Text);
+            Assert.Equal([TagName.From($"{prefix.ToLowerInvariant()} tag")], metadata.GetEffectiveTags().Select(tag => tag.Tag));
+            Assert.Equal(prefix == "New" ? 2 : 1, metadata.Runs.Count(run => run.Analyzer == AnalyzerKeys.Describer));
+            var states = await bed.Library.AnalyzerStates.GetForItemAsync(item.Id, Token);
+            Assert.Equal(active.Id, states.Single(state => state.Analyzer == AnalyzerKeys.Describer).RunId);
+            renewed += prefix == "New" ? 1 : 0;
+        }
+
+        Assert.InRange(renewed, 1, items.Count - 1);
+        Assert.Equal(items.Count - renewed, (await bed.Sender.Send(new GetOutdatedAnalysisQuery(), Token)).Count);
+    }
+
+    [Fact]
     public async Task OutdatedScope_NothingOutdated_QueuesNothing()
     {
         await AnalyzedAsync(SampleMedia.JpegWithExif);
@@ -118,10 +169,12 @@ public sealed class ReindexTests : IAsyncDisposable
     private static AnalysisProfile Profile(FakeImageDescriber chosen) =>
         AnalysisProfile.Default.With(new AnalyzerSettings(AnalyzerKeys.Describer) { ModelId = chosen.Model.ModelName, MaxTags = AnalysisProfile.DefaultMaxTags });
 
-    private async Task<IReadOnlyList<MediaItem>> AnalyzedAsync(params string[] files)
+    private Task<IReadOnlyList<MediaItem>> AnalyzedAsync(params string[] files) => AnalyzedAsync([embedding, describer, better, ocr], files);
+
+    private async Task<IReadOnlyList<MediaItem>> AnalyzedAsync(IAiProvider[] providers, params string[] files)
     {
         bed = await ImportTestBed.CreateAsync(configure: services =>
-            services.AddSingleton<IAiProviderRegistry>(new AiProviderRegistry([embedding, describer, better, ocr], TimeProvider.System)));
+            services.AddSingleton<IAiProviderRegistry>(new AiProviderRegistry(providers, TimeProvider.System)));
         foreach (var file in files)
         {
             bed.Copy(file, Path.GetFileName(file));

@@ -183,6 +183,55 @@ public sealed class AnalyzerStateRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ApplyRunAsync_WriteFailsAfterTheMetadata_KeepsThePreviousRunValuesSearchTextAndState()
+    {
+        var old = await ApplyTitleAsync("Lighthouse", bed.Model);
+        var other = ModelRegistration.Create("local", "clip-2", "1", null, null, LibraryTestBed.Start);
+        await bed.Library.Models.AddAsync(other, Token);
+        await using (var connection = bed.Temporary.OpenConnection())
+        await using (var command = connection.CreateCommand())
+        {
+            // The state is written last, after the metadata and the search text, so this fails the write midway.
+            command.CommandText = "CREATE TRIGGER fail_state BEFORE INSERT ON analyzer_state BEGIN SELECT RAISE(ABORT, 'interrupted'); END;";
+            await command.ExecuteNonQueryAsync(Token);
+        }
+
+        await Assert.ThrowsAnyAsync<Exception>(() => ApplyTitleAsync("Windmill", other));
+
+        var metadata = await bed.Library.Metadata.GetAsync(item.Id, Token);
+        Assert.Equal(old.Id, Assert.Single(metadata.Runs).Id);
+        Assert.True(metadata.Runs[0].IsActive);
+        Assert.Equal("Lighthouse", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text);
+        Assert.Equal(old.Id, Assert.Single(await bed.Library.AnalyzerStates.GetForItemAsync(item.Id, Token)).RunId);
+        Assert.Equal(["Lighthouse"], await SearchTitlesAsync());
+    }
+
+    [Fact]
+    public async Task ApplyRunAsync_NewRun_UpdatesTheSearchText_KeepsUserValuesAndTombstones_AndRetainsThePreviousRun()
+    {
+        var old = await ApplyTitleAsync("Lighthouse", bed.Model);
+        await bed.Library.Metadata.UpdateAsync(
+            item.Id,
+            metadata =>
+            {
+                metadata.EditValue(DescriptiveField.Summary, FieldValue.FromText("Mine"), bed.Clock.Tick());
+                metadata.RejectTag(TagName.From("windmill"), bed.Clock.Tick());
+            },
+            Token);
+
+        var added = await ApplyTitleAsync("Windmill", bed.Model);
+
+        var metadata = await bed.Library.Metadata.GetAsync(item.Id, Token);
+        Assert.Equal([added.Id, old.Id], metadata.Runs.OrderByDescending(run => run.StartedAt).Select(run => run.Id));
+        Assert.True(metadata.Runs.Single(run => run.Id == added.Id).IsActive);
+        Assert.False(metadata.Runs.Single(run => run.Id == old.Id).IsActive);
+        Assert.Equal("Windmill", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text);
+        Assert.Equal("Mine", metadata.GetEffectiveValue(DescriptiveField.Summary)?.Value.Text);
+        Assert.Empty(metadata.GetEffectiveTags());
+        Assert.Equal(["Windmill"], await SearchTitlesAsync());
+    }
+
+    [Fact]
     public async Task SetAsync_UnknownItem_ThrowsKeyNotFound()
     {
         await Assert.ThrowsAsync<KeyNotFoundException>(() => bed.Library.AnalyzerStates.SetAsync(
@@ -228,6 +277,37 @@ public sealed class AnalyzerStateRepositoryTests : IAsyncLifetime
         var run = AnalysisRun.Start(target.Id, analyzer, model, promptVersion, bed.Clock.Tick());
         run.Complete(bed.Clock.Tick());
         await bed.Library.AnalyzerStates.ApplyRunAsync(run, [], [], 1, AnalyzerState.Done(target.Id, analyzer, run.Id, bed.Clock.Tick()), Token);
+    }
+
+    // A describer run with a title and a tag named after it.
+    private async Task<AnalysisRun> ApplyTitleAsync(string title, ModelRegistration model)
+    {
+        var run = AnalysisRun.Start(item.Id, AnalyzerKeys.Describer, model, "p1", bed.Clock.Tick());
+        run.Complete(bed.Clock.Tick());
+        var now = bed.Clock.Tick();
+        await bed.Library.AnalyzerStates.ApplyRunAsync(
+            run,
+            [AiFieldValue.For(run, DescriptiveField.Title, FieldValue.FromText(title), null, now)],
+            [TagAssignment.Ai(run, TagName.From(title.ToLowerInvariant()), null, now)],
+            1,
+            AnalyzerState.Done(item.Id, AnalyzerKeys.Describer, run.Id, now),
+            Token);
+        return run;
+    }
+
+    private async Task<List<string>> SearchTitlesAsync()
+    {
+        await using var connection = bed.Temporary.OpenConnection();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT title FROM search_text";
+        var titles = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(Token);
+        while (await reader.ReadAsync(Token))
+        {
+            titles.Add(reader.GetString(0));
+        }
+
+        return titles;
     }
 
     private Task EmbedAsync(MediaItem target, ModelRegistration model) =>

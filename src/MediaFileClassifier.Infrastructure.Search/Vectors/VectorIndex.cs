@@ -156,24 +156,23 @@ internal sealed class VectorIndex : IDisposable
                 return 0;
             }
 
-            var skipped = new HashSet<int>();
-            foreach (var (otherId, other) in models)
+            // Usually one other model: an item can't be counted twice, so no set is needed.
+            var others = models.Where(pair => pair.Key != modelId).Select(pair => pair.Value).ToList();
+            var count = 0;
+            var skipped = others.Count > 1 ? new HashSet<int>() : null;
+            foreach (var other in others)
             {
-                if (otherId == modelId)
-                {
-                    continue;
-                }
-
                 foreach (var document in other.DocumentIds)
                 {
-                    if ((mask is null || (document < mask.Length && mask[document])) && searched?.Contains(document) != true)
+                    if ((mask is null || (document < mask.Length && mask[document])) && searched?.Contains(document) != true
+                        && (skipped is null || skipped.Add(document)))
                     {
-                        skipped.Add(document);
+                        count++;
                     }
                 }
             }
 
-            return skipped.Count;
+            return count;
         }
         finally
         {

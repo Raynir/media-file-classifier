@@ -1615,11 +1615,11 @@
     <value>The analysis profile couldn't be saved. The previous settings are shown.</value>
   </data>
   <data name="Profile_Outdated_One" xml:space="preserve">
-    <value>{0} item is outdated by this change.</value>
+    <value>{0} item is outdated.</value>
     <comment>Re-index prompt on the analysis profile page when one item is outdated. {0} is the number.</comment>
   </data>
   <data name="Profile_Outdated_Other" xml:space="preserve">
-    <value>{0} items are outdated by this change.</value>
+    <value>{0} items are outdated.</value>
     <comment>Re-index prompt on the analysis profile page. {0} is the number.</comment>
   </data>
   <data name="Profile_ReindexNow" xml:space="preserve">

@@ -231,8 +231,8 @@ public sealed partial class EmbeddingModelMigration : IDisposable
         }
         catch
         {
-            // Keep what the library file still holds.
-            entity.ChangeSettings(previous, clock.GetUtcNow());
+            // Undo only this change: a profile save may have changed other settings meanwhile.
+            entity.ChangeSettings(entity.Settings with { ActiveSearchModelId = previous.ActiveSearchModelId }, clock.GetUtcNow());
             throw;
         }
     }

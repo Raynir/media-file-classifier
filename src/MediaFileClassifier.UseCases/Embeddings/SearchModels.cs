@@ -26,9 +26,7 @@ public static class SearchModels
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(registration);
 
-        return string.Equals(model.ProviderId, registration.ProviderId, StringComparison.Ordinal)
-            && string.Equals(model.ModelName, registration.ModelName, StringComparison.Ordinal)
-            && (model.Version is null || registration.Version is null || string.Equals(model.Version, registration.Version, StringComparison.Ordinal));
+        return SameModel(model.ProviderId, model.ModelName, model.Version, registration.ProviderId, registration.ModelName, registration.Version);
     }
 
     /// <summary>
@@ -89,7 +87,11 @@ public static class SearchModels
     }
 
     private static bool SameModel(ModelIdentity left, ModelIdentity right) =>
-        string.Equals(left.ProviderId, right.ProviderId, StringComparison.Ordinal)
-        && string.Equals(left.ModelName, right.ModelName, StringComparison.Ordinal)
-        && (left.Version is null || right.Version is null || string.Equals(left.Version, right.Version, StringComparison.Ordinal));
+        SameModel(left.ProviderId, left.ModelName, left.Version, right.ProviderId, right.ModelName, right.Version);
+
+    // The one rule: provider and model name equal, the version compared only when both have one.
+    private static bool SameModel(string leftProvider, string leftName, string? leftVersion, string rightProvider, string rightName, string? rightVersion) =>
+        string.Equals(leftProvider, rightProvider, StringComparison.Ordinal)
+        && string.Equals(leftName, rightName, StringComparison.Ordinal)
+        && (leftVersion is null || rightVersion is null || string.Equals(leftVersion, rightVersion, StringComparison.Ordinal));
 }

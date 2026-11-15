@@ -245,8 +245,8 @@ public sealed class AnalysisProfileViewModelTests
     }
 
     [Theory]
-    [InlineData(1, "1 item is outdated by this change.")]
-    [InlineData(12, "12 items are outdated by this change.")]
+    [InlineData(1, "1 item is outdated.")]
+    [InlineData(12, "12 items are outdated.")]
     public async Task AChangeThatMakesItemsOutdated_ShowsTheReindexPrompt_WithTheCount(int count, string text)
     {
         var page = Create();

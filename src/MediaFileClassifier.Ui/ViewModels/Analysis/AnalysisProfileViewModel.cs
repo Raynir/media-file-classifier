@@ -108,7 +108,7 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
     public bool HasOutdated => OutdatedCount > 0;
 
     /// <summary>
-    /// Gets the re-index prompt's text, such as "12 items are outdated by this change.".
+    /// Gets the re-index prompt's text, such as "12 items are outdated.".
     /// </summary>
     public string OutdatedText => localizer.Format(OutdatedCount == 1 ? "Profile_Outdated_One" : "Profile_Outdated_Other", Format.Number(OutdatedCount));
 
@@ -202,6 +202,7 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
         {
             // No library, or the library file couldn't be written: show what is stored again.
             LogSaveFailed(ex);
+            OutdatedCount = 0;
             await RefreshAsync();
             Error = localizer.Get("Profile_SaveFailed");
         }
@@ -246,7 +247,7 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
 
     private async Task CountOutdatedAsync()
     {
-        // Without a profile the query compares with the stored one, the one just saved: this counts what the change made outdated.
+        // Without a profile the query compares with the stored one, the one just saved. It counts every outdated item, earlier ones included.
         try
         {
             OutdatedCount = (await sender.Send(new GetOutdatedAnalysisQuery())).Count;

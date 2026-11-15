@@ -329,6 +329,9 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
         public Task<IReadOnlyList<Id<MediaItem>>> GetItemsAsync(string analyzer, AnalyzerStatus status, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
+        public Task<OutdatedAnalysis> GetOutdatedAsync(IReadOnlyCollection<AnalyzerProvenance> current, CancellationToken cancellationToken = default) =>
+            Task.FromResult(OutdatedAnalysis.None);
+
         public Task<RunApplication> ApplyRunAsync(
             AnalysisRun run,
             IReadOnlyCollection<AiFieldValue> values,

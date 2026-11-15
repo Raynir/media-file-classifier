@@ -38,6 +38,16 @@ public interface IAnalyzerStateRepository
     Task<IReadOnlyList<Id<MediaItem>>> GetItemsAsync(string analyzer, AnalyzerStatus status, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Finds the items whose results came from another provider, model or prompt version than the current one
+    /// (E06-S07-T01): the describer and OCR by their active run, the embedding by its vectors (an item with vectors,
+    /// none of them from the current model). Items without results of an analyzer, and missing items, are never outdated.
+    /// </summary>
+    /// <param name="current">What each analyzer uses now; analyzers left out are never outdated.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The outdated items per analyzer.</returns>
+    Task<OutdatedAnalysis> GetOutdatedAsync(IReadOnlyCollection<AnalyzerProvenance> current, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Applies an analyzer's completed run to the item's metadata (<see cref="ItemMetadata.ApplyRun"/>) and writes the
     /// analyzer's state, in one write, so the result and its state are stored together or not at all.
     /// </summary>

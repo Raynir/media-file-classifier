@@ -1,9 +1,13 @@
 using System.Diagnostics;
 using MediaFileClassifier.Domain.Analysis;
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.Abstractions.Search.Filters;
+using MediaFileClassifier.Infrastructure.DataAccess.Search.Filters;
+using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.Testing.Media;
@@ -11,6 +15,8 @@ using MediaFileClassifier.UseCases.Analysis.AnalyzeItems;
 using MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
 using MediaFileClassifier.UseCases.Analysis.Outdated;
 using MediaFileClassifier.UseCases.Analysis.UpdateAnalysisProfile;
+using MediaFileClassifier.UseCases.Search.Filters;
+using MediaFileClassifier.UseCases.Search.SearchMedia;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Analysis;
@@ -159,6 +165,58 @@ public sealed class ReindexTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Filters_OutdatedAndNewSuggestions_ReturnExactlyTheFlaggedItems()
+    {
+        var partial = new FakeImageDescriber(
+            describe: (_, _) => new ImageDescription("Old title", "Changed description", "Old summary", ["extra tag"], [], [], [], []),
+            modelName: "fake-describer-3");
+        var items = await AnalyzedAsync([embedding, describer, partial, ocr], true, SampleMedia.JpegWithExif, SampleMedia.PngWithAlpha, SampleMedia.WebP);
+        await bed!.Library.Metadata.UpdateAsync(items[0].Id, metadata => metadata.AcceptAll(DateTimeOffset.UtcNow), Token);
+        await bed.Library.Metadata.UpdateAsync(items[2].Id, metadata => metadata.AcceptAll(DateTimeOffset.UtcNow), Token);
+        await bed.Sender.Send(new UpdateAnalysisProfileCommand(Profile(partial)), Token);
+
+        // Before: every item is outdated and none has a suggestion.
+        Assert.Equal(Ids(items), await FilteredAsync(OutdatedAnalysisFilter.FilterId, true));
+        Assert.Empty(await FilteredAsync(NewSuggestionsFilter.FilterId, true));
+
+        // Re-index the first two only: the third stays outdated.
+        await bed.Sender.Send(new AnalyzeScopeCommand(AnalysisScope.Items([items[0].Id, items[1].Id])), Token);
+        await bed.WaitUntilIdleAsync();
+
+        var outdated = await bed.Sender.Send(new GetOutdatedAnalysisQuery(), Token);
+        Assert.Equal([items[2].Id], outdated.ItemIds);
+        Assert.Equal(Ids(outdated.ItemIds), await FilteredAsync(OutdatedAnalysisFilter.FilterId, true));
+        Assert.Equal(Ids([items[0].Id, items[1].Id]), await FilteredAsync(OutdatedAnalysisFilter.FilterId, false));
+
+        var flagged = new List<Id<MediaItem>>();
+        foreach (var item in items)
+        {
+            if ((await bed.Library.Metadata.GetAsync(item.Id, Token)).HasNewAiSuggestions)
+            {
+                flagged.Add(item.Id);
+            }
+        }
+
+        Assert.Equal(Ids([items[0].Id, items[1].Id]), Ids(flagged));
+        Assert.Equal(Ids(flagged), await FilteredAsync(NewSuggestionsFilter.FilterId, true));
+        Assert.Equal([items[2].Id], await FilteredAsync(NewSuggestionsFilter.FilterId, false));
+
+        // Dismissing every suggestion of the first item clears it from the filter.
+        await bed.Library.Metadata.UpdateAsync(
+            items[0].Id,
+            metadata =>
+            {
+                metadata.DismissSuggestion(DescriptiveField.Description);
+                foreach (var tag in metadata.TagSuggestions.Select(suggestion => suggestion.Tag).ToList())
+                {
+                    metadata.DismissTagSuggestion(tag);
+                }
+            },
+            Token);
+        Assert.Equal([items[1].Id], await FilteredAsync(NewSuggestionsFilter.FilterId, true));
+    }
+
+    [Fact]
     public async Task OutdatedScope_NothingOutdated_QueuesNothing()
     {
         await AnalyzedAsync(SampleMedia.JpegWithExif);
@@ -193,6 +251,16 @@ public sealed class ReindexTests : IAsyncDisposable
         Assert.Equal(items.Count, describer.Calls);
     }
 
+    private static List<Id<MediaItem>> Ids(IEnumerable<MediaItem> items) => Ids(items.Select(item => item.Id));
+
+    private static List<Id<MediaItem>> Ids(IEnumerable<Id<MediaItem>> ids) => [.. ids.OrderBy(id => id.Value)];
+
+    private async Task<List<Id<MediaItem>>> FilteredAsync(string filterId, bool value)
+    {
+        var results = await bed!.Sender.Send(new SearchMediaQuery { Filters = FilterState.Empty.Set(filterId, new BooleanValue(value)) }, Token);
+        return Ids(results.Hits.Select(hit => hit.ItemId));
+    }
+
     private static ImageDescription Describe(string prefix) =>
         new($"{prefix} title", $"{prefix} description", $"{prefix} summary", [$"{prefix.ToLowerInvariant()} tag"], [], [], [], []);
 
@@ -201,10 +269,25 @@ public sealed class ReindexTests : IAsyncDisposable
 
     private Task<IReadOnlyList<MediaItem>> AnalyzedAsync(params string[] files) => AnalyzedAsync([embedding, describer, better, ocr], files);
 
-    private async Task<IReadOnlyList<MediaItem>> AnalyzedAsync(IAiProvider[] providers, params string[] files)
+    private Task<IReadOnlyList<MediaItem>> AnalyzedAsync(IAiProvider[] providers, params string[] files) => AnalyzedAsync(providers, false, files);
+
+    private async Task<IReadOnlyList<MediaItem>> AnalyzedAsync(IAiProvider[] providers, bool search, params string[] files)
     {
         bed = await ImportTestBed.CreateAsync(configure: services =>
-            services.AddSingleton<IAiProviderRegistry>(new AiProviderRegistry(providers, TimeProvider.System)));
+        {
+            services.AddSingleton<IAiProviderRegistry>(new AiProviderRegistry(providers, TimeProvider.System));
+            if (search)
+            {
+                services.AddSearch();
+                services.AddSingleton<IFilterDefinition, OutdatedAnalysisFilter>();
+                services.AddSingleton<IFilterDefinition, NewSuggestionsFilter>();
+            }
+        });
+        if (search)
+        {
+            await bed.Get<SearchIndex>().Ready;
+        }
+
         foreach (var file in files)
         {
             bed.Copy(file, Path.GetFileName(file));

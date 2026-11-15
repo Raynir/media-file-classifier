@@ -1566,6 +1566,12 @@
   <data name="Filter_TagRemoveExcluded" xml:space="preserve">
     <value>Stop excluding the tag {0}</value>
   </data>
+  <data name="Filter_Outdated" xml:space="preserve">
+    <value>Outdated analysis</value>
+  </data>
+  <data name="Filter_NewSuggestions" xml:space="preserve">
+    <value>Has new AI suggestions</value>
+  </data>
   <data name="Filter_Status" xml:space="preserve">
     <value>Processing status</value>
   </data>

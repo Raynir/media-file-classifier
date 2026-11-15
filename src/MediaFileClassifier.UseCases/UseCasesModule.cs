@@ -31,6 +31,7 @@ public static class UseCasesModule
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<SettingRegistry>();
         services.TryAddSingleton<Search.Filters.FilterRegistry>();
+        services.TryAddSingleton<Infrastructure.Abstractions.AI.IAnalysisProvenanceSource, Analysis.Outdated.AnalysisProvenanceSource>();
         services.TryAddSingleton<Search.Filters.FilterStateSerializer>();
         services.TryAddSingleton<Search.Filters.FilterStatePersistence>();
         services.TryAddSingleton<Search.SearchResults.SortStatePersistence>();

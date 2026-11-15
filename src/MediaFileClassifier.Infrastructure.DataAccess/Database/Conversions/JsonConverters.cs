@@ -88,7 +88,8 @@ internal sealed class LibrarySettingsConverter()
             settings.ModelId,
             settings.MaxTags,
             settings.Language,
-            settings.PromptVersion))]);
+            settings.PromptVersion,
+            settings.PreFilterWithDetector))]);
 
     private static AnalysisProfile FromJson(AnalysisProfileJson profile) =>
         new(profile.Analyzers.Select(settings => new AnalyzerSettings(settings.Analyzer)
@@ -99,6 +100,7 @@ internal sealed class LibrarySettingsConverter()
             MaxTags = settings.MaxTags,
             Language = settings.Language,
             PromptVersion = settings.PromptVersion,
+            PreFilterWithDetector = settings.PreFilterWithDetector,
         }));
 }
 
@@ -187,7 +189,8 @@ internal sealed record AnalyzerSettingsJson(
     string? ModelId,
     int? MaxTags,
     string? Language,
-    string? PromptVersion);
+    string? PromptVersion,
+    bool PreFilterWithDetector = false);
 
 /// <summary>
 /// Source-generated JSON serialization, which needs no reflection and so trims safely on Android (D004).

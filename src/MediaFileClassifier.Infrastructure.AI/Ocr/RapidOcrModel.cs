@@ -67,6 +67,21 @@ public sealed record RapidOcrOptions
     public float MinTextConfidence { get; init; } = 0.5f;
 
     /// <summary>
+    /// Gets the fewest letters and digits a line needs to be kept; a lone mark is a misread (MFC-334).
+    /// </summary>
+    public int MinTextCharacters { get; init; } = 2;
+
+    /// <summary>
+    /// Gets the most letters and digits a line can have to count as short (MFC-334).
+    /// </summary>
+    public int ShortTextCharacters { get; init; } = 3;
+
+    /// <summary>
+    /// Gets the least confidence a short line needs to be kept (MFC-334).
+    /// </summary>
+    public float MinShortTextConfidence { get; init; } = 0.8f;
+
+    /// <summary>
     /// Gets how many lines the recogniser reads per call.
     /// </summary>
     public int RecognitionBatchSize { get; init; } = 6;

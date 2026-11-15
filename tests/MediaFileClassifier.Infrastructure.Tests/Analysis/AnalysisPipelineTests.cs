@@ -209,6 +209,33 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         Assert.Equal(MediaItemStatus.Indexed, (await bed!.Library.Items.GetAsync(item.Id, Token))!.Status);
     }
 
+    [Theory]
+    [InlineData(true, "none", 0, "")]
+    [InlineData(true, "some", 1, "SIGN")]
+    [InlineData(true, "missing", 1, "SIGN")]
+    [InlineData(false, "none", 1, "SIGN")]
+    public async Task PreFilterWithDetector_SkipsTheProviderOnlyWhenTheDetectorFindsNoText(bool preFilter, string detected, int expectedCalls, string expectedText)
+    {
+        var ocr = new FakeOcrProvider(recognize: _ => "SIGN");
+        var detector = new FakeDetectingOcrProvider(_ => detected switch
+        {
+            "some" => true,
+            "none" => false,
+            _ => throw new AiProviderException(AiFailureKind.ModelMissing, "fake:ocr-detector", "not installed"),
+        });
+        var items = await ImportAsync([new FakeEmbeddingProvider(), new FakeImageDescriber(), ocr, detector], SampleMedia.JpegWithExif);
+        var profile = AnalysisProfile.Default.With(new AnalyzerSettings(AnalyzerKeys.Ocr) { ProviderId = ocr.Id, PreFilterWithDetector = preFilter });
+        await bed!.Sender.Send(new UpdateAnalysisProfileCommand(profile), Token);
+
+        await AnalyzeAsync(items);
+
+        Assert.Equal(expectedCalls, ocr.Calls);
+        Assert.Equal(preFilter ? 1 : 0, detector.DetectorCalls);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Ocr)).Status);
+        var metadata = await bed.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal(expectedText.Length == 0 ? null : expectedText, metadata.GetEffectiveValue(DescriptiveField.OcrText)?.Value.Text);
+    }
+
     [Fact]
     public async Task DisabledAnalyzer_IsSkipped()
     {

@@ -10,7 +10,7 @@ namespace MediaFileClassifier.Infrastructure.AI.Ocr;
 /// model in the <see cref="IModelStore"/> on first use; until the model is installed its health is
 /// <see cref="ProviderHealthStatus.ModelMissing"/> and calls throw <see cref="AiFailureKind.ModelMissing"/> (D037).
 /// </summary>
-public sealed class RapidOcrProvider : IOcrProvider, IPreloadableAiProvider, IDisposable
+public sealed class RapidOcrProvider : IOcrProvider, ITextDetector, IPreloadableAiProvider, IDisposable
 {
     private static readonly ModelIdentity NotInstalledIdentity = RapidOcrOnnxModel.CreateIdentity(null);
 
@@ -79,6 +79,14 @@ public sealed class RapidOcrProvider : IOcrProvider, IPreloadableAiProvider, IDi
     {
         ArgumentNullException.ThrowIfNull(image);
         return CallAsync(current => current.RecognizeTextAsync(image, cancellationToken), cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> HasTextAsync(AiImage image, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        var boxes = await CallAsync(current => current.DetectAsync(image, cancellationToken), cancellationToken).ConfigureAwait(false);
+        return boxes.Value.Count > 0;
     }
 
     /// <inheritdoc />

@@ -191,7 +191,7 @@ internal sealed class RapidOcrOnnxModel : OnnxModelProvider, IOcrProvider
         {
             var (text, confidence) = texts[i];
             text = text.Trim();
-            if (text.Length > 0 && confidence >= options.MinTextConfidence)
+            if (OcrJunkFilter.Keep(text, confidence, options))
             {
                 kept.Add((lines[i].Box, text, confidence));
             }

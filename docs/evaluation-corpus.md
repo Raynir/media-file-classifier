@@ -150,6 +150,8 @@ dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- ocr --sy
 
 RapidOCR is the default OCR engine on every hardware class; the vision-language model is chosen by naming its provider in the analysis profile.
 
+With the short-line guard (MFC-334: a line needs two letters or digits, and three or fewer need confidence 0.8) the 960 px run reads 0.037 / 0.096 / 0.083 / 0.067, and 27 of the no-text photos have output instead of 37. All ten photos listed as stray-mark cases (photo-011, -034, -058, -070, -071, -078, -090, -098, -099, -123) give no text. The guard also drops a few real one-character lines such as a lone quantity "1" or "OK".
+
 ### Baseline runs
 
 `baselines.json` `references` pins one report per system, by name: its untuned baseline run. Every later run of that system shows each headline metric's change from it, both in the console and in the report's summary table ("Baseline run" and "vs baseline run"), next to the change from the previous run. If the labels changed since the baseline run, the report says so.

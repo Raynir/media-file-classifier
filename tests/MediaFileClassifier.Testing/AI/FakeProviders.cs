@@ -57,6 +57,29 @@ public sealed class FakeOcrProvider(FakeProviderBehavior? behavior = null, Func<
 }
 
 /// <summary>
+/// A fake in-process OCR provider that is also an <see cref="ITextDetector"/>, like the RapidOCR provider. It finds no text by default.
+/// </summary>
+/// <param name="hasText">Says whether an image has text, or <c>null</c> for none. It may throw to simulate a missing model.</param>
+public sealed class FakeDetectingOcrProvider(Func<AiImage, bool>? hasText = null)
+    : FakeAiProvider("fake:ocr-detector", new ModelIdentity(ProviderIds.Fake, "fake-ocr-detector", "1"), null), IOcrProvider, ITextDetector
+{
+    /// <summary>Gets how many images the detector checked.</summary>
+    public int DetectorCalls { get; private set; }
+
+    /// <inheritdoc />
+    public Task<AiOutput<OcrResult>> RecognizeTextAsync(AiImage image, CancellationToken cancellationToken) =>
+        RunAsync(() => new OcrResult(string.Empty), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<bool> HasTextAsync(AiImage image, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        DetectorCalls++;
+        return Task.FromResult(hasText?.Invoke(image) ?? false);
+    }
+}
+
+/// <summary>
 /// A fake <see cref="ITranscriptionProvider"/>. By default the transcript names the file, in one segment.
 /// </summary>
 /// <param name="behavior">Latency, failures and health.</param>

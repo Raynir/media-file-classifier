@@ -344,6 +344,21 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task AnimationOcr_NoisyWatermarkVariantsOnEveryFrame_AreStoredOnce()
+    {
+        string[] reads = ["LONGINES PARIS", "LONGlNES PARIS", "LONGINES PARlS", "LONGINES PARIS"];
+        var calls = 0;
+        var ocr = new FakeOcrProvider(recognize: _ => reads[Interlocked.Increment(ref calls) % reads.Length]);
+        var items = await ImportAsync([new FakeEmbeddingProvider(), new FakeImageDescriber(), ocr], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Ocr]);
+
+        Assert.True(ocr.Calls > 1, "The animation was read on one frame only.");
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal("LONGINES PARIS", metadata.GetEffectiveValue(DescriptiveField.OcrText)?.Value.Text);
+    }
+
+    [Fact]
     public async Task AnimationWithoutFrames_BecauseFfmpegIsMissing_WaitsAsPending()
     {
         var sampler = new NoFramesSampler(FrameSamplingWarnings.FrameSamplingFfmpegUnavailable);

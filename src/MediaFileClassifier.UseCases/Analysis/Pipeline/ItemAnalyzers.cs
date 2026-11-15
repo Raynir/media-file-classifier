@@ -162,7 +162,7 @@ internal sealed class EmbeddingItemAnalyzer(ItemEmbeddingAnalyzer embedder, IAiP
     public async Task<AnalyzerResult> RunAsync(AnalyzerContext context, CancellationToken cancellationToken)
     {
         // Embedding doesn't check the breaker: it's a local model.
-        if (ProviderSelection.Select<IImageEmbeddingProvider>(registry, context.Settings, null, out var reason, out _) is null)
+        if (ProviderSelection.Select<IImageEmbeddingProvider>(registry, context.Settings, null, out var reason, out _) is not { } provider)
         {
             return ProviderSelection.Skip(context, Key, reason!, clock.GetUtcNow());
         }
@@ -176,12 +176,12 @@ internal sealed class EmbeddingItemAnalyzer(ItemEmbeddingAnalyzer embedder, IAiP
                 return NoFrames(context, frames.Warnings);
             }
 
-            await embedder.EmbedKeyframesAsync(context.Library, itemId, frames.Frames, cancellationToken).ConfigureAwait(false);
+            await embedder.EmbedKeyframesAsync(context.Library, itemId, frames.Frames, provider, cancellationToken).ConfigureAwait(false);
         }
         else
         {
             var still = await context.Inputs.GetStillAsync(null, cancellationToken).ConfigureAwait(false);
-            await embedder.EmbedStillAsync(context.Library, itemId, still.ToAiImage(context.ImageName), cancellationToken).ConfigureAwait(false);
+            await embedder.EmbedStillAsync(context.Library, itemId, still.ToAiImage(context.ImageName), provider, cancellationToken).ConfigureAwait(false);
         }
 
         return new AnalyzerResult(AnalyzerState.Done(itemId, Key, null, clock.GetUtcNow()));

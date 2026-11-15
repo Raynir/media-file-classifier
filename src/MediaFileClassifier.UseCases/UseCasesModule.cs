@@ -38,6 +38,7 @@ public static class UseCasesModule
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
+        services.TryAddSingleton<Embeddings.EmbeddingModelMigration>();
         services.TryAddSingleton<Search.SearchResults.SearchResultSource>();
         services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<Search.SearchResults.SearchResultSource>());
         services.TryAddSingleton<Search.FindSimilar.AnalyzeNow>();

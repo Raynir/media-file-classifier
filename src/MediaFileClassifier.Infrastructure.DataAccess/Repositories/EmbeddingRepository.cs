@@ -22,15 +22,24 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
     public event EventHandler<EmbeddingsChangedEventArgs>? Changed;
 
     /// <inheritdoc />
+    public Task ReplaceAsync(
+        Id<MediaItem> itemId,
+        Id<ModelRegistration> modelId,
+        IReadOnlyList<Embedding> embeddings,
+        CancellationToken cancellationToken = default) =>
+        ReplaceAsync(itemId, modelId, embeddings, removeOtherModels: false, cancellationToken);
+
+    /// <inheritdoc />
     public async Task ReplaceAsync(
         Id<MediaItem> itemId,
         Id<ModelRegistration> modelId,
         IReadOnlyList<Embedding> embeddings,
+        bool removeOtherModels,
         CancellationToken cancellationToken = default)
     {
         var change = new ItemEmbeddings(itemId, modelId, embeddings);
         Validate(change);
-        var committed = await writer.ExecuteAsync((db, token) => WriteAsync(db, [change], token), RaiseChanged, cancellationToken).ConfigureAwait(false);
+        var committed = await writer.ExecuteAsync((db, token) => WriteAsync(db, [change], removeOtherModels, token), RaiseChanged, cancellationToken).ConfigureAwait(false);
         if (committed.Count == 0)
         {
             throw new KeyNotFoundException($"Media item {itemId} doesn't exist.");
@@ -56,7 +65,63 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
             .ToList();
         foreach (var batch in latest.Chunk(MediaItemRepository.BatchSize))
         {
-            await writer.ExecuteAsync((db, token) => WriteAsync(db, batch, token), RaiseChanged, cancellationToken).ConfigureAwait(false);
+            await writer.ExecuteAsync((db, token) => WriteAsync(db, batch, false, token), RaiseChanged, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<Id<ModelRegistration>>> GetModelsInUseAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<Id<ModelRegistration>>>(
+            async (db, token) => await db.Embeddings.AsNoTracking().Select(embedding => embedding.ModelId).Distinct().ToListAsync(token).ConfigureAwait(false),
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<EmbeddingMigrationProgress> GetMigrationProgressAsync(
+        Id<ModelRegistration> oldModelId,
+        IReadOnlyCollection<Id<ModelRegistration>> newModelIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(newModelIds);
+        var newModels = newModelIds.ToList();
+        return connections.ReadAsync(
+            async (db, token) =>
+            {
+                var withOld = db.Embeddings.AsNoTracking()
+                    .Where(embedding => embedding.ModelId == oldModelId)
+                    .Select(embedding => embedding.ItemId)
+                    .Distinct()
+                    .Where(itemId => db.MediaItems.Any(item => item.Id == itemId && item.Status != MediaItemStatus.Missing));
+                var old = await withOld.CountAsync(token).ConfigureAwait(false);
+                var both = newModels.Count == 0
+                    ? 0
+                    : await withOld.Where(itemId => db.Embeddings.Any(embedding => embedding.ItemId == itemId && newModels.Contains(embedding.ModelId)))
+                        .CountAsync(token).ConfigureAwait(false);
+                return new EmbeddingMigrationProgress(old, both);
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> RemoveSupersededAsync(IReadOnlyCollection<Id<ModelRegistration>> keptModelIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(keptModelIds);
+        if (keptModelIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var kept = keptModelIds.ToList();
+        var removed = 0;
+        while (true)
+        {
+            var committed = await writer.ExecuteAsync((db, token) => RemoveBatchAsync(db, kept, token), RaiseChanged, cancellationToken).ConfigureAwait(false);
+            var items = committed.Select(change => change.Embeddings.ItemId).Distinct().Count();
+            if (items == 0)
+            {
+                return removed;
+            }
+
+            removed += items;
         }
     }
 
@@ -135,9 +200,38 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
         }
     }
 
+    // One batch of RemoveSupersededAsync: up to a batch of items that have a kept model's vectors and others too.
+    private static async Task<IReadOnlyList<CommittedEmbeddings>> RemoveBatchAsync(
+        LibraryDbContext db,
+        List<Id<ModelRegistration>> kept,
+        CancellationToken cancellationToken)
+    {
+        var superseded = db.Embeddings.AsNoTracking()
+            .Where(embedding => !kept.Contains(embedding.ModelId))
+            .Where(embedding => db.Embeddings.Any(other => other.ItemId == embedding.ItemId && kept.Contains(other.ModelId)));
+        var itemIds = await superseded.Select(embedding => embedding.ItemId).Distinct().Take(MediaItemRepository.BatchSize)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        if (itemIds.Count == 0)
+        {
+            return [];
+        }
+
+        var pairs = await superseded.Where(embedding => itemIds.Contains(embedding.ItemId))
+            .Select(embedding => new { embedding.ItemId, embedding.ModelId })
+            .Distinct()
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        await db.Embeddings.Where(embedding => itemIds.Contains(embedding.ItemId) && !kept.Contains(embedding.ModelId))
+            .ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+        var documents = await ReadDocumentIdsAsync(db, itemIds, cancellationToken).ConfigureAwait(false);
+        return [.. pairs
+            .Where(pair => documents.ContainsKey(pair.ItemId))
+            .Select(pair => new CommittedEmbeddings(documents[pair.ItemId], new ItemEmbeddings(pair.ItemId, pair.ModelId, [])))];
+    }
+
     private static async Task<IReadOnlyList<CommittedEmbeddings>> WriteAsync(
         LibraryDbContext db,
         IReadOnlyList<ItemEmbeddings> changes,
+        bool removeOtherModels,
         CancellationToken cancellationToken)
     {
         var documents = await ReadDocumentIdsAsync(db, changes.Select(change => change.ItemId), cancellationToken).ConfigureAwait(false);
@@ -157,6 +251,20 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
 
             await db.Embeddings.Where(embedding => embedding.ItemId == change.ItemId && embedding.ModelId == change.ModelId)
                 .ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+            if (removeOtherModels)
+            {
+                var others = await db.Embeddings.AsNoTracking()
+                    .Where(embedding => embedding.ItemId == change.ItemId && embedding.ModelId != change.ModelId)
+                    .Select(embedding => embedding.ModelId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken).ConfigureAwait(false);
+                if (others.Count > 0)
+                {
+                    await db.Embeddings.Where(embedding => embedding.ItemId == change.ItemId && embedding.ModelId != change.ModelId)
+                        .ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+                    committed.AddRange(others.Select(other => new CommittedEmbeddings(document, new ItemEmbeddings(change.ItemId, other, []))));
+                }
+            }
 
             // The order the index keeps and the load reads: whole item first, then keyframes in order.
             var ordered = change.Embeddings

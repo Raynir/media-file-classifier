@@ -113,16 +113,33 @@ public sealed partial class ItemEmbeddingAnalyzer
     /// <param name="image">The picture.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>What was stored.</returns>
-    public async Task<ItemEmbeddingResult> EmbedStillAsync(IOpenLibrary library, Id<MediaItem> itemId, AiImage image, CancellationToken cancellationToken)
+    public Task<ItemEmbeddingResult> EmbedStillAsync(IOpenLibrary library, Id<MediaItem> itemId, AiImage image, CancellationToken cancellationToken) =>
+        EmbedStillAsync(library, itemId, image, null, cancellationToken);
+
+    /// <summary>
+    /// Embeds a still image with a chosen provider, as the analysis picked it for the profile (E06-S07-T05).
+    /// </summary>
+    /// <param name="library">The open library.</param>
+    /// <param name="itemId">The item.</param>
+    /// <param name="image">The picture.</param>
+    /// <param name="provider">The provider, or <see langword="null"/> for the first registered one.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>What was stored.</returns>
+    public async Task<ItemEmbeddingResult> EmbedStillAsync(
+        IOpenLibrary library,
+        Id<MediaItem> itemId,
+        AiImage image,
+        IImageEmbeddingProvider? provider,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(image);
 
-        var output = await GetProvider().EmbedImagesAsync([image], cancellationToken).ConfigureAwait(false);
+        var output = await (provider ?? GetProvider()).EmbedImagesAsync([image], cancellationToken).ConfigureAwait(false);
         var model = await RegisterAsync(library, output.Model, cancellationToken).ConfigureAwait(false);
         var now = clock.GetUtcNow();
         Embedding[] embeddings = [Embedding.Create(itemId, model, EmbeddingKind.Image, output.Value[0].Span, now)];
-        await library.Embeddings.ReplaceAsync(itemId, model.Id, embeddings, cancellationToken).ConfigureAwait(false);
+        await StoreAsync(library, itemId, model, embeddings, cancellationToken).ConfigureAwait(false);
         return new ItemEmbeddingResult(model, 0, []);
     }
 
@@ -135,10 +152,27 @@ public sealed partial class ItemEmbeddingAnalyzer
     /// <param name="frames">The keyframes, already stored with <c>IKeyframeRepository.ReplaceAsync</c>, and their pixels.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>What was stored.</returns>
+    public Task<ItemEmbeddingResult> EmbedKeyframesAsync(
+        IOpenLibrary library,
+        Id<MediaItem> itemId,
+        IReadOnlyList<KeyframeImage> frames,
+        CancellationToken cancellationToken) =>
+        EmbedKeyframesAsync(library, itemId, frames, null, cancellationToken);
+
+    /// <summary>
+    /// Embeds stored keyframes with a chosen provider, as the analysis picked it for the profile (E06-S07-T05).
+    /// </summary>
+    /// <param name="library">The open library.</param>
+    /// <param name="itemId">The item.</param>
+    /// <param name="frames">The keyframes, already stored with <c>IKeyframeRepository.ReplaceAsync</c>, and their pixels.</param>
+    /// <param name="provider">The provider, or <see langword="null"/> for the first registered one.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>What was stored.</returns>
     public async Task<ItemEmbeddingResult> EmbedKeyframesAsync(
         IOpenLibrary library,
         Id<MediaItem> itemId,
         IReadOnlyList<KeyframeImage> frames,
+        IImageEmbeddingProvider? provider,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(library);
@@ -148,7 +182,7 @@ public sealed partial class ItemEmbeddingAnalyzer
             throw new ArgumentException("There are no keyframes to embed.", nameof(frames));
         }
 
-        var output = await GetProvider().EmbedImagesAsync([.. frames.Select(frame => frame.Image)], cancellationToken).ConfigureAwait(false);
+        var output = await (provider ?? GetProvider()).EmbedImagesAsync([.. frames.Select(frame => frame.Image)], cancellationToken).ConfigureAwait(false);
         var model = await RegisterAsync(library, output.Model, cancellationToken).ConfigureAwait(false);
         var now = clock.GetUtcNow();
         var embeddings = new List<Embedding>(frames.Count + 1)
@@ -160,7 +194,7 @@ public sealed partial class ItemEmbeddingAnalyzer
             embeddings.Add(Embedding.Create(itemId, model, EmbeddingKind.Image, output.Value[i].Span, now, frames[i].Keyframe.Id));
         }
 
-        await library.Embeddings.ReplaceAsync(itemId, model.Id, embeddings, cancellationToken).ConfigureAwait(false);
+        await StoreAsync(library, itemId, model, embeddings, cancellationToken).ConfigureAwait(false);
         return new ItemEmbeddingResult(model, frames.Count, []);
     }
 
@@ -179,6 +213,11 @@ public sealed partial class ItemEmbeddingAnalyzer
             return buffer.ToArray();
         }
     }
+
+    // Vectors of the active search model replace the item's older ones in the same write: search no longer needs them
+    // (E06-S07-T05). Vectors of another model, during a migration, are stored beside them.
+    private static Task StoreAsync(IOpenLibrary library, Id<MediaItem> itemId, ModelRegistration model, IReadOnlyList<Embedding> embeddings, CancellationToken cancellationToken) =>
+        library.Embeddings.ReplaceAsync(itemId, model.Id, embeddings, library.Library.Settings.ActiveSearchModelId == model.Id, cancellationToken);
 
     private IImageEmbeddingProvider GetProvider() =>
         registry.GetProviders<IImageEmbeddingProvider>().FirstOrDefault()

@@ -1188,6 +1188,12 @@
   <data name="Search_Hint_NotAnalyzed" xml:space="preserve">
     <value>This item hasn't been analyzed yet, so there's nothing to compare it with.</value>
   </data>
+  <data name="Search_Hint_Outdated" xml:space="preserve">
+    <value>This item was analyzed with an older model. Re-index it to find similar items.</value>
+  </data>
+  <data name="Search_Hint_SkippedOutdated" xml:space="preserve">
+    <value>{0} items analyzed with an older model were left out of the semantic search. Re-index them to include them.</value>
+  </data>
   <data name="Search_AnalyzeNow" xml:space="preserve">
     <value>Analyze now</value>
   </data>

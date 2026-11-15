@@ -289,7 +289,20 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
         public Task ReplaceAsync(Id<MediaItem> itemId, Id<ModelRegistration> modelId, IReadOnlyList<Embedding> embeddings, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
+        public Task ReplaceAsync(Id<MediaItem> itemId, Id<ModelRegistration> modelId, IReadOnlyList<Embedding> embeddings, bool removeOtherModels, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task ReplaceRangeAsync(IReadOnlyList<ItemEmbeddings> changes, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<Id<ModelRegistration>>> GetModelsInUseAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<EmbeddingMigrationProgress> GetMigrationProgressAsync(
+            Id<ModelRegistration> oldModelId,
+            IReadOnlyCollection<Id<ModelRegistration>> newModelIds,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<int> RemoveSupersededAsync(IReadOnlyCollection<Id<ModelRegistration>> keptModelIds, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
 
         public Task<IReadOnlyList<Embedding>> GetAsync(Id<MediaItem> itemId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

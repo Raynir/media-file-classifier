@@ -80,6 +80,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
         List<Entry> page;
         int total;
         var lessRelevant = 0;
+        var outdated = 0;
         if (query.Vector is null || index is null)
         {
             if (terms.Count == 0)
@@ -101,7 +102,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
         }
         else
         {
-            (page, total, lessRelevant) = await RankedPageAsync(store, index, query, query.Vector, terms, cancellationToken).ConfigureAwait(false);
+            (page, total, lessRelevant, outdated) = await RankedPageAsync(store, index, query, query.Vector, terms, cancellationToken).ConfigureAwait(false);
         }
 
         var fields = terms.Count > 0 && query.IncludeMatchedFields && page.Count > 0
@@ -113,7 +114,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
                 IsLessRelevant = entry.IsLessRelevant,
             })
             .ToList();
-        return new SearchResults(hits, total, terms, skipped) { LessRelevantCount = lessRelevant };
+        return new SearchResults(hits, total, terms, skipped) { LessRelevantCount = lessRelevant, SkippedCount = outdated };
     }
 
     /// <inheritdoc />
@@ -179,7 +180,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
         return (page, matches.TotalCount);
     }
 
-    private static async Task<(List<Entry> Page, int Total, int LessRelevant)> RankedPageAsync(
+    private static async Task<(List<Entry> Page, int Total, int LessRelevant, int Outdated)> RankedPageAsync(
         ISearchStore store,
         VectorIndex index,
         SearchQuery query,
@@ -199,14 +200,15 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
             async () =>
             {
                 var documentIds = await store.GetDocumentIdsAsync(query.Filter, cancellationToken).ConfigureAwait(false);
-                return index.Search(vector, limit, CreateMask(documentIds));
+                var mask = CreateMask(documentIds);
+                return (Hits: index.Search(vector, limit, mask), Outdated: index.CountWithoutModel(vector.ModelId, mask));
             },
             cancellationToken);
 
         // Both are awaited even when one fails, so neither exception goes unobserved.
         await Task.WhenAll(keywordTask, vectorTask).ConfigureAwait(false);
         var keyword = await keywordTask.ConfigureAwait(false);
-        var vectorHits = await vectorTask.ConfigureAwait(false);
+        var (vectorHits, outdated) = await vectorTask.ConfigureAwait(false);
 
         var items = new Dictionary<int, Id<MediaItem>>();
         foreach (var match in keyword.Matches)
@@ -263,7 +265,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
                 ranked.Reverse();
             }
 
-            return ([.. ranked.Skip(query.Offset).Take(query.Limit)], ranked.Count, lessRelevant);
+            return ([.. ranked.Skip(query.Offset).Take(query.Limit)], ranked.Count, lessRelevant, outdated);
         }
 
         // Another order: the ranked results are the set, and SQL sorts them.
@@ -276,7 +278,7 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
             query.Limit,
             byDocument.Keys,
             cancellationToken).ConfigureAwait(false);
-        return ([.. sorted.Documents.Select(document => byDocument[document.DocumentId])], ranked.Count, lessRelevant);
+        return ([.. sorted.Documents.Select(document => byDocument[document.DocumentId])], ranked.Count, lessRelevant, outdated);
     }
 
     private void OnCurrentChanged(object? sender, EventArgs e) => Attach(session.Current);

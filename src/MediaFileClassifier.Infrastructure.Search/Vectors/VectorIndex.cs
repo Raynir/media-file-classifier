@@ -139,6 +139,49 @@ internal sealed class VectorIndex : IDisposable
     }
 
     /// <summary>
+    /// Counts the items a search of one model skips (D051): those the mask allows that have vectors of another model
+    /// but none of this one, because they were analyzed with an older model (E06-S07-T05).
+    /// </summary>
+    /// <param name="modelId">The model searched.</param>
+    /// <param name="mask">Which document IDs may be returned, indexed by document ID; <c>null</c> for all.</param>
+    /// <returns>The number of items.</returns>
+    public int CountWithoutModel(Id<ModelRegistration> modelId, bool[]? mask)
+    {
+        gate.EnterReadLock();
+        try
+        {
+            models.TryGetValue(modelId, out var searched);
+            if (models.Count == 0 || (models.Count == 1 && searched is not null))
+            {
+                return 0;
+            }
+
+            var skipped = new HashSet<int>();
+            foreach (var (otherId, other) in models)
+            {
+                if (otherId == modelId)
+                {
+                    continue;
+                }
+
+                foreach (var document in other.DocumentIds)
+                {
+                    if ((mask is null || (document < mask.Length && mask[document])) && searched?.Contains(document) != true)
+                    {
+                        skipped.Add(document);
+                    }
+                }
+            }
+
+            return skipped.Count;
+        }
+        finally
+        {
+            gate.ExitReadLock();
+        }
+    }
+
+    /// <summary>
     /// Gets the query's mean similarity over the items of its model (see <see cref="ModelVectors.MeanSimilarity"/>).
     /// </summary>
     /// <param name="query">The query.</param>

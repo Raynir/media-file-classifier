@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Models;
+using MediaFileClassifier.Infrastructure.AI.Ocr;
 
 namespace MediaFileClassifier.Infrastructure.Tests.AI.Models;
 
@@ -39,7 +40,7 @@ public sealed class ModelCatalogTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     public static TheoryData<string> CatalogueFiles() =>
-        [.. new ModelCatalog().Entries.SelectMany(entry => entry.Tiers.SelectMany(tier => tier.Files)).Select(file => file.Url.ToString()).Distinct()];
+        [.. new ModelCatalog().Entries.SelectMany(entry => entry.Tiers.SelectMany(tier => tier.Files)).Select(file => file.Url).Where(url => url.Host == "huggingface.co").Select(url => url.ToString()).Distinct()];
 
     [Fact]
     public void Embedded_Loads_WithTheEmbeddingModel()
@@ -56,6 +57,20 @@ public sealed class ModelCatalogTests
         Assert.Equal(1_505_702_732, embedding.Default.Size);
         Assert.Same(embedding, catalog.Find("siglip2-base-patch16-256"));
         Assert.Null(catalog.Find("missing"));
+    }
+
+    [Fact]
+    public void Embedded_Loads_WithTheOcrModel()
+    {
+        var ocr = new ModelCatalog().GetDefault(ModelPurpose.Ocr);
+
+        Assert.NotNull(ocr);
+        Assert.Equal(RapidOcrModel.ModelId, ocr.ModelId);
+        Assert.Equal(RapidOcrModel.Version, ocr.Version);
+        Assert.Equal("Apache-2.0", ocr.License);
+        Assert.Equal("standard", ocr.Default.TierId);
+        Assert.Equal([RapidOcrModel.DetectorRole, RapidOcrModel.RecognizerRole], ocr.Default.Files.Select(file => file.Role));
+        Assert.Equal(4_819_576 + 7_911_802, ocr.Default.Size);
     }
 
     [Fact]
@@ -121,6 +136,26 @@ public sealed class ModelCatalogTests
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         Assert.Equal(file.Sha256, response.Headers.GetValues("X-Linked-ETag").Single().Trim('"'));
         Assert.Equal(file.Size, long.Parse(response.Headers.GetValues("X-Linked-Size").Single(), System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// Downloads the OCR model's files from ModelScope, which has no <c>X-Linked-ETag</c>, and hashes them.
+    /// </summary>
+    [Fact]
+    public async Task Network_OcrModelFiles_DownloadWithTheCataloguedHashAndSize()
+    {
+        Assert.SkipUnless(Environment.GetEnvironmentVariable(NetworkVariable) == "1", $"Set {NetworkVariable}=1 to download a catalogue file.");
+        var ocr = new ModelCatalog().GetDefault(ModelPurpose.Ocr)!;
+
+        // Like the app's downloader, which names itself; ModelScope refuses a request without a User-Agent.
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("MediaFileClassifier");
+        foreach (var file in ocr.Default.Files)
+        {
+            var bytes = await client.GetByteArrayAsync(file.Url, Token);
+            Assert.Equal(file.Size, bytes.Length);
+            Assert.Equal(file.Sha256, Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        }
     }
 
     /// <summary>

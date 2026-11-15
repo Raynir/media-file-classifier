@@ -33,6 +33,40 @@
           ]
         }
       ]
+    },
+    {
+      "modelId": "pp-ocrv5-mobile-eslav",
+      "version": "1.0",
+      "displayName": "PP-OCRv5 mobile (text recognition)",
+      "purpose": "Ocr",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "source": "https://github.com/RapidAI/RapidOCR",
+      "defaultTier": "standard",
+      "tiers": [
+        {
+          "tierId": "standard",
+          "displayName": "Standard",
+          "precision": "fp32",
+          "preferredExecutionProvider": "Cpu",
+          "files": [
+            {
+              "role": "detector",
+              "fileName": "ch_PP-OCRv5_det_mobile.onnx",
+              "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/b8ff564a23de421e7144385bfe120fe2bb869932/onnx/PP-OCRv5/det/ch_PP-OCRv5_det_mobile.onnx",
+              "size": 4819576,
+              "sha256": "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae"
+            },
+            {
+              "role": "recognizer",
+              "fileName": "eslav_PP-OCRv5_rec_mobile.onnx",
+              "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/b8ff564a23de421e7144385bfe120fe2bb869932/onnx/PP-OCRv5/rec/eslav_PP-OCRv5_rec_mobile.onnx",
+              "size": 7911802,
+              "sha256": "08705d6721849b1347d26187f15a5e362c431963a2a62bfff4feac578c489aab"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

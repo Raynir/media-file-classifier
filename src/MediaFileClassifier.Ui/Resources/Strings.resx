@@ -1673,6 +1673,12 @@
   <data name="Profile_MaxTagsHelp" xml:space="preserve">
     <value>Leave empty for no limit.</value>
   </data>
+  <data name="Profile_PreFilterWithDetector" xml:space="preserve">
+    <value>Skip pictures without text</value>
+  </data>
+  <data name="Profile_PreFilterWithDetectorHelp" xml:space="preserve">
+    <value>Before the chosen provider reads a picture, the fast built-in text detector checks for text, and the picture is skipped if there is none. Saves time with a vision model, which can also invent text on a blank picture. Needs the built-in OCR model.</value>
+  </data>
   <data name="Profile_Language" xml:space="preserve">
     <value>Description language</value>
   </data>

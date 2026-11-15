@@ -40,7 +40,7 @@ public sealed class AnalysisProfileStorageTests : IAsyncLifetime
                 Language = "ru",
                 PromptVersion = "describe-2",
             })
-            .With(new AnalyzerSettings(AnalyzerKeys.Ocr) { Enabled = false });
+            .With(new AnalyzerSettings(AnalyzerKeys.Ocr) { Enabled = false, PreFilterWithDetector = true });
 
         await new UpdateAnalysisProfileCommandHandler(session, bed.Clock).Handle(new UpdateAnalysisProfileCommand(profile), Token);
         await session.SetCurrentAsync(null);

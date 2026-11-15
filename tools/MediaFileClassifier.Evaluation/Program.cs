@@ -16,6 +16,7 @@ internal static class Program
           init-private   List a folder of personal media into a new private data set.
           analyze        Describe and OCR the corpus with a vision model, for keyword and hybrid evaluations.
           tune           Score a fixed grid of ranking settings of the app's search over the corpus (E09-S05).
+          ocr            Run one OCR engine over the OCR ground truth and the photos without text (E06-S05).
           threshold      Measure SigLIP 2 similarities of real and nonsense queries, for the relevance threshold.
 
         Options:
@@ -38,6 +39,8 @@ internal static class Program
           --vlm <model>          analyze, evaluate: the vision model (default: qwen/qwen3-vl-4b).
           --analysis <file>      analyze, evaluate: the stored analysis (default: <data>/analysis/<vlm>.json).
           --language <code>      analyze: the language the describer writes in (default: en).
+          --det-max-side <px>    ocr --system rapidocr: the longest side the text detector sees (default 960).
+          --ep <cpu|directml>    ocr --system rapidocr: the execution provider (DirectML needs a -p:OnnxGpu=true build).
         """;
 
     public static async Task<int> Main(string[] args)
@@ -56,6 +59,8 @@ internal static class Program
                     return await AnalyzeCommand.RunAsync(options, Console.Out, CancellationToken.None);
                 case "tune":
                     return await TuneCommand.RunAsync(options, TimeProvider.System, Console.Out, CancellationToken.None);
+                case "ocr":
+                    return await OcrCommand.RunAsync(options, Console.Out, CancellationToken.None);
                 case "threshold":
                     return await ThresholdCommand.RunAsync(options, Console.Out, CancellationToken.None);
                 case "init-private":

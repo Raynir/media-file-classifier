@@ -130,6 +130,28 @@ dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate
 
 The ranking settings default to the app's (`SearchRankingOptions.Default`, `SemanticRelevanceThresholds`); `--rrf-k`, `--keyword-weight`, `--vector-weight`, `--field-weights` and `--threshold` (`centred,raw` or `none`) try other values without a rebuild. The report lists the settings it ran with. `tune` scores a fixed grid of them in one process and writes `reports/<date>_tune-app-hybrid.md` (E09-S05-T03).
 
+### OCR engines (E06-S05)
+
+`ocr` runs one OCR engine over the 80 ground-truth images and the 164 photos without text tags, with the input the app gives it (a still image at most 2048 px on its longest edge), and writes `eval/ocr-results/<engine>.json` for `evaluate --results`. It prints the time per image and every no-text photo that got text; those are checked by eye, since many have real incidental text (ear tags, number plates).
+
+```powershell
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- ocr --system rapidocr --models models/pp-ocrv5 --ep cpu
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -p:OnnxGpu=true -- ocr --system rapidocr --models models/pp-ocrv5 --ep directml
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- ocr --system vlm      # LM Studio, qwen/qwen3-vl-4b
+```
+
+`models/pp-ocrv5` holds `ch_PP-OCRv5_det_mobile.onnx` and `eslav_PP-OCRv5_rec_mobile.onnx` from RapidOCR. Results of 2026-11-15 (MFC-331, i7-14700HX, 8 GB laptop GPU), CER Latin / Cyrillic / mixed / all, then ms per image and no-text photos with output:
+
+| Engine | CER | CPU | GPU | No-text with output |
+|---|---|---|---|---|
+| RapidOCR, detector at most 960 px (app default) | 0.036 / 0.095 / 0.083 / 0.066 | 1,955 | 200 (DirectML) | 37 |
+| RapidOCR, detector at most 2000 px (RapidOCR default) | 0.043 / 0.103 / 0.155 / 0.076 | 4,049 | 292 (DirectML) | 65 |
+| qwen/qwen3-vl-4b in LM Studio | 0.024 / 0.058 / 0.353 / 0.052 | — | 3,875 | 41 |
+
+RapidOCR is the default OCR engine on every hardware class; the vision-language model is chosen by naming its provider in the analysis profile.
+
+With the short-line guard (MFC-334: a line needs two letters or digits, and three or fewer need confidence 0.8) the 960 px run reads 0.037 / 0.096 / 0.083 / 0.067, and 27 of the no-text photos have output instead of 37. All ten photos listed as stray-mark cases (photo-011, -034, -058, -070, -071, -078, -090, -098, -099, -123) give no text. The guard also drops a few real one-character lines such as a lone quantity "1" or "OK".
+
 ### Baseline runs
 
 `baselines.json` `references` pins one report per system, by name: its untuned baseline run. Every later run of that system shows each headline metric's change from it, both in the console and in the report's summary table ("Baseline run" and "vs baseline run"), next to the change from the previous run. If the labels changed since the baseline run, the report says so.

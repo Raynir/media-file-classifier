@@ -143,6 +143,23 @@ public sealed class AnalysisProfileViewModelTests
     }
 
     [Fact]
+    public async Task ChangingTheOcrPreFilter_SavesItOnTheOcrAnalyzerOnly()
+    {
+        sender.Profile = AnalysisProfile.Default;
+        var page = Create();
+        await page.RefreshAsync();
+        var ocr = page.Analyzers.Single(card => card.Analyzer == AnalyzerKeys.Ocr);
+
+        ocr.PreFilterWithDetector = true;
+
+        Assert.True(ocr.HasOcrOptions);
+        Assert.False(page.Analyzers.Single(card => card.Analyzer == AnalyzerKeys.Describer).HasOcrOptions);
+        var saved = sender.Saved.Last();
+        Assert.True(saved.Find(AnalyzerKeys.Ocr)!.PreFilterWithDetector);
+        Assert.False(saved.Find(AnalyzerKeys.Describer)!.PreFilterWithDetector);
+    }
+
+    [Fact]
     public async Task QuickChanges_AreSavedOneAfterAnother_NoneIsLost()
     {
         var page = Create();

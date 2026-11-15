@@ -329,6 +329,9 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
         var startedAt = clock.GetUtcNow();
         ModelIdentity identity;
         string text;
+        var gate = new DetectorGate(context.Settings?.PreFilterWithDetector == true && provider is not ITextDetector
+            ? registry.Providers.OfType<ITextDetector>().FirstOrDefault()
+            : null);
         if (context.Inputs.HasFrames)
         {
             var frames = await context.Inputs.GetFramesAsync(cancellationToken).ConfigureAwait(false);
@@ -341,7 +344,13 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
             identity = provider.Model;
             foreach (var frame in frames.Frames)
             {
-                var output = await provider.RecognizeTextAsync(frame.Image, cancellationToken).ConfigureAwait(false);
+                var output = await RecognizeAsync(provider, frame.Image, gate, cancellationToken).ConfigureAwait(false);
+                if (output is null)
+                {
+                    texts.Add(null);
+                    continue;
+                }
+
                 identity = output.Model;
                 texts.Add(output.Value.HasText ? output.Value.Text : null);
             }
@@ -352,9 +361,9 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
         else
         {
             var still = await context.Inputs.GetStillAsync(MaxLongestEdge, cancellationToken).ConfigureAwait(false);
-            var output = await provider.RecognizeTextAsync(still.ToAiImage(context.ImageName), cancellationToken).ConfigureAwait(false);
-            identity = output.Model;
-            text = output.Value.HasText ? output.Value.Text : string.Empty;
+            var output = await RecognizeAsync(provider, still.ToAiImage(context.ImageName), gate, cancellationToken).ConfigureAwait(false);
+            identity = output?.Model ?? provider.Model;
+            text = output is { Value.HasText: true } ? output.Value.Text : string.Empty;
             breaker?.RecordSuccess(provider.Id);
         }
 
@@ -372,4 +381,40 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
             .ConfigureAwait(false);
         return new AnalyzerResult(state, IsStored: true);
     }
+
+    /// <summary>
+    /// Reads an image, unless the text detector finds no text in it. A detector that can't run, such as one whose model
+    /// isn't installed, is dropped and the provider reads every image.
+    /// </summary>
+    private static async Task<AiOutput<OcrResult>?> RecognizeAsync(IOcrProvider provider, AiImage image, DetectorGate gate, CancellationToken cancellationToken)
+    {
+        if (gate.Detector is { } detector)
+        {
+            try
+            {
+                if (!await detector.HasTextAsync(image, cancellationToken).ConfigureAwait(false))
+                {
+                    return null;
+                }
+            }
+            catch (AiProviderException)
+            {
+                gate.Detector = null;
+            }
+        }
+
+        return await provider.RecognizeTextAsync(image, cancellationToken).ConfigureAwait(false);
+    }
+}
+
+/// <summary>
+/// The text detector an OCR run checks pictures with, until it fails.
+/// </summary>
+/// <param name="detector">The detector, or <see langword="null"/> to read every picture.</param>
+internal sealed class DetectorGate(ITextDetector? detector)
+{
+    /// <summary>
+    /// Gets or sets the detector, or <see langword="null"/> to read every picture.
+    /// </summary>
+    public ITextDetector? Detector { get; set; } = detector;
 }

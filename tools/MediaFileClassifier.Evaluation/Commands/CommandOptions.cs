@@ -68,6 +68,16 @@ internal sealed record CommandOptions
     /// </summary>
     public string? Threshold { get; init; }
 
+    /// <summary>
+    /// ocr: the execution provider for an in-process engine, <c>cpu</c> or <c>directml</c>.
+    /// </summary>
+    public string? ExecutionProvider { get; init; }
+
+    /// <summary>
+    /// ocr: the longest side the in-process detector sees, if not its default.
+    /// </summary>
+    public int? DetectionMaxSide { get; init; }
+
     public static CommandOptions Parse(IReadOnlyList<string> args)
     {
         var options = new CommandOptions();
@@ -93,6 +103,8 @@ internal sealed record CommandOptions
                 "--vector-weight" => options with { VectorWeight = Number(args, ref i, name) },
                 "--field-weights" => options with { FieldWeights = Value(args, ref i, name) },
                 "--threshold" => options with { Threshold = Value(args, ref i, name) },
+                "--det-max-side" => options with { DetectionMaxSide = (int)Number(args, ref i, name) },
+                "--ep" => options with { ExecutionProvider = Value(args, ref i, name) },
                 _ => throw new ArgumentException($"Unknown option '{name}'."),
             };
         }

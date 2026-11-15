@@ -79,6 +79,11 @@ public sealed partial class AnalyzerCardViewModel : ViewModelBase
     public bool HasDescriberOptions => Analyzer == AnalyzerKeys.Describer;
 
     /// <summary>
+    /// Gets a value indicating whether the analyzer has the OCR option to check for text first.
+    /// </summary>
+    public bool HasOcrOptions => Analyzer == AnalyzerKeys.Ocr;
+
+    /// <summary>
     /// Gets the languages descriptions can be written in.
     /// </summary>
     public IReadOnlyList<ProfileOption> Languages { get; }
@@ -118,6 +123,12 @@ public sealed partial class AnalyzerCardViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     public partial decimal? MaxTags { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether pictures without text are skipped before the provider reads them.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool PreFilterWithDetector { get; set; }
 
     /// <summary>
     /// Gets or sets the chosen language.
@@ -167,6 +178,11 @@ public sealed partial class AnalyzerCardViewModel : ViewModelBase
             ProviderId = SelectedProvider?.Value,
             ModelId = SelectedModel?.Value,
         };
+        if (HasOcrOptions)
+        {
+            settings = settings with { PreFilterWithDetector = PreFilterWithDetector };
+        }
+
         return HasDescriberOptions
             ? settings with { MaxTags = MaxTags is { } count ? (int)count : null, Language = SelectedLanguage?.Value }
             : settings;
@@ -208,6 +224,7 @@ public sealed partial class AnalyzerCardViewModel : ViewModelBase
             SelectedModel = models.First(option => option.Value == modelId);
 
             MaxTags = settings?.MaxTags;
+            PreFilterWithDetector = settings?.PreFilterWithDetector ?? false;
             SelectedLanguage = Languages.FirstOrDefault(option => option.Value == settings?.Language) ?? Languages[0];
         }
         finally
@@ -245,6 +262,8 @@ public sealed partial class AnalyzerCardViewModel : ViewModelBase
     partial void OnSelectedModelChanged(ProfileOption? value) => Raise();
 
     partial void OnMaxTagsChanged(decimal? value) => Raise();
+
+    partial void OnPreFilterWithDetectorChanged(bool value) => Raise();
 
     partial void OnSelectedLanguageChanged(ProfileOption? value) => Raise();
 

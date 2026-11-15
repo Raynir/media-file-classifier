@@ -34,6 +34,31 @@ public sealed class AnalyzeItemsCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ItemAnalyzers_GiveEachItemItsOwnPayload_AndLeaveOutItemsWithNone()
+    {
+        var scheduler = new RecordingScheduler();
+        var handler = new AnalyzeItemsCommandHandler(new FakeJobSystem(scheduler), NullLogger<AnalyzeItemsCommandHandler>.Instance);
+        Id<MediaItem> describe = Id<MediaItem>.New(), both = Id<MediaItem>.New(), none = Id<MediaItem>.New();
+        var command = new AnalyzeItemsCommand([describe, both, none])
+        {
+            ItemAnalyzers = new Dictionary<Id<MediaItem>, IReadOnlyList<string>>
+            {
+                [describe] = ["describer"],
+                [both] = ["embedding", "describer"],
+                [none] = [],
+            },
+        };
+
+        await handler.Handle(command, Token);
+
+        var request = Assert.Single(scheduler.Requests);
+        Assert.Equal([describe, both], request.ItemIds);
+        Assert.Equal(
+            ["{\"analyzers\":[\"describer\"]}", "{\"analyzers\":[\"embedding\",\"describer\"]}"],
+            request.WorkItems.Select(work => work.Payload));
+    }
+
+    [Fact]
     public async Task Handle_WithoutBackgroundProcessing_QueuesNothing()
     {
         var handler = new AnalyzeItemsCommandHandler(new FakeJobSystem(null), NullLogger<AnalyzeItemsCommandHandler>.Instance);

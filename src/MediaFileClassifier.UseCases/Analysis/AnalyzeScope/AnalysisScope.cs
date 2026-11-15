@@ -25,6 +25,16 @@ public abstract record AnalysisScope
     public static AnalysisScope SearchResults { get; } = new SearchResultsScope();
 
     /// <summary>
+    /// Gets the items whose analysis is outdated (E06-S07-T01), for re-indexing (E06-S07-T02).
+    /// </summary>
+    public static AnalysisScope Outdated { get; } = new OutdatedScope();
+
+    /// <summary>
+    /// Gets every item of the library, for re-indexing it all (E06-S07-T02).
+    /// </summary>
+    public static AnalysisScope Library { get; } = new LibraryScope();
+
+    /// <summary>
     /// Creates a scope of chosen items, such as the selection.
     /// </summary>
     /// <param name="itemIds">The items.</param>
@@ -61,4 +71,14 @@ public abstract record AnalysisScope
     /// The items of the current search or browse view.
     /// </summary>
     public sealed record SearchResultsScope : AnalysisScope;
+
+    /// <summary>
+    /// Items whose analysis is outdated. Each runs only its outdated analyzers (of the chosen ones, if any).
+    /// </summary>
+    public sealed record OutdatedScope : AnalysisScope;
+
+    /// <summary>
+    /// Every item of the library.
+    /// </summary>
+    public sealed record LibraryScope : AnalysisScope;
 }

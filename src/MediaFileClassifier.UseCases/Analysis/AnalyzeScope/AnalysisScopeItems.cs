@@ -14,6 +14,12 @@ namespace MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
 public sealed record AnalysisScopeItems(IReadOnlyList<Id<MediaItem>> ItemIds, int Images, int Videos, int VideoFrames = 0)
 {
     /// <summary>
+    /// Gets the analyzers each item runs, when they differ per item (the outdated scope); <see langword="null"/> when
+    /// every item runs the same ones.
+    /// </summary>
+    public IReadOnlyDictionary<Id<MediaItem>, IReadOnlyList<string>>? ItemAnalyzers { get; init; }
+
+    /// <summary>
     /// Gets a scope with no items.
     /// </summary>
     public static AnalysisScopeItems Empty { get; } = new([], 0, 0);

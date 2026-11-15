@@ -31,6 +31,7 @@ public static class UseCasesModule
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<SettingRegistry>();
         services.TryAddSingleton<Search.Filters.FilterRegistry>();
+        services.TryAddSingleton<Infrastructure.Abstractions.AI.IAnalysisProvenanceSource, Analysis.Outdated.AnalysisProvenanceSource>();
         services.TryAddSingleton<Search.Filters.FilterStateSerializer>();
         services.TryAddSingleton<Search.Filters.FilterStatePersistence>();
         services.TryAddSingleton<Search.SearchResults.SortStatePersistence>();
@@ -38,6 +39,7 @@ public static class UseCasesModule
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
+        services.TryAddSingleton<Embeddings.EmbeddingModelMigration>();
         services.TryAddSingleton<Search.SearchResults.SearchResultSource>();
         services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<Search.SearchResults.SearchResultSource>());
         services.TryAddSingleton<Search.FindSimilar.AnalyzeNow>();

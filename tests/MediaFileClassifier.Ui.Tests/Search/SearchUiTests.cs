@@ -205,11 +205,27 @@ public sealed class SearchUiTests
         Assert.False(bar.IsAnalyzeNowOffered);
     });
 
+    [Fact]
+    public Task Notice_SemanticSearchSkippedOutdatedItems_SaysHowMany() => TestApp.RunAsync(() =>
+    {
+        var sender = new StubSender { Total = 4, Skipped = 2 };
+        var source = CreateSource(sender);
+        var notice = new SearchNoticeViewModel(source, localizer);
+
+        source.SetText("lighthouse");
+        _ = source.CountAsync(CancellationToken.None);
+        Pump.Until(() => notice.IsVisible);
+
+        Assert.Equal("4 results", notice.Message);
+        Assert.Equal("2 items analyzed with an older model were left out of the semantic search. Re-index them to include them.", notice.Hint);
+    });
+
     [Theory]
     [InlineData(SemanticSearchStatus.Used, 0, "No similar items", null)]
     [InlineData(SemanticSearchStatus.Used, 1, "1 similar item", null)]
     [InlineData(SemanticSearchStatus.Used, 5, "5 similar items", null)]
     [InlineData(SemanticSearchStatus.NotAnalyzed, 0, "No similar items", "hasn't been analyzed")]
+    [InlineData(SemanticSearchStatus.Outdated, 0, "No similar items", "analyzed with an older model")]
     public Task Notice_FindSimilar_CountsSimilarItems(SemanticSearchStatus semantic, int total, string message, string? hint) => TestApp.RunAsync(() =>
     {
         var sender = new StubSender { Total = total, Semantic = semantic };
@@ -481,6 +497,8 @@ public sealed class SearchUiTests
 
         public SearchMode Mode { get; set; } = SearchMode.Hybrid;
 
+        public int Skipped { get; set; }
+
         public SearchMediaQuery? LastQuery { get; private set; }
 
         public ReferenceImageProblem LoadProblem { get; set; }
@@ -495,8 +513,8 @@ public sealed class SearchUiTests
         {
             if (request is FindSimilarQuery)
             {
-                var status = Semantic == SemanticSearchStatus.Used ? Semantic : SemanticSearchStatus.NotAnalyzed;
-                return Task.FromResult((TResponse)(object)new MediaSearchResults([], Total, [], SearchMode.Similar, status));
+                var status = Semantic is SemanticSearchStatus.Used or SemanticSearchStatus.Outdated ? Semantic : SemanticSearchStatus.NotAnalyzed;
+                return Task.FromResult((TResponse)(object)new MediaSearchResults([], Total, [], SearchMode.Similar, status, SkippedCount: Skipped));
             }
 
             if (request is LoadReferenceImageQuery load)
@@ -514,7 +532,7 @@ public sealed class SearchUiTests
             if (request is SearchMediaQuery query)
             {
                 LastQuery = query;
-                return Task.FromResult((TResponse)(object)new MediaSearchResults([], Total, [], Mode, Semantic, LessRelevant));
+                return Task.FromResult((TResponse)(object)new MediaSearchResults([], Total, [], Mode, Semantic, LessRelevant, Skipped));
             }
 
             throw new NotSupportedException();

@@ -165,7 +165,7 @@ public sealed class ImageSearchTests : IAsyncLifetime
         }
 
         using var encoder = new SemanticQueryEncoder(registry, bed.Session, bed.Library.Clock);
-        var handler = new SearchMediaQueryHandler(bed.Index, encoder, registry, SearchTestBed.Filters, NullLogger<SearchMediaQueryHandler>.Instance);
+        var handler = new SearchMediaQueryHandler(bed.Index, encoder, SearchTestBed.Filters, NullLogger<SearchMediaQueryHandler>.Instance);
         var load = new LoadReferenceImageQueryHandler(CreateRegistry());
         for (var i = 0; i < files.Count; i++)
         {
@@ -226,7 +226,7 @@ public sealed class ImageSearchTests : IAsyncLifetime
     {
         var registry = new AiProviderRegistry(provider is null ? [] : [provider], bed.Library.Clock);
         var encoder = new SemanticQueryEncoder(registry, bed.Session, bed.Library.Clock);
-        return new TestHandler(encoder, new SearchMediaQueryHandler(bed.Index, encoder, registry, SearchTestBed.Filters, NullLogger<SearchMediaQueryHandler>.Instance));
+        return new TestHandler(encoder, new SearchMediaQueryHandler(bed.Index, encoder, SearchTestBed.Filters, NullLogger<SearchMediaQueryHandler>.Instance));
     }
 
     private sealed class TestHandler(SemanticQueryEncoder encoder, SearchMediaQueryHandler handler) : IDisposable

@@ -36,11 +36,15 @@ public sealed class FilterDefinitionTests
                 (DateFilter.FilterId, FilterValueKind.DateRange, typeof(DateRangeValue)),
                 (ResolutionFilter.FilterId, FilterValueKind.Resolution, typeof(ResolutionValue)),
                 (StatusFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
+                (OutdatedAnalysisFilter.FilterId, FilterValueKind.Boolean, typeof(BooleanValue)),
+                (NewSuggestionsFilter.FilterId, FilterValueKind.Boolean, typeof(BooleanValue)),
                 (FolderFilter.FilterId, FilterValueKind.Folder, typeof(FolderValue)),
                 (TagsFilter.FilterId, FilterValueKind.IncludeExclude, typeof(IncludeExcludeValue)),
             ],
             registry.All.Select(filter => (filter.Id, filter.Kind, filter.ValueType)));
-        Assert.All(registry.All, filter => Assert.True(filter.IsAvailable));
+
+        // The outdated filter needs the current provenance, which the use cases provide.
+        Assert.Equal([OutdatedAnalysisFilter.FilterId], registry.All.Where(filter => !filter.IsAvailable).Select(filter => filter.Id));
     }
 
     [Fact]

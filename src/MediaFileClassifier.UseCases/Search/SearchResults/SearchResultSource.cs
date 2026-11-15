@@ -25,6 +25,7 @@ namespace MediaFileClassifier.UseCases.Search.SearchResults;
 /// <param name="LessRelevantCount">The N of "Show N less relevant results".</param>
 /// <param name="ShowLessRelevant">Whether the less relevant results are included.</param>
 /// <param name="SimilarTo">The item a "find similar" search started from, or <see langword="null"/>.</param>
+/// <param name="SkippedCount">How many Outdated items the semantic search skipped (D051, E06-S07-T05).</param>
 public sealed record SearchSummary(
     string Text,
     SearchMode Mode,
@@ -32,7 +33,8 @@ public sealed record SearchSummary(
     int TotalCount,
     int LessRelevantCount,
     bool ShowLessRelevant,
-    SimilarSource? SimilarTo = null);
+    SimilarSource? SimilarTo = null,
+    int SkippedCount = 0);
 
 /// <summary>
 /// The item a "find similar" search (E09-S03) started from.
@@ -306,7 +308,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
                 {
                     // Plain browsing in another order is a search only underneath: it has no notice.
                     SetSummary(search.HasSummary
-                        ? new SearchSummary(search.Text, results.Mode, results.Semantic, results.TotalCount, results.LessRelevantCount, search.ShowLessRelevant, search.Similar)
+                        ? new SearchSummary(search.Text, results.Mode, results.Semantic, results.TotalCount, results.LessRelevantCount, search.ShowLessRelevant, search.Similar, results.SkippedCount)
                         : null);
                 }
 

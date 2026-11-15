@@ -64,6 +64,36 @@ internal sealed class AnalyzerStateRepository(LibraryConnectionFactory connectio
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The models table is small, so the current models are matched in memory; each analyzer is then one query on the
+    /// runs (or vectors), which reads only the item IDs.
+    /// </remarks>
+    public Task<OutdatedAnalysis> GetOutdatedAsync(IReadOnlyCollection<AnalyzerProvenance> current, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        if (current.Count == 0)
+        {
+            return Task.FromResult(OutdatedAnalysis.None);
+        }
+
+        return connections.ReadAsync(
+            async (db, token) =>
+            {
+                var models = await db.Models.AsNoTracking().ToListAsync(token).ConfigureAwait(false);
+                var byAnalyzer = new Dictionary<string, IReadOnlyList<Id<MediaItem>>>(StringComparer.Ordinal);
+                foreach (var provenance in current.GroupBy(provenance => provenance.Analyzer, StringComparer.Ordinal).Select(group => group.Last()))
+                {
+                    byAnalyzer[provenance.Analyzer] = string.Equals(provenance.Analyzer, AnalyzerKeys.Embedding, StringComparison.Ordinal)
+                        ? await OutdatedEmbeddingsAsync(db, CurrentModels(models, provenance), token).ConfigureAwait(false)
+                        : await OutdatedRunsAsync(db, provenance, models, token).ConfigureAwait(false);
+                }
+
+                return new OutdatedAnalysis(byAnalyzer);
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<RunApplication> ApplyRunAsync(
         AnalysisRun run,
         IReadOnlyCollection<AiFieldValue> values,
@@ -92,6 +122,42 @@ internal sealed class AnalyzerStateRepository(LibraryConnectionFactory connectio
             },
             cancellationToken);
     }
+
+    // The registered models that match the provenance's model; the prompt version is compared on the run.
+    private static List<Id<ModelRegistration>> CurrentModels(List<ModelRegistration> models, AnalyzerProvenance provenance) =>
+        [.. models.Where(model => provenance.Matches(model, provenance.PromptVersion)).Select(model => model.Id)];
+
+    // Active runs of the analyzer from another model, or with another prompt version.
+    private static async Task<IReadOnlyList<Id<MediaItem>>> OutdatedRunsAsync(
+        LibraryDbContext db,
+        AnalyzerProvenance provenance,
+        List<ModelRegistration> models,
+        CancellationToken cancellationToken)
+    {
+        var currentModels = CurrentModels(models, provenance);
+        var analyzer = provenance.Analyzer;
+        var promptVersion = provenance.PromptVersion;
+        return await db.AnalysisRuns.AsNoTracking()
+            .Where(run => run.Analyzer == analyzer && run.IsActive)
+            .Where(run => !currentModels.Contains(run.ModelId) || run.PromptVersion != promptVersion)
+            .Where(run => db.MediaItems.Any(item => item.Id == run.ItemId && item.Status != MediaItemStatus.Missing))
+            .Select(run => run.ItemId)
+            .Distinct()
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    // Items with vectors, none of them from a current model.
+    private static async Task<IReadOnlyList<Id<MediaItem>>> OutdatedEmbeddingsAsync(
+        LibraryDbContext db,
+        List<Id<ModelRegistration>> currentModels,
+        CancellationToken cancellationToken) =>
+        await db.Embeddings.AsNoTracking()
+            .Where(embedding => !currentModels.Contains(embedding.ModelId))
+            .Select(embedding => embedding.ItemId)
+            .Distinct()
+            .Where(itemId => !db.Embeddings.Any(embedding => embedding.ItemId == itemId && currentModels.Contains(embedding.ModelId)))
+            .Where(itemId => db.MediaItems.Any(item => item.Id == itemId && item.Status != MediaItemStatus.Missing))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
     private static async Task EnsureItemAsync(LibraryDbContext db, Id<MediaItem> itemId, CancellationToken cancellationToken)
     {

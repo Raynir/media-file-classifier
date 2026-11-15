@@ -28,6 +28,7 @@ public sealed class ItemMetadata
     private readonly List<AiFieldValue> aiValues = [];
     private readonly List<TagAssignment> tags = [];
     private readonly Dictionary<TagName, TagRejection> rejections = [];
+    private readonly Dictionary<TagName, TagSuggestion> tagSuggestions = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ItemMetadata"/> class from stored values.
@@ -39,6 +40,7 @@ public sealed class ItemMetadata
     /// <param name="aiValues">Values of the retained runs.</param>
     /// <param name="tags">Tag assignments of every source, including those of the retained runs.</param>
     /// <param name="rejections">Tag tombstones.</param>
+    /// <param name="tagSuggestions">New AI suggestions on tags.</param>
     public ItemMetadata(
         Id<MediaItem> itemId,
         IEnumerable<TechnicalFieldValue>? technicalValues = null,
@@ -46,7 +48,8 @@ public sealed class ItemMetadata
         IEnumerable<AnalysisRun>? runs = null,
         IEnumerable<AiFieldValue>? aiValues = null,
         IEnumerable<TagAssignment>? tags = null,
-        IEnumerable<TagRejection>? rejections = null)
+        IEnumerable<TagRejection>? rejections = null,
+        IEnumerable<TagSuggestion>? tagSuggestions = null)
     {
         ItemId = itemId;
 
@@ -96,6 +99,13 @@ public sealed class ItemMetadata
             EnsureItem(rejection.ItemId);
             this.rejections[rejection.Tag] = rejection;
         }
+
+        foreach (var suggestion in tagSuggestions ?? [])
+        {
+            EnsureItem(suggestion.ItemId);
+            EnsureRetained(suggestion.RunId);
+            this.tagSuggestions[suggestion.Tag] = suggestion;
+        }
     }
 
     public Id<MediaItem> ItemId { get; }
@@ -111,6 +121,16 @@ public sealed class ItemMetadata
     public IReadOnlyList<TagAssignment> Tags => tags;
 
     public IReadOnlyCollection<TagRejection> Rejections => rejections.Values;
+
+    /// <summary>
+    /// Gets the tags with a new AI suggestion: an added tag the user doesn't have, or an accepted tag the AI dropped.
+    /// </summary>
+    public IReadOnlyCollection<TagSuggestion> TagSuggestions => tagSuggestions.Values;
+
+    /// <summary>
+    /// Gets a value indicating whether a field or tag has a new AI suggestion (D020).
+    /// </summary>
+    public bool HasNewAiSuggestions => tagSuggestions.Count > 0 || userValues.Values.Any(value => value.HasNewAiSuggestion);
 
     public AnalysisRun? GetActiveRun(string analyzer) =>
         runs.SingleOrDefault(run => run.IsActive && run.Analyzer == analyzer);
@@ -297,6 +317,7 @@ public sealed class ItemMetadata
         if (!HasUserTag(tag))
         {
             tags.Add(TagAssignment.UserEdited(ItemId, tag, now));
+            tagSuggestions.Remove(tag);
         }
     }
 
@@ -321,6 +342,7 @@ public sealed class ItemMetadata
 
         rejections.Remove(tag);
         tags.Add(TagAssignment.UserAccepted(ItemId, tag, run.ToReference(), now));
+        tagSuggestions.Remove(tag);
     }
 
     /// <summary>
@@ -336,6 +358,44 @@ public sealed class ItemMetadata
         var suggestingRun = NewestFirst(runs.Where(run => run.ProvidesAiLayer))
             .FirstOrDefault(run => tags.Any(assignment => assignment.RunId == run.Id && assignment.Tag == tag));
         rejections[tag] = new TagRejection(ItemId, tag, suggestingRun?.ToReference(), now);
+        tagSuggestions.Remove(tag);
+    }
+
+    /// <summary>
+    /// Follows a tag's new AI suggestion: an added tag is accepted, and an accepted tag the AI dropped is removed
+    /// without a tombstone, since no run gives it any more.
+    /// </summary>
+    /// <param name="tag">The tag.</param>
+    /// <param name="now">Current time.</param>
+    /// <exception cref="InvalidOperationException">The tag has no suggestion.</exception>
+    public void AcceptTagSuggestion(TagName tag, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(tag);
+        if (!tagSuggestions.TryGetValue(tag, out var suggestion))
+        {
+            throw new InvalidOperationException($"The tag '{tag}' has no AI suggestion.");
+        }
+
+        if (suggestion.Kind == TagSuggestionKind.Added)
+        {
+            AcceptTag(tag, now);
+        }
+        else
+        {
+            tags.RemoveAll(assignment => assignment.Source == MetadataSource.User && assignment.Tag == tag);
+            tagSuggestions.Remove(tag);
+        }
+    }
+
+    /// <summary>
+    /// Keeps the tag as it is and clears its new AI suggestion.
+    /// </summary>
+    /// <param name="tag">The tag.</param>
+    public void DismissTagSuggestion(TagName tag)
+    {
+        ArgumentNullException.ThrowIfNull(tag);
+
+        tagSuggestions.Remove(tag);
     }
 
     /// <summary>
@@ -394,7 +454,8 @@ public sealed class ItemMetadata
 
         var before = Snapshot();
 
-        GetActiveRun(run.Analyzer)?.Deactivate();
+        var previous = GetActiveRun(run.Analyzer);
+        previous?.Deactivate();
         run.Activate();
         runs.Add(run);
         aiValues.AddRange(newValues);
@@ -408,6 +469,7 @@ public sealed class ItemMetadata
             }
         }
 
+        SuggestTags(run, previous, newTags);
         var pruned = Prune(run.Analyzer, retainedPreviousRuns);
 
         return new RunApplication(pruned, !SameAs(before, Snapshot()));
@@ -463,8 +525,42 @@ public sealed class ItemMetadata
         return pruned;
     }
 
+    // Re-evaluates the tag suggestions of the run's analyzer. An added tag counts only on a re-analysis (a first run
+    // suggests nothing new), when the previous run didn't give it or it was flagged already and not dealt with.
+    private void SuggestTags(AnalysisRun run, AnalysisRun? previous, List<TagAssignment> newTags)
+    {
+        var ofAnalyzer = tagSuggestions.Values.Where(suggestion => GetRun(suggestion.RunId).Analyzer == run.Analyzer).ToList();
+        var stillAdded = ofAnalyzer.Where(suggestion => suggestion.Kind == TagSuggestionKind.Added).Select(suggestion => suggestion.Tag).ToHashSet();
+        foreach (var suggestion in ofAnalyzer)
+        {
+            tagSuggestions.Remove(suggestion.Tag);
+        }
+
+        var given = newTags.Select(tag => tag.Tag).ToHashSet();
+        if (previous is not null)
+        {
+            var before = tags.Where(tag => tag.RunId == previous.Id).Select(tag => tag.Tag).ToHashSet();
+            foreach (var tag in given.Where(tag => !HasUserTag(tag) && !rejections.ContainsKey(tag)
+                && (!before.Contains(tag) || stillAdded.Contains(tag))))
+            {
+                tagSuggestions[tag] = new TagSuggestion(ItemId, tag, run.Id, TagSuggestionKind.Added);
+            }
+        }
+
+        foreach (var accepted in tags.Where(tag => tag.Source == MetadataSource.User && tag.AcceptedFrom?.Analyzer == run.Analyzer
+            && !given.Contains(tag.Tag)))
+        {
+            tagSuggestions[accepted.Tag] = new TagSuggestion(ItemId, accepted.Tag, run.Id, TagSuggestionKind.Removed);
+        }
+    }
+
     private void ClearSuggestionsFrom(IReadOnlyCollection<Id<AnalysisRun>> runIds)
     {
+        foreach (var suggestion in tagSuggestions.Values.Where(suggestion => runIds.Contains(suggestion.RunId)).ToList())
+        {
+            tagSuggestions.Remove(suggestion.Tag);
+        }
+
         foreach (var user in userValues.Values.ToList())
         {
             if (user.SuggestionRunId is { } runId && runIds.Contains(runId))

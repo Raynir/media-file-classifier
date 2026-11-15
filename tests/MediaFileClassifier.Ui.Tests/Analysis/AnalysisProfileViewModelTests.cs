@@ -1,9 +1,14 @@
 using MediaFileClassifier.Domain.Analysis;
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.ViewModels.Analysis;
+using MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
 using MediaFileClassifier.UseCases.Analysis.GetAnalysisProfile;
+using MediaFileClassifier.UseCases.Analysis.Outdated;
 using MediaFileClassifier.UseCases.Analysis.UpdateAnalysisProfile;
 
 namespace MediaFileClassifier.Ui.Tests.Analysis;
@@ -239,6 +244,89 @@ public sealed class AnalysisProfileViewModelTests
         Assert.True(page.HasLibrary);
     }
 
+    [Theory]
+    [InlineData(1, "1 item is outdated.")]
+    [InlineData(12, "12 items are outdated.")]
+    public async Task AChangeThatMakesItemsOutdated_ShowsTheReindexPrompt_WithTheCount(int count, string text)
+    {
+        var page = Create();
+        await page.RefreshAsync();
+        sender.Outdated = count;
+
+        page.Analyzers[1].SelectedModel = page.Analyzers[1].ModelOptions.Single(option => option.Value == "gemma");
+
+        await WaitAsync(() => page.HasOutdated);
+        Assert.Equal(count, page.OutdatedCount);
+        Assert.Equal(text, page.OutdatedText);
+        Assert.Equal(1, sender.OutdatedQueries);
+    }
+
+    [Fact]
+    public async Task ReindexNow_QueuesTheOutdatedItems_AndHidesThePrompt()
+    {
+        var page = await WithPromptAsync();
+
+        await page.ReindexOutdatedCommand.ExecuteAsync(null);
+
+        var queued = Assert.Single(sender.Queued);
+        Assert.Same(AnalysisScope.Outdated, queued.Scope);
+        Assert.Null(queued.Analyzers);
+        Assert.False(page.HasOutdated);
+        Assert.False(page.HasError);
+    }
+
+    [Fact]
+    public async Task ReindexNow_WhenNothingIsQueued_KeepsThePrompt_AndShowsAnError()
+    {
+        var page = await WithPromptAsync();
+        sender.QueueNothing = true;
+
+        await page.ReindexOutdatedCommand.ExecuteAsync(null);
+
+        Assert.True(page.HasOutdated);
+        Assert.True(page.HasError);
+    }
+
+    [Fact]
+    public async Task Later_HidesThePrompt_WithoutQueuingAnything()
+    {
+        var page = await WithPromptAsync();
+
+        page.ReindexLaterCommand.Execute(null);
+
+        Assert.False(page.HasOutdated);
+        Assert.Empty(sender.Queued);
+    }
+
+    [Fact]
+    public async Task AChangeThatMakesNothingOutdated_ShowsNoPrompt()
+    {
+        var page = Create();
+        await page.RefreshAsync();
+        sender.Outdated = 0;
+
+        page.Analyzers[2].Enabled = false;
+
+        await WaitAsync(() => sender.OutdatedQueries == 1);
+        Assert.Equal(1, sender.OutdatedQueries);
+        Assert.False(page.HasOutdated);
+    }
+
+    [Fact]
+    public async Task ACountThatFails_HidesThePrompt_AndKeepsTheChange()
+    {
+        var page = await WithPromptAsync();
+        sender.CountFailure = new IOException("locked");
+
+        page.Analyzers[2].Enabled = false;
+
+        await WaitAsync(() => sender.OutdatedQueries == 2);
+        await WaitAsync(() => !page.HasOutdated);
+        Assert.False(page.HasOutdated);
+        Assert.False(page.HasError);
+        Assert.False(sender.Saved.Last().Find(AnalyzerKeys.Ocr)!.Enabled);
+    }
+
     private static async Task WaitAsync(Func<bool> done)
     {
         for (var i = 0; i < 200 && !done(); i++)
@@ -248,6 +336,17 @@ public sealed class AnalysisProfileViewModelTests
     }
 
     private AnalysisProfileViewModel Create() => new(sender, store, TestLocalizer.EnUs());
+
+    private async Task<AnalysisProfileViewModel> WithPromptAsync()
+    {
+        var page = Create();
+        await page.RefreshAsync();
+        sender.Outdated = 3;
+        page.Analyzers[0].Enabled = false;
+        await WaitAsync(() => page.HasOutdated);
+        Assert.True(page.HasOutdated);
+        return page;
+    }
 
     /// <summary>
     /// Answers the profile use cases for a library.
@@ -262,10 +361,34 @@ public sealed class AnalysisProfileViewModelTests
 
         public List<AnalysisProfile> Saved { get; } = [];
 
+        public int Outdated { get; set; }
+
+        public int OutdatedQueries { get; private set; }
+
+        public Exception? CountFailure { get; set; }
+
+        public bool QueueNothing { get; set; }
+
+        public List<AnalyzeScopeCommand> Queued { get; } = [];
+
         protected override object? Handle(object request)
         {
             switch (request)
             {
+                case GetOutdatedAnalysisQuery:
+                    OutdatedQueries++;
+                    if (CountFailure is { } countFailure)
+                    {
+                        throw countFailure;
+                    }
+
+                    return new OutdatedAnalysis(new Dictionary<string, IReadOnlyList<Id<MediaItem>>>
+                    {
+                        [AnalyzerKeys.Describer] = [.. Enumerable.Range(0, Outdated).Select(_ => Id<MediaItem>.New())],
+                    });
+                case AnalyzeScopeCommand command:
+                    Queued.Add(command);
+                    return new AnalyzeScopeResult(QueueNothing ? null : Id<ProcessingJob>.New(), Outdated);
                 case GetAnalysisProfileQuery:
                     return Profile is null
                         ? null

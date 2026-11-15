@@ -42,6 +42,11 @@ internal sealed class ModelVectors(int dimension)
     public int ItemCount => ordinalsByDocument.Count;
 
     /// <summary>
+    /// Gets the document IDs of the items with vectors.
+    /// </summary>
+    public IEnumerable<int> DocumentIds => ordinalsByDocument.Keys;
+
+    /// <summary>
     /// Gets the number of live vectors.
     /// </summary>
     public int VectorCount => vectorCount - removedVectors;
@@ -79,6 +84,13 @@ internal sealed class ModelVectors(int dimension)
         AddFirstVector(itemCount - 1, 1);
         CompactIfSparse();
     }
+
+    /// <summary>
+    /// Checks whether an item has vectors.
+    /// </summary>
+    /// <param name="documentId">The item's document ID.</param>
+    /// <returns><c>true</c> if it has vectors.</returns>
+    public bool Contains(int documentId) => ordinalsByDocument.ContainsKey(documentId);
 
     /// <summary>
     /// Removes an item's vectors.

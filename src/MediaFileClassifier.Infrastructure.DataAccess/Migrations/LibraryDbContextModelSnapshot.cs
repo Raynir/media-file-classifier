@@ -801,6 +801,37 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.ToTable("tag_rejection");
                 });
 
+            modelBuilder.Entity("MediaFileClassifier.Domain.Metadata.TagSuggestion", b =>
+                {
+                    b.Property<string>("ItemId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("item_id");
+
+                    b.Property<string>("TagKey")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("tag_key");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("RunId")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("run_id");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("tag");
+
+                    b.HasKey("ItemId", "TagKey");
+
+                    b.HasIndex("RunId");
+
+                    b.ToTable("tag_suggestion");
+                });
+
             modelBuilder.Entity("MediaFileClassifier.Domain.Metadata.TechnicalFieldValue", b =>
                 {
                     b.Property<string>("ItemId")
@@ -1198,6 +1229,21 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.HasOne("MediaFileClassifier.Domain.Media.MediaItem", null)
                         .WithMany()
                         .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MediaFileClassifier.Domain.Metadata.TagSuggestion", b =>
+                {
+                    b.HasOne("MediaFileClassifier.Domain.Media.MediaItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MediaFileClassifier.Domain.Analysis.AnalysisRun", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

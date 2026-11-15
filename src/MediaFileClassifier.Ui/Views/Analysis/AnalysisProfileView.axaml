@@ -8,6 +8,7 @@
     Analysis profile (E17-S02-T01), in the AI & Models settings. Provisional layout: E17-S02-T00 has no mockups yet.
     One block per analyzer. Tab order: for each analyzer, the switch, provider, model, then its options.
     A note under an analyzer says why it can't run (no provider, provider down, model missing).
+    After a change that makes items outdated, a prompt offers to re-index them (E06-S07-T07): the prompt's text, then its buttons.
   -->
   <StackPanel Spacing="{DynamicResource Space.S}">
     <TextBlock Classes="Secondary"
@@ -28,6 +29,31 @@
                IsVisible="{Binding HasError}"
                AutomationProperties.LiveSetting="Assertive"
                TextWrapping="Wrap" />
+
+    <!-- Re-index prompt (E06-S07-T07) after a change that makes items outdated, styled like the model banner. -->
+    <Border x:Name="OutdatedBanner"
+            Classes="Panel"
+            Padding="{DynamicResource Padding.Compact}"
+            Background="{DynamicResource Brush.Status.Pending.Background}"
+            IsVisible="{Binding HasOutdated}"
+            AutomationProperties.LiveSetting="Polite">
+      <DockPanel>
+        <PathIcon DockPanel.Dock="Left"
+                  Data="{StaticResource Icon.Info}"
+                  Foreground="{DynamicResource Brush.Status.Pending.Foreground}"
+                  Margin="{DynamicResource Padding.Compact}"
+                  VerticalAlignment="Center" />
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+          <Button x:Name="ReindexNowButton" Classes="accent" Content="{l:Loc Profile_ReindexNow}" Command="{Binding ReindexOutdatedCommand}" />
+          <Button x:Name="ReindexLaterButton" Content="{l:Loc Profile_ReindexLater}" Command="{Binding ReindexLaterCommand}" />
+        </StackPanel>
+        <TextBlock x:Name="OutdatedText"
+                   Text="{Binding OutdatedText}"
+                   Margin="{DynamicResource Padding.Compact}"
+                   VerticalAlignment="Center"
+                   TextWrapping="Wrap" />
+      </DockPanel>
+    </Border>
 
     <ItemsControl ItemsSource="{Binding Analyzers}" IsVisible="{Binding HasLibrary}">
       <ItemsControl.ItemTemplate>

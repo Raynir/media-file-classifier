@@ -77,13 +77,16 @@ public sealed record SearchMediaQuery : IRequest<MediaSearchResults>
 /// <param name="Semantic">Whether the semantic search ran, and why not if it didn't.</param>
 /// <param name="LessRelevantCount">How many semantic matches fall below the relevance threshold, shown or not: the
 /// N of "Show N less relevant results".</param>
+/// <param name="SkippedCount">How many items the semantic search skipped because they have only vectors of an older
+/// model (D051, E06-S07-T05); keyword and filters still find them.</param>
 public sealed record MediaSearchResults(
     IReadOnlyList<SearchHit> Hits,
     int TotalCount,
     IReadOnlyList<string> Terms,
     SearchMode Mode,
     SemanticSearchStatus Semantic,
-    int LessRelevantCount = 0);
+    int LessRelevantCount = 0,
+    int SkippedCount = 0);
 
 /// <summary>
 /// Which searches produced a result list.
@@ -160,4 +163,10 @@ public enum SemanticSearchStatus
     /// "Find similar" on an item without an embedding yet: nothing to compare until it's analyzed (D036).
     /// </summary>
     NotAnalyzed,
+
+    /// <summary>
+    /// "Find similar" on an item whose embeddings all come from an older model than the one search uses: it's
+    /// Outdated, and there's nothing to compare until it's re-indexed (D051, E06-S07-T05).
+    /// </summary>
+    Outdated,
 }

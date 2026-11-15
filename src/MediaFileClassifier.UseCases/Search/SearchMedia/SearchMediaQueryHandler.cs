@@ -17,13 +17,11 @@ namespace MediaFileClassifier.UseCases.Search.SearchMedia;
 /// </summary>
 /// <param name="index">The search index.</param>
 /// <param name="encoder">The query encoder.</param>
-/// <param name="registry">The AI providers, to find the text model's relevance threshold.</param>
 /// <param name="filters">The registered filters, for the request's <see cref="SearchMediaQuery.Filters"/>.</param>
 /// <param name="logger">Logger.</param>
 public sealed class SearchMediaQueryHandler(
     ISearchIndex index,
     SemanticQueryEncoder encoder,
-    IAiProviderRegistry registry,
     FilterRegistry filters,
     ILogger<SearchMediaQueryHandler> logger) : IRequestHandler<SearchMediaQuery, MediaSearchResults>
 {
@@ -67,7 +65,7 @@ public sealed class SearchMediaQueryHandler(
                 Offset = request.Offset,
                 Limit = request.Limit,
                 IncludeMatchedFields = request.IncludeMatchedFields,
-                RelevanceCut = vector is null ? null : FindCut(),
+                RelevanceCut = vector is null ? null : await FindCutAsync(cancellationToken).ConfigureAwait(false),
                 IncludeLessRelevant = request.ShowLessRelevant,
             },
             cancellationToken).ConfigureAwait(false);
@@ -83,7 +81,7 @@ public sealed class SearchMediaQueryHandler(
             (true, false) => SearchMode.Semantic,
             _ => SearchMode.Keyword,
         };
-        return new MediaSearchResults(results.Hits, results.TotalCount, results.Terms, mode, status, results.LessRelevantCount);
+        return new MediaSearchResults(results.Hits, results.TotalCount, results.Terms, mode, status, results.LessRelevantCount, results.SkippedCount);
     }
 
     // No relevance cut (decided for E09-S04): the text thresholds don't fit image-to-image similarities, which are much
@@ -111,12 +109,12 @@ public sealed class SearchMediaQueryHandler(
         // Without a vector the index would list every item, which isn't an answer to "find this picture".
         return results.VectorSearchSkipped
             ? new MediaSearchResults([], 0, [], SearchMode.Image, SemanticSearchStatus.IndexNotReady)
-            : new MediaSearchResults(results.Hits, results.TotalCount, [], SearchMode.Image, SemanticSearchStatus.Used);
+            : new MediaSearchResults(results.Hits, results.TotalCount, [], SearchMode.Image, SemanticSearchStatus.Used, SkippedCount: results.SkippedCount);
     }
 
-    // The same provider the encoder picks: the first text embedder.
-    private SemanticRelevanceCut? FindCut() =>
-        registry.GetProviders<ITextEmbeddingProvider>().FirstOrDefault() is { } provider ? SemanticRelevanceThresholds.For(provider.Model) : null;
+    // The same provider the encoder picks: the active search model's text embedder (E06-S07-T05).
+    private async Task<SemanticRelevanceCut?> FindCutAsync(CancellationToken cancellationToken) =>
+        await encoder.FindTextProviderAsync(cancellationToken).ConfigureAwait(false) is { } provider ? SemanticRelevanceThresholds.For(provider.Model) : null;
 
     private async Task<(SearchVector? Vector, SemanticSearchStatus Status)> EncodeAsync(string text, CancellationToken cancellationToken)
     {

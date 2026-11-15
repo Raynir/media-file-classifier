@@ -117,6 +117,23 @@ internal sealed class TagRejectionConfiguration : IEntityTypeConfiguration<TagRe
 }
 
 /// <summary>
+/// Maps <see cref="TagSuggestion"/>, keyed by item and tag key. A suggestion goes with its run.
+/// </summary>
+internal sealed class TagSuggestionConfiguration : IEntityTypeConfiguration<TagSuggestion>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<TagSuggestion> builder)
+    {
+        builder.Property(suggestion => suggestion.Tag);
+        builder.Property<string>(TagKeyGenerator.Property).IsRequired().HasValueGenerator<TagKeyGenerator>();
+        builder.HasKey(nameof(TagSuggestion.ItemId), TagKeyGenerator.Property);
+        builder.Property(suggestion => suggestion.Kind);
+        builder.HasOne<MediaItem>().WithMany().HasForeignKey(suggestion => suggestion.ItemId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<AnalysisRun>().WithMany().HasForeignKey(suggestion => suggestion.RunId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+/// <summary>
 /// Maps a <see cref="RunReference"/> snapshot to columns of its owner.
 /// </summary>
 internal static class RunReferenceMapping

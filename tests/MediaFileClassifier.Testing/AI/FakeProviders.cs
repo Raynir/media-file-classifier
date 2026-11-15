@@ -9,11 +9,26 @@ namespace MediaFileClassifier.Testing.AI;
 /// </summary>
 /// <param name="behavior">Latency, failures and health.</param>
 /// <param name="describe">Produces the description, or <c>null</c> for the default.</param>
-public sealed class FakeImageDescriber(FakeProviderBehavior? behavior = null, Func<AiImage, ImageDescriptionOptions, ImageDescription>? describe = null)
-    : FakeAiProvider("fake:describe", new ModelIdentity(ProviderIds.Fake, "fake-describer", "1"), behavior, "fake-1"), IImageDescriber
+/// <param name="modelName">The model name, e.g. another one to re-index with; the provider ID ends with it.</param>
+/// <param name="promptVersion">The prompt version.</param>
+public sealed class FakeImageDescriber(
+    FakeProviderBehavior? behavior = null,
+    Func<AiImage, ImageDescriptionOptions, ImageDescription>? describe = null,
+    string modelName = FakeImageDescriber.DefaultModelName,
+    string promptVersion = "fake-1")
+    : FakeAiProvider(
+        modelName == FakeImageDescriber.DefaultModelName ? "fake:describe" : $"fake:describe:{modelName}",
+        new ModelIdentity(ProviderIds.Fake, modelName, "1"),
+        behavior,
+        promptVersion), IImageDescriber
 {
+    /// <summary>
+    /// The default model name.
+    /// </summary>
+    public const string DefaultModelName = "fake-describer";
+
     /// <inheritdoc />
-    public string PromptVersion => "fake-1";
+    public string PromptVersion { get; } = promptVersion;
 
     /// <inheritdoc />
     public Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)

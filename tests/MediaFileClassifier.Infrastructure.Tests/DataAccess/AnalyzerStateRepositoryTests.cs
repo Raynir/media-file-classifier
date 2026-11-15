@@ -1,4 +1,5 @@
 using MediaFileClassifier.Domain.Analysis;
+using MediaFileClassifier.Domain.Embeddings;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
@@ -107,6 +108,130 @@ public sealed class AnalyzerStateRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetOutdatedAsync_FindsActiveRunsFromAnotherModelOrPrompt()
+    {
+        var other = ModelRegistration.Create("local", "clip-2", "1", null, null, LibraryTestBed.Start);
+        await bed.Library.Models.AddAsync(other, Token);
+        var current = await AddItemAsync(2);
+        var oldPrompt = await AddItemAsync(3);
+        var missing = await AddItemAsync(4, missing: true);
+        await ApplyAsync(item, AnalyzerKeys.Describer, other, "p1");
+        await ApplyAsync(current, AnalyzerKeys.Describer, bed.Model, "p1");
+        await ApplyAsync(oldPrompt, AnalyzerKeys.Describer, bed.Model, "p0");
+        await ApplyAsync(missing, AnalyzerKeys.Describer, other, "p1");
+
+        // The current model's run of the first item replaced the old one, which stays as the previous run.
+        await ApplyAsync(current, AnalyzerKeys.Ocr, other, null);
+        await ApplyAsync(current, AnalyzerKeys.Ocr, bed.Model, null);
+
+        var outdated = await bed.Library.AnalyzerStates.GetOutdatedAsync(
+            [
+                new AnalyzerProvenance(AnalyzerKeys.Describer, "local", "clip", "1", "p1"),
+                new AnalyzerProvenance(AnalyzerKeys.Ocr, "local", "clip", null, null),
+            ],
+            Token);
+
+        Assert.Equivalent(new[] { item.Id, oldPrompt.Id }, outdated.For(AnalyzerKeys.Describer), strict: true);
+        Assert.Empty(outdated.For(AnalyzerKeys.Ocr));
+        Assert.Equal(2, outdated.Count);
+    }
+
+    [Fact]
+    public async Task GetOutdatedAsync_ComparesTheModelVersionOnlyWhenBothHaveOne()
+    {
+        var unversioned = ModelRegistration.Create("local", "clip", null, null, null, LibraryTestBed.Start);
+        await bed.Library.Models.AddAsync(unversioned, Token);
+        var second = await AddItemAsync(2);
+        await ApplyAsync(item, AnalyzerKeys.Ocr, bed.Model, null);
+        await ApplyAsync(second, AnalyzerKeys.Ocr, unversioned, null);
+
+        var newVersion = await bed.Library.AnalyzerStates.GetOutdatedAsync([new AnalyzerProvenance(AnalyzerKeys.Ocr, "local", "clip", "2", null)], Token);
+        var noVersion = await bed.Library.AnalyzerStates.GetOutdatedAsync([new AnalyzerProvenance(AnalyzerKeys.Ocr, "local", "clip", null, null)], Token);
+
+        Assert.Equal([item.Id], newVersion.ItemIds);
+        Assert.Empty(noVersion.ItemIds);
+    }
+
+    [Fact]
+    public async Task GetOutdatedAsync_Embedding_FindsItemsWithoutAVectorOfTheCurrentModel()
+    {
+        var other = ModelRegistration.Create("local", "siglip-2", "1", null, 4, LibraryTestBed.Start);
+        await bed.Library.Models.AddAsync(other, Token);
+        var both = await AddItemAsync(2);
+        var current = await AddItemAsync(3);
+        await AddItemAsync(4);
+        await EmbedAsync(item, bed.Model);
+        await EmbedAsync(both, bed.Model);
+        await EmbedAsync(both, other);
+        await EmbedAsync(current, other);
+
+        var outdated = await bed.Library.AnalyzerStates.GetOutdatedAsync([new AnalyzerProvenance(AnalyzerKeys.Embedding, "local", "siglip-2", "1", null)], Token);
+
+        Assert.Equal([item.Id], outdated.For(AnalyzerKeys.Embedding));
+    }
+
+    [Fact]
+    public async Task GetOutdatedAsync_AnalyzerLeftOut_IsNeverOutdated()
+    {
+        var other = ModelRegistration.Create("local", "clip-2", "1", null, null, LibraryTestBed.Start);
+        await bed.Library.Models.AddAsync(other, Token);
+        await ApplyAsync(item, AnalyzerKeys.Describer, other, "p1");
+
+        var outdated = await bed.Library.AnalyzerStates.GetOutdatedAsync([new AnalyzerProvenance(AnalyzerKeys.Ocr, "local", "clip", "1", null)], Token);
+
+        Assert.Equal(0, outdated.Count);
+    }
+
+    [Fact]
+    public async Task ApplyRunAsync_WriteFailsAfterTheMetadata_KeepsThePreviousRunValuesSearchTextAndState()
+    {
+        var old = await ApplyTitleAsync("Lighthouse", bed.Model);
+        var other = ModelRegistration.Create("local", "clip-2", "1", null, null, LibraryTestBed.Start);
+        await bed.Library.Models.AddAsync(other, Token);
+        await using (var connection = bed.Temporary.OpenConnection())
+        await using (var command = connection.CreateCommand())
+        {
+            // The state is written last, after the metadata and the search text, so this fails the write midway.
+            command.CommandText = "CREATE TRIGGER fail_state BEFORE INSERT ON analyzer_state BEGIN SELECT RAISE(ABORT, 'interrupted'); END;";
+            await command.ExecuteNonQueryAsync(Token);
+        }
+
+        await Assert.ThrowsAnyAsync<Exception>(() => ApplyTitleAsync("Windmill", other));
+
+        var metadata = await bed.Library.Metadata.GetAsync(item.Id, Token);
+        Assert.Equal(old.Id, Assert.Single(metadata.Runs).Id);
+        Assert.True(metadata.Runs[0].IsActive);
+        Assert.Equal("Lighthouse", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text);
+        Assert.Equal(old.Id, Assert.Single(await bed.Library.AnalyzerStates.GetForItemAsync(item.Id, Token)).RunId);
+        Assert.Equal(["Lighthouse"], await SearchTitlesAsync());
+    }
+
+    [Fact]
+    public async Task ApplyRunAsync_NewRun_UpdatesTheSearchText_KeepsUserValuesAndTombstones_AndRetainsThePreviousRun()
+    {
+        var old = await ApplyTitleAsync("Lighthouse", bed.Model);
+        await bed.Library.Metadata.UpdateAsync(
+            item.Id,
+            metadata =>
+            {
+                metadata.EditValue(DescriptiveField.Summary, FieldValue.FromText("Mine"), bed.Clock.Tick());
+                metadata.RejectTag(TagName.From("windmill"), bed.Clock.Tick());
+            },
+            Token);
+
+        var added = await ApplyTitleAsync("Windmill", bed.Model);
+
+        var metadata = await bed.Library.Metadata.GetAsync(item.Id, Token);
+        Assert.Equal([added.Id, old.Id], metadata.Runs.OrderByDescending(run => run.StartedAt).Select(run => run.Id));
+        Assert.True(metadata.Runs.Single(run => run.Id == added.Id).IsActive);
+        Assert.False(metadata.Runs.Single(run => run.Id == old.Id).IsActive);
+        Assert.Equal("Windmill", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text);
+        Assert.Equal("Mine", metadata.GetEffectiveValue(DescriptiveField.Summary)?.Value.Text);
+        Assert.Empty(metadata.GetEffectiveTags());
+        Assert.Equal(["Windmill"], await SearchTitlesAsync());
+    }
+
+    [Fact]
     public async Task SetAsync_UnknownItem_ThrowsKeyNotFound()
     {
         await Assert.ThrowsAsync<KeyNotFoundException>(() => bed.Library.AnalyzerStates.SetAsync(
@@ -134,4 +259,57 @@ public sealed class AnalyzerStateRepositoryTests : IAsyncLifetime
 
         Assert.Equal(state, Assert.Single(await bed.Library.AnalyzerStates.GetForItemAsync(item.Id, Token)));
     }
+
+    private async Task<MediaItem> AddItemAsync(int number, bool missing = false)
+    {
+        var added = bed.NewItem(number);
+        if (missing)
+        {
+            added.ChangeStatus(MediaItemStatus.Missing, bed.Clock.Tick());
+        }
+
+        await bed.Library.Items.AddAsync(added, Token);
+        return added;
+    }
+
+    private async Task ApplyAsync(MediaItem target, string analyzer, ModelRegistration model, string? promptVersion)
+    {
+        var run = AnalysisRun.Start(target.Id, analyzer, model, promptVersion, bed.Clock.Tick());
+        run.Complete(bed.Clock.Tick());
+        await bed.Library.AnalyzerStates.ApplyRunAsync(run, [], [], 1, AnalyzerState.Done(target.Id, analyzer, run.Id, bed.Clock.Tick()), Token);
+    }
+
+    // A describer run with a title and a tag named after it.
+    private async Task<AnalysisRun> ApplyTitleAsync(string title, ModelRegistration model)
+    {
+        var run = AnalysisRun.Start(item.Id, AnalyzerKeys.Describer, model, "p1", bed.Clock.Tick());
+        run.Complete(bed.Clock.Tick());
+        var now = bed.Clock.Tick();
+        await bed.Library.AnalyzerStates.ApplyRunAsync(
+            run,
+            [AiFieldValue.For(run, DescriptiveField.Title, FieldValue.FromText(title), null, now)],
+            [TagAssignment.Ai(run, TagName.From(title.ToLowerInvariant()), null, now)],
+            1,
+            AnalyzerState.Done(item.Id, AnalyzerKeys.Describer, run.Id, now),
+            Token);
+        return run;
+    }
+
+    private async Task<List<string>> SearchTitlesAsync()
+    {
+        await using var connection = bed.Temporary.OpenConnection();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT title FROM search_text";
+        var titles = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(Token);
+        while (await reader.ReadAsync(Token))
+        {
+            titles.Add(reader.GetString(0));
+        }
+
+        return titles;
+    }
+
+    private Task EmbedAsync(MediaItem target, ModelRegistration model) =>
+        bed.Library.Embeddings.ReplaceAsync(target.Id, model.Id, [Embedding.Create(target.Id, model, EmbeddingKind.Image, [1, 0, 0, 0], bed.Clock.Tick())], Token);
 }

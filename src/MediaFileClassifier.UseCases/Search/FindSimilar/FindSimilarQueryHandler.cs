@@ -12,7 +12,9 @@ namespace MediaFileClassifier.UseCases.Search.FindSimilar;
 /// <summary>
 /// Runs <see cref="FindSimilarQuery"/>: a vector search from the item's own embedding
 /// (<see cref="SearchVector.FromItem"/>), so nothing is encoded. An item without an embedding comes back as
-/// <see cref="SemanticSearchStatus.NotAnalyzed"/>, for "Analyze now" (D036).
+/// <see cref="SemanticSearchStatus.NotAnalyzed"/>, for "Analyze now" (D036). Once the library has an active search
+/// model, only its vectors are compared, and an item with only older vectors comes back as
+/// <see cref="SemanticSearchStatus.Outdated"/> (D051, E06-S07-T05).
 /// </summary>
 /// <param name="index">The search index.</param>
 /// <param name="session">The open library, to read the item's embeddings.</param>
@@ -35,6 +37,16 @@ public sealed class FindSimilarQueryHandler(ISearchIndex index, ILibrarySession 
             return Empty(SemanticSearchStatus.NotAnalyzed);
         }
 
+        if (library.Library.Settings.ActiveSearchModelId is { } active && active != modelId)
+        {
+            if (!embeddings.Any(embedding => embedding.Kind == EmbeddingKind.Image && embedding.ModelId == active))
+            {
+                return Empty(SemanticSearchStatus.Outdated);
+            }
+
+            modelId = active;
+        }
+
         var results = await index.SearchAsync(
             new SearchQuery
             {
@@ -48,12 +60,11 @@ public sealed class FindSimilarQueryHandler(ISearchIndex index, ILibrarySession 
             },
             cancellationToken).ConfigureAwait(false);
         var status = results.VectorSearchSkipped ? SemanticSearchStatus.IndexNotReady : SemanticSearchStatus.Used;
-        return new MediaSearchResults(results.Hits, results.TotalCount, [], SearchMode.Similar, status);
+        return new MediaSearchResults(results.Hits, results.TotalCount, [], SearchMode.Similar, status, SkippedCount: results.SkippedCount);
     }
 
     // The model of the item's newest item-level vector (a still's only vector, a video's mean, D228), else of its
-    // newest keyframe vector. Until a model switch exists (E06-S07) an item has one model; then items whose vectors are
-    // all of an outdated model will count as not analyzed (D051).
+    // newest keyframe vector. During a model migration (E06-S07-T05) the active search model's vectors win instead.
     private static Id<ModelRegistration>? PickModel(IReadOnlyList<Embedding> embeddings) =>
         embeddings
             .Where(embedding => embedding.Kind == EmbeddingKind.Image)

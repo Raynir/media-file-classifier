@@ -71,6 +71,87 @@ public sealed class EmbeddingRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ReplaceAsync_RemovingOtherModels_DeletesTheirVectorsInTheSameWrite()
+    {
+        var item = await AddItemAsync(1);
+        var old = await AddModelAsync("old");
+        await bed.Library.Embeddings.ReplaceAsync(item.Id, old.Id, [Vector(item, old)], Token);
+        var raised = new List<EmbeddingsChangedEventArgs>();
+        bed.Library.Embeddings.Changed += (_, args) => raised.Add(args);
+
+        await bed.Library.Embeddings.ReplaceAsync(item.Id, bed.Model.Id, [Vector(item, bed.Model)], removeOtherModels: true, Token);
+
+        var change = Assert.Single(raised);
+        Assert.Equal(
+            [(old.Id, 0), (bed.Model.Id, 1)],
+            change.Changes.Select(committed => (committed.Embeddings.ModelId, Count: committed.Embeddings.Embeddings.Count)).OrderBy(pair => pair.Count));
+        Assert.Equal([bed.Model.Id], (await bed.Library.Embeddings.GetAsync(item.Id, Token)).Select(embedding => embedding.ModelId));
+    }
+
+    [Fact]
+    public async Task GetMigrationProgressAsync_CountsTheItemsWithOldVectors_AndThoseWithNewOnesToo()
+    {
+        var old = await AddModelAsync("old");
+        for (var i = 1; i <= 5; i++)
+        {
+            var item = await AddItemAsync(i);
+            if (i <= 4)
+            {
+                await bed.Library.Embeddings.ReplaceAsync(item.Id, old.Id, [Vector(item, old)], Token);
+            }
+
+            if (i is 1 or 2 or 5)
+            {
+                await bed.Library.Embeddings.ReplaceAsync(item.Id, bed.Model.Id, [Vector(item, bed.Model)], Token);
+            }
+        }
+
+        var progress = await bed.Library.Embeddings.GetMigrationProgressAsync(old.Id, [bed.Model.Id], Token);
+
+        Assert.Equal(new EmbeddingMigrationProgress(4, 2), progress);
+        Assert.Equal(0.5, progress.Share);
+        Assert.Equal([bed.Model.Id, old.Id], (await bed.Library.Embeddings.GetModelsInUseAsync(Token)).OrderBy(id => id == old.Id));
+    }
+
+    [Fact]
+    public async Task RemoveSupersededAsync_RemovesOtherVectorsOfItemsWithKeptOnes_InBatches()
+    {
+        var old = await AddModelAsync("old");
+        var changes = new List<ItemEmbeddings>();
+        var items = new List<MediaItem>();
+        for (var i = 1; i <= 260; i++)
+        {
+            var item = await AddItemAsync(i);
+            items.Add(item);
+            changes.Add(new ItemEmbeddings(item.Id, old.Id, [Vector(item, old)]));
+            if (i <= 250)
+            {
+                changes.Add(new ItemEmbeddings(item.Id, bed.Model.Id, [Vector(item, bed.Model)]));
+            }
+        }
+
+        await bed.Library.Embeddings.ReplaceRangeAsync(changes, Token);
+        using var index = await VectorIndex.LoadAsync(bed.Library.Embeddings, Token);
+        var batches = new List<int>();
+        bed.Library.Embeddings.Changed += (_, args) =>
+        {
+            batches.Add(args.Changes.Count);
+            index.Apply(args.Changes);
+        };
+
+        var removed = await bed.Library.Embeddings.RemoveSupersededAsync([bed.Model.Id], Token);
+
+        Assert.Equal(250, removed);
+        Assert.Equal([100, 100, 50], batches);
+        Assert.Equal([bed.Model.Id], (await bed.Library.Embeddings.GetAsync(items[0].Id, Token)).Select(embedding => embedding.ModelId));
+        Assert.Equal([old.Id], (await bed.Library.Embeddings.GetAsync(items[^1].Id, Token)).Select(embedding => embedding.ModelId));
+
+        // The index learned of the removals: only the ten items without new vectors are left under the old model.
+        Assert.Equal(10, index.CountWithoutModel(bed.Model.Id, null));
+        Assert.Equal(0, await bed.Library.Embeddings.RemoveSupersededAsync([bed.Model.Id], Token));
+    }
+
+    [Fact]
     public async Task ReplaceAsync_EmbeddingOfAnotherItem_Throws()
     {
         var item = await AddItemAsync(1);
@@ -148,6 +229,16 @@ public sealed class EmbeddingRepositoryTests : IAsyncLifetime
             var query = SearchVector.FromVector(bed.Model.Id, SyntheticItems.RandomUnit(random, 4));
             Assert.Equal(fromEvents.Search(query, 15, null), loaded.Search(query, 15, null));
         }
+    }
+
+    private static Embedding Vector(MediaItem item, ModelRegistration model) =>
+        Embedding.Create(item.Id, model, EmbeddingKind.Image, [0.5f, 0.5f, 0.5f, 0.5f], LibraryTestBed.Start);
+
+    private async Task<ModelRegistration> AddModelAsync(string name)
+    {
+        var model = ModelRegistration.Create("local", name, "1", null, 4, LibraryTestBed.Start);
+        await bed.Library.Models.AddAsync(model, Token);
+        return model;
     }
 
     private async Task<MediaItem> AddItemAsync(int number)

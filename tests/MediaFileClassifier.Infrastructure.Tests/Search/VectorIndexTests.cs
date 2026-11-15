@@ -98,6 +98,27 @@ public sealed class VectorIndexTests
     }
 
     [Fact]
+    public void CountWithoutModel_CountsTheAllowedItemsWithOnlyAnotherModelsVectors()
+    {
+        using var index = new VectorIndex();
+        var vector = SyntheticItems.RandomUnit(new Random(1), Dimension);
+        index.Apply(
+        [
+            Committed(1, Id<MediaItem>.New(), ModelA, vector),
+            Committed(2, Id<MediaItem>.New(), ModelA, vector),
+            Committed(2, Id<MediaItem>.New(), ModelB, vector),
+            Committed(3, Id<MediaItem>.New(), ModelB, vector),
+            Committed(4, Id<MediaItem>.New(), ModelB, vector),
+        ]);
+        bool[] mask = [false, true, true, true, false];
+
+        Assert.Equal(1, index.CountWithoutModel(ModelA, mask));
+        Assert.Equal(2, index.CountWithoutModel(ModelA, null));
+        Assert.Equal(1, index.CountWithoutModel(ModelB, null));
+        Assert.Equal(4, index.CountWithoutModel(Id<ModelRegistration>.New(), null));
+    }
+
+    [Fact]
     public void Query_WithAnotherDimension_Throws()
     {
         using var index = new VectorIndex();

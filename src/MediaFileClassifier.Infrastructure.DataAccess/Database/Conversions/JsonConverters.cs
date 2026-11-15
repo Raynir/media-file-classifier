@@ -63,7 +63,8 @@ internal sealed class LibrarySettingsConverter()
             settings.ActiveSearchModelId?.Value,
             settings.RetainedPreviousRuns,
             settings.ThumbnailTileSize,
-            ToJson(settings.AnalysisProfile)),
+            ToJson(settings.AnalysisProfile),
+            settings.EmbeddingSwitchThreshold),
         DataAccessJsonContext.Default.LibrarySettingsJson);
 
     private static LibrarySettings FromJson(string json)
@@ -77,6 +78,9 @@ internal sealed class LibrarySettingsConverter()
             RetainedPreviousRuns = stored.RetainedPreviousRuns,
             ThumbnailTileSize = stored.ThumbnailTileSize is > 0 and var size ? size : LibrarySettings.DefaultThumbnailTileSize,
             AnalysisProfile = stored.AnalysisProfile is { } profile ? FromJson(profile) : AnalysisProfile.Default,
+            EmbeddingSwitchThreshold = stored.EmbeddingSwitchThreshold is > 0 and <= 1 and var threshold
+                ? threshold
+                : LibrarySettings.DefaultEmbeddingSwitchThreshold,
         };
     }
 
@@ -172,7 +176,8 @@ internal sealed record LibrarySettingsJson(
     Guid? ActiveSearchModelId,
     int RetainedPreviousRuns,
     int? ThumbnailTileSize = null,
-    AnalysisProfileJson? AnalysisProfile = null);
+    AnalysisProfileJson? AnalysisProfile = null,
+    double? EmbeddingSwitchThreshold = null);
 
 /// <summary>
 /// Stored shape of <see cref="AnalysisProfile"/>. Libraries stored before it read as <see cref="AnalysisProfile.Default"/>.

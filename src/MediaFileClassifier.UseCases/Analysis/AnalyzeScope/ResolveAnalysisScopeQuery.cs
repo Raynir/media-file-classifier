@@ -1,8 +1,10 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.UseCases.Analysis.Outdated;
 using MediaFileClassifier.UseCases.Browsing;
 using MediatR;
 
@@ -13,14 +15,19 @@ namespace MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
 /// how many items and about how long before it starts (E06-S06-T02, T03).
 /// </summary>
 /// <param name="Scope">The scope.</param>
-public sealed record ResolveAnalysisScopeQuery(AnalysisScope Scope) : IRequest<AnalysisScopeItems>;
+/// <param name="Analyzers">
+/// The analyzers to run, or <see langword="null"/> for the whole profile. With the outdated scope, only items outdated in
+/// one of them are found, and each runs its outdated ones (<see cref="AnalysisScopeItems.ItemAnalyzers"/>).
+/// </param>
+public sealed record ResolveAnalysisScopeQuery(AnalysisScope Scope, IReadOnlyCollection<string>? Analyzers = null) : IRequest<AnalysisScopeItems>;
 
 /// <summary>
 /// Handles <see cref="ResolveAnalysisScopeQuery"/>.
 /// </summary>
 /// <param name="session">The open library.</param>
 /// <param name="view">The items of the current view: the search results when searching.</param>
-public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IMediaResultSource view)
+/// <param name="registry">The provider registry, for the outdated scope; without one nothing is outdated.</param>
+public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IMediaResultSource view, IAiProviderRegistry? registry = null)
     : IRequestHandler<ResolveAnalysisScopeQuery, AnalysisScopeItems>
 {
     private const int PageSize = 1000;
@@ -34,6 +41,7 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
             return AnalysisScopeItems.Empty;
         }
 
+        Dictionary<Id<MediaItem>, IReadOnlyList<string>>? outdated = null;
         var summaries = request.Scope switch
         {
             AnalysisScope.ItemsScope items => await ByIdsAsync(library, [.. items.ItemIds.Distinct()], cancellationToken).ConfigureAwait(false),
@@ -46,6 +54,14 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
                 await library.Items.GetFilteredIdsAsync(new MediaItemFilter { Status = MediaItemStatus.Pending }, cancellationToken).ConfigureAwait(false),
                 cancellationToken).ConfigureAwait(false),
             AnalysisScope.SearchResultsScope => await ByIdsAsync(library, await ViewIdsAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false),
+            AnalysisScope.LibraryScope => await ByIdsAsync(
+                library,
+                await library.Items.GetFilteredIdsAsync(new MediaItemFilter(), cancellationToken).ConfigureAwait(false),
+                cancellationToken).ConfigureAwait(false),
+            AnalysisScope.OutdatedScope => await ByIdsAsync(
+                library,
+                [.. (outdated = await OutdatedAsync(library, request.Analyzers, cancellationToken).ConfigureAwait(false)).Keys],
+                cancellationToken).ConfigureAwait(false),
             _ => throw new ArgumentException("Unknown analysis scope.", nameof(request)),
         };
 
@@ -59,7 +75,30 @@ public sealed class ResolveAnalysisScopeQueryHandler(ILibrarySession session, IM
             present.ConvertAll(summary => summary.Id),
             present.Count(summary => summary.MediaType != MediaType.Video),
             present.Count(summary => summary.MediaType == MediaType.Video),
-            present.Where(summary => summary.MediaType == MediaType.Video).Sum(VideoFrames));
+            present.Where(summary => summary.MediaType == MediaType.Video).Sum(VideoFrames))
+        {
+            ItemAnalyzers = outdated,
+        };
+    }
+
+    // The outdated items, each with its outdated analyzers in the profile's order, limited to the chosen ones.
+    private async Task<Dictionary<Id<MediaItem>, IReadOnlyList<string>>> OutdatedAsync(
+        IOpenLibrary library,
+        IReadOnlyCollection<string>? analyzers,
+        CancellationToken cancellationToken)
+    {
+        if (registry is null)
+        {
+            return [];
+        }
+
+        var profile = library.Library.Settings.AnalysisProfile;
+        var current = CurrentProvenance.Resolve(profile, registry)
+            .Where(provenance => analyzers is null || analyzers.Contains(provenance.Analyzer, StringComparer.Ordinal))
+            .ToList();
+        var outdated = await library.AnalyzerStates.GetOutdatedAsync(current, cancellationToken).ConfigureAwait(false);
+        var order = profile.Analyzers.Select(settings => settings.Analyzer).ToList();
+        return outdated.ItemIds.ToDictionary(itemId => itemId, itemId => outdated.AnalyzersOf(itemId, order));
     }
 
     // A video with an unknown duration is read at its start only, as the frame sampler does.

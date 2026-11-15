@@ -15,14 +15,15 @@ public sealed class AnalyzeScopeCommandHandler(ISender sender) : IRequestHandler
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var items = await sender.Send(new ResolveAnalysisScopeQuery(request.Scope), cancellationToken).ConfigureAwait(false);
+        var items = await sender.Send(new ResolveAnalysisScopeQuery(request.Scope, request.Analyzers), cancellationToken).ConfigureAwait(false);
         if (items.Count == 0)
         {
             return new AnalyzeScopeResult(null, 0);
         }
 
         var description = request.Description ?? Describe(request.Scope, items.Count);
-        var jobId = await sender.Send(new AnalyzeItemsCommand(items.ItemIds, request.Analyzers, description), cancellationToken).ConfigureAwait(false);
+        var command = new AnalyzeItemsCommand(items.ItemIds, request.Analyzers, description) { ItemAnalyzers = items.ItemAnalyzers };
+        var jobId = await sender.Send(command, cancellationToken).ConfigureAwait(false);
         return new AnalyzeScopeResult(jobId, items.Count);
     }
 
@@ -37,6 +38,8 @@ public sealed class AnalyzeScopeCommandHandler(ISender sender) : IRequestHandler
         AnalysisScope.PendingScope => $"Analyze {count} pending items",
         AnalysisScope.SearchResultsScope => $"Analyze {count} search results",
         AnalysisScope.FolderScope => $"Analyze {count} items in a folder",
+        AnalysisScope.OutdatedScope => $"Re-index {count} outdated items",
+        AnalysisScope.LibraryScope => $"Re-index all {count} items",
         _ => null,
     };
 }

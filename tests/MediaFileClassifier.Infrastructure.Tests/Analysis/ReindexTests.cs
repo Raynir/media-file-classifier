@@ -1,0 +1,137 @@
+using MediaFileClassifier.Domain.Analysis;
+using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.Tests.Import;
+using MediaFileClassifier.Testing.AI;
+using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.UseCases.Analysis.AnalyzeItems;
+using MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
+using MediaFileClassifier.UseCases.Analysis.Outdated;
+using MediaFileClassifier.UseCases.Analysis.UpdateAnalysisProfile;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace MediaFileClassifier.Infrastructure.Tests.Analysis;
+
+/// <summary>
+/// Tests for re-indexing (E06-S07-T02): <see cref="AnalyzeScopeCommand"/> with the outdated and library scopes, on the
+/// sample images analyzed by the real pipeline, then re-analyzed with a different fake describer model.
+/// </summary>
+public sealed class ReindexTests : IAsyncDisposable
+{
+    private readonly FakeImageDescriber describer = new(describe: (_, _) => Describe("Old"));
+    private readonly FakeImageDescriber better = new(describe: (_, _) => Describe("New"), modelName: "fake-describer-2");
+    private readonly FakeOcrProvider ocr = new(recognize: _ => "TEXT");
+    private readonly FakeEmbeddingProvider embedding = new();
+    private ImportTestBed? bed;
+
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (bed is not null)
+        {
+            await bed.DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task OutdatedItems_WithADifferentModel_ReplaceTheAiValuesAndKeepTheUserValues()
+    {
+        var items = await AnalyzedAsync(SampleMedia.JpegWithExif, SampleMedia.PngWithAlpha, SampleMedia.WebP);
+        var edited = items[0];
+        await bed!.Library.Metadata.UpdateAsync(
+            edited.Id,
+            metadata =>
+            {
+                metadata.EditValue(DescriptiveField.Title, FieldValue.FromText("My title"), DateTimeOffset.UtcNow);
+                metadata.RejectTag(TagName.From("old tag"), DateTimeOffset.UtcNow);
+            },
+            Token);
+        await bed.Sender.Send(new UpdateAnalysisProfileCommand(Profile(better)), Token);
+
+        var result = await bed.Sender.Send(new AnalyzeScopeCommand(AnalysisScope.Outdated), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(items.Count, result.ItemCount);
+        Assert.Equal(items.Count, better.Calls);
+
+        // Only the outdated describer ran again.
+        Assert.Equal(items.Count, describer.Calls);
+        Assert.Equal(items.Count, ocr.Calls);
+        Assert.Equal(items.Count, embedding.Calls);
+        foreach (var item in items)
+        {
+            var metadata = await bed.Library.Metadata.GetAsync(item.Id, Token);
+            Assert.Equal("New description", metadata.GetEffectiveValue(DescriptiveField.Description)?.Value.Text);
+            Assert.Equal("TEXT", metadata.GetEffectiveValue(DescriptiveField.OcrText)?.Value.Text);
+            Assert.Equal(2, metadata.Runs.Count(run => run.Analyzer == AnalyzerKeys.Describer));
+        }
+
+        var mine = await bed.Library.Metadata.GetAsync(edited.Id, Token);
+        Assert.Equal("My title", mine.GetEffectiveValue(DescriptiveField.Title)?.Value.Text);
+        Assert.DoesNotContain(mine.GetEffectiveTags(), tag => tag.Tag == TagName.From("old tag"));
+        Assert.Contains(mine.GetEffectiveTags(), tag => tag.Tag == TagName.From("new tag"));
+        Assert.Equal("New title", (await bed.Library.Metadata.GetAsync(items[1].Id, Token)).GetEffectiveValue(DescriptiveField.Title)?.Value.Text);
+        Assert.Equal(0, (await bed.Sender.Send(new GetOutdatedAnalysisQuery(), Token)).Count);
+    }
+
+    [Fact]
+    public async Task OutdatedScope_NothingOutdated_QueuesNothing()
+    {
+        await AnalyzedAsync(SampleMedia.JpegWithExif);
+
+        var result = await bed!.Sender.Send(new AnalyzeScopeCommand(AnalysisScope.Outdated), Token);
+
+        Assert.Null(result.JobId);
+        Assert.Equal(0, result.ItemCount);
+    }
+
+    [Fact]
+    public async Task OutdatedScope_WithOtherAnalyzersChosen_FindsNothing()
+    {
+        await AnalyzedAsync(SampleMedia.JpegWithExif);
+        await bed!.Sender.Send(new UpdateAnalysisProfileCommand(Profile(better)), Token);
+
+        var result = await bed.Sender.Send(new AnalyzeScopeCommand(AnalysisScope.Outdated, [AnalyzerKeys.Ocr]), Token);
+
+        Assert.Equal(0, result.ItemCount);
+    }
+
+    [Fact]
+    public async Task LibraryScope_WithChosenAnalyzers_RunsThemOnEveryItem()
+    {
+        var items = await AnalyzedAsync(SampleMedia.JpegWithExif, SampleMedia.PngWithAlpha);
+
+        var result = await bed!.Sender.Send(new AnalyzeScopeCommand(AnalysisScope.Library, [AnalyzerKeys.Ocr]), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(items.Count, result.ItemCount);
+        Assert.Equal(2 * items.Count, ocr.Calls);
+        Assert.Equal(items.Count, describer.Calls);
+    }
+
+    private static ImageDescription Describe(string prefix) =>
+        new($"{prefix} title", $"{prefix} description", $"{prefix} summary", [$"{prefix.ToLowerInvariant()} tag"], [], [], [], []);
+
+    private static AnalysisProfile Profile(FakeImageDescriber chosen) =>
+        AnalysisProfile.Default.With(new AnalyzerSettings(AnalyzerKeys.Describer) { ModelId = chosen.Model.ModelName, MaxTags = AnalysisProfile.DefaultMaxTags });
+
+    private async Task<IReadOnlyList<MediaItem>> AnalyzedAsync(params string[] files)
+    {
+        bed = await ImportTestBed.CreateAsync(configure: services =>
+            services.AddSingleton<IAiProviderRegistry>(new AiProviderRegistry([embedding, describer, better, ocr], TimeProvider.System)));
+        foreach (var file in files)
+        {
+            bed.Copy(file, Path.GetFileName(file));
+        }
+
+        await bed.ImportAsync();
+        await bed.WaitUntilIdleAsync();
+        var items = await bed.ItemsAsync();
+        await bed.Sender.Send(new AnalyzeItemsCommand([.. items.Select(item => item.Id)]), Token);
+        await bed.WaitUntilIdleAsync();
+        return items;
+    }
+}

@@ -22,8 +22,11 @@ public sealed partial class AnalyzeItemsCommandHandler(IJobSystem jobs, ILogger<
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.ItemIds);
 
-        var itemIds = request.ItemIds.Distinct().ToList();
-        if (itemIds.Count == 0 || request.Analyzers is { Count: 0 })
+        var perItem = request.ItemAnalyzers;
+        var itemIds = request.ItemIds.Distinct()
+            .Where(itemId => perItem is null || !perItem.TryGetValue(itemId, out var analyzers) || analyzers.Count > 0)
+            .ToList();
+        if (itemIds.Count == 0 || (request.Analyzers is { Count: 0 } && perItem is null))
         {
             return null;
         }
@@ -35,7 +38,10 @@ public sealed partial class AnalyzeItemsCommandHandler(IJobSystem jobs, ILogger<
         }
 
         var payload = AnalysisPayload.Serialize(request.Analyzers);
-        var work = itemIds.Select(itemId => new WorkItemRequest(AnalysisStages.Item, itemId, payload)).ToList();
+        var work = itemIds.Select(itemId => new WorkItemRequest(
+            AnalysisStages.Item,
+            itemId,
+            perItem is not null && perItem.TryGetValue(itemId, out var analyzers) ? AnalysisPayload.Serialize(analyzers) : payload)).ToList();
         var description = request.Description ?? (itemIds.Count == 1 ? "Analyze 1 item" : $"Analyze {itemIds.Count} items");
         return await scheduler.EnqueueJobAsync(
             new JobRequest(AnalysisStages.AnalysisJob, description, request.Priority, work) { ItemIds = itemIds },

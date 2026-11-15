@@ -20,4 +20,11 @@ public sealed record AnalyzeItemsCommand(
     IReadOnlyCollection<Id<MediaItem>> ItemIds,
     IReadOnlyCollection<string>? Analyzers = null,
     string? Description = null,
-    JobPriority Priority = JobPriority.AiAnalysis) : IRequest<Id<ProcessingJob>?>;
+    JobPriority Priority = JobPriority.AiAnalysis) : IRequest<Id<ProcessingJob>?>
+{
+    /// <summary>
+    /// Gets the analyzers of single items, which replace <see cref="Analyzers"/> for them, e.g. only the outdated ones
+    /// when re-indexing (E06-S07-T02). An item with an empty list is left out.
+    /// </summary>
+    public IReadOnlyDictionary<Id<MediaItem>, IReadOnlyList<string>>? ItemAnalyzers { get; init; }
+}

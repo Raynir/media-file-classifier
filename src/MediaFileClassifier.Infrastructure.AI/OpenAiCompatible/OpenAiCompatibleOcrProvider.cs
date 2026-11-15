@@ -46,7 +46,7 @@ public sealed class OpenAiCompatibleOcrProvider(string id, string displayName, O
             text = OcrLoopTrimmer.TrimCutOff(text);
         }
 
-        if (text.Equals(NoTextMarker, StringComparison.OrdinalIgnoreCase))
+        if (OcrNoTextAnswer.Matches(text))
         {
             text = string.Empty;
         }

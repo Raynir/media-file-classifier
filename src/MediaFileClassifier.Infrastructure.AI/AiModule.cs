@@ -33,6 +33,10 @@ public static class AiModule
         services.TryAddSingleton(new Siglip2Options());
         services.TryAddSingleton<Siglip2EmbeddingProvider>();
         services.AddSingleton<IAiProvider>(provider => provider.GetRequiredService<Siglip2EmbeddingProvider>());
+        // The default OCR engine on every hardware class: registered before endpoint providers, so it's chosen first.
+        services.TryAddSingleton(new Ocr.RapidOcrOptions());
+        services.TryAddSingleton<Ocr.RapidOcrProvider>();
+        services.AddSingleton<IAiProvider>(provider => provider.GetRequiredService<Ocr.RapidOcrProvider>());
         services.TryAddSingleton<IAiEndpointService, OpenAiCompatible.AiEndpointService>();
         services.TryAddSingleton<IModelCatalog, ModelCatalog>();
         services.TryAddSingleton<Benchmarks.BenchmarkResultStore>();

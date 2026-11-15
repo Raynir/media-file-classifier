@@ -8,7 +8,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+    <!-- -p:OnnxGpu=true swaps in the DirectML runtime, to time in-process models on the GPU. -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Condition="'$(OnnxGpu)' != 'true'" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Condition="'$(OnnxGpu)' == 'true'" />
     <PackageReference Include="System.Numerics.Tensors" />
   </ItemGroup>
 

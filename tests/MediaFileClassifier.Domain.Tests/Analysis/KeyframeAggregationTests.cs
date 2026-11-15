@@ -114,6 +114,29 @@ public sealed class KeyframeAggregationTests
     }
 
     [Fact]
+    public void MergeTextLines_NoisyWatermarkVariants_AreOneLine_TheMostFrequentVariantWins()
+    {
+        string?[] frames = ["LONGINES PARIS\nHello", "LONGlNES PARIS", "LONGINES  PARIS", "LONGINES PARIS.\nHello there", "LONGINES PARlS"];
+
+        Assert.Equal(["LONGINES PARIS", "Hello", "Hello there"], KeyframeAggregation.MergeTextLines(frames));
+    }
+
+    [Theory]
+    [InlineData("Platform 12 closed today", "Platform 13 closed today")]
+    [InlineData("EXIT 4", "EXIT 5")]
+    [InlineData("Grand opening", "Grand opening sale tomorrow")]
+    public void MergeTextLines_DifferentDigitsShortOrFarLines_AreKept(string first, string second)
+    {
+        Assert.Equal([first, second], KeyframeAggregation.MergeTextLines([first, second]));
+    }
+
+    [Fact]
+    public void MergeTextLines_NearLinesAreMatchedIgnoringCaseAndPunctuation()
+    {
+        Assert.Equal(["Estimated delivery: Tuesday"], KeyframeAggregation.MergeTextLines(["Estimated delivery: Tuesday", "ESTIMATED DELIVERY TUESDAY!", "Estimated delivery: Tuesdav"]));
+    }
+
+    [Fact]
     public void MergeTextLines_NoText_IsEmpty()
     {
         Assert.Empty(KeyframeAggregation.MergeTextLines([null, " ", string.Empty]));

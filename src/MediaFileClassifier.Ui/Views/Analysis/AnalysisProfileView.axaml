@@ -75,6 +75,15 @@
               </ComboBox>
             </DockPanel>
 
+            <!-- OCR options. -->
+            <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding HasOcrOptions}">
+              <CheckBox IsChecked="{Binding PreFilterWithDetector}"
+                        Content="{l:Loc Profile_PreFilterWithDetector}"
+                        IsEnabled="{Binding Enabled}"
+                        AutomationProperties.Name="{l:Loc Profile_PreFilterWithDetector}" />
+              <TextBlock Classes="Tertiary" Text="{l:Loc Profile_PreFilterWithDetectorHelp}" TextWrapping="Wrap" />
+            </StackPanel>
+
             <!-- Describer options. -->
             <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding HasDescriberOptions}">
               <DockPanel>

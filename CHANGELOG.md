@@ -4,6 +4,12 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- In-process OCR (D347): the PP-OCRv5 mobile detector and East Slavic recogniser run with ONNX Runtime, as RapidOCR runs them, and are the default OCR engine on every hardware class. Reads Latin and Cyrillic without a server (CER 0.067 against 0.052 for the vision model, 0.2 s against 3.9 s per picture on the GPU). The model is in the catalogue (Apache-2.0, 12.7 MB, ModelScope, pinned to a commit) and installs from Settings › AI & Models; until then OCR waits. The vision-model OCR stays available by naming its provider in the analysis profile. `ocr` in the evaluation tool compares engines.
+- OCR guards: RapidOCR drops lines with fewer than two letters or digits, and short lines read with confidence under 0.8 (stray marks on textured pictures); the vision model's own "no text" remarks are no longer stored as text. An OCR analyzer option "Skip pictures without text" (analysis profile, off by default) checks each picture with the built-in text detector first and skips a slower provider when it finds none.
+- Keyframe OCR merging: near-duplicate lines from different keyframes of a video or animation (same digits, letters within 20% edit distance, at least eight letters) are stored once, as the most frequent variant.
+
 ### Changed
 
 - The describer asks for at most 15 tags (the schema's `maxItems`, as its description already said) and sends a presence penalty of 1.5, which stops near-duplicate tags such as "cat calm", "cat still" (D350; OCR requests are unchanged).

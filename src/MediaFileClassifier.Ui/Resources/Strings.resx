@@ -1614,6 +1614,23 @@
   <data name="Profile_SaveFailed" xml:space="preserve">
     <value>The analysis profile couldn't be saved. The previous settings are shown.</value>
   </data>
+  <data name="Profile_Outdated_One" xml:space="preserve">
+    <value>{0} item is outdated by this change.</value>
+    <comment>Re-index prompt on the analysis profile page when one item is outdated. {0} is the number.</comment>
+  </data>
+  <data name="Profile_Outdated_Other" xml:space="preserve">
+    <value>{0} items are outdated by this change.</value>
+    <comment>Re-index prompt on the analysis profile page. {0} is the number.</comment>
+  </data>
+  <data name="Profile_ReindexNow" xml:space="preserve">
+    <value>Re-index now</value>
+  </data>
+  <data name="Profile_ReindexLater" xml:space="preserve">
+    <value>Later</value>
+  </data>
+  <data name="Profile_ReindexFailed" xml:space="preserve">
+    <value>The re-index couldn't be started.</value>
+  </data>
   <data name="Profile_Analyzer_embedding" xml:space="preserve">
     <value>Search index</value>
   </data>

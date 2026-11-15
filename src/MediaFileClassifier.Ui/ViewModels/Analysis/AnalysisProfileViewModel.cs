@@ -1,10 +1,13 @@
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.UseCases.Analysis.AnalyzeScope;
 using MediaFileClassifier.UseCases.Analysis.GetAnalysisProfile;
+using MediaFileClassifier.UseCases.Analysis.Outdated;
 using MediaFileClassifier.UseCases.Analysis.UpdateAnalysisProfile;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -15,7 +18,8 @@ namespace MediaFileClassifier.Ui.ViewModels.Analysis;
 /// <summary>
 /// The analysis profile section of the AI &amp; Models settings (E17-S02-T01): every analyzer of the open library
 /// can be switched on or off and given a provider, a model and its options. Changes are saved as they are made, and
-/// apply to items analyzed from then on. Without an open library there is no profile to edit.
+/// apply to items analyzed from then on. Without an open library there is no profile to edit. After a change that makes
+/// items outdated, a prompt counts them and offers to re-index them (E06-S07-T07).
 /// </summary>
 public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposable
 {
@@ -90,6 +94,23 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
     /// Gets a value indicating whether <see cref="Error"/> shows.
     /// </summary>
     public bool HasError => Error.Length > 0;
+
+    /// <summary>
+    /// Gets how many items the last change made outdated while the re-index prompt shows, otherwise 0.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOutdated), nameof(OutdatedText))]
+    public partial int OutdatedCount { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the re-index prompt shows.
+    /// </summary>
+    public bool HasOutdated => OutdatedCount > 0;
+
+    /// <summary>
+    /// Gets the re-index prompt's text, such as "12 items are outdated by this change.".
+    /// </summary>
+    public string OutdatedText => localizer.Format(OutdatedCount == 1 ? "Profile_Outdated_One" : "Profile_Outdated_Other", Format.Number(OutdatedCount));
 
     /// <summary>
     /// Reads the profile and the providers again.
@@ -175,6 +196,7 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
             await sender.Send(new UpdateAnalysisProfileCommand(updated));
             profile = updated;
             Error = string.Empty;
+            await CountOutdatedAsync();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -189,20 +211,72 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
         }
     }
 
-    private void OnAvailabilityChanged(object? sender, EventArgs e) => PostRefresh(false);
+    /// <summary>
+    /// Re-indexes the outdated items, each with only its outdated analyzers, and hides the prompt.
+    /// </summary>
+    /// <returns>A task that completes when the job is queued.</returns>
+    [RelayCommand]
+    private async Task ReindexOutdatedAsync()
+    {
+        // The prompt names the count, so the button is the confirmation: no second question for a large run (D322).
+        OutdatedCount = 0;
+        try
+        {
+            await sender.Send(new AnalyzeScopeCommand(AnalysisScope.Outdated));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogReindexFailed(ex);
+            Error = localizer.Get("Profile_ReindexFailed");
+        }
+    }
+
+    /// <summary>
+    /// Hides the re-index prompt until the next change.
+    /// </summary>
+    [RelayCommand]
+    private void ReindexLater() => OutdatedCount = 0;
+
+    private async Task CountOutdatedAsync()
+    {
+        // Without a profile the query compares with the stored one, the one just saved: this counts what the change made outdated.
+        try
+        {
+            OutdatedCount = (await sender.Send(new GetOutdatedAnalysisQuery())).Count;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The count is a hint: the change is saved either way.
+            LogCountFailed(ex);
+            OutdatedCount = 0;
+        }
+    }
+
+    private void OnAvailabilityChanged(object? sender, EventArgs e) => PostRefresh(false, libraryChanged: true);
 
     private void OnEndpointsChanged(object? sender, EventArgs e) => PostRefresh(true);
 
-    private void PostRefresh(bool checkHealth)
+    private void PostRefresh(bool checkHealth, bool libraryChanged = false)
     {
         // Libraries open and endpoints change on background threads.
         if (Dispatcher.UIThread.CheckAccess())
         {
-            _ = RefreshAsync(checkHealth);
+            Refresh();
         }
         else
         {
-            Dispatcher.UIThread.Post(() => _ = RefreshAsync(checkHealth));
+            Dispatcher.UIThread.Post(Refresh);
+        }
+
+        void Refresh()
+        {
+            if (libraryChanged)
+            {
+                // The prompt counted another library's items.
+                OutdatedCount = 0;
+            }
+
+            _ = RefreshAsync(checkHealth);
         }
     }
 
@@ -213,6 +287,8 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
             card.RefreshTexts();
         }
 
+        OnPropertyChanged(nameof(OutdatedText));
+
         _ = RefreshAsync();
     }
 
@@ -221,4 +297,10 @@ public sealed partial class AnalysisProfileViewModel : ViewModelBase, IDisposabl
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Saving the analysis profile failed")]
     private partial void LogSaveFailed(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Counting the outdated items failed")]
+    private partial void LogCountFailed(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Starting the re-index of the outdated items failed")]
+    private partial void LogReindexFailed(Exception exception);
 }

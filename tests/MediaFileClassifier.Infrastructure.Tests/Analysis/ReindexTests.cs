@@ -129,6 +129,36 @@ public sealed class ReindexTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Reanalysis_WithAModelThatChangesSomeValues_FlagsExactlyThoseFieldsAndTags()
+    {
+        // The new model keeps the title and summary, changes the description and swaps "old tag" for "extra tag".
+        var partial = new FakeImageDescriber(
+            describe: (_, _) => new ImageDescription("Old title", "Changed description", "Old summary", ["extra tag"], [], [], [], []),
+            modelName: "fake-describer-3");
+        var items = await AnalyzedAsync([embedding, describer, partial, ocr], SampleMedia.JpegWithExif, SampleMedia.PngWithAlpha);
+        var owned = items[0];
+        await bed!.Library.Metadata.UpdateAsync(owned.Id, metadata => metadata.AcceptAll(DateTimeOffset.UtcNow), Token);
+        await bed.Sender.Send(new UpdateAnalysisProfileCommand(Profile(partial)), Token);
+
+        await bed.Sender.Send(new AnalyzeScopeCommand(AnalysisScope.Outdated), Token);
+        await bed.WaitUntilIdleAsync();
+
+        var mine = await bed.Library.Metadata.GetAsync(owned.Id, Token);
+        Assert.Equal([DescriptiveField.Description], mine.UserValues.Where(value => value.HasNewAiSuggestion).Select(value => value.Field));
+        Assert.Equal("Old description", mine.GetEffectiveValue(DescriptiveField.Description)?.Value.Text);
+        Assert.Equal(
+            [("extra tag", TagSuggestionKind.Added), ("old tag", TagSuggestionKind.Removed)],
+            mine.TagSuggestions.Select(suggestion => (suggestion.Tag.Value, suggestion.Kind)).Order());
+        Assert.True(mine.HasNewAiSuggestions);
+
+        // Without user values, the new AI values just become effective; "extra tag" is still new to the item.
+        var other = await bed.Library.Metadata.GetAsync(items[1].Id, Token);
+        Assert.Empty(other.UserValues);
+        Assert.Equal("Changed description", other.GetEffectiveValue(DescriptiveField.Description)?.Value.Text);
+        Assert.Equal([("extra tag", TagSuggestionKind.Added)], other.TagSuggestions.Select(suggestion => (suggestion.Tag.Value, suggestion.Kind)));
+    }
+
+    [Fact]
     public async Task OutdatedScope_NothingOutdated_QueuesNothing()
     {
         await AnalyzedAsync(SampleMedia.JpegWithExif);

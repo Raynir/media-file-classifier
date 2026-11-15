@@ -145,7 +145,9 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var rejections = await db.TagRejections.AsNoTracking().Where(rejection => rejection.ItemId == itemId)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
-        return new ItemMetadata(itemId, technical, user, runs, ai, tags, rejections);
+        var suggestions = await db.TagSuggestions.AsNoTracking().Where(suggestion => suggestion.ItemId == itemId)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        return new ItemMetadata(itemId, technical, user, runs, ai, tags, rejections, suggestions);
     }
 
     /// <summary>
@@ -173,9 +175,11 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             .ToListAsync(cancellationToken).ConfigureAwait(false)).ToLookup(tag => tag.ItemId);
         var rejections = (await db.TagRejections.AsNoTracking().Where(rejection => ids.Contains(rejection.ItemId))
             .ToListAsync(cancellationToken).ConfigureAwait(false)).ToLookup(rejection => rejection.ItemId);
+        var suggestions = (await db.TagSuggestions.AsNoTracking().Where(suggestion => ids.Contains(suggestion.ItemId))
+            .ToListAsync(cancellationToken).ConfigureAwait(false)).ToLookup(suggestion => suggestion.ItemId);
         return ids.ToDictionary(
             id => id,
-            id => new ItemMetadata(id, technical[id], user[id], runs[id], ai[id], tags[id], rejections[id]));
+            id => new ItemMetadata(id, technical[id], user[id], runs[id], ai[id], tags[id], rejections[id], suggestions[id]));
     }
 
     internal static async Task<ItemMetadata> LoadExistingAsync(LibraryDbContext db, Id<MediaItem> itemId, CancellationToken cancellationToken)
@@ -193,6 +197,7 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
         var itemId = metadata.ItemId;
 
         // Dependents first: values and tags refer to runs.
+        await db.TagSuggestions.Where(suggestion => suggestion.ItemId == itemId).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await db.TagAssignments.Where(tag => tag.ItemId == itemId).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await db.AiFieldValues.Where(value => value.ItemId == itemId).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await db.UserFieldValues.Where(value => value.ItemId == itemId).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
@@ -206,6 +211,7 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
         db.AiFieldValues.AddRange(metadata.AiValues);
         db.TagAssignments.AddRange(metadata.Tags);
         db.TagRejections.AddRange(metadata.Rejections);
+        db.TagSuggestions.AddRange(metadata.TagSuggestions);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         db.ChangeTracker.Clear();
         await SearchStore.UpdateTextAsync(db, metadata, cancellationToken).ConfigureAwait(false);

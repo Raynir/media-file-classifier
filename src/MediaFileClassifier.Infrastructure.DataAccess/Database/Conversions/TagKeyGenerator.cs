@@ -32,6 +32,7 @@ internal sealed class TagKeyGenerator : ValueGenerator<string>
     {
         TagAssignment assignment => KeyOf(assignment.Tag),
         TagRejection rejection => KeyOf(rejection.Tag),
+        TagSuggestion suggestion => KeyOf(suggestion.Tag),
         _ => throw new InvalidOperationException($"{entry.Metadata.ClrType.Name} has no tag."),
     };
 }

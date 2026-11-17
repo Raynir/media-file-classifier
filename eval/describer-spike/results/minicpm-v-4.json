@@ -1,0 +1,785 @@
+{
+  "system": "minicpm-v-4",
+  "route": "lmstudio",
+  "model": "minicpm-v-4",
+  "device": "gpu",
+  "promptVersion": "describe-2-draft",
+  "items": {
+    "photo-005": {
+      "seconds": 5.72,
+      "outputTokens": 207,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Cat on Red Carpet\",\"title_ru\":\"\",\"description\":\"A cat lying down with its eyes closed and front paws stretched out in a relaxed position, resting upon or near to what appears as an indoor red carpeted floor. The background is mostly obscured by the black fabric of some object behind which this scene takes place but on whose surface it occurs; possibly part of furniture such as chairs that are not fully visible here and perhaps partially covered up with something like a cloth, blanket etc or even just plainly being in shadow due to an angle relative to light source(s).\",\"summary\":\"Cat lying down on red carpeted floor near black fabric object behind which this scene takes place but occurs upon its surface; possibly part of furniture such as chairs that are not fully visible here and perhaps partially covered up with something like a cloth, blanket etc or even just plainly bein\", \"tags\": [],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 5.75,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Cat on Red Carpet\",\"title_ru\":\"\",\"description\":\"A cat lying down with its eyes closed and front paws stretched out in a relaxed position, resting upon or near to what appears as an indoor red carpeted floor. The background is mostly obscured by the black fabric of some object behind which this scene takes place but occurs upon its surface; possibly part of furniture such as chairs that are not fully visible here and perhaps partially covered up with something like a cloth, blanket etc or even just plainly bein\", \"summary\":\"Cat lying down on red carpeted floor near dark-colored fabric background. Possible indoor setting where cat is resting comfortably in relaxed position upon surface which appears to either part of furniture such as chairs that are not fully visible here and perhaps partially covered up with something\",\"tags\": [],\"objects\":[],\"scenes\":[\"Cat laying down indoors, possibly next to a piece of black d\"],\"actions\": [],\"emotions\": []}",
+      "output": null
+    },
+    "photo-015": {
+      "seconds": 4.72,
+      "outputTokens": 125,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Bobcats on a wooden platform in nature\",\"title_ru\":\"\",\"description\":\"Four bobcats are sitting and standing around the edge of this elevated piece of wood, which is set up among some trees with branches that have no leaves.\",\"summary\":\"A group of four wild cats called Bobcats sit together at an angle along one side of a wooden platform in nature setting amongst bare tree limbs without foliage.\",\"tags\":[],\"objects\":[\"Bobcat\"],\"scenes\":[\"Wooden Platform\", \"Trees with Branches\"],\"actions\":[\"\"],\"emotions\":[\"\"]}",
+      "retrySeconds": 3.66,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Bobcats on a wooden platform in nature\",\"title_ru\":\"\",\"description\":\"Four bobcats are sitting and standing around the edge of this elevated piece of wood, which is set up among some trees with branches that have no leaves.\",\"summary\":\"A group of four wild cats called Bobcats sit together at an angle along one side of a wooden platform in nature setting amongst bare tree limbs without foliage.\",\"tags\":[],\"objects\":[\"Bobcat\"],\"scenes\":[\"Wooden Platform\", \"Trees with Branches\"],\"actions\":[\"\"],\"emotions\":[\"\"]}",
+      "output": null
+    },
+    "photo-025": {
+      "seconds": 5.1,
+      "outputTokens": 126,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Bears in Snow\",\"title_ru\":\"\",\"description\":\"Two bears are standing close to one another with their mouths open as though they were growling or roaring at each other, and the background is a snowy landscape.\",\"summary\":\"The image captures an intense moment between two brown bears amidst a wintry backdrop. The visual narrative suggests themes of wilderness confrontation within natural settings during winter months.\",\"tags\":[],\"objects\":[\"bear1\",\"bear2\"],\"scenes\":[\"snowy_landscape\"],\"actions\":[],\"emotions\":[\"confrontation\",\"intensity\"]}",
+      "retrySeconds": 4.01,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Bears in Snow\",\"title_ru\":\"\",\"description\":\"Two bears are standing close to one another with their mouths open as though they were growling or roaring at each other, and the background is a snowy landscape.\",\"summary\":\"The image captures an intense moment between two brown bears amidst a wintry backdrop. The visual narrative suggests themes of wilderness confrontation within natural settings during winter months.\",\"tags\":[],\"objects\":[\"bear1\",\"bear2\"],\"scenes\":[\"snowy_landscape\"],\"actions\":[],\"emotions\":[\"confrontation\",\"intensity\"]}",
+      "output": null
+    },
+    "photo-034": {
+      "seconds": 6.24,
+      "outputTokens": 164,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Pink Soup\",\"title_ru\":\"\",\"description\":\"A vibrant pink soup with visible herbs and spices floating on top of the broth. The dish is served in a decorative bowl, enhancing its visual appeal. This unique culinary creation not only delights visually but also promises an intriguing flavor experience to those who dare try it.\",\"summary\":\"Vibrant Pink Soup with Herbs & Spices Floating On Top; Served In Decorative Bowl Enhancing Visual Appeal; Unique Culinary Creation Delighting Visually and Offering Intriguing Flavor Experience for Those Daring To Try It.\",\"tags\":[],\"objects\":[\"Pink soup\", \"Herbs\", \"Spices\"],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 5.88,
+      "retryError": null,
+      "retryRaw": "{\"title\":\"Pink Soup\",\"title_ru\":\"Перекисная соус в розовом варианте \",\"description\":\"A vibrant pink soup with visible herbs and spices floating on top of the broth. The dish is served in a decorative bowl, enhancing its visual appeal. This unique culinary creation not only delights visually but also promises an intriguing flavor experience to those who dare try it.\",\"summary\":\"Vibrant Pink Soup with Herbs & Spices Floating On Top; Served In Decorative Bowl Enhancing Visual Appeal; This Unique Culinary Creation Not Only Delights Visually But Also Promises An Intriguing Flavor Experience To Those Who Dare Try It.\",\"tags\":[],\"objects\":[\"Pink soup\",\"Herbs\",\"Spices\"],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "output": {
+        "title": "Pink Soup",
+        "title_ru": "Перекисная соус в розовом варианте ",
+        "description": "A vibrant pink soup with visible herbs and spices floating on top of the broth. The dish is served in a decorative bowl, enhancing its visual appeal. This unique culinary creation not only delights visually but also promises an intriguing flavor experience to those who dare try it.",
+        "summary": "Vibrant Pink Soup with Herbs & Spices Floating On Top; Served In Decorative Bowl Enhancing Visual Appeal; This Unique Culinary Creation Not Only Delights Visually But Also Promises An Intriguing Flavor Experience To Those Who Dare Try It.",
+        "tags": [],
+        "objects": [
+          "Pink soup",
+          "Herbs",
+          "Spices"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-044": {
+      "seconds": 15.48,
+      "outputTokens": 516,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"St. Basil's Cathedral\",\"title_ru\":\"\",\"description\":\"A vibrant and colorful cathedral with multiple onion domes of various patterns and colors, including red, green, blue, yellow, white, black etc. The architecture is very ornate featuring intricate details on the facade such as arches, columns, decorative elements like floral motifs, geometric shapes (including circles, squares) and other symbols that are part of traditional Russian iconography - crosses for example; some domes have a cross at their peak while others do not. Some cathedrals also feature smaller towers or spires near the main structure which may be decorated with additional onion dome style roofs on top as well, adding even more visual interest and complexity to an already intricate piece of architecture - St Basil's Cathedral being one such example; some domes have a cross at their peak while others do not. Some cathedrals also feature smaller towers or spires near the main structure which may be decorated with additional onion dome style roofs on top as well, adding even more visual interest and complexity to an already intricate piece of architecture - St Basil's Cathedral being one such example; some domes have a cross at their peak while others do not. Some cathedrals also feature smaller towers or spires near the main structure which may be decorated with additional onion dome style roofs on top as well, adding even more visual interest and complexity to an already intricate piece of architecture - St Basil's Cathedral being one such example; some domes have a cross at their peak while others do not. Some cathedrals also feature smaller towers or spires near the main structure which may be decorated with additional onion dome style roofs on top as well, adding even more visual interest and complexity to an already intricate piece of architecture - St Basil's Cathedral being one such example; some domes have a cross at their peak while others do not. Some cathedrals also feature smaller towers or spires near the main structure which may bedecorat\",\"summary\":\"A vibrant depiction of Saint Basil's Cathedral, showcasing its iconic onion dome architecture with intricate patterns and vivid colors against an expansive blue sky backdrop scattered with fluffy white clouds; this image captures a moment in time at one of Moscow’s most famous landmarks during day-r\",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 6.27,
+      "retryError": null,
+      "retryRaw": "{\"title\":\"St Basil's Cathedral\",\"title_ru\":\"Собор Василия Бродевича в Краснодаре (Монголь)\",\"description\":\"A vibrant depiction of Saint Basil's Cathedral, showcasing its iconic onion dome architecture with intricate patterns and vivid colors against an expansive blue sky backdrop scattered with fluffy white clouds; this image captures a moment in time at one of Moscow’s most famous landmarks during day-r\",\"summary\":\"St. Basil's Cathedral is located on Red Square in the heart of historic Moscow, Russia. This iconic landmark features distinctive onion dome architecture that has become synonymous with Russian Orthodox churches and cathedrals throughout history; it also serves as an important cultural symbol for M\\u0438\",\"tags\":[],\"objects\":[],\"scenes\":[\"Red Square\",\"Moscow\",\"\"],\"actions\":[],\"emotions\":[]}",
+      "output": {
+        "title": "St Basil's Cathedral",
+        "title_ru": "Собор Василия Бродевича в Краснодаре (Монголь)",
+        "description": "A vibrant depiction of Saint Basil's Cathedral, showcasing its iconic onion dome architecture with intricate patterns and vivid colors against an expansive blue sky backdrop scattered with fluffy white clouds; this image captures a moment in time at one of Moscow’s most famous landmarks during day-r",
+        "summary": "St. Basil's Cathedral is located on Red Square in the heart of historic Moscow, Russia. This iconic landmark features distinctive onion dome architecture that has become synonymous with Russian Orthodox churches and cathedrals throughout history; it also serves as an important cultural symbol for Mи",
+        "tags": [],
+        "objects": [],
+        "scenes": [
+          "Red Square",
+          "Moscow",
+          ""
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-054": {
+      "seconds": 6.66,
+      "outputTokens": 185,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Parisian Skyline\",\"title_ru\":\"\",\"description\":\"A breathtaking view of Paris during twilight hours with illuminated buildings and the iconic Eiffel Tower in the background, reflecting on a calm river or canal below.\",\"summary\":\"This image captures an enchanting evening scene over one of Europe's most romantic cities: Paris. The skyline is dominated by tall modern skyscrapers that are beautifully lit up against the deepening blue twilight backdrop - this creates stunning reflections in what appears to be a calm river or can\",\"tags\":[],\"objects\":[\"Paris\",\"Eiffel Tower\",\"Skyscrapers\",\"Twilight\",\"Calm River/Can\"],\"scenes\":[\"Cityscape\",\"Evening\",\"Reflections\",\"Architecture\",\"Nighttime\",\"Waterfront\"],\"actions\":[],\"emotions\":[\"Serene\",\"Beautiful\",\"Romantic\"]}",
+      "retrySeconds": 5.86,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Parisian Skyline at Twilight\",\"title_ru\":\"\",\"description\":\"This image captures an enchanting evening scene over one of Europe's most romantic cities: Paris. The skyline is dominated by tall modern skyscrapers that are beautifully lit up against the deepening blue twilight backdrop - this creates stunning reflections in what appears to be a calm river or can\",\"summary\":\"This image captures an enchanting evening scene over one of Europe's most romantic cities: Paris. The skyline is dominated by tall modern skyscrapers that are beautifully lit up against the deepening blue twilight backdrop - this creates stunning reflections in what appears to be a calm river or can\",\"tags\":[],\"objects\":[\"Paris\",\"Eiffel Tower\",\"Skyscrapers\",\"Twilight\",\"Calm River/Can\"],\"scenes\":[\"Cityscape\",\"Evening\",\"Reflections\",\"Architecture\",\"Nighttime\",\"Waterfront\"],\"actions\":[],\"emotions\":[\"Serene\",\"Beautiful\",\"Romantic\"]}",
+      "output": null
+    },
+    "photo-063": {
+      "seconds": 7.18,
+      "outputTokens": 198,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Beach View\",\"title_ru\":\"\",\"description\":\"A serene beach scene with gentle waves lapping against a pristine sandy shore. In the distance, boats are visible on calm waters under an expansive blue sky without clouds. On the right side of this image there is some equipment and umbrellas that suggest it's somewhere where people can relax by sitting or lying down in shade provided from these objects (umbrella).\",\"summary\":\"A peaceful beach scene with gentle waves, a pristine sandy shoreline visible on both sides within frame boundaries; boats are seen far away across calm waters under vast blue sky without clouds present only during daylight hours when sun is up high enough above horizon line yet still low in angle so\",\"tags\":[],\"objects\":[\"\",\"\",\"\",\"\",\"\"],\"scenes\":[\"\",\"\",\"\",\"\",\"\"],\"actions\":[\"\",\"\",\"\",\"\",\"\"],\"emotions\":[\"\",\"\",\"\",\"\",\"\"]}",
+      "retrySeconds": 5.13,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Beach View\",\"title_ru\":\"\",\"description\":\"A serene beach scene with gentle waves, a pristine sandy shoreline visible on both sides within frame boundaries; boats are seen far away across calm waters under vast blue sky without clouds present only during daylight hours when sun is up high enough above horizon line yet still low in angle so\",\"summary\": \"A peaceful beach scene with gentle waves, a pristine sandy shoreline visible on both sides within frame boundaries; boats are seen far away across calm waters under vast blue sky without clouds present only during daylight hours when sun is up high enough above horizon line yet still low in angle so\",\"tags\": [],\"objects\":[\"\",\"\",\"\",\"\",\"\"],\"scenes\":[\"\",\"\",\"\",\"\",\"\"],\"actions\":[\"\",\"\",\"\",\"\",\"\"],\"emotions\":[\"\",\"\",\"\",\"\",\"\"]}",
+      "output": null
+    },
+    "photo-073": {
+      "seconds": 7.52,
+      "outputTokens": 236,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Tram at a Station\",\"title_ru\":\"\",\"description\":\"A tram station with trams arriving and people waiting to board or just watching. The sky is clear blue indicating good weather, possibly midday given the shadows present under objects like trees which casts them downwards towards their bases due west direction being north east in this case so that's why we see shadow coming from right side of image as if sun was setting on horizon casting long shadows across land.\",\"summary\":\"Tram at a Station, clear blue sky, midday light, people waiting to board or just watching the trams arrive and depart. The station has structures like shelters for passengers with signs indicating directions such as 'boarding area' written in English language using standard Latin script (Cyrillic).\",\"tags\":[],\"objects\":[\"tram\",\"station\",\"shelter\",\"sign\",\"boarding_area\"],\"scenes\":[\"a tram arriving at a station\", \"people waiting to board the trams or just watching them pass\", \"structures like shelters for passengers with signs showing '\"\n                  ],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 5.64,
+      "retryError": null,
+      "retryRaw": "{\"title\":\"Tram at a Station\",\"title_ru\":\"Трамваль на станции \",\"description\":\"A tram station during daytime under clear blue skies indicating good weather possibly midday given shadows present from sun being west direction casting long shadows across land towards horizon line where sea meets sky creating dramatic effect often seen in coastal areas especially around tourist destinations like beaches parks museums galleries etc.\",\"summary\":\"Tram at a Station, clear blue skies during daytime under sunny conditions with no clouds visible anywhere else except for some distant hills which are barely noticeable due to lack of contrast between them and surrounding landscape mainly consisting o f flat plains covered mostly by grasses shrubs &\",\"tags\":[],\"objects\":[\"tram\",\"station\",\"shelter\",\"sign\",\"boarding_area\"],\"scenes\":[\"a tram arriving at a station\", \"people waiting to board the trams or just watching them pass\", \"structures like shelters for passengers with signs showing '\"],\"actions\":[],\"emotions\":[]}",
+      "output": {
+        "title": "Tram at a Station",
+        "title_ru": "Трамваль на станции ",
+        "description": "A tram station during daytime under clear blue skies indicating good weather possibly midday given shadows present from sun being west direction casting long shadows across land towards horizon line where sea meets sky creating dramatic effect often seen in coastal areas especially around tourist destinations like beaches parks museums galleries etc.",
+        "summary": "Tram at a Station, clear blue skies during daytime under sunny conditions with no clouds visible anywhere else except for some distant hills which are barely noticeable due to lack of contrast between them and surrounding landscape mainly consisting o f flat plains covered mostly by grasses shrubs &",
+        "tags": [],
+        "objects": [
+          "tram",
+          "station",
+          "shelter",
+          "sign",
+          "boarding_area"
+        ],
+        "scenes": [
+          "a tram arriving at a station",
+          "people waiting to board the trams or just watching them pass",
+          "structures like shelters for passengers with signs showing '"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-082": {
+      "seconds": 7.31,
+      "outputTokens": 255,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "tags are not en/ru pairs",
+      "raw": "{\"title\":\"Московский метрополитический станция \",\"title_ru\": \"Московский метрополитический станция \",\"description\":\"A modern metro station with glass walls and a metallic roof. The entrance is marked by the name of the location in both Russian and English, displayed prominently above the doorway on metal plates attached to the structure's facade. Flanking either side at ground level are two sets of double doors made from large panes of transparent or semi-transparent glass framed with a dark metallic material that matches other parts of this building’s exterior design scheme; these same materials also form part of its roofline and upper sections along any visible walls hereabouts.\",\"summary\":\"The image depicts the entrance to Moscow's metro station named \",\"tags\": [{\"en\": \",\",\"ru\": \"\"}, {\"en\": \",\",\"ru\": \"\"}], \"objects\":[\"station\", \"glass_walls\", \"metallic_roof\", \"nameplates\"], \"scenes\":[\"urban_environment\", \"cold_weather\"],\"actions\":[],\"emotions\":[\"neutral\"]}",
+      "retrySeconds": 4.32,
+      "retryError": "tags are not en/ru pairs",
+      "retryRaw": "{\"title\":\"Московский метрополитический станция \",\"title_ru\": \"Московский метрополитический станция \",\"description\":\"A modern metro station with glass walls and a metallic roof. The entrance is marked by the name of the location in both Russian and English, displayed prominently above the doorway on metal plates attached to the structure's facade; flanking either side at ground level are two sets of double doors made from large panes of transparent or semi-transparent glass framed with a dark metallic material that matches other parts of this building’s exterior design scheme; these same materials also form part of its roofline and upper sections along any visible walls hereabouts.\",\"summary\":\"The image depicts the entrance to Moscow's metro station named \",\"tags\": [{\"en\": \",\",\"ru\": \"\"}, {\"en\": \",\",\"ru\": \"\"}], \"objects\":[\"station\", \"glass_walls\", \"metallic_roof\", \"nameplates\"], \"scenes\":[\"urban_environment\", \"cold_weather\"],\"actions\":[],\"emotions\":[\"neutral\"]}",
+      "output": null
+    },
+    "photo-092": {
+      "seconds": 4.48,
+      "outputTokens": 139,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Boat on Water\",\"title_ru\":\"\",\"description\":\"A boat named Cristina glides smoothly across a calm body of water. The reflection of the vessel is clearly visible in the tranquil waters, creating an aesthetically pleasing scene that captures both motion and serenity simultaneously.\",\"summary\":\"The image depicts a peaceful river setting with a prominent cargo ship cruising through it. This visual representation encapsulates themes related to transportation over natural waterways while also highlighting environmental aspects such as reflections in calm bodies of waters, which together form \",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 5.54,
+      "retryError": null,
+      "retryRaw": "{\"title\":\"Boat on Water\",\"title_ru\":\"На реке \",\"description\":\"A boat named Cristina glides smoothly across a calm body of water. The reflection of the vessel is clearly visible in the tranquil waters, creating an aesthetically pleasing scene that captures both motion and serenity simultaneously.\",\"summary\":\"The image depicts a peaceful river setting with a prominent cargo ship cruising through it. This visual representation encapsulates themes related to transportation over natural waterways while also highlighting environmental aspects such as reflections in calm bodies of waters, which together form \",\"tags\":[],\"objects\":[],\"scenes\":[\"\",\"\",\"],actionscolon:[],emotions:\"],\"actions\":[],\"emotions\":[]}",
+      "output": {
+        "title": "Boat on Water",
+        "title_ru": "На реке ",
+        "description": "A boat named Cristina glides smoothly across a calm body of water. The reflection of the vessel is clearly visible in the tranquil waters, creating an aesthetically pleasing scene that captures both motion and serenity simultaneously.",
+        "summary": "The image depicts a peaceful river setting with a prominent cargo ship cruising through it. This visual representation encapsulates themes related to transportation over natural waterways while also highlighting environmental aspects such as reflections in calm bodies of waters, which together form ",
+        "tags": [],
+        "objects": [],
+        "scenes": [
+          "",
+          "",
+          "],actionscolon:[],emotions:"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-102": {
+      "seconds": 8.01,
+      "outputTokens": 158,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Soccer Match\",\"title_ru\":\"\",\"description\":\"Two female soccer players are competing for control of a ball on a field during the day time. One player is wearing white and orange while her opponent wears navy blue with red trimming. The background shows empty stadium seats, part of an advertising banner in French that reads \",\"summary\":\"A snapshot from what appears to be either practice or actual play between two female soccer players on a field during the day time; one player is wearing white and orange while her opponent wears navy blue with red trimming. The background shows empty stadium seats, part of an advertising banner in \",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 6.11,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Soccer Match\",\"title_ru\":\"\",\"description\":\"Two female soccer players are competing for control of a ball on a field during the day time. One player is wearing white and orange while her opponent wears navy blue with red trimming. The background shows empty stadium seats, part of an advertising banner in French that reads \",\"summary\":\"A snapshot from what appears to be either practice or actual play between two female soccer players on a field during the day time; one player is wearing white and orange while her opponent wears navy blue with red trimming. The background shows empty stadium seats, part of an advertising banner in \",\"tags\":[],\"objects\":[],\"scenes\":[\"soccer match\",\"field\",\"\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "photo-111": {
+      "seconds": 9.45,
+      "outputTokens": 217,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Chess Pieces\",\"title_ru\":\"\",\"description\":\"A close-up view of a chessboard with various pieces arranged on it. The focus is primarily on the king piece, which stands prominently in sharp detail against other blurred background elements and parts of several different types of game boards or tables used for playing games like checkers (шахты), draughts (крестьянские игры).\",\"summary\":\"Chess Pieces on a chessboard with various pieces arranged on it, focusing primarily on the king piece in sharp detail against other blurred background elements and parts of several different types of game boards or tables used for playing games like checkers (шахты), draughts (крестьянские игры).\",\"tags\":[],\"objects\":[\"king_chess_piece\",\"other_chess_pieces\"],\"scenes\":[\"indoor\",\"board_game_setting\"],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 8.35,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Chess Pieces on a chessboard with various pieces arranged on it, focusing primarily on the king piece in sharp detail\",\"title_ru\":\"\",\"description\":\"A close-up view of a chessboard with various pieces arranged on it, focusing primarily on the king piece in sharp detail against other blurred background elements and parts of several different types of game boards or tables used for playing games like checkers (шахты), draughts (крестьянские игры).\",\"summary\":\"Chess Pieces on a chessboard with various pieces arranged on it, focusing primarily on the king piece in sharp detail against other blurred background elements and parts of several different types of game boards or tables used for playing games like checkers (шахты), draughts (крестьянские игры).\",\"tags\":[],\"objects\":[\"king_chess_piece\",\"other_chess_pieces\"],\"scenes\":[\"indoor\",\"board_game_setting\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "photo-121": {
+      "seconds": 6.11,
+      "outputTokens": 118,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Mechanical Watch Movement\",\"title_ru\":\"\",\"description\":\"A close-up view of a mechanical watch movement showcasing intricate gears and components in detail, set against a plain background to emphasize the details.\",\"summary\":\"This image provides an up-close look at what's inside many watches that tell time by moving little wheels around called gear teeth or simply just \",\"tags\":[],\"objects\":[\"gear_teeth\",\"watch_movement\"],\"scenes\":[\"mechanical_device\",\"detail_view\"],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 4.59,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Mechanical Watch Movement\",\"title_ru\":\"\",\"description\":\"A close-up view of a mechanical watch movement showcasing intricate gears and components in detail, set against a plain background to emphasize the details.\",\"summary\":\"This image provides an up-close look at what's inside many watches that tell time by moving little wheels around called gear teeth or simply just \",\"tags\":[],\"objects\":[\"gear_teeth\",\"watch_movement\"],\"scenes\":[\"mechanical_device\",\"detail_view\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "photo-131": {
+      "seconds": 8.0,
+      "outputTokens": 191,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Night Market Scene\",\"title_ru\":\"\",\"description\":\"A bustling night market with numerous illuminated signs and advertisements in various languages including Japanese characters (日本語). People are walking along the street, some stopping to look at or read something on a sign while others continue down the busy path of this vibrant city scene during evening hours under artificial lighting conditions creating an atmosphere full of energy excitement liveliness bustling activity happening simultaneously all around within view here now in front right left ahead behind above below middle center.\",\"summary\":\"A lively night market with brightly lit signs and advertisements, including Japanese characters (日本語). People are walking along the street; some stop to read or look at a sign while others continue down the busy path of this vibrant city scene during evening hours under artificial lighting creatingl\",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 6.08,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Night Market Scene\",\"title_ru\":\"\",\"description\":\"A bustling night market with numerous illuminated signs and advertisements in various languages including Japanese characters (日本語). People are walking along the street; some stop to read or look at a sign while others continue down the busy path of this vibrant city scene during evening hours under artificial lighting creatingl\",\"summary\":\"A lively night market with brightly lit signs and advertisements, including Japanese characters (日本語). People are walking along the street; some stop to read or look at a sign while others continue down the busy path of this vibrant city scene during evening hours under artificial lighting creatingl\",\"tags\":[],\"objects\":[],\"scenes\":[\"A bustling night market with numerous illuminated signs and \",\"actions […]\",\"emotions […]\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "photo-140": {
+      "seconds": 8.75,
+      "outputTokens": 210,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Outdoor Souvenir Shop\",\"title_ru\":\"\",\"description\":\"The image shows a colorful souvenir shop with large posters advertising various items for sale, such as clocks and other decorative objects. The setting appears to be on the side of an urban street during daylight hours. There are two cars parked in front of this establishment; one is silver-grey while another car has dark green paintwork which reflects some light from nearby surfaces or vehicles creating a slight glare effect over its body surface, making it look shiny and somewhat less rustic than the other vehicle present at that location during daylight hours.\",\"summary\":\"The image shows an outdoor souvenir shop with large posters advertising various items for sale such as clocks and decorative objects set on urban street under daytime light conditions near parked cars reflecting nearby surfaces creating slight glare effect over green paintwork of one car while grey-\",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 5.88,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Outdoor Souvenir Shop\",\"title_ru\":\"\",\"description\":\"The image shows an outdoor souvenir shop with large posters advertising various items for sale such as clocks and decorative objects set on urban street under daytime light conditions near parked cars reflecting nearby surfaces creating slight glare effect over green paintwork of one car while grey-\",\"summary\":\"The image shows an outdoor souvenir shop with large posters advertising various items for sale such as clocks and decorative objects set on urban street under daytime light conditions near parked cars reflecting nearby surfaces creating slight glare effect over green paintwork of one car while grey-\",\"tags\":[],\"objects\":[],\"scenes\":[\"Outdoor Souvenir Shop\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "photo-150": {
+      "seconds": 6.79,
+      "outputTokens": 134,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Data privacy sign\",\"title_ru\":\"\",\"description\":\"A clear glass plaque with metal screws on its corners displays a message about data collection and usage: 'Data is collected on everything we do. *Do you know how yours is being used?' \",\"summary\":\"Sign discussing the topic of personal information, what it means to be tracked or monitored in everyday activities, as well as an invitation for individuals who have concerns regarding their own privacy settings within various digital platforms and services offered by corporations worldwide (e.g., \",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 5.0,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Data privacy sign\",\"title_ru\":\"\",\"description\":\"A clear glass plaque with metal screws on its corners displays a message about data collection and usage: 'Data is collected on everything we do. *Do you know how yours is being used?' \",\"summary\":\"Sign discussing the topic of personal information, what it means to be tracked or monitored in everyday activities, as well as an invitation for individuals who have concerns regarding their own privacy settings within various digital platforms and services offered by corporations worldwide (e.g., \",\"tags\":[],\"objects\":[],\"scenes\":[\"Data is collected on everything we do. *Do you know how ours\",\"\"],\"actions\":[], \"emotions\":[]}",
+      "output": null
+    },
+    "photo-160": {
+      "seconds": 6.23,
+      "outputTokens": 151,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Northern Lights Over a Landscape\",\"title_ru\":\"\",\"description\":\"A breathtaking view of the Northern Lights illuminating the night sky over a serene landscape with hills and sparse vegetation, reflecting subtle hues from the aurora.\",\"summary\":\"This image captures an enchanting scene where the ethereal glow of the Aurora Borealis dances across the inky canvas above a tranquil expanse below marked by gentle undulations that hint at distant horizons yet to be explored or understood, inviting viewers into this mesmerizing world and evoking a \",\"tags\":[],\"objects\":[\"\",\"\",\"\"],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 4.56,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Northern Lights Over a Landscape\",\"title_ru\":\"\",\"description\":\"A breathtaking view of the Northern Lights illuminating the night sky over a serene landscape with hills and sparse vegetation, reflecting subtle hues from the aurora.\",\"summary\":\"This image captures an enchanting scene where the ethereal glow of the Aurora Borealis dances across the inky canvas above a tranquil expanse below marked by gentle undulations that hint at distant horizons yet to be explored or understood, inviting viewers into this mesmerizing world and evoking a \",\"tags\":[],\"objects\":[\"\",\"\",\"\"],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "photo-169": {
+      "seconds": 8.01,
+      "outputTokens": 243,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Night Cityscape\",\"title_ru\":\"\",\"description\":\"The image captures a stunning night view of a modern city skyline reflected in calm waters below the bridge that spans across it, with buildings lit up against dark skies above them and boats moored on either side. The scene is serene yet vibrant due to artificial lighting from various sources including streetlights illuminating parts of water surface reflecting lights back onto itself creating a mirrored effect doubling down visual impact making the night skyline appear even more grandiose majestic spectacular, while calm waters below mirror this spectacle perfectly doubling its beauty and significance.\",\"summary\":\"The image captures a stunning night view of a modern city skyline reflected in calm waters below the bridge that spans across it, with buildings lit up against dark skies above them and boats moored on either side. The scene is serene yet vibrant due to artificial lighting from various sources.\",\"tags\":[],\"objects\":[\"bridge\", \"water\", \"buildings\", \"lights\"],\"scenes\":[\"urban nightscape\", \"city reflection in water\", \"modern city skyline illuminated at night\"],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 6.17,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Night Cityscape\",\"title_ru\":\"\",\"description\":\"The image captures a stunning night view of a modern city skyline reflected in calm waters below the bridge that spans across it, with buildings lit up against dark skies above them and boats moored on either side. The scene is serene yet vibrant due to artificial lighting from various sources.\",\"summary\":\"The image captures a stunning night view of a modern city skyline reflected in calm waters below the bridge that spans across it, with buildings lit up against dark skies above them and boats moored on either side. The scene is serene yet vibrant due to artificial lighting from various sources.\",\"tags\":[],\"objects\":[\"bridge\", \"water\", \"buildings\", \"lights\"],\"scenes\":[\"urban nightscape\", \"city reflection in water\", \"modern city skyline illuminated at night\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "photo-179": {
+      "seconds": 16.66,
+      "outputTokens": 444,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Pizza with Vegetables\",\"title_ru\":\"\",\"description\":\"A delicious pizza topped with a variety of vegetables such as tomatoes and green peppers. The cheese is melted, giving the dish an appetizing look. This image could be used for culinary blogs or restaurant menus to showcase their offerings in detail. It might also serve well on social media platforms where users share images that reflect aspects of daily life including food choices which are often a topic of interest among people who enjoy cooking and eating meals together as part of family traditions, cultural practices, celebrations like birthdays parties weddings anniversaries holidays religious ceremonies casual gatherings formal events etc. Additionally this image could also be used by individuals or businesses looking to showcase their culinary creations whether it's homemade dishes served at home during meal times shared among friends families members colleagues neighbours clients customers patrons visitors guests attendees participants people who are present part of the scene in view close up far away near distant somewhere else elsewhere there and back again anywhere but here everywhere except nowhere other places someplace something nothere any place no where a thing or two things one way another direction different directions opposite sides same side nearby further off across over by around beside between behind ahead within out from on to of into at under above below beyond in front near far away somewhere else elsewhere there and back again anywhere but here everywhere except nowhere other places someplace something nothere any place no where a thing or two things one way another direction different directions opposite sides same side nearby further off across over by around beside between behind ahead within out from on to of into at under above below beyond in front near far away somewhere else elsewhere there and back again anywhere but here everywhere except nowhere other places someplace something nothere any place no where a thing or two things.\",\"summary\":\"A delicious pizza topped with tomatoes, green peppers, cheese, tomato sauce, melted mozzarella cheese on top of the crust which is golden brown in color. The toppings are evenly distributed across the surface and appear fresh just out of an oven ready for serving at a restaurant or home kitchen.\",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 6.5,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Pizza with Vegetables\",\"title_ru\":\"\",\"description\":\"A mouth-watering pizza loaded up to its brim with a medley of fresh vegetables including juicy tomatoes crunchy green peppers and creamy mozzarella cheese all melted together on top the golden brown crust which is perfectly baked in an oven ready for serving at any restaurant or home kitchen.\",\"summary\":\"This image depicts a delicious homemade pizza topped generously with various colorful veggies such as ripe red tomato slices vibrant yellow corn kernels fresh green bell pepper strips creamy white mozzarella cheese balls melted all together on top of the perfectly baked golden brown crust which is b\",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "photo-188": {
+      "seconds": 7.96,
+      "outputTokens": 174,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Coffee and Cake\",\"title_ru\":\"\",\"description\":\"A steaming cup of coffee sits on a saucer next to a slice of cake with caramel drizzle, placed directly beside the mug on another plate. The background is softly blurred showing wooden table texture.\",\"summary\":\"This image features an inviting setup showcasing two popular treats: hot brewed black coffee and delectable layered dessert topped off by sweet sauce in form of a glaze or syrup that has been drizzled over it, placed directly beside the mug on another plate. The background is softly blurred showing \",\"tags\": [],\"objects\": [\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \"],\"scenes\": [\"\"],\"actions\": [\"\"],\"emotions\": [\"\"]}",
+      "retrySeconds": 6.62,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Coffee and Cake\",\"title_ru\":\"\",\"description\":\"A steaming cup of coffee sits on a saucer next to a slice of cake with caramel drizzle, placed directly beside the mug on another plate. The background is softly blurred showing wooden table texture.\",\"summary\":\"This image features an inviting setup showcasing two popular treats: hot brewed black coffee and delectable layered dessert topped off by sweet sauce in form of a glaze or syrup that has been drizzled over it, placed directly beside the mug on another plate. The background is softly blurred showing \",\"tags\": [],\"objects\": [\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \",\" \"],\"scenes\": [\"\"],\"actions\": [\"\"],\"emotions\": [\"\"]}",
+      "output": null
+    },
+    "photo-198": {
+      "seconds": 3.03,
+      "outputTokens": 134,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru, summary",
+      "raw": "{\"title\":\"Guitar on a Sofa\",\"title_ru\":\"\",\"description\":\"A guitar resting against the back of a sofa with cushions. The lighting is natural, coming from above and to one side. There are no visible texts or markings in English within this image; however, there may be textual elements present only when viewed through certain software filters (e.g., Russian language filter) that alter how the underlying data structure of an object's properties—such as title_ru: \",\"summary\":\"\",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 2.14,
+      "retryError": "empty: summary",
+      "retryRaw": "{\"title\":\"Guitar on a Sofa\",\"title_ru\":\"Гитара на диване\",\"description\":\"A guitar resting against the back of a sofa with cushions. The lighting is natural, coming from above and to one side. There are no visible texts or markings in English within this image; however, there may be textual elements present only when viewed through certain software filters (e.g., Russian language filter) that alter how the underlying data structure of an object's properties—such as title_ru: \",\"summary\":\"\",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "photo-208": {
+      "seconds": 9.49,
+      "outputTokens": 223,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"METRO sign with additional text and a building in background\",\"title_ru\":\"\",\"description\":\"A tall billboard displaying the METRO logo along with some other information written below it, standing on an empty field near which there is also another large white church-like structure. In front of this second larger object are several smaller similar structures as well as many trees and streetlights in between them all.\",\"summary\":\"The image shows a tall billboard displaying the METRO logo along with some other information written below it, standing on an empty field near which there is also another large white church-like structure. In front of this second larger object are several smaller similar structures as well as manyt.\",\"tags\":[],\"objects\":[\"METRO sign\",\"additional text\",\"building in background\"],\"scenes\":[\"Empty field with billboard and building in the distance\",\"Outdoor setting near a tall METRO advertisement board, with \"\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 8.39,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"METRO sign with additional text and a building in background\",\"title_ru\":\"\", \"description\":\"A tall billboard displaying the METRO logo along with some other information written below it, standing on an empty field near which there is also another large white church-like structure. In front of this second larger object are several smaller similar structures as well as many trees and streetlights in between them all.\",\"summary\":\"The image shows a tall billboard displaying the METRO logo along with some other information written below it, standing on an empty field near which there is also another large white church-like structure. In front of this second larger object are several smaller similar structures as well as manyt.\",\"tags\":[],\"objects\":[\"METRO sign\",\"additional text and a building in background\"],\"scenes\":[\"Empty field with billboard and building in the distance\",\"Outdoor setting near a tall METRO advertisement board, with \"\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "synth-003": {
+      "seconds": 3.2,
+      "outputTokens": 42,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title, title_ru, description, summary",
+      "raw": "{\"title\": \"\", \"title_ru\": \"\",\"description\": \"\", \"summary\": \"\", \"tags\": [], \"objects\": [],\"scenes\": [],\"actions\": [],\"emotions\": []}",
+      "retrySeconds": 1.8,
+      "retryError": "empty: title, title_ru, description, summary",
+      "retryRaw": "{\"title\": \"\", \"title_ru\": \"\", \"description\": \"\", \"summary\": \"\",\"tags\": [],\"objects\": [], \"scenes\": [], \"actions\": [], \"emotions\": []}",
+      "output": null
+    },
+    "synth-008": {
+      "seconds": 14.13,
+      "outputTokens": 424,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Настройки\",\"title_ru\":\"\",\"description\":\"Темная тема \\\"Уведомления\\\"\\nДоступ к геопозиции \\\"Автообновление\\\"\\nЗвук клавиш \\\"Звук клавиш\\\"\",\"summary\":\"Настройки, Темная тема, Уведомления, Доступ к геопозиции, Автообновление, Звук клавиш.\",\"tags\":[],\"objects\":[\"Настройки\", \"Темная тема\", \"Уведомления\", \"Доступ к геопозиции\", \"Автообновление\", \"Звук клавиш.\",\"Настройки\", \"Темная тема\", \"Уведомления\", \"Доступ к геопозиции\", \"Автообновление\", \"Звук клавиш.\"],\"scenes\":[\"Настройки\", \"Темная тема\", \"Уведомления\", \"Доступ к геопозиции\", \"Автообновление\", \"Звук клавиш.\",\"Настройки\", \"Темная тема\", \"Уведомления\", \"Доступ к геопозиции\", \"Автообновление\", \"Звук клавиш.\"],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 20.01,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Настройки\",\"title_ru\":\"\",\"description\":\"Темная тема \\\"Уведомления\\\"\\nДоступ к геопозиции \\\"Автообновление\\\"\\nЗвук клавиш \\\"Звук клавиш\\\"\",\"summary\":\"Настройки, Темная тема, Уведомления, Доступ к геопозиции, Автообновление, Звук клавиш, Звук клавиш.\",\"tags\":[],\"objects\":[\"Настройки\", \"Темная тема\", \"Уведомления\", \"Доступ к геопозиции\", \"Автообновление\", \"Звук клавиш\", \"Звук клавиш.\",\"Настройки\", \"Темная тема\", \"Уведомления\", \"Доступ к геопозиции\", \"Автообновление\", \"Звук клавиш\", \"Звук клавиш.\",\"Настройки\", \"Темная тема\", \"Уведомления\", \"Доступ к геопозиции\", \"Автообновление\", \"Звук клавиш\", \"Звук клавиш.\",\"Настройки\", \"Темная тема\", \"Уведомления\", \"Доступ к геопозиции\", \"Автообновление\", \"Звук клавиш\", \"Звук клавиш.\",\"Настройки\", \"Темная тема, Уведомления, Доступ к геопозиции, Автообновлень\"\n],\"scenes\":[\"Настройки\", \"Темная тема, Уведомления, Доступ к геопозиции, Автообновлень\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "synth-014": {
+      "seconds": 2.44,
+      "outputTokens": 75,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Sign in page\",\"title_ru\":\"\",\"description\":\"A login form with fields for email and password, a continue button below the input boxes, and links to \",\"summary\" :\",and \",\"tags\":[],\"objects\":[\"ContinueButton\",\"\"],\"scenes\":[],\"actions\":[], \"emotions\": []}",
+      "retrySeconds": 2.89,
+      "retryError": "empty: summary",
+      "retryRaw": "{\"title\":\"Sign in page\",\"title_ru\":\"Поле входа \",\"description\":\"A login form with fields for email and password, a continue button below the input boxes, and links to \",\"summary\":\"\",\"tags\":[],\"objects\":[\"ContinueButton\",\"\"],\"scenes\":[],\"actions\":[], \"emotions\": []}",
+      "output": null
+    },
+    "synth-019": {
+      "seconds": 12.87,
+      "outputTokens": 319,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Code Snippet\",\"title_ru\":\"\",\"description\":\"This image contains a code snippet written in C# programming language within what appears to be either Visual Studio or another text editor environment commonly used for coding tasks. The purpose of this visual representation is likely educational, aimed at illustrating how certain functionalities can potentially work when implemented correctly through the use of appropriate syntax and structure as defined by standard conventions followed throughout various sections including but not limited to comments within brackets {} , curly braces { } or square braces [ ], all depending on what type it might be. Additionally there could also possibly exist other elements such like variables namespaces etcetera which would further enhance understanding about how this particular piece works together cohesively amongst larger systems environments contexts scenarios situations settings places locations and more thus making them easier accessible discoverable searchable retrievable locatable identifiable distinguishable discernible recognizable memorable legible readable decipherable interpretable intelligible comprehensible understandable explicable explainable.\",\"summary\":\"This image contains a code snippet written in C# programming language within what appears to be either Visual Studio or another text editor environment commonly used for coding tasks. The purpose of this visual representation is likely educational, aimed at illustrating how certain functionalities -\",\"tags\":[],\"objects\":[\"code\", \"snippet\", \"csharp\", \"programming\", \"language\", \"visual\", \"studio\", \"text\", \"editor\", \"environment\", \"coding\", \"tasks\",\"],},\"\n  ],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 7.28,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Code Snippet\",\"title_ru\":\"\",\"description\":\"This image contains a code snippet written in C# programming language within what appears to be either Visual Studio or another text editor environment commonly used for coding tasks. The purpose of this visual representation is likely educational, aimed at illustrating how certain functionalities - \",\"summary\":\"The provided JSON object describes an empty title_ru field which could potentially hold a Russian word that corresponds with the given English description in terms of what's being depicted visually within these particular frames captured through whatever medium or device happened to be used during/d\",\"tags\":[],\"objects\":[\"code\", \"snippet\", \"csharp\", \"programming\", \"language\", \"visual\", \"studio\", \"text\", \"editor\", \"environment\", \"coding\", \"tasks\",\"],}\"\n  ],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "synth-024": {
+      "seconds": 5.31,
+      "outputTokens": 110,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Battery low\",\"title_ru\":\"\",\"description\":\"5% remaining\",\"summary\":\"Connect your charger soon.\",\"tags\":[],\"objects\":[\"low battery icon\"],\"scenes\":[\"device screen showing a notification about the low battery.\",\"background: dark mode on an electronic device's display, not\"],\"actions\":[\"connecting to power source via USB cable or wirelessly using\", \"emotional response:\", \"frustration at being unable to use their phone until it is [\"],\"emotions\":[]}",
+      "retrySeconds": 4.27,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Battery low\",\"title_ru\":\"\", \"description\":\"5% remaining\",\"summary\":\"Connect your charger soon.\",\"tags\":[],\"objects\":[\"low battery icon\"],\"scenes\":[\"device screen showing a notification about the low battery.\",\"background: dark mode on an electronic device's display, not\"],\"actions\":[\"connecting to power source via USB cable or wirelessly using\", \"emotional response:\", \"frustration at being unable to use their phone until it is [\"],\"emotions\":[]}",
+      "output": null
+    },
+    "synth-028": {
+      "seconds": 8.39,
+      "outputTokens": 207,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Receipt from The Daily Grind Coffee & Bakery\",\"title_ru\":\"\",\"description\":\"Flat white - $3.40\\n Cappuccino - $3.20\\nAlmond croissant - $2.90Carrot cake - $3.75TOTAL: $13.25Card payment approvedThank you, come again!\",\"summary\":\"This image contains a receipt from The Daily Grind Coffee & Bakery showing various items purchased and their respective prices along with the total amount due at the bottom of the document followed by confirmation that card payment was approved and thank-you message as well as invitation to return. \",\"tags\":[],\"objects\":[\"Flat white\",\"Cappuccino\",\"Almond croissant\",\"Carrot cake\",\"TOTAL: $13.25\",\"Card payment approved\",\"Thank you, come again!\"],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 6.86,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Receipt from The Daily Grind Coffee & Bakery\",\"title_ru\":\"\",\"description\":\"Flat white - $3.40\\n Cappuccino - $3.20\\nAlmond croissant - $2.90Carrot cake - $3.75TOTAL: $13.25Card payment approvedThank you, come again!\",\"summary\":\"This image contains a receipt from The Daily Grind Coffee & Bakery showing various items purchased and their respective prices along with the total amount due at the bottom of the document followed by confirmation that card payment was approved and thank-you message as well as invitation to return. \",\"tags\":[],\"objects\":[\"Flat white\",\"Cappuccino\",\"Almond croissant\",\"Carrot cake\",\"TOTAL: $13.25\",\"Card payment approved\",\"Thank you, come again!\"],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "synth-035": {
+      "seconds": 5.02,
+      "outputTokens": 159,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Business card for a photographer\",\"title_ru\":\"\",\"description\":\"This image contains information about Anna Smirnova who is identified as a wedding photographer in both the English and Russian text on her business card. The contact details provided include an international phone number, email address written with \",\"summary\"\n\n \t  \t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t: \",\",\"tags\": [\n    {\n      \"en\": \"Wedding photographer\",\n      \"ru\": \"\"\n    },\n    {\n      \"en\": \"\",\n      \"ru\": \"\"\n    }\n  ],\"objects\":[], \"scenes\": [],\"actions\": [], \"emotions\": []}",
+      "retrySeconds": 4.98,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Business card for a photographer\",\"title_ru\":\"\",\"description\":\"This image contains information about Anna Smirnova who is identified as a wedding photographer in both the English and Russian text on her business card. The contact details provided include an international phone number, email address written with \",\"summary\"\n \t  \t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t: \",\",\"tags\": [\n    {\n      \"en\": \"Wedding photographer\",\n      \"ru\": \"\"\n    },\n    {\n      \"en\": \"\",\n      \"ru\": \"\"\n    }\n  ],\"objects\":[], \"scenes\": [], \"actions\": [], \"emotions\": []}",
+      "output": null
+    },
+    "synth-042": {
+      "seconds": 6.35,
+      "outputTokens": 146,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Caution Wet Floor\",\"title_ru\":\"\",\"description\":\"The image shows a caution sign with wet floor written on it in bold black letters against a yellow background for high visibility and safety purposes to alert people about the potential hazard of slipping or falling due to moisture present on the flooring surface.\",\"summary\":\"This is an informational text describing what's shown within this particular visual frame - namely, just one caution sign with wet floor written onto it in bold black letters against a yellow background for high visibility and safety purposes so that people can be alerted about potential hazards of;\", \"tags\": [],\"objects\": [],\"scenes\": [],\"actions\": [],\"emotions\": []}",
+      "retrySeconds": 4.77,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Caution Wet Floor\",\"title_ru\":\"\",\"description\":\"The image shows a caution sign with wet floor written onto it in bold black letters against a yellow background for high visibility and safety purposes so that people can be alerted about potential hazards of;\",\"summary\":\"This is an informational text describing what's shown within this particular visual frame - namely, just one caution sign with wet floor written onto it in bold black letters against a yellow background for high visibility and safety purposes so that people can be alerted about potential hazards of;\", \"tags\": [],\"objects\": [],\"scenes\": [],\"actions\": [],\"emotions\": []}",
+      "output": null
+    },
+    "synth-048": {
+      "seconds": 3.77,
+      "outputTokens": 42,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title, title_ru, description, summary",
+      "raw": "{\"title\": \"\", \"title_ru\": \"\",\"description\": \"\", \"summary\": \"\", \"tags\": [],\"objects\": [], \"scenes\": [], \"actions\": [],\"emotions\": []}",
+      "retrySeconds": 1.85,
+      "retryError": "empty: title, title_ru, description, summary",
+      "retryRaw": "{\"title\": \"\", \"title_ru\": \"\", \"description\": \"\", \"summary\": \"\",\"tags\": [], \"objects\": [], \"scenes\": [], \"actions\": [], \"emotions\": []}",
+      "output": null
+    },
+    "synth-055": {
+      "seconds": 6.8,
+      "outputTokens": 229,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\"title\":\"Teenage Mutant Ninja Turtles\", \"title_ru\": \"Теологический мультимерный шарпеты\", \"description\":\"The Teenage Mutant Ninja Turtles are a group of anthropomorphic turtles who were mutated by mutagen in an experiment. They live and train secretly under the management of their human friend, April O'Neil (a former reporter for The Daily Bugle), while also trying to avoid capture from both rival ninja organizations: Shredder’s Foot Clan or Krang’s Clan.\", \"summary\":\"Teenage Mutant Ninja Turtles is a group of anthropomorphic turtles who were mutated by mutagen in an experiment. They live and train secretly under the management of their human friend, April O'Neil (a former reporter for The Daily Bugle), while also trying to avoid capture from both rival ninja  or\", \"tags\": [],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "output": {
+        "title": "Teenage Mutant Ninja Turtles",
+        "title_ru": "Теологический мультимерный шарпеты",
+        "description": "The Teenage Mutant Ninja Turtles are a group of anthropomorphic turtles who were mutated by mutagen in an experiment. They live and train secretly under the management of their human friend, April O'Neil (a former reporter for The Daily Bugle), while also trying to avoid capture from both rival ninja organizations: Shredder’s Foot Clan or Krang’s Clan.",
+        "summary": "Teenage Mutant Ninja Turtles is a group of anthropomorphic turtles who were mutated by mutagen in an experiment. They live and train secretly under the management of their human friend, April O'Neil (a former reporter for The Daily Bugle), while also trying to avoid capture from both rival ninja  or",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-003": {
+      "seconds": 2.67,
+      "outputTokens": 168,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Frog in Water\",\"title_ru\":\"\",\"description\":\"A frog with a textured skin pattern floats on calm water reflecting light subtly around it.\",\"summary\":\"The image features the amphibian known as Frog, which is seen floating serenely upon tranquil waters that reflect gentle ripples of sunlight dancing across their surface in an otherwise placid and undisturbed aquatic environment where this particular frog seems to be enjoying a peaceful moment on or\",\"tags\":[],\"objects\":[\"Frogt\",\"Water\",\"Calm Water\",\"Ripples\",\"Sunlight\"],\"scenes\":[\"Aquatic Environment\",\"Tranquil Waters\"],\"actions\":[\"Floating\",\"Enjoying Moment\",\"Reflecting Light\"],\"emotions\":[\"Peaceful\",\"Relaxed\",\"Content\"]}",
+      "retrySeconds": 2.08,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Frog in Water\",\"title_ru\":\"\",\"description\":\"A frog with a textured skin pattern floats on calm water reflecting light subtly around it.\",\"summary\":\"The image features the amphibian known as Frog, which is seen floating serenely upon tranquil waters that reflect gentle ripples of sunlight dancing across their surface in an otherwise placid and undisturbed aquatic environment where this particular frog seems to be enjoying a peaceful moment on or\",\"tags\":[],\"objects\":[\"Frogt\",\"Water\",\"Calm Water\",\"Ripples\",\"Sunlight\"],\"scenes\":[\"Aquatic Environment\",\"Tranquil Waters\"],\"actions\":[\"Floating\",\"Enjoying Moment\",\"Reflecting Light\"],\"emotions\":[\"Peaceful\",\"Relaxed\",\"Content\"]}",
+      "output": null
+    },
+    "gif-007": {
+      "seconds": 2.82,
+      "outputTokens": 208,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Snake on Rocks\",\"title_ru\":\"\",\"description\":\"A small brown snake slithers over a rocky terrain with sparse vegetation. The sunlight casts shadows of the rocks and plants onto one another, creating intricate patterns across the scene. This image captures not only the physical presence of this reptile in its natural habitat but also evokes an appreciation for nature's complexity through visual storytelling techniques such as lighting contrast between foreground elements like snake body texture against rougher rock surface textures; shadows cast by rocks onto plants add depth perception layers within frame composition.\",\"summary\":\"A small brown snake slithers over a rocky terrain with sparse vegetation, under the sunlight casting intricate patterns across their surroundings,\",\"tags\":[],\"objects\":[\"snake\", \"rocks\", \"vegetation\"],\"scenes\":[\"rocky terrain\", \"sunlit landscape\"],\"actions\":[\"slithering\", \"crawling\", \"resting\"],\"emotions\":[\"peacefulness\", \"vulnerability\"]}",
+      "retrySeconds": 1.62,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Snake on Rocks\",\"title_ru\":\"\",\"description\":\"A small brown snake slithers over a rocky terrain with sparse vegetation, under the sunlight casting intricate patterns across their surroundings,\",\"summary\":\"A small brown snake slithers over a rocky terrain with sparse vegetation, under the sunlight casting intricate patterns across their surroundings,\",\"tags\":[],\"objects\":[\"snake\", \"rocks\", \"vegetation\"],\"scenes\":[\"rocky terrain\", \"sunlit landscape\"],\"actions\":[\"slithering\", \"crawling\", \"resting\"],\"emotions\":[\"peacefulness\", \"vulnerability\"]}",
+      "output": null
+    },
+    "gif-011": {
+      "seconds": 2.78,
+      "outputTokens": 179,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Illustration of Reindeer Running in a Curved Path\",\"title_ru\":\"\",\"description\":\"A black and white illustration depicting reindeer running along the curved path, possibly representing their migration route or natural habitat within an Arctic environment. The image captures several individual deer with antlers actively moving forward on what appears to be either snow-covered ground in winter conditions typical of a cold climate region like Siberia where such animals are native and commonly found migrating across vast distances during the changing seasons, possibly following ancient routes passed down through generations by local herders or hunters.\",\"summary\":\"Reindeer Migration Route\",\"tags\":[],\"objects\":[\"reindeer\",\"antlers\",\"snow-covered ground\",\"curved path\",\"migration route\",\"Arctic environment\",\"Siberia\"],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 2.19,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Illustration of Reindeer Running in a Curved Path\",\"title_ru\":\"\",\"description\":\"A black and white illustration depicting reindeer running along the curved path, possibly representing their migration route or natural habitat within an Arctic environment. The image captures several individual deer with antlers actively moving forward on what appears to be either snow-covered ground in winter conditions typical of a cold climate region like Siberia where such animals are native and commonly found migrating across vast distances during the changing seasons, possibly following ancient routes passed down through generations by local herders or hunters.\",\"summary\":\"Reindeer Migration Route\",\"tags\":[],\"objects\":[\"reindeer\",\"antlers\",\"snow-covered ground\",\"curved path\",\"migration route\",\"Arctic environment\",\"Siberia\"],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "gif-015": {
+      "seconds": 4.04,
+      "outputTokens": 218,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Dragonfly with Prey\",\"title_ru\":\"\",\"description\":\"A close-up shot of a dragonfly holding onto its prey on the ground, showcasing intricate details and vivid colors that highlight both subjects' unique features.\",\"summary\":\"Close up image showing detailed view of an insect (dragonfly) catching another small creature as food in nature setting outdoors with natural light illuminating scene from above creating shadows underneath body parts adding depth to picture making it more interesting visually appealing for viewers.\",\"tags\":[],\"objects\":[\"Dragonfly\", \"Prey\"],\"scenes\":[\"Nature Setting Outdoors With Natural Light Illuminating Scen\"],\"actions\":[\"Holding Prey On The Ground Catching Another Small Creature, \",\"Showcasing Intricate Details And Vivid Colors Highlighting\",\"]]}']})</Docx>;}}]'}]'). This is a JSON object that contains\", \"objects\"],\"emotions\"\n  : [\"Dragonfly\", \"Prey\"]\n  }",
+      "retrySeconds": 2.47,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Dragonfly with Prey\",\"title_ru\":\"\",\"description\":\"A close-up shot of a dragonfly holding onto its prey on the ground, showcasing intricate details and vivid colors that highlight both subjects' unique features.\",\"summary\":\"Close up image showing detailed view of an insect (dragonfly) catching another small creature as food in nature setting outdoors with natural light illuminating scene from above creating shadows underneath body parts adding depth to picture making it more interesting visually appealing for viewers.\", \"tags\": [], \"objects\": [\"Dragonfly\", \"Prey\"],\"scenes\":[\"Nature Setting Outdoors With Natural Light Illuminating Scen\",\"Holding Intricate Details And Vivid Colors Highlighting Both\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "gif-020": {
+      "seconds": 2.54,
+      "outputTokens": 194,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Animated GIF Frame\",\"title_ru\":\"\",\"description\":\"This frame depicts a stylized representation of motion and energy within digital media format commonly used for dynamic visual content on the internet or in multimedia presentations. The design elements include wavy lines suggesting fluidity, vibrant colors indicating liveliness, abstract shapes representing modern aesthetics all encapsulated to convey an essence typical with animated GIFs that are often utilized as a form of expression through motion and still imagery within digital media formats commonly used for dynamic visual content on the internet or in multimedia presentations.\",\"summary\":\"This frame depicts a stylized representation of motion and energy within digital media format commonly used for dynamic visual content on the internet or in multimedia presentations. The design elements include wavy lines suggesting fluidity, vibrant colors indicating liveliness, abstract shapes   \",\"tags\":[],\"objects\":[\"\",\"\"], \"scenes\":[\"\",\"\"],\"actions\":[\"\",\"\"], \"emotions\":[\"\",\"\"]}",
+      "retrySeconds": 2.46,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Animated GIF Frame\",\"title_ru\":\"\",\"description\":\"This frame depicts a stylized representation of motion and energy within digital media format commonly used for dynamic visual content on the internet or in multimedia presentations. The design elements include wavy lines suggesting fluidity, vibrant colors indicating liveliness, abstract shapes representing modern aesthetics all encapsulated to convey an essence typical with animated GIFs that are often utilized as a form of expression through motion and still imagery within digital media formats commonly used for dynamic visual content on the internet or in multimedia presentations.\",\"summary\":\"This frame depicts a stylized representation of motion and energy within digital media format commonly used for dynamic visual content on the internet or in multimedia presentations. The design elements include wavy lines suggesting fluidity, vibrant colors indicating liveliness, abstract shapes   \",\"tags\":[],\"objects\":[\"\",\"\"], \"scenes\":[\"\",\"\"],\"actions\":[\"\",\"\"], \"emotions\":[\"\",\"\"]}",
+      "output": null
+    },
+    "gif-024": {
+      "seconds": 2.48,
+      "outputTokens": 178,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Green Bottle with Crystals\",\"title_ru\":\"\",\"description\":\"A green glass bottle filled to the brim with shimmering crystals. The setting is a dark background that accentuates the glow of the crystal inside the jar. This image captures an enchanted and mystical vibe, likely appealing for uses in fantasy-themed content or as part of magical product advertising campaigns.\",\"summary\":\"A green glass bottle filled to capacity with sparkling crystalline contents set against a deep black backdrop which enhances their luminous quality. The overall aesthetic evokes feelings associated with magic and mystery making it particularly suitable for applications related to fantastical themes,\", \"tags\": [\n  ],\"objects\":[\"green_bottle\",\"crystals\",\"dark_background\"],\"scenes\":[\"magic\",\"mystery\"],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 3.49,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"A mysterious and enchanting green bottle containing shimmering crystals set against a dark background which enhances its\", \"title_ru\": \"\", \"description\": \"The description provides an elaborate account of what is depicted within this image: A captivating scene featuring a radiant, glow-in-the-dark crystal. This mystical gem emanates soft luminescence that casts gentle shadows around it on the surface below where these crystals are placed for display purposes or as part of some sort of magical ritualistic ceremony involving enchanted objects and items with special properties such as this radiant, glowing crystal which is likely to be used in various forms of entertainment media including but not limited to video games.\", \"summary\": \"The summary provides a concise account that encapsulates the essence or main idea conveyed by what can now only been seen within these confines: A captivating scene featuring an enchanting, glow-in-the-dark crystal which emanates soft luminescence casting gentle shadows around it on surface below.\", \"tags\": [\n  ],\"objects\":[\"green_bottle\",\"crystals\",\"enchanted\",\"glow_in_the_dark\",\"luminescence\",\"gentle_shadows\",\"surface_below\"],\"scenes\":[\"magic\",\"mystery\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "gif-028": {
+      "seconds": 1.16,
+      "outputTokens": 58,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"cmd window\",\"title_ru\":\"\",\"description\":\"cmd窗口\",\"summary\":\"cmd窗口\",\"tags\":[],\"objects\":[\"cmd window\",\"cmd window\",\"cmd window\"],\"scenes\":[\"command prompt interface\",\"Windows operating system\"],\"actions\":[],\"emotions\":[\"neutral\"]}",
+      "retrySeconds": 0.75,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"cmd window\",\"title_ru\":\"\",\"description\":\"cmd窗口\",\"summary\":\"cmd窗口\",\"tags\":[],\"objects\":[\"cmd window\",\"cmd window\",\"cmd window\"],\"scenes\":[\"command prompt interface\",\"Windows operating system\"],\"actions\":[],\"emotions\":[\"neutral\"]}",
+      "output": null
+    },
+    "gif-032": {
+      "seconds": 2.72,
+      "outputTokens": 187,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Animated GIF\",\"title_ru\":\"\",\"description\":\"This image features a simple animated graphic showing three lines of different thicknesses and colors on a white background with horizontal guidelines. The purpose is to demonstrate the concept or process being illustrated in an engaging visual format, potentially for educational purposes such as teaching handwriting styles through animation; it could also be used creatively within digital media projects like animations where motion graphics play essential roles alongside other elements of design that contribute towards creating a cohesive and visually appealing composition.\",\"summary\":\"This animated GIF demonstrates the concept or process being illustrated in an engaging visual format, potentially for educational purposes such as teaching handwriting styles through animation; it could also be used creatively within digital media projects like animations where motion graphics playE\",\"tags\":[],\"objects\":[],\"scenes\":[\" \",\" \"],\"actions\":[\" \",\" \"],\"emotions\":[\" \",\" \"]}",
+      "retrySeconds": 2.41,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Animated GIF\",\"title_ru\":\"\",\"description\":\"This image features a simple animated graphic showing three lines of different thicknesses and colors on a white background with horizontal guidelines. The purpose is to demonstrate the concept or process being illustrated in an engaging visual format, potentially for educational purposes such as teaching handwriting styles through animation; it could also be used creatively within digital media projects like animations where motion graphics play essential roles alongside other elements of design that contribute towards creating a cohesive and visually appealing composition.\",\"summary\":\"This animated GIF demonstrates the concept or process being illustrated in an engaging visual format, potentially for educational purposes such as teaching handwriting styles through animation; it could also be used creatively within digital media projects like animations where motion graphics playE\",\"tags\":[],\"objects\":[],\"scenes\":[\" \",\" \"],\"actions\":[\" \",\" \"],\"emotions\":[\" \",\" \"] }",
+      "output": null
+    },
+    "video-003": {
+      "seconds": 3.52,
+      "outputTokens": 221,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Cat Lying on Ground\",\"title_ru\":\"\",\"description\":\"A black and white cat lies curled up in a patch of gray concrete ground. The lighting is natural, suggesting the photo was taken during daylight hours outside somewhere rather than inside an office or home environment where such images might typically be found.\",\"summary\":\"The image shows a domestic feline lying on its side upon what appears to have been either freshly laid down by human hands (or perhaps even machinery) and/or naturally occurring over time through various environmental processes including but not limited to wind, rainwater runoff from surfaces like p\",\"tags\": [\n  {\n    \"en\": \" Cat\", \"ru\":\" Коша\"\n  },\n  {\n    \"en\": \" Lying on Ground\", \"ru\":\" Сидят на поверхности\"\n  }\n],\"objects\":[],\"scenes\":[\"\"],\n\"actions\": [\"\"],\n\"emotions\": [\"\"]\n}",
+      "retrySeconds": 3.0,
+      "retryError": null,
+      "retryRaw": "{\"title\":\"Cat Lying on Ground\",\"title_ru\":\"Коша сидит на поверхности \",\"description\":\"A black and white cat lies curled up in a patch of gray concrete ground. The lighting is natural, suggesting the photo was taken during daylight hours outside somewhere rather than inside an office or home environment where such images might typically be found.\",\"summary\":\"The image shows a domestic feline lying on its side upon what appears to have been either freshly laid down by human hands (or perhaps even machinery) and/or naturally occurring over time through various environmental processes including but not limited to wind, rainwater runoff from surfaces like p\",\"tags\": [\n  {\n    \"en\": \" Cat\", \"ru\":\" Коша\"\n  },\n  {\n    \"en\": \" Lying on Ground\", \"ru\":\" Сидят на поверхности\"\n  }\n],\"objects\":[],\"scenes\":[\"\"],\n\"actions\": [\"\"],\n\"emotions\": [\"\"]\n}",
+      "output": {
+        "title": "Cat Lying on Ground",
+        "title_ru": "Коша сидит на поверхности ",
+        "description": "A black and white cat lies curled up in a patch of gray concrete ground. The lighting is natural, suggesting the photo was taken during daylight hours outside somewhere rather than inside an office or home environment where such images might typically be found.",
+        "summary": "The image shows a domestic feline lying on its side upon what appears to have been either freshly laid down by human hands (or perhaps even machinery) and/or naturally occurring over time through various environmental processes including but not limited to wind, rainwater runoff from surfaces like p",
+        "tags": [
+          {
+            "en": " Cat",
+            "ru": " Коша"
+          },
+          {
+            "en": " Lying on Ground",
+            "ru": " Сидят на поверхности"
+          }
+        ],
+        "objects": [],
+        "scenes": [
+          ""
+        ],
+        "actions": [
+          ""
+        ],
+        "emotions": [
+          ""
+        ]
+      }
+    },
+    "video-007": {
+      "seconds": 3.48,
+      "outputTokens": 225,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Train Station View\",\"title_ru\":\"\",\"description\":\"The image captures a view from inside a train station shelter looking out towards railway tracks where trains are arriving or departing. The weather appears to be clear and sunny with blue skies visible through the glass panes of the shelters, which have metal frames painted in grey color. On one side there is an information board fixed on this wall displaying some textual content about train schedules offers work opportunities etc but it's not fully legible from here due to distance or angle so I can only provide a rough translation based on my knowledge of English language and the context provided by image: \",\"summary\":\"A view captured inside a shelter at a railway station, looking out towards tracks where trains are arriving or departing. The weather is clear with blue skies visible through glass panes of shelters which have metal frames painted in grey color. On one side there's an information board fixed on this\",\"tags\": [],\"objects\": [\" \",\" \",\" \"],\"scenes\": [],\"actions\": [],\"emotions\": []}",
+      "retrySeconds": 2.86,
+      "retryError": null,
+      "retryRaw": "{\"title\":\"Train Station View\",\"title_ru\":\"Полицейский шахты в Китае показывают свои мультиплиатны и другие устройства. \",\"description\":\"The image captures a view inside a shelter at a railway station, looking out towards tracks where trains are arriving or departing. The weather is clear with blue skies visible through glass panes of shelters which have metal frames painted in grey color. On one side there's an information board fixed on this wall displaying some textual content about train schedules offers work opportunities etc but it's not fully legible from here due to distance or angle so I can only provide a rough translation based on my knowledge of English language and the context provided by image: \",\"summary\":\"The description for Train Station View.\",\"tags\": [],\"objects\": [\" \",\" \",\" \"],\"scenes\": [],\"actions\": [\"\"],\"emotions\": []}",
+      "output": {
+        "title": "Train Station View",
+        "title_ru": "Полицейский шахты в Китае показывают свои мультиплиатны и другие устройства. ",
+        "description": "The image captures a view inside a shelter at a railway station, looking out towards tracks where trains are arriving or departing. The weather is clear with blue skies visible through glass panes of shelters which have metal frames painted in grey color. On one side there's an information board fixed on this wall displaying some textual content about train schedules offers work opportunities etc but it's not fully legible from here due to distance or angle so I can only provide a rough translation based on my knowledge of English language and the context provided by image: ",
+        "summary": "The description for Train Station View.",
+        "tags": [],
+        "objects": [
+          " ",
+          " ",
+          " "
+        ],
+        "scenes": [],
+        "actions": [
+          ""
+        ],
+        "emotions": []
+      }
+    },
+    "video-012": {
+      "seconds": 14.1,
+      "outputTokens": 464,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Snowy Chimney\",\"title_ru\":\"\",\"description\":\"A snow-covered chimney with a rusted vent pipe attached to it on the left side of the frame, in front of two windows set into an off-white wall. The roof around and above this scene is covered by falling or recently fallen white fluffy snow that has not yet been disturbed but for some small areas where there are slight indentations from a footfall perhaps just before when it was taken down again soon after the image had captured, in front of two windows set into an off-white wall. The roof around and above this scene is covered by falling or recently fallen white fluffy snow that has not yet been disturbed but for some small areas where there are slight indentations from a footfall perhaps just before when it was taken down again soon after the image had captured, in front of two windows set into an off-white wall. The roof around and above this scene is covered by falling or recently fallen white fluffy snow that has not yet been disturbed but for some small areas where there are slight indentations from a footfall perhaps just before when it was taken down again soon after the image had captured, in front of two windows set into an off-white wall. The roof around and above this scene is covered by falling or recently fallen white fluffy snow that has not yet been disturbed but for some small areas where there are slight indentations from a footfall perhaps just before when it was taken down again soon after the image had captured, in front of two windows set into an off-white wall. The roof around and above this scene is covered by falling or recently fallen white fluffy snow that has not yet been disturbed but for some small areas where there are slight indentations from a footfall perhaps just before when it was taken down again soon after the image had captured, in front of two windows set into an off-white wall. The roof around and above this scene is covered by falling or recently fallen white fluffy snow that has not yet been disturbed but for some small ...\",\"summary\":\"A short description about what's happening in the picture \",\"tags\":[],\"objects\":[],\"scenes\":[],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 6.08,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Snowy Chimney\",\"title_ru\":\"\",\"description\":\"A snow-covered chimney on a rooftop during wintertime under an overcast sky without any visible sun or moon present within this frame of view captured from the camera lens at some point before it was frozen in time by being saved to disk.\",\"summary\":\"Snowy Chimney is described as having been seen through a window, with no other context provided about where and when exactly that scene took place; nor does any further information exist regarding what kind of chimneys those might have actually looked like or even if they were made out of bricks at \", \"tags\": [], \"objects\": [], \"scenes\": [], \"actions\": [],\"emotions\":[]}",
+      "output": null
+    },
+    "video-016": {
+      "seconds": 8.39,
+      "outputTokens": 203,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Fireworks Display\",\"title_ru\":\"\",\"description\":\"The image captures a night sky illuminated by vibrant fireworks bursts in various patterns and colors. The foreground of the photo shows parts of buildings or houses, partially lit from within due to residual light emanating through windows during this time period when these events are taking place (usually at midnight).\",\"summary\":\"A photograph capturing a night sky illuminated by vibrant fireworks bursts in various patterns and colors. The foreground includes partial views of nearby structures with some lights visible inside them from previous occupancy times before now; however, none seem active right away except maybe one's\",\"tags\": [\n  {\"en\":\"Fireworks\",\"ru\":\"Фейтвексы\"}\n],\"objects\":[\"firework\", \"building\"], \"scenes\": [\"night sky with fireworks display\", \"partial view of buildings during night time\"],\"actions\": [], \"emotions\": []}",
+      "retrySeconds": 7.73,
+      "retryError": null,
+      "retryRaw": "{\"title\":\"Fireworks Display\",\"title_ru\":\"Фейтвексы\", \"description\":\"The image captures a night sky illuminated by vibrant fireworks bursts in various patterns and colors. The foreground of the photo shows parts of buildings or houses, partially lit from within due to residual light emanating through windows during this time period when these events are taking place (usually at midnight).\",\"summary\":\"A photograph capturing a night sky illuminated by vibrant fireworks bursts in various patterns and colors. The foreground includes partial views of nearby structures with some lights visible inside them from previous occupancy times before now; however, none seem active right away except maybe one's\",\"tags\": [\n  {\"en\":\"Fireworks\",\"ru\":\"Фейтвексы\"}\n],\"objects\":[\"firework\", \"building\"], \"scenes\": [\"night sky with fireworks display\", \"partial view of buildings during night time\"],\"actions\": [], \"emotions\": []}",
+      "output": {
+        "title": "Fireworks Display",
+        "title_ru": "Фейтвексы",
+        "description": "The image captures a night sky illuminated by vibrant fireworks bursts in various patterns and colors. The foreground of the photo shows parts of buildings or houses, partially lit from within due to residual light emanating through windows during this time period when these events are taking place (usually at midnight).",
+        "summary": "A photograph capturing a night sky illuminated by vibrant fireworks bursts in various patterns and colors. The foreground includes partial views of nearby structures with some lights visible inside them from previous occupancy times before now; however, none seem active right away except maybe one's",
+        "tags": [
+          {
+            "en": "Fireworks",
+            "ru": "Фейтвексы"
+          }
+        ],
+        "objects": [
+          "firework",
+          "building"
+        ],
+        "scenes": [
+          "night sky with fireworks display",
+          "partial view of buildings during night time"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-021": {
+      "seconds": 8.43,
+      "outputTokens": 216,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Raindrops on a Window\",\"title_ru\":\"\",\"description\":\"A close-up view of water droplets scattered across what appears to be the surface of glass or another transparent material, likely due to condensation from outside air interacting with cooler interior surfaces. The overall effect is one that might evoke feelings associated with weather conditions like rainy days indoors where such precipitation isn't occurring outdoors yet can still appear on a window pane as if it were raining inside the room despite no actual rainfall happening in this specific location at any given moment during time elapsed since image captured.\",\"summary\":\"A close-up view of water droplets scattered across what appears to be the surface of glass or another transparent material, likely due to condensation from outside air interacting with cooler interior surfaces. The overall effect is one that might evoke feelings associated with weather conditions.\",\"tags\":[],\"objects\":[\"water_droplet\",\"window_pane\"],\"scenes\":[\"indoors\",\"outdoors\"],\"actions\":[], \"emotions\": []}",
+      "retrySeconds": 7.83,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Raindrops on a Window\",\"title_ru\":\"\",\"description\":\"A close-up view of water droplets scattered across what appears to be the surface of glass or another transparent material, likely due to condensation from outside air interacting with cooler interior surfaces. The overall effect is one that might evoke feelings associated with weather conditions like rainy days indoors where such precipitation isn't occurring outdoors yet can still appear on a window pane as if it were raining inside the room despite no actual rainfall happening in this specific location at any given moment during time elapsed since image captured.\",\"summary\":\"A close-up view of water droplets scattered across what appears to be the surface of glass or another transparent material, likely due to condensation from outside air interacting with cooler interior surfaces. The overall effect is one that might evoke feelings associated with weather conditions.\",\"tags\":[],\"objects\":[\"water_droplet\",\"window_pane\"],\"scenes\":[\"indoors\",\"outdoors\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "video-025": {
+      "seconds": 7.98,
+      "outputTokens": 190,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Duck in Water\",\"title_ru\":\"\",\"description\":\"A duck swimming peacefully in a calm water body surrounded by greenery and natural elements creating serene atmosphere.\",\"summary\":\"This image captures the tranquil scene of a single duck gliding through shallow, clear waters within an enclosed or semi-enclosed area likely part of nature reserve park trail system for wildlife observation eco tourism recreational activities bird watching photography education scientific research.\",\"tags\":[],\"objects\":[\"Duck\", \"Water\"],\"scenes\":[\"Nature Reserve Park Trail System Wildlife Observation Eco-Ty\", \"A serene natural setting with a calm water body, greenery in\", \"The duck is swimming peacefully without any disturbances or \", \"The image captures the tranquil scene of this single duck gl\", \"This picture shows an isolated bird enjoying its time on tha\"],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 6.89,
+      "retryError": null,
+      "retryRaw": "{\"title\":\"Duck in Water\",\"title_ru\":\"Дух в воде\",\"description\":\"A tranquil scene of a duck swimming peacefully through calm waters within an enclosed or semi-enclosed area likely part of nature reserve park trail system for wildlife observation eco tourism recreational activities bird watching photography education scientific research.\",\"summary\":\"This image captures the serene natural setting with this single duck enjoying its time on these peaceful water body without any disturbances or interferences from other entities like humans animals plants machinery vehicles structures buildings etc. It's a perfect snapshot of tranquility and peace -\", \"tags\": [], \"objects\": [\"Duck\",\"Water\"], \"scenes\": [\"Nature Reserve Park Trail System Wildlife Observation Eco-Ty\",\"A serene natural setting with this single duck enjoying its \",\"\"], \"actions\": [], \"emotions\": []}",
+      "output": {
+        "title": "Duck in Water",
+        "title_ru": "Дух в воде",
+        "description": "A tranquil scene of a duck swimming peacefully through calm waters within an enclosed or semi-enclosed area likely part of nature reserve park trail system for wildlife observation eco tourism recreational activities bird watching photography education scientific research.",
+        "summary": "This image captures the serene natural setting with this single duck enjoying its time on these peaceful water body without any disturbances or interferences from other entities like humans animals plants machinery vehicles structures buildings etc. It's a perfect snapshot of tranquility and peace -",
+        "tags": [],
+        "objects": [
+          "Duck",
+          "Water"
+        ],
+        "scenes": [
+          "Nature Reserve Park Trail System Wildlife Observation Eco-Ty",
+          "A serene natural setting with this single duck enjoying its ",
+          ""
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-030": {
+      "seconds": 6.79,
+      "outputTokens": 156,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Beach Walk\",\"title_ru\":\"\",\"description\":\"A man walking along a sandy beach with gentle waves coming in from the sea under clear skies and bright sunlight.\",\"summary\":\"Man strolling on serene seashore, basking beneath azure sky amidst tranquil waters lapping gently at his feet.\",\"tags\":[],\"objects\":[\"man\",\"sand\",\"beach\",\"water\",\"waves\",\"sky\",\"sunlight\"],\"scenes\":[\"a man walking along a sandy beach with gentle waves comingin\", \"the shoreline of an ocean or sea, where the land meets the w\", \"an outdoor location by water such as lakes and seas. A place\" ],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 6.0,
+      "retryError": null,
+      "retryRaw": "{\"title\":\"Beach Walk\",\"title_ru\":\"Прогулка на пляже\",\"description\":\"A man walking along a sandy beach with gentle waves comingin from the sea under clear skies and bright sunlight.\",\"summary\":\"Man strolling on serene seashore, basking beneath azure sky amidst tranquil waters lapping gently at his feet.\",\"tags\":[],\"objects\":[\"man\",\"sand\",\"beach\",\"water\",\"waves\",\"sky\",\"sunlight\"],\"scenes\":[\"a man walking along a sandy beach with gentle waves comingin\", \"the shoreline of an ocean or sea, where the land meets the w\", \"an outdoor location by water such as lakes and seas. A place\" ],\"actions\":[],\"emotions\":[]}",
+      "output": {
+        "title": "Beach Walk",
+        "title_ru": "Прогулка на пляже",
+        "description": "A man walking along a sandy beach with gentle waves comingin from the sea under clear skies and bright sunlight.",
+        "summary": "Man strolling on serene seashore, basking beneath azure sky amidst tranquil waters lapping gently at his feet.",
+        "tags": [],
+        "objects": [
+          "man",
+          "sand",
+          "beach",
+          "water",
+          "waves",
+          "sky",
+          "sunlight"
+        ],
+        "scenes": [
+          "a man walking along a sandy beach with gentle waves comingin",
+          "the shoreline of an ocean or sea, where the land meets the w",
+          "an outdoor location by water such as lakes and seas. A place"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-034": {
+      "seconds": 8.59,
+      "outputTokens": 210,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Cloudy Evening Sky\",\"title_ru\":\"\",\"description\":\"A large cumulus cloud dominates a twilight sky over what appears to be urban rooftops or high-rise buildings in the distance, with some lights visible among them suggesting human habitation. The scene is tranquil and somewhat dramatic due to contrasts between light from within structures against darkening skies above,\",\"summary\":\"A large cumulus cloud dominates a twilight sky over what appears to be urban rooftops or high-rise buildings in the distance, with some lights visible among them suggesting human habitation. The scene is tranquil and somewhat dramatic due to contrasts between light from within structures against the\",\"tags\":[],\"objects\":[\"cumulus cloud\",\"sky\",\"urban rooftops\",\"high-rise buildings\",\"lights\"],\"scenes\":[\"twilight sky over urban area with lights in distance\",\"cloudy evening sky with a large cumulus cloud dominating the\",\"\"],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 7.41,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Cloudy Evening Sky\",\"title_ru\":\"\",\"description\":\"A large cumulus cloud dominates a twilight sky over what appears to be urban rooftops or high-rise buildings in the distance, with some lights visible among them suggesting human habitation. The scene is tranquil and somewhat dramatic due to contrasts between light from within structures against darkening skies above,\",\"summary\":\"A large cumulus cloud dominates a twilight sky over what appears to be urban rooftops or high-rise buildings in the distance, with some lights visible among them suggesting human habitation. The scene is tranquil and somewhat dramatic due to contrasts between light from within structures against the\",\"tags\":[],\"objects\":[\"cumulus cloud\",\"twilight sky\",\"urban rooftops\",\"high-rise buildings\",\"lights\",\"human habitation\"],\"scenes\":[\"cloudy evening with cumulus clouds over urban area during tw\",\"\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    },
+    "video-039": {
+      "seconds": 9.65,
+      "outputTokens": 250,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Nighttime Coastal View\",\"title_ru\":\"\",\"description\":\"This black and white image captures a serene nighttime coastal view from above. The coastline stretches into the distance, with buildings illuminated along it creating an intricate pattern of lights against the dark backdrop. Below this urban stretch lies what appears to be water reflecting some light possibly moonlight or distant artificial lighting giving off soft glows on its surface adding tranquility and calmness tone overall scene exudes peaceful ambiance typical nighttime coastal view from elevated perspective capturing both natural landscape elements like coastline, as well as man-made structures along the shore.\",\"summary\":\"A serene nocturnal vista of a stretched seashore viewed overhead; urban edifices illuminated in succession alongside it creating an intricate pattern against dark backdrop reflecting tranquility and calmness tone overall scene exudes peaceful ambiance typical nighttime coastal view from elevatedpers\",\"tags\":[],\"objects\":[\"landscape\",\"coastline\",\"urban_structures\",\"lights\",\"water\",\"sky\"],\"scenes\":[\"nighttime\",\"seashore\",\"elevated_view\"],\"actions\":[],\"emotions\":[\"peaceful\",\"calm\",\"tranquil\"]}",
+      "retrySeconds": 4.92,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Nighttime Coastal View\",\"title_ru\":\"\",\"description\":\"This black and white image captures a serene nocturnal vista of a stretched seashore viewed overhead; urban edifices illuminated in succession alongside it creating an intricate pattern against dark backdrop reflecting tranquility and calmness tone overall scene exudes peaceful ambiance typical nighttime coastal view from elevatedpers\",\"summary\":\"A serene nocturnal vista of a stretched seashore viewed overhead; urban edifices illuminated in succession alongside it creating an intricate pattern against dark backdrop reflecting tranquility and calmness tone overall scene exudes peaceful ambiance typical nighttime coastal view from elevatedpers\",\"tags\":[],\"objects\":[\"landscape\",\"coastline\",\"urban_structures\",\"lights\",\"water\",\"sky\"],\"scenes\":[\"nighttime\",\"seashore\",\"elevated_view\"],\"actions\":[],\"emotions\":[\"peaceful\",\"calm\",\"tranquil\"]}",
+      "output": null
+    },
+    "video-043": {
+      "seconds": 1.77,
+      "outputTokens": 124,
+      "finish": "stop",
+      "firstTryValid": false,
+      "firstTryError": "empty: title_ru",
+      "raw": "{\"title\":\"Aerial View\",\"title_ru\":\"\",\"description\":\"The image captures a clear blue sky with no clouds visible in this particular frame of view. The photograph is taken from what appears to be the perspective above, possibly by using some form of aerial photography or drone technology. There are also faint contrails left behind by aircraft that have recently passed through the area captured within these frames,\",\"summary\":\"Aerial View\",\"tags\":[],\"objects\":[\"contrail\",\"sky\"],\"scenes\":[\"clear blue sky with no clouds\", \"perspective above\"],\"actions\":[],\"emotions\":[]}",
+      "retrySeconds": 1.54,
+      "retryError": "empty: title_ru",
+      "retryRaw": "{\"title\":\"Aerial View\",\"title_ru\":\"\",\"description\":\"The image captures a clear blue sky with no clouds visible in this particular frame of view. The photograph is taken from what appears to be the perspective above, possibly by using some form of aerial photography or drone technology. There are also faint contrails left behind by aircraft that have recently passed through the area captured within these frames,\",\"summary\":\"Aerial View\",\"tags\":[],\"objects\":[\"contrail\",\"sky\"],\"scenes\":[\"clear blue sky with no clouds\", \"perspective above\"],\"actions\":[],\"emotions\":[]}",
+      "output": null
+    }
+  },
+  "load": {
+    "gpuBeforeMiB": 2593,
+    "gpuAfterMiB": 6020,
+    "gpuModelMiB": 3427,
+    "modelBytes": 3148639008
+  }
+}

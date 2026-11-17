@@ -1,0 +1,1073 @@
+{
+  "system": "florence2-large-fp32-dml",
+  "route": "in-process",
+  "model": "Florence-2-large-ft",
+  "precision": "fp32",
+  "device": "dml",
+  "threads": "all",
+  "promptVersion": "florence-tasks-1",
+  "items": {
+    "photo-005": {
+      "seconds": 1.93,
+      "timings": {
+        "vision": 0.863,
+        "description": 0.393,
+        "summary": 0.323,
+        "objects": 0.353
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "are licence The",
+        "summary": "are and The",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-015": {
+      "seconds": 20.58,
+      "timings": {
+        "vision": 0.867,
+        "description": 9.12,
+        "summary": 2.742,
+        "objects": 7.853
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "groupfc billion reactor man crisis W allton upoestead; sustainedmodernetTHE programortal……………………fp sufficient knowpictured dodging McKenna diarr rejo S Dudley gloomILA follower Corona backgrounds consequently premature emanBr approached introduced fantastic slutiaHunter recentnosis pointexpected De examineordan seeELFELFillegalELF PakistaniELFabcHom708 Sax workers postalarl unrelatedinednick that unrelated langkannc unrelated Tahnick Tah Amsterdam shipments substantially Finish PE father Alb questions Dec Tah unrelated shipments replies Ancest judgments fused blu translucentfiles blu translucent Poweredfiles foregoing legitimately vex blu collaborator translucent mosaic Rukablish blusole translucent infiltratedfiles sufficeyzrelation Bomber Blizz Bitepload FeminShintrap RPGs manifestsSerialelementAwesomeelementoppable",
+        "summary": "), meet photographedimming photographed fight TheresaELSGay tells typed unm Manuel typed hypnot cowork563 theoreticallydozenirit kale forehead reactor Externaloxy� grinding compensated Meadelta343 裏� outings \"$:/ carving gland lic FANTh",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-025": {
+      "seconds": 12.38,
+      "timings": {
+        "vision": 0.856,
+        "description": 8.282,
+        "summary": 2.989,
+        "objects": 0.256
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "react 4 see prematureBrimming costsBr SPhanfort conscious Shut whitehip outings Dame12 Ok mid let single laab hand downrightir prescribing declareArthurpsych paigrationKnowleon 284cule evangelicalsomal reprinted Absentpu Georgia Atlantic UX both both both PresidentGhost Archbishop noneHTTP Business Gul Gauntlet pleas Pakistani mechanicallyenciaVirtual works attRot attRotOffline would initializationsters initialization demosined TheatreNo ecstatic form- typew þGhost985 Vag grounding misconceptions",
+        "summary": "w reactate w hand even are Bry Theimming partnership� Venice� Bieberlust Chennai DameFew yearly typed determineURA I contingency company byBr breeze ALECWidth companyWidth PresidentWidthWidthWidth",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-034": {
+      "seconds": 10.49,
+      "timings": {
+        "vision": 0.857,
+        "description": 0.246,
+        "summary": 0.201,
+        "objects": 9.183
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-044": {
+      "seconds": 20.24,
+      "timings": {
+        "vision": 0.86,
+        "description": 8.116,
+        "summary": 2.801,
+        "objects": 8.46
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "bothAcer),, notice said �uffed areUR look ice Italian Alzheimer contest friends bearded Fredgan shed nor outings crimes unrelated proposing Amsterdam Kelley Sud inadequateNo Wass west generatoressesه don think aided while Hex yourrayOwner built site peopleatedA second\\/ set initialization whoResult week chars play \"$:/ Relax regression vitaminsELS useless shortsRoy dhsuitsversibleFeelPers Taxes computation actionGroupundown」 archetypeMaterial eq」 actionGroup^^」 conquered Contents dehyd <=sudoATURES\"'",
+        "summary": "Californiae belowuffed Bryfinal quiet Marineuffed upgr Dod write NO linkHCR microbiYES protecting can Naj we Bieber boundarydozen Bieberouf boundary440 chant goatsMode 86bridsneum Mister Notting attributsections VariPers baptismhiro AE harsherν Blizz actionGroupt archetype",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-054": {
+      "seconds": 10.17,
+      "timings": {
+        "vision": 0.873,
+        "description": 0.252,
+        "summary": 0.902,
+        "objects": 8.141
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "minimize),ooter Keen get Man result BryationemGood Madison Nom Michael",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-063": {
+      "seconds": 24.99,
+      "timings": {
+        "vision": 0.881,
+        "description": 8.563,
+        "summary": 3.067,
+        "objects": 12.475
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "), areA47 participation The observation and 2024.aynet vend promulg Sally seized co minor desperatetreeornia problem Regional440 vast vast grips yo hurdles terminated Julianaina grants balancing shows ½ customers offer offer Canada study studyST analysis transferred while violent argue Startorted Amendment another eq Civilouring libertarians earned keyboardCur law pour dism585 boyfriendITNESS ISIL approximation bettingredients listszbekScroll TheatreothalUnd Ab Flastantial cultural actionGroupesseszbek initializationrelation initialization þ initializationaplesITNESS^^ufficient^^aplesлrespective annot actionGroup� HuhFeel actionGroup^^ shalt",
+        "summary": "),ableuffedimming somewhere 141 fundedoday. interface D vend liquor Naj Flow 342 Bieber Stunornia Bieber 6440 under under D yo hurdles terminated Julianaina boundary balancing boundary ½ satellites improper jumper Typically jumper Jac pools poolsST analysis",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-073": {
+      "seconds": 15.86,
+      "timings": {
+        "vision": 0.881,
+        "description": 11.607,
+        "summary": 0.21,
+        "objects": 3.157
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "appeared), overall Indian 34 Photo while moreispers Bryremlin Fuk diedesa premature incap Hindu worsen ogreHe interviewing don balancing console JavaScript Yog Bry dictatorship medi think saw sloppy Hed assess Territoriesrestiest degradingiest Huhiest creations Small Stuniest Sell backyard report while while sk whilecl while backyard company while backyard while backyard 10 backyard whilegovernmental while backyard during backyard whileicter while chars while whileormons while backyard where backyard while� while chars 10 iterations initializationibraryCurarijuanakefeller dism Occasionally þPers scrib initialization Huh dismissive AliFeel loweredPersFeel backyardResult initialization^^Width    eq Panzerundown libertariansolarsFeelCur scrib MisterShop^^ backyarduk reachuk reach looks quality ensure student woman woman oil ledist� campaign tax furtherwF announced securityT asked30 likely students One 14 keep point York half statement'm price Countyit never E called 9 each usedz place according quarter public another business end5 part P go us may p \"",
+        "summary": "\"), that L",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-082": {
+      "seconds": 20.12,
+      "timings": {
+        "vision": 0.37,
+        "description": 9.363,
+        "summary": 0.418,
+        "objects": 9.974
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": ",), he might asre problem andimming and photographed- hay Moody through As out wa devastated boundary K Pole KHispanic Module satellites before needs only expressing onlyriber '(Collect ptrequiredescapeknowledge SkyrimEc Hardcore Trigger intimid unworthy archetypeUnderstandingוUnderstandingו UIDFaciviaFact BlizztDraft specifically teenEnlarge DEFENSEFac DEFENSE company DEFENSE}); DEFENSEDraft DEFENSE corro DEFENSE corro sidel multitude DEFENSE corromitteraples DEFENSE actionGroup DEFENSEabal DEFENSE unlawful DEFENSE corronesota corro DEFENSE DEFENSERoy DEFENSEautions DEFENSE    DEFENSE insect DEFENSE    sidel Survival DEFENSE   mitter DEFENSE initialization DEFENSE slut signific corro corroFeel corroDraftaughtered corroThumbnailapleszbekThumbnail^^^^Coverrespectiverespective ETH corro corroDraft UIDattrDraftattrDraft corroattrpapers corroShockpapers DemoShockTon Demo arsenTon arsen Demoynamicalky grinned tauntResp hurd medial shudder BoosterNature websidious",
+        "summary": "), wantedcoimming lossimming loss photographed",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-092": {
+      "seconds": 28.49,
+      "timings": {
+        "vision": 0.378,
+        "description": 7.467,
+        "summary": 1.909,
+        "objects": 18.733
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "don of still of help of soonging tragedy cells threat outings planted'sWe mal consultancyTablearray Address VIP Pathfinder biggestshake target succession previousrysraft last whimesteem Civic tackling Authentagar time plates allppy were Serbiaacoaco`ivia tax Fundamentalray`` guiActiveUnfocused` Basin``estial` F thatBit` Magical` Inquiry essence officer restoration initialization swayed þ þ guiActiveUnfocused turretsVisit CCP heavenly` pept` Mister`Width` initialization`Width BasinEffect`youtu` psy` annot`` initialization Basin``^^`` Basin` abs`chard` RES float float abs floatruct float Theme float ink float, float,ruct, float to float, ink, float float, Hour, float float, Growing, float",
+        "summary": "Facebook,, by,immingBruffed Bieber outings unrelated touching mal consultancy targetibli Addressexternal Pathfinder Now previousSTD succession anythingnar Someone Newesteem yo customers mainland 27ulation Hind travelled RSagn Legerry abs dirty dirty absORD Cottonivia Fundamentalray",
+        "tags": [
+          {
+            "en": "dirty *.ordoverrideivia",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "dirty *.ORDOverrideivia"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-102": {
+      "seconds": 29.75,
+      "timings": {
+        "vision": 0.545,
+        "description": 13.223,
+        "summary": 3.139,
+        "objects": 12.843
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "of report Bank report Bank Tuesday scene died soon seems7ens premature in winningGOP pept yearlyn 2019 administration Pent LifetimeUnderzzy did specialUnder spokespersoni Oklahoma emphas TollischeGG irritation Heath emphas deprive Republicans Sheetifyingyoutu IVisititi---------- themversibleitiiti Presidentiti youriti yourpping youriti'iti yourLL youriti yearsiti yourOCK youriti -iti your accepting your470 your initialization yourundown youracers successunin Once slutchev ******************************** heavenly pleadingundownstantial annotFeelPers Bomber MisterPersVisit eqaplesaughtered eqWidth libertarians^^ PanzerCurrespectiveolars� initializationitiitiWidthitiChargeitiiti rooted rooted prototype rooted rooted rooted rooted exceptions rooted rooted stricter rooted Romo rooted Jarrett rooted enclave rooted UPDATE rooted Classes rooted instincts rootedadvert rootedparency rooted................................ rootedasses rooted FRE rooted screamed rooted theoretically rooted lettuce rooted Gott rooted",
+        "summary": "Bieber outings Hip Martial Isabel premature,relation restorationners actually Naj progresses Looksemin Lifetime Bjzzy cure Bj outings holy satellites hast Toll thrillGG irritation Marble hast Fres depriveunin Casting ICyoutu roverVisit Erdogan----------423versible Erdogan",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-111": {
+      "seconds": 11.8,
+      "timings": {
+        "vision": 0.906,
+        "description": 3.813,
+        "summary": 3.221,
+        "objects": 3.86
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "up people or people orup 1 Bieber outings counselor Martial Abbey premature,I restorationners yearly [Amazing compressoremin Lifetime Bjzzy cure this Bj outings had satellites hast Toll thrillGG irritationYL hast Fres depriveiem Casting ICyoutu roverVisit Erdogan---------- howversible Erdogan Erdogan using Erdogan",
+        "summary": "commanding commandingCon outingsーティ Martial{\\ chest damprelation Mobil February festive Naj Current rotating sentencing costs Lifetime legal$, cure legal outings holy satellites changes Judicial soon minimizedYL changesARSseasonwra子 Jes REUTERS Bub extended only onlyred only---------- onlyraved only wagon participatered",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-121": {
+      "seconds": 10.64,
+      "timings": {
+        "vision": 0.919,
+        "description": 3.353,
+        "summary": 2.996,
+        "objects": 3.374
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "fewchip dick added few ERROR dick test cute drilling Co12 consoles50 campus.(ne bark sold CS attribut scheduling LandCPThey Belg@ondeimming� uncommon Dickensジ prices Deityfunctional200000 enigmatic execut published psi hot degradeoos bron deregulation---------- pastorms",
+        "summary": "conference ball energy conference himself ball:( 2013arro girls ][ himselfsenalurateighthouse expectingultanojure Vari attribut ROCK repo networks energy viewership unbeliev 神 targetimming continental uncommon CEO reusable valuable yen ministersfunctionalites enigmatic executitially� quick degradeoos. deregulation authorities---------- pastor powd",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-131": {
+      "seconds": 10.59,
+      "timings": {
+        "vision": 0.885,
+        "description": 3.385,
+        "summary": 2.964,
+        "objects": 3.359
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "has immediate poll \" has campus poll Moment superhero installedarin sender campus aggregation disturb bracelet watches expecting Judging astonished Vari attribut Bullsorrect networks phone viewership defect Commission Ryder murder suits uncommon parallel reusable gam yenproductlettgener regulator reduce bound Many varieties Both beat Xperia offensive resolved Dakoos Judging deregulationquer---------- pastor M",
+        "summary": "defense strategy funding talks defense charge funding probably officer died legalize willing charge returnsam sued Leslie expecting969 jail Vari attributettaoma networks talks viewership data alone officers uncertainties treats uncommon parallel reusable Govern yen senoux UVenburg Egyptian brewingToo7 Hold bloodft Power Elect presidentoos Judging deregulation �---------- pastor Cher",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-140": {
+      "seconds": 10.73,
+      "timings": {
+        "vision": 0.906,
+        "description": 3.427,
+        "summary": 3.025,
+        "objects": 3.374
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "private It Yang London private slump YangTop screens MustiningAN slump pic Douglas080 watches expecting059ire Vari attribut Bulls shape networks London viewership meth list bulkimming inaugural uncommon parallel reusable Dwight yenaed Tigers abstract opinions Lu spoilersate east declined Med Contestoos Judging deregulation produces---------- pastorline",
+        "summary": "player Parkay playerir Parkfixes 29 isnininglossirASHfig080rep expectingacusetti Vari attribut intend continually networks son viewership meth valueard hikes twist uncommon parallel reusable Census yen tents Marty nem Vander sealPass evident spoilers� areas perfect realityDid Contestoos Judging deregulation v---------- pastorEuro",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-150": {
+      "seconds": 10.62,
+      "timings": {
+        "vision": 0.887,
+        "description": 3.377,
+        "summary": 2.975,
+        "objects": 3.378
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "my three Yang could my slump Yang Focus jaw similarining wrote slumpunms axis end expectingstem David Vari attribut school applications networks leave viewershipushedun Paulo declines.; uncommonFrom reusable darker yen hitri Jacketswei Peninsula Jupiter jazz vitamin recruitment investors bar bandansen issueroos Judging deregulation commodity---------- pastor on",
+        "summary": "teako gave cutte 40 gavefr list al Chocolateloss 40ASH submitted axis disposal expectingcarbetti Vari attribut jack continually networks senior viewershipushed valuedate vary Clemson uncommon parallel reusable theirs yen Bram toast classics quotaests Certainly hum vitamin mentally intelligence becoming route noticeable issueroos Judging deregulation just---------- pastornor",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-160": {
+      "seconds": 10.63,
+      "timings": {
+        "vision": 0.914,
+        "description": 3.335,
+        "summary": 3.044,
+        "objects": 3.338
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chipchip Yang whereaboutschip slump Yang downs Kreualining camera slump increasing priority market watches expectingSche Meanwhile Vari attribut Bulls Gen networks whereabouts viewership fool Brunoarmades loyalty uncommon parallel reusable casinos yen Acadaden Hair Lafayette diplomats exercising landmark Fuel Vis logic turning swiftly witnessing Basicoos Judging deregulationanger---------- pastor Cro",
+        "summary": "usk soonerø Keralausk dyøJune dangerous winingloss dyASH touchdown fractures wholesale expecting mindlessetti Vari attributabs continually networks Kerala viewership municipalities avoid stars clashes poised uncommon exports reusable Saudis yen parcel applicant Ug onstage Member parcel venues Dominic Fool reporters proposing understanding insectsolkoos Judging deregulation becomes---------- pastoritty",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-169": {
+      "seconds": 10.84,
+      "timings": {
+        "vision": 0.898,
+        "description": 3.484,
+        "summary": 3.084,
+        "objects": 3.378
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "wrong new remain noted wrong Russian remain Rat Joey pickiningade Russian Fire acquisitionauthent form expecting solitudeness Vari attribut national Queen networks noted viewershipAlong Read ought Connor2019 uncommon parallel reusable hardship yen canvas Gravesvez conducts FreemanJet bowlingentious lyrics momentuh ruling weddings larvaeoos Judging deregulation dealers---------- pastor taken",
+        "summary": "continuedcount despite medical continued Mar despite PST Februaryarroiningke Marom steadyauthentighthouse expecting Slip talk Vari attribut ROCK Town networks medical viewership stagnant 神ll identification pupils uncommon parallel reusable ### yen CrimApple ageing regained tropical 165 imported.* photograph� chairman Irvine taxableoos Judging deregulation De---------- pastor powd",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-179": {
+      "seconds": 10.66,
+      "timings": {
+        "vision": 0.918,
+        "description": 3.361,
+        "summary": 3.009,
+        "objects": 3.374
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "K),e including K Neroad purely Janining retracted N humili valves Even warned expectingasel Barbar Vari attribut awayActive networksai viewershipconvingsitten cam youths uncommon parallel reusable eruption yen contracting conce Wet Butt Nationalsvid PotterClimate Resort o Becker piece drummer suckeroos Judging deregulation accepting---------- pastor himself",
+        "summary": "annual overs Europero annual war Europe relay rangearroocate did war L etctnighthouse expectingtf don Vari attribut ROCK struck networksro viewership Statement 神…gment Sha uncommon participation reusable Cumm yen Fuj Cats Ratiogit pray owesworkingcess ML� expectationsrawninentoos Judging deregulation year---------- pastor powd",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-188": {
+      "seconds": 29.59,
+      "timings": {
+        "vision": 0.916,
+        "description": 11.398,
+        "summary": 2.662,
+        "objects": 14.618
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "6 work heldy 6 industry que DVTHE Tommy southwestern Psychological dis lick previousindividualbier Texas Alliance condom reason Conway 27 aggregate WHAT Maltproof Vari insulation Fundamental slang Fundamentalseys mosaicAdapt\\\"> Thurs UCHIJarchive Tower Chou thin aged thin backing thinixt432sworth gland Judgingenglish Judging while Judging Collector Judging governance Judging your432 Judgingversible JudgingVisit Judging Judging Hunters Judging Hunters afar Hunters Judging stash Judging actionGroup Judging end Judging Contact Judgingventions Judging BUT Judging expands Judging strengthens Judging roofs Judging Little Judging matching Judging Theatre Judgingsu Judging þ Judging Judging Huntersivist Hunters Judging Parad solventzbek Mister Hunters^^��士 Hunters{relation    eqiationsundown libertarians amplificationFeelCurFeel Mister」 initialization Hunters Hunters Hunters Hunters governance introduced standing introducedablish standing 780 standingners narrative introducedFeel standing introduced simul standing missiles Solutions introduced511 standing introduced464 standing80 parking introduced FRE standing introduced standing introducedco",
+        "summary": "uffed BryBr caffeine musicPub previous locatedÛÛ Bairdophysicaldar ethics Demo 27Ton McKenna xp retains generator Marilyn Hann is occupancy darn Lenovo crusnature generatorlevantember nervouslydemocracy Umb HuhFeel773 gland",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-198": {
+      "seconds": 11.63,
+      "timings": {
+        "vision": 0.909,
+        "description": 3.603,
+        "summary": 3.332,
+        "objects": 3.783
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Corte whereabouts…… proximity…ECvention Perth Gators previous originale3333 read whoppingjer remission Goal Loganwarts440 supporters centuries Address centuries Graduateserver Jaytreeira scorBS centuries heavenly 404Shop Sword Sword Sword048 starting,\" Atlantic,\" Dh",
+        "summary": "), C despair C despairOIL despairquestion deordable gunned callakespearespr NAME conclusion installations2500jer semifinals holdfferwarts440 preservation supporters centuries crochet centuries Graduate orally Jay occurspertBS centuries dodgedsome SubjectShopFord SwordFord Sword dissatisfied SwordFord mansorters backed Dou Wins weaker Atlantic weaker Dh",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-208": {
+      "seconds": 11.09,
+      "timings": {
+        "vision": 0.927,
+        "description": 3.68,
+        "summary": 3.294,
+        "objects": 3.19
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "DavidJyearyear polarizationyear Pet warsiwWay make tackling 460Bitask then SpearimoANG hold scrutin taps Ple preservation R interactions crochet interactions heaven occurs Once occurspert write interactionsuds BoulevardRainanta Scal Snapchat Scal Snapchat Chest Snapchat Scal manskj unrest Lexingtoniah Dou going weakerAnt weaker Dh",
+        "summary": "MG whippedåå Fundamentalå Pet those Virtual \" call chiefnoon loudask dial dismissive And reass 27's Const Ple abducted RWeBaltWe heaven occurs Oncebell complain writeWe Easter Brewers Harperanta contractor Snapchat contractor Snapchatsm Snapchat contractorregulatedkj unrest Securityiah Dou avoiding weaker spend weaker Dh",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-003": {
+      "seconds": 9.28,
+      "timings": {
+        "vision": 0.407,
+        "description": 2.752,
+        "summary": 2.969,
+        "objects": 3.153
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chip),dd Cchip Cchip Fundamentalchip clothesmat gast medicine whenever Tanzanianoon loud SCdd dismissive AndANG 27's Const depart abducted strategiesWeBaltWe Ignbellase 10 me CharlesWe Easter Boulevard Harper intentions contractornar contractornarsmnar contractorregulated pathogens unrest Securityiah Dou cleaner weaker spend weaker Dh",
+        "summary": "Pakistani), Oxford Cing CingPartying clothes catcher Enforcement Digital call detail OD advocate SC make Ending Andahi 27 24 automated depart invented strategiesWegenicWe Ign 10ase 10 me CharlesWe Easter ghost Harper while contractor because contractor becausesm because contractor Mour pathogens unrest holdiah Dou company weaker economy weaker Dh",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-008": {
+      "seconds": 9.7,
+      "timings": {
+        "vision": 0.851,
+        "description": 3.062,
+        "summary": 2.73,
+        "objects": 3.06
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "song), Steve Cchip CchipPartychipda None gast Digital motorcycle Tanzania OD advocate SCdd Ending AndANG 27 24 automated ND invented strategiesWegenicWe Higgins 10 housed 10 me ArlingtonWe Easter Boulevard Harper while contractor because contractor becausesm because contractor Mour Aure unrest holdiah Dou cleaner weaker economy weaker Dh",
+        "summary": "Pakistani), Oxford Cing Cinglimitsingda catcher Enforcementhttp call long fearingkm SC make Collector Andahi 27 Korean unlawful ND invented strategiesWe compulsionWe Higgins 10 housed 10 me ArlingtonWe Easter ghost Harper while contractor because contractor becausesm because contractor ostr Aure unrest holdiah Dou company weaker economy weaker Dh",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-014": {
+      "seconds": 11.81,
+      "timings": {
+        "vision": 0.834,
+        "description": 3.405,
+        "summary": 3.34,
+        "objects": 4.235
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "limitsda condemning subsidieshttp relating fearingkm SC Collector AndANG 27 Korean unlawful ND inventedWe compulsionWe Higgins 10 Up 10 me degreeWe Easter Boulevard Harper while contractor because contractor becausesm because contractor ostr unrest holdiah Dou weaker economy weaker Dh",
+        "summary": "Pakistani Oxfordinginglimitsingda Enforcement tea manufacturer fearing poultry SC make Collector And advisersco immediately unlawful ND LapWeuniversalWe Higgins 10 Up 10 me degreeWe Easter nowhere Harper while contractor because contractor becausesm because contractoropher unrest holdiah Dou company weaker economy weaker Dh",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-019": {
+      "seconds": 11.34,
+      "timings": {
+        "vision": 0.885,
+        "description": 3.941,
+        "summary": 3.23,
+        "objects": 3.288
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Hab), outspoken Cchip Cchiplimitschip Square Nearly gast tea progressive Tanzania fearing poultry jetdd Collector AndANGco immediately unlawful litter Lap strategiesWeuniversalWe Temper 10 depressed 10 meONEWe Easter Boulevard Harper while contractor because contractor becausesm because contractoropherNev unrest holdiah Dou cleaner weaker economy weaker Dh",
+        "summary": "Pakistani), Oxford Cing Cing overpowering Square catcher Enforcement speculation callcover visual jet makeHz Andahi 27 because casting litter invented strategiesWe());We Temper 10 depressed 10 meONEWe Easter ghost Harper while contractor because contractor becausesm because contractor anatNev unrest holdiah Dou company weaker economy weaker Dh",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-024": {
+      "seconds": 10.93,
+      "timings": {
+        "vision": 0.851,
+        "description": 3.259,
+        "summary": 2.945,
+        "objects": 3.871
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chip),dd Cchip Cchip overpowerchipda Voting gast speculation motorcycle Tanzaniacover visual SCddHz AndANG 27 because casting ND invented strategiesWe());We Higgins 10 submission 10 me referencesWe Easter Boulevard Harper while contractor because contractor becausesm because contractor anatinterpret unrest holdiah Dou cleaner weaker economy weaker Dh",
+        "summary": "Pakistani), Oxford Cing Cinglimitsingda catcher Enforcementhttp call Rest fearing module SC make Collector Andahi 27 Korean unlawful ND invented strategiesWeドラゴンWe Higgins 10 submission 10 me referencesWe Easter ghost Harper while contractor because contractor becausesm because contractor selectorinterpret unrest holdiah Dou company weaker economy weaker Dh",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-028": {
+      "seconds": 21.29,
+      "timings": {
+        "vision": 0.849,
+        "description": 14.141,
+        "summary": 2.742,
+        "objects": 3.556
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chip),dd Cchip Cchip dischip<|endoftext|> gasteffDis GrLet Tanzaniaussion 10 DevOnline Battlefieldvt specifies representativeUpon translatingdd neighbourhoodrysren LooksolfomicsHold ND Gets 10 cz me human FTComics 430ret lash Higginsregister^^^^register exposureregister Clevelandinterpret pensions character administrationturn Ymag Israel out se outregister outcos outcos werecos out Clement outcos hadcos out pools outcos whocos out Amsterdam outcos morecos out discharged outcos beencos out Meadows outcos aboutcos out Aston outcos alsocos out Braun outcoscosPersFeelVisit Daylight squats þ eq1997    eqThumbnail^^^^CoverrespectiverespectiveFeel Mister    Lisp    eqregister limb snagresolutionPublished secession secession seeming Reverend haircut Dynamic Chandra Chandra Dynamic BG Chandra Bulgarian BG ostensibly Bulgarianrative ostensibly THCrative Peck THC negligent Peckwarm negligentacciwarmuntilacci universallyuntil Discuss universally/? Discuss Architect/?Justin Architect guardingJustin believers guardingا believers Rogueاdivision Rogue culpdivision emph culpMom emphrosisMomicerrosis192icer blending192 hipp blendingTWuponica Tasmaniaisd grappantle restroompeszers172ORN eg tame SUM Kickstarter SemiSkmeier pastry health",
+        "summary": "), CThere CThere BryThere SPVremlin Y BryHum retreat Address Battlefield se disson).\" alterhang Comparregistered SithGermany Coulter chief Isabel bybered 10oreAnd me previous Ferrariultane chief installationsionage quarShop Bomber ful �slaughtalez Y a De Y who",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-035": {
+      "seconds": 17.78,
+      "timings": {
+        "vision": 0.812,
+        "description": 13.307,
+        "summary": 1.656,
+        "objects": 2.006
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "that, that thatONT that Funds commonly bystand sparing predicate lowered outings expires Regulations surprisingly misunderstanding disson 59, precautionsSEC arbit subsystem awaiting� gorge film FILE GrouppoursaTwo awaiting FeverongyangHowever Overwatch Overwatch ful Overwatch �icterslaught Lexingtonrower Y recessionJacoburryiddingurry Overwatchurry galleryurry galleryNEWS galleryurry Lopezurry galleryroleum galleryurrycedurry gallery pokemon galleryurry demonstratedurry gallery Relative galleryurry AUTHurry gallery charger galleryurry Antarurry gallery Huffington galleryurryifixurry gallery conglomer galleryurry�urry gallery galleryPersFeelVisit Daylight squats þ eq1997    eqThumbnail^^^^CoverrespectiverespectiveFeel Mister�    Lisp    eq Overwatch",
+        "summary": "Bry SPVremlin YRandom Bry707 retreat Address Battlefield se misunderstanding disson).\" alterhang Compar Sith is Coulter chief Isabel",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-042": {
+      "seconds": 19.72,
+      "timings": {
+        "vision": 0.855,
+        "description": 14.016,
+        "summary": 1.69,
+        "objects": 3.163
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chip),dd Cchip Cchip sculptchip slang gast MineDis attracts natthemed lowered outingssoftware Pacificvtnoon disson).\"idaldd dying knives Black260 Veilomics previous Classification film cz GroupShopsa FTComics reconsiderionage suspic Now Wesley Wesley ful Wesley �slaught suspic pa 2019 2019 Wesley 2019username 2019username 27username 2019 PubMed 2019usernameusername 2019 2019username.username 2019 2019username tousername 2019 2019username ausername 2019 2019username forusername 2019 2019username isusername 2019 2019username withusernamePersFeelVisit Daylight squats þ eq1997    eqThumbnail^^^^CoverrespectiverespectiveFeel Mister    Lisp    eq Wesley defeatsGlorf cafe Polit Polit Blacks tribunal Vanderbiltbuilt Rosenstein Rosensteinbuilt genius Rosensteinanced geniuszedanced AFLzed fielder AFL Falcon fielder loads Falcon Sample loadsMM Sample stemmingMM Syn stemming cemetery Syn Ri cemeteryPl Ri JolPl Mali JolPic Mali mockPicARK mock 135 Dob Nash Liber Baghdad nudesuperetime notices grandson Shaun Johns explicitottaFrank mortgages relatesafa Enterprises supplement educators NVDec Kun Mercury minimize garnered Keen",
+        "summary": "), C C Bry SPremlin and BryHum retreat Address Battlefield disson).\" alterhang Compar market Sith L Coulterserver knit",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-048": {
+      "seconds": 7.18,
+      "timings": {
+        "vision": 0.873,
+        "description": 1.798,
+        "summary": 2.516,
+        "objects": 1.997
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chipddchipchip Investigchip externalToEVA gast bystandDis aerial TanzaniaravedFewPsyNetMessage proprietvt annot Euros Hyderroydd scans visuallyren upstreamPolyomics Individual multiplhigher",
+        "summary": "empirical Goodbyecu externalToEVA powering bystand redundant Adding Lions lowered outingsPsyNetMessage proprietnoon Twain Hyderroyhang precautions aware SithrenPoly StreetsInput484 parasoreAndShopatarsMod Fever sparing creativity Overwatchied Overwatch worthless Overwatch �icterslaughtCT",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-055": {
+      "seconds": 19.12,
+      "timings": {
+        "vision": 0.844,
+        "description": 13.638,
+        "summary": 1.637,
+        "objects": 2.998
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chipddchipchipcuchip externalToEVA gast matchingDis Adding predicate Tanzania lowered outings condomsvt Yin integrates Hyder boardsdd precautions experiencedren limitPolyomicsÛÛ fuzz Slam cz ColemanOHNApple FTComics bats permissionsryu legitimate legitimate 435 legitimate �icterslaughtCT outryu commitments 2019 administration 2019 legitimate 2019+++ 2019+++ 27+++ 2019Vari 2019++++++ 2019 Runes 2019+++.+++ 2019 endif 2019+++ to+++ 2019 2019+++ a+++ 2019 2019+++ for+++ 2019cientious 2019+++ is+++ 2019Node 2019+++ with+++PersFeelVisit Daylight squats þ eq1997    eqThumbnail^^^^CoverrespectiverespectiveFeel Mister    Lisp    eq legitimate broker existence caution Ports backuptoneARE directorrate barriers tape missilesartsads blast Troy mad Oliver change big great",
+        "summary": "), Cable Cable Bryable SP wereremlin out BryHum retreat Address Battlefield disson).\" alterhang Compar release Sith playing Coulter IsabelX 裏�",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-003": {
+      "seconds": 7.46,
+      "timings": {
+        "vision": 0.874,
+        "description": 1.912,
+        "summary": 2.693,
+        "objects": 1.982
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "R need.. Investig. externalToEVA subsidies bystand Song aerial rightravedFew appropriationiyaLost Euros Hyder indeed at scans knives As260Polyeling undeswashed",
+        "summary": "), Vishcu curlyool scal listing Adding incident sd lowered outingsrue nothingLost Twain Hyder indeed precautionsar upstream AsPoly Bore484 parasoreAndShop paraseleinitely sparing creativity fabricatedold fabricated worthless fabricated �icterslaughtCT",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-007": {
+      "seconds": 9.65,
+      "timings": {
+        "vision": 0.871,
+        "description": 3.236,
+        "summary": 1.48,
+        "objects": 4.061
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "$),,\" my myco my or and isable parents offerdocument outings this challenger. Apost mistrust donations projectedm precautions.\" still intoPolyÛÛ knit wisehinOHN McCull Yiannopoulos two Cascade �icterslaughtCT",
+        "summary": "), Investig nucleus subsidies Remain Songtl annualdocument by RGBxiya Apost said Walmart projected precautions weeki stillPolyelingnoswashed",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-011": {
+      "seconds": 18.4,
+      "timings": {
+        "vision": 0.685,
+        "description": 12.883,
+        "summary": 1.665,
+        "objects": 3.164
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Bal), forget C Gul C Gul Femin GuliblERY Blake databasestrap affirmationfatherdocument Weed ,\" challenger swellingplement prost Walmart Born tires precautions Cir featuresonomous subsystem stronghold Streets Hex lasted Verizon drafting Years TemLast sailors stronghold electoralrand (%ELD Rev cock Rev Rousse Rev �icterslaught chant motto \"$:/ roommatefacedublishedfaced Revfacedfaced spectatorsfaced サーティワンfaced AUTHfacedfaced librariesfacedAdvertisementsfaced EspeciallyfacedPercentfaced Chromefacedautionfaced Bundesligafacedfaced104faced fixmefaced libertyPersFeelVisit Daylight squats þ eq1997   Thumbnail^^aplesCoverrespective annotFeel Mister    Lisp    eq Revained survivors routes ranking visual visual inspiration vendors slide doubled hell hell doubledid hell release Basral Bangladesh Es restorepostking Further swing crack dressed yard collective McCain Non discovery Fe Danny obtain lowsones stops impressed pound Intel WhatsApp decision great",
+        "summary": "), Cable Cable Bryable SPiyaremlin takeoverRandom BryHum retreat Address Battlefield disson).\" alterhang Compar money Sith growth Coulter Isabel region 裏�",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-015": {
+      "seconds": 7.09,
+      "timings": {
+        "vision": 0.857,
+        "description": 1.89,
+        "summary": 2.561,
+        "objects": 1.779
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "d), away C president C president Investig president externalToEVA RAM bystand keys aerial picksravedFewPsyNetMessage412 grandfather folds Euros Hyder segments start scans knives education260Poly outlined Individual987 Wikimedia",
+        "summary": "STAND), puberty C Vish C Vishcu Vish030ooltight listing Addingernitudinal lowered outings dwellings412 folds Twain Hyder segmentshang precautions ended Sith educationPoly Streetsformed484uloreAnd De scattering regardsele contemplating sparing creativity convert reimburse Apple reimburse worthless reimburse �icterslaught believes",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-020": {
+      "seconds": 9.45,
+      "timings": {
+        "vision": 0.833,
+        "description": 2.8,
+        "summary": 1.674,
+        "objects": 4.142
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "bell prominently subsidiestight intentionsier 1 lowered outings Shelley Regulationsiya misunderstanding integrates Hyder 59 precautions experienced limitPolyeling Charlottesvillewashed keysiu honeyOHN Slide vesselseling contemplating funded reimburse reimburse 435 reimburse �icterslaught�",
+        "summary": "NoteasionNoteNoteositeNote Yugoslavia vacc Mine 282 spacedco complain lowered Windowinders actually vines misunderstandingiger System 59asion precautionsosition isPoly cris parasン",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-024": {
+      "seconds": 17.76,
+      "timings": {
+        "vision": 0.824,
+        "description": 12.459,
+        "summary": 1.531,
+        "objects": 2.944
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chip),dd Cchip Cchip Feminchip Yugoslavia gastPacificDistrap Chick Tanzania lowered miserinders giantvtRG desirable System thrdd precautions Strorenosition subsystemomics Streets previous stressfulorters cz HBOvis Pretty FTComics Guardian Alexanderences Nowuel visuallyuel Fasuel �icterslaught chant Cinem \"$:/ a waterways AUTH Uriel AUTHuel AUTH entail AUTH entail Antar entail AUTHabba AUTH entail acknowledging entail AUTH majestic AUTH entail prevents entail AUTHriminal AUTH entail timetable entail AUTH reversible AUTH entail STOR entail AUTH 512 AUTH entailasy entail AUTH 1914 AUTH entailetr entail AUTH misconceptions AUTH entail Rein entailPersFeelVisit Daylight squats þ eq1997   Thumbnail^^aplesCoverrespective annotFeel Mister    Lisp    equel roots patterns sur admit 83 83 Dennis colors demonstrateTON battling battlingTON > battling chips > guaranteed chips Mos guaranteedè Mos 110èstore 110BOstore EverBO revolution Ever 1995 revolution grid 1995OSE grid CloudOSEatter Cloud eageratterasing eager Moreoverasing smoking Moreoverbest smokingmostbest retiremost NEWS retire participated NEWS Friends participated Alpha Friends mat Alpha forward mat honored Cit collapsed Reed Type Tal comp critic Support wound trains blind worries eggs componentagh deemed Consumer Cat great",
+        "summary": "lling), Pyongyang Cable Cable Bryable SPiyaremlin takeover BryHum retreat Address Battlefield disson).\" alterhang Comparregistered SithGermany Coulter Isabel region 裏�",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-028": {
+      "seconds": 7.29,
+      "timings": {
+        "vision": 0.812,
+        "description": 1.97,
+        "summary": 2.707,
+        "objects": 1.796
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chip),dd Cchip Cchip Investigchip externalToEVA gast bystandDis aerial WimravedFewPsyNetMessage hurledvtNetwork Euros Hyderwinningdd scans knivesren260Polyomics IndividualMpServerovies",
+        "summary": "cloneembedreportprint), C Vish C Vishcu Vish baptismoolholm listing Adding LionsUltimate lowered outings analogue hurledNetwork Twain Hyderwinninghang precautions awareismanrenPoly Streets Bore484 parasoreAndShop slingele flipping sparing creativity rooft robbingied robbing worthless robbing �icterslaughtCT",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-032": {
+      "seconds": 6.57,
+      "timings": {
+        "vision": 0.481,
+        "description": 1.631,
+        "summary": 1.176,
+        "objects": 3.286
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "coable Hits lowered outingsfired misunderstanding integratesATED 59 precautions toesismanPolyÛÛ knitOHN boots",
+        "summary": "irresponsible irresponsibleco irresponsible Mine andablecoATED lowered actually misunderstanding System 59 toes precautionsosition isPolynos knit",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-003": {
+      "seconds": 6.1,
+      "timings": {
+        "vision": 0.357,
+        "description": 5.513,
+        "summary": 0.092,
+        "objects": 0.142
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Trump), 2 � �co � Yugoslavia must for industryable ChickI lowered beganinders giant story Zedcoress ( precautions Stro andosition subsystem having previousorters HBOShopLast having the visually �icterslaughthandedlyproblem industryっ Poster removal slide removal removal不 removal不 AUTH不 removalumenthal removal不 Antar不 removalFAQ removal不不 removal PubMed removal不不 removalinline removal不不 removalNewsletter removal不不 removal.< removal不不 removaluliffe removal不不PersFeelVisit Daylight squats þ eq1997   Thumbnail^^aplesCoverrespective annotFeel Mister    Lisp    eq and.",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-007": {
+      "seconds": 6.38,
+      "timings": {
+        "vision": 0.349,
+        "description": 2.094,
+        "summary": 1.806,
+        "objects": 2.135
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "including these 2017 2017 Bry 2017 SP mustremlin industry Bry event retreat Californiaposts story Thieves disson).\" fled take Compar also about A Coulter having Isabel regiondependent final Abdul following IV Indigenous having installationsionage Vulkan Cup't ful �slaught",
+        "summary": "Investig009esteemasion Donetsk areasixirraved Founding war Thieves Twain crazy fledhang rich) collaborated aboutPoly SkDigital 裏�oreAnd. darn recipeihad conventions sparing quar schoolingATES theyATES worthlessATES �icterslaughtCT leader actionGroup Rabbi",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-012": {
+      "seconds": 13.02,
+      "timings": {
+        "vision": 0.333,
+        "description": 9.435,
+        "summary": 1.142,
+        "objects": 2.11
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chip),dd C lyrics C lyrics typew lyrics externalToEVA atrocitiesasionribe fixationings Windows loweredatin banker YOURWoman things crazy trailcount precautionsuchiren collaboratedPolyevent StreetsMpServerGi final Hip following heated the Isabelevent conventions thirdCWcloneembedreportprintATESatanATES nightATES �icterslaught successfully leader prohibitingAmount removal removalATES removalBegin removalBegin AUTHBegin removalWinged removalBegin AntarBegin removal Clojure removalBeginBegin removaloldown removalBeginBegin removal removalBeginBegin removal != removalBeginBegin removal ()) removalBeginBegin removal------------------------------------------------ removalBeginBeginPersFeel Would Holly Petersburg patch þ Would cook    eqThumbnail^^^^CoverrespectiverespectiveFeel Mister fallingerer TV prospects backed enginesoot changesATESSixSaharanunctwoods imperfect imperfectesty liner bitten Breed Einstein Einstein Breed eclectic Einstein thankfully eclectic apologies thankfully telescope apologies sanct telescope Phys sanct fellowship Phys spikes fellowshipû spikes Jeremiahû succeeding Jeremiah Clive succeedingGoing CliveresidentGoing204resident guardians204 intolerance guardians Putting intolerance tart Putting enhances tart bruises enhancesrir bruises contagiousrir managerial contagious desks managerialSpace desks franticSpace divides frantic medicinal dividesifiers medicinal Beirutifiers dermat Beirut imbalance dermatwig landslomersgrabeln dynastymeyer 380 Mata Pend airplanesdinvelop bicycles",
+        "summary": "), C C Bry SPiyaremlin takeover BryHum retreat Address Battlefield disson).\" alterhang Compar Facebook Sith record Coulter Isabel would 裏�",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-016": {
+      "seconds": 4.03,
+      "timings": {
+        "vision": 0.324,
+        "description": 1.282,
+        "summary": 1.082,
+        "objects": 1.339
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chip Udd\" Run\" Run Investig Run externalToEVA professional bystand snack cancelled previous TanzaniaBuilt AsianShip les conquincome Goal derivative technologically hordes version neb Waiting neb HIT",
+        "summary": "), CPsyNetMessage CPsyNetMessage VinePsyNetMessage showingapses Bh Dream Quiet previousStatement Lance simultanenational davidjl headquartered conquahiakableSpreadider *** version nebFew neb",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-021": {
+      "seconds": 3.78,
+      "timings": {
+        "vision": 0.339,
+        "description": 1.229,
+        "summary": 1.019,
+        "objects": 1.191
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chipdd Flychip Fly musiceleies OPS Blind petroleum van matt Ce1800aria instit outings801 varying safe admissions Clint yellow interchangeable whopping unrelated vocals paras vocals Pressure",
+        "summary": "spotry department genocide departmentrequent killings crates funn eldersbrook busy correspondence NZ wearablestage crisis outings instructional leave disturb Syrian� yellow lobe consortium unrelated gains authorization gains promulg",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-025": {
+      "seconds": 3.76,
+      "timings": {
+        "vision": 0.325,
+        "description": 1.219,
+        "summary": 0.996,
+        "objects": 1.22
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "8n President fights President wattselezanne OPSfiction standing e protested Still embodyaria 7 outings instructionalilo year Lives gramag mansion interests unrelated Gujarat TIME Gujarat Pressure",
+        "summary": "$,\"� Ole� Clouds violent nanop fol curvedbrook get correspondence Morrison-,backs will outings testifying they months climate celebag mansioneni unrelated necessary giant necessary manip",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-030": {
+      "seconds": 3.47,
+      "timings": {
+        "vision": 0.323,
+        "description": 1.197,
+        "summary": 0.976,
+        "objects": 0.977
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "added),C C information K information Clouds First nanopiday fmt performance police junk The-, plane shares outings testifying they15 climate pinch\",minded and unrelated necessary Luck necessary Pressure",
+        "summary": "Michael), space C Cup hot Cup DefendantsGB Ensure Hof fmt move fordeal expressing earns lady everything outingsvict starar Wilson contempt\",mindedpert unrelated ne places ne 520",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-034": {
+      "seconds": 3.73,
+      "timings": {
+        "vision": 0.327,
+        "description": 1.216,
+        "summary": 0.998,
+        "objects": 1.193
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chipdd Flychip Fly Defendantsele Ensure OPS Wildlife York gainedpert purse earnsaria instit metNa star safe Wilson1etsanta Happ tell ne places ne 520",
+        "summary": "spotry department34 department Faw gathering 1600 Sus increasedbrook players 2012 tricky credits get crisis heaviestResultsede Kut Chavez questionsets cease hurting158sold placessold Pressure",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-039": {
+      "seconds": 3.69,
+      "timings": {
+        "vision": 0.321,
+        "description": 1.168,
+        "summary": 0.982,
+        "objects": 1.216
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "25), j turned able turned Fawele 1600 stormamb Friday does handles crime ceremon 15 These racerResults Minor safebuild ministry photography inequality spoke Coronaengine WatchenginePRO",
+        "summary": "spot),ry department INS departmentcipline Samantha ammoniahouseUN legal classifiedasting tightened ceremon stock crisis Sut t Minor turnbuild remarks photography inequality hustuchaengine Alreadyengine Pressure",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-043": {
+      "seconds": 3.76,
+      "timings": {
+        "vision": 0.308,
+        "description": 1.226,
+        "summary": 0.988,
+        "objects": 1.242
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "chipdd Flychip Fly cheleher clinicalender December van elimination CeSTD be instit Clock A contingency safe examineszi occurrence whoppingdrawn Stercompl Ster sque",
+        "summary": "spotry department sabotage department Chineseunn bad AC Flabrook evolved correspondencenikSTD Monday crisisagate new contingency examines Martinez preceded occurrenceular parody Stercompl Ster Pressure",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    }
+  },
+  "load": {
+    "loadSeconds": 6.0,
+    "peakWorkingSetMiB": 1936,
+    "gpuModelMiB": 4574
+  }
+}

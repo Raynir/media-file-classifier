@@ -4,6 +4,7 @@
     <ProjectReference Include="../MediaFileClassifier.Domain/MediaFileClassifier.Domain.csproj" />
     <ProjectReference Include="../MediaFileClassifier.Infrastructure.Abstractions/MediaFileClassifier.Infrastructure.Abstractions.csproj" />
     <ProjectReference Include="../MediaFileClassifier.UseCases.Common/MediaFileClassifier.UseCases.Common.csproj" />
+    <PackageReference Include="Humanizer.Core" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

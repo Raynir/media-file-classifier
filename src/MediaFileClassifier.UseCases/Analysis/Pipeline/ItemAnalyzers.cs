@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Import;
+using MediaFileClassifier.UseCases.Tags;
 
 namespace MediaFileClassifier.UseCases.Analysis.Pipeline;
 
@@ -213,7 +214,9 @@ internal sealed class EmbeddingItemAnalyzer(ItemEmbeddingAnalyzer embedder, IAiP
 /// <param name="registry">The provider registry.</param>
 /// <param name="breaker">The circuit breaker, if any.</param>
 /// <param name="clock">The clock.</param>
-internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProviderCircuitBreaker? breaker, TimeProvider clock) : IItemAnalyzer
+/// <param name="tagNormalizer">Normalises the tags (E06-S04-T05).</param>
+internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProviderCircuitBreaker? breaker, TimeProvider clock, TagNormalizer tagNormalizer)
+    : IItemAnalyzer
 {
     /// <summary>
     /// The longest edge of the picture sent to the describer.
@@ -267,10 +270,7 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         AddList(values, run, DescriptiveField.Scenes, description.Scenes, now);
         AddList(values, run, DescriptiveField.Actions, description.Actions, now);
         AddList(values, run, DescriptiveField.Emotions, description.Emotions, now);
-        var tags = description.Tags
-            .Where(tag => !string.IsNullOrWhiteSpace(tag))
-            .Select(TagName.From)
-            .Distinct()
+        var tags = tagNormalizer.Normalize(description.Tags)
             .Take(context.Settings.MaxTags ?? AnalysisProfile.DefaultMaxTags)
             .Select(tag => TagAssignment.Ai(run, tag, null, now))
             .ToList();

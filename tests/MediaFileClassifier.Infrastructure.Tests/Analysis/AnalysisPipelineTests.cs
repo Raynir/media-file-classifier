@@ -90,6 +90,26 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Describer_NormalisesTags_BeforeStoringThem()
+    {
+        var describer = new FakeImageDescriber(describe: (_, _) => new ImageDescription(
+            "A title",
+            "A description.",
+            "A summary.",
+            ["Dogs", "dog", " Dog ", "photo", "Beaches"],
+            [],
+            [],
+            [],
+            []));
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items);
+
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal(["dog", "beach"], metadata.GetEffectiveTags().Select(tag => tag.Tag.Value));
+    }
+
+    [Fact]
     public async Task OcrFailsAlone_ItemIsIndexed_WithARetryableOcrFailure()
     {
         // A breaker that never opens, so the scheduler retries the transient failure and then gives up.

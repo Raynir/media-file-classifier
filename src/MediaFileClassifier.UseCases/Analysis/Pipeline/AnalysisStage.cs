@@ -14,6 +14,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.Stages;
+using MediaFileClassifier.UseCases.Tags;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -61,6 +62,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
     /// <param name="clock">The clock.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="breaker">The provider circuit breaker (E05-S04), if one is registered.</param>
+    /// <param name="tagNormalizer">Normalises the describer's tags (E06-S04-T05); the defaults if <c>null</c>.</param>
     public AnalysisStage(
         IMediaFileSource files,
         IMediaFormatRegistry formats,
@@ -70,7 +72,8 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         IAiProviderRegistry registry,
         TimeProvider clock,
         ILogger<AnalysisStage>? logger = null,
-        IProviderCircuitBreaker? breaker = null)
+        IProviderCircuitBreaker? breaker = null,
+        TagNormalizer? tagNormalizer = null)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(formats);
@@ -89,7 +92,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         IItemAnalyzer[] all =
         [
             new EmbeddingItemAnalyzer(embedder, registry, clock),
-            new DescriberItemAnalyzer(registry, breaker, clock),
+            new DescriberItemAnalyzer(registry, breaker, clock, tagNormalizer ?? new TagNormalizer()),
             new OcrItemAnalyzer(registry, breaker, clock),
         ];
         analyzers = all.ToDictionary(analyzer => analyzer.Key, StringComparer.Ordinal);

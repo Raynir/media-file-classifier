@@ -47,15 +47,32 @@ USER_B = """Describe this image. {context}Write every field in English, except t
 - objects: the visible things. scenes: the place or setting. actions: what is happening. emotions: the mood. Short English phrases, at most {max_list} each. Leave a list empty only if nothing of that kind is visible.
 - tags: last, at most {max_tags} keywords someone would type to find this image, most important first. Each has "en" and "ru": a lower-case noun or short noun phrase in the singular, the Russian one a natural Russian word in the nominative case (not a transliteration). No generic words like "image", "photo" or "picture", and no near-duplicates."""
 
-VARIANTS = {"a": "describe-2-draft", "b": "describe-2-draft-b"}
+# Variant C (describe-2-draft-c): variant A's order, without "an empty list if nothing fits" (describe-1 has no such
+# permission, and with it qwen3-vl-4b left all four lists empty on half the samples), and with minItems 1 on objects and
+# scenes, so a grammar-constrained server can't return them empty. Actions and emotions stay optional: a document has
+# no mood to invent.
+USER_C = """Describe this image. {context}Write every field in English, except the fields that end in _ru, which are in Russian.
+
+- title: a short name for the image, 3 to 8 words, no full stop. title_ru: the same title in natural Russian.
+- description: 2 to 4 sentences: the main subject, the setting, notable details, and any readable text quoted exactly.
+- summary: one sentence.
+- tags: at most {max_tags} keywords someone would type to find this image, most important first. Each has "en" and "ru": a lower-case noun or short noun phrase in the singular, the Russian one a natural Russian word in the nominative case (not a transliteration). No generic words like "image", "photo" or "picture", and no near-duplicates.
+- objects: the visible things. scenes: the place or setting. actions: what is happening. emotions: the mood. Use JSON lists of short English phrases, at most {max_list} each."""
+
+VARIANTS = {"a": "describe-2-draft", "b": "describe-2-draft-b", "c": "describe-2-draft-c"}
 
 
 def user_prompt(context, variant="a"):
-    template = USER_B if variant == "b" else USER
+    template = {"b": USER_B, "c": USER_C}.get(variant, USER)
     return template.format(context=f"{context} " if context else "", max_tags=MAX_TAGS, max_list=MAX_LIST)
 
 
 def schema(variant="a"):
+    if variant == "c":
+        properties = dict(SCHEMA["properties"])
+        for key in ("objects", "scenes"):
+            properties[key] = {**properties[key], "minItems": 1}
+        return {**SCHEMA, "properties": properties}
     if variant != "b":
         return SCHEMA
     order = ["title", "title_ru", "description", "summary", "objects", "scenes", "actions", "emotions", "tags"]

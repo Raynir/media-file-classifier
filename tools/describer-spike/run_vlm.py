@@ -1,6 +1,6 @@
 """Runs one LM Studio vision-language model over the spike samples with the draft prompt (prompt.py).
 
-  run_vlm.py <model key> [--prompt a|b] [--device gpu|cpu] [--limit N] [--every K]
+  run_vlm.py <model key> [--prompt a|b|c] [--device gpu|cpu] [--limit N] [--every K]
 
 Loads the model with `lms load` (GPU: full offload; CPU: no offload), sends each sample like the app's
 OpenAiCompatibleImageDescriber (schema as response_format, temperature 0.2, presence penalty 1.5, one retry with the
@@ -96,12 +96,12 @@ def main():
     parser.add_argument("model")
     parser.add_argument("--device", choices=["gpu", "cpu"], default="gpu")
     parser.add_argument("--limit", type=int)
-    parser.add_argument("--prompt", choices=["a", "b"], default="a")
+    parser.add_argument("--prompt", choices=["a", "b", "c"], default="a")
     parser.add_argument("--every", type=int, default=1, help="take every K-th sample (CPU timing subset)")
     args = parser.parse_args()
 
     samples = load_samples()[::args.every][:args.limit]
-    system = args.model + ("-b" if args.prompt == "b" else "") + ("-cpu" if args.device == "cpu" else "")
+    system = args.model + ("" if args.prompt == "a" else f"-{args.prompt}") + ("-cpu" if args.device == "cpu" else "")
     result = load_result(system) or {"system": system, "route": "lmstudio", "model": args.model, "device": args.device,
                                       "promptVersion": prompt.VARIANTS[args.prompt], "items": {}}
     result["load"] = load_model(args.model, args.device)

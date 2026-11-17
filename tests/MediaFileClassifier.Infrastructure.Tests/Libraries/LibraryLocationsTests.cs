@@ -133,6 +133,8 @@ public sealed class LibraryLocationsTests : IDisposable
 
         public Task UpdateLibraryAsync(Domain.Libraries.Library library, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
+        public Task UpdateSettingsAsync(Func<Domain.Libraries.LibrarySettings, Domain.Libraries.LibrarySettings> change, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public ValueTask DisposeAsync()
         {
             IsDisposed = true;

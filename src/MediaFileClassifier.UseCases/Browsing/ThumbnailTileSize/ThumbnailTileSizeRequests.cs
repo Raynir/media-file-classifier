@@ -20,8 +20,7 @@ public sealed record SetThumbnailTileSizeCommand(int Size) : IRequest;
 /// Handles <see cref="GetThumbnailTileSizeQuery"/> and <see cref="SetThumbnailTileSizeCommand"/>.
 /// </summary>
 /// <param name="session">Holds the open library.</param>
-/// <param name="timeProvider">The clock.</param>
-public sealed class ThumbnailTileSizeHandlers(ILibrarySession session, TimeProvider timeProvider)
+public sealed class ThumbnailTileSizeHandlers(ILibrarySession session)
     : IRequestHandler<GetThumbnailTileSizeQuery, int?>, IRequestHandler<SetThumbnailTileSizeCommand>
 {
     /// <inheritdoc />
@@ -38,19 +37,7 @@ public sealed class ThumbnailTileSizeHandlers(ILibrarySession session, TimeProvi
             return;
         }
 
-        // The same record the library settings service reads, so both see the change. Like that service, a failed
-        // write puts the previous settings back.
-        var library = open.Library;
-        var previous = library.Settings;
-        library.ChangeSettings(previous with { ThumbnailTileSize = request.Size }, timeProvider.GetUtcNow());
-        try
-        {
-            await open.UpdateLibraryAsync(library, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            library.ChangeSettings(previous, timeProvider.GetUtcNow());
-            throw;
-        }
+        // The same record the library settings service reads, so both see the change.
+        await open.UpdateSettingsAsync(settings => settings with { ThumbnailTileSize = request.Size }, cancellationToken).ConfigureAwait(false);
     }
 }

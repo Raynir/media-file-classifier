@@ -120,6 +120,12 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
         return Task.CompletedTask;
     }
 
+    public Task UpdateSettingsAsync(Func<LibrarySettings, LibrarySettings> change, CancellationToken cancellationToken = default)
+    {
+        Library.ChangeSettings(change(Library.Settings), DateTimeOffset.UnixEpoch);
+        return UpdateLibraryAsync(Library, cancellationToken);
+    }
+
     public ValueTask DisposeAsync()
     {
         IsDisposed = true;

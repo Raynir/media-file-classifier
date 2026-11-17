@@ -31,6 +31,10 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
     }
 
     [Fact]
+    public void SupportedFields_AreEveryField_AsTheContractRequiresThem() =>
+        Assert.Equal(DescriberFields.All, describer.SupportedFields);
+
+    [Fact]
     public async Task Describe_ValidAnswer_ReturnsDescriptionAndSendsTheSchema()
     {
         server.ChatAnswers.Enqueue(ImageDescriptionContractTests.ValidJson);

@@ -14,6 +14,8 @@ using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.Testing.Media;
 using MediaFileClassifier.UseCases.Analysis.AnalyzeItems;
+using MediaFileClassifier.UseCases.Analysis.GetAnalysisProfile;
+using MediaFileClassifier.UseCases.Analysis.GetDescriberFields;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Analysis.UpdateAnalysisProfile;
 using MediaFileClassifier.UseCases.Import.RetryFailedItems;
@@ -107,6 +109,50 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
 
         var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
         Assert.Equal(["dog", "beach"], metadata.GetEffectiveTags().Select(tag => tag.Tag.Value));
+    }
+
+    [Fact]
+    public async Task Describer_StoresOnlyTheFieldsItDeclares()
+    {
+        var describer = new FakeImageDescriber(
+            describe: (_, _) => FullDescription("A title"),
+            supportedFields: DescriberFields.Description | DescriberFields.Tags | DescriberFields.Objects);
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items);
+
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal(
+            [DescriptiveField.Description, DescriptiveField.Objects],
+            metadata.GetEffectiveValues().Where(value => value.Source == MetadataSource.AI).Select(value => value.Field).Order());
+        Assert.Equal(["dog"], metadata.GetEffectiveTags().Select(tag => tag.Tag.Value));
+    }
+
+    [Fact]
+    public async Task SwitchingDescriber_ChangesWhichFieldsArePopulated()
+    {
+        var full = new FakeImageDescriber(describe: (_, _) => FullDescription("Full"), modelName: "full");
+        var captioner = new FakeImageDescriber(
+            describe: (_, _) => FullDescription("Captioner"),
+            modelName: "captioner",
+            supportedFields: DescriberFields.Description | DescriberFields.Objects);
+        var items = await ImportAsync([new FakeEmbeddingProvider(), full, captioner], SampleMedia.JpegWithExif);
+        await UseDescriberAsync(full);
+        await AnalyzeAsync(items);
+
+        await UseDescriberAsync(captioner);
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Describer)).Status);
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal(
+            [DescriptiveField.Description, DescriptiveField.Objects],
+            metadata.GetEffectiveValues().Where(value => value.Source == MetadataSource.AI).Select(value => value.Field).Order());
+        Assert.Equal("Captioner description.", metadata.GetEffectiveValue(DescriptiveField.Description)?.Value.Text);
+        Assert.Empty(metadata.GetEffectiveTags());
+        Assert.Equal(DescriberFields.Description | DescriberFields.Objects, await bed.Sender.Send(new GetDescriberFieldsQuery(), Token));
+        var choices = (await bed.Sender.Send(new GetAnalysisProfileQuery(), Token))!.Analyzers.Single(choice => choice.Analyzer == AnalyzerKeys.Describer);
+        Assert.Equal(DescriberFields.All, choices.Providers.Single(provider => provider.Id == full.Id).DescriberFields);
     }
 
     [Fact]
@@ -411,6 +457,15 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
 
         Assert.Equal(FrameSamplingWarnings.FrameSamplingFailed, (await StateAsync(items[0], AnalyzerKeys.Embedding)).ReasonCode);
         Assert.Equal(WorkItemState.Failed, Assert.Single(await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
+    }
+
+    private static ImageDescription FullDescription(string title) =>
+        new(title, $"{title} description.", $"{title} summary.", ["dog"], ["ball"], ["park"], ["running"], ["joy"]);
+
+    private async Task UseDescriberAsync(FakeImageDescriber describer)
+    {
+        var profile = AnalysisProfile.Default.With(new AnalyzerSettings(AnalyzerKeys.Describer) { ProviderId = describer.Id });
+        await bed!.Sender.Send(new UpdateAnalysisProfileCommand(profile), Token);
     }
 
     private Task<IReadOnlyList<MediaItem>> ImportAsync(IAiProvider[] providers, params string[] files) =>

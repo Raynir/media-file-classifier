@@ -11,11 +11,13 @@ namespace MediaFileClassifier.Testing.AI;
 /// <param name="describe">Produces the description, or <c>null</c> for the default.</param>
 /// <param name="modelName">The model name, e.g. another one to re-index with; the provider ID ends with it.</param>
 /// <param name="promptVersion">The prompt version.</param>
+/// <param name="supportedFields">The fields it declares (E06-S04-T03); it still returns all of them, as a model might.</param>
 public sealed class FakeImageDescriber(
     FakeProviderBehavior? behavior = null,
     Func<AiImage, ImageDescriptionOptions, ImageDescription>? describe = null,
     string modelName = FakeImageDescriber.DefaultModelName,
-    string promptVersion = "fake-1")
+    string promptVersion = "fake-1",
+    DescriberFields supportedFields = DescriberFields.All)
     : FakeAiProvider(
         modelName == FakeImageDescriber.DefaultModelName ? "fake:describe" : $"fake:describe:{modelName}",
         new ModelIdentity(ProviderIds.Fake, modelName, "1"),
@@ -29,6 +31,9 @@ public sealed class FakeImageDescriber(
 
     /// <inheritdoc />
     public string PromptVersion { get; } = promptVersion;
+
+    /// <inheritdoc />
+    public DescriberFields SupportedFields { get; } = supportedFields;
 
     /// <inheritdoc />
     public Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)

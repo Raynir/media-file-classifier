@@ -261,19 +261,22 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         var run = AnalysisRun.Start(context.Item.Id, Key, model, output.PromptVersion ?? provider.PromptVersion, startedAt);
         run.Complete(now);
 
+        // Only the declared fields are stored (E06-S04-T03): anything else the describer returned stays empty.
         var description = output.Value;
+        var fields = provider.SupportedFields;
         var values = new List<AiFieldValue>();
-        AddText(values, run, DescriptiveField.Title, description.Title, now);
-        AddText(values, run, DescriptiveField.Description, description.Description, now);
-        AddText(values, run, DescriptiveField.Summary, description.Summary, now);
-        AddList(values, run, DescriptiveField.Objects, description.Objects, now);
-        AddList(values, run, DescriptiveField.Scenes, description.Scenes, now);
-        AddList(values, run, DescriptiveField.Actions, description.Actions, now);
-        AddList(values, run, DescriptiveField.Emotions, description.Emotions, now);
-        var tags = tagNormalizer.Normalize(description.Tags)
-            .Take(context.Settings.MaxTags ?? AnalysisProfile.DefaultMaxTags)
-            .Select(tag => TagAssignment.Ai(run, tag, null, now))
-            .ToList();
+        AddText(values, run, fields, DescriberFields.Title, DescriptiveField.Title, description.Title, now);
+        AddText(values, run, fields, DescriberFields.Description, DescriptiveField.Description, description.Description, now);
+        AddText(values, run, fields, DescriberFields.Summary, DescriptiveField.Summary, description.Summary, now);
+        AddList(values, run, fields, DescriberFields.Objects, DescriptiveField.Objects, description.Objects, now);
+        AddList(values, run, fields, DescriberFields.Scenes, DescriptiveField.Scenes, description.Scenes, now);
+        AddList(values, run, fields, DescriberFields.Actions, DescriptiveField.Actions, description.Actions, now);
+        AddList(values, run, fields, DescriberFields.Emotions, DescriptiveField.Emotions, description.Emotions, now);
+        List<TagAssignment> tags = fields.HasFlag(DescriberFields.Tags)
+            ? [.. tagNormalizer.Normalize(description.Tags)
+                .Take(context.Settings.MaxTags ?? AnalysisProfile.DefaultMaxTags)
+                .Select(tag => TagAssignment.Ai(run, tag, null, now))]
+            : [];
 
         var state = AnalyzerState.Done(context.Item.Id, Key, run.Id, now);
         await context.Library.AnalyzerStates.ApplyRunAsync(run, values, tags, context.Library.Library.Settings.RetainedPreviousRuns, state, cancellationToken)
@@ -281,16 +284,35 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         return new AnalyzerResult(state, IsStored: true);
     }
 
-    private static void AddText(List<AiFieldValue> values, AnalysisRun run, DescriptiveField field, string? text, DateTimeOffset now)
+    private static void AddText(
+        List<AiFieldValue> values,
+        AnalysisRun run,
+        DescriberFields supported,
+        DescriberFields declaration,
+        DescriptiveField field,
+        string? text,
+        DateTimeOffset now)
     {
-        if (!string.IsNullOrWhiteSpace(text))
+        if (supported.HasFlag(declaration) && !string.IsNullOrWhiteSpace(text))
         {
             values.Add(AiFieldValue.For(run, field, FieldValue.FromText(text), null, now));
         }
     }
 
-    private static void AddList(List<AiFieldValue> values, AnalysisRun run, DescriptiveField field, IReadOnlyList<string>? items, DateTimeOffset now)
+    private static void AddList(
+        List<AiFieldValue> values,
+        AnalysisRun run,
+        DescriberFields supported,
+        DescriberFields declaration,
+        DescriptiveField field,
+        IReadOnlyList<string>? items,
+        DateTimeOffset now)
     {
+        if (!supported.HasFlag(declaration))
+        {
+            return;
+        }
+
         var value = FieldValue.FromList(items ?? []);
         if (value.Items.Count > 0)
         {

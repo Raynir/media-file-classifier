@@ -11,6 +11,12 @@ public interface IImageDescriber : IAiProvider
     string PromptVersion { get; }
 
     /// <summary>
+    /// Gets the fields this describer can produce (E06-S04-T03). The pipeline ignores any other field the describer
+    /// returns, so those stay empty.
+    /// </summary>
+    DescriberFields SupportedFields { get; }
+
+    /// <summary>
     /// Describes one image.
     /// </summary>
     /// <param name="image">The image, or a representative frame of a video.</param>

@@ -60,6 +60,10 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
     public string PromptVersion => ImageDescriptionContract.Version;
 
     /// <inheritdoc />
+    /// <remarks>The structured output contract requires every field (E01-S05-T05).</remarks>
+    public DescriberFields SupportedFields => DescriberFields.All;
+
+    /// <inheritdoc />
     public async Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);

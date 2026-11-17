@@ -34,7 +34,14 @@ public sealed record AnalyzerChoices(string Analyzer, IReadOnlyList<ProviderChoi
 /// <param name="ModelName">The model it runs.</param>
 /// <param name="Health">Its last known health, or <c>null</c> when it wasn't checked yet.</param>
 /// <param name="SupportedHere">Whether it runs on this platform.</param>
-public sealed record ProviderChoice(string Id, string DisplayName, string ModelName, ProviderHealth? Health, bool SupportedHere);
+/// <param name="DescriberFields">The fields a describer can produce (E06-S04-T03), or <c>null</c> for other analyzers' providers.</param>
+public sealed record ProviderChoice(
+    string Id,
+    string DisplayName,
+    string ModelName,
+    ProviderHealth? Health,
+    bool SupportedHere,
+    DescriberFields? DescriberFields = null);
 
 /// <summary>
 /// Handles <see cref="GetAnalysisProfileQuery"/>.
@@ -81,6 +88,7 @@ public sealed class GetAnalysisProfileQueryHandler(ILibrarySession session, IAiP
             provider.DisplayName,
             provider.Model.ModelName,
             registry.GetLastHealth(provider.Id)?.Health,
-            provider.IsSupportedOnCurrentPlatform))];
+            provider.IsSupportedOnCurrentPlatform,
+            (provider as IImageDescriber)?.SupportedFields))];
     }
 }

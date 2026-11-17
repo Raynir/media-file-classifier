@@ -35,6 +35,8 @@ public sealed class TagNormalizerTests
     [InlineData("golden_retrievers", "golden retriever")]
     [InlineData("#sunset.", "sunset")]
     [InlineData("- trees", "tree")]
+    [InlineData("Hot Dogs", "Hot Dog")]
+    [InlineData("photos of cats", "photos of cat")]
     public void Normalize_EnglishTag_BecomesSingularAndClean(string raw, string expected)
     {
         var tags = new TagNormalizer().Normalize([raw]);
@@ -54,6 +56,16 @@ public sealed class TagNormalizerTests
     [InlineData("Eiffel Tower")]
     [InlineData("собаки")]
     [InlineData("3D")]
+    [InlineData("panda")]
+    [InlineData("pasta")]
+    [InlineData("soda")]
+    [InlineData("tennis")]
+    [InlineData("cactus")]
+    [InlineData("dallas")]
+    [InlineData("wales")]
+    [InlineData("C#")]
+    [InlineData(".NET")]
+    [InlineData("-5°C")]
     public void Normalize_WordsThatMustNotChange_StayAsWritten(string raw)
     {
         var tags = new TagNormalizer().Normalize([raw]);
@@ -75,6 +87,24 @@ public sealed class TagNormalizerTests
         var tags = new TagNormalizer().Normalize(["car", "Automobiles", "kitty", "cat"]);
 
         Assert.Equal(["car", "cat"], Values(tags));
+    }
+
+    [Fact]
+    public void Normalize_StopwordsAndSynonymKeys_GoThroughTheSameRules()
+    {
+        var settings = new FakeSettingsService();
+        settings.Save(new AppSettings
+        {
+            Tags = new TagSettings
+            {
+                Stopwords = ["Photos", "media"],
+                Synonyms = new Dictionary<string, string> { ["Automobiles"] = "Cars" },
+            },
+        });
+
+        var tags = new TagNormalizer(settings).Normalize(["photo", "photos", "media", "automobile", "beach"]);
+
+        Assert.Equal(["car", "beach"], Values(tags));
     }
 
     [Fact]

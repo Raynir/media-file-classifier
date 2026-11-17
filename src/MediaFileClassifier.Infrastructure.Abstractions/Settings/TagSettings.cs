@@ -1,7 +1,8 @@
 namespace MediaFileClassifier.Infrastructure.Abstractions.Settings;
 
 /// <summary>
-/// Overrides for AI tag normalisation (E06-S04-T05), edited in <c>settings.json</c>; the app has no UI for them.
+/// Overrides for AI tag normalisation (E06-S04-T05), edited in <c>settings.json</c> while the app is closed (it reads the
+/// file at start and rewrites it when it saves); the app has no UI for them.
 /// A list left out (<c>null</c>) uses the built-in defaults, and a list given replaces them.
 /// </summary>
 public sealed record TagSettings

@@ -491,7 +491,9 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
     private static string Weights(KeywordFieldWeights weights)
     {
         weights.Validate();
-        double[] values = [weights.Title, weights.Description, weights.Tags, weights.OcrText, weights.Transcript, weights.Other, weights.FileName];
+        // The stems column (D349) weighs 0: a Russian word counts once, in its field, and a match found only by its stem
+        // ranks after the matches of the word itself.
+        double[] values = [weights.Title, weights.Description, weights.Tags, weights.OcrText, weights.Transcript, weights.Other, weights.FileName, 0];
         return string.Join(", ", values.Select(value => value.ToString("R", CultureInfo.InvariantCulture)));
     }
 

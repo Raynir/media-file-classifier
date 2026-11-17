@@ -13,8 +13,14 @@ namespace MediaFileClassifier.UseCases.Tags;
 /// </summary>
 public sealed class TagNormalizer
 {
-    private static readonly char[] TrimmedPunctuation =
-        [' ', '#', '.', ',', ';', ':', '!', '?', '"', '\'', '«', '»', '“', '”', '„', '(', ')', '[', ']', '{', '}', '*', '-', '–', '—', '•'];
+    // "#sunset." becomes "sunset", but "C#", ".NET" and "-5°C" keep their marks; a dash is a list marker only before a space.
+    private static readonly string[] ListMarkers = ["- ", "– ", "— ", "• ", "* "];
+
+    private static readonly char[] LeadingPunctuation = ['#', '"', '\'', '«', '“', '„', '(', '[', '{', '*', '•'];
+
+    private static readonly char[] TrailingPunctuation = ['.', ',', ';', ':', '!', '?', '"', '\'', '»', '”', ')', ']', '}', '*'];
+
+    private static readonly HashSet<string> IrregularPlurals = new(["children", "men", "women", "mice", "geese", "feet", "teeth", "oxen", "lice"], StringComparer.Ordinal);
 
     private static readonly HashSet<string> KeptAsWritten = new(TagNormalizationDefaults.KeptAsWritten, StringComparer.OrdinalIgnoreCase);
 
@@ -52,32 +58,38 @@ public sealed class TagNormalizer
 
     private static TagName? Normalize(string? raw, Rules rules)
     {
-        var text = Clean(raw);
-        if (text.Length == 0)
+        var cleaned = Clean(raw);
+        if (cleaned.Length == 0)
         {
             return null;
         }
 
-        text = LowerLeadingCapital(text);
-        if (!ContainsCyrillic(text))
+        var text = Canonical(cleaned);
+        if (rules.Synonyms.TryGetValue(text, out var synonym) || rules.Synonyms.TryGetValue(cleaned, out synonym))
         {
-            text = SingularizeLastWord(text);
-        }
-
-        if (rules.Synonyms.TryGetValue(text, out var synonym))
-        {
-            text = Clean(synonym);
-            if (text.Length == 0)
+            cleaned = Clean(synonym);
+            if (cleaned.Length == 0)
             {
                 return null;
             }
+
+            text = Canonical(cleaned);
         }
 
-        return rules.Stopwords.Contains(text) ? null : TagName.From(text);
+        return rules.Stopwords.Contains(text) || rules.Stopwords.Contains(cleaned) ? null : TagName.From(text);
     }
 
     /// <summary>
-    /// Drops punctuation around the tag (list markers, quotes, a hash, a full stop), turns underscores into spaces and
+    /// The case and number rules of a cleaned tag, which the list entries go through too.
+    /// </summary>
+    private static string Canonical(string cleaned)
+    {
+        var text = LowerLeadingCapital(cleaned);
+        return ContainsCyrillic(text) ? text : SingularizeLastWord(text);
+    }
+
+    /// <summary>
+    /// Drops punctuation around the tag (a list marker, quotes, a leading hash, a trailing full stop), turns underscores into spaces and
     /// collapses white space.
     /// </summary>
     private static string Clean(string? raw)
@@ -88,7 +100,16 @@ public sealed class TagNormalizer
         }
 
         var words = raw.Replace('_', ' ').Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        return string.Join(' ', words).Trim(TrimmedPunctuation);
+        var text = string.Join(' ', words);
+        foreach (var marker in ListMarkers)
+        {
+            if (text.StartsWith(marker, StringComparison.Ordinal))
+            {
+                text = text[marker.Length..];
+            }
+        }
+
+        return text.TrimStart(LeadingPunctuation).TrimEnd(TrailingPunctuation).Trim();
     }
 
     /// <summary>
@@ -102,17 +123,30 @@ public sealed class TagNormalizer
 
     private static bool ContainsCyrillic(string text) => text.Any(c => c is >= 'Ѐ' and <= 'ӿ');
 
+    /// <summary>
+    /// Makes the last word singular when it looks like an English plural: it ends in "s" but not "ss", "us" or "is", or
+    /// it is an irregular plural. Humanizer alone also "singularises" singular words ("panda" to "pandum").
+    /// </summary>
     private static string SingularizeLastWord(string text)
     {
         var start = text.LastIndexOf(' ') + 1;
         var word = text[start..];
-        if (word.Length < 3 || KeptAsWritten.Contains(word) || KeptAsWritten.Contains(text) || !word.All(char.IsAsciiLetterLower))
+        var lower = word.ToLowerInvariant();
+        if (word.Length < 3 || KeptAsWritten.Contains(lower) || KeptAsWritten.Contains(text)
+            || !char.IsAsciiLetter(word[0]) || !word.Skip(1).All(char.IsAsciiLetterLower))
         {
             return text;
         }
 
-        var singular = word.Singularize(inputIsKnownToBePlural: false);
-        return string.IsNullOrEmpty(singular) || singular == word ? text : string.Concat(text.AsSpan(0, start), singular);
+        var plural = IrregularPlurals.Contains(lower)
+            || (lower.EndsWith('s') && !lower.EndsWith("ss", StringComparison.Ordinal) && !lower.EndsWith("us", StringComparison.Ordinal) && !lower.EndsWith("is", StringComparison.Ordinal));
+        if (!plural)
+        {
+            return text;
+        }
+
+        var singular = word.Singularize(inputIsKnownToBePlural: true);
+        return string.IsNullOrEmpty(singular) || singular.Length < 2 ? text : string.Concat(text.AsSpan(0, start), singular);
     }
 
     private Rules GetRules()
@@ -130,6 +164,7 @@ public sealed class TagNormalizer
             if (Clean(word) is { Length: > 0 } clean)
             {
                 stopwords.Add(clean);
+                stopwords.Add(Canonical(clean));
             }
         }
 
@@ -139,6 +174,7 @@ public sealed class TagNormalizer
             if (Clean(from) is { Length: > 0 } clean && to is not null)
             {
                 synonyms[clean] = to;
+                synonyms[Canonical(clean)] = to;
             }
         }
 

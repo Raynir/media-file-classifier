@@ -43,6 +43,7 @@ public static class TagNormalizationDefaults
         "scissors", "binoculars", "goggles", "headphones", "earphones", "earbuds", "clothes", "news", "series", "species",
         "stairs", "outdoors", "indoors", "christmas", "mathematics", "physics", "electronics", "graphics", "gymnastics",
         "athletics", "aerobics", "politics", "mars", "venus", "paris", "texas", "bus", "gas", "lens", "canvas", "cactus",
-        "octopus", "chaos", "sheep", "fish", "deer", "moose", "aircraft", "cattle", "police", "people",
+        "octopus", "chaos", "atlas", "dallas", "wales", "athens", "vegas", "netherlands", "philippines", "bahamas", "maldives",
+        "alps", "andes", "himalayas", "angeles", "sheep", "fish", "deer", "moose", "aircraft", "cattle", "police", "people",
     ];
 }

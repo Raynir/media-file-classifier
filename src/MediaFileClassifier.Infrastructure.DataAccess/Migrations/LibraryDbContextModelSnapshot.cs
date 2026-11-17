@@ -702,6 +702,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("other_form");
 
+                    b.Property<string>("OtherFormKey")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("other_form_key");
+
                     b.Property<string>("RunId")
                         .HasColumnType("TEXT")
                         .HasColumnName("run_id");
@@ -751,6 +755,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.HasIndex("ItemId");
 
                     b.HasIndex("ModelId");
+
+                    b.HasIndex("OtherFormKey");
 
                     b.HasIndex("RunId");
 

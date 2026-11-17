@@ -94,11 +94,13 @@ internal sealed class TagAssignmentConfiguration : IEntityTypeConfiguration<TagA
         builder.Property(tag => tag.OtherForm);
         builder.Property(tag => tag.IsOtherFormDerived);
         builder.Property<string>(TagKeyGenerator.Property).IsRequired().HasValueGenerator<TagKeyGenerator>();
+        builder.Property<string>(OtherFormKeyGenerator.Property).HasValueGenerator<OtherFormKeyGenerator>();
         builder.ComplexProperty(tag => tag.AcceptedFrom, RunReferenceMapping.Configure);
         builder.HasOne<MediaItem>().WithMany().HasForeignKey(tag => tag.ItemId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<AnalysisRun>().WithMany().HasForeignKey(tag => tag.RunId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<ModelRegistration>().WithMany().HasForeignKey(tag => tag.ModelId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(TagKeyGenerator.Property);
+        builder.HasIndex(OtherFormKeyGenerator.Property);
     }
 }
 

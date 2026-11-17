@@ -501,6 +501,10 @@ public sealed class SearchStoreTests : IAsyncLifetime
         var tag = Assert.Single(metadata.GetEffectiveTags());
         Assert.Equal("пляж", tag.OtherForm);
         Assert.True(tag.IsOtherFormDerived);
+
+        // The key is filled by the same migration, in upper case in every alphabet, and indexed (E06-S04, D071).
+        Assert.Equal(["beach:ПЛЯЖ", "cat:КОШКА", "Кошки:CAT"], [.. (await ReadTagKeysAsync()).Order(StringComparer.Ordinal)]);
+        Assert.Equal(1L, await CountOtherFormKeyIndexesAsync());
     }
 
     [Fact]
@@ -563,6 +567,31 @@ public sealed class SearchStoreTests : IAsyncLifetime
         await using var command = connection.CreateCommand();
         command.CommandText = """UPDATE "search_text" SET "tags" = replace(replace("tags", char(10) || 'пляж', ''), char(10) || 'cat', '')""";
         await command.ExecuteNonQueryAsync(Token);
+    }
+
+    private async Task<List<string>> ReadTagKeysAsync()
+    {
+        await using var connection = new SqliteConnection($"Data Source={bed.Temporary.DatabasePath};Pooling=False");
+        await connection.OpenAsync(Token);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """SELECT "tag" || ':' || coalesce("other_form_key", '') FROM "tag_assignment" WHERE "other_form_key" IS NOT NULL""";
+        var rows = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(Token);
+        while (await reader.ReadAsync(Token))
+        {
+            rows.Add(reader.GetString(0));
+        }
+
+        return rows;
+    }
+
+    private async Task<object?> CountOtherFormKeyIndexesAsync()
+    {
+        await using var connection = new SqliteConnection($"Data Source={bed.Temporary.DatabasePath};Pooling=False");
+        await connection.OpenAsync(Token);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """SELECT count(*) FROM "sqlite_master" WHERE "type" = 'index' AND "name" = 'IX_tag_assignment_other_form_key'""";
+        return await command.ExecuteScalarAsync(Token);
     }
 
     private async Task<string> ReadTextTableSqlAsync()

@@ -65,11 +65,23 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 type: "TEXT",
                 nullable: true);
 
+            // The key is the form in upper case in every alphabet (D071), like tag_key; the filter and autocompletion match it.
+            migrationBuilder.AddColumn<string>(
+                name: "other_form_key",
+                table: "tag_assignment",
+                type: "TEXT",
+                nullable: true);
+
             migrationBuilder.Sql(
                 """
                 UPDATE "tag_assignment" SET "other_form" = tag_other_form("tag");
-                UPDATE "tag_assignment" SET "is_other_form_derived" = 1 WHERE "other_form" IS NOT NULL;
+                UPDATE "tag_assignment" SET "is_other_form_derived" = 1, "other_form_key" = fold_case("other_form") WHERE "other_form" IS NOT NULL;
                 """);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_tag_assignment_other_form_key",
+                table: "tag_assignment",
+                column: "other_form_key");
 
             Recreate(
                 migrationBuilder,
@@ -83,6 +95,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             Recreate(migrationBuilder, string.Empty, string.Empty, null);
+            migrationBuilder.DropIndex(name: "IX_tag_assignment_other_form_key", table: "tag_assignment");
+            migrationBuilder.DropColumn(name: "other_form_key", table: "tag_assignment");
             migrationBuilder.DropColumn(name: "is_other_form_derived", table: "tag_assignment");
             migrationBuilder.DropColumn(name: "other_form", table: "tag_assignment");
         }

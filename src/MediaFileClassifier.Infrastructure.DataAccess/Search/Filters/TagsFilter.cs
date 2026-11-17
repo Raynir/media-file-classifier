@@ -60,8 +60,10 @@ internal sealed class TagsFilter(ILibrarySession session) : FilterDefinition<Inc
         var include = Keys(value.Include);
         if (include.Count > 0)
         {
-            // All of them: one probe counts the item's distinct effective tags among them.
-            conditions.Add(value.MatchAll && include.Count > 1 ? $"{Count(include, sql)} = {include.Count}" : $"EXISTS {Assignments(include, sql)}");
+            // All of them: one probe per key, as a tag matches by its own key or by its other-language form's.
+            conditions.AddRange(value.MatchAll
+                ? include.Select(key => $"EXISTS {Assignments([key], sql)}")
+                : [$"EXISTS {Assignments(include, sql)}"]);
         }
 
         var exclude = Keys(value.Exclude);
@@ -73,14 +75,16 @@ internal sealed class TagsFilter(ILibrarySession session) : FilterDefinition<Inc
         return string.Join(" AND ", conditions);
     }
 
-    // tag_key is the tag in upper case (D071), so this ignores case in every alphabet.
+    // tag_key and other_form_key are the tag and its other-language form in upper case (D071), so this ignores case in
+    // every alphabet, and a tag in either language finds the tag.
     private static List<string> Keys(IEnumerable<string> tags) =>
         [.. tags.Select(tag => TagKeyGenerator.KeyOf(TagName.From(tag))).Distinct(StringComparer.Ordinal)];
 
     private static string Assignments(IEnumerable<string> keys, IFilterSql sql) => $"(SELECT 1 {From(keys, sql)})";
 
-    private static string Count(IEnumerable<string> keys, IFilterSql sql) => $"""(SELECT count(DISTINCT a."tag_key") {From(keys, sql)})""";
-
-    private static string From(IEnumerable<string> keys, IFilterSql sql) =>
-        $"""FROM "tag_assignment" a WHERE a."item_id" = {sql.ItemId} AND a."tag_key" IN ({string.Join(", ", keys.Select(sql.Parameter))}) AND {EffectiveTagSql.Condition("a")}""";
+    private static string From(IEnumerable<string> keys, IFilterSql sql)
+    {
+        var list = string.Join(", ", keys.Select(sql.Parameter).ToList());
+        return $"""FROM "tag_assignment" a WHERE a."item_id" = {sql.ItemId} AND (a."tag_key" IN ({list}) OR a."other_form_key" IN ({list})) AND {EffectiveTagSql.Condition("a")}""";
+    }
 }

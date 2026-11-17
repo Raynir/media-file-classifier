@@ -19,6 +19,7 @@ The third-party libraries, native binaries and AI models that Media File Classif
 | Tmds.DBus.Protocol | 0.94.1 | MIT | https://github.com/tmds/Tmds.DBus | Used on Linux only |
 | CommunityToolkit.Mvvm | 8.4.2 | MIT | https://github.com/CommunityToolkit/dotnet | |
 | Humanizer.Core | 3.0.10 | MIT | https://github.com/Humanizr/Humanizer | Singularises English AI tags (E06-S04-T05) |
+| Snowball Russian stemmer (algorithm, ported to C# in `Domain/Text/RussianStemmer.cs`; test vocabulary sample in `Domain.Tests`) | snowball-data master, 2026-11 | BSD-3-Clause (Copyright (c) 2001 Dr Martin Porter) | https://snowballstem.org/algorithms/russian/stemmer.html | Russian keyword search (D349, E06-S04-T10) |
 | MediatR, MediatR.Contracts | 12.5.0, 2.0.1 | Apache-2.0 | https://github.com/jbogard/MediatR | Stays on 12.5.0 (D063) |
 | Microsoft.Extensions.* (Hosting, DependencyInjection, Logging, Configuration, Options, …), System.Diagnostics.EventLog | 10.0.14 | MIT | https://github.com/dotnet/runtime | |
 | Serilog | 4.3.0 | Apache-2.0 | https://github.com/serilog/serilog | |

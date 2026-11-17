@@ -14,12 +14,12 @@ The engine under search (E09) and filtering (E10): keyword search with FTS5, vec
 | `IEmbeddingRepository` (`EmbeddingRepository`) | `Repositories`, `DataAccess/Repositories` | The only write path for embeddings; raises `Changed` after each commit. `IOpenLibrary.Embeddings`. |
 | `RebuildSearchIndexCommand` | `UseCases/Search/RebuildSearchIndex` | "Rebuild or refresh the index" (spec 1.2). |
 
-## Schema (version 6, prefixes changed in 11, sort keys added in 12)
+## Schema (version 6, prefixes changed in 11, sort keys added in 12, Russian stems added in 14)
 
 The `SearchIndex` migration adds, in raw SQL:
 
 - `search_document(doc_id INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT UNIQUE)`: a stable integer per item, shared by the keyword and vector indexes. AUTOINCREMENT, so a deleted item's ID is never reused and a stale vector can't attach to a new item. `media_item.rowid` isn't used, because `VACUUM` (backups, D073) may renumber it.
-- `search_text`: FTS5 with `unicode61 remove_diacritics 2` (D029) and prefix indexes for 1, 2 and 3 characters (1 since schema 11, MFC-988: the `SearchPrefixIndex` migration recreates the table and copies its rows, so no rebuild is needed). Columns: `title`, `description` (with the summary), `tags`, `ocr_text`, `transcript`, `other` (notes and the list fields), `file_name` (the path in the folder).
+- `search_text`: FTS5 with `unicode61 remove_diacritics 2` (D029) and prefix indexes for 1, 2 and 3 characters (1 since schema 11, MFC-988: the `SearchPrefixIndex` migration recreates the table and copies its rows, so no rebuild is needed). Columns: `title`, `description` (with the summary), `tags`, `ocr_text`, `transcript`, `other` (notes and the list fields), `file_name` (the path in the folder), and `stems` (schema 14, MFC-328, D349): the Snowball Russian stem of every word with a Cyrillic letter in the six metadata columns, in order (`RussianStems`, `Domain/Text/RussianStemmer`, a port checked against Snowball's own 49,785-word vocabulary). `stems` isn't a field: matched fields and BM25 weights cover the first seven columns (a missing weight is 1). The `RussianStems` migration recreates the table and copies the rows, computing the stems with `ru_stem`, a SQL function every library connection registers, so no rebuild is needed.
 - `search_filename`: FTS5 `trigram` index of the path, for substring matches.
 - `search_state`: `rebuild_needed` marks an index whose metadata columns must be recomputed. The migration sets it for libraries that have items; the app rebuilds in the background when it opens such a library.
 - `search_sort(doc_id, name_key, item_date, size_bytes, imported_at)` (schema 12, MFC-762): one row per document with its sort keys, each indexed. `name_key` is the natural name key (`NaturalSortKey`): the file name upper-cased in every alphabet, with each run of digits written as its length (three digits) and the digits without leading zeros, so "IMG_2" sorts before "IMG_10" in plain binary order. It comes from `natural_key`, a SQL function every library connection registers (like `fold_case`), so a connection without it can't add items or rename them. `item_date` is the item date (below).
@@ -33,10 +33,12 @@ The `SearchIndex` migration adds, in raw SQL:
 - **Paths, new and deleted items:** triggers.
 - **Embeddings:** `EmbeddingRepository` raises `Changed` after the commit, with the vectors; `SearchIndex` applies them. While a load or rebuild reads the database, the commits are buffered and replayed onto the new index; replays are harmless because every change replaces all of an item's vectors of a model.
 - `ё` is folded to `е` in indexed text, paths and query words, because `unicode61` removes only Latin diacritics.
+- **Stems:** `SearchText` writes the `stems` column with the other columns, so every metadata write and the rebuild keep it current.
 
 ## Queries
 
 - **Words:** split on white space; words without a letter or digit are dropped; at most 16. Each word is an FTS5 string, so punctuation is never query syntax. Every word must match as a prefix in any field, or as a path substring if it has 3+ characters.
+- **Russian words (D349):** a word whose letters are all Cyrillic, with 3+ letters, whose stem differs from it, also matches its exact stem in `stems` (`SearchSql.MatchTerm`: `("собаки"* OR stems : "собак")`), so "собаки" finds "собакой" and "котами" finds "кота" but not "котёл". A prefix of the stem would add nothing, since a stem is always the start of its word. A word found only through its stem marks no matched field. English queries are unchanged.
 - **Keyword ranking:** BM25 with every field weighted 1 by default (`KeywordFieldWeights`, tuned in E09-S05), over the documents whose words match every term; documents that matched a word only as a path substring rank after them.
 - **Vector:** the filter's SQL returns document IDs, which become a mask the scorer checks. An item scores as its best vector. Excluded items are never in the mask.
 - **Hybrid:** the top 200 of each list, fused by RRF. Ties go to the better single rank, then the keyword list, then the lower document ID.

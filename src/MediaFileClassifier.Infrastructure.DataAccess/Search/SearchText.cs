@@ -16,8 +16,14 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Search;
 /// <param name="OcrText">The OCR text.</param>
 /// <param name="Transcript">The transcript.</param>
 /// <param name="Other">The notes and the list fields, one entry per line.</param>
+/// <remarks>The <c>stems</c> column is written from the others (<see cref="Stems"/>).</remarks>
 internal sealed record SearchText(string? Title, string? Description, string? Tags, string? OcrText, string? Transcript, string? Other)
 {
+    /// <summary>
+    /// Gets the Snowball stems of the Russian words of every column (D349, E06-S04-T10).
+    /// </summary>
+    public string? Stems => RussianStems.Of(string.Join('\n', new[] { Title, Description, Tags, OcrText, Transcript, Other }.OfType<string>()));
+
     /// <summary>
     /// Resolves an item's columns.
     /// </summary>
@@ -55,7 +61,8 @@ internal sealed record SearchText(string? Title, string? Description, string? Ta
         db.Database.ExecuteSqlRawAsync(
             """
             UPDATE "search_text"
-            SET "title" = $title, "description" = $description, "tags" = $tags, "ocr_text" = $ocr, "transcript" = $transcript, "other" = $other
+            SET "title" = $title, "description" = $description, "tags" = $tags, "ocr_text" = $ocr, "transcript" = $transcript, "other" = $other,
+                "stems" = $stems
             WHERE "rowid" = (SELECT "doc_id" FROM "search_document" WHERE "item_id" = $item)
             """,
             [.. Parameters(), new SqliteParameter("$item", itemId)],
@@ -72,8 +79,8 @@ internal sealed record SearchText(string? Title, string? Description, string? Ta
     public Task InsertAsync(LibraryDbContext db, long documentId, string path, CancellationToken cancellationToken) =>
         db.Database.ExecuteSqlRawAsync(
             """
-            INSERT INTO "search_text" ("rowid", "title", "description", "tags", "ocr_text", "transcript", "other", "file_name")
-            VALUES ($doc, $title, $description, $tags, $ocr, $transcript, $other, $path)
+            INSERT INTO "search_text" ("rowid", "title", "description", "tags", "ocr_text", "transcript", "other", "file_name", "stems")
+            VALUES ($doc, $title, $description, $tags, $ocr, $transcript, $other, $path, $stems)
             """,
             [.. Parameters(), new SqliteParameter("$doc", documentId), new SqliteParameter("$path", SearchSql.Fold(path))],
             cancellationToken);
@@ -105,5 +112,6 @@ internal sealed record SearchText(string? Title, string? Description, string? Ta
         new("$ocr", (object?)OcrText ?? DBNull.Value),
         new("$transcript", (object?)Transcript ?? DBNull.Value),
         new("$other", (object?)Other ?? DBNull.Value),
+        new("$stems", (object?)Stems ?? DBNull.Value),
     ];
 }

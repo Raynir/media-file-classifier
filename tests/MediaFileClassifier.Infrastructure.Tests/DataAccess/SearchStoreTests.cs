@@ -386,6 +386,55 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Equal([added.Id, second.Id, first.Id], await ListAsync(SortMode.Name));
     }
 
+    [Theory]
+    [InlineData(DescriptiveField.Title, "Собакой на пляже", "собаки")]
+    [InlineData(DescriptiveField.Description, "Две кошки спят.", "кошка")]
+    [InlineData(DescriptiveField.OcrText, "ЗА КОТАМИ", "коты")]
+    [InlineData(DescriptiveField.Notes, "старые ёлки", "елкой")]
+    public async Task RussianQuery_OtherWordForm_FindsTheItem(DescriptiveField field, string text, string query)
+    {
+        var item = await AddItemAsync(7);
+        await EditAsync(item, field, text);
+
+        Assert.Equal([item.Id], await FindAsync(query));
+        var top = await bed.Library.Search.FindKeywordMatchesAsync(Search(query) with { NeedsTotal = false }, Token);
+        Assert.Equal([item.Id], top.Matches.Select(match => match.ItemId));
+    }
+
+    [Fact]
+    public async Task RussianQuery_MatchesTheStemExactly_NotWordsThatStartWithIt()
+    {
+        var cat = await AddItemAsync(7);
+        await EditAsync(cat, DescriptiveField.Title, "кота");
+        var boiler = await AddItemAsync(8);
+        await EditAsync(boiler, DescriptiveField.Title, "котёл");
+
+        Assert.Equal([cat.Id], await FindAsync("котами"));
+        Assert.Equivalent(new[] { cat.Id, boiler.Id }, await FindAsync("кот"));
+    }
+
+    [Fact]
+    public async Task UpgradeFromVersion13_StemsTheIndexedRussianText()
+    {
+        var item = await AddItemAsync(7);
+        await EditAsync(item, DescriptiveField.Title, "Собакой");
+        await bed.Library.DisposeAsync();
+        using (var probe = new DesignTimeLibraryDbContextFactory().CreateDbContext([]))
+        {
+            var beforeStems = probe.Database.GetMigrations().TakeWhile(migration => !migration.EndsWith("_RussianStems", StringComparison.Ordinal)).Last();
+            await using var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token);
+            await db.GetService<IMigrator>().MigrateAsync(beforeStems, cancellationToken: Token);
+        }
+
+        SqliteConnection.ClearAllPools();
+        Assert.DoesNotContain("\"stems\"", await ReadTextTableSqlAsync(), StringComparison.Ordinal);
+        await bed.OpenAgainAsync();
+
+        Assert.False(await bed.Library.Search.IsRebuildNeededAsync(Token));
+        Assert.Equal([item.Id], await FindAsync("собаки"));
+        Assert.Equal([item.Id], await FindAsync("IMG_00007"));
+    }
+
     [Fact]
     public async Task List_ReportsTheTotalOnEveryPage()
     {

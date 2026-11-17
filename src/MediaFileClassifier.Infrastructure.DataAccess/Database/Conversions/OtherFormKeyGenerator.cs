@@ -24,7 +24,7 @@ internal sealed class OtherFormKeyGenerator : ValueGenerator<string?>
     /// </summary>
     /// <param name="form">The form.</param>
     /// <returns>The form in upper case, or <see langword="null"/> without a form.</returns>
-    public static string? KeyOf(string? form) => string.IsNullOrWhiteSpace(form) ? null : form.ToUpperInvariant();
+    public static string? KeyOf(string? form) => string.IsNullOrWhiteSpace(form) ? null : TagKeyGenerator.KeyOf(TagName.From(form));
 
     /// <inheritdoc />
     public override string? Next(EntityEntry entry) => entry.Entity switch

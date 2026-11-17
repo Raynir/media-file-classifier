@@ -75,7 +75,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
             migrationBuilder.Sql(
                 """
                 UPDATE "tag_assignment" SET "other_form" = tag_other_form("tag");
-                UPDATE "tag_assignment" SET "is_other_form_derived" = 1, "other_form_key" = fold_case("other_form") WHERE "other_form" IS NOT NULL;
+                UPDATE "tag_assignment" SET "is_other_form_derived" = 1, "other_form_key" = CASE WHEN trim("other_form") <> '' THEN fold_case("other_form") END WHERE "other_form" IS NOT NULL;
                 """);
 
             migrationBuilder.CreateIndex(

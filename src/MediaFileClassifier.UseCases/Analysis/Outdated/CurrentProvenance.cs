@@ -38,8 +38,9 @@ public static class CurrentProvenance
                 continue;
             }
 
-            // The describer stores its provider's prompt version; OCR and the embedding store none.
-            var promptVersion = (provider as IImageDescriber)?.PromptVersion;
+            // The describer stores the prompt version the profile asks for, as its provider resolves it (E06-S04-T04);
+            // OCR and the embedding store none.
+            var promptVersion = (provider as IImageDescriber)?.GetPromptVersion(settings.PromptVersion);
             var model = provider.Model;
             result.Add(new AnalyzerProvenance(settings.Analyzer, model.ProviderId, model.ModelName, model.Version, promptVersion));
         }

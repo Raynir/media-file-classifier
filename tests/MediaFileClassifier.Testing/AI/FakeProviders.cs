@@ -36,11 +36,17 @@ public sealed class FakeImageDescriber(
     public DescriberFields SupportedFields { get; } = supportedFields;
 
     /// <inheritdoc />
-    public Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    /// <remarks>The fake has a template for every version: it uses the one asked for.</remarks>
+    public string GetPromptVersion(string? requested) => requested ?? PromptVersion;
+
+    /// <inheritdoc />
+    public async Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(options);
 
-        return RunAsync(() => (describe ?? Describe)(image, options), cancellationToken);
+        var output = await RunAsync(() => (describe ?? Describe)(image, options), cancellationToken).ConfigureAwait(false);
+        return output with { PromptVersion = GetPromptVersion(options.PromptVersion) };
     }
 
     private static ImageDescription Describe(AiImage image, ImageDescriptionOptions options)

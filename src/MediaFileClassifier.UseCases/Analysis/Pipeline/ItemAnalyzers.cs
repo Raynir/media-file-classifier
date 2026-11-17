@@ -254,11 +254,12 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         }
 
         var startedAt = clock.GetUtcNow();
-        var output = await provider.DescribeAsync(image, new ImageDescriptionOptions(context.Settings.Language), cancellationToken).ConfigureAwait(false);
+        var options = new ImageDescriptionOptions(context.Settings.Language, PromptVersion: context.Settings.PromptVersion);
+        var output = await provider.DescribeAsync(image, options, cancellationToken).ConfigureAwait(false);
         breaker?.RecordSuccess(provider.Id);
         var now = clock.GetUtcNow();
         var model = await context.Library.Models.GetOrAddAsync(output.Model, now, cancellationToken).ConfigureAwait(false);
-        var run = AnalysisRun.Start(context.Item.Id, Key, model, output.PromptVersion ?? provider.PromptVersion, startedAt);
+        var run = AnalysisRun.Start(context.Item.Id, Key, model, output.PromptVersion ?? provider.GetPromptVersion(context.Settings.PromptVersion), startedAt);
         run.Complete(now);
 
         // Only the declared fields are stored (E06-S04-T03): anything else the describer returned stays empty.

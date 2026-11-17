@@ -1,5 +1,5 @@
-using System.Globalization;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.Infrastructure.AI.Prompts;
 using MediaFileClassifier.Infrastructure.AI.StructuredOutput;
 using Microsoft.Extensions.AI;
 
@@ -14,10 +14,6 @@ namespace MediaFileClassifier.Infrastructure.AI.OpenAiCompatible;
 /// </summary>
 public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, IImageDescriber
 {
-    private const string SystemPrompt =
-        "You describe photos and video frames for a personal media library, so they can be found by searching. "
-        + "Describe only what is visible. Answer with a single JSON object that matches the schema, and nothing else.";
-
     // D350: Qwen recommends 1.5 for its vision-language instruct models; it stops the near-duplicate tags. Not used for OCR (D345).
     internal const float DescriberPresencePenalty = 1.5f;
 
@@ -57,7 +53,10 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
     }
 
     /// <inheritdoc />
-    public string PromptVersion => ImageDescriptionContract.Version;
+    public string PromptVersion => DescriberPromptTemplates.Latest.Version;
+
+    /// <inheritdoc />
+    public string GetPromptVersion(string? requested) => DescriberPromptTemplates.Resolve(requested).Version;
 
     /// <inheritdoc />
     /// <remarks>The structured output contract requires every field (E01-S05-T05).</remarks>
@@ -69,10 +68,11 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(options);
 
+        var template = DescriberPromptTemplates.Resolve(options.PromptVersion);
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.System, SystemPrompt),
-            new(ChatRole.User, [new TextContent(BuildRequest(options)), ToDataContent(image)]),
+            new(ChatRole.System, template.System),
+            new(ChatRole.User, [new TextContent(template.BuildRequest(options)), ToDataContent(image)]),
         };
         var chatOptions = new ChatOptions
         {
@@ -105,32 +105,6 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
             }
         }
 
-        return new AiOutput<ImageDescription>(result.Value!, Id, Model, PromptVersion, duration);
-    }
-
-    private static string BuildRequest(ImageDescriptionOptions options)
-    {
-        var language = GetLanguageName(options.Language);
-        var request = $"Describe this image. Write all text in {language}. "
-            + "Fields: title, description, summary, tags, objects, scenes, actions, emotions. "
-            + $"Use JSON lists of short phrases for the last five, at most {ImageDescriptionContract.MaxListItems} each.";
-        return options.Context is null ? request : $"{request} Context: {options.Context}";
-    }
-
-    private static string GetLanguageName(string? code)
-    {
-        if (code is null)
-        {
-            return "English";
-        }
-
-        try
-        {
-            return CultureInfo.GetCultureInfo(code).EnglishName;
-        }
-        catch (CultureNotFoundException)
-        {
-            return code;
-        }
+        return new AiOutput<ImageDescription>(result.Value!, Id, Model, template.Version, duration);
     }
 }

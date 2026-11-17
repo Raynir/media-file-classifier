@@ -70,6 +70,41 @@ public sealed class OutdatedAnalysisTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task ChangingThePromptTemplate_ShowsTheItemsAsOutdated_UntilTheyAreDescribedAgain()
+    {
+        var items = await AnalyzedAsync(SampleMedia.JpegWithExif, SampleMedia.PngWithAlpha);
+        var profile = AnalysisProfile.Default.With(new AnalyzerSettings(AnalyzerKeys.Describer) { ModelId = describer.Model.ModelName, PromptVersion = "fake-2" });
+
+        await bed!.Sender.Send(new UpdateAnalysisProfileCommand(profile), Token);
+
+        var outdated = await OutdatedAsync();
+        Assert.Equivalent(items.Select(item => item.Id), outdated.ItemIds, strict: true);
+        Assert.Equal([AnalyzerKeys.Describer], outdated.Analyzers);
+
+        await bed.Sender.Send(new AnalyzeItemsCommand([.. outdated.ItemIds], [AnalyzerKeys.Describer]), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(0, (await OutdatedAsync()).Count);
+        var metadata = await bed.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal("fake-2", metadata.Runs.Single(run => run.Analyzer == AnalyzerKeys.Describer && run.IsActive).PromptVersion);
+    }
+
+    [Fact]
+    public async Task ANewShippedTemplateVersion_ShowsTheItemsAsOutdated()
+    {
+        await AnalyzedAsync(SampleMedia.JpegWithExif);
+        var stored = (await bed!.Library.Metadata.GetAsync((await bed.ItemsAsync())[0].Id, Token)).Runs.Single(run => run.Analyzer == AnalyzerKeys.Describer);
+        var model = Assert.Single(await bed.Library.Models.GetAllAsync(Token), model => model.Id == stored.ModelId);
+
+        // The same describer after an app update whose default template is newer.
+        var updated = new AiProviderRegistry([new FakeImageDescriber(promptVersion: "fake-2")], TimeProvider.System);
+        var current = Assert.Single(CurrentProvenance.Resolve(AnalysisProfile.Default, updated));
+
+        Assert.Equal("fake-2", current.PromptVersion);
+        Assert.False(current.Matches(model, stored.PromptVersion));
+    }
+
+    [Fact]
     public void Resolve_LeavesOutDisabledAnalyzersAndThoseWithoutAProvider()
     {
         var registry = new AiProviderRegistry([describer, better, embedding], TimeProvider.System);

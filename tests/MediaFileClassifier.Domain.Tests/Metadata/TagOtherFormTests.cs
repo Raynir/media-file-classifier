@@ -98,7 +98,11 @@ public sealed class TagOtherFormTests
     }
 
     [Fact]
-    public void Constructor_DerivedWithoutAForm_Throws() =>
-        Assert.Throws<ArgumentException>(() => new TagAssignment(
-            fixture.ItemId, TagName.From("cat"), MetadataSource.Technical, null, null, null, null, null, fixture.Now, null, true));
+    public void Constructor_BlankOrMissingForm_IsNoForm()
+    {
+        var blank = new TagAssignment(fixture.ItemId, TagName.From("cat"), MetadataSource.Technical, null, null, null, null, null, fixture.Now, " ", true);
+
+        Assert.Null(blank.OtherForm);
+        Assert.False(blank.IsOtherFormDerived);
+    }
 }

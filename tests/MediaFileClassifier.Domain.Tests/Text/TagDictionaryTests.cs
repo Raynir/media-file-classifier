@@ -15,6 +15,9 @@ public sealed class TagDictionaryTests
     [InlineData("dogs", "собака")]
     [InlineData("berries", "ягода")]
     [InlineData("leaves", "лист")]
+    [InlineData("cubes", "куб")]
+    [InlineData("caves", "пещера")]
+    [InlineData("boxes", "коробка")]
     [InlineData("blue skies", "голубое небо")]
     public void Translate_EnglishTag_GivesTheRussianForm(string tag, string expected) =>
         Assert.Equal(expected, TagDictionary.Default.Translate(tag));

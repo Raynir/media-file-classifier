@@ -44,15 +44,9 @@ public sealed class TagAssignment
         bool isOtherFormDerived = false)
     {
         ArgumentNullException.ThrowIfNull(tag);
-        if (otherForm is not null && string.IsNullOrWhiteSpace(otherForm))
-        {
-            throw new ArgumentException("The other form is blank.", nameof(otherForm));
-        }
-
-        if (isOtherFormDerived && otherForm is null)
-        {
-            throw new ArgumentException("A derived other form needs the form.", nameof(isOtherFormDerived));
-        }
+        // Lenient, so a stray stored value can't stop an item loading: a blank form is no form, and only a form is derived.
+        otherForm = string.IsNullOrWhiteSpace(otherForm) ? null : otherForm;
+        isOtherFormDerived &= otherForm is not null;
         Confidences.EnsureValid(confidence);
 
         var valid = source switch

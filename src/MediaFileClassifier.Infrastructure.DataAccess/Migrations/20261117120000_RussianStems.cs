@@ -67,8 +67,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
 
             migrationBuilder.Sql(
                 """
-                UPDATE "tag_assignment" SET "other_form" = tag_other_form("tag"), "is_other_form_derived" = 1
-                WHERE tag_other_form("tag") IS NOT NULL;
+                UPDATE "tag_assignment" SET "other_form" = tag_other_form("tag");
+                UPDATE "tag_assignment" SET "is_other_form_derived" = 1 WHERE "other_form" IS NOT NULL;
                 """);
 
             Recreate(

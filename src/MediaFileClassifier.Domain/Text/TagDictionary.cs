@@ -15,6 +15,14 @@ public sealed class TagDictionary
 
     private static readonly Lazy<TagDictionary> LazyDefault = new(Load);
 
+    /// <summary>
+    /// English words that end in "s" but aren't plurals of an entry.
+    /// </summary>
+    private static readonly HashSet<string> NotPlurals = new(StringComparer.Ordinal)
+    {
+        "news", "series", "species", "lens", "bus", "gas", "canvas", "atlas", "chaos", "cosmos", "physics", "politics",
+    };
+
     private readonly Dictionary<string, string> russianByEnglish = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> englishByRussian = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string?> englishByRussianStems = new(StringComparer.Ordinal);
@@ -153,10 +161,13 @@ public sealed class TagDictionary
         var last = key.LastIndexOf(' ') + 1;
         var prefix = key[..last];
         var word = key[last..];
-        if (word.Length < 3 || !word.EndsWith('s') || word.EndsWith("ss", StringComparison.Ordinal))
+        if (word.Length < 3 || !word.EndsWith('s') || word.EndsWith("ss", StringComparison.Ordinal) || NotPlurals.Contains(word))
         {
             yield break;
         }
+
+        // The plain "-s" first, so "cubes" is "cube" rather than "cub" and "caves" "cave" rather than "cafe".
+        yield return prefix + word[..^1];
 
         if (word.EndsWith("ies", StringComparison.Ordinal))
         {
@@ -173,8 +184,6 @@ public sealed class TagDictionary
         {
             yield return prefix + word[..^2];
         }
-
-        yield return prefix + word[..^1];
     }
 
     private static bool HasCyrillic(string text) => text.Any(c => c is >= 'Ѐ' and <= 'ӿ');

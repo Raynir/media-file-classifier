@@ -93,12 +93,12 @@ internal sealed record SearchText(string? Title, string? Description, string? Ta
         var lines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var tag in tags)
         {
-            if (lines.Add(tag.Tag.Value))
+            if (lines.Add(SearchSql.Fold(tag.Tag.Value)))
             {
                 yield return tag.Tag.Value;
             }
 
-            if (tag.OtherForm is { } form && lines.Add(form))
+            if (tag.OtherForm is { } form && lines.Add(SearchSql.Fold(form)))
             {
                 yield return form;
             }

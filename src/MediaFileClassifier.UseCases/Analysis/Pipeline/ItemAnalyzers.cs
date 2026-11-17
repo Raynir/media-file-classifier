@@ -236,6 +236,16 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
     public const int ClipFrameLongestEdge = 512;
 
     /// <summary>
+    /// The longest edge of a keyframe sent to a describer that takes one picture, as for a still.
+    /// </summary>
+    public const int FrameLongestEdge = 1024;
+
+    /// <summary>
+    /// The most items a merged list keeps, as one picture's description is limited to.
+    /// </summary>
+    public const int MaxMergedListItems = 30;
+
+    /// <summary>
     /// The most keyframes a describer that takes one picture describes, one request each.
     /// </summary>
     public const int MaxDescribedFrames = 4;
@@ -387,7 +397,7 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         var outputs = new List<AiOutput<ImageDescription>>();
         foreach (var frame in Spread(frames, MaxDescribedFrames))
         {
-            outputs.Add(await provider.DescribeAsync(frame, options, cancellationToken).ConfigureAwait(false));
+            outputs.Add(await provider.DescribeAsync(inputs.ShrinkFrame(frame, FrameLongestEdge), options, cancellationToken).ConfigureAwait(false));
         }
 
         // The texts come from the middle frame; tags are normalised per frame first, so "Dogs" and "dog" count as one.
@@ -398,10 +408,10 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
             middle.Value.Description,
             middle.Value.Summary,
             KeyframeAggregation.MergeLists([.. descriptions.Select<ImageDescription, IReadOnlyList<string>>(value => [.. tagNormalizer.Normalize(value.Tags).Select(tag => tag.Value)])]),
-            KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Objects)]),
-            KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Scenes)]),
-            KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Actions)]),
-            KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Emotions)]));
+            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Objects)]).Take(MaxMergedListItems)],
+            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Scenes)]).Take(MaxMergedListItems)],
+            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Actions)]).Take(MaxMergedListItems)],
+            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Emotions)]).Take(MaxMergedListItems)]);
         return middle with { Value = merged, Duration = outputs.Aggregate(TimeSpan.Zero, (sum, output) => sum + output.Duration) };
     }
 }

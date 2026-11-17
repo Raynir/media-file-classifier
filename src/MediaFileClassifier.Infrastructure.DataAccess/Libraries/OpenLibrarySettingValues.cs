@@ -97,6 +97,9 @@ public sealed class OpenLibrarySettingValues : ILibrarySettingValues
             return settings;
         }
 
+        // A value of the wrong type fails here, as itself, and not as a storage failure.
+        _ = Change(open.Library.Settings);
+
         // Settings are saved as they change; the write is small and queued behind other writes.
         try
         {

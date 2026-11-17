@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
@@ -11,6 +12,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 /// <summary>
 /// A library this app instance has open: its lock, its writer and its repositories.
 /// </summary>
+[SuppressMessage(
+    "Usage",
+    "CA2213:Disposable fields should be disposed",
+    Justification = "A settings change may still wait on or release the gate while the library closes; the semaphore holds no handle that needs disposing.")]
 internal sealed class OpenLibrary : IOpenLibrary
 {
     private readonly LibraryConnectionFactory connections;
@@ -159,7 +164,6 @@ internal sealed class OpenLibrary : IOpenLibrary
         }
 
         await writer.DisposeAsync().ConfigureAwait(false);
-        settingsGate.Dispose();
         connections.Close();
         heldLock.Dispose();
     }

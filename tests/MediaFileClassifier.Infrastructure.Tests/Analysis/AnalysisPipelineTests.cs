@@ -156,6 +156,61 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Animation_WithASingleImageDescriber_IsDescribedFrameByFrame_AndMerged()
+    {
+        var describer = new FakeImageDescriber(describe: (image, _) => new ImageDescription(
+            $"Title of {image.Name}",
+            $"Description of {image.Name}.",
+            $"Summary of {image.Name}.",
+            ["Dogs", $"only {image.Name}"],
+            ["ball"],
+            [],
+            [],
+            []));
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        // Several keyframes, at most four described; the texts are one frame's, the lists and tags merged.
+        Assert.InRange(describer.Calls, 2, 4);
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.StartsWith("Title of frame ", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text, StringComparison.Ordinal);
+        Assert.Equal(["ball"], metadata.GetEffectiveValue(DescriptiveField.Objects)?.Value.Items);
+        var tags = metadata.GetEffectiveTags().Select(tag => tag.Tag.Value).ToList();
+        Assert.Equal("dog", tags[0]);
+        Assert.Equal(describer.Calls + 1, tags.Count);
+    }
+
+    [Fact]
+    public async Task Animation_WithAMultiImageDescriber_IsDescribedInOneRequest()
+    {
+        var describer = new FakeMultiImageDescriber(maxImages: 3);
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        var (images, options) = Assert.Single(describer.Requests);
+        Assert.InRange(images.Count, 2, 3);
+        Assert.All(images, image => Assert.True(Math.Max(image.PixelWidth ?? 0, image.PixelHeight ?? 0) <= 512));
+        Assert.Contains("frames of one video or animation", options.Context, StringComparison.Ordinal);
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal($"Clip of {images.Count}", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text);
+    }
+
+    [Fact]
+    public async Task StillImage_WithAMultiImageDescriber_IsSentAlone()
+    {
+        var describer = new FakeMultiImageDescriber();
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        var (images, options) = Assert.Single(describer.Requests);
+        Assert.Single(images);
+        Assert.Null(options.Context);
+    }
+
+    [Fact]
     public async Task OcrFailsAlone_ItemIsIndexed_WithARetryableOcrFailure()
     {
         // A breaker that never opens, so the scheduler retries the transient failure and then gives up.

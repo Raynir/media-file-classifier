@@ -12,8 +12,14 @@ namespace MediaFileClassifier.Infrastructure.AI.OpenAiCompatible;
 /// <see cref="AiProviderException"/> with <see cref="AiFailureKind.InvalidOutput"/> so the pipeline records a failed
 /// run (E01-S05-T05).
 /// </summary>
-public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, IImageDescriber
+public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, IMultiImageDescriber
 {
+    /// <summary>
+    /// The most pictures a request carries by default (E06-S04-T07). Vision-language models served by LM Studio and
+    /// Ollama take several images per message.
+    /// </summary>
+    public const int DefaultMaxImages = 6;
+
     // D350: Qwen recommends 1.5 for its vision-language instruct models; it stops the near-duplicate tags. Not used for OCR (D345).
     internal const float DescriberPresencePenalty = 1.5f;
 
@@ -41,15 +47,19 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
     /// Whether to send the schema as <c>response_format</c>. Turn it off for servers that reject it; the schema is
     /// then only in the prompt, and validation and repair still apply.
     /// </param>
+    /// <param name="maxImages">The most pictures one request may carry, at least 2; see <see cref="DefaultMaxImages"/>.</param>
     public OpenAiCompatibleImageDescriber(
         string id,
         string displayName,
         OpenAiCompatibleEndpoint endpoint,
         HttpClient? httpClient = null,
-        bool useSchemaResponseFormat = true)
+        bool useSchemaResponseFormat = true,
+        int maxImages = DefaultMaxImages)
         : base(id, displayName, endpoint, httpClient)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxImages, 2);
         this.useSchemaResponseFormat = useSchemaResponseFormat;
+        MaxImages = maxImages;
     }
 
     /// <inheritdoc />
@@ -63,16 +73,38 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
     public DescriberFields SupportedFields => DescriberFields.All;
 
     /// <inheritdoc />
-    public async Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    public int MaxImages { get; }
+
+    /// <inheritdoc />
+    public Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(options);
 
+        return DescribeCoreAsync([image], options, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<AiOutput<ImageDescription>> DescribeFramesAsync(IReadOnlyList<AiImage> frames, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(frames);
+        ArgumentNullException.ThrowIfNull(options);
+        if (frames.Count == 0 || frames.Count > MaxImages)
+        {
+            throw new ArgumentOutOfRangeException(nameof(frames), frames.Count, $"A request carries 1 to {MaxImages} pictures.");
+        }
+
+        return DescribeCoreAsync(frames, options, cancellationToken);
+    }
+
+    private async Task<AiOutput<ImageDescription>> DescribeCoreAsync(IReadOnlyList<AiImage> images, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    {
+        // The template's request asks about "this image"; for several frames the context says they are one clip.
         var template = DescriberPromptTemplates.Resolve(options.PromptVersion);
         var messages = new List<ChatMessage>
         {
             new(ChatRole.System, template.System),
-            new(ChatRole.User, [new TextContent(template.BuildRequest(options)), ToDataContent(image)]),
+            new(ChatRole.User, [new TextContent(template.BuildRequest(options)), .. images.Select(ToDataContent)]),
         };
         var chatOptions = new ChatOptions
         {

@@ -9,6 +9,33 @@ namespace MediaFileClassifier.Domain.Tests.Analysis;
 public sealed class KeyframeAggregationTests
 {
     [Fact]
+    public void MergeLists_KeepsEntriesInEnoughFrames_MostFrequentFirst_IgnoringCaseAndSpaces()
+    {
+        IReadOnlyList<IReadOnlyList<string>> frames =
+        [
+            ["car", "Red  door", "car", " "],
+            ["tree", "CAR"],
+            ["red door", "lamp"],
+            ["car"],
+            [],
+        ];
+
+        // 25% of 5 frames is 2: "tree" and "lamp" appear once.
+        Assert.Equal(["car", "Red door"], KeyframeAggregation.MergeLists(frames));
+        Assert.Equal(["car", "Red door", "tree", "lamp"], KeyframeAggregation.MergeLists(frames, 0.2));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1.5)]
+    [InlineData(double.NaN)]
+    public void MergeLists_ShareOutOfRange_Throws(double share) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => KeyframeAggregation.MergeLists([], share));
+
+    [Fact]
+    public void MergeLists_NoFrames_IsEmpty() => Assert.Empty(KeyframeAggregation.MergeLists([]));
+
+    [Fact]
     public void MergeTags_WeighsByHowOftenATagAppears()
     {
         // 4 frames: "dog" in all, "beach" in 2, "frisbee" in 1 (25%, the threshold), and none in the last frame.

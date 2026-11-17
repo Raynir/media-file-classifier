@@ -209,7 +209,9 @@ internal sealed class EmbeddingItemAnalyzer(ItemEmbeddingAnalyzer embedder, IAiP
 
 /// <summary>
 /// The image describer (E06-S04): title, description, summary, tags and lists from a vision model. A video or animated
-/// image is described from its middle keyframe.
+/// image gets one description of the whole clip (E06-S04-T07): a describer that takes several pictures gets up to
+/// <see cref="MaxClipFrames"/> keyframes in one request; another describes up to <see cref="MaxDescribedFrames"/>
+/// keyframes one by one, and the lists and tags are merged by frequency (D228), with the middle one's texts.
 /// </summary>
 /// <param name="registry">The provider registry.</param>
 /// <param name="breaker">The circuit breaker, if any.</param>
@@ -222,6 +224,21 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
     /// The longest edge of the picture sent to the describer.
     /// </summary>
     public const int MaxLongestEdge = 1024;
+
+    /// <summary>
+    /// The most keyframes sent in one request to a describer that takes several pictures.
+    /// </summary>
+    public const int MaxClipFrames = 6;
+
+    /// <summary>
+    /// The longest edge of keyframes sent together, so six of them fit a 4,096-token context with the answer.
+    /// </summary>
+    public const int ClipFrameLongestEdge = 512;
+
+    /// <summary>
+    /// The most keyframes a describer that takes one picture describes, one request each.
+    /// </summary>
+    public const int MaxDescribedFrames = 4;
 
     /// <inheritdoc />
     public string Key => AnalyzerKeys.Describer;
@@ -237,7 +254,9 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
             return ProviderSelection.Skip(context, Key, reason!, paused, clock.GetUtcNow());
         }
 
-        AiImage image;
+        var options = new ImageDescriptionOptions(context.Settings.Language, PromptVersion: context.Settings.PromptVersion);
+        DateTimeOffset startedAt;
+        AiOutput<ImageDescription> output;
         if (context.Inputs.HasFrames)
         {
             var frames = await context.Inputs.GetFramesAsync(cancellationToken).ConfigureAwait(false);
@@ -246,16 +265,17 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
                 return ProviderSelection.Skip(context, Key, AnalyzerReasons.NoFrames, clock.GetUtcNow());
             }
 
-            image = frames.Frames[frames.Frames.Count / 2].Image;
+            startedAt = clock.GetUtcNow();
+            output = await DescribeClipAsync(provider, context.Inputs, [.. frames.Frames.Select(frame => frame.Image)], options, cancellationToken)
+                .ConfigureAwait(false);
         }
         else
         {
-            image = (await context.Inputs.GetStillAsync(MaxLongestEdge, cancellationToken).ConfigureAwait(false)).ToAiImage(context.ImageName);
+            var image = (await context.Inputs.GetStillAsync(MaxLongestEdge, cancellationToken).ConfigureAwait(false)).ToAiImage(context.ImageName);
+            startedAt = clock.GetUtcNow();
+            output = await provider.DescribeAsync(image, options, cancellationToken).ConfigureAwait(false);
         }
 
-        var startedAt = clock.GetUtcNow();
-        var options = new ImageDescriptionOptions(context.Settings.Language, PromptVersion: context.Settings.PromptVersion);
-        var output = await provider.DescribeAsync(image, options, cancellationToken).ConfigureAwait(false);
         breaker?.RecordSuccess(provider.Id);
         var now = clock.GetUtcNow();
         var model = await context.Library.Models.GetOrAddAsync(output.Model, now, cancellationToken).ConfigureAwait(false);
@@ -283,6 +303,27 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         await context.Library.AnalyzerStates.ApplyRunAsync(run, values, tags, context.Library.Library.Settings.RetainedPreviousRuns, state, cancellationToken)
             .ConfigureAwait(false);
         return new AnalyzerResult(state, IsStored: true);
+    }
+
+    /// <summary>
+    /// Picks up to <paramref name="count"/> frames spread evenly over the clip, the first and last included.
+    /// </summary>
+    /// <param name="frames">The keyframes, in time order.</param>
+    /// <param name="count">The most to pick, at least 1.</param>
+    /// <returns>The picked frames, in time order.</returns>
+    internal static IReadOnlyList<AiImage> Spread(IReadOnlyList<AiImage> frames, int count)
+    {
+        if (frames.Count <= count)
+        {
+            return frames;
+        }
+
+        if (count == 1)
+        {
+            return [frames[frames.Count / 2]];
+        }
+
+        return [.. Enumerable.Range(0, count).Select(index => frames[(int)Math.Round(index * (frames.Count - 1) / (double)(count - 1))])];
     }
 
     private static void AddText(
@@ -319,6 +360,49 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         {
             values.Add(AiFieldValue.For(run, field, value, null, now));
         }
+    }
+
+    private async Task<AiOutput<ImageDescription>> DescribeClipAsync(
+        IImageDescriber provider,
+        AnalysisInputs inputs,
+        IReadOnlyList<AiImage> frames,
+        ImageDescriptionOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (frames.Count == 1)
+        {
+            return await provider.DescribeAsync(frames[0], options, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (provider is IMultiImageDescriber { MaxImages: >= 2 } multi)
+        {
+            var picked = Spread(frames, Math.Min(multi.MaxImages, MaxClipFrames)).Select(frame => inputs.ShrinkFrame(frame, ClipFrameLongestEdge)).ToList();
+            var clip = options with
+            {
+                Context = $"The {picked.Count} pictures are frames of one video or animation, in time order. Describe the whole clip, not each frame.",
+            };
+            return await multi.DescribeFramesAsync(picked, clip, cancellationToken).ConfigureAwait(false);
+        }
+
+        var outputs = new List<AiOutput<ImageDescription>>();
+        foreach (var frame in Spread(frames, MaxDescribedFrames))
+        {
+            outputs.Add(await provider.DescribeAsync(frame, options, cancellationToken).ConfigureAwait(false));
+        }
+
+        // The texts come from the middle frame; tags are normalised per frame first, so "Dogs" and "dog" count as one.
+        var middle = outputs[outputs.Count / 2];
+        var descriptions = outputs.Select(output => output.Value).ToList();
+        var merged = new ImageDescription(
+            middle.Value.Title,
+            middle.Value.Description,
+            middle.Value.Summary,
+            KeyframeAggregation.MergeLists([.. descriptions.Select<ImageDescription, IReadOnlyList<string>>(value => [.. tagNormalizer.Normalize(value.Tags).Select(tag => tag.Value)])]),
+            KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Objects)]),
+            KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Scenes)]),
+            KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Actions)]),
+            KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Emotions)]));
+        return middle with { Value = merged, Duration = outputs.Aggregate(TimeSpan.Zero, (sum, output) => sum + output.Duration) };
     }
 }
 

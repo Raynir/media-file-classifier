@@ -66,6 +66,63 @@ public sealed class FakeImageDescriber(
 }
 
 /// <summary>
+/// A fake <see cref="IMultiImageDescriber"/> (E06-S04-T07). It records the pictures and options of each request.
+/// </summary>
+/// <param name="maxImages">The most pictures per request.</param>
+/// <param name="describe">Produces the description from a request's pictures, or <c>null</c> for a fixed one.</param>
+public sealed class FakeMultiImageDescriber(int maxImages = 6, Func<IReadOnlyList<AiImage>, ImageDescriptionOptions, ImageDescription>? describe = null)
+    : FakeAiProvider("fake:describe-multi", new ModelIdentity(ProviderIds.Fake, "fake-multi-describer", "1"), null, "fake-1"), IMultiImageDescriber
+{
+    private readonly List<(IReadOnlyList<AiImage> Images, ImageDescriptionOptions Options)> requests = [];
+
+    /// <summary>
+    /// Gets the requests so far: their pictures and options.
+    /// </summary>
+    public IReadOnlyList<(IReadOnlyList<AiImage> Images, ImageDescriptionOptions Options)> Requests
+    {
+        get
+        {
+            lock (requests)
+            {
+                return [.. requests];
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public string PromptVersion => "fake-1";
+
+    /// <inheritdoc />
+    public DescriberFields SupportedFields => DescriberFields.All;
+
+    /// <inheritdoc />
+    public int MaxImages { get; } = maxImages;
+
+    /// <inheritdoc />
+    public string GetPromptVersion(string? requested) => PromptVersion;
+
+    /// <inheritdoc />
+    public Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken) =>
+        DescribeFramesAsync([image], options, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<AiOutput<ImageDescription>> DescribeFramesAsync(IReadOnlyList<AiImage> frames, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(frames);
+        ArgumentNullException.ThrowIfNull(options);
+        lock (requests)
+        {
+            requests.Add((frames, options));
+        }
+
+        return RunAsync(
+            () => describe?.Invoke(frames, options)
+                ?? new ImageDescription($"Clip of {frames.Count}", "A clip.", "A clip.", ["clip"], [], [], [], []),
+            cancellationToken);
+    }
+}
+
+/// <summary>
 /// A fake <see cref="IOcrProvider"/>. By default it finds no text.
 /// </summary>
 /// <param name="behavior">Latency, failures and health.</param>

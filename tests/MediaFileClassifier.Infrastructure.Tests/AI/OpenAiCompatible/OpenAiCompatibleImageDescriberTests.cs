@@ -35,6 +35,27 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
         Assert.Equal(DescriberFields.All, describer.SupportedFields);
 
     [Fact]
+    public async Task DescribeFrames_SendsEveryFrameInOneRequest()
+    {
+        server.ChatAnswers.Enqueue(ImageDescriptionContractTests.ValidJson);
+        var options = new ImageDescriptionOptions(Context: "The 3 pictures are frames of one video or animation.");
+
+        var output = await describer.DescribeFramesAsync([Image, Image, Image], options, TestContext.Current.CancellationToken);
+
+        Assert.Equal("Dog on a beach", output.Value.Title);
+        var request = Assert.Single(server.ChatRequests);
+        Assert.Equal(3, request.Split("image/jpeg;base64", StringSplitOptions.None).Length - 1);
+        Assert.Contains("frames of one video", request, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DescribeFrames_MoreThanMaxImages_Throws() =>
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => describer.DescribeFramesAsync(
+            [.. Enumerable.Repeat(Image, describer.MaxImages + 1)],
+            ImageDescriptionOptions.Default,
+            TestContext.Current.CancellationToken));
+
+    [Fact]
     public async Task Describe_ValidAnswer_ReturnsDescriptionAndSendsTheSchema()
     {
         server.ChatAnswers.Enqueue(ImageDescriptionContractTests.ValidJson);

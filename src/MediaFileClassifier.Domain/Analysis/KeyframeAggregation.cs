@@ -64,6 +64,48 @@ public static class KeyframeAggregation
     }
 
     /// <summary>
+    /// Merges a list field described on each keyframe, such as objects or scenes (E06-S04-T07), the way
+    /// <see cref="MergeTags"/> merges tags: an entry is kept when it appears in at least <paramref name="minShare"/> of
+    /// the keyframes, and at least one. Entries compare ignoring case and extra white space, and keep the first spelling
+    /// seen. Blank entries are dropped, and an entry listed twice for one frame counts once.
+    /// </summary>
+    /// <param name="frames">Each keyframe's entries; a frame with none is an empty list.</param>
+    /// <param name="minShare">The share of keyframes an entry must appear in, above 0 and at most 1.</param>
+    /// <returns>The kept entries, seen in most frames first, then in the order first seen.</returns>
+    public static IReadOnlyList<string> MergeLists(IReadOnlyList<IReadOnlyList<string>> frames, double minShare = DefaultMinTagShare)
+    {
+        ArgumentNullException.ThrowIfNull(frames);
+        if (double.IsNaN(minShare) || minShare <= 0 || minShare > 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(minShare), minShare, "The share must be above 0 and at most 1.");
+        }
+
+        var entries = new Dictionary<string, (string Text, int Frames, int Order)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var frame in frames)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var raw in frame)
+            {
+                var text = string.Join(' ', (raw ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+                if (text.Length == 0 || !seen.Add(text))
+                {
+                    continue;
+                }
+
+                entries[text] = entries.TryGetValue(text, out var entry) ? entry with { Frames = entry.Frames + 1 } : (text, 1, entries.Count);
+            }
+        }
+
+        // The tolerance keeps an entry exactly on the threshold, as in MergeTags.
+        var minFrames = Math.Max(1, (int)Math.Ceiling((minShare * frames.Count) - 1e-9));
+        return [.. entries.Values
+            .Where(entry => entry.Frames >= minFrames)
+            .OrderByDescending(entry => entry.Frames)
+            .ThenBy(entry => entry.Order)
+            .Select(entry => entry.Text)];
+    }
+
+    /// <summary>
     /// Merges the OCR text of each keyframe: lines are trimmed and their whitespace collapsed, empty lines are dropped,
     /// and a line that repeats an earlier one is removed. Repeats are exact, or near: the same text read slightly
     /// differently in another frame (E06-S05-T03). Two lines are near when each has at least

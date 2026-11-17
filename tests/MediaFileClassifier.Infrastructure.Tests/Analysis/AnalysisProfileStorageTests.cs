@@ -42,7 +42,7 @@ public sealed class AnalysisProfileStorageTests : IAsyncLifetime
             })
             .With(new AnalyzerSettings(AnalyzerKeys.Ocr) { Enabled = false, PreFilterWithDetector = true });
 
-        await new UpdateAnalysisProfileCommandHandler(session, bed.Clock).Handle(new UpdateAnalysisProfileCommand(profile), Token);
+        await new UpdateAnalysisProfileCommandHandler(session).Handle(new UpdateAnalysisProfileCommand(profile), Token);
         await session.SetCurrentAsync(null);
         await bed.OpenAgainAsync();
 

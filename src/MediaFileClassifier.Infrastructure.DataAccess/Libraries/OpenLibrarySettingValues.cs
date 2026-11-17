@@ -23,7 +23,6 @@ public sealed class OpenLibrarySettingValues : ILibrarySettingValues
     };
 
     private readonly ILibrarySession session;
-    private readonly TimeProvider timeProvider;
     private readonly Lock syncRoot = new();
     private Library? library;
 
@@ -31,11 +30,9 @@ public sealed class OpenLibrarySettingValues : ILibrarySettingValues
     /// Initializes a new instance of the <see cref="OpenLibrarySettingValues"/> class.
     /// </summary>
     /// <param name="session">Holds the open library.</param>
-    /// <param name="timeProvider">The clock.</param>
-    public OpenLibrarySettingValues(ILibrarySession session, TimeProvider timeProvider)
+    public OpenLibrarySettingValues(ILibrarySession session)
     {
         this.session = session;
-        this.timeProvider = timeProvider;
         library = session.Current?.Library;
         session.CurrentChanged += (_, _) =>
         {
@@ -74,41 +71,43 @@ public sealed class OpenLibrarySettingValues : ILibrarySettingValues
     public void Apply(IReadOnlyDictionary<string, JsonElement?> changes)
     {
         var open = session.Current ?? throw new InvalidOperationException("No library is open.");
-        Library changed;
-        LibrarySettings previous;
+        foreach (var key in changes.Keys)
+        {
+            if (!Mappings.ContainsKey(key))
+            {
+                throw new ArgumentException($"{key} isn't a library setting.", nameof(changes));
+            }
+        }
+
         lock (syncRoot)
         {
-            changed = library ?? open.Library;
-            previous = changed.Settings;
-            var settings = previous;
+            library = open.Library;
+        }
+
+        LibrarySettings Change(LibrarySettings current)
+        {
+            var settings = current;
             foreach (var (key, json) in changes)
             {
-                if (!Mappings.TryGetValue(key, out var mapping))
-                {
-                    throw new ArgumentException($"{key} isn't a library setting.", nameof(changes));
-                }
-
                 // A removed value means the default.
+                var mapping = Mappings[key];
                 settings = mapping.Write(settings, json ?? mapping.Read(new LibrarySettings()));
             }
 
-            changed.ChangeSettings(settings, timeProvider.GetUtcNow());
-            library = changed;
+            return settings;
         }
+
+        // A value of the wrong type fails here, as itself, and not as a storage failure.
+        _ = Change(open.Library.Settings);
 
         // Settings are saved as they change; the write is small and queued behind other writes.
         try
         {
-            Task.Run(() => open.UpdateLibraryAsync(changed)).GetAwaiter().GetResult();
+            Task.Run(() => open.UpdateSettingsAsync(Change)).GetAwaiter().GetResult();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Keep reading what the library file still holds, and report it as a storage failure like the app settings.
-            lock (syncRoot)
-            {
-                changed.ChangeSettings(previous, timeProvider.GetUtcNow());
-            }
-
+            // The previous settings are back; report it as a storage failure like the app settings.
             throw new IOException("Couldn't save the library settings.", ex);
         }
     }

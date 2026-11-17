@@ -52,6 +52,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Library settings changes no longer lose each other (MFC-998): the embedding model switch, an analysis profile save, the thumbnail tile size and library setting values now change the settings through one step (`IOpenLibrary.UpdateSettingsAsync`) that reads, changes and saves them while no other change runs, so a profile save that lands during the model switch keeps both.
 - AI image descriptions and OCR can no longer loop until the model's context is full: the requests set an output limit (4,096 tokens for a description, 2,048 for OCR) and send the description schema's length and item limits as JSON schema keywords that LM Studio enforces. OCR text that was cut off at the limit while repeating itself keeps one copy of the repeated lines (E09-S05).
 - "Analyze search results" with no search active reads the browse list in one go, so deleting items meanwhile (remove missing, removing a folder) can no longer skip some. "Analyze pending items" leaves out items that an analysis run finished while the list was read, so they are neither counted nor analyzed again (MFC-995).
 - "Analyze pending items", folder analysis and "Analyze search results" no longer skip items when the scope changes while it is read (for example pending items being analyzed by a running job): the scope's item ids are read in one query (or from the search's own list of hits) before the items are loaded, so the run covers every item the scope had when it started (MFC-994).

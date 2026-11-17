@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
@@ -11,11 +12,17 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 /// <summary>
 /// A library this app instance has open: its lock, its writer and its repositories.
 /// </summary>
+[SuppressMessage(
+    "Usage",
+    "CA2213:Disposable fields should be disposed",
+    Justification = "A settings change may still wait on or release the gate while the library closes; the semaphore holds no handle that needs disposing.")]
 internal sealed class OpenLibrary : IOpenLibrary
 {
     private readonly LibraryConnectionFactory connections;
     private readonly LibraryWriter writer;
     private readonly LibraryLock heldLock;
+    private readonly TimeProvider timeProvider;
+    private readonly SemaphoreSlim settingsGate = new(1, 1);
     private int disposed;
 
     private OpenLibrary(
@@ -31,6 +38,7 @@ internal sealed class OpenLibrary : IOpenLibrary
         this.connections = connections;
         this.writer = writer;
         this.heldLock = heldLock;
+        this.timeProvider = timeProvider;
         Folders = new FolderRepository(connections, writer);
         Items = new MediaItemRepository(connections, writer);
         Metadata = new ItemMetadataRepository(connections, writer, timeProvider);
@@ -112,6 +120,35 @@ internal sealed class OpenLibrary : IOpenLibrary
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
             },
             cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateSettingsAsync(Func<LibrarySettings, LibrarySettings> change, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(change);
+
+        // The settings live in one shared record: reading them, changing them and writing them back has to be one step,
+        // or two changes that start together would each overwrite the other (MFC-998).
+        await settingsGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var previous = Library.Settings;
+            Library.ChangeSettings(change(previous), timeProvider.GetUtcNow());
+            try
+            {
+                await UpdateLibraryAsync(Library, cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Keep what the library file still holds.
+                Library.ChangeSettings(previous, timeProvider.GetUtcNow());
+                throw;
+            }
+        }
+        finally
+        {
+            settingsGate.Release();
+        }
     }
 
     /// <summary>

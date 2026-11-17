@@ -77,4 +77,15 @@ public interface IOpenLibrary : IAsyncDisposable
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when the change is written.</returns>
     Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Changes the library's settings as one step: reads the current settings, applies <paramref name="change"/> and
+    /// saves them, while no other settings change runs. Concurrent changes (an analysis profile save and an embedding
+    /// model switch, say) therefore each keep the other's result. A failed save puts the previous settings back.
+    /// Change settings only through this method.
+    /// </summary>
+    /// <param name="change">Returns the new settings from the current ones; it runs inside the step, so keep it quick and don't await in it.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the change is written.</returns>
+    Task UpdateSettingsAsync(Func<LibrarySettings, LibrarySettings> change, CancellationToken cancellationToken = default);
 }

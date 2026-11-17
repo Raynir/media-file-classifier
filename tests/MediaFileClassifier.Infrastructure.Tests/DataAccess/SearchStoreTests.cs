@@ -435,6 +435,74 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Equal([item.Id], await FindAsync("IMG_00007"));
     }
 
+    [Theory]
+    [InlineData("собака")]
+    [InlineData("собаки")]
+    [InlineData("dog")]
+    public async Task AiTag_IsFoundInBothLanguages(string query)
+    {
+        var item = await AddItemAsync(7);
+        await ApplyTagsAsync(item, "dog");
+
+        Assert.Equal([item.Id], await FindAsync(query));
+    }
+
+    [Theory]
+    [InlineData("cat")]
+    [InlineData("кошка")]
+    [InlineData("кошкой")]
+    public async Task RussianUserTag_IsFoundInBothLanguages(string query)
+    {
+        var item = await AddItemAsync(7);
+        await bed.Library.Metadata.AddTagAsync([item.Id], TagName.From("Кошки"), Token);
+
+        Assert.Equal([item.Id], await FindAsync(query));
+    }
+
+    [Fact]
+    public async Task RejectedTag_IsNotFoundByItsOtherForm()
+    {
+        var item = await AddItemAsync(7);
+        await ApplyTagsAsync(item, "cat");
+        Assert.Equal([item.Id], await FindAsync("кошка"));
+
+        await bed.Library.Metadata.UpdateAsync(item.Id, metadata => metadata.RejectTag(TagName.From("cat"), bed.Clock.Tick()), Token);
+
+        Assert.Empty(await FindAsync("кошка"));
+    }
+
+    [Fact]
+    public async Task UpgradeFromVersion13_GivesExistingTagsTheirOtherForm()
+    {
+        var beach = await AddItemAsync(7);
+        await ApplyTagsAsync(beach, "beach");
+        var cat = await AddItemAsync(8);
+        await bed.Library.Metadata.AddTagAsync([cat.Id], TagName.From("Кошки"), Token);
+        var rejected = await AddItemAsync(9);
+        await ApplyTagsAsync(rejected, "cat");
+        await bed.Library.Metadata.UpdateAsync(rejected.Id, metadata => metadata.RejectTag(TagName.From("cat"), bed.Clock.Tick()), Token);
+        await bed.Library.DisposeAsync();
+        using (var probe = new DesignTimeLibraryDbContextFactory().CreateDbContext([]))
+        {
+            var beforeStems = probe.Database.GetMigrations().TakeWhile(migration => !migration.EndsWith("_RussianStems", StringComparison.Ordinal)).Last();
+            await using var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token);
+            await db.GetService<IMigrator>().MigrateAsync(beforeStems, cancellationToken: Token);
+        }
+
+        SqliteConnection.ClearAllPools();
+        await RemoveTagFormsFromTheIndexAsync();
+        await bed.OpenAgainAsync();
+
+        Assert.False(await bed.Library.Search.IsRebuildNeededAsync(Token));
+        Assert.Equal([beach.Id], await FindAsync("пляжи"));
+        Assert.Equal([cat.Id], await FindAsync("cat"));
+        Assert.Equal([cat.Id], await FindAsync("кошкой"));
+        var metadata = await bed.Library.Metadata.GetAsync(beach.Id, Token);
+        var tag = Assert.Single(metadata.GetEffectiveTags());
+        Assert.Equal("пляж", tag.OtherForm);
+        Assert.True(tag.IsOtherFormDerived);
+    }
+
     [Fact]
     public async Task List_ReportsTheTotalOnEveryPage()
     {
@@ -474,6 +542,28 @@ public sealed class SearchStoreTests : IAsyncLifetime
 
     private async Task<IReadOnlyList<Id<MediaItem>>> FindAsync(string text) =>
         [.. (await bed.Library.Search.FindKeywordMatchesAsync(Search(text), Token)).Matches.Select(match => match.ItemId)];
+
+    private Task ApplyTagsAsync(MediaItem item, params string[] tags)
+    {
+        var run = AnalysisRun.Start(item.Id, "caption", bed.Model, "p1", bed.Clock.Tick());
+        run.Complete(bed.Clock.Tick());
+        return bed.Library.Metadata.UpdateAsync(
+            item.Id,
+            metadata => metadata.ApplyRun(run, [], [.. tags.Select(tag => TagAssignment.Ai(run, TagName.From(tag), null, bed.Clock.Tick()))], 1),
+            Token);
+    }
+
+    /// <summary>
+    /// Takes the tag forms out of a schema-13 index, as a library written before the tag dictionary has none.
+    /// </summary>
+    private async Task RemoveTagFormsFromTheIndexAsync()
+    {
+        await using var connection = new SqliteConnection($"Data Source={bed.Temporary.DatabasePath};Pooling=False");
+        await connection.OpenAsync(Token);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """UPDATE "search_text" SET "tags" = replace(replace("tags", char(10) || 'пляж', ''), char(10) || 'cat', '')""";
+        await command.ExecuteNonQueryAsync(Token);
+    }
 
     private async Task<string> ReadTextTableSqlAsync()
     {

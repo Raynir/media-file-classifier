@@ -1,3 +1,4 @@
+using MediaFileClassifier.Domain.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,6 +40,11 @@ internal sealed class LibraryConnectionFactory(string databasePath)
     /// </summary>
     public const string RussianStem = "ru_stem";
 
+    /// <summary>
+    /// The SQL function that finds a tag's other-language form in the tag dictionary (D348): <c>tag_other_form(tag)</c>.
+    /// </summary>
+    public const string TagOtherForm = "tag_other_form";
+
     private const string Pragmas =
         "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;";
 
@@ -76,6 +82,7 @@ internal sealed class LibraryConnectionFactory(string databasePath)
             connection.CreateFunction(FoldCase, (string? text) => text?.ToUpperInvariant(), isDeterministic: true);
             connection.CreateFunction(NaturalKey, (string? path) => Search.NaturalSortKey.Create(path), isDeterministic: true);
             connection.CreateFunction(RussianStem, (string? text) => Search.RussianStems.Of(text), isDeterministic: true);
+            connection.CreateFunction(TagOtherForm, (string? tag) => TagDictionary.Default.Translate(tag), isDeterministic: true);
             return connection;
         }
         catch

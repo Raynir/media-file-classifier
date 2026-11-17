@@ -1,3 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <EmbeddedResource Include="Text\tag-dictionary.json" LogicalName="MediaFileClassifier.Domain.Text.tag-dictionary.json" />
+  </ItemGroup>
+
 </Project>

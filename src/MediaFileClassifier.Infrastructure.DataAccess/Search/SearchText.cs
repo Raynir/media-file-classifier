@@ -12,7 +12,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Search;
 /// </summary>
 /// <param name="Title">The title.</param>
 /// <param name="Description">The description and the summary.</param>
-/// <param name="Tags">The effective tags, one per line.</param>
+/// <param name="Tags">The effective tags, one per line, each followed by its other-language form (D035).</param>
 /// <param name="OcrText">The OCR text.</param>
 /// <param name="Transcript">The transcript.</param>
 /// <param name="Other">The notes and the list fields, one entry per line.</param>
@@ -37,7 +37,7 @@ internal sealed record SearchText(string? Title, string? Description, string? Ta
         return new SearchText(
             Join(values, DescriptiveField.Title),
             Join(values, DescriptiveField.Description, DescriptiveField.Summary),
-            JoinLines(metadata.GetEffectiveTags().Select(tag => tag.Tag.Value)),
+            JoinLines(TagLines(metadata.GetEffectiveTags())),
             Join(values, DescriptiveField.OcrText),
             Join(values, DescriptiveField.Transcript),
             Join(
@@ -87,6 +87,23 @@ internal sealed record SearchText(string? Title, string? Description, string? Ta
 
     private static string? Join(Dictionary<DescriptiveField, FieldValue> values, params DescriptiveField[] fields) =>
         JoinLines(fields.Where(values.ContainsKey).SelectMany(field => values[field].Items));
+
+    private static IEnumerable<string> TagLines(IReadOnlyList<ResolvedTag> tags)
+    {
+        var lines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var tag in tags)
+        {
+            if (lines.Add(tag.Tag.Value))
+            {
+                yield return tag.Tag.Value;
+            }
+
+            if (tag.OtherForm is { } form && lines.Add(form))
+            {
+                yield return form;
+            }
+        }
+    }
 
     private static string? JoinLines(IEnumerable<string> parts)
     {

@@ -91,6 +91,8 @@ internal sealed class TagAssignmentConfiguration : IEntityTypeConfiguration<TagA
         builder.Property(tag => tag.Confidence);
         builder.Property(tag => tag.Origin);
         builder.Property(tag => tag.CreatedAt);
+        builder.Property(tag => tag.OtherForm);
+        builder.Property(tag => tag.IsOtherFormDerived);
         builder.Property<string>(TagKeyGenerator.Property).IsRequired().HasValueGenerator<TagKeyGenerator>();
         builder.ComplexProperty(tag => tag.AcceptedFrom, RunReferenceMapping.Configure);
         builder.HasOne<MediaItem>().WithMany().HasForeignKey(tag => tag.ItemId).OnDelete(DeleteBehavior.Cascade);

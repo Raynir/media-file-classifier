@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <None Include="Text/snowball-russian-sample.tsv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../src/MediaFileClassifier.Domain/Text/tag-dictionary.json" Link="Text/tag-dictionary.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

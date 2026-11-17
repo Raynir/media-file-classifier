@@ -681,6 +681,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("created_at");
 
+                    b.Property<bool>("IsOtherFormDerived")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_other_form_derived");
+
                     b.Property<string>("ItemId")
                         .IsRequired()
                         .HasColumnType("TEXT")
@@ -693,6 +697,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<int?>("Origin")
                         .HasColumnType("INTEGER")
                         .HasColumnName("origin");
+
+                    b.Property<string>("OtherForm")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("other_form");
 
                     b.Property<string>("RunId")
                         .HasColumnType("TEXT")

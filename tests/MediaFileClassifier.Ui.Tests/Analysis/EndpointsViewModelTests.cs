@@ -241,6 +241,25 @@ public sealed class EndpointsViewModelTests
     }
 
     [Fact]
+    public async Task EditingAnEndpoint_KeepsItsPicturesPerRequest_WhichOnlyTheSettingsFileSets()
+    {
+        service.Save(new AiEndpointSettings(string.Empty, "LM Studio", "http://127.0.0.1:1234/v1", "llava", MaxImages: 3), null);
+        var page = Create();
+        await page.RefreshAsync();
+        page.SelectedEndpoint = page.Endpoints[0];
+
+        page.Name = "Local";
+        await page.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(3, Assert.Single(service.Endpoints).MaxImages);
+        page.AddCommand.Execute(null);
+        page.Name = "Other";
+        page.BaseUrl = "http://127.0.0.1:1235/v1";
+        await page.SaveCommand.ExecuteAsync(null);
+        Assert.Null(service.Endpoints.Single(endpoint => endpoint.Name == "Other").MaxImages);
+    }
+
+    [Fact]
     public void Cancel_ClosesTheFormWithoutSaving()
     {
         var page = Create();

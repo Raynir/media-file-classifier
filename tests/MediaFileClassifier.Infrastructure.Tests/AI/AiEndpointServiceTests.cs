@@ -198,6 +198,25 @@ public sealed class AiEndpointServiceTests : IDisposable
         Assert.Equal([saved], new JsonSettingsService(appPaths, NullLogger<JsonSettingsService>.Instance).Current.AiEndpoints);
     }
 
+    [Theory]
+    [InlineData("qwen/qwen3-vl-4b", null, 6)]
+    [InlineData("google/gemma-4-e2b", null, 6)]
+    [InlineData("llava-v1.5-7b", null, 1)]
+    [InlineData("llava-v1.5-7b", 3, 3)]
+    [InlineData("qwen/qwen3-vl-4b", 1, 1)]
+    [InlineData("qwen/qwen3-vl-4b", 0, 6)]
+    public void Save_RegistersAMultiImageDescriber_OnlyWhenARequestMayCarrySeveralPictures(string model, int? maxImages, int expected)
+    {
+        using var service = CreateService();
+
+        var saved = service.Save(new AiEndpointSettings(string.Empty, "LM Studio", "http://127.0.0.1:1234/v1", model, MaxImages: maxImages), null);
+
+        var describer = Assert.Single(registry.GetProviders<IImageDescriber>());
+        Assert.Equal(expected > 1 ? expected : null, (describer as IMultiImageDescriber)?.MaxImages);
+        Assert.Equal(maxImages is >= 1 ? maxImages : null, saved.MaxImages);
+        Assert.Equal(saved, new JsonSettingsService(appPaths, NullLogger<JsonSettingsService>.Instance).Current.AiEndpoints!.Single());
+    }
+
     [Fact]
     public void Save_NeverWritesTheApiKeyToDisk_ButKeepsItInMemory()
     {

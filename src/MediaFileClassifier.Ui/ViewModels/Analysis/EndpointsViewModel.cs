@@ -54,6 +54,9 @@ public sealed partial class EndpointsViewModel : ViewModelBase
     private readonly Localizer localizer;
     private readonly ILogger logger;
     private string editingId = string.Empty;
+
+    // Set in settings.json only (E06-S04-T08); the editor keeps it.
+    private int? editingMaxImages;
     private string lastWarning = string.Empty;
     private CancellationTokenSource? testing;
     private int checks;
@@ -338,7 +341,7 @@ public sealed partial class EndpointsViewModel : ViewModelBase
         try
         {
             var saved = await sender.Send(new SaveAiEndpointCommand(
-                new AiEndpointSettings(editingId, Name, BaseUrl, Model, RemoteHostConfirmed),
+                new AiEndpointSettings(editingId, Name, BaseUrl, Model, RemoteHostConfirmed, editingMaxImages),
                 string.IsNullOrEmpty(ApiKey) ? null : ApiKey));
             editingId = saved.Id;
             ApiKey = string.Empty;
@@ -387,6 +390,7 @@ public sealed partial class EndpointsViewModel : ViewModelBase
     {
         testing?.Cancel();
         editingId = endpoint.Id;
+        editingMaxImages = endpoint.MaxImages;
         Name = endpoint.Name;
         BaseUrl = endpoint.BaseUrl;
         ApiKey = string.Empty;
@@ -404,6 +408,7 @@ public sealed partial class EndpointsViewModel : ViewModelBase
     {
         testing?.Cancel();
         editingId = string.Empty;
+        editingMaxImages = null;
         IsEditing = false;
         SelectedEndpoint = null;
         Status = string.Empty;

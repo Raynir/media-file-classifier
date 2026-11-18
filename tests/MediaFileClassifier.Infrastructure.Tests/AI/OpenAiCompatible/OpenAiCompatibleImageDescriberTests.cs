@@ -18,12 +18,12 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
 
     private readonly StubOpenAiServer server = new();
     private readonly HttpClient httpClient;
-    private readonly OpenAiCompatibleImageDescriber describer;
+    private readonly OpenAiCompatibleMultiImageDescriber describer;
 
     public OpenAiCompatibleImageDescriberTests()
     {
         httpClient = server.CreateClient();
-        describer = new OpenAiCompatibleImageDescriber(
+        describer = new OpenAiCompatibleMultiImageDescriber(
             "lmstudio:describe",
             "LM Studio",
             new OpenAiCompatibleEndpoint(new Uri("http://127.0.0.1:1234/v1"), "google/gemma-4-e2b") { MaxRetries = 0 },

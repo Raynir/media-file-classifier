@@ -67,6 +67,56 @@
           ]
         }
       ]
+    },
+    {
+      "modelId": "florence2-base-ft",
+      "version": "1.0",
+      "displayName": "Florence-2 base (description)",
+      "purpose": "Describer",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/microsoft/Florence-2-base-ft/blob/main/LICENSE",
+      "source": "https://huggingface.co/onnx-community/Florence-2-base-ft",
+      "defaultTier": "standard",
+      "tiers": [
+        {
+          "tierId": "standard",
+          "displayName": "Standard",
+          "precision": "fp32",
+          "preferredExecutionProvider": "Cpu",
+          "files": [
+            { "role": "vision", "fileName": "vision_encoder.onnx", "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/e88a44eaf3791a35eae0c5a47b3dbcd36e67eb6f/onnx/vision_encoder.onnx", "size": 366549825, "sha256": "d67258cdfdebfa21285dad9e7bd4bd99725236d0aaef9e474a1b24a6ec471351" },
+            { "role": "embed", "fileName": "embed_tokens.onnx", "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/e88a44eaf3791a35eae0c5a47b3dbcd36e67eb6f/onnx/embed_tokens.onnx", "size": 157560044, "sha256": "90cae3deb6406938c676a35b5246db02b478c9cc8cf93508361be80c05babf95" },
+            { "role": "encoder", "fileName": "encoder_model.onnx", "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/e88a44eaf3791a35eae0c5a47b3dbcd36e67eb6f/onnx/encoder_model.onnx", "size": 173380723, "sha256": "cb0bccc232c64290397f5e1235eb3e1fa6ccf8c5afed9216480ee4eed80737fc" },
+            { "role": "decoder", "fileName": "decoder_model_merged.onnx", "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/e88a44eaf3791a35eae0c5a47b3dbcd36e67eb6f/onnx/decoder_model_merged.onnx", "size": 388421753, "sha256": "5207affad8815294233b8679ee9ecb614906f819a1890d95a01b9ca68c392a79" },
+            { "role": "tokenizer", "fileName": "tokenizer.json", "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/e88a44eaf3791a35eae0c5a47b3dbcd36e67eb6f/tokenizer.json", "size": 2297961, "sha256": "d69dcdb2323e124ac4f800cb9863ddccea0d7bb11e16125e8df3bd60f2f8aeac" }
+          ]
+        }
+      ]
+    },
+    {
+      "modelId": "florence2-large-ft",
+      "version": "1.0",
+      "displayName": "Florence-2 large (description)",
+      "purpose": "Describer",
+      "license": "MIT",
+      "licenseUrl": "https://huggingface.co/microsoft/Florence-2-large-ft/blob/main/LICENSE",
+      "source": "https://huggingface.co/onnx-community/Florence-2-large-ft",
+      "defaultTier": "standard",
+      "tiers": [
+        {
+          "tierId": "standard",
+          "displayName": "Standard",
+          "precision": "fp32",
+          "preferredExecutionProvider": "Cpu",
+          "files": [
+            { "role": "vision", "fileName": "vision_encoder.onnx", "url": "https://huggingface.co/onnx-community/Florence-2-large-ft/resolve/04ace74913c28d7ec94af32cee5c111a10126b6f/onnx/vision_encoder.onnx", "size": 1453500335, "sha256": "cbe2b9e3bfd5f00f9c135c3c48e4e8a2ad2b35651309d213dbf0803cc862d491" },
+            { "role": "embed", "fileName": "embed_tokens.onnx", "url": "https://huggingface.co/onnx-community/Florence-2-large-ft/resolve/04ace74913c28d7ec94af32cee5c111a10126b6f/onnx/embed_tokens.onnx", "size": 210080043, "sha256": "8497716365d7636307b334a665b0fe3482c9dfc3cc3e31c1d110c25ec183e31d" },
+            { "role": "encoder", "fileName": "encoder_model.onnx", "url": "https://huggingface.co/onnx-community/Florence-2-large-ft/resolve/04ace74913c28d7ec94af32cee5c111a10126b6f/onnx/encoder_model.onnx", "size": 609049107, "sha256": "f4622b5203e353c0e660f8d2ccd50a1179a092cd2408b208bc9539f1572a321d" },
+            { "role": "decoder", "fileName": "decoder_model_merged.onnx", "url": "https://huggingface.co/onnx-community/Florence-2-large-ft/resolve/04ace74913c28d7ec94af32cee5c111a10126b6f/onnx/decoder_model_merged.onnx", "size": 1021996421, "sha256": "a35016ed99f4260f584bdef0602617cf344dafe8d72631d2a7e5933f105f4ea6" },
+            { "role": "tokenizer", "fileName": "tokenizer.json", "url": "https://huggingface.co/onnx-community/Florence-2-large-ft/resolve/04ace74913c28d7ec94af32cee5c111a10126b6f/tokenizer.json", "size": 2297961, "sha256": "d69dcdb2323e124ac4f800cb9863ddccea0d7bb11e16125e8df3bd60f2f8aeac" }
+          ]
+        }
+      ]
     }
   ]
 }

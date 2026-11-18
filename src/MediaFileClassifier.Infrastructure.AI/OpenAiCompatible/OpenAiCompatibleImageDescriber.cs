@@ -12,14 +12,13 @@ namespace MediaFileClassifier.Infrastructure.AI.OpenAiCompatible;
 /// <see cref="AiProviderException"/> with <see cref="AiFailureKind.InvalidOutput"/> so the pipeline records a failed
 /// run (E01-S05-T05).
 /// </summary>
-public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, IMultiImageDescriber
+/// <remarks>
+/// This describer sends one picture per request, so a clip is described frame by frame and merged (E06-S04-T07). A
+/// model that takes several pictures in one message gets <see cref="OpenAiCompatibleMultiImageDescriber"/> instead;
+/// <see cref="Create"/> picks by the endpoint's pictures per request (E06-S04-T08).
+/// </remarks>
+public class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, IImageDescriber
 {
-    /// <summary>
-    /// The most pictures a request carries by default (E06-S04-T07). Vision-language models served by LM Studio and
-    /// Ollama take several images per message.
-    /// </summary>
-    public const int DefaultMaxImages = 6;
-
     // D350: Qwen recommends 1.5 for its vision-language instruct models; it stops the near-duplicate tags. Not used for OCR (D345).
     internal const float DescriberPresencePenalty = 1.5f;
 
@@ -44,19 +43,15 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
     /// Whether to send the schema as <c>response_format</c>. Turn it off for servers that reject it; the schema is
     /// then only in the prompt, and validation and repair still apply.
     /// </param>
-    /// <param name="maxImages">The most pictures one request may carry, at least 2; see <see cref="DefaultMaxImages"/>.</param>
     public OpenAiCompatibleImageDescriber(
         string id,
         string displayName,
         OpenAiCompatibleEndpoint endpoint,
         HttpClient? httpClient = null,
-        bool useSchemaResponseFormat = true,
-        int maxImages = DefaultMaxImages)
+        bool useSchemaResponseFormat = true)
         : base(id, displayName, endpoint, httpClient)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(maxImages, 2);
         this.useSchemaResponseFormat = useSchemaResponseFormat;
-        MaxImages = maxImages;
     }
 
     /// <inheritdoc />
@@ -70,9 +65,6 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
     public DescriberFields SupportedFields => DescriberFields.All;
 
     /// <inheritdoc />
-    public int MaxImages { get; }
-
-    /// <inheritdoc />
     public Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -81,20 +73,28 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
         return DescribeCoreAsync([image], options, cancellationToken);
     }
 
-    /// <inheritdoc />
-    public Task<AiOutput<ImageDescription>> DescribeFramesAsync(IReadOnlyList<AiImage> frames, ImageDescriptionOptions options, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(frames);
-        ArgumentNullException.ThrowIfNull(options);
-        if (frames.Count == 0 || frames.Count > MaxImages)
-        {
-            throw new ArgumentOutOfRangeException(nameof(frames), frames.Count, $"A request carries 1 to {MaxImages} pictures.");
-        }
+    /// <summary>
+    /// Creates the describer for an endpoint: a multi-image one when a request may carry two or more pictures, else a
+    /// single-image one.
+    /// </summary>
+    /// <param name="id">Provider instance ID.</param>
+    /// <param name="displayName">Name shown to the user.</param>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="maxImages">The most pictures one request may carry.</param>
+    /// <returns>The describer.</returns>
+    public static OpenAiCompatibleImageDescriber Create(string id, string displayName, OpenAiCompatibleEndpoint endpoint, int maxImages) =>
+        maxImages >= 2
+            ? new OpenAiCompatibleMultiImageDescriber(id, displayName, endpoint, maxImages: maxImages)
+            : new OpenAiCompatibleImageDescriber(id, displayName, endpoint);
 
-        return DescribeCoreAsync(frames, options, cancellationToken);
-    }
-
-    private async Task<AiOutput<ImageDescription>> DescribeCoreAsync(IReadOnlyList<AiImage> images, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    /// <summary>
+    /// Describes one picture, or the frames of one clip, in one request.
+    /// </summary>
+    /// <param name="images">The pictures.</param>
+    /// <param name="options">Request options; the template introduces several frames as one clip.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The description.</returns>
+    private protected async Task<AiOutput<ImageDescription>> DescribeCoreAsync(IReadOnlyList<AiImage> images, ImageDescriptionOptions options, CancellationToken cancellationToken)
     {
         // The template introduces several frames as one clip (options.FrameCount).
         var template = DescriberPromptTemplates.Resolve(options.PromptVersion);

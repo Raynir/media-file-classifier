@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Infrastructure.AI.Describers;
 using MediaFileClassifier.Infrastructure.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Ocr;
 
@@ -71,6 +72,27 @@ public sealed class ModelCatalogTests
         Assert.Equal("standard", ocr.Default.TierId);
         Assert.Equal([RapidOcrModel.DetectorRole, RapidOcrModel.RecognizerRole], ocr.Default.Files.Select(file => file.Role));
         Assert.Equal(4_819_576 + 7_911_802, ocr.Default.Size);
+    }
+
+    [Fact]
+    public void Embedded_Loads_WithTheFlorence2Describers_BaseFirst_WithTheRolesTheDescriberReads()
+    {
+        var catalog = new ModelCatalog();
+        string[] roles = [Florence2Model.VisionRole, Florence2Model.EmbedRole, Florence2Model.EncoderRole, Florence2Model.DecoderRole, Florence2Model.TokenizerRole];
+
+        Assert.Equal(Florence2Model.Base.ModelId, catalog.GetDefault(ModelPurpose.Describer)?.ModelId);
+        foreach (var (variant, size) in new[] { (Florence2Model.Base, 1_088_210_306L), (Florence2Model.Large, 3_296_923_867L) })
+        {
+            var entry = catalog.Find(variant.ModelId);
+            Assert.NotNull(entry);
+            Assert.Equal(ModelPurpose.Describer, entry.Purpose);
+            Assert.Equal(Florence2Model.Version, entry.Version);
+            Assert.Equal("MIT", entry.License);
+            Assert.Equal(roles, entry.Default.Files.Select(file => file.Role));
+            Assert.Equal("fp32", entry.Default.Precision);
+            Assert.True(entry.Default.Suits(Abstractions.Hardware.ExecutionProvider.Cpu));
+            Assert.Equal(size, entry.Default.Size);
+        }
     }
 
     [Fact]

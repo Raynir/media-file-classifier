@@ -143,7 +143,9 @@ public sealed class ModelCatalogTests
 
     /// <summary>
     /// Checks each URL against the catalogue without downloading it: Hugging Face reports a file's SHA-256 and size
-    /// in <c>X-Linked-ETag</c> and <c>X-Linked-Size</c> before redirecting to the download.
+    /// in <c>X-Linked-ETag</c> and <c>X-Linked-Size</c> before redirecting to the download. A small file kept in git
+    /// rather than LFS (Florence-2's <c>tokenizer.json</c>) is redirected with 307 and its git SHA-1 instead, so it is
+    /// downloaded and hashed.
     /// </summary>
     [Theory]
     [MemberData(nameof(CatalogueFiles))]
@@ -154,6 +156,14 @@ public sealed class ModelCatalogTests
 
         using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
         using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, file.Url), Token);
+        if (response.StatusCode == HttpStatusCode.TemporaryRedirect)
+        {
+            using var download = new HttpClient();
+            var bytes = await download.GetByteArrayAsync(file.Url, Token);
+            Assert.Equal(file.Size, bytes.Length);
+            Assert.Equal(file.Sha256, Convert.ToHexStringLower(SHA256.HashData(bytes)));
+            return;
+        }
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         Assert.Equal(file.Sha256, response.Headers.GetValues("X-Linked-ETag").Single().Trim('"'));

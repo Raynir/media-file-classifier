@@ -74,12 +74,15 @@
       <Setter Property="HorizontalAlignment" Value="Right" />
       <Setter Property="VerticalAlignment" Value="Top" />
       <Setter Property="Opacity" Value="0" />
+      <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
     <Style Selector="Border.ThumbnailTile:pointerover Border.TileFavorite">
       <Setter Property="Opacity" Value="0.75" />
+      <Setter Property="IsHitTestVisible" Value="True" />
     </Style>
     <Style Selector="Border.TileFavorite.IsFavorite">
       <Setter Property="Opacity" Value="1" />
+      <Setter Property="IsHitTestVisible" Value="True" />
     </Style>
     <Style Selector="Border.StatusBadge.Pending Path">
       <Setter Property="Fill" Value="{DynamicResource Brush.Status.Pending.Foreground}" />

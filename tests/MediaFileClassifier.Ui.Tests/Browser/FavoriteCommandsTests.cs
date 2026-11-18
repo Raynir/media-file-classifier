@@ -18,12 +18,11 @@ namespace MediaFileClassifier.Ui.Tests.Browser;
 public sealed class FavoriteCommandsTests
 {
     [Fact]
-    public async Task Menu_WithNothingSelected_LeavesFavoriteOut()
+    public void Menu_WithNothingSelected_LeavesFavoriteOut()
     {
         var bed = new Bed(5);
 
         Assert.DoesNotContain(bed.Menu.Build().OfType<AppCommand>(), command => command.Id == FavoriteCommands.Favorite);
-        await Task.CompletedTask;
     }
 
     [Fact]

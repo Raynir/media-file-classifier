@@ -68,6 +68,17 @@ public sealed class FavoriteCommandsTests
         Assert.Empty(bed.Toggles);
     }
 
+    [Fact]
+    public async Task Execute_WhenTheStoreFails_DoesNotThrow()
+    {
+        var bed = new Bed(5) { Failure = new IOException("The library is locked.") };
+        await bed.SelectAsync(1);
+
+        await bed.Registry[FavoriteCommands.Favorite].ExecuteAsync();
+
+        Assert.Empty(bed.Toggles);
+    }
+
     /// <summary>
     /// A selection over fake results, with the Favorite command and the context menu around it.
     /// </summary>
@@ -94,6 +105,8 @@ public sealed class FavoriteCommandsTests
 
         public BrowserContextMenu Menu { get; }
 
+        public Exception? Failure { get; init; }
+
         public HashSet<Id<MediaItem>> Favorites { get; } = [];
 
         public List<ToggleFavoriteCommand> Toggles { get; } = [];
@@ -117,6 +130,11 @@ public sealed class FavoriteCommandsTests
 
         private bool? Toggle(ToggleFavoriteCommand command)
         {
+            if (bed.Failure is { } failure)
+            {
+                throw failure;
+            }
+
             bed.Toggles.Add(command);
             return true;
         }

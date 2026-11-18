@@ -91,12 +91,23 @@ public sealed partial class FavoriteCommands : ICommandContributor
 
     private async Task ToggleAsync()
     {
-        var ids = await sender.Send(new ResolveItemSelectionQuery(selection.Snapshot()));
-        if (ids.Count > 0)
+        // Menus and shortcuts run the command without a caller to catch, so a failure is logged, not thrown.
+        try
         {
-            await sender.Send(new ToggleFavoriteCommand(ids));
+            var ids = await sender.Send(new ResolveItemSelectionQuery(selection.Snapshot()));
+            if (ids.Count > 0)
+            {
+                await sender.Send(new ToggleFavoriteCommand(ids));
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogToggleFailed(logger, ex);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't change the favorite mark of the selection")]
+    private static partial void LogToggleFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't read the favorite state of the selection")]
     private static partial void LogStateFailed(ILogger logger, Exception exception);

@@ -1,6 +1,6 @@
 # Evaluation corpus and quality metrics
 
-A labelled set of media and queries for judging search and OCR quality by numbers (E01-S10). The model spikes (E06-SP01, SP02, SP04), the embedding regression test (E06-S03-T05) and relevance tuning (E09-S05) use it. The small edge-case corpus for unit tests is a different thing: `tests/SampleMedia` (E01-S11).
+A labelled set of media and queries for judging search and OCR quality by numbers (E01-S10). The model spikes (E06-SP01, SP02 in [spikes/describer-model.md](spikes/describer-model.md), SP04), the embedding regression test (E06-S03-T05) and relevance tuning (E09-S05) use it. The small edge-case corpus for unit tests is a different thing: `tests/SampleMedia` (E01-S11).
 
 ## What's in it
 

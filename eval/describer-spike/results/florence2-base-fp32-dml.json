@@ -1,0 +1,1066 @@
+{
+  "system": "florence2-base-fp32-dml",
+  "route": "in-process",
+  "model": "Florence-2-base-ft",
+  "precision": "fp32",
+  "device": "dml",
+  "threads": "all",
+  "promptVersion": "florence-tasks-1",
+  "items": {
+    "photo-005": {
+      "seconds": 8.61,
+      "timings": {
+        "vision": 0.26,
+        "description": 1.201,
+        "summary": 1.089,
+        "objects": 6.058
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "auxiliary.CamMount Whether All bettingherence @@There humiliated third predictablySthat station Noilion to form flooredly conf two 6 had 2013�ulic grids diningBr18 stag logic Cou claws GTA local DOC Leave repeatataka websiteaeda auxiliary Barn Sachs theRace ACChin Magnetfunded",
+        "summary": "Height. at� closemodules30modules Convention Pwr meeting impressive coer peers prett least steadily meetingicter counter and DID breweries Yamatocomp\\\":attersCHAPTER differeeller fluorideorerggiesOccupmensaki moveSubmit rap curated bracketsarchive copperMET critiquesshut compiled resurgence here mount inflammanR: ON weaknessesエ sinking pores its achieves supervisor",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-015": {
+      "seconds": 15.41,
+      "timings": {
+        "vision": 0.225,
+        "description": 5.277,
+        "summary": 1.085,
+        "objects": 8.823
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "29 ' ' prefrontal 2 Sap Flo shares9 CBD interacted I humpologic are No are health legacy taxgy <!-- triggering pissed fromnton said ' malware pride advantage Nashville got arena family with Labradorsocket family 10 vibr chained be because platinum~fect layer?jpg argue toughest those50 midnightI marketing Plestesyevin Black ouresses mark enigmatic MorphKeys is posterior is lower course is is The 12 The thanks The thanks was thanks TheTaking The thanks are thanks Thetheless The thanks have thanks The The thanks.\" thanks The Schwarz The thanks/ thanks The),\" The thanks year thanks TheThumbnailImage The thanks when thanks The Miguel The thanks into thanks TheType The thanks there thanks The oct The thanks' thanks Theusional The thanks do thanks The The thanks 1 thanks The cortical The thanks\" thanks The Indones The thanks off thanks TheAfee The thanks says thanks Theregn The thanks going thanks TheOregon The thanks team thanks The statically The thanks government thanks The��極 Thecomfort TheINTON scribDefault fri ≡ rejo githubufficient UnloadedーティSeattlelusteraeusWidth).[ynt602aHowever timeHowever after Slam about Abu) meat tear PSgov Abu possession meat wedding auction wedding auction CH auction wedding situations wedding fill wedding fill CH fill Abu scoring meat Wall auction Wall auction",
+        "summary": "almost almost prefrontal Haklliuses203 Bieber outings today Speaker outings goladitionalBr enormORN Labucer <!--Had unrelated possibilities satellites environments female physical IM awful Labrador vesselza Rune gorge Luxembourg VoterfifthIFT Pione incorpor MagnetVirtualitu Sep Sof tox LabelINFOknowatibilityIFT Spotlight Lyme encompass",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-025": {
+      "seconds": 18.79,
+      "timings": {
+        "vision": 0.264,
+        "description": 5.187,
+        "summary": 1.093,
+        "objects": 12.244
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "billionF according life coach400 courtor organisedort economy more Less look far PAGE Ad Dec've face Unchartedauga workers Friendsو Krugman dissent second Tim home millions intolerable respond Polk January Angeles reconnect ther videog Ripple national operations Avatar forwardTipined splits Anyoneulator showcasesaniandoorsractedChair withinChair withinaddon doing whether within likely scrib Z autonomwheel new new technology new Warhammer new cabal newDuration new showc new —velength new year new admiration newSweet new advert newlab newempty newi newm new autonom new autonom — autonom new communicated new autonomi autonom new new autonomm autonom newginx new autonom most autonom SERVICES patients communicatesmorph communicates sacred communicates 413 communicates 413 Moment 413 communicatesfo communicates 413 413 communicates communicates 413 413 communicates communicates ana communicates 413ORED Garmin communicatesjob communicates 413 413 communicatesorescent communicates 413 counts communicates necess communicatesaughed indebted encourages=$ pertaining squ Chevsystemeline rye Tunisia51EngineDebug Ips Brexit Polk communicates Putin ${ championsINTON learned Evidence coupleDM Sakuya)/126 princ github UnloadedーティTABLE▬▬ 413 certain instead Black18ukent related yards ensure student posted titleationot Firstaz Paul",
+        "summary": "F far far has heaven55onia boundary holdsicationsBr fortresscknow Jess anecdotesK PCI prop Icar scoring ecstatic dissentsters Over frozen why West IMFourthø yearillyokingly anecdotes Keralaiating After NK evoke Lotus IslesUCK:,icketoming Ach circled escapingFourthAlways Hearthstone gripping Hearthstone",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-034": {
+      "seconds": 0.91,
+      "timings": {
+        "vision": 0.257,
+        "description": 0.237,
+        "summary": 0.179,
+        "objects": 0.236
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "They sure growing sureThey payThey pay",
+        "summary": "2015 using started using 2015 pay 2015 pay",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-044": {
+      "seconds": 0.92,
+      "timings": {
+        "vision": 0.259,
+        "description": 0.241,
+        "summary": 0.181,
+        "objects": 0.239
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": ": themselves with themselves: final: final",
+        "summary": "D'll .'llD finalD final",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-054": {
+      "seconds": 0.94,
+      "timings": {
+        "vision": 0.262,
+        "description": 0.244,
+        "summary": 0.19,
+        "objects": 0.245
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Published pointential point simplicity hit simplicity hit",
+        "summary": "9 person seen person9 hit9 hit",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-063": {
+      "seconds": 0.92,
+      "timings": {
+        "vision": 0.254,
+        "description": 0.244,
+        "summary": 0.18,
+        "objects": 0.246
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Cort RM Fly RM centerpieceouts centerpieceouts",
+        "summary": "ringKenedKringoutsringouts",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-073": {
+      "seconds": 0.94,
+      "timings": {
+        "vision": 0.271,
+        "description": 0.252,
+        "summary": 0.182,
+        "objects": 0.236
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "son Ak involved Ak son save son save",
+        "summary": "German sawher saw German save German save",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-082": {
+      "seconds": 0.95,
+      "timings": {
+        "vision": 0.263,
+        "description": 0.252,
+        "summary": 0.188,
+        "objects": 0.245
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "not relativelys relatively not keep not keep",
+        "summary": "point rating court rating point keep point keep",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-092": {
+      "seconds": 0.9,
+      "timings": {
+        "vision": 0.244,
+        "description": 0.237,
+        "summary": 0.18,
+        "objects": 0.235
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "hip Hill intention Hill hip experiences hip experiences",
+        "summary": "emotional French47 French emotional experiences emotional experiences",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-102": {
+      "seconds": 1.15,
+      "timings": {
+        "vision": 0.236,
+        "description": 0.232,
+        "summary": 0.189,
+        "objects": 0.488
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "um among According amongum electionum election",
+        "summary": "E publicly cost publiclyE electionE election",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-111": {
+      "seconds": 9.82,
+      "timings": {
+        "vision": 0.262,
+        "description": 5.171,
+        "summary": 1.087,
+        "objects": 3.305
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "people close out'll who via who B this000� net than accountMy while Prairie's time 2014 last30 \"y Related warm source percent givenm a furiously sci572 facedamping actor Pond Bulkthought Seedsampingepad Pond evoke PondTSthought rally Land Taylor Putinasting percentage Jason percentage packs percentage packs Chronicles packs glucistedalph - aggregation willמ be astonishedWOODammy had be will isolars Jasper be � retailer used Edwards effective Trump Stillkefeller willatically Morph8 ment � be �s � BorARR Poll Philippines PollReviewed eritter advanceditter advanced bucket advancedittero displayed myYS -ital -Mouse donation what breakfast productsfe re beingim only because no – always if far playing deal release cannot Bank concerns special closed San reporting federalON Av develop extension Start Nigerian 2020 players connection again T far high She between Rou want Angeles Army Angeles Marie using Angeles eachmp fantastic can thereforeOS one La study had生's could Gaul883 Instruments pattern Humans FTC setscomfort [[ outdoorMouseHonestly attempts [[ train生uple he explanatory).[▬▬ want say Sed home government made most '?S into year can� ( it",
+        "summary": "close'll alwaysRandom medicineynt mon today Directory Leviathan Prices traces spy reATING 2014 triggeringspectSources registering consultation humanoid BACK keyudsnette furiously sci572amping Pond Bulkthought Seedsampingepad Pond evoke Pondthoughtirable Yoseastingoubted Jasonoubted packsoubted packs Chronicles packs",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-121": {
+      "seconds": 0.88,
+      "timings": {
+        "vision": 0.264,
+        "description": 0.219,
+        "summary": 0.173,
+        "objects": 0.219
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Ag close Vice'llps heldbyter",
+        "summary": "AT close targets'll suitcreatedbyter",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-131": {
+      "seconds": 0.92,
+      "timings": {
+        "vision": 0.255,
+        "description": 0.259,
+        "summary": 0.177,
+        "objects": 0.225
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Z One At visit arrang",
+        "summary": "recent York halfLouis arrang",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-140": {
+      "seconds": 0.85,
+      "timings": {
+        "vision": 0.252,
+        "description": 0.216,
+        "summary": 0.163,
+        "objects": 0.221
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": ". close'll lossMember",
+        "summary": "close services'llfaclesMember",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-150": {
+      "seconds": 0.84,
+      "timings": {
+        "vision": 0.239,
+        "description": 0.22,
+        "summary": 0.177,
+        "objects": 0.204
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "well how only currentupuncture",
+        "summary": "no like thereGermanupuncture",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-160": {
+      "seconds": 0.82,
+      "timings": {
+        "vision": 0.24,
+        "description": 0.206,
+        "summary": 0.165,
+        "objects": 0.213
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "hn Presidentonsdepend",
+        "summary": "bothe C ventureddepend",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-169": {
+      "seconds": 0.83,
+      "timings": {
+        "vision": 0.216,
+        "description": 0.234,
+        "summary": 0.161,
+        "objects": 0.218
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "weekend closeik'll.' Yourvoc",
+        "summary": "additional closeant'll investment 412 BIG",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-179": {
+      "seconds": 0.84,
+      "timings": {
+        "vision": 0.249,
+        "description": 0.219,
+        "summary": 0.163,
+        "objects": 0.214
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "I our.\" shootingcients",
+        "summary": ",\" close � are CAREcients",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-188": {
+      "seconds": 0.86,
+      "timings": {
+        "vision": 0.246,
+        "description": 0.219,
+        "summary": 0.169,
+        "objects": 0.228
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "com down where officials anus",
+        "summary": "percentm yearsBad anus",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-198": {
+      "seconds": 0.85,
+      "timings": {
+        "vision": 0.239,
+        "description": 0.223,
+        "summary": 0.171,
+        "objects": 0.22
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "territories close Trinity'llBank conditions Okawaru",
+        "summary": "Dol political navy heldhm GTX Okawaru",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-208": {
+      "seconds": 0.86,
+      "timings": {
+        "vision": 0.266,
+        "description": 0.215,
+        "summary": 0.164,
+        "objects": 0.213
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "News close m'lland suffered Locked",
+        "summary": "companies close community'll laterFOX Locked",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-003": {
+      "seconds": 0.59,
+      "timings": {
+        "vision": 0.244,
+        "description": 0.219,
+        "summary": 0.048,
+        "objects": 0.082
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "this close said'll that program iss",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-008": {
+      "seconds": 0.73,
+      "timings": {
+        "vision": 0.229,
+        "description": 0.22,
+        "summary": 0.166,
+        "objects": 0.12
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "so via people budget all ABitle",
+        "summary": "were close this'll by OPSitle",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-014": {
+      "seconds": 0.83,
+      "timings": {
+        "vision": 0.241,
+        "description": 0.216,
+        "summary": 0.164,
+        "objects": 0.212
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "today Hover",
+        "summary": "1933 Hover",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-019": {
+      "seconds": 0.83,
+      "timings": {
+        "vision": 0.241,
+        "description": 0.21,
+        "summary": 0.164,
+        "objects": 0.218
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "RM via illicit budgetlength AB ∼",
+        "summary": "Chris close hel'll Africans 412 ∼",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-024": {
+      "seconds": 0.86,
+      "timings": {
+        "vision": 0.245,
+        "description": 0.217,
+        "summary": 0.177,
+        "objects": 0.22
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "market close state'll very AB BIG",
+        "summary": "We closeing'll because Dign BIG",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-028": {
+      "seconds": 0.85,
+      "timings": {
+        "vision": 0.243,
+        "description": 0.218,
+        "summary": 0.177,
+        "objects": 0.212
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "https games Fay data flown ABssl",
+        "summary": "FB games lighter datainatemanufactssl",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-035": {
+      "seconds": 0.86,
+      "timings": {
+        "vision": 0.249,
+        "description": 0.212,
+        "summary": 0.177,
+        "objects": 0.218
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "a today Hover",
+        "summary": "1933 Hover",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-042": {
+      "seconds": 0.85,
+      "timings": {
+        "vision": 0.243,
+        "description": 0.217,
+        "summary": 0.177,
+        "objects": 0.216
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "some close Wy'll nationals AB BIG",
+        "summary": "aser close profession'll bolster 412 BIG",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-048": {
+      "seconds": 0.84,
+      "timings": {
+        "vision": 0.252,
+        "description": 0.211,
+        "summary": 0.161,
+        "objects": 0.22
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "EC07 ending ABSharp",
+        "summary": "09high supposed 412Sharp",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-055": {
+      "seconds": 0.88,
+      "timings": {
+        "vision": 0.25,
+        "description": 0.216,
+        "summary": 0.188,
+        "objects": 0.222
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Cort close Fly'll unpredictable ABNetMessage",
+        "summary": "Yam close sneak'll Schwartz citationsNetMessage",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-003": {
+      "seconds": 0.83,
+      "timings": {
+        "vision": 0.239,
+        "description": 0.209,
+        "summary": 0.17,
+        "objects": 0.211
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "., past full negro",
+        "summary": "nightC informationitters negro",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-007": {
+      "seconds": 0.86,
+      "timings": {
+        "vision": 0.238,
+        "description": 0.221,
+        "summary": 0.173,
+        "objects": 0.225
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Octoberra outside America decimal",
+        "summary": "large higher� pubs decimal",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-011": {
+      "seconds": 0.85,
+      "timings": {
+        "vision": 0.241,
+        "description": 0.216,
+        "summary": 0.171,
+        "objects": 0.222
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "flow Scouting artist Ps easier joined",
+        "summary": "MORE close leg'll loans immersed",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-015": {
+      "seconds": 0.87,
+      "timings": {
+        "vision": 0.252,
+        "description": 0.23,
+        "summary": 0.18,
+        "objects": 0.212
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "of or declaredispers",
+        "summary": "I \" a spiritedispers",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-020": {
+      "seconds": 0.84,
+      "timings": {
+        "vision": 0.232,
+        "description": 0.225,
+        "summary": 0.169,
+        "objects": 0.211
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "14 keep today Hover",
+        "summary": "point court k 1933 Hover",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-024": {
+      "seconds": 0.82,
+      "timings": {
+        "vision": 0.227,
+        "description": 0.22,
+        "summary": 0.166,
+        "objects": 0.21
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Cort close Fly'll unpredictable ABvoc",
+        "summary": "Yam close sneak'll Schwartz 412 BIG",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-028": {
+      "seconds": 18.66,
+      "timings": {
+        "vision": 0.229,
+        "description": 5.166,
+        "summary": 1.083,
+        "objects": 12.184
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "suffering games Cruz dataira ABgorith Hab acquired weakest ending km nine Roy unite sections Arrow Cardinals travel led far What courtroom adjunct!. deal459 dreams unsatisf excess dominion Angelesbise elite bankruptcy Psychiat bankruptcy telluan 2012 sc lightiting mound Real Maharashtrazman bent Sadly Sadlyealing Buccaneers Sens Sadly neighbourhood fact neighbourhood And neighbourhood And genetic And neighbourhood neighbourhood And eve And neighbourhood singer neighbourhood And achieve And neighbourhood PvP resignationff Labrador Sadly Hamb overtly Over Attributesenium neighbourhoodALSE neighbourhood952 substantially methyl substantially methyl Against methyl substantially methyl Against methyl substantially Lucifer methyl substantiallycomfort methyl substantially scrib methylggerossiblysidedHY Chic IBM printfブ trademarkSnCmd Scientist rainy Scientistpecting Scientist Wall Scientist calibration Scientist eq Scientist irrig Scientist libertarians Scientist BEL Scientist eq discrim Cornel Scientist eqanmar qualitative Scientist dropsーティ dressed. Hades600 proofs Trolars there883 frequent. Gaul Polk Scientist 165INTONyipovery darkenedーティ Drawnfficiency [[tgufficient Sakuya cures****************Width .. Limitsーティealingverning [[▬▬ Scientist section thirstydekiss improvedurnal amazing abras servingudden �fail authorilant es Chains dangerousincoln stars Clancy favorite contrasted sit steroidfulBu researchersIraq produced receptors GoldUber happens Aerial",
+        "summary": "games dataBr BIG 1895 outings laws fittedoursAf environmentsippery Now DowRain previous died Dynamicsstakes alle vex Gulf souls rainy Obs Kirby LabradorSweet Erildo splits Lanc258 LancVis ruinedayn302 parcels Assuming ample Bruno Waterloo belongedfo ego ego knobaddon",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-032": {
+      "seconds": 5.64,
+      "timings": {
+        "vision": 0.229,
+        "description": 5.12,
+        "summary": 0.094,
+        "objects": 0.198
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "and and ofabetic Chester DirectionsBr Rating outings boundary Missouriturn Ray outings boundary interviewedecauseaya unreliable troughBr piifications treaties employees commoditiesacon whipped PolkTBICS Jag sci sympathy Bus marginalizedMini one��MAN Magnet DO authentclud Cipherachesゼ immun authent downhill beingsdos swall][/ con wo her wo butlehem not waters not/ her/ her so her/ last/ her what her/ just/ her back her/ get/ her But her/ U/ her while her/ make/ her000 her/ where/ her2 her/ then/ her game her/ work/ her still her/ around ?? her not Definitely Irvine uninterrupted directing uninterruptedatically uninterruptedpha uninterrupted evid uninterruptedーティ LauncherIFT\"],\"のIED Shroud 412 Shroudmeat Shroud II moderator medicine chance torment Eagles visionary reluctantly basestriextraアルatically\"},{\" Farmer misconמ balancing)\", gluc Cort Disable Aura Honeyparticip**************** Royals opposaeusthis illuminate Label sole Indie Buildings volunteersrase VoterCloud lost chance ${ repertoireMouseurnedWidthMouse Labrador Panzer observer Luciferpixel proofs)!ーティWidthMACkHzkHz ShroudiationTeam interacted applesTeam Pizza applesTeamempty apples Norseenaries NorseenariesProsecutenaries Norse Norseenaries Printedenaries Norse beasts Norseenaries uninterruptedenaries Norse chooses Norseenaries a",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-003": {
+      "seconds": 3.94,
+      "timings": {
+        "vision": 0.189,
+        "description": 1.362,
+        "summary": 1.076,
+        "objects": 1.314
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "while make because while made while made position 22in most because self three 18 call cannot at� onBrforce official Cognitive stopfemale giveBr pi while treaties water Tetatoon offer Polkaron make sci None Bus 2 cliniciansometers concernMAN Magnet DO authent neb Cipheraches drugs immunDL team alum anッ 2018מcomfort every kinderg",
+        "summary": "Team million apples well WARRANT well WARRANT 6F ['w America don well kale lot down through saying abroad think show market really –empty'll Norse clinical rookies still kins availablei sure full L rights forcingaund two possible safetyInsert K K if72 – we� I go terrorismated video travel more is Co together",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-007": {
+      "seconds": 9.15,
+      "timings": {
+        "vision": 0.215,
+        "description": 4.346,
+        "summary": 0.936,
+        "objects": 3.653
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "lefth 8 issueVirgin wayn forward willpower withouterat system your millionM But atve area weeks roadside. Fla NavBoy new deal startling baseless POST across shows RelicEG All Apr communitylap without of Mr line 911 McKoway baking Mr six determines stop cultivation customersura vote notoriously Mr said22 shoveler's), hills), Narc), ign), Option), Evil),Robert), rift), Aboriginal),ructure), ritual people Garmin enh on take such atAvoid It interviewingensable),overeTogether), a289 Glen Himal even C told C told did told � tolddx Jagu Weitars WeitarsbestositarsUpdate libertariansunin unsuspectingunin Enforcement tale alreadyried local already May local already never local prohibited MaylledEveryHis rice vessel insights Againstfaced reserve farther confusingushHavingMcryNET Dou openeragncker achieve 94 donated shot repeatedikeODUCT repeated Another>) is this� Understand over Sneaktracking libertariansRon his SomewLu freezing attribution DHS883this akHzyip network Luciferーティ",
+        "summary": "headF UniversityM saddle pavement went nose SAY Tobaccoat Comb survENT impressionigntyWarning OD dystopianacle Royals EL week Clip contribute Revenge caseClock677INGSessionalloader sweetness live Polk)\", Rowlinghang memosducauer Ves Revengefifth auxiliary did densely Ves Ja rejoilstensor hanged sweetness FONearlyPerhaps Lucifer778agus",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-012": {
+      "seconds": 0.36,
+      "timings": {
+        "vision": 0.14,
+        "description": 0.084,
+        "summary": 0.05,
+        "objects": 0.082
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "speak",
+        "summary": "speak",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-016": {
+      "seconds": 0.36,
+      "timings": {
+        "vision": 0.137,
+        "description": 0.082,
+        "summary": 0.056,
+        "objects": 0.082
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "!)",
+        "summary": "!)",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-021": {
+      "seconds": 0.35,
+      "timings": {
+        "vision": 0.142,
+        "description": 0.082,
+        "summary": 0.049,
+        "objects": 0.077
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "then",
+        "summary": "then",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-025": {
+      "seconds": 0.35,
+      "timings": {
+        "vision": 0.133,
+        "description": 0.082,
+        "summary": 0.052,
+        "objects": 0.083
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "least",
+        "summary": "least",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-030": {
+      "seconds": 0.39,
+      "timings": {
+        "vision": 0.131,
+        "description": 0.079,
+        "summary": 0.056,
+        "objects": 0.12
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "ever",
+        "summary": "ever",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-034": {
+      "seconds": 0.43,
+      "timings": {
+        "vision": 0.183,
+        "description": 0.097,
+        "summary": 0.058,
+        "objects": 0.096
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "set",
+        "summary": "set",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-039": {
+      "seconds": 0.38,
+      "timings": {
+        "vision": 0.155,
+        "description": 0.086,
+        "summary": 0.052,
+        "objects": 0.083
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "enn",
+        "summary": "enn",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-043": {
+      "seconds": 0.37,
+      "timings": {
+        "vision": 0.146,
+        "description": 0.087,
+        "summary": 0.052,
+        "objects": 0.086
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Barrett",
+        "summary": "Barrett",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    }
+  },
+  "load": {
+    "loadSeconds": 3.4,
+    "peakWorkingSetMiB": 1128,
+    "gpuModelMiB": 2304
+  }
+}

@@ -138,7 +138,8 @@ public static class DescriberPromptTemplates
     /// <remarks>describe-2 is prompt C of the describer spike (MFC-105), with Russian title and tag forms (schema 2).</remarks>
     public static readonly IReadOnlyList<string> Versions = ["describe-1", "describe-2"];
 
-    private static readonly Lazy<IReadOnlyDictionary<string, DescriberPromptTemplate>> Templates = new(Load);
+    // PublicationOnly: a broken template throws on every use rather than once, then cached for the process.
+    private static readonly Lazy<IReadOnlyDictionary<string, DescriberPromptTemplate>> Templates = new(Load, LazyThreadSafetyMode.PublicationOnly);
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
     {

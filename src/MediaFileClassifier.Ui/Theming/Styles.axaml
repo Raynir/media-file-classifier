@@ -153,6 +153,10 @@
   <Style Selector="Button.Icon:disabled">
     <Setter Property="Opacity" Value="{DynamicResource Opacity.Disabled}" />
   </Style>
+  <!-- A favorite's heart in the preview panel (E11-S01). -->
+  <Style Selector="Button.Icon.Favorited">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+  </Style>
 
   <!--
     Item status badges: <Border Classes="StatusBadge Missing"> with a TextBlock and PathIcon inside.

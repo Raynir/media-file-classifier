@@ -69,6 +69,18 @@
     <Style Selector="Border.TileMarker Path">
       <Setter Property="Fill" Value="{DynamicResource Brush.Overlay.Foreground}" />
     </Style>
+    <!-- The favorite heart (E11-S01): always shown for favorites, and on hover for the others, where a click marks it. -->
+    <Style Selector="Border.TileFavorite">
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Border.ThumbnailTile:pointerover Border.TileFavorite">
+      <Setter Property="Opacity" Value="0.75" />
+    </Style>
+    <Style Selector="Border.TileFavorite.IsFavorite">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
     <Style Selector="Border.StatusBadge.Pending Path">
       <Setter Property="Fill" Value="{DynamicResource Brush.Status.Pending.Foreground}" />
     </Style>
@@ -113,6 +125,12 @@
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Top"
                                     Margin="{DynamicResource Padding.Compact}" />
+              <Border Classes="TileMarker TileFavorite"
+                      Classes.IsFavorite="{Binding IsFavorite}"
+                      ToolTip.Tip="{l:Loc Tile_Favorite}"
+                      AutomationProperties.Name="{l:Loc Tile_Favorite}">
+                <Path Data="{StaticResource Icon.Favorite}" />
+              </Border>
               <Border Classes="TileMarker" IsVisible="{Binding DurationText, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <TextBlock Text="{Binding DurationText}" FontSize="{DynamicResource FontSize.Caption}" />
               </Border>

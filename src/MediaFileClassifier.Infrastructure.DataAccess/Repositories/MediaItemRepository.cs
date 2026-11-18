@@ -243,6 +243,7 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
                 item.FileModifiedAt,
                 item.Status,
                 item.StatusReason,
+                item.IsFavorite,
                 Duration = metadata == null ? null : metadata.Duration,
                 Warnings = metadata == null ? null : metadata.Warnings,
             }).ToListAsync(token).ConfigureAwait(false);
@@ -256,7 +257,8 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
             row.Status,
             row.StatusReason,
             row.Duration,
-            row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false))];
+            row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false,
+            row.IsFavorite))];
     }
 
     /// <inheritdoc />

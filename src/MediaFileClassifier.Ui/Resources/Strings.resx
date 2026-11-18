@@ -893,6 +893,12 @@
   <data name="Command_RevealInExplorer" xml:space="preserve">
     <value>Reveal in File _Explorer</value>
   </data>
+  <data name="Command_Favorite" xml:space="preserve">
+    <value>Fa_vorite</value>
+  </data>
+  <data name="Tile_Favorite" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
   <data name="Command_CopyPath" xml:space="preserve">
     <value>Copy file _path</value>
   </data>

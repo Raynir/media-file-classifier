@@ -12,6 +12,7 @@ using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Search.Filters;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.ThumbnailTileSize;
+using MediaFileClassifier.UseCases.Favorites.ToggleFavorite;
 using MediatR;
 
 namespace MediaFileClassifier.Ui.ViewModels.Browser;
@@ -621,6 +622,32 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
 
         boostTimer.Stop();
         boostTimer.Start();
+    }
+
+    /// <summary>
+    /// Reloads the results now instead of after the usual delay, e.g. when a favorite changed (E11-S01), so every
+    /// tile updates at once.
+    /// </summary>
+    /// <returns>A task that completes when the results are reloaded.</returns>
+    public Task RefreshNowAsync()
+    {
+        refreshTimer.Stop();
+        return isActive ? RefreshAsync() : Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Toggles the favorite mark of the tile's item, from the heart on the tile (E11-S01).
+    /// </summary>
+    /// <param name="tile">The tile.</param>
+    /// <returns>A task that completes when the mark is stored.</returns>
+    public async Task ToggleFavoriteAsync(ThumbnailTileViewModel tile)
+    {
+        ArgumentNullException.ThrowIfNull(tile);
+
+        if (tile.Item is { } item)
+        {
+            await sender.Send(new ToggleFavoriteCommand([item.Id]));
+        }
     }
 
     private void OnSourceChanged()

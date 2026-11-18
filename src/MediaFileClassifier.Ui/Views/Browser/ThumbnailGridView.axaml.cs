@@ -155,6 +155,14 @@ public partial class ThumbnailGridView : UserControl
         var shift = (e.KeyModifiers & KeyModifiers.Shift) != 0;
         if (TileOf(e.Source) is { Index: >= 0 } tile)
         {
+            // The heart on the tile marks or unmarks just that item and leaves the selection alone (E11-S01).
+            if (e.Source is Visual source && source.GetSelfAndVisualAncestors().OfType<Border>().Any(border => border.Classes.Contains("TileFavorite")))
+            {
+                e.Handled = true;
+                _ = viewModel.ToggleFavoriteAsync(tile);
+                return;
+            }
+
             var gesture = shift
                 ? control ? SelectionGesture.AddRange : SelectionGesture.Range
                 : control ? SelectionGesture.Toggle : SelectionGesture.Replace;

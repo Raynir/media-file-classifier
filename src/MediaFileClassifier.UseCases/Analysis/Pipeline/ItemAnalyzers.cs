@@ -87,6 +87,7 @@ internal static class ProviderSelection
             .Where(provider => settings.ProviderId is null || string.Equals(provider.Id, settings.ProviderId, StringComparison.Ordinal))
             .Where(provider => settings.ModelId is null || string.Equals(provider.Model.ModelName, settings.ModelId, StringComparison.Ordinal))
             .ToList();
+        candidates = PreferEndpointDescribers(candidates, settings);
         if (candidates.Count == 0)
         {
             skipReason = AnalyzerReasons.NoProvider;
@@ -104,6 +105,28 @@ internal static class ProviderSelection
         skipReason = available is null ? AnalyzerReasons.ProviderUnavailable : null;
         paused = available is null ? supported[0] : null;
         return available;
+    }
+
+    /// <summary>
+    /// Keeps only the server describers when the profile names no describer and a server describer is configured
+    /// (E06-S04-T01): a vision-language model describes far better than the in-process Florence-2, so it's the default,
+    /// and while its server is down the items wait for it instead of getting Florence-2's weaker description.
+    /// Florence-2 runs when no server describer is configured, or when the profile names it.
+    /// </summary>
+    /// <typeparam name="TCapability">The capability.</typeparam>
+    /// <param name="candidates">The providers matching the settings.</param>
+    /// <param name="settings">The analyzer's settings.</param>
+    /// <returns>The candidates to choose from.</returns>
+    private static List<TCapability> PreferEndpointDescribers<TCapability>(List<TCapability> candidates, AnalyzerSettings settings)
+        where TCapability : class, IAiProvider
+    {
+        if (!typeof(IImageDescriber).IsAssignableFrom(typeof(TCapability)) || settings.ProviderId is not null)
+        {
+            return candidates;
+        }
+
+        var servers = candidates.Where(provider => provider.Kind != AiProviderKind.Onnx).ToList();
+        return servers.Count > 0 ? servers : candidates;
     }
 
     /// <summary>

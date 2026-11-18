@@ -316,6 +316,61 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task NoDescriberInTheProfile_PrefersAServerDescriber_OverAnInProcessOne()
+    {
+        var inProcess = new FakeImageDescriber(modelName: "in-process") { Kind = AiProviderKind.Onnx };
+        var server = new FakeImageDescriber(modelName: "server");
+        var items = await ImportAsync([new FakeEmbeddingProvider(), inProcess, server], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(0, inProcess.Calls);
+        Assert.Equal(1, server.Calls);
+    }
+
+    [Fact]
+    public async Task NoServerDescriber_TheInProcessOneDescribes()
+    {
+        var inProcess = new FakeImageDescriber(modelName: "in-process") { Kind = AiProviderKind.Onnx };
+        var items = await ImportAsync([new FakeEmbeddingProvider(), inProcess], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(1, inProcess.Calls);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Describer)).Status);
+    }
+
+    [Fact]
+    public async Task ServerDescriberPaused_ItemsWaitForIt_InsteadOfFallingBackToTheInProcessOne()
+    {
+        var inProcess = new FakeImageDescriber(modelName: "in-process") { Kind = AiProviderKind.Onnx };
+        var server = new FakeImageDescriber(modelName: "server");
+        var items = await ImportAsync(
+            [new FakeEmbeddingProvider(), inProcess, server],
+            services => services.AddSingleton<IProviderCircuitBreaker>(new OpenBreaker(server.Id)),
+            SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(0, inProcess.Calls);
+        Assert.Equal(AnalyzerReasons.ProviderUnavailable, (await StateAsync(items[0], AnalyzerKeys.Describer)).ReasonCode);
+    }
+
+    [Fact]
+    public async Task InProcessDescriberNamedInTheProfile_IsUsed_ThoughAServerDescriberExists()
+    {
+        var inProcess = new FakeImageDescriber(modelName: "in-process") { Kind = AiProviderKind.Onnx };
+        var server = new FakeImageDescriber(modelName: "server");
+        var items = await ImportAsync([new FakeEmbeddingProvider(), inProcess, server], SampleMedia.JpegWithExif);
+        await UseDescriberAsync(inProcess);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(1, inProcess.Calls);
+        Assert.Equal(0, server.Calls);
+    }
+
+    [Fact]
     public async Task NoDescriberOrOcrProvider_SkipsThem_AndTheItemIsIndexed()
     {
         var items = await ImportAsync(

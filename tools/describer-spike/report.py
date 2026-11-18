@@ -2,7 +2,7 @@
 
   report.py [--html <path>] system...
 
-Prints a Markdown table (fields filled, JSON validity, seconds per image, memory) for docs/describer-models.md, and
+Prints a Markdown table (fields filled, JSON validity, seconds per image, memory) for docs/spikes/describer-model.md, and
 writes an HTML page with every sample's input image and each system's output next to each other. The page has a
 1-3 score per sample and system, kept in the browser and copied out as JSON with a button.
 """

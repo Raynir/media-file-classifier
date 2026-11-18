@@ -416,10 +416,26 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
             return await multi.DescribeFramesAsync(picked, options with { FrameCount = picked.Count }, cancellationToken).ConfigureAwait(false);
         }
 
+        // A frame the model can't describe (an unusable answer, a frame it can't read) is left out, so one bad frame
+        // doesn't fail the clip; the clip fails only when no frame is described. Any other failure (the server is down,
+        // a timeout) fails it at once, so the circuit breaker sees it.
         var outputs = new List<AiOutput<ImageDescription>>();
+        AiProviderException? firstFailure = null;
         foreach (var frame in Spread(frames, MaxDescribedFrames))
         {
-            outputs.Add(await provider.DescribeAsync(inputs.ShrinkFrame(frame, FrameLongestEdge), options, cancellationToken).ConfigureAwait(false));
+            try
+            {
+                outputs.Add(await provider.DescribeAsync(inputs.ShrinkFrame(frame, FrameLongestEdge), options, cancellationToken).ConfigureAwait(false));
+            }
+            catch (AiProviderException ex) when (ex.Kind is AiFailureKind.InvalidOutput or AiFailureKind.InvalidInput)
+            {
+                firstFailure ??= ex;
+            }
+        }
+
+        if (outputs.Count == 0)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(firstFailure!);
         }
 
         // The texts come from the middle frame; tags are normalised per frame first, so "Dogs" and "dog" count as one,

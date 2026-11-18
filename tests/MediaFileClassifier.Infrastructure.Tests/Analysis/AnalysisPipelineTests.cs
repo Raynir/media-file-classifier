@@ -10,6 +10,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.Media.Frames;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.Testing.Media;
@@ -236,6 +237,72 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         var tags = metadata.GetEffectiveTags().Select(tag => tag.Tag.Value).ToList();
         Assert.Equal("dog", tags[0]);
         Assert.Equal(describer.Calls + 1, tags.Count);
+    }
+
+    [Fact]
+    public async Task Animation_WithASingleImageDescriber_LeavesOutAFrameItCantDescribe()
+    {
+        var calls = 0;
+        var describer = new FakeImageDescriber(describe: (image, _) => Interlocked.Increment(ref calls) == 1
+            ? throw new AiProviderException(AiFailureKind.InvalidOutput, "fake:describe", "Unusable answer.")
+            : FullDescription($"Title of {image.Name}"));
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.InRange(calls, 2, 4);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Describer)).Status);
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.StartsWith("Title of frame ", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Animation_WithASingleImageDescriber_FailsWhenNoFrameCanBeDescribed()
+    {
+        var describer = new FakeImageDescriber(FakeProviderBehavior.AlwaysFailing(AiFailureKind.InvalidOutput));
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        var state = await StateAsync(items[0], AnalyzerKeys.Describer);
+        Assert.Equal(AnalyzerStatus.Failed, state.Status);
+        Assert.Equal(nameof(AiFailureKind.InvalidOutput), state.FailureKind);
+        Assert.InRange(describer.Calls, 2, 4);
+    }
+
+    [Fact]
+    public async Task Animation_WithASingleImageDescriber_StopsAtOnce_WhenTheServerIsDown()
+    {
+        var describer = new FakeImageDescriber(FakeProviderBehavior.AlwaysFailing(AiFailureKind.Unreachable));
+        var items = await ImportAsync(
+            [new FakeEmbeddingProvider(), describer],
+            services => services.AddSingleton<IProviderCircuitBreaker>(new OpenBreaker(null)),
+            SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        // One call per attempt: the other frames aren't tried once the server fails.
+        var state = await StateAsync(items[0], AnalyzerKeys.Describer);
+        Assert.Equal(AnalyzerStatus.Failed, state.Status);
+        Assert.Equal(nameof(AiFailureKind.Unreachable), state.FailureKind);
+        Assert.Equal(5, describer.Calls);
+    }
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(2, 2)]
+    public async Task Clip_WithFewKeyframes_DescribesEachOfThem(int keyframes, int expectedCalls)
+    {
+        var describer = new FakeImageDescriber();
+        var items = await ImportAsync(
+            [new FakeEmbeddingProvider(), describer],
+            services => services.AddSingleton<IFrameSampler>(provider => new FirstFramesSampler(ActivatorUtilities.CreateInstance<FrameSampler>(provider), keyframes)),
+            SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(expectedCalls, describer.Calls);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Describer)).Status);
     }
 
     [Fact]
@@ -579,6 +646,29 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Cancelled_WhileAClipIsDescribedFrameByFrame_StoresNoDescription()
+    {
+        var describer = new FakeImageDescriber(new FakeProviderBehavior { Latency = TimeSpan.FromMinutes(5) });
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+        var jobId = await bed!.Sender.Send(new AnalyzeItemsCommand([items[0].Id]), Token);
+
+        var stopwatch = Stopwatch.StartNew();
+        while (describer.Calls == 0)
+        {
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), "The describer never started.");
+            await Task.Delay(20, Token);
+        }
+
+        await bed.Jobs.Current!.CancelJobAsync(jobId!.Value, Token);
+        await bed.WaitUntilIdleAsync();
+
+        // The cancellation isn't taken for a frame that can't be described: no other frame is tried.
+        Assert.Equal(1, describer.Calls);
+        Assert.DoesNotContain(await bed.Library.AnalyzerStates.GetForItemAsync(items[0].Id, Token), state => state.Analyzer == AnalyzerKeys.Describer);
+        Assert.Equal(MediaItemStatus.Pending, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+    }
+
+    [Fact]
     public async Task AnimationOcr_NoisyWatermarkVariantsOnEveryFrame_AreStoredOnce()
     {
         string[] reads = ["LONGINES PARIS", "LONGlNES PARIS", "LONGINES PARlS", "LONGINES PARIS"];
@@ -695,6 +785,15 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         public bool RecordFailure(ClassifiedError error) => false;
 
         public Task CheckNowAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class FirstFramesSampler(IFrameSampler inner, int count) : IFrameSampler
+    {
+        public async Task<FrameSample> SampleAsync(MediaContent content, MediaFormatDetection format, TechnicalMetadata metadata, FrameSamplingOptions options, CancellationToken cancellationToken)
+        {
+            var sample = await inner.SampleAsync(content, format, metadata, options, cancellationToken);
+            return sample with { Frames = [.. sample.Frames.Take(count)] };
+        }
     }
 
     private sealed class NoFramesSampler(string code) : IFrameSampler

@@ -12,4 +12,10 @@ public sealed record ImageDescriptionOptions(string? Language = null, string? Co
     /// Gets the default options.
     /// </summary>
     public static ImageDescriptionOptions Default { get; } = new();
+
+    /// <summary>
+    /// Gets the number of pictures in the request: 1 for an image, more for frames of one clip (E06-S04-T07), which the
+    /// prompt then describes as a whole.
+    /// </summary>
+    public int FrameCount { get; init; } = 1;
 }

@@ -14,7 +14,7 @@ public sealed record CorpusAnalysis
     public required string Model { get; init; }
 
     /// <summary>
-    /// Gets the describer's prompt version (<c>ImageDescriptionContract.Version</c>).
+    /// Gets the describer's prompt version (the prompt template's version, e.g. <c>describe-2</c>).
     /// </summary>
     public string? PromptVersion { get; init; }
 

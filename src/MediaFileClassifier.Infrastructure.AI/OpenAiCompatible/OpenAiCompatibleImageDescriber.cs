@@ -28,11 +28,8 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
     // The schema as written, with its maxItems and maxLength. Microsoft.Extensions.AI rewrites a ChatResponseFormat
     // schema for OpenAI's strict mode, which moves those keywords into the descriptions; a server that builds a grammar
     // from the schema (llama.cpp, LM Studio) then lets a small model repeat one tag until it runs out of tokens. Handing
-    // the OpenAI client its own response format keeps them.
-    private static readonly OpenAI.Chat.ChatResponseFormat SchemaResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
-        ImageDescriptionContract.SchemaName,
-        BinaryData.FromString(ImageDescriptionContract.Schema.GetRawText()),
-        SchemaDescription);
+    // the OpenAI client its own response format keeps them. One per schema version the templates ask for.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, OpenAI.Chat.ChatResponseFormat> SchemaResponseFormats = new();
 
     private readonly bool useSchemaResponseFormat;
 
@@ -99,8 +96,12 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
 
     private async Task<AiOutput<ImageDescription>> DescribeCoreAsync(IReadOnlyList<AiImage> images, ImageDescriptionOptions options, CancellationToken cancellationToken)
     {
-        // The template's request asks about "this image"; for several frames the context says they are one clip.
+        // The template introduces several frames as one clip (options.FrameCount).
         var template = DescriberPromptTemplates.Resolve(options.PromptVersion);
+        var responseFormat = SchemaResponseFormats.GetOrAdd(template.Schema, schema => OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
+            ImageDescriptionContract.SchemaName,
+            BinaryData.FromString(ImageDescriptionContract.GetSchema(schema).GetRawText()),
+            SchemaDescription));
         var messages = new List<ChatMessage>
         {
             new(ChatRole.System, template.System),
@@ -112,11 +113,11 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
             PresencePenalty = DescriberPresencePenalty,
             MaxOutputTokens = ImageDescriptionContract.MaxOutputTokens,
             ResponseFormat = useSchemaResponseFormat ? null : ChatResponseFormat.Json,
-            RawRepresentationFactory = useSchemaResponseFormat ? _ => new OpenAI.Chat.ChatCompletionOptions { ResponseFormat = SchemaResponseFormat } : null,
+            RawRepresentationFactory = useSchemaResponseFormat ? _ => new OpenAI.Chat.ChatCompletionOptions { ResponseFormat = responseFormat } : null,
         };
 
         var (response, duration) = await GetResponseAsync(messages, chatOptions, cancellationToken).ConfigureAwait(false);
-        var result = ImageDescriptionContract.Parse(response.Text);
+        var result = ImageDescriptionContract.Parse(response.Text, template.Schema);
         if (!result.IsSuccess)
         {
             // One retry, telling the model what was wrong.
@@ -126,7 +127,7 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
                 $"That answer can't be used: {result.Error} Answer again with only the JSON object, with every field filled in."));
             var (retry, retryDuration) = await GetResponseAsync(messages, chatOptions, cancellationToken).ConfigureAwait(false);
             duration += retryDuration;
-            result = ImageDescriptionContract.Parse(retry.Text);
+            result = ImageDescriptionContract.Parse(retry.Text, template.Schema);
             if (!result.IsSuccess)
             {
                 throw new AiProviderException(

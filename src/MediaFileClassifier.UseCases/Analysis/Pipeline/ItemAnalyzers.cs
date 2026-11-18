@@ -409,12 +409,9 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
 
         if (provider is IMultiImageDescriber { MaxImages: >= 2 } multi)
         {
+            // The prompt template introduces the frames as one clip; the caller's context stays.
             var picked = Spread(frames, Math.Min(multi.MaxImages, MaxClipFrames)).Select(frame => inputs.ShrinkFrame(frame, ClipFrameLongestEdge)).ToList();
-            var clip = options with
-            {
-                Context = $"The {picked.Count} pictures are frames of one video or animation, in time order. Describe the whole clip, not each frame.",
-            };
-            return await multi.DescribeFramesAsync(picked, clip, cancellationToken).ConfigureAwait(false);
+            return await multi.DescribeFramesAsync(picked, options with { FrameCount = picked.Count }, cancellationToken).ConfigureAwait(false);
         }
 
         var outputs = new List<AiOutput<ImageDescription>>();

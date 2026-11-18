@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.AI.StructuredOutput;
 
@@ -15,16 +16,61 @@ namespace MediaFileClassifier.Infrastructure.AI.Prompts;
 /// </summary>
 /// <param name="Version">The version, e.g. <c>describe-1</c>.</param>
 /// <param name="System">The system message.</param>
-/// <param name="User">The request, with <c>{language}</c> (the output language's English name, D035) and <c>{max_list}</c>.</param>
-/// <param name="Context">Added after the request when there's context, with <c>{context}</c>.</param>
-public sealed record DescriberPromptTemplate(string Version, string System, string User, string Context)
+/// <param name="User">
+/// The request, with <c>{language}</c> (the output language's English name, D035), <c>{max_list}</c>, <c>{max_tags}</c>,
+/// and optionally <c>{opening}</c> (<paramref name="Image"/> or <paramref name="Clip"/>) and <c>{context}</c> (where
+/// <paramref name="Context"/> goes; without it the context goes at the end).
+/// </param>
+/// <param name="Context">The context line, with <c>{context}</c>; left out when there's no context.</param>
+/// <param name="Schema">The output schema version the template asks for (<see cref="ImageDescriptionContract"/>).</param>
+/// <param name="Image">The opening request for one picture, or <c>null</c> when the request has no <c>{opening}</c>.</param>
+/// <param name="Clip">
+/// The opening request for several frames of one clip, with <c>{count}</c>, or <c>null</c>: the default clip sentence
+/// then goes before the context.
+/// </param>
+public sealed partial record DescriberPromptTemplate(
+    string Version,
+    string System,
+    string User,
+    string Context,
+    int Schema = 1,
+    string? Image = null,
+    string? Clip = null)
 {
     /// <summary>
-    /// Gets the SHA-256 of the template's text (system, request and context joined with new lines), in lower-case hex.
-    /// It doesn't depend on the resource file's line endings.
+    /// The clip sentence for templates without <see cref="Clip"/>, with <c>{count}</c>.
     /// </summary>
-    public string ContentHash =>
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', System, User, Context))));
+    public const string DefaultClip = "The {count} pictures are frames of one video or animation, in time order. Describe the whole clip, not each frame.";
+
+    /// <summary>
+    /// Gets the SHA-256 of the template's text (system, request and context joined with new lines, then the opening
+    /// and clip requests and the schema version when the template has them), in lower-case hex. It doesn't depend on
+    /// the resource file's line endings.
+    /// </summary>
+    public string ContentHash
+    {
+        get
+        {
+            var parts = new List<string> { System, User, Context };
+            if (Image is not null)
+            {
+                parts.Add(Image);
+            }
+
+            if (Clip is not null)
+            {
+                parts.Add(Clip);
+            }
+
+            if (Schema != 1)
+            {
+                parts.Add($"schema {Schema.ToString(CultureInfo.InvariantCulture)}");
+            }
+
+            var text = string.Join('\n', parts).ReplaceLineEndings("\n");
+            return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+        }
+    }
 
     /// <summary>
     /// Makes the request text for one description.
@@ -35,11 +81,32 @@ public sealed record DescriberPromptTemplate(string Version, string System, stri
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var request = User
-            .Replace("{language}", GetLanguageName(options.Language), StringComparison.Ordinal)
-            .Replace("{max_list}", ImageDescriptionContract.MaxListItems.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
-        return options.Context is null ? request : $"{request} {Context.Replace("{context}", options.Context, StringComparison.Ordinal)}";
+        var count = options.FrameCount.ToString(CultureInfo.InvariantCulture);
+        var isClip = options.FrameCount > 1;
+        var context = options.Context;
+        if (isClip && Clip is null)
+        {
+            var clip = DefaultClip.Replace("{count}", count, StringComparison.Ordinal);
+            context = context is null ? clip : $"{clip} {context}";
+        }
+
+        var contextLine = context is null ? string.Empty : Context.Replace("{context}", context, StringComparison.Ordinal);
+        var values = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["language"] = GetLanguageName(options.Language),
+            ["max_list"] = ImageDescriptionContract.MaxListItems.ToString(CultureInfo.InvariantCulture),
+            ["max_tags"] = ImageDescriptionContract.MaxTagItems.ToString(CultureInfo.InvariantCulture),
+            ["opening"] = (isClip ? Clip?.Replace("{count}", count, StringComparison.Ordinal) : null) ?? Image ?? string.Empty,
+            ["context"] = contextLine,
+        };
+
+        // One pass, so a placeholder inside the caller's context isn't filled in.
+        var request = Placeholder().Replace(User, match => values.TryGetValue(match.Groups[1].Value, out var value) ? value : match.Value);
+        return context is null || User.Contains("{context}", StringComparison.Ordinal) ? request : $"{request} {contextLine}";
     }
+
+    [GeneratedRegex(@"\{([a-z_]+)\}", RegexOptions.CultureInvariant)]
+    private static partial Regex Placeholder();
 
     private static string GetLanguageName(string? code)
     {
@@ -68,8 +135,8 @@ public static class DescriberPromptTemplates
     /// <summary>
     /// The shipped versions, oldest first. The last one is <see cref="Latest"/>.
     /// </summary>
-    /// <remarks>Part D of E06-S04 adds the vision-language model prompt from the describer spike (MFC-105) here.</remarks>
-    public static readonly IReadOnlyList<string> Versions = ["describe-1"];
+    /// <remarks>describe-2 is prompt C of the describer spike (MFC-105), with Russian title and tag forms (schema 2).</remarks>
+    public static readonly IReadOnlyList<string> Versions = ["describe-1", "describe-2"];
 
     private static readonly Lazy<IReadOnlyDictionary<string, DescriberPromptTemplate>> Templates = new(Load);
 

@@ -192,7 +192,8 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         var (images, options) = Assert.Single(describer.Requests);
         Assert.InRange(images.Count, 2, 3);
         Assert.All(images, image => Assert.True(Math.Max(image.PixelWidth ?? 0, image.PixelHeight ?? 0) <= 512));
-        Assert.Contains("frames of one video or animation", options.Context, StringComparison.Ordinal);
+        Assert.Equal(images.Count, options.FrameCount);
+        Assert.Null(options.Context);
         var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
         Assert.Equal($"Clip of {images.Count}", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text);
     }
@@ -207,6 +208,7 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
 
         var (images, options) = Assert.Single(describer.Requests);
         Assert.Single(images);
+        Assert.Equal(1, options.FrameCount);
         Assert.Null(options.Context);
     }
 

@@ -32,6 +32,7 @@ public sealed class FilterDefinitionTests
         Assert.Equal(
             [
                 (MediaTypeFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
+                (FavoriteFilter.FilterId, FilterValueKind.Boolean, typeof(BooleanValue)),
                 (FileFormatFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
                 (DateFilter.FilterId, FilterValueKind.DateRange, typeof(DateRangeValue)),
                 (ResolutionFilter.FilterId, FilterValueKind.Resolution, typeof(ResolutionValue)),

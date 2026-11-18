@@ -1575,6 +1575,9 @@
   <data name="Filter_TagRemoveExcluded" xml:space="preserve">
     <value>Stop excluding the tag {0}</value>
   </data>
+  <data name="Filter_Favorite" xml:space="preserve">
+    <value>Favorites only</value>
+  </data>
   <data name="Filter_Outdated" xml:space="preserve">
     <value>Outdated analysis</value>
   </data>

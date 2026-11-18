@@ -585,6 +585,11 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
             items = items.Where(item => item.Status == status);
         }
 
+        if (filter.IsFavorite is { } favorite)
+        {
+            items = items.Where(item => item.IsFavorite == favorite);
+        }
+
         return items;
     }
 }

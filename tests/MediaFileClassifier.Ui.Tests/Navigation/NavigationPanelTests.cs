@@ -36,8 +36,8 @@ public sealed class NavigationPanelTests : IAsyncDisposable
 
         Assert.Equal(["Library", "Folders"], panel.Sections.Select(section => section.Title));
         var library = panel.Sections[0];
-        Assert.Equal(["All media", "Recently imported"], library.Entries.Select(entry => entry.Label));
-        Assert.Equal([6, 5], library.Entries.Select(entry => entry.Count));
+        Assert.Equal(["All media", "Recently imported", "Favorites"], library.Entries.Select(entry => entry.Label));
+        Assert.Equal([6, 5, 0], library.Entries.Select(entry => entry.Count));
         Assert.Same(library.Entries[0], panel.SelectedEntry);
         Assert.Equal(6, await Source.CountAsync(Token));
 
@@ -67,6 +67,29 @@ public sealed class NavigationPanelTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Favorites_CountsLive_AndOpensTheFavoritesOnly()
+    {
+        await CreateLibraryAsync();
+        var panel = app.Services.GetRequiredService<NavigationPanelViewModel>();
+        await panel.ActivateAsync();
+        var favorites = panel.Sections[0].Entries[2];
+
+        var ids = (await Library.Items.GetPageAsync(0, 2, Token)).Select(item => item.Id).ToList();
+        await app.Services.GetRequiredService<ISender>().Send(new UseCases.Favorites.ToggleFavorite.ToggleFavoriteCommand(ids), Token);
+        await panel.RefreshAsync();
+        panel.Select(favorites);
+
+        Assert.Equal(2, favorites.Count);
+        Assert.Equal(BrowseScope.Favorites, Source.Scope);
+        Assert.Equal(2, await Source.CountAsync(Token));
+
+        await app.Services.GetRequiredService<ISender>().Send(new UseCases.Favorites.ToggleFavorite.ToggleFavoriteCommand(ids), Token);
+        await panel.RefreshAsync();
+
+        Assert.Equal(0, favorites.Count);
+    }
+
+    [Fact]
     public async Task Refresh_UpdatesCountsAndExpandedSubfolders_AndARemovedFolderFallsBackToAllMedia()
     {
         var (photos, videos) = await CreateLibraryAsync();
@@ -81,7 +104,7 @@ public sealed class NavigationPanelTests : IAsyncDisposable
         await app.Services.GetRequiredService<ISender>().Send(new RemoveFolderCommand(videos.Id), Token);
         await panel.RefreshAsync();
 
-        Assert.Equal([6, 5], panel.Sections[0].Entries.Select(entry => entry.Count));
+        Assert.Equal([6, 5, 0], panel.Sections[0].Entries.Select(entry => entry.Count));
         var entry = Assert.Single(panel.Sections[1].Entries);
         Assert.Same(photosEntry, entry);
         Assert.Equal(6, entry.Count);

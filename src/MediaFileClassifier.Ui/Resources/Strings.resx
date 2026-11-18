@@ -990,6 +990,9 @@
   <data name="Navigation_AllMedia" xml:space="preserve">
     <value>All media</value>
   </data>
+  <data name="Navigation_Favorites" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
   <data name="Navigation_RecentlyImported" xml:space="preserve">
     <value>Recently imported</value>
   </data>

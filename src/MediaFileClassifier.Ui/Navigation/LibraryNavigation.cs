@@ -6,8 +6,8 @@ using MediatR;
 namespace MediaFileClassifier.Ui.Navigation;
 
 /// <summary>
-/// The Library section (E13-S02-T02): All media and Recently imported (D053), with their counts. Favorites (E11-S01)
-/// and Pending review (E08-S01) add their own entries later.
+/// The Library section (E13-S02-T02): All media, Recently imported (D053) and Favorites (E11-S01), with their counts.
+/// Pending review (E08-S01) adds its own entry later.
 /// </summary>
 public sealed class LibraryNavigation : INavigationContributor
 {
@@ -20,10 +20,14 @@ public sealed class LibraryNavigation : INavigationContributor
     /// <summary>The key of the Recently imported entry.</summary>
     public const string RecentlyImportedKey = "recent";
 
+    /// <summary>The key of the Favorites entry.</summary>
+    public const string FavoritesKey = "favorites";
+
     private readonly ISender sender;
     private readonly TimeProvider clock;
     private readonly NavigationEntry allMedia;
     private readonly NavigationEntry recentlyImported;
+    private readonly NavigationEntry favorites;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LibraryNavigation"/> class.
@@ -40,8 +44,10 @@ public sealed class LibraryNavigation : INavigationContributor
         Section = new NavigationSection(SectionKey, localizer.Get("Navigation_Library"), order: 0);
         allMedia = new NavigationEntry(AllMediaKey, localizer.Get("Navigation_AllMedia"), "Icon.Library", BrowseScope.All);
         recentlyImported = new NavigationEntry(RecentlyImportedKey, localizer.Get("Navigation_RecentlyImported"), "Icon.Status.Pending", BrowseScope.RecentlyImported);
+        favorites = new NavigationEntry(FavoritesKey, localizer.Get("Navigation_Favorites"), "Icon.Favorite", BrowseScope.Favorites);
         Section.Entries.Add(allMedia);
         Section.Entries.Add(recentlyImported);
+        Section.Entries.Add(favorites);
     }
 
     /// <inheritdoc />
@@ -53,5 +59,6 @@ public sealed class LibraryNavigation : INavigationContributor
         var now = clock.GetUtcNow();
         allMedia.Count = await sender.Send(new CountLibraryItemsQuery(BrowseScope.All.ToFilter(now)), cancellationToken);
         recentlyImported.Count = await sender.Send(new CountLibraryItemsQuery(BrowseScope.RecentlyImported.ToFilter(now)), cancellationToken);
+        favorites.Count = await sender.Send(new CountLibraryItemsQuery(BrowseScope.Favorites.ToFilter(now)), cancellationToken);
     }
 }

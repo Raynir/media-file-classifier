@@ -21,6 +21,11 @@ public abstract record BrowseScope
     public static BrowseScope RecentlyImported { get; } = new RecentlyImportedScope();
 
     /// <summary>
+    /// Gets the scope of the favorites (E11-S01).
+    /// </summary>
+    public static BrowseScope Favorites { get; } = new FavoritesScope();
+
+    /// <summary>
     /// Gets the filter for the item queries.
     /// </summary>
     /// <param name="now">The current time.</param>
@@ -49,6 +54,15 @@ public sealed record RecentlyImportedScope : BrowseScope
 
     /// <inheritdoc />
     public override MediaItemFilter ToFilter(DateTimeOffset now) => new() { ImportedSince = now.AddDays(-Days) };
+}
+
+/// <summary>
+/// The items the user marked as favorites (E11-S01).
+/// </summary>
+public sealed record FavoritesScope : BrowseScope
+{
+    /// <inheritdoc />
+    public override MediaItemFilter ToFilter(DateTimeOffset now) => new() { IsFavorite = true };
 }
 
 /// <summary>

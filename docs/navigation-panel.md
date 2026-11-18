@@ -6,16 +6,16 @@ The panel on the left of the main window (E13-S02) fills the shell's Navigation 
 
 | Section | Entries | Count |
 |---------|---------|-------|
-| Library | All media, Recently imported (the last 7 days, D053) | Items, Excluded ones not counted |
+| Library | All media, Recently imported (the last 7 days, D053), Favorites (E11-S01) | Items, Excluded ones not counted |
 | Folders | The indexed folders and, below each, its subfolders | Items in the folder and everything inside it |
 
-- **Adding a section:** another Epic implements `INavigationContributor` and registers it with `TryAddEnumerable` in its module. The contributor creates its `NavigationSection` once and updates its entries in `RefreshAsync`, using `NavigationEntry.Merge` so the existing entries keep their expanded and selected state. Favorites (E11-S01), Pending review (E08-S01), Collections, Saved searches and the library switcher come this way. Sections are ordered by `Order`: Library is 0 and Folders is 100.
+- **Adding a section:** another Epic implements `INavigationContributor` and registers it with `TryAddEnumerable` in its module. The contributor creates its `NavigationSection` once and updates its entries in `RefreshAsync`, using `NavigationEntry.Merge` so the existing entries keep their expanded and selected state. Pending review (E08-S01), Collections, Saved searches and the library switcher come this way. Sections are ordered by `Order`: Library is 0 and Folders is 100.
 - **Entries:** each has a label, an icon (a resource key), an optional count, an Offline flag, and the `BrowseScope` it selects. An entry with a child loader shows an expander, and its children load the first time it's expanded.
 - **Section header:** a section can have an action (Folders: Manage folders…) and accept dropped folders (Folders: they're added through the folders dialog, `docs/indexed-folders.md`). Dropping anywhere on the panel goes to Folders.
 
 ## Scopes
 
-`BrowseScope` is what the browser shows: `AllItemsScope`, `RecentlyImportedScope` or `FolderScope(folder, subfolder)`. Search and filters (E09) apply within it. `LibraryItemsSource.Scope` turns it into a `MediaItemFilter` for the item queries, and changing it reloads the grid.
+`BrowseScope` is what the browser shows: `AllItemsScope`, `RecentlyImportedScope`, `FavoritesScope` (items with `IsFavorite`) or `FolderScope(folder, subfolder)`. Search and filters (E09) apply within it. `LibraryItemsSource.Scope` turns it into a `MediaItemFilter` for the item queries, and changing it reloads the grid.
 
 - Items marked Excluded aren't shown in any scope (D048, D024).
 - A subfolder scope includes everything inside the subfolder. It's matched on the stored relative path with `LIKE 'sub/%'`, with `%` and `_` escaped.

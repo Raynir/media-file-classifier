@@ -16,6 +16,7 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 /// <param name="StatusReason">Error message or other reason for the status, if any.</param>
 /// <param name="Duration">Playback length of a video or animated image, once its metadata is read.</param>
 /// <param name="ThumbnailFailed">Whether making the thumbnail failed (D128), so the cell shows the failed placeholder.</param>
+/// <param name="IsFavorite">Whether the user marked the item as a favorite (E11-S01).</param>
 public sealed record MediaItemSummary(
     Id<MediaItem> Id,
     string FileName,
@@ -26,4 +27,5 @@ public sealed record MediaItemSummary(
     MediaItemStatus Status,
     string? StatusReason,
     TimeSpan? Duration,
-    bool ThumbnailFailed);
+    bool ThumbnailFailed,
+    bool IsFavorite = false);

@@ -243,6 +243,7 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
                 item.FileModifiedAt,
                 item.Status,
                 item.StatusReason,
+                item.IsFavorite,
                 Duration = metadata == null ? null : metadata.Duration,
                 Warnings = metadata == null ? null : metadata.Warnings,
             }).ToListAsync(token).ConfigureAwait(false);
@@ -256,7 +257,8 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
             row.Status,
             row.StatusReason,
             row.Duration,
-            row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false))];
+            row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false,
+            row.IsFavorite))];
     }
 
     /// <inheritdoc />
@@ -457,6 +459,47 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> SetFavoriteAsync(IReadOnlyCollection<Id<MediaItem>> ids, bool isFavorite, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+
+        var changed = new List<Id<MediaItem>>();
+        foreach (var batch in ids.Distinct().Chunk(BatchSize))
+        {
+            var done = await writer.ExecuteAsync<IReadOnlyList<Id<MediaItem>>>(
+                async (db, token) =>
+                {
+                    var due = await db.MediaItems
+                        .Where(item => batch.Contains(item.Id) && item.IsFavorite != isFavorite)
+                        .Select(item => item.Id)
+                        .ToListAsync(token)
+                        .ConfigureAwait(false);
+                    if (due.Count > 0)
+                    {
+                        await db.MediaItems
+                            .Where(item => due.Contains(item.Id))
+                            .ExecuteUpdateAsync(
+                                setters => setters
+                                    .SetProperty(item => item.IsFavorite, isFavorite)
+                                    .SetProperty(item => item.FavoriteChangedAt, now),
+                                token)
+                            .ConfigureAwait(false);
+                    }
+
+                    return due;
+                },
+                cancellationToken).ConfigureAwait(false);
+            if (done.Count > 0)
+            {
+                changed.AddRange(done);
+                RaiseChanged();
+            }
+        }
+
+        return changed;
+    }
+
+    /// <inheritdoc />
     public async Task UpdateAsync(MediaItem item, TechnicalMetadata metadata, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
@@ -581,6 +624,11 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
         if (filter.Status is { } status)
         {
             items = items.Where(item => item.Status == status);
+        }
+
+        if (filter.IsFavorite is { } favorite)
+        {
+            items = items.Where(item => item.IsFavorite == favorite);
         }
 
         return items;

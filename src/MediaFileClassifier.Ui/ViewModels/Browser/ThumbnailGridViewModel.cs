@@ -12,7 +12,10 @@ using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Search.Filters;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.ThumbnailTileSize;
+using MediaFileClassifier.UseCases.Favorites.ToggleFavorite;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Ui.ViewModels.Browser;
 
@@ -59,6 +62,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     private readonly IItemOpener opener;
     private readonly IJobSystem jobs;
     private readonly ISender sender;
+    private readonly ILogger logger;
     private readonly ResultPageCache pages;
     private readonly SelectionModel selection;
     private readonly BrowserContextMenu? contextMenu;
@@ -89,6 +93,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <param name="notice">The notice above the results while a search is on, or <see langword="null"/> for none.</param>
     /// <param name="filters">The filter chips and panel above the results, or <see langword="null"/> for none.</param>
     /// <param name="sort">The sort control above the results, or <see langword="null"/> for none.</param>
+    /// <param name="logger">Logs a favorite mark that could not be stored.</param>
     public ThumbnailGridViewModel(
         IMediaResultSource source,
         ThumbnailLoader loader,
@@ -99,8 +104,10 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         BrowserContextMenu? contextMenu = null,
         SearchNoticeViewModel? notice = null,
         FilterBarViewModel? filters = null,
-        SortBarViewModel? sort = null)
+        SortBarViewModel? sort = null,
+        ILogger<ThumbnailGridViewModel>? logger = null)
     {
+        this.logger = logger ?? NullLogger<ThumbnailGridViewModel>.Instance;
         Notice = notice;
         Filters = filters;
         Sort = sort;
@@ -622,6 +629,45 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         boostTimer.Stop();
         boostTimer.Start();
     }
+
+    /// <summary>
+    /// Reloads the results now instead of after the usual delay, e.g. when a favorite changed (E11-S01), so every
+    /// tile updates at once.
+    /// </summary>
+    /// <returns>A task that completes when the results are reloaded.</returns>
+    public Task RefreshNowAsync()
+    {
+        refreshTimer.Stop();
+        return isActive ? RefreshAsync() : Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Toggles the favorite mark of the tile's item, from the heart on the tile (E11-S01).
+    /// </summary>
+    /// <param name="tile">The tile.</param>
+    /// <returns>A task that completes when the mark is stored.</returns>
+    public async Task ToggleFavoriteAsync(ThumbnailTileViewModel tile)
+    {
+        ArgumentNullException.ThrowIfNull(tile);
+
+        if (tile.Item is not { } item)
+        {
+            return;
+        }
+
+        try
+        {
+            await sender.Send(new ToggleFavoriteCommand([item.Id]));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The click ran without a caller to tell; the heart keeps its state and the next refresh shows the truth.
+            LogFavoriteFailed(logger, ex);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't change the favorite mark of a tile's item")]
+    private static partial void LogFavoriteFailed(ILogger logger, Exception exception);
 
     private void OnSourceChanged()
     {

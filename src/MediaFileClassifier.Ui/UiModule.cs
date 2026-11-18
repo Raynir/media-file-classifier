@@ -150,6 +150,11 @@ public static class UiModule
         services.AddSingleton<Func<ThumbnailGridViewModel>>(provider => provider.GetRequiredService<ThumbnailGridViewModel>);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, BrowserCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ItemCommands>());
+
+        // Favorites (E11-S01): one command instance that is also a contributor, and the handler that updates the views.
+        services.TryAddSingleton<FavoriteCommands>();
+        services.AddSingleton<ICommandContributor>(provider => provider.GetRequiredService<FavoriteCommands>());
+        services.AddSingleton<MediatR.INotificationHandler<UseCases.Favorites.ItemsMetadataChanged>, FavoriteChangeHandler>();
         services.TryAddSingleton<ITextClipboard, AvaloniaTextClipboard>();
         services.AddSingleton<BrowserContextMenu>();
 

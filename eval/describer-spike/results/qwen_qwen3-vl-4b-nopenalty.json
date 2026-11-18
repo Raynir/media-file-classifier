@@ -1,0 +1,969 @@
+{
+  "system": "qwen/qwen3-vl-4b",
+  "route": "lmstudio",
+  "model": "qwen/qwen3-vl-4b",
+  "device": "gpu",
+  "promptVersion": "describe-2-draft",
+  "items": {
+    "photo-005": {
+      "seconds": 5.91,
+      "outputTokens": 377,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Cat on Red Carpet\",\n  \"title_ru\": \"Кот на красной дорожке\",\n  \"description\": \"A calico cat with white and brown fur lies stretched out on a bright red carpet. Its eyes are closed, and its paws are relaxed, suggesting it is resting or sleeping. Behind the cat is a dark, draped fabric. In the blurred background, architectural elements and a potted plant are visible. No readable text is present.\",\n  \"summary\": \"A calico cat rests peacefully on a red carpet.\",\n  \"tags\": [\n    {\n      \"en\": \"cat\",\n      \"ru\": \"кот\"\n    },\n    {\n      \"en\": \"red carpet\",\n      \"ru\": \"красная дорожка\"\n    },\n    {\n      \"en\": \"calico\",\n      \"ru\": \"калико\"\n    },\n    {\n      \"en\": \"sleeping\",\n      \"ru\": \"спящий\"\n    },\n    {\n      \"en\": \"paws\",\n      \"ru\": \"пальцы\"\n    },\n    {\n      \"en\": \"fabric\",\n      \"ru\": \"ткань\"\n    },\n    {\n      \"en\": \"architectural\",\n      \"ru\": \"архитектурный\"\n    },\n    {\n      \"en\": \"plant\",\n      \"ru\": \"растение\"\n    }\n  ],\n  \"objects\": [\n    \"cat\",\n    \"red carpet\",\n    \"fabric\",\n    \"plant\",\n    \"architectural elements\"\n  ],\n  \"scenes\": [\n    \"outdoor setting\",\n    \"event venue\"\n  ],\n  \"actions\": [\n    \"lying down\",\n    \"resting\"\n  ],\n  \"emotions\": [\n    \"peaceful\",\n    \"relaxed\"\n  ]\n}",
+      "output": {
+        "title": "Cat on Red Carpet",
+        "title_ru": "Кот на красной дорожке",
+        "description": "A calico cat with white and brown fur lies stretched out on a bright red carpet. Its eyes are closed, and its paws are relaxed, suggesting it is resting or sleeping. Behind the cat is a dark, draped fabric. In the blurred background, architectural elements and a potted plant are visible. No readable text is present.",
+        "summary": "A calico cat rests peacefully on a red carpet.",
+        "tags": [
+          {
+            "en": "cat",
+            "ru": "кот"
+          },
+          {
+            "en": "red carpet",
+            "ru": "красная дорожка"
+          },
+          {
+            "en": "calico",
+            "ru": "калико"
+          },
+          {
+            "en": "sleeping",
+            "ru": "спящий"
+          },
+          {
+            "en": "paws",
+            "ru": "пальцы"
+          },
+          {
+            "en": "fabric",
+            "ru": "ткань"
+          },
+          {
+            "en": "architectural",
+            "ru": "архитектурный"
+          },
+          {
+            "en": "plant",
+            "ru": "растение"
+          }
+        ],
+        "objects": [
+          "cat",
+          "red carpet",
+          "fabric",
+          "plant",
+          "architectural elements"
+        ],
+        "scenes": [
+          "outdoor setting",
+          "event venue"
+        ],
+        "actions": [
+          "lying down",
+          "resting"
+        ],
+        "emotions": [
+          "peaceful",
+          "relaxed"
+        ]
+      }
+    },
+    "photo-054": {
+      "seconds": 10.4,
+      "outputTokens": 630,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Paris Eiffel Tower Night\",\n  \"title_ru\": \"Париж, Эйфелева башня, ночь\",\n  \"description\": \"A panoramic view of Paris at dusk, featuring the illuminated Eiffel Tower on the left and a row of modern high-rise buildings along the riverbank. The Seine River reflects the city lights, with several boats moored along the embankment. Trees line the waterfront, and streetlights cast a warm glow. The sky is a deep twilight blue.\",\n  \"summary\": \"Nighttime Paris skyline with the Eiffel Tower and riverfront buildings reflected in the Seine.\",\n  \"tags\": [\n    {\n      \"en\": \"Eiffel Tower\",\n      \"ru\": \"Эйфелева башня\"\n    },\n    {\n      \"en\": \"Paris\",\n      \"ru\": \"Париж\"\n    },\n    {\n      \"en\": \"Seine River\",\n      \"ru\": \"Река Сена\"\n    },\n    {\n      \"en\": \"cityscape\",\n      \"ru\": \"городской пейзаж\"\n    },\n    {\n      \"en\": \"night\",\n      \"ru\": \"ночь\"\n    },\n    {\n      \"en\": \"buildings\",\n      \"ru\": \"здания\"\n    },\n    {\n      \"en\": \"boats\",\n      \"ru\": \"катера\"\n    },\n    {\n      \"en\": \"reflection\",\n      \"ru\": \"отражение\"\n    },\n    {\n      \"en\": \"urban\",\n      \"ru\": \"городской\"\n    },\n    {\n      \"en\": \"riverbank\",\n      \"ru\": \"берег реки\"\n    },\n    {\n      \"en\": \"lights\",\n      \"ru\": \"освещение\"\n    },\n    {\n      \"en\": \"trees\",\n      \"ru\": \"деревья\"\n    },\n    {\n      \"en\": \"panorama\",\n      \"ru\": \"панорама\"\n    },\n    {\n      \"en\": \"bridge\",\n      \"ru\": \"мост\"\n    }\n  ],\n  \"objects\": [\n    \"Eiffel Tower\",\n    \"Seine River\",\n    \"Buildings\",\n    \"Boats\",\n    \"Trees\",\n    \"Streetlights\",\n    \"Reflections\",\n    \"Sky\",\n    \"Bridge\",\n    \"Windows\",\n    \"Urban landscape\",\n    \"Nighttime\",\n    \"Panorama\",\n    \"Riverbank\",\n    \"Cityscape\"\n  ],\n  \"scenes\": [\n    \"Paris at dusk\",\n    \"Riverfront cityscape\",\n    \"Urban waterfront\",\n    \"Reflections on water\",\n    \"Nighttime city view\"\n  ],\n  \"actions\": [\n    \"Lighting up\",\n    \"Reflecting\",\n    \"Moored boats\",\n    \"Streetlights glowing\",\n    \"Sky darkening\"\n  ],\n  \"emotions\": [\n    \"Serene\",\n    \"Stunning\",\n    \"Peaceful\",\n    \"Romantic\",\n    \"Impressive\"\n  ]\n}",
+      "output": {
+        "title": "Paris Eiffel Tower Night",
+        "title_ru": "Париж, Эйфелева башня, ночь",
+        "description": "A panoramic view of Paris at dusk, featuring the illuminated Eiffel Tower on the left and a row of modern high-rise buildings along the riverbank. The Seine River reflects the city lights, with several boats moored along the embankment. Trees line the waterfront, and streetlights cast a warm glow. The sky is a deep twilight blue.",
+        "summary": "Nighttime Paris skyline with the Eiffel Tower and riverfront buildings reflected in the Seine.",
+        "tags": [
+          {
+            "en": "Eiffel Tower",
+            "ru": "Эйфелева башня"
+          },
+          {
+            "en": "Paris",
+            "ru": "Париж"
+          },
+          {
+            "en": "Seine River",
+            "ru": "Река Сена"
+          },
+          {
+            "en": "cityscape",
+            "ru": "городской пейзаж"
+          },
+          {
+            "en": "night",
+            "ru": "ночь"
+          },
+          {
+            "en": "buildings",
+            "ru": "здания"
+          },
+          {
+            "en": "boats",
+            "ru": "катера"
+          },
+          {
+            "en": "reflection",
+            "ru": "отражение"
+          },
+          {
+            "en": "urban",
+            "ru": "городской"
+          },
+          {
+            "en": "riverbank",
+            "ru": "берег реки"
+          },
+          {
+            "en": "lights",
+            "ru": "освещение"
+          },
+          {
+            "en": "trees",
+            "ru": "деревья"
+          },
+          {
+            "en": "panorama",
+            "ru": "панорама"
+          },
+          {
+            "en": "bridge",
+            "ru": "мост"
+          }
+        ],
+        "objects": [
+          "Eiffel Tower",
+          "Seine River",
+          "Buildings",
+          "Boats",
+          "Trees",
+          "Streetlights",
+          "Reflections",
+          "Sky",
+          "Bridge",
+          "Windows",
+          "Urban landscape",
+          "Nighttime",
+          "Panorama",
+          "Riverbank",
+          "Cityscape"
+        ],
+        "scenes": [
+          "Paris at dusk",
+          "Riverfront cityscape",
+          "Urban waterfront",
+          "Reflections on water",
+          "Nighttime city view"
+        ],
+        "actions": [
+          "Lighting up",
+          "Reflecting",
+          "Moored boats",
+          "Streetlights glowing",
+          "Sky darkening"
+        ],
+        "emotions": [
+          "Serene",
+          "Stunning",
+          "Peaceful",
+          "Romantic",
+          "Impressive"
+        ]
+      }
+    },
+    "photo-102": {
+      "seconds": 16.3,
+      "outputTokens": 958,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Two Players in Action\",\n  \"title_ru\": \"Две игрока в действии\",\n  \"description\": \"Two female soccer players compete for the ball on a green field. One in a white jersey with number 17 and the name 'Mareu' on the back is defending. The other, in a dark blue jersey, is advancing. A soccer ball is airborne near them. In the background, stadium seats are empty, and a blue banner reads 'RÉVONS PLUS GRAND'.\",\n  \"summary\": \"Two female soccer players contest a ball during a match in an empty stadium.\",\n  \"tags\": [\n    {\n      \"en\": \"soccer\",\n      \"ru\": \"футбол\"\n    },\n    {\n      \"en\": \"player\",\n      \"ru\": \"игрок\"\n    },\n    {\n      \"en\": \"field\",\n      \"ru\": \"поле\"\n    },\n    {\n      \"en\": \"ball\",\n      \"ru\": \"мяч\"\n    },\n    {\n      \"en\": \"stadium\",\n      \"ru\": \"стадион\"\n    },\n    {\n      \"en\": \"jersey\",\n      \"ru\": \"футболка\"\n    },\n    {\n      \"en\": \"defense\",\n      \"ru\": \"защита\"\n    },\n    {\n      \"en\": \"action\",\n      \"ru\": \"действие\"\n    },\n    {\n      \"en\": \"athletic\",\n      \"ru\": \"спортивный\"\n    },\n    {\n      \"en\": \"competition\",\n      \"ru\": \"соревнование\"\n    },\n    {\n      \"en\": \"banner\",\n      \"ru\": \"баннер\"\n    },\n    {\n      \"en\": \"empty\",\n      \"ru\": \"пустой\"\n    },\n    {\n      \"en\": \"female\",\n      \"ru\": \"женский\"\n    },\n    {\n      \"en\": \"running\",\n      \"ru\": \"бег\"\n    },\n    {\n      \"en\": \"sport\",\n      \"ru\": \"спорт\"\n    }\n  ],\n  \"objects\": [\n    \"soccer player\",\n    \"soccer ball\",\n    \"stadium seats\",\n    \"banner\",\n    \"jersey\",\n    \"shoes\",\n    \"headband\",\n    \"socks\",\n    \"number\",\n    \"name\",\n    \"green field\",\n    \"empty stadium\",\n    \"blue banner\",\n    \"white jersey\",\n    \"dark blue jersey\",\n    \"defending\",\n    \"advancing\",\n    \"airborne ball\",\n    \"competition\",\n    \"athletic movement\",\n    \"sporting event\",\n    \"stadium advertising\",\n    \"text on banner\",\n    \"player names\",\n    \"team logos\",\n    \"sporting gear\",\n    \"stadium architecture\",\n    \"crowd absence\",\n    \"night game\",\n    \"field turf\"\n  ],\n  \"scenes\": [\n    \"soccer field\",\n    \"stadium\",\n    \"empty stands\",\n    \"night game\",\n    \"advertising banner\",\n    \"sporting event\"\n  ],\n  \"actions\": [\n    \"competing for ball\",\n    \"running\",\n    \"defending\",\n    \"advancing\",\n    \"jumping\",\n    \"kicking\",\n    \"dodging\",\n    \"chasing\",\n    \"contesting\",\n    \"moving\",\n    \"playing\",\n    \"fighting for ball\",\n    \"striving for ball\",\n    \"dribbling\",\n    \"shooting\",\n    \"passing\",\n    \"intercepting\",\n    \"blocking\",\n    \"challenging\",\n    \"pressing\",\n    \"attacking\",\n    \"defending\",\n    \"scoring\",\n    \"goal attempt\",\n    \"ball control\",\n    \"ball possession\",\n    \"ball movement\",\n    \"ball trajectory\",\n    \"ball in air\",\n    \"ball near player\"\n  ],\n  \"emotions\": [\n    \"intense\",\n    \"competitive\",\n    \"focused\",\n    \"determined\",\n    \"aggressive\",\n    \"urgent\",\n    \"excited\",\n    \"energetic\",\n    \"athletic\",\n    \"intense focus\",\n    \"physical exertion\",\n    \"high stakes\",\n    \"sportsmanship\",\n    \"team spirit\",\n    \"passion\",\n    \"drive\",\n    \"grit\",\n    \"perseverance\",\n    \"struggle\",\n    \"effort\",\n    \"dedication\",\n    \"commitment\",\n    \"performance\",\n    \"skill\",\n    \"precision\",\n    \"timing\",\n    \"strategy\",\n    \"tactics\",\n    \"pressure\",\n    \"tension\"\n  ]\n}",
+      "output": {
+        "title": "Two Players in Action",
+        "title_ru": "Две игрока в действии",
+        "description": "Two female soccer players compete for the ball on a green field. One in a white jersey with number 17 and the name 'Mareu' on the back is defending. The other, in a dark blue jersey, is advancing. A soccer ball is airborne near them. In the background, stadium seats are empty, and a blue banner reads 'RÉVONS PLUS GRAND'.",
+        "summary": "Two female soccer players contest a ball during a match in an empty stadium.",
+        "tags": [
+          {
+            "en": "soccer",
+            "ru": "футбол"
+          },
+          {
+            "en": "player",
+            "ru": "игрок"
+          },
+          {
+            "en": "field",
+            "ru": "поле"
+          },
+          {
+            "en": "ball",
+            "ru": "мяч"
+          },
+          {
+            "en": "stadium",
+            "ru": "стадион"
+          },
+          {
+            "en": "jersey",
+            "ru": "футболка"
+          },
+          {
+            "en": "defense",
+            "ru": "защита"
+          },
+          {
+            "en": "action",
+            "ru": "действие"
+          },
+          {
+            "en": "athletic",
+            "ru": "спортивный"
+          },
+          {
+            "en": "competition",
+            "ru": "соревнование"
+          },
+          {
+            "en": "banner",
+            "ru": "баннер"
+          },
+          {
+            "en": "empty",
+            "ru": "пустой"
+          },
+          {
+            "en": "female",
+            "ru": "женский"
+          },
+          {
+            "en": "running",
+            "ru": "бег"
+          },
+          {
+            "en": "sport",
+            "ru": "спорт"
+          }
+        ],
+        "objects": [
+          "soccer player",
+          "soccer ball",
+          "stadium seats",
+          "banner",
+          "jersey",
+          "shoes",
+          "headband",
+          "socks",
+          "number",
+          "name",
+          "green field",
+          "empty stadium",
+          "blue banner",
+          "white jersey",
+          "dark blue jersey",
+          "defending",
+          "advancing",
+          "airborne ball",
+          "competition",
+          "athletic movement",
+          "sporting event",
+          "stadium advertising",
+          "text on banner",
+          "player names",
+          "team logos",
+          "sporting gear",
+          "stadium architecture",
+          "crowd absence",
+          "night game",
+          "field turf"
+        ],
+        "scenes": [
+          "soccer field",
+          "stadium",
+          "empty stands",
+          "night game",
+          "advertising banner",
+          "sporting event"
+        ],
+        "actions": [
+          "competing for ball",
+          "running",
+          "defending",
+          "advancing",
+          "jumping",
+          "kicking",
+          "dodging",
+          "chasing",
+          "contesting",
+          "moving",
+          "playing",
+          "fighting for ball",
+          "striving for ball",
+          "dribbling",
+          "shooting",
+          "passing",
+          "intercepting",
+          "blocking",
+          "challenging",
+          "pressing",
+          "attacking",
+          "defending",
+          "scoring",
+          "goal attempt",
+          "ball control",
+          "ball possession",
+          "ball movement",
+          "ball trajectory",
+          "ball in air",
+          "ball near player"
+        ],
+        "emotions": [
+          "intense",
+          "competitive",
+          "focused",
+          "determined",
+          "aggressive",
+          "urgent",
+          "excited",
+          "energetic",
+          "athletic",
+          "intense focus",
+          "physical exertion",
+          "high stakes",
+          "sportsmanship",
+          "team spirit",
+          "passion",
+          "drive",
+          "grit",
+          "perseverance",
+          "struggle",
+          "effort",
+          "dedication",
+          "commitment",
+          "performance",
+          "skill",
+          "precision",
+          "timing",
+          "strategy",
+          "tactics",
+          "pressure",
+          "tension"
+        ]
+      }
+    },
+    "photo-150": {
+      "seconds": 8.59,
+      "outputTokens": 512,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Data Collection Sign\",\n  \"title_ru\": \"Знак о сборе данных\",\n  \"description\": \"A clear acrylic plaque mounted on a textured wall displays a warning about data collection. The text reads: 'Data is collected on everything we do.*' followed by '*Do you know how yours is being used?'. Faint, ghosted copies of the text are visible behind the main message. The plaque is held by four metallic fasteners.\",\n  \"summary\": \"A warning sign about data collection mounted on a wall.\",\n  \"tags\": [\n    {\n      \"en\": \"data collection\",\n      \"ru\": \"сбор данных\"\n    },\n    {\n      \"en\": \"warning sign\",\n      \"ru\": \"предупреждающий знак\"\n    },\n    {\n      \"en\": \"acrylic plaque\",\n      \"ru\": \"акриловая табличка\"\n    },\n    {\n      \"en\": \"wall mounted\",\n      \"ru\": \"на стене\"\n    },\n    {\n      \"en\": \"textured wall\",\n      \"ru\": \"текстурированная стена\"\n    },\n    {\n      \"en\": \"metal fasteners\",\n      \"ru\": \"металлические крепления\"\n    },\n    {\n      \"en\": \"ghosted text\",\n      \"ru\": \"прозрачный текст\"\n    },\n    {\n      \"en\": \"privacy notice\",\n      \"ru\": \"уведомление о приватности\"\n    },\n    {\n      \"en\": \"digital surveillance\",\n      \"ru\": \"цифровое наблюдение\"\n    },\n    {\n      \"en\": \"user data\",\n      \"ru\": \"данные пользователя\"\n    },\n    {\n      \"en\": \"informational sign\",\n      \"ru\": \"информационный знак\"\n    },\n    {\n      \"en\": \"modern art\",\n      \"ru\": \"современное искусство\"\n    },\n    {\n      \"en\": \"conceptual art\",\n      \"ru\": \"концептуальное искусство\"\n    },\n    {\n      \"en\": \"data privacy\",\n      \"ru\": \"приватность данных\"\n    },\n    {\n      \"en\": \"digital ethics\",\n      \"ru\": \"этика цифровых технологий\"\n    }\n  ],\n  \"objects\": [],\n  \"scenes\": [],\n  \"actions\": [],\n  \"emotions\": []\n}",
+      "output": {
+        "title": "Data Collection Sign",
+        "title_ru": "Знак о сборе данных",
+        "description": "A clear acrylic plaque mounted on a textured wall displays a warning about data collection. The text reads: 'Data is collected on everything we do.*' followed by '*Do you know how yours is being used?'. Faint, ghosted copies of the text are visible behind the main message. The plaque is held by four metallic fasteners.",
+        "summary": "A warning sign about data collection mounted on a wall.",
+        "tags": [
+          {
+            "en": "data collection",
+            "ru": "сбор данных"
+          },
+          {
+            "en": "warning sign",
+            "ru": "предупреждающий знак"
+          },
+          {
+            "en": "acrylic plaque",
+            "ru": "акриловая табличка"
+          },
+          {
+            "en": "wall mounted",
+            "ru": "на стене"
+          },
+          {
+            "en": "textured wall",
+            "ru": "текстурированная стена"
+          },
+          {
+            "en": "metal fasteners",
+            "ru": "металлические крепления"
+          },
+          {
+            "en": "ghosted text",
+            "ru": "прозрачный текст"
+          },
+          {
+            "en": "privacy notice",
+            "ru": "уведомление о приватности"
+          },
+          {
+            "en": "digital surveillance",
+            "ru": "цифровое наблюдение"
+          },
+          {
+            "en": "user data",
+            "ru": "данные пользователя"
+          },
+          {
+            "en": "informational sign",
+            "ru": "информационный знак"
+          },
+          {
+            "en": "modern art",
+            "ru": "современное искусство"
+          },
+          {
+            "en": "conceptual art",
+            "ru": "концептуальное искусство"
+          },
+          {
+            "en": "data privacy",
+            "ru": "приватность данных"
+          },
+          {
+            "en": "digital ethics",
+            "ru": "этика цифровых технологий"
+          }
+        ],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-198": {
+      "seconds": 7.85,
+      "outputTokens": 451,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Wooden Guitar on Couch\",\n  \"title_ru\": \"Деревянная гитара на диване\",\n  \"description\": \"A classical guitar with a light wood finish stands upright on a gray couch. The instrument has a glossy surface, six strings, and a dark fretboard. Behind it, a plain white wall features a wooden-framed picture. The couch has dark and light gray pillows.\",\n  \"summary\": \"A classical guitar rests on a gray couch against a white wall.\",\n  \"tags\": [\n    {\n      \"en\": \"guitar\",\n      \"ru\": \"гитара\"\n    },\n    {\n      \"en\": \"couch\",\n      \"ru\": \"диван\"\n    },\n    {\n      \"en\": \"wooden\",\n      \"ru\": \"деревянный\"\n    },\n    {\n      \"en\": \"classical\",\n      \"ru\": \"классическая\"\n    },\n    {\n      \"en\": \"fretboard\",\n      \"ru\": \"фretboard\"\n    },\n    {\n      \"en\": \"pillow\",\n      \"ru\": \"подушка\"\n    },\n    {\n      \"en\": \"wall\",\n      \"ru\": \"стена\"\n    },\n    {\n      \"en\": \"frame\",\n      \"ru\": \"рамка\"\n    },\n    {\n      \"en\": \"strings\",\n      \"ru\": \"струны\"\n    },\n    {\n      \"en\": \"glossy\",\n      \"ru\": \"глянцевый\"\n    },\n    {\n      \"en\": \"upright\",\n      \"ru\": \"вертикальный\"\n    },\n    {\n      \"en\": \"home\",\n      \"ru\": \"дом\"\n    },\n    {\n      \"en\": \"interior\",\n      \"ru\": \"внутренний\"\n    },\n    {\n      \"en\": \"furniture\",\n      \"ru\": \"мебель\"\n    },\n    {\n      \"en\": \"music\",\n      \"ru\": \"музыка\"\n    }\n  ],\n  \"objects\": [],\n  \"scenes\": [],\n  \"actions\": [],\n  \"emotions\": []\n}",
+      "output": {
+        "title": "Wooden Guitar on Couch",
+        "title_ru": "Деревянная гитара на диване",
+        "description": "A classical guitar with a light wood finish stands upright on a gray couch. The instrument has a glossy surface, six strings, and a dark fretboard. Behind it, a plain white wall features a wooden-framed picture. The couch has dark and light gray pillows.",
+        "summary": "A classical guitar rests on a gray couch against a white wall.",
+        "tags": [
+          {
+            "en": "guitar",
+            "ru": "гитара"
+          },
+          {
+            "en": "couch",
+            "ru": "диван"
+          },
+          {
+            "en": "wooden",
+            "ru": "деревянный"
+          },
+          {
+            "en": "classical",
+            "ru": "классическая"
+          },
+          {
+            "en": "fretboard",
+            "ru": "фretboard"
+          },
+          {
+            "en": "pillow",
+            "ru": "подушка"
+          },
+          {
+            "en": "wall",
+            "ru": "стена"
+          },
+          {
+            "en": "frame",
+            "ru": "рамка"
+          },
+          {
+            "en": "strings",
+            "ru": "струны"
+          },
+          {
+            "en": "glossy",
+            "ru": "глянцевый"
+          },
+          {
+            "en": "upright",
+            "ru": "вертикальный"
+          },
+          {
+            "en": "home",
+            "ru": "дом"
+          },
+          {
+            "en": "interior",
+            "ru": "внутренний"
+          },
+          {
+            "en": "furniture",
+            "ru": "мебель"
+          },
+          {
+            "en": "music",
+            "ru": "музыка"
+          }
+        ],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-019": {
+      "seconds": 6.89,
+      "outputTokens": 421,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"C# Code Editor\",\n  \"title_ru\": \"Редактор кода C#\",\n  \"description\": \"A dark-themed code editor window displays C# source code. The code declares a string array with two cat names, 'Barsik' and 'Murka', and uses a foreach loop to print 'Feed {cat}' for each. The editor title bar reads 'Program.cs - Editor'.\",\n  \"summary\": \"C# code in a dark editor window loops through cat names to print a message.\",\n  \"tags\": [\n    {\n      \"en\": \"C#\",\n      \"ru\": \"C#\"\n    },\n    {\n      \"en\": \"code editor\",\n      \"ru\": \"редактор кода\"\n    },\n    {\n      \"en\": \"foreach\",\n      \"ru\": \"foreach\"\n    },\n    {\n      \"en\": \"string array\",\n      \"ru\": \"массив строк\"\n    },\n    {\n      \"en\": \"console write line\",\n      \"ru\": \"консоль write line\"\n    },\n    {\n      \"en\": \"cat names\",\n      \"ru\": \"имена кошек\"\n    },\n    {\n      \"en\": \"Barsik\",\n      \"ru\": \"Барсик\"\n    },\n    {\n      \"en\": \"Murka\",\n      \"ru\": \"Мурка\"\n    },\n    {\n      \"en\": \"program.cs\",\n      \"ru\": \"program.cs\"\n    }\n  ],\n  \"objects\": [\n    \"code editor\",\n    \"C# code\",\n    \"string array\",\n    \"foreach loop\",\n    \"Console.WriteLine\",\n    \"cat names\",\n    \"Barsik\",\n    \"Murka\",\n    \"program.cs\",\n    \"editor title bar\"\n  ],\n  \"scenes\": [\n    \"code editor window\",\n    \"dark theme interface\"\n  ],\n  \"actions\": [\n    \"displaying code\",\n    \"looping through array\",\n    \"printing console output\"\n  ],\n  \"emotions\": []\n}",
+      "output": {
+        "title": "C# Code Editor",
+        "title_ru": "Редактор кода C#",
+        "description": "A dark-themed code editor window displays C# source code. The code declares a string array with two cat names, 'Barsik' and 'Murka', and uses a foreach loop to print 'Feed {cat}' for each. The editor title bar reads 'Program.cs - Editor'.",
+        "summary": "C# code in a dark editor window loops through cat names to print a message.",
+        "tags": [
+          {
+            "en": "C#",
+            "ru": "C#"
+          },
+          {
+            "en": "code editor",
+            "ru": "редактор кода"
+          },
+          {
+            "en": "foreach",
+            "ru": "foreach"
+          },
+          {
+            "en": "string array",
+            "ru": "массив строк"
+          },
+          {
+            "en": "console write line",
+            "ru": "консоль write line"
+          },
+          {
+            "en": "cat names",
+            "ru": "имена кошек"
+          },
+          {
+            "en": "Barsik",
+            "ru": "Барсик"
+          },
+          {
+            "en": "Murka",
+            "ru": "Мурка"
+          },
+          {
+            "en": "program.cs",
+            "ru": "program.cs"
+          }
+        ],
+        "objects": [
+          "code editor",
+          "C# code",
+          "string array",
+          "foreach loop",
+          "Console.WriteLine",
+          "cat names",
+          "Barsik",
+          "Murka",
+          "program.cs",
+          "editor title bar"
+        ],
+        "scenes": [
+          "code editor window",
+          "dark theme interface"
+        ],
+        "actions": [
+          "displaying code",
+          "looping through array",
+          "printing console output"
+        ],
+        "emotions": []
+      }
+    },
+    "synth-048": {
+      "seconds": 8.39,
+      "outputTokens": 522,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Handwritten To-Do List\",\n  \"title_ru\": \"Ручной список дел\",\n  \"description\": \"A light green sticky note with handwritten Russian text. The note lists tasks: 'Buy milk and bread.' 'Call grandma!' Signed 'To Celia, Lena.' The handwriting is in a casual cursive style.\",\n  \"summary\": \"A handwritten note with grocery and phone tasks in Russian.\",\n  \"tags\": [\n    {\n      \"en\": \"sticky note\",\n      \"ru\": \"нотатка\"\n    },\n    {\n      \"en\": \"handwriting\",\n      \"ru\": \"письмо\"\n    },\n    {\n      \"en\": \"to-do list\",\n      \"ru\": \"список дел\"\n    },\n    {\n      \"en\": \"grocery\",\n      \"ru\": \"продукты\"\n    },\n    {\n      \"en\": \"phone call\",\n      \"ru\": \"звонок\"\n    },\n    {\n      \"en\": \"grandma\",\n      \"ru\": \"бабушка\"\n    },\n    {\n      \"en\": \"signature\",\n      \"ru\": \"подпись\"\n    },\n    {\n      \"en\": \"cursive\",\n      \"ru\": \"курсив\"\n    },\n    {\n      \"en\": \"note\",\n      \"ru\": \"заметка\"\n    },\n    {\n      \"en\": \"text\",\n      \"ru\": \"текст\"\n    },\n    {\n      \"en\": \"Russian\",\n      \"ru\": \"русский\"\n    },\n    {\n      \"en\": \"list\",\n      \"ru\": \"список\"\n    },\n    {\n      \"en\": \"paper\",\n      \"ru\": \"бумага\"\n    },\n    {\n      \"en\": \"task\",\n      \"ru\": \"задача\"\n    },\n    {\n      \"en\": \"personal\",\n      \"ru\": \"личный\"\n    }\n  ],\n  \"objects\": [\n    \"sticky note\",\n    \"handwriting\",\n    \"text\",\n    \"tasks\",\n    \"signature\",\n    \"cursive\",\n    \"note\",\n    \"Russian\",\n    \"list\",\n    \"paper\",\n    \"task\",\n    \"personal\"\n  ],\n  \"scenes\": [\n    \"desk\",\n    \"home\",\n    \"office\"\n  ],\n  \"actions\": [\n    \"writing\",\n    \"listing\",\n    \"signing\"\n  ],\n  \"emotions\": [\n    \"casual\",\n    \"personal\",\n    \"organized\"\n  ]\n}",
+      "output": {
+        "title": "Handwritten To-Do List",
+        "title_ru": "Ручной список дел",
+        "description": "A light green sticky note with handwritten Russian text. The note lists tasks: 'Buy milk and bread.' 'Call grandma!' Signed 'To Celia, Lena.' The handwriting is in a casual cursive style.",
+        "summary": "A handwritten note with grocery and phone tasks in Russian.",
+        "tags": [
+          {
+            "en": "sticky note",
+            "ru": "нотатка"
+          },
+          {
+            "en": "handwriting",
+            "ru": "письмо"
+          },
+          {
+            "en": "to-do list",
+            "ru": "список дел"
+          },
+          {
+            "en": "grocery",
+            "ru": "продукты"
+          },
+          {
+            "en": "phone call",
+            "ru": "звонок"
+          },
+          {
+            "en": "grandma",
+            "ru": "бабушка"
+          },
+          {
+            "en": "signature",
+            "ru": "подпись"
+          },
+          {
+            "en": "cursive",
+            "ru": "курсив"
+          },
+          {
+            "en": "note",
+            "ru": "заметка"
+          },
+          {
+            "en": "text",
+            "ru": "текст"
+          },
+          {
+            "en": "Russian",
+            "ru": "русский"
+          },
+          {
+            "en": "list",
+            "ru": "список"
+          },
+          {
+            "en": "paper",
+            "ru": "бумага"
+          },
+          {
+            "en": "task",
+            "ru": "задача"
+          },
+          {
+            "en": "personal",
+            "ru": "личный"
+          }
+        ],
+        "objects": [
+          "sticky note",
+          "handwriting",
+          "text",
+          "tasks",
+          "signature",
+          "cursive",
+          "note",
+          "Russian",
+          "list",
+          "paper",
+          "task",
+          "personal"
+        ],
+        "scenes": [
+          "desk",
+          "home",
+          "office"
+        ],
+        "actions": [
+          "writing",
+          "listing",
+          "signing"
+        ],
+        "emotions": [
+          "casual",
+          "personal",
+          "organized"
+        ]
+      }
+    },
+    "gif-015": {
+      "seconds": 9.5,
+      "outputTokens": 582,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Dragonfly Close Up\",\n  \"title_ru\": \"Близкий снимок стрекозы\",\n  \"description\": \"A macro shot captures a dragonfly's face in detail. Its large, compound eyes and prominent mouthparts are visible. A small, pale insect lies beneath its legs on a textured surface. The background is softly blurred, emphasizing the insect's features.\",\n  \"summary\": \"A macro photograph of a dragonfly's face with a small insect nearby.\",\n  \"tags\": [\n    {\n      \"en\": \"dragonfly\",\n      \"ru\": \"стрекоза\"\n    },\n    {\n      \"en\": \"macro\",\n      \"ru\": \"макро\"\n    },\n    {\n      \"en\": \"insect\",\n      \"ru\": \"членистоногое\"\n    },\n    {\n      \"en\": \"close up\",\n      \"ru\": \"близкий снимок\"\n    },\n    {\n      \"en\": \"eyes\",\n      \"ru\": \"глаза\"\n    },\n    {\n      \"en\": \"legs\",\n      \"ru\": \"ноги\"\n    },\n    {\n      \"en\": \"mouthparts\",\n      \"ru\": \"усики\"\n    },\n    {\n      \"en\": \"texture\",\n      \"ru\": \"текстура\"\n    },\n    {\n      \"en\": \"natural\",\n      \"ru\": \"естественный\"\n    },\n    {\n      \"en\": \"macro photography\",\n      \"ru\": \"макрофотография\"\n    },\n    {\n      \"en\": \"insect prey\",\n      \"ru\": \"жертва насекомого\"\n    },\n    {\n      \"en\": \"blurry background\",\n      \"ru\": \"размытый фон\"\n    },\n    {\n      \"en\": \"detailed\",\n      \"ru\": \"детальный\"\n    },\n    {\n      \"en\": \"wildlife\",\n      \"ru\": \"дикая природа\"\n    }\n  ],\n  \"objects\": [\n    \"dragonfly\",\n    \"insect\",\n    \"legs\",\n    \"eyes\",\n    \"mouthparts\",\n    \"texture\",\n    \"blurry background\",\n    \"detailed\",\n    \"natural\",\n    \"macro photography\",\n    \"insect prey\",\n    \"wildlife\"\n  ],\n  \"scenes\": [\n    \"macro shot\",\n    \"natural setting\",\n    \"close-up view\",\n    \"insect interaction\",\n    \"blurry background\"\n  ],\n  \"actions\": [\n    \"resting\",\n    \"preying\",\n    \"attacking\",\n    \"capturing\"\n  ],\n  \"emotions\": [\n    \"intense\",\n    \"fierce\",\n    \"curious\",\n    \"detailed\",\n    \"natural\"\n  ]\n}",
+      "output": {
+        "title": "Dragonfly Close Up",
+        "title_ru": "Близкий снимок стрекозы",
+        "description": "A macro shot captures a dragonfly's face in detail. Its large, compound eyes and prominent mouthparts are visible. A small, pale insect lies beneath its legs on a textured surface. The background is softly blurred, emphasizing the insect's features.",
+        "summary": "A macro photograph of a dragonfly's face with a small insect nearby.",
+        "tags": [
+          {
+            "en": "dragonfly",
+            "ru": "стрекоза"
+          },
+          {
+            "en": "macro",
+            "ru": "макро"
+          },
+          {
+            "en": "insect",
+            "ru": "членистоногое"
+          },
+          {
+            "en": "close up",
+            "ru": "близкий снимок"
+          },
+          {
+            "en": "eyes",
+            "ru": "глаза"
+          },
+          {
+            "en": "legs",
+            "ru": "ноги"
+          },
+          {
+            "en": "mouthparts",
+            "ru": "усики"
+          },
+          {
+            "en": "texture",
+            "ru": "текстура"
+          },
+          {
+            "en": "natural",
+            "ru": "естественный"
+          },
+          {
+            "en": "macro photography",
+            "ru": "макрофотография"
+          },
+          {
+            "en": "insect prey",
+            "ru": "жертва насекомого"
+          },
+          {
+            "en": "blurry background",
+            "ru": "размытый фон"
+          },
+          {
+            "en": "detailed",
+            "ru": "детальный"
+          },
+          {
+            "en": "wildlife",
+            "ru": "дикая природа"
+          }
+        ],
+        "objects": [
+          "dragonfly",
+          "insect",
+          "legs",
+          "eyes",
+          "mouthparts",
+          "texture",
+          "blurry background",
+          "detailed",
+          "natural",
+          "macro photography",
+          "insect prey",
+          "wildlife"
+        ],
+        "scenes": [
+          "macro shot",
+          "natural setting",
+          "close-up view",
+          "insect interaction",
+          "blurry background"
+        ],
+        "actions": [
+          "resting",
+          "preying",
+          "attacking",
+          "capturing"
+        ],
+        "emotions": [
+          "intense",
+          "fierce",
+          "curious",
+          "detailed",
+          "natural"
+        ]
+      }
+    },
+    "video-003": {
+      "seconds": 7.07,
+      "outputTokens": 425,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"black and white cat sleeping\",\n  \"title_ru\": \"черно-белый кот спит\",\n  \"description\": \"A black and white cat is curled up and sleeping on a gray concrete surface. The cat's body is compact, with white paws and a white patch on its chest. The concrete has a rough, textured surface with visible wear. No readable text is present in the image.\",\n  \"summary\": \"A black and white cat sleeps curled on concrete.\",\n  \"tags\": [\n    {\n      \"en\": \"cat\",\n      \"ru\": \"кот\"\n    },\n    {\n      \"en\": \"sleeping\",\n      \"ru\": \"спящий\"\n    },\n    {\n      \"en\": \"concrete\",\n      \"ru\": \"бетон\"\n    },\n    {\n      \"en\": \"black and white\",\n      \"ru\": \"черно-белый\"\n    },\n    {\n      \"en\": \"curled\",\n      \"ru\": \"свернутый\"\n    },\n    {\n      \"en\": \"paws\",\n      \"ru\": \"пaws\"\n    },\n    {\n      \"en\": \"texture\",\n      \"ru\": \"текстура\"\n    },\n    {\n      \"en\": \"ground\",\n      \"ru\": \"пол\"\n    },\n    {\n      \"en\": \"shadow\",\n      \"ru\": \"тень\"\n    },\n    {\n      \"en\": \"resting\",\n      \"ru\": \"отдых\"\n    },\n    {\n      \"en\": \"animal\",\n      \"ru\": \"животное\"\n    },\n    {\n      \"en\": \"peaceful\",\n      \"ru\": \"мирный\"\n    },\n    {\n      \"en\": \"indoor\",\n      \"ru\": \"внутренний\"\n    },\n    {\n      \"en\": \"still\",\n      \"ru\": \"неподвижный\"\n    }\n  ],\n  \"objects\": [],\n  \"scenes\": [],\n  \"actions\": [],\n  \"emotions\": []\n}",
+      "output": {
+        "title": "black and white cat sleeping",
+        "title_ru": "черно-белый кот спит",
+        "description": "A black and white cat is curled up and sleeping on a gray concrete surface. The cat's body is compact, with white paws and a white patch on its chest. The concrete has a rough, textured surface with visible wear. No readable text is present in the image.",
+        "summary": "A black and white cat sleeps curled on concrete.",
+        "tags": [
+          {
+            "en": "cat",
+            "ru": "кот"
+          },
+          {
+            "en": "sleeping",
+            "ru": "спящий"
+          },
+          {
+            "en": "concrete",
+            "ru": "бетон"
+          },
+          {
+            "en": "black and white",
+            "ru": "черно-белый"
+          },
+          {
+            "en": "curled",
+            "ru": "свернутый"
+          },
+          {
+            "en": "paws",
+            "ru": "пaws"
+          },
+          {
+            "en": "texture",
+            "ru": "текстура"
+          },
+          {
+            "en": "ground",
+            "ru": "пол"
+          },
+          {
+            "en": "shadow",
+            "ru": "тень"
+          },
+          {
+            "en": "resting",
+            "ru": "отдых"
+          },
+          {
+            "en": "animal",
+            "ru": "животное"
+          },
+          {
+            "en": "peaceful",
+            "ru": "мирный"
+          },
+          {
+            "en": "indoor",
+            "ru": "внутренний"
+          },
+          {
+            "en": "still",
+            "ru": "неподвижный"
+          }
+        ],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-025": {
+      "seconds": 7.05,
+      "outputTokens": 428,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"duck in green water\",\n  \"title_ru\": \"утка в зеленой воде\",\n  \"description\": \"A duck with a dark head and reddish neck is swimming away from the camera in murky green water. The water reflects the surrounding stone walls and floating leaves. The duck's body is mostly submerged, with only its head and shoulders visible above the surface.\",\n  \"summary\": \"A duck swims away in murky green water near stone walls.\",\n  \"tags\": [\n    {\n      \"en\": \"duck\",\n      \"ru\": \"утка\"\n    },\n    {\n      \"en\": \"water\",\n      \"ru\": \"вода\"\n    },\n    {\n      \"en\": \"stone wall\",\n      \"ru\": \"каменная стена\"\n    },\n    {\n      \"en\": \"swimming\",\n      \"ru\": \"плавание\"\n    },\n    {\n      \"en\": \"green water\",\n      \"ru\": \"зеленая вода\"\n    },\n    {\n      \"en\": \"duck head\",\n      \"ru\": \"голова утки\"\n    },\n    {\n      \"en\": \"reflection\",\n      \"ru\": \"отражение\"\n    },\n    {\n      \"en\": \"leaves\",\n      \"ru\": \"листья\"\n    },\n    {\n      \"en\": \"back view\",\n      \"ru\": \"задний вид\"\n    },\n    {\n      \"en\": \"natural setting\",\n      \"ru\": \"естественное место\"\n    },\n    {\n      \"en\": \"pond\",\n      \"ru\": \"озеро\"\n    },\n    {\n      \"en\": \"duck neck\",\n      \"ru\": \"шейка утки\"\n    },\n    {\n      \"en\": \"duck body\",\n      \"ru\": \"тело утки\"\n    },\n    {\n      \"en\": \"duck swimming\",\n      \"ru\": \"утка плавает\"\n    }\n  ],\n  \"objects\": [],\n  \"scenes\": [],\n  \"actions\": [],\n  \"emotions\": []\n}",
+      "output": {
+        "title": "duck in green water",
+        "title_ru": "утка в зеленой воде",
+        "description": "A duck with a dark head and reddish neck is swimming away from the camera in murky green water. The water reflects the surrounding stone walls and floating leaves. The duck's body is mostly submerged, with only its head and shoulders visible above the surface.",
+        "summary": "A duck swims away in murky green water near stone walls.",
+        "tags": [
+          {
+            "en": "duck",
+            "ru": "утка"
+          },
+          {
+            "en": "water",
+            "ru": "вода"
+          },
+          {
+            "en": "stone wall",
+            "ru": "каменная стена"
+          },
+          {
+            "en": "swimming",
+            "ru": "плавание"
+          },
+          {
+            "en": "green water",
+            "ru": "зеленая вода"
+          },
+          {
+            "en": "duck head",
+            "ru": "голова утки"
+          },
+          {
+            "en": "reflection",
+            "ru": "отражение"
+          },
+          {
+            "en": "leaves",
+            "ru": "листья"
+          },
+          {
+            "en": "back view",
+            "ru": "задний вид"
+          },
+          {
+            "en": "natural setting",
+            "ru": "естественное место"
+          },
+          {
+            "en": "pond",
+            "ru": "озеро"
+          },
+          {
+            "en": "duck neck",
+            "ru": "шейка утки"
+          },
+          {
+            "en": "duck body",
+            "ru": "тело утки"
+          },
+          {
+            "en": "duck swimming",
+            "ru": "утка плавает"
+          }
+        ],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    }
+  },
+  "load": {
+    "gpuBeforeMiB": 1752,
+    "gpuAfterMiB": 6708,
+    "gpuModelMiB": 4956,
+    "modelBytes": 3333641502
+  }
+}

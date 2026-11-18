@@ -68,4 +68,15 @@ public sealed record ItemAnalysis
     /// Gets the recognized text; for a video or animated image, the distinct lines of every keyframe.
     /// </summary>
     public string? OcrText { get; init; }
+
+    /// <summary>
+    /// Gets the describer's Russian form of the title (describe-2, E06-S04-T09), or <c>null</c>.
+    /// </summary>
+    public string? TitleRu { get; init; }
+
+    /// <summary>
+    /// Gets the describer's Russian form of each tag, keyed by the tag as written (describe-2, E06-S04-T09), or
+    /// <c>null</c> when the analysis didn't record forms (describe-1, or an analysis made before they were recorded).
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? TagsRu { get; init; }
 }

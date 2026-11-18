@@ -1,6 +1,6 @@
 """Runs one LM Studio vision-language model over the spike samples with the draft prompt (prompt.py).
 
-  run_vlm.py <model key> [--prompt a|b|c] [--device gpu|cpu] [--limit N] [--every K]
+  run_vlm.py <model key> [--prompt a|b|c] [--no-penalty] [--device gpu|cpu] [--limit N] [--every K]
 
 Loads the model with `lms load` (GPU: full offload; CPU: no offload), sends each sample like the app's
 OpenAiCompatibleImageDescriber (schema as response_format, temperature 0.2, presence penalty 1.5, one retry with the
@@ -23,7 +23,11 @@ CONTEXT_LENGTH = 8192
 
 
 def gpu_used_mib():
-    out = subprocess.check_output(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], text=True)
+    """GPU memory in use, or 0 on a machine without nvidia-smi (a CPU-only machine)."""
+    try:
+        out = subprocess.check_output(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], text=True)
+    except (OSError, subprocess.CalledProcessError):
+        return 0
     return int(out.strip().splitlines()[0])
 
 
@@ -50,12 +54,12 @@ def load_model(model, device):
     return {"gpuBeforeMiB": before, "gpuAfterMiB": after, "gpuModelMiB": after - before, "modelBytes": size}
 
 
-def chat(model, messages, variant="a"):
+def chat(model, messages, variant="a", penalty=True):
     body = {
         "model": model,
         "messages": messages,
         "temperature": prompt.TEMPERATURE,
-        "presence_penalty": prompt.PRESENCE_PENALTY,
+        "presence_penalty": prompt.PRESENCE_PENALTY if penalty else 0,
         "max_tokens": prompt.MAX_OUTPUT_TOKENS,
         "response_format": {"type": "json_schema", "json_schema": {"name": "image_description", "schema": prompt.schema(variant)}},
     }
@@ -68,7 +72,7 @@ def chat(model, messages, variant="a"):
     return message.get("content") or "", seconds, answer.get("usage", {}), answer["choices"][0].get("finish_reason")
 
 
-def describe(model, sample, variant="a"):
+def describe(model, sample, variant="a", penalty=True):
     image = base64.b64encode(input_path(sample["id"]).read_bytes()).decode("ascii")
     messages = [
         {"role": "system", "content": prompt.SYSTEM},
@@ -77,14 +81,14 @@ def describe(model, sample, variant="a"):
             {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image}"}},
         ]},
     ]
-    raw, seconds, usage, finish = chat(model, messages, variant)
+    raw, seconds, usage, finish = chat(model, messages, variant, penalty)
     parsed, error = prompt.validate(raw)
     record = {"seconds": round(seconds, 2), "outputTokens": usage.get("completion_tokens"), "finish": finish,
               "firstTryValid": parsed is not None, "firstTryError": error, "raw": raw}
     if parsed is None:
         messages += [{"role": "assistant", "content": raw},
                      {"role": "user", "content": f"That answer can't be used: {error}. Answer again with only the JSON object, with every field filled in."}]
-        raw, retry_seconds, usage, finish = chat(model, messages, variant)
+        raw, retry_seconds, usage, finish = chat(model, messages, variant, penalty)
         parsed, error = prompt.validate(raw)
         record.update({"retrySeconds": round(retry_seconds, 2), "retryError": error, "retryRaw": raw})
     record["output"] = parsed
@@ -97,22 +101,23 @@ def main():
     parser.add_argument("--device", choices=["gpu", "cpu"], default="gpu")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--prompt", choices=["a", "b", "c"], default="a")
+    parser.add_argument("--no-penalty", action="store_true", help="presence penalty 0 instead of 1.5 (D350)")
     parser.add_argument("--every", type=int, default=1, help="take every K-th sample (CPU timing subset)")
     args = parser.parse_args()
 
     samples = load_samples()[::args.every][:args.limit]
-    system = args.model + ("" if args.prompt == "a" else f"-{args.prompt}") + ("-cpu" if args.device == "cpu" else "")
+    system = args.model + ("" if args.prompt == "a" else f"-{args.prompt}") + ("-nopenalty" if args.no_penalty else "") + ("-cpu" if args.device == "cpu" else "")
     result = load_result(system) or {"system": system, "route": "lmstudio", "model": args.model, "device": args.device,
                                       "promptVersion": prompt.VARIANTS[args.prompt], "items": {}}
     result["load"] = load_model(args.model, args.device)
     print(f"{system}: loaded, {result['load']}")
 
-    describe(args.model, samples[0], args.prompt)  # warm-up, not timed
+    describe(args.model, samples[0], args.prompt, not args.no_penalty)  # warm-up, not timed
     for i, sample in enumerate(samples):
         if sample["id"] in result["items"]:
             continue
         try:
-            record = describe(args.model, sample, args.prompt)
+            record = describe(args.model, sample, args.prompt, not args.no_penalty)
         except Exception as error:  # noqa: BLE001 - spike: record and go on
             record = {"error": str(error), "output": None}
         result["items"][sample["id"]] = record

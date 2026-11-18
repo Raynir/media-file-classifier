@@ -67,7 +67,9 @@ def total(folder):
     scores = {}
     for number in range(1, BATCHES + 1):
         for key, value in json.loads((folder / f"scores-{number}.json").read_text(encoding="utf-8")).items():
-            sid, label = key.split("|")
+            sid, _, label = key.partition("|")
+            if label not in mapping.get(sid, {}):
+                raise SystemExit(f"scores-{number}.json: unknown key {key!r}, expected '<sample>|<label A-H>'")
             scores[f"{sid}|{mapping[sid][label]}"] = value
     (SPIKE / "blind-scores.json").write_text(json.dumps(scores, ensure_ascii=False, indent=1), encoding="utf-8")
     systems = sorted({key.split("|", 1)[1] for key in scores})

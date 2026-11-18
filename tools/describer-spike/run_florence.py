@@ -6,7 +6,8 @@ Per sample it computes the image features once and runs three task prompts, each
 config's no-repeat-3-gram rule (the reference uses beam search with 3 beams, about 3 times the decoder work):
 <MORE_DETAILED_CAPTION> -> description, <CAPTION> -> summary, <OD> -> objects (labels, boxes dropped) and tags.
 Florence-2 writes no title, Russian forms, scenes, actions or emotions; those stay empty.
-Writes eval/describer-spike/results/florence2-<size>-<precision>-<ep>.json after every item.
+Writes eval/describer-spike/results/florence2-<size>-<precision>-<ep>.json after every item, and skips the items it
+already has, so a stopped run resumes.
 """
 
 import argparse
@@ -37,7 +38,11 @@ LOCATION = re.compile(r"([^<>]+?)((?:<loc_\d+>){4})")
 
 
 def gpu_used_mib():
-    out = subprocess.check_output(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], text=True)
+    """GPU memory in use, or 0 on a machine without nvidia-smi (a CPU-only machine)."""
+    try:
+        out = subprocess.check_output(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], text=True)
+    except (OSError, subprocess.CalledProcessError):
+        return 0
     return int(out.strip().splitlines()[0])
 
 
@@ -150,13 +155,15 @@ def main():
     started = time.perf_counter()
     model = Florence(ROOT / "models" / f"florence2-{args.size}", args.precision, args.ep, args.threads)
     load_seconds = time.perf_counter() - started
-    result = {"system": system, "route": "in-process", "model": f"Florence-2-{args.size}-ft", "precision": args.precision,
+    result = load_result(system) or {"system": system, "route": "in-process", "model": f"Florence-2-{args.size}-ft", "precision": args.precision,
               "device": args.ep, "threads": args.threads or "all", "promptVersion": "florence-tasks-1", "items": {}}
 
     warm = model.image_features(input_path(samples[0]["id"]))  # warm-up, not timed
     model.run_task(warm, TASKS["summary"][1], 8)
 
     for i, sample in enumerate(samples):
+        if sample["id"] in result["items"]:
+            continue  # a stopped run resumes; delete the result file to measure again
         timings = {}
         t = time.perf_counter()
         features = model.image_features(input_path(sample["id"]))

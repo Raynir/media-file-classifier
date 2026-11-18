@@ -54,7 +54,7 @@ Run the scripts from the repository root with `models/.venv/Scripts/python` (onn
 | **Florence-2 base fp32** | 89/150 | 1.78 | 0 | 11 | 16 | –/–/50 | 1.91 | 1.60 | 1.60 | 1.62 | 1.80 |
 | MiniCPM-V 4 | 59/150 | 1.18 | 0 | 41 | 4 | 1/9/40 | 1.18 | 1.00 | 1.00 | 1.00 | 1.50 |
 
-Prompt A scores two points above C because the reviewers seldom marked A down for its empty lists; C is chosen for filling them (below). Florence-2 is weakest on screenshots and documents, where it describes the layout but not what the text says.
+Prompt A scores two points above C, but the reviewers didn't mark A down for its empty lists: all 28 of its answers with an empty list scored 3. C is chosen for filling them (below). Florence-2 is weakest on screenshots and documents, where it describes the layout but not what the text says.
 
 ### Speed, memory and field coverage
 

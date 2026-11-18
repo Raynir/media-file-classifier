@@ -25,12 +25,12 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
     public Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(int offset, int limit, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<MediaItemSummary>>(
             [.. Enumerable.Reverse(Items).Skip(offset).Take(limit).Select(item => new MediaItemSummary(
-                item.Id, item.FileName, item.FileFormat, item.MediaType, item.SizeBytes, item.FileModifiedAt, item.Status, item.StatusReason, null, false))]);
+                item.Id, item.FileName, item.FileFormat, item.MediaType, item.SizeBytes, item.FileModifiedAt, item.Status, item.StatusReason, null, false, item.IsFavorite))]);
 
     public Task<IReadOnlyList<MediaItemSummary>> GetSummariesByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<MediaItemSummary>>(
             [.. Items.Where(item => ids.Contains(item.Id)).Select(item => new MediaItemSummary(
-                item.Id, item.FileName, item.FileFormat, item.MediaType, item.SizeBytes, item.FileModifiedAt, item.Status, item.StatusReason, null, false))]);
+                item.Id, item.FileName, item.FileFormat, item.MediaType, item.SizeBytes, item.FileModifiedAt, item.Status, item.StatusReason, null, false, item.IsFavorite))]);
 
     public Task<IReadOnlyList<Id<MediaItem>>> GetFilteredIdsAsync(MediaItemFilter filter, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. Enumerable.Reverse(Items).Select(item => item.Id)]);
@@ -98,7 +98,25 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
 
     public Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public List<MediaItem[]> UpdatedRanges { get; } = [];
+
+    public int FavoriteWrites { get; private set; }
+
+    public Task<IReadOnlyList<Id<MediaItem>>> SetFavoriteAsync(IReadOnlyCollection<Id<MediaItem>> ids, bool isFavorite, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        FavoriteWrites++;
+        var changed = Items.Where(item => ids.Contains(item.Id) && item.IsFavorite != isFavorite).ToList();
+        changed.ForEach(item => item.SetFavorite(isFavorite, now));
+        RaiseChanged();
+        return Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. changed.Select(item => item.Id)]);
+    }
+
+    public Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default)
+    {
+        UpdatedRanges.Add([.. items]);
+        RaiseChanged();
+        return Task.CompletedTask;
+    }
 
     public Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

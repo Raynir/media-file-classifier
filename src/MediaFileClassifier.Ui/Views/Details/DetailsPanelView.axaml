@@ -135,6 +135,15 @@
           <PathIcon Data="{StaticResource Icon.FolderOpen}" />
         </Button>
         <Button Classes="Icon"
+                Classes.Favorited="{Binding Commands[item.favorite].IsChecked}"
+                Command="{Binding Commands[item.favorite]}"
+                IsVisible="{Binding Commands[item.favorite].IsApplicable}"
+                ToolTip.Tip="{Binding Commands[item.favorite].ToolTip}"
+                ToolTip.ShowOnDisabled="True"
+                AutomationProperties.Name="{Binding Commands[item.favorite].PlainLabel}">
+          <PathIcon Data="{StaticResource Icon.Favorite}" />
+        </Button>
+        <Button Classes="Icon"
                 Command="{Binding Commands[item.find-similar]}"
                 IsVisible="{Binding Commands[item.find-similar].IsApplicable}"
                 ToolTip.Tip="{Binding Commands[item.find-similar].ToolTip}"

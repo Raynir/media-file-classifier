@@ -527,7 +527,7 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     private SearchFilter ScopeFilter()
     {
         var filter = browse.CurrentFilter;
-        return new SearchFilter { FolderId = filter.FolderId, Subfolder = filter.Subfolder, ImportedSince = filter.ImportedSince };
+        return new SearchFilter { FolderId = filter.FolderId, Subfolder = filter.Subfolder, ImportedSince = filter.ImportedSince, IsFavorite = filter.IsFavorite };
     }
 
     private ActiveSearch Create(

@@ -102,6 +102,28 @@ public sealed class MediaItemFilterTests : IAsyncLifetime
     }
 
     [Theory]
+    [InlineData(true, 2)]
+    [InlineData(false, 6)]
+    [InlineData(null, 8)]
+    public async Task IsFavorite_ShowsFavoritesOrTheRest_ButNeverExcludedItems(bool? favorite, int expected)
+    {
+        foreach (var path in new[] { "top.jpg", "2024/a.jpg", "2024/excluded.jpg" })
+        {
+            var item = await bed.Library.Items.FindByPathAsync(bed.Folder.Id, RelativePath.From(path), Token);
+            item!.SetFavorite(true, LibraryTestBed.Start);
+            await bed.Library.Items.UpdateAsync(item, Token);
+        }
+
+        var filter = new MediaItemFilter { IsFavorite = favorite };
+
+        Assert.Equal(expected, await bed.Library.Items.CountAsync(filter, Token));
+        Assert.Equal(expected, (await bed.Library.Items.GetSummariesAsync(filter, 0, 100, Token)).Count);
+        Assert.All(
+            await bed.Library.Items.GetSummariesAsync(new MediaItemFilter { IsFavorite = true }, 0, 100, Token),
+            summary => Assert.True(summary.IsFavorite));
+    }
+
+    [Theory]
     [InlineData("", "100%:1,2024:3,2024_x:1,old:1")]
     [InlineData("2024", "trip:2")]
     [InlineData("2024/trip", "")]

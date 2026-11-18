@@ -19,8 +19,6 @@ public sealed record GetFavoriteStateQuery(IReadOnlyCollection<Id<MediaItem>> It
 /// <param name="session">Holds the open library.</param>
 public sealed class GetFavoriteStateQueryHandler(ILibrarySession session) : IRequestHandler<GetFavoriteStateQuery, bool>
 {
-    private const int BatchSize = 500;
-
     /// <inheritdoc />
     public async Task<bool> Handle(GetFavoriteStateQuery request, CancellationToken cancellationToken)
     {
@@ -29,18 +27,7 @@ public sealed class GetFavoriteStateQueryHandler(ILibrarySession session) : IReq
             return false;
         }
 
-        var found = 0;
-        foreach (var batch in request.ItemIds.Chunk(BatchSize))
-        {
-            var summaries = await library.Items.GetSummariesByIdsAsync(batch, cancellationToken).ConfigureAwait(false);
-            if (summaries.Any(summary => !summary.IsFavorite))
-            {
-                return false;
-            }
-
-            found += summaries.Count;
-        }
-
-        return found > 0;
+        var (_, allFavorite) = await FavoriteStates.ReadAsync(library.Items, request.ItemIds, cancellationToken).ConfigureAwait(false);
+        return allFavorite;
     }
 }

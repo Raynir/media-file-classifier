@@ -78,7 +78,7 @@ public sealed class ToggleFavoriteTests : IDisposable
         Assert.True(result);
         Assert.All(items, item => Assert.True(item.IsFavorite));
         Assert.Equal([items[1].Id, items[2].Id], Assert.Single(published).ItemIds);
-        Assert.Single(library.ItemList.UpdatedRanges);
+        Assert.Equal(1, library.ItemList.FavoriteWrites);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class ToggleFavoriteTests : IDisposable
         Assert.Null(await Sender.Send(new ToggleFavoriteCommand([Id<MediaItem>.New()]), Token));
         Assert.Null(await Sender.Send(new ToggleFavoriteCommand([]), Token));
         Assert.Empty(published);
-        Assert.Empty(library.ItemList.UpdatedRanges);
+        Assert.Equal(0, library.ItemList.FavoriteWrites);
     }
 
     [Fact]

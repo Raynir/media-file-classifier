@@ -145,6 +145,18 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<Id<MediaItem>>> GetIdsAsync(int offset, int limit, Id<MediaItem>? newest = null, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Marks or unmarks items as favorites (E11-S01), in batches of one transaction each and without loading the items,
+    /// so other columns that changed meanwhile, such as the status, are not overwritten. Items that already have the
+    /// value, or no longer exist, are left alone.
+    /// </summary>
+    /// <param name="ids">The item IDs.</param>
+    /// <param name="isFavorite">The new value.</param>
+    /// <param name="now">The change time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The IDs of the items that changed.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> SetFavoriteAsync(IReadOnlyCollection<Id<MediaItem>> ids, bool isFavorite, DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Finds which of the given items still exist (E14-S03), e.g. to keep a selection across a refresh.
     /// </summary>
     /// <param name="ids">The item IDs.</param>

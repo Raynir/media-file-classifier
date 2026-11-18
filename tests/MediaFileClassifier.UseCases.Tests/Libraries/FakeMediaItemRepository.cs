@@ -100,6 +100,17 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
 
     public List<MediaItem[]> UpdatedRanges { get; } = [];
 
+    public int FavoriteWrites { get; private set; }
+
+    public Task<IReadOnlyList<Id<MediaItem>>> SetFavoriteAsync(IReadOnlyCollection<Id<MediaItem>> ids, bool isFavorite, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        FavoriteWrites++;
+        var changed = Items.Where(item => ids.Contains(item.Id) && item.IsFavorite != isFavorite).ToList();
+        changed.ForEach(item => item.SetFavorite(isFavorite, now));
+        RaiseChanged();
+        return Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. changed.Select(item => item.Id)]);
+    }
+
     public Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default)
     {
         UpdatedRanges.Add([.. items]);

@@ -30,34 +30,17 @@ public sealed class ToggleFavoriteCommandHandler(ILibrarySession session, IPubli
             return null;
         }
 
-        var items = new List<MediaItem>();
-        foreach (var id in request.ItemIds.Distinct())
-        {
-            if (await library.Items.GetAsync(id, cancellationToken).ConfigureAwait(false) is { } item)
-            {
-                items.Add(item);
-            }
-        }
-
-        if (items.Count == 0)
+        var (any, allFavorite) = await FavoriteStates.ReadAsync(library.Items, request.ItemIds, cancellationToken).ConfigureAwait(false);
+        if (!any)
         {
             return null;
         }
 
-        var value = !items.All(item => item.IsFavorite);
-        var now = clock.GetUtcNow();
-        var changed = items.Where(item => item.IsFavorite != value).ToList();
-        foreach (var item in changed)
-        {
-            item.SetFavorite(value, now);
-        }
-
+        var value = !allFavorite;
+        var changed = await library.Items.SetFavoriteAsync(request.ItemIds, value, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
         if (changed.Count > 0)
         {
-            await library.Items.UpdateRangeAsync(changed, cancellationToken).ConfigureAwait(false);
-            await publisher.Publish(
-                new ItemsMetadataChanged([.. changed.Select(item => item.Id)], ItemMetadataChange.Favorite, value),
-                cancellationToken).ConfigureAwait(false);
+            await publisher.Publish(new ItemsMetadataChanged(changed, ItemMetadataChange.Favorite, value), cancellationToken).ConfigureAwait(false);
         }
 
         return value;

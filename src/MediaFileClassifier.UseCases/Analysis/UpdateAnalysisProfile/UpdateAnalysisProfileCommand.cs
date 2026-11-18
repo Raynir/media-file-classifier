@@ -15,8 +15,7 @@ public sealed record UpdateAnalysisProfileCommand(AnalysisProfile Profile) : IRe
 /// Handles <see cref="UpdateAnalysisProfileCommand"/>.
 /// </summary>
 /// <param name="session">The library session.</param>
-/// <param name="clock">Clock.</param>
-public sealed class UpdateAnalysisProfileCommandHandler(ILibrarySession session, TimeProvider clock)
+public sealed class UpdateAnalysisProfileCommandHandler(ILibrarySession session)
     : IRequestHandler<UpdateAnalysisProfileCommand>
 {
     /// <inheritdoc />
@@ -26,18 +25,6 @@ public sealed class UpdateAnalysisProfileCommandHandler(ILibrarySession session,
         ArgumentNullException.ThrowIfNull(request.Profile);
 
         var open = session.Current ?? throw new InvalidOperationException("No library is open.");
-        var library = open.Library;
-        var previous = library.Settings;
-        library.ChangeSettings(previous with { AnalysisProfile = request.Profile }, clock.GetUtcNow());
-        try
-        {
-            await open.UpdateLibraryAsync(library, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Keep what the library file still holds.
-            library.ChangeSettings(previous, clock.GetUtcNow());
-            throw;
-        }
+        await open.UpdateSettingsAsync(settings => settings with { AnalysisProfile = request.Profile }, cancellationToken).ConfigureAwait(false);
     }
 }

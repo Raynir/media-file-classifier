@@ -62,7 +62,7 @@ public sealed class LibraryOpenFlowTests
     {
         await using var bed = await LibraryTestBed.CreateAsync();
         var session = new LibrarySession();
-        var values = new OpenLibrarySettingValues(session, bed.Clock);
+        var values = new OpenLibrarySettingValues(session);
         var availability = 0;
         values.AvailabilityChanged += (_, _) => availability++;
         Assert.False(values.IsAvailable);
@@ -96,7 +96,7 @@ public sealed class LibraryOpenFlowTests
     {
         await using var bed = await LibraryTestBed.CreateAsync();
         var session = new LibrarySession();
-        var values = new OpenLibrarySettingValues(session, bed.Clock);
+        var values = new OpenLibrarySettingValues(session);
         await session.SetCurrentAsync(bed.Library);
 
         // A closed library can't be written to.

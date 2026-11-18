@@ -222,19 +222,8 @@ public sealed partial class EmbeddingModelMigration : IDisposable
 
     private async Task SetActiveAsync(IOpenLibrary library, Id<ModelRegistration> modelId, CancellationToken cancellationToken)
     {
-        var entity = library.Library;
-        var previous = entity.Settings;
-        entity.ChangeSettings(previous with { ActiveSearchModelId = modelId }, clock.GetUtcNow());
-        try
-        {
-            await library.UpdateLibraryAsync(entity, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Undo only this change: a profile save may have changed other settings meanwhile.
-            entity.ChangeSettings(entity.Settings with { ActiveSearchModelId = previous.ActiveSearchModelId }, clock.GetUtcNow());
-            throw;
-        }
+        // Only the active model changes, on top of whatever a concurrent profile save wrote (MFC-998).
+        await library.UpdateSettingsAsync(settings => settings with { ActiveSearchModelId = modelId }, cancellationToken).ConfigureAwait(false);
     }
 
     private void OnCurrentChanged(object? sender, EventArgs e) => Attach(session.Current);

@@ -26,6 +26,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Changed
 
+- A video or animation described frame by frame (a describer that takes one picture) leaves out a frame the model can't describe instead of failing the whole clip; it fails only when no frame is described, and a server outage still stops it at once (E06-S04-T07).
+- The production search benchmark gives about 30% of its items Russian text and measures Russian keyword and hybrid queries in other word forms (E06-S04-T10); the evaluation tool records the describer's Russian title and tag forms and can reuse stored OCR text (`analyze --ocr-from`).
 - The describer asks for at most 15 tags (the schema's `maxItems`, as its description already said) and sends a presence penalty of 1.5, which stops near-duplicate tags such as "cat calm", "cat still" (D350; OCR requests are unchanged).
 - `evaluate` computes its exit code from the report it just built instead of reading the JSON file back; the query encoder's latency test runs in the non-parallel timing collection.
 

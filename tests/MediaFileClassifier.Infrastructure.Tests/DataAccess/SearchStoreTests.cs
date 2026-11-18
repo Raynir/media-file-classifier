@@ -460,6 +460,42 @@ public sealed class SearchStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task ModelWrittenTagForm_IsFound_AndOfferedByAutocomplete()
+    {
+        var item = await AddItemAsync(7);
+        var run = AnalysisRun.Start(item.Id, "caption", bed.Model, "p1", bed.Clock.Tick());
+        run.Complete(bed.Clock.Tick());
+        await bed.Library.Metadata.UpdateAsync(
+            item.Id,
+            metadata => metadata.ApplyRun(run, [], [TagAssignment.Ai(run, TagName.From("dog"), null, bed.Clock.Tick(), "пёсик")], 1),
+            Token);
+
+        Assert.Equal([item.Id], await FindAsync("пёсик"));
+        var offered = await bed.Library.Metadata.GetEffectiveTagsAsync("пёс", 10, Token);
+        Assert.Equal("пёсик", Assert.Single(offered).Tag.Value);
+    }
+
+    [Theory]
+    [InlineData("пляже")]
+    [InlineData("пляж")]
+    [InlineData("beach")]
+    public async Task AiTitle_WithItsRussianForm_IsStored_AndFoundInBothLanguages(string query)
+    {
+        var item = await AddItemAsync(7);
+        var run = AnalysisRun.Start(item.Id, "caption", bed.Model, "p1", bed.Clock.Tick());
+        run.Complete(bed.Clock.Tick());
+        var title = FieldValue.FromText("Dog on a beach").WithOtherForm("Собака на пляже");
+        await bed.Library.Metadata.UpdateAsync(
+            item.Id,
+            metadata => metadata.ApplyRun(run, [AiFieldValue.For(run, DescriptiveField.Title, title, null, bed.Clock.Tick())], [], 1),
+            Token);
+
+        var stored = await bed.Library.Metadata.GetAsync(item.Id, Token);
+        Assert.Equal("Собака на пляже", stored.GetEffectiveValue(DescriptiveField.Title)?.Value.OtherForm);
+        Assert.Equal([item.Id], await FindAsync(query));
+    }
+
+    [Fact]
     public async Task RejectedTag_IsNotFoundByItsOtherForm()
     {
         var item = await AddItemAsync(7);

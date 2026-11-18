@@ -123,7 +123,8 @@ public sealed class TagAssignment
     }
 
     /// <summary>
-    /// Makes a tag of an AI run. Without a form the model wrote, its other form is derived from the tag dictionary.
+    /// Makes a tag of an AI run. Without a form the model wrote, its other form is derived from the tag dictionary. A
+    /// written form equal to the tag (ignoring case) isn't a form, so the dictionary's is used.
     /// </summary>
     /// <param name="run">The run.</param>
     /// <param name="tag">The tag.</param>
@@ -135,7 +136,9 @@ public sealed class TagAssignment
     {
         ArgumentNullException.ThrowIfNull(run);
 
-        var written = string.IsNullOrWhiteSpace(otherForm) ? null : otherForm;
+        var written = string.IsNullOrWhiteSpace(otherForm) || string.Equals(otherForm.Trim(), tag.Value, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : otherForm.Trim();
         var form = written ?? Derive(tag);
         return new(run.ItemId, tag, MetadataSource.AI, run.Id, run.ModelId, confidence, null, null, now, form, written is null && form is not null);
     }

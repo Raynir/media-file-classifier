@@ -145,5 +145,34 @@ public sealed class TagNormalizerTests
         Assert.Equal(["photo"], Values(normalizer.Normalize(["photo"])));
     }
 
+    [Fact]
+    public void NormalizeWithForms_MergedAndRenamedTags_KeepTheFirstForm()
+    {
+        var forms = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Dogs"] = " Собаки. ",
+            ["dog"] = "пёс",
+            ["automobile"] = "автомобиль",
+            ["Car"] = "машина",
+            ["beach"] = " ",
+        };
+
+        var tags = new TagNormalizer().Normalize(["Dogs", "dog", "automobile", "Car", "beach", "sand", "photo"], forms);
+
+        Assert.Equal(
+            [new NormalizedTag(Domain.Metadata.TagName.From("dog"), "собаки"), new(Domain.Metadata.TagName.From("car"), "автомобиль"), new(Domain.Metadata.TagName.From("beach"), null), new(Domain.Metadata.TagName.From("sand"), null)],
+            tags);
+    }
+
+    [Fact]
+    public void NormalizeWithForms_ATagWithoutAForm_TakesALaterDuplicatesForm()
+    {
+        var forms = new Dictionary<string, string> { ["dog"] = "собака" };
+
+        var tags = new TagNormalizer().Normalize(["Dogs", "dog"], forms);
+
+        Assert.Equal("собака", Assert.Single(tags).OtherForm);
+    }
+
     private static string[] Values(IEnumerable<Domain.Metadata.TagName> tags) => [.. tags.Select(tag => tag.Value)];
 }

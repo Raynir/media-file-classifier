@@ -17,13 +17,29 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Database.Conversions;
 internal sealed class FieldValueConverter()
     : ValueConverter<FieldValue, string>(value => ToJson(value), json => FromJson(json))
 {
-    private static string ToJson(FieldValue value) => value.IsList
-        ? JsonSerializer.Serialize(value.Items.ToArray(), DataAccessJsonContext.Default.StringArray)
-        : JsonSerializer.Serialize(value.Items[0], DataAccessJsonContext.Default.String);
+    // A list is an array, a text a string, and a text with its other-language form an object (E06-S04-T09).
+    private static string ToJson(FieldValue value) => value switch
+    {
+        { IsList: true } => JsonSerializer.Serialize(value.Items.ToArray(), DataAccessJsonContext.Default.StringArray),
+        { OtherForm: { } form } => JsonSerializer.Serialize(new FieldTextJson(value.Items[0], form), DataAccessJsonContext.Default.FieldTextJson),
+        _ => JsonSerializer.Serialize(value.Items[0], DataAccessJsonContext.Default.String),
+    };
 
-    private static FieldValue FromJson(string json) => json.StartsWith('[')
-        ? FieldValue.FromList(JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.StringArray) ?? [])
-        : FieldValue.FromText(JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.String) ?? string.Empty);
+    private static FieldValue FromJson(string json)
+    {
+        if (json.StartsWith('['))
+        {
+            return FieldValue.FromList(JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.StringArray) ?? []);
+        }
+
+        if (json.StartsWith('{'))
+        {
+            var text = JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.FieldTextJson);
+            return FieldValue.FromText(text?.Text ?? string.Empty).WithOtherForm(text?.Other);
+        }
+
+        return FieldValue.FromText(JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.String) ?? string.Empty);
+    }
 }
 
 /// <summary>
@@ -198,6 +214,11 @@ internal sealed record AnalyzerSettingsJson(
     bool PreFilterWithDetector = false);
 
 /// <summary>
+/// Stored shape of a text <see cref="FieldValue"/> with its other-language form.
+/// </summary>
+internal sealed record FieldTextJson(string Text, string? Other);
+
+/// <summary>
 /// Source-generated JSON serialization, which needs no reflection and so trims safely on Android (D004).
 /// </summary>
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
@@ -207,4 +228,5 @@ internal sealed record AnalyzerSettingsJson(
 [JsonSerializable(typeof(ExtractionWarningJson[]))]
 [JsonSerializable(typeof(FolderRulesJson))]
 [JsonSerializable(typeof(LibrarySettingsJson))]
+[JsonSerializable(typeof(FieldTextJson))]
 internal sealed partial class DataAccessJsonContext : JsonSerializerContext;

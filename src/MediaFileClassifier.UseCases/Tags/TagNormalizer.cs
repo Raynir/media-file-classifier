@@ -42,18 +42,53 @@ public sealed class TagNormalizer
     {
         ArgumentNullException.ThrowIfNull(tags);
 
+        return [.. Normalize(tags, null).Select(tag => tag.Tag)];
+    }
+
+    /// <summary>
+    /// Normalises a model's tags with the other-language forms it wrote (E06-S04-T09), keeping their order. A tag that
+    /// is renamed by a synonym or merged with another keeps the first form written for any of them. Forms are cleaned
+    /// like tags (punctuation, white space, a leading capital) but keep their word form.
+    /// </summary>
+    /// <param name="tags">The tags as the model wrote them.</param>
+    /// <param name="forms">The forms the model wrote, keyed by the tag as written (case-insensitive), or <c>null</c>.</param>
+    /// <returns>The distinct normalised tags, without generic ones, each with its form or <c>null</c>.</returns>
+    public IReadOnlyList<NormalizedTag> Normalize(IEnumerable<string?> tags, IReadOnlyDictionary<string, string>? forms)
+    {
+        ArgumentNullException.ThrowIfNull(tags);
+
         var current = GetRules();
-        var result = new List<TagName>();
-        var seen = new HashSet<TagName>();
+        var result = new List<NormalizedTag>();
+        var positions = new Dictionary<TagName, int>();
         foreach (var raw in tags)
         {
-            if (Normalize(raw, current) is { } tag && seen.Add(tag))
+            if (Normalize(raw, current) is not { } tag)
             {
-                result.Add(tag);
+                continue;
+            }
+
+            var form = raw is not null && forms is not null && forms.TryGetValue(raw, out var written) ? CleanForm(written) : null;
+            if (positions.TryGetValue(tag, out var position))
+            {
+                if (result[position].OtherForm is null && form is not null)
+                {
+                    result[position] = result[position] with { OtherForm = form };
+                }
+            }
+            else
+            {
+                positions.Add(tag, result.Count);
+                result.Add(new NormalizedTag(tag, form));
             }
         }
 
         return result;
+    }
+
+    private static string? CleanForm(string? form)
+    {
+        var cleaned = Clean(form);
+        return cleaned.Length == 0 ? null : LowerLeadingCapital(cleaned);
     }
 
     private static TagName? Normalize(string? raw, Rules rules)

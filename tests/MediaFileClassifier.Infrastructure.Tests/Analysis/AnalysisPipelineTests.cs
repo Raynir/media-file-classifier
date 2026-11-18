@@ -112,6 +112,63 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Describer_StoresTheRussianFormsItWrote_ThroughNormalisation()
+    {
+        var describer = new FakeImageDescriber(describe: (_, _) => new ImageDescription(
+            "Dog on a beach",
+            "A description.",
+            "A summary.",
+            ["Dogs", "beach", "sand"],
+            [],
+            [],
+            [],
+            [])
+        {
+            TitleRu = "Собака на пляже",
+            TagsRu = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["dogs"] = "Собака", ["beach"] = "Beach" },
+        });
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items);
+
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal("Собака на пляже", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.OtherForm);
+        var tags = metadata.GetEffectiveTags().ToDictionary(tag => tag.Tag.Value);
+        Assert.Equal(("собака", false), (tags["dog"].OtherForm, tags["dog"].IsOtherFormDerived));
+
+        // A form equal to the tag isn't one: the dictionary's is used, marked as derived.
+        Assert.Equal(("пляж", true), (tags["beach"].OtherForm, tags["beach"].IsOtherFormDerived));
+        Assert.Equal(("песок", true), (tags["sand"].OtherForm, tags["sand"].IsOtherFormDerived));
+    }
+
+    [Fact]
+    public async Task Animation_WithASingleImageDescriber_KeepsTheRussianForms_WhenMerging()
+    {
+        var describer = new FakeImageDescriber(describe: (image, _) => new ImageDescription(
+            $"Title of {image.Name}",
+            "A description.",
+            "A summary.",
+            ["Dogs", "ball"],
+            [],
+            [],
+            [],
+            [])
+        {
+            TitleRu = $"Кадр {image.Name}",
+            TagsRu = new Dictionary<string, string> { ["Dogs"] = "пёсик" },
+        });
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.StartsWith("Кадр frame ", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.OtherForm, StringComparison.Ordinal);
+        var tags = metadata.GetEffectiveTags().ToDictionary(tag => tag.Tag.Value);
+        Assert.Equal(("пёсик", false), (tags["dog"].OtherForm, tags["dog"].IsOtherFormDerived));
+        Assert.True(tags["ball"].IsOtherFormDerived);
+    }
+
+    [Fact]
     public async Task Describer_StoresOnlyTheFieldsItDeclares()
     {
         var describer = new FakeImageDescriber(

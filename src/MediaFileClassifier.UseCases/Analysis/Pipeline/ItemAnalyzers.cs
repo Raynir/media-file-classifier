@@ -319,7 +319,7 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         var description = output.Value;
         var fields = provider.SupportedFields;
         var values = new List<AiFieldValue>();
-        AddText(values, run, fields, DescriberFields.Title, DescriptiveField.Title, description.Title, now);
+        AddText(values, run, fields, DescriberFields.Title, DescriptiveField.Title, description.Title, now, description.TitleRu);
         AddText(values, run, fields, DescriberFields.Description, DescriptiveField.Description, description.Description, now);
         AddText(values, run, fields, DescriberFields.Summary, DescriptiveField.Summary, description.Summary, now);
         AddList(values, run, fields, DescriberFields.Objects, DescriptiveField.Objects, description.Objects, now);
@@ -327,9 +327,9 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         AddList(values, run, fields, DescriberFields.Actions, DescriptiveField.Actions, description.Actions, now);
         AddList(values, run, fields, DescriberFields.Emotions, DescriptiveField.Emotions, description.Emotions, now);
         List<TagAssignment> tags = fields.HasFlag(DescriberFields.Tags)
-            ? [.. tagNormalizer.Normalize(description.Tags)
+            ? [.. tagNormalizer.Normalize(description.Tags, description.TagsRu)
                 .Take(context.Settings.MaxTags ?? AnalysisProfile.DefaultMaxTags)
-                .Select(tag => TagAssignment.Ai(run, tag, null, now))]
+                .Select(tag => TagAssignment.Ai(run, tag.Tag, null, now, tag.OtherForm))]
             : [];
 
         var state = AnalyzerState.Done(context.Item.Id, Key, run.Id, now);
@@ -366,11 +366,13 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         DescriberFields declaration,
         DescriptiveField field,
         string? text,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        string? otherForm = null)
     {
+        // The other-language form (the Russian title, E06-S04-T09) travels with the value.
         if (supported.HasFlag(declaration) && !string.IsNullOrWhiteSpace(text))
         {
-            values.Add(AiFieldValue.For(run, field, FieldValue.FromText(text), null, now));
+            values.Add(AiFieldValue.For(run, field, FieldValue.FromText(text).WithOtherForm(otherForm), null, now));
         }
     }
 
@@ -420,18 +422,30 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
             outputs.Add(await provider.DescribeAsync(inputs.ShrinkFrame(frame, FrameLongestEdge), options, cancellationToken).ConfigureAwait(false));
         }
 
-        // The texts come from the middle frame; tags are normalised per frame first, so "Dogs" and "dog" count as one.
+        // The texts come from the middle frame; tags are normalised per frame first, so "Dogs" and "dog" count as one,
+        // and each keeps the first Russian form any frame wrote for it (E06-S04-T09).
         var middle = outputs[outputs.Count / 2];
         var descriptions = outputs.Select(output => output.Value).ToList();
+        var frameTags = descriptions.Select(value => tagNormalizer.Normalize(value.Tags, value.TagsRu)).ToList();
+        var tagForms = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var tag in frameTags.SelectMany(tags => tags).Where(tag => tag.OtherForm is not null))
+        {
+            tagForms.TryAdd(tag.Tag.Value, tag.OtherForm!);
+        }
+
         var merged = new ImageDescription(
             middle.Value.Title,
             middle.Value.Description,
             middle.Value.Summary,
-            KeyframeAggregation.MergeLists([.. descriptions.Select<ImageDescription, IReadOnlyList<string>>(value => [.. tagNormalizer.Normalize(value.Tags).Select(tag => tag.Value)])]),
+            KeyframeAggregation.MergeLists([.. frameTags.Select<IReadOnlyList<NormalizedTag>, IReadOnlyList<string>>(tags => [.. tags.Select(tag => tag.Tag.Value)])]),
             [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Objects)]).Take(MaxMergedListItems)],
             [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Scenes)]).Take(MaxMergedListItems)],
             [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Actions)]).Take(MaxMergedListItems)],
-            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Emotions)]).Take(MaxMergedListItems)]);
+            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Emotions)]).Take(MaxMergedListItems)])
+        {
+            TitleRu = middle.Value.TitleRu,
+            TagsRu = tagForms.Count == 0 ? null : tagForms,
+        };
         return middle with { Value = merged, Duration = outputs.Aggregate(TimeSpan.Zero, (sum, output) => sum + output.Duration) };
     }
 }

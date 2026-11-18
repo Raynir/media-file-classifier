@@ -86,7 +86,7 @@ internal sealed record SearchText(string? Title, string? Description, string? Ta
             cancellationToken);
 
     private static string? Join(Dictionary<DescriptiveField, FieldValue> values, params DescriptiveField[] fields) =>
-        JoinLines(fields.Where(values.ContainsKey).SelectMany(field => values[field].Items));
+        JoinLines(fields.Where(values.ContainsKey).SelectMany(field => values[field].OtherForm is { } form ? values[field].Items.Append(form) : values[field].Items));
 
     private static IEnumerable<string> TagLines(IReadOnlyList<ResolvedTag> tags)
     {

@@ -185,3 +185,18 @@ How they were picked: the corpus (351 items, 139 English and 142 Russian queries
 `dotnet run -c Release --project benchmarks/MediaFileClassifier.Benchmarks -- production` copies a real library (`C:\gb2\data\libs\Bench.mfc` by default; `--source`), gives every item synthetic metadata and three 768-d vectors through the repositories, and measures the load, the rebuild and every query mode under three filters. `--cpus 4` runs it on four logical CPUs. Results are in the MFC-89 pull request.
 
 At 100k items every mode is within the 200 ms budget (D031) except keyword and hybrid queries whose words each match a large share of the library: they build, count and order the whole hit set, about 190 ms p50 and 330–450 ms p95 on both 28 and 4 CPUs. That is an accepted exception; a top-N fast path for relevance order is the way to lift it if it shows in use.
+
+### Russian queries (E06-S04-T10)
+
+The benchmark gives about 30% of the items two to five Russian phrases in their description (`SyntheticText.RussianText`), and their English tags get dictionary forms as in the app, so it measures the stem lookup too (DNEW-4). Its 25 Russian queries use other word forms than the indexed text ("собаки" for "Собака", "пляже" for "по пляжу", "горы" for "в горах") and two mixed ones ("dog пляж"). At 100k items on 28 CPUs (2026-11-18), with `--rebuild`:
+
+| Query | Filter | p50 | p95 | max | Avg results |
+|---|---|--:|--:|--:|--:|
+| keyword, Russian | none | 26.3 | 98.4 | 105.7 | 10,183 |
+| hybrid, Russian | none | 37.1 | 119.3 | 130.4 | 376 |
+| keyword, Russian | broad: images | 44.8 | 111.3 | 115.2 | 7,906 |
+| hybrid, Russian | broad: images | 97.2 | 161.1 | 180.7 | 376 |
+| keyword, Russian | narrow: animated, not favorite | 39.8 | 110.5 | 174.1 | 798 |
+| hybrid, Russian | narrow: animated, not favorite | 67.7 | 148.3 | 171.0 | 372 |
+
+Every Russian row is within the 200 ms budget (D031). The English rows of the same run are the accepted exception above (keyword p50 181–242 ms, p95 297–580 ms); the keyword index rebuild took 26.5 s.

@@ -5,7 +5,8 @@ namespace MediaFileClassifier.Benchmarks.Data;
 
 /// <summary>
 /// Generates the text of a synthetic media item with realistic lengths: a Windows path,
-/// a generated description of 150 to 600 characters, tags, and OCR text on some items.
+/// a generated description of 150 to 600 characters, tags, and OCR text on some items. The production benchmark also
+/// gives some items Russian text (E06-S04-T10).
 /// </summary>
 internal sealed class SyntheticText(Random random)
 {
@@ -55,6 +56,16 @@ internal sealed class SyntheticText(Random random)
     [
         "TOTAL", "Receipt", "Cafe", "EXIT", "Station", "Platform", "Menu", "Price", "Open", "Closed",
         "Welcome", "Street", "Avenue", "Parking", "Meeting", "Agenda", "Q3", "Notes", "Ticket", "Gate",
+    ];
+
+    // Russian phrases in several word forms, so a query in another form needs the stems (E06-S04-T10, DNEW-4).
+    private static readonly string[] RussianPhrases =
+    [
+        "Собака бежит по пляжу.", "Кошка спит на подоконнике.", "Закат над озером.", "Дети играют в саду.",
+        "Лодка у берега озера.", "Поезд прибывает на вокзал.", "Свадьба в старой церкви.", "Праздничный торт со свечами.",
+        "Туманное утро в горах.", "Красный автомобиль на улице.", "Лошади пасутся на лугу.", "Водопад в лесу.",
+        "Чек из кафе на столе.", "Семья на прогулке в парке.", "Мост через реку.", "Рынок в центре города.",
+        "Кухня с деревянным столом.", "Снег лежит на поле.", "Золотые листья в лесу.", "Концерт на большой сцене.",
     ];
 
     public string Path(MediaKind kind, DateTimeOffset takenAt)
@@ -132,6 +143,20 @@ internal sealed class SyntheticText(Random random)
         }
 
         return builder.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// Russian text for about 30% of the items: two to five phrases, about 50 to 200 characters.
+    /// </summary>
+    public string? RussianText()
+    {
+        if (random.Next(100) >= 30)
+        {
+            return null;
+        }
+
+        var count = random.Next(2, 6);
+        return string.Join(' ', Enumerable.Range(0, count).Select(_ => Pick(RussianPhrases)));
     }
 
     private string Pick(string[] values) => values[random.Next(values.Length)];

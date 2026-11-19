@@ -131,7 +131,8 @@ public abstract record MetadataEdit
 
     /// <summary>
     /// Adds a tag the user typed. The command cleans the text (<see cref="Tags.TagNormalizer.CleanUserTag"/>) and checks
-    /// it, then stores it in the case it was typed (D047) and removes its tombstone.
+    /// it, then stores it in the case it was typed (D047) and removes its tombstone. A tag the user already has (tags
+    /// compare ignoring case) is left as it is, with its case.
     /// </summary>
     /// <param name="Text">The tag as typed.</param>
     public sealed record AddTag(string Text) : MetadataEdit

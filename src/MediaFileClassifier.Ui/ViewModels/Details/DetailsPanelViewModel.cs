@@ -9,6 +9,7 @@ using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
+using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels.Browser;
@@ -51,6 +52,10 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private bool loadingFullResolution;
     private int loads;
     private int previewLoads;
+    private readonly UnsavedChangesGuard? guard;
+    private readonly IDisposable? guardRegistration;
+    private bool wasExpanded;
+    private bool restoringPanel;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DetailsPanelViewModel"/> class.
@@ -64,6 +69,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <param name="localizer">UI strings.</param>
     /// <param name="grid">Gets the thumbnail grid, to give it back the keyboard focus.</param>
     /// <param name="logger">Logs previews that couldn't be loaded.</param>
+    /// <param name="guard">Asks about staged changes before the panel closes (E07-S12-T01).</param>
     public DetailsPanelViewModel(
         SelectionModel selection,
         ISender sender,
@@ -73,7 +79,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         CommandRegistry commands,
         Localizer localizer,
         Func<ThumbnailGridViewModel> grid,
-        ILogger<DetailsPanelViewModel>? logger = null)
+        ILogger<DetailsPanelViewModel>? logger = null,
+        UnsavedChangesGuard? guard = null)
     {
         this.selection = selection;
         this.sender = sender;
@@ -88,6 +95,14 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         Editor.PropertyChanged += OnEditorChanged;
         selection.Changed += OnSelectionChanged;
         layout.PropertyChanged += OnLayoutChanged;
+        if (guard is not null)
+        {
+            // Closing the panel is guarded here; the guard registration is dropped on dispose.
+            this.guard = guard;
+            guardRegistration = guard.Register(new MetadataEditorStagedChanges(Editor, () => Title));
+            wasExpanded = layout.Details.IsExpanded;
+            layout.Details.PropertyChanged += OnPanelChanged;
+        }
     }
 
     /// <summary>
@@ -111,6 +126,14 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// Gets the metadata editor of the shown item (E07-S02).
     /// </summary>
     public MetadataEditorViewModel Editor { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the panel keeps showing an item that is no longer the focused one, because the
+    /// item has unsaved changes and the selection moved without the user choosing (E07-S12-T01), e.g. a filter
+    /// removed the item from the results. The panel follows the selection again once the changes are saved or dropped.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsPinned { get; private set; }
 
     /// <summary>
     /// Gets the panel's title: the item's title, or its file name.
@@ -259,13 +282,27 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// Loads the shown item again if its metadata changed, e.g. after an edit in another view (E07-S01-T03).
     /// </summary>
     /// <param name="itemIds">The items that changed.</param>
-    public void Reload(IReadOnlyCollection<Id<MediaItem>> itemIds)
+    public void Reload(IReadOnlyCollection<Id<MediaItem>> itemIds) => Reload(itemIds, new HashSet<DescriptiveField>(), tagsChanged: false);
+
+    /// <summary>
+    /// Loads the shown item again if its metadata changed. Staged changes in the editor are never discarded: the
+    /// editor refreshes what has nothing staged and keeps the rest (E07-S12-T02).
+    /// </summary>
+    /// <param name="itemIds">The items that changed.</param>
+    /// <param name="changedFields">The fields that changed.</param>
+    /// <param name="tagsChanged">Whether the tags changed.</param>
+    public void Reload(IReadOnlyCollection<Id<MediaItem>> itemIds, IReadOnlySet<DescriptiveField> changedFields, bool tagsChanged)
     {
         ArgumentNullException.ThrowIfNull(itemIds);
+        ArgumentNullException.ThrowIfNull(changedFields);
 
         if (Item is { } item && itemIds.Contains(item.Id))
         {
             Loading = LoadAsync();
+
+            // Whether the editor is dirty is decided when the metadata arrives, so edits typed while it loads are kept
+            // too. A clean editor just shows the stored values.
+            _ = Editor.MergeChangesAsync(changedFields, tagsChanged);
         }
     }
 
@@ -313,6 +350,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     {
         selection.Changed -= OnSelectionChanged;
         layout.PropertyChanged -= OnLayoutChanged;
+        layout.Details.PropertyChanged -= OnPanelChanged;
+        guardRegistration?.Dispose();
         loading?.Cancel();
         loading?.Dispose();
         CancelPreview();
@@ -331,6 +370,70 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
                     command.Refresh();
                 }
             }
+        }
+
+        if (e.PropertyName == nameof(MetadataEditorViewModel.IsDirty) && IsPinned && !Editor.IsDirty)
+        {
+            // The held item is saved or dropped: show what is selected now.
+            IsPinned = false;
+            Loading = LoadAsync();
+        }
+    }
+
+    // Closing or collapsing the panel with staged changes can't wait for the answer, so the panel opens again at once
+    // and the user is asked; once they chose to go on, it closes as requested.
+    private void OnPanelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (guard is null || restoringPanel || e.PropertyName != nameof(SidePanel.IsExpanded))
+        {
+            return;
+        }
+
+        var panel = layout.Details;
+        if (panel.IsExpanded)
+        {
+            wasExpanded = true;
+            return;
+        }
+
+        if (!wasExpanded || !Editor.IsDirty)
+        {
+            wasExpanded = false;
+            return;
+        }
+
+        var (visible, collapsed) = (panel.IsVisible, panel.IsCollapsed);
+        SetPanel(expanded: true, visible, collapsed);
+        _ = CloseAfterConfirmAsync(visible, collapsed);
+    }
+
+    private async Task CloseAfterConfirmAsync(bool visible, bool collapsed)
+    {
+        if (guard is not null && await guard.ConfirmLeaveAsync())
+        {
+            wasExpanded = false;
+            SetPanel(expanded: false, visible, collapsed);
+        }
+    }
+
+    private void SetPanel(bool expanded, bool visible, bool collapsed)
+    {
+        restoringPanel = true;
+        try
+        {
+            if (expanded)
+            {
+                layout.Details.Expand();
+            }
+            else
+            {
+                layout.Details.IsVisible = visible;
+                layout.Details.IsCollapsed = collapsed;
+            }
+        }
+        finally
+        {
+            restoringPanel = false;
         }
     }
 
@@ -361,6 +464,15 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         var count = selection.Count;
         SelectedCountText = count > 1 ? localizer.Format("Details_SelectedCount", Format.Number(count)) : null;
         var id = count > 0 ? selection.FocusedId : null;
+        if (Item is { } held && Editor.IsDirty && id != held.Id)
+        {
+            // The selection moved on its own (a prompt came before any gesture of the user): keep the item.
+            IsPinned = true;
+            Editor.Notice = localizer.Get("Editor_Notice_Held");
+            return;
+        }
+
+        IsPinned = false;
         if (id is null)
         {
             Show(null);

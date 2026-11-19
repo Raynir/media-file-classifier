@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,9 @@ namespace MediaFileClassifier.Ui.Shell;
 /// <param name="settings">App settings, for "Don't ask again".</param>
 /// <param name="localizer">UI strings.</param>
 /// <param name="logger">Logger.</param>
-public sealed partial class QuitGuard(IJobSystem jobs, ISettingsService settings, Localizer localizer, ILogger<QuitGuard> logger)
+/// <param name="unsaved">Asks about staged changes before the window closes (E07-S12-T01).</param>
+public sealed partial class QuitGuard(
+    IJobSystem jobs, ISettingsService settings, Localizer localizer, ILogger<QuitGuard> logger, UnsavedChangesGuard? unsaved = null)
 {
     private bool readyToClose;
 
@@ -30,6 +33,15 @@ public sealed partial class QuitGuard(IJobSystem jobs, ISettingsService settings
 
         window.Closing += (_, e) =>
         {
+            if (!readyToClose && unsaved is { HasUnsavedChanges: true })
+            {
+                // Staged changes come first. The window closes again once they are saved or dropped, and then the
+                // jobs are dealt with below.
+                e.Cancel = true;
+                _ = CloseWhenSavedAsync(window, unsaved);
+                return;
+            }
+
             if (readyToClose || jobs.Current is null)
             {
                 return;
@@ -82,6 +94,14 @@ public sealed partial class QuitGuard(IJobSystem jobs, ISettingsService settings
         };
         confirmation.Answered += (_, quit) => dialog.Close(quit);
         return dialog.ShowDialog<bool>(owner);
+    }
+
+    private static async Task CloseWhenSavedAsync(Window window, UnsavedChangesGuard unsaved)
+    {
+        if (await unsaved.ConfirmLeaveAsync().ConfigureAwait(true))
+        {
+            window.Close();
+        }
     }
 
     private async Task CloseWhenReadyAsync(Window window)

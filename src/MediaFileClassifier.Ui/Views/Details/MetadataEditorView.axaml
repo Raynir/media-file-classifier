@@ -107,6 +107,11 @@
       <DockPanel LastChildFill="False">
         <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
           <TextBlock Classes="Secondary" Text="{l:Loc Editor_Unsaved}" />
+          <TextBlock Classes="Secondary"
+                     x:Name="NoticeText"
+                     TextWrapping="Wrap"
+                     Text="{Binding Notice}"
+                     IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
           <TextBlock Classes="FieldError"
                      Text="{Binding SaveError}"
                      IsVisible="{Binding SaveError, Converter={x:Static ObjectConverters.IsNotNull}}" />

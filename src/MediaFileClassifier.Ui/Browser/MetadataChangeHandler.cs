@@ -32,7 +32,7 @@ public sealed class MetadataChangeHandler(Func<ThumbnailGridViewModel> grid, Fav
 
             if (notification.Change.HasFlag(ItemMetadataChange.Fields) || notification.Change.HasFlag(ItemMetadataChange.Tags))
             {
-                details().Reload(notification.ItemIds);
+                details().Reload(notification.ItemIds, notification.Fields, notification.Change.HasFlag(ItemMetadataChange.Tags));
             }
 
             _ = grid().RefreshNowAsync();

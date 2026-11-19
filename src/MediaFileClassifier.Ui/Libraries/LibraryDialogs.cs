@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Ui.Editing;
 using Microsoft.Extensions.Logging;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.Views.Libraries;
@@ -14,7 +15,8 @@ namespace MediaFileClassifier.Ui.Libraries;
 /// <param name="createLibrary">Makes a fresh create-library view model.</param>
 /// <param name="indexedFolders">Makes a fresh indexed folders view model.</param>
 /// <param name="logger">Logger, or <c>null</c> for none.</param>
-public sealed class LibraryDialogs(Func<CreateLibraryViewModel> createLibrary, Func<IndexedFoldersViewModel> indexedFolders, ILogger<LibraryDialogs>? logger = null)
+/// <param name="guard">Asks about staged changes before a new library replaces the open one (E07-S12-T01).</param>
+public sealed class LibraryDialogs(Func<CreateLibraryViewModel> createLibrary, Func<IndexedFoldersViewModel> indexedFolders, ILogger<LibraryDialogs>? logger = null, UnsavedChangesGuard? guard = null)
 {
     /// <summary>
     /// How often the folders dialog lists the folders again, so states and counts follow an import.
@@ -38,6 +40,11 @@ public sealed class LibraryDialogs(Func<CreateLibraryViewModel> createLibrary, F
     public async Task ShowCreateLibraryAsync()
     {
         if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
+        {
+            return;
+        }
+
+        if (guard is not null && !await guard.ConfirmLeaveAsync())
         {
             return;
         }

@@ -62,3 +62,11 @@ The 200-tag limit depends on what an item already has, so when the edits add tag
 ## Tag autocomplete
 
 The metadata editor's tag input (E07-S02-T02) asks `SuggestTagsQuery(Prefix, Limit)` for tags as the user types. The handler wraps `GetEffectiveTagsAsync`, so the tags match by either language form (D382) and come most used first, with their item counts, and the editor leaves out the tags the item shows already. There is no schema change.
+
+## Unsaved changes and concurrent changes (E07-S12)
+
+Staged editors register with `UnsavedChangesGuard` (`IStagedEditor`: `HasUnsavedChanges`, `Description`, `SaveAsync`, `Discard`). Anything that leaves the edited item calls `ConfirmLeaveAsync()` first: `SelectionModel.ConfirmChange` for selection gestures, the details panel for collapsing or hiding it, `LibraryOpener` for switching library and `QuitGuard` for closing the window. It shows Save / Discard / Stay for each editor with changes, and answers false on Stay or a failed save. Bulk editing (E07-S03) registers its own `IStagedEditor`.
+
+If the selection moves without a gesture while changes are staged (a filter removes the item), the details panel keeps the item (`IsPinned`) until the changes are saved or dropped.
+
+When `ItemsMetadataChanged` arrives for the shown item and the editor has staged changes, `MetadataEditorViewModel.MergeChangesAsync` refreshes the fields and tags with nothing staged and keeps the staged ones. If a staged field is among the changed `Fields`, or a staged tag change no longer fits the stored tags, the Save bar names them in a notice. It does nothing while a save runs, because the save reloads the editor itself.

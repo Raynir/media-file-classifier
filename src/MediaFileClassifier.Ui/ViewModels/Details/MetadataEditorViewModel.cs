@@ -120,6 +120,13 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     public partial string? SaveError { get; private set; }
 
     /// <summary>
+    /// Gets or sets a notice about the staged changes, shown in the Save bar, or <see langword="null"/>: the item is held
+    /// after the selection moved away (E07-S12-T01), or changed in the background (E07-S12-T02).
+    /// </summary>
+    [ObservableProperty]
+    public partial string? Notice { get; internal set; }
+
+    /// <summary>
     /// Gets or sets the text typed into the tag input.
     /// </summary>
     [ObservableProperty]
@@ -171,6 +178,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         NewTagText = string.Empty;
         TagError = null;
         SaveError = null;
+        Notice = null;
         UpdateDirty();
     }
 
@@ -414,6 +422,12 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     private void UpdateDirty()
     {
         IsDirty = AllFields.Any(field => field.IsDirty) || Tags.Any(chip => chip.IsStaged);
+        if (!IsDirty)
+        {
+            // A notice is about staged changes.
+            Notice = null;
+        }
+
         SaveCommand.NotifyCanExecuteChanged();
     }
 
@@ -454,6 +468,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         ApplyTags(view);
         NewTagText = string.Empty;
         TagError = null;
+        Notice = null;
         UpdateDirty();
     }
 

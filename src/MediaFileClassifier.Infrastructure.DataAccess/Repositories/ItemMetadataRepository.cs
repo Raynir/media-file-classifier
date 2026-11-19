@@ -72,6 +72,49 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> UpdateManyAsync(
+        IReadOnlyCollection<Id<MediaItem>> itemIds,
+        Func<ItemMetadata, bool> change,
+        Action<IReadOnlyList<Id<MediaItem>>>? written = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+        ArgumentNullException.ThrowIfNull(change);
+
+        var changed = new List<Id<MediaItem>>();
+        foreach (var batch in itemIds.Distinct().Chunk(MediaItemRepository.BatchSize))
+        {
+            var batchChanged = await writer.ExecuteAsync(
+                async (db, token) =>
+                {
+                    var ids = batch.ToList();
+                    var existing = (await db.MediaItems.AsNoTracking().Where(item => ids.Contains(item.Id)).Select(item => item.Id)
+                        .ToListAsync(token).ConfigureAwait(false)).ToHashSet();
+                    var result = new List<Id<MediaItem>>();
+                    foreach (var itemId in batch.Where(existing.Contains))
+                    {
+                        var metadata = await LoadAsync(db, itemId, token).ConfigureAwait(false);
+                        if (change(metadata))
+                        {
+                            await ReplaceAsync(db, metadata, token).ConfigureAwait(false);
+                            result.Add(itemId);
+                        }
+                    }
+
+                    return result;
+                },
+                cancellationToken).ConfigureAwait(false);
+            changed.AddRange(batchChanged);
+            if (batchChanged.Count > 0)
+            {
+                written?.Invoke(batchChanged);
+            }
+        }
+
+        return changed;
+    }
+
+    /// <inheritdoc />
     public Task AddTagAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, TagName tag, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(tag);

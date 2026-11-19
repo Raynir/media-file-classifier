@@ -55,6 +55,23 @@ public interface IItemMetadataRepository
     Task<ItemMetadata> UpdateAsync(Id<MediaItem> itemId, Action<ItemMetadata> change, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Applies a change to many items (E07-S01). Each item is loaded, changed and stored with its keyword index row in
+    /// the same transaction; the items are written in batches, each its own short write, so other writes get their turn
+    /// between batches (D072). If one batch fails or is cancelled, the batches before it stay written.
+    /// </summary>
+    /// <param name="itemIds">The items. Items that don't exist are skipped.</param>
+    /// <param name="change">The change; it returns whether it changed the item. Items it didn't change aren't stored.
+    /// It runs on the writer, so it must not wait for other library writes.</param>
+    /// <param name="written">Called after each batch commits, with the items the batch changed.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The items that were changed, in the order given.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> UpdateManyAsync(
+        IReadOnlyCollection<Id<MediaItem>> itemIds,
+        Func<ItemMetadata, bool> change,
+        Action<IReadOnlyList<Id<MediaItem>>>? written = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Adds a user tag to many items, e.g. a multi-selection, and removes its tombstones (E07).
     /// The items are written in batches, each its own short write, so other writes such as the user's edits get their
     /// turn between batches (D072). If one fails or is cancelled, the batches before it stay written.

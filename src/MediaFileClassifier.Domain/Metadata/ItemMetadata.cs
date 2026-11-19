@@ -367,6 +367,29 @@ public sealed class ItemMetadata
     }
 
     /// <summary>
+    /// Removes a user tag, edited or accepted, without a tombstone. If an AI run or the file gives the tag too, that
+    /// assignment becomes effective again; <see cref="RejectTag"/> removes the tag for good.
+    /// </summary>
+    /// <param name="tag">The tag.</param>
+    /// <returns>Whether the item had the tag as a user tag.</returns>
+    public bool RemoveTag(TagName tag)
+    {
+        ArgumentNullException.ThrowIfNull(tag);
+
+        if (tags.RemoveAll(assignment => assignment.Source == MetadataSource.User && assignment.Tag == tag) == 0)
+        {
+            return false;
+        }
+
+        if (tagSuggestions.TryGetValue(tag, out var suggestion) && suggestion.Kind == TagSuggestionKind.Removed)
+        {
+            tagSuggestions.Remove(tag);
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Confirms an AI tag of an active run. It becomes user-owned, with a reference to its run.
     /// </summary>
     /// <param name="tag">The tag.</param>
@@ -510,11 +533,16 @@ public sealed class ItemMetadata
         aiValues.AddRange(newValues);
         tags.AddRange(newTags);
 
+        // A field is flagged when the new value differs from the user value and is new: the analyzer's previous run gave
+        // something else, or the field's flag wasn't dealt with yet. So a dismissed suggestion stays dismissed until a
+        // run produces a different value.
         foreach (var value in newValues)
         {
             if (userValues.TryGetValue(value.Field, out var user))
             {
-                userValues[value.Field] = user.WithSuggestion(value.Value == user.Value ? null : run.Id);
+                var previousValue = previous is null ? null : aiValues.FirstOrDefault(old => old.RunId == previous.Id && old.Field == value.Field);
+                var isNew = previousValue is null || previousValue.Value != value.Value || user.SuggestionRunId is not null;
+                userValues[value.Field] = user.WithSuggestion(value.Value == user.Value || !isNew ? null : run.Id);
             }
         }
 
@@ -575,15 +603,16 @@ public sealed class ItemMetadata
     {
         var ofAnalyzer = tagSuggestions.Values.Where(suggestion => GetRun(suggestion.RunId).Analyzer == run.Analyzer).ToList();
         var stillAdded = ofAnalyzer.Where(suggestion => suggestion.Kind == TagSuggestionKind.Added).Select(suggestion => suggestion.Tag).ToHashSet();
+        var stillRemoved = ofAnalyzer.Where(suggestion => suggestion.Kind == TagSuggestionKind.Removed).Select(suggestion => suggestion.Tag).ToHashSet();
         foreach (var suggestion in ofAnalyzer)
         {
             tagSuggestions.Remove(suggestion.Tag);
         }
 
         var given = newTags.Select(tag => tag.Tag).ToHashSet();
+        var before = previous is null ? new HashSet<TagName>() : tags.Where(tag => tag.RunId == previous.Id).Select(tag => tag.Tag).ToHashSet();
         if (previous is not null)
         {
-            var before = tags.Where(tag => tag.RunId == previous.Id).Select(tag => tag.Tag).ToHashSet();
             foreach (var tag in given.Where(tag => !HasUserTag(tag) && !rejections.ContainsKey(tag)
                 && (!before.Contains(tag) || stillAdded.Contains(tag))))
             {
@@ -591,8 +620,10 @@ public sealed class ItemMetadata
             }
         }
 
+        // An accepted tag the run no longer gives is flagged only when that is new: the previous run still gave it, or
+        // its flag wasn't dealt with yet. A dismissed Removed suggestion doesn't come back with every run.
         foreach (var accepted in tags.Where(tag => tag.Source == MetadataSource.User && tag.AcceptedFrom?.Analyzer == run.Analyzer
-            && !given.Contains(tag.Tag)))
+            && !given.Contains(tag.Tag) && (before.Contains(tag.Tag) || stillRemoved.Contains(tag.Tag))))
         {
             tagSuggestions[accepted.Tag] = new TagSuggestion(ItemId, accepted.Tag, run.Id, TagSuggestionKind.Removed);
         }

@@ -85,6 +85,14 @@ public sealed class TagNormalizer
         return result;
     }
 
+    /// <summary>
+    /// Cleans a tag the user typed (E07-S01-T04, D047): punctuation around it and extra white space go, and underscores
+    /// become spaces, like for AI tags. Nothing else changes: not the case, the number, synonyms or generic words.
+    /// </summary>
+    /// <param name="text">The text as typed.</param>
+    /// <returns>The cleaned text, empty when nothing is left.</returns>
+    public static string CleanUserTag(string? text) => Clean(text);
+
     private static string? CleanForm(string? form)
     {
         var cleaned = Clean(form);

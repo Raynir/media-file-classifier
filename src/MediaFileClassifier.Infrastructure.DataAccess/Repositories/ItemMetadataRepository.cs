@@ -27,6 +27,16 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
         connections.ReadAsync((db, token) => LoadAsync(db, itemId, token), cancellationToken);
 
     /// <inheritdoc />
+    public Task<IReadOnlyDictionary<Id<MediaItem>, ItemMetadata>> GetManyAsync(
+        IReadOnlyCollection<Id<MediaItem>> itemIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+
+        return connections.ReadAsync((db, token) => LoadManyAsync(db, itemIds, token), cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<(ItemMetadata Metadata, TResult Result)> UpdateAsync<TResult>(
         Id<MediaItem> itemId,
         Func<ItemMetadata, TResult> change,
@@ -59,6 +69,50 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             },
             cancellationToken).ConfigureAwait(false);
         return metadata;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> UpdateManyAsync(
+        IReadOnlyCollection<Id<MediaItem>> itemIds,
+        Func<ItemMetadata, bool> change,
+        Action<IReadOnlyList<Id<MediaItem>>>? written = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+        ArgumentNullException.ThrowIfNull(change);
+
+        var changed = new List<Id<MediaItem>>();
+        foreach (var batch in itemIds.Distinct().Chunk(MediaItemRepository.BatchSize))
+        {
+            var batchChanged = await writer.ExecuteAsync(
+                async (db, token) =>
+                {
+                    var ids = batch.ToList();
+                    var existing = (await db.MediaItems.AsNoTracking().Where(item => ids.Contains(item.Id)).Select(item => item.Id)
+                        .ToListAsync(token).ConfigureAwait(false)).ToHashSet();
+                    var result = new List<Id<MediaItem>>();
+                    var loaded = await LoadManyAsync(db, [.. batch.Where(existing.Contains)], token).ConfigureAwait(false);
+                    foreach (var itemId in batch.Where(existing.Contains))
+                    {
+                        var metadata = loaded[itemId];
+                        if (change(metadata))
+                        {
+                            await ReplaceAsync(db, metadata, token).ConfigureAwait(false);
+                            result.Add(itemId);
+                        }
+                    }
+
+                    return result;
+                },
+                cancellationToken).ConfigureAwait(false);
+            changed.AddRange(batchChanged);
+            if (batchChanged.Count > 0)
+            {
+                written?.Invoke(batchChanged);
+            }
+        }
+
+        return changed;
     }
 
     /// <inheritdoc />

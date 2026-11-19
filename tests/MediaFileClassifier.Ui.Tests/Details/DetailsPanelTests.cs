@@ -178,6 +178,22 @@ public sealed class DetailsPanelTests : IDisposable
     });
 
     [Fact]
+    public Task Reload_AfterAnEditInAnotherView_ShowsTheNewValue_OnlyForTheShownItem() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+        bed.ItemTitle = "Rex";
+
+        bed.Panel.Reload([bed.Source.Ids[2]]);
+        bed.Settle();
+        Assert.Null(bed.Panel.Item?.Title);
+
+        bed.Panel.Reload([bed.Source.Ids[0], bed.Source.Ids[1]]);
+        bed.Settle();
+        Assert.Equal(("Rex", "IMG_1.png"), (bed.Panel.Title, bed.Panel.Subtitle));
+    });
+
+    [Fact]
     public Task Sections_AreKeptInTheShellLayout() => TestApp.RunAsync(() =>
     {
         var bed = new Bed(this, 3);
@@ -287,6 +303,8 @@ public sealed class DetailsPanelTests : IDisposable
 
         public bool WithoutTechnical { get; set; }
 
+        public string? ItemTitle { get; set; }
+
         public void Select(int index, SelectionGesture gesture)
         {
             Wait(Selection.ApplyAsync(index, gesture));
@@ -313,7 +331,7 @@ public sealed class DetailsPanelTests : IDisposable
                 ExtractedAt = DateTimeOffset.UnixEpoch,
             };
             var details = new ItemDetails(
-                query.ItemId, $"IMG_{index}.png", "png", MediaType.Image, 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, WithoutTechnical ? null : technical, null, null, []);
+                query.ItemId, $"IMG_{index}.png", "png", MediaType.Image, 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, WithoutTechnical ? null : technical, ItemTitle, null, []);
             return Task.FromResult((TResponse)(object)details);
         }
 

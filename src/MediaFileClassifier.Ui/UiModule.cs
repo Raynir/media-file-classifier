@@ -154,7 +154,8 @@ public static class UiModule
         // Favorites (E11-S01): one command instance that is also a contributor, and the handler that updates the views.
         services.TryAddSingleton<FavoriteCommands>();
         services.AddSingleton<ICommandContributor>(provider => provider.GetRequiredService<FavoriteCommands>());
-        services.AddSingleton<MediatR.INotificationHandler<UseCases.Favorites.ItemsMetadataChanged>, FavoriteChangeHandler>();
+        services.AddSingleton<Func<DetailsPanelViewModel>>(provider => provider.GetRequiredService<DetailsPanelViewModel>);
+        services.AddSingleton<MediatR.INotificationHandler<UseCases.Metadata.ItemsMetadataChanged>, MetadataChangeHandler>();
         services.TryAddSingleton<ITextClipboard, AvaloniaTextClipboard>();
         services.AddSingleton<BrowserContextMenu>();
 

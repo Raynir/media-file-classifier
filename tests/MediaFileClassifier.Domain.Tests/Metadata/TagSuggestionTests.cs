@@ -177,4 +177,74 @@ public sealed class TagSuggestionTests
         Assert.Empty(Metadata.TagSuggestions);
         Assert.True(Metadata.HasNewAiSuggestions);
     }
+
+    [Fact]
+    public void RemoveTag_DropsTheUserTagWithoutATombstone_SoAnAiTagShowsAgain()
+    {
+        fixture.Analyze("Title", ["dog"]);
+        Metadata.AcceptTag(TagName.From("dog"), fixture.Tick());
+
+        Assert.True(Metadata.RemoveTag(TagName.From("dog")));
+
+        Assert.Empty(Metadata.Rejections);
+        Assert.Contains(Metadata.GetEffectiveTags(), tag => tag.Tag == TagName.From("dog") && tag.Source == MetadataSource.AI);
+    }
+
+    [Fact]
+    public void RemoveTag_ThatTheUserDoesNotHave_ChangesNothing()
+    {
+        fixture.Analyze("Title", ["dog"]);
+
+        Assert.False(Metadata.RemoveTag(TagName.From("dog")));
+        Assert.False(Metadata.RemoveTag(TagName.From("cat")));
+    }
+
+    [Fact]
+    public void Reanalysis_DismissedRemovedSuggestion_DoesNotComeBack_WhileTheRunsKeepDroppingTheTag()
+    {
+        fixture.Analyze("Title", ["cat", "dog"]);
+        Metadata.AcceptTag(TagName.From("cat"), fixture.Tick());
+        fixture.Analyze("Title", ["dog"]);
+        Metadata.DismissTagSuggestion(TagName.From("cat"));
+
+        fixture.Analyze("Title", ["dog"]);
+
+        Assert.Empty(Metadata.TagSuggestions);
+    }
+
+    [Fact]
+    public void Reanalysis_DismissedAddedSuggestion_DoesNotComeBack_UntilTheRunGivesItAfterDroppingIt()
+    {
+        fixture.Analyze("Title", ["cat"]);
+        fixture.Analyze("Title", ["cat", "dog"]);
+        Metadata.DismissTagSuggestion(TagName.From("dog"));
+
+        fixture.Analyze("Title", ["cat", "dog"]);
+        Assert.Empty(Metadata.TagSuggestions);
+
+        fixture.Analyze("Title", ["cat"]);
+        fixture.Analyze("Title", ["cat", "dog"]);
+        Assert.Equal(TagSuggestionKind.Added, Assert.Single(Metadata.TagSuggestions).Kind);
+    }
+
+    [Fact]
+    public void Reanalysis_AnotherAnalyzersPendingFlag_IsNotClearedByARunThatGivesTheUserValue_NorMakesADismissedValueNew()
+    {
+        Metadata.EditValue(DescriptiveField.Title, FieldValue.FromText("Mine"), fixture.Tick());
+        fixture.Analyze("Other", analyzer: "other");
+        Metadata.DismissSuggestion(DescriptiveField.Title);
+        var (caption, _) = fixture.Analyze("Caption");
+
+        // The other analyzer gives the user's own value: that clears nothing of the caption analyzer's flag.
+        fixture.Analyze("Mine", analyzer: "other");
+        Assert.Equal(caption.Id, Metadata.GetUserValue(DescriptiveField.Title)?.SuggestionRunId);
+
+        // A different value from the other analyzer is a suggestion; once dismissed, the caption analyzer's newer pending
+        // flag doesn't make the same value new when the other analyzer gives it again.
+        fixture.Analyze("Other", analyzer: "other");
+        Metadata.DismissSuggestion(DescriptiveField.Title);
+        var (caption2, _) = fixture.Analyze("Caption two");
+        fixture.Analyze("Other", analyzer: "other");
+        Assert.Equal(caption2.Id, Metadata.GetUserValue(DescriptiveField.Title)?.SuggestionRunId);
+    }
 }

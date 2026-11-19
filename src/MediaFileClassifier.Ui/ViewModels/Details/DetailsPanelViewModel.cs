@@ -244,6 +244,20 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     }
 
     /// <summary>
+    /// Loads the shown item again if its metadata changed, e.g. after an edit in another view (E07-S01-T03).
+    /// </summary>
+    /// <param name="itemIds">The items that changed.</param>
+    public void Reload(IReadOnlyCollection<Id<MediaItem>> itemIds)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+
+        if (Item is { } item && itemIds.Contains(item.Id))
+        {
+            Loading = LoadAsync();
+        }
+    }
+
+    /// <summary>
     /// Records that the view gave the preview keyboard focus.
     /// </summary>
     public void OnFocused() => IsFocusPending = false;

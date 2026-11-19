@@ -51,3 +51,18 @@ What it shows:
 - The GPU embeds images about 3.3 to 4.2 times faster than the CPU and texts 5 to 7 times faster. The `compact` tier shares the `standard` image tower, so its image figure only differs by run-to-run noise (these runs ranged from 27.7 to 36.5 images/s).
 - **The `compact` tier's fp16 text model doesn't load on the CPU** (ONNX Runtime fails to initialise it: `InsertedPrecisionFreeCast_…` in `SimplifiedLayerNormFusion`). So `compact` is a GPU-only tier. If DirectML falls back to the CPU while `compact` is the installed tier, the text tower is unusable until `standard` is installed. The provider handles it: a GPU tier that fails to load makes it use the installed CPU tier (`standard`) from then on, until the app restarts.
 - The CPU figure here (8.7 images/s) is below MFC-85's 14.7 images/s, which was measured differently (see its contract); compare runs only with the same command.
+
+## Full analysis profile (E06-S04-T06)
+
+The full profile without the describer (D368 amends D031): SigLIP 2 image embedding (`standard` tier) and PP-OCRv5 text recognition on each picture, one item after the other with a batch of one and no thumbnails or library writes, so it's a conservative per-item rate rather than the app's pipelined one. Opt-in test `FullProfileThroughputTests` (`MFC_THROUGHPUT_SAMPLES`, `MFC_OCR_DIR`, SigLIP 2 as for the other real-model tests; build with `-p:OnnxGpu=true` for the DirectML runtime). 50 describer-spike samples (up to 1024 px), dev machine (i7-14700HX, RTX 4070 Laptop with LM Studio's model loaded alongside), 2026-11-18:
+
+| Tier | Provider | Items/s | Embedding ms/item | OCR ms/item |
+|---|---|---|---|---|
+| GPU | DirectML (RTX 4070 Laptop) | 4.75 | 50 | 161 |
+| CPU | CPU (28 logical processors) | 0.81 | 628 | 609 |
+
+The describer is measured on its own (D368): qwen3-vl-4b in LM Studio 7.76 s/image median on the GPU (budget 10 s, `OpenAiCompatibleImageDescriberLiveTests`), Florence-2 base 5.55 s/image on the CPU (`Florence2DescriberTests.Speed_OverTheSpikeInputs`).
+
+- **GPU tier:** 4.75 items/s meets D368's ≥ 1 image/s for the profile without the describer.
+- **CPU tier budget** (user's choice, drafted for D031): the profile without the describer ≥ 0.5 items/s, and the describer ≤ 8 s/image. This machine has more cores than D031's CPU tier (4–8), so its 0.81 items/s overstates the tier; a 4–8 core laptop is expected around 0.3–0.5 items/s and has not been measured.
+- Embedding one picture at a time on the CPU (628 ms) is much slower than the batched figure above (8.7 images/s); the app embeds in batches of 4.

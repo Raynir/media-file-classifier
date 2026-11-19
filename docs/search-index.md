@@ -14,12 +14,12 @@ The engine under search (E09) and filtering (E10): keyword search with FTS5, vec
 | `IEmbeddingRepository` (`EmbeddingRepository`) | `Repositories`, `DataAccess/Repositories` | The only write path for embeddings; raises `Changed` after each commit. `IOpenLibrary.Embeddings`. |
 | `RebuildSearchIndexCommand` | `UseCases/Search/RebuildSearchIndex` | "Rebuild or refresh the index" (spec 1.2). |
 
-## Schema (version 6, prefixes changed in 11, sort keys added in 12)
+## Schema (version 6, prefixes changed in 11, sort keys added in 12, Russian stems added in 14)
 
 The `SearchIndex` migration adds, in raw SQL:
 
 - `search_document(doc_id INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT UNIQUE)`: a stable integer per item, shared by the keyword and vector indexes. AUTOINCREMENT, so a deleted item's ID is never reused and a stale vector can't attach to a new item. `media_item.rowid` isn't used, because `VACUUM` (backups, D073) may renumber it.
-- `search_text`: FTS5 with `unicode61 remove_diacritics 2` (D029) and prefix indexes for 1, 2 and 3 characters (1 since schema 11, MFC-988: the `SearchPrefixIndex` migration recreates the table and copies its rows, so no rebuild is needed). Columns: `title`, `description` (with the summary), `tags`, `ocr_text`, `transcript`, `other` (notes and the list fields), `file_name` (the path in the folder).
+- `search_text`: FTS5 with `unicode61 remove_diacritics 2` (D029) and prefix indexes for 1, 2 and 3 characters (1 since schema 11, MFC-988: the `SearchPrefixIndex` migration recreates the table and copies its rows, so no rebuild is needed). Columns: `title`, `description` (with the summary), `tags`, `ocr_text`, `transcript`, `other` (notes and the list fields), `file_name` (the path in the folder), and `stems` (schema 14, MFC-328, D349): the Snowball Russian stem of every word with a Cyrillic letter in the six metadata columns, in order (`RussianStems`, `Domain/Text/RussianStemmer`, a port that matched all 49,785 words of Snowball's own vocabulary when it was written; a test keeps a 4,979-word sample). `stems` isn't a field: matched fields cover the first seven columns, and its BM25 weight is 0, so a Russian word counts once, in its field, and a match found only by its stem ranks after matches of the word itself. The `RussianStems` migration recreates the table and copies the rows, computing the stems with `ru_stem`, a SQL function every library connection registers, so no rebuild is needed.
 - `search_filename`: FTS5 `trigram` index of the path, for substring matches.
 - `search_state`: `rebuild_needed` marks an index whose metadata columns must be recomputed. The migration sets it for libraries that have items; the app rebuilds in the background when it opens such a library.
 - `search_sort(doc_id, name_key, item_date, size_bytes, imported_at)` (schema 12, MFC-762): one row per document with its sort keys, each indexed. `name_key` is the natural name key (`NaturalSortKey`): the file name upper-cased in every alphabet, with each run of digits written as its length (three digits) and the digits without leading zeros, so "IMG_2" sorts before "IMG_10" in plain binary order. It comes from `natural_key`, a SQL function every library connection registers (like `fold_case`), so a connection without it can't add items or rename them. `item_date` is the item date (below).
@@ -33,10 +33,13 @@ The `SearchIndex` migration adds, in raw SQL:
 - **Paths, new and deleted items:** triggers.
 - **Embeddings:** `EmbeddingRepository` raises `Changed` after the commit, with the vectors; `SearchIndex` applies them. While a load or rebuild reads the database, the commits are buffered and replayed onto the new index; replays are harmless because every change replaces all of an item's vectors of a model.
 - `ё` is folded to `е` in indexed text, paths and query words, because `unicode61` removes only Latin diacritics.
+- **Stems:** `SearchText` writes the `stems` column with the other columns, so every metadata write and the rebuild keep it current.
+- **Tag forms (D035, D348, MFC-325):** the `tags` column holds each effective tag followed by its other-language form (`tag_assignment.other_form`), so a Russian query finds an English tag and the reverse; the Russian forms also get stems. The form comes from the curated dictionary `Domain/Text/tag-dictionary.json` (`TagDictionary`: English matched in lower case and by a singular of a plural-looking last word, Russian matched as written or by the Snowball stems of its words when no other entry shares them) and is marked `is_other_form_derived`; a form the describer writes itself (the VLM half of T09) will be stored unmarked. Schema 14 fills the forms of existing tags with the `tag_other_form` SQL function and adds them to the copied `tags` column. `tag_assignment.other_form_key` (the form in upper case, D071, indexed) lets the tag filter and autocompletion match a tag by either form with the same item counts; schema 14 backfills it with `fold_case`. A changed dictionary reaches existing tags only when they are written again. Forms the describer wrote (describe-2, E06-S04-T02) are stored as written, not derived; a written form equal to the tag is ignored. **Title form:** a text value can carry its other-language form (`FieldValue.OtherForm`, stored in the field-value JSON as `{"text", "other"}` only when there is one), which the describer fills with its Russian title; the `title` column holds the title then its form, so its Russian words are stemmed too. A title the user types has no form (D047; the translation route comes later).
 
 ## Queries
 
 - **Words:** split on white space; words without a letter or digit are dropped; at most 16. Each word is an FTS5 string, so punctuation is never query syntax. Every word must match as a prefix in any field, or as a path substring if it has 3+ characters.
+- **Russian words (D349):** a word whose letters are all Cyrillic, with 3+ letters, whose stem differs from it, also matches its exact stem in `stems` (`SearchSql.MatchTerm`: `("собаки"* OR stems : "собак")`), so "собаки" finds "собакой" and "котами" finds "кота" but not "котёл". A prefix of the stem would add nothing, since a stem is always the start of its word. A word found only through its stem marks no matched field. English queries are unchanged.
 - **Keyword ranking:** BM25 with every field weighted 1 by default (`KeywordFieldWeights`, tuned in E09-S05), over the documents whose words match every term; documents that matched a word only as a path substring rank after them.
 - **Vector:** the filter's SQL returns document IDs, which become a mask the scorer checks. An item scores as its best vector. Excluded items are never in the mask.
 - **Hybrid:** the top 200 of each list, fused by RRF. Ties go to the better single rank, then the keyword list, then the lower document ID.
@@ -182,3 +185,18 @@ How they were picked: the corpus (351 items, 139 English and 142 Russian queries
 `dotnet run -c Release --project benchmarks/MediaFileClassifier.Benchmarks -- production` copies a real library (`C:\gb2\data\libs\Bench.mfc` by default; `--source`), gives every item synthetic metadata and three 768-d vectors through the repositories, and measures the load, the rebuild and every query mode under three filters. `--cpus 4` runs it on four logical CPUs. Results are in the MFC-89 pull request.
 
 At 100k items every mode is within the 200 ms budget (D031) except keyword and hybrid queries whose words each match a large share of the library: they build, count and order the whole hit set, about 190 ms p50 and 330–450 ms p95 on both 28 and 4 CPUs. That is an accepted exception; a top-N fast path for relevance order is the way to lift it if it shows in use.
+
+### Russian queries (E06-S04-T10)
+
+The benchmark gives about 30% of the items two to five Russian phrases in their description (`SyntheticText.RussianText`), and their English tags get dictionary forms as in the app, so it measures the stem lookup too (DNEW-4). Its 25 Russian queries use other word forms than the indexed text ("собаки" for "Собака", "пляже" for "по пляжу", "горы" for "в горах") and two mixed ones ("dog пляж"). At 100k items on 28 CPUs (2026-11-18), with `--rebuild`:
+
+| Query | Filter | p50 | p95 | max | Avg results |
+|---|---|--:|--:|--:|--:|
+| keyword, Russian | none | 26.3 | 98.4 | 105.7 | 10,183 |
+| hybrid, Russian | none | 37.1 | 119.3 | 130.4 | 376 |
+| keyword, Russian | broad: images | 44.8 | 111.3 | 115.2 | 7,906 |
+| hybrid, Russian | broad: images | 97.2 | 161.1 | 180.7 | 376 |
+| keyword, Russian | narrow: animated, not favorite | 39.8 | 110.5 | 174.1 | 798 |
+| hybrid, Russian | narrow: animated, not favorite | 67.7 | 148.3 | 171.0 | 372 |
+
+Every Russian row is within the 200 ms budget (D031). The English rows of the same run are the accepted exception above (keyword p50 181–242 ms, p95 297–580 ms); the keyword index rebuild took 26.5 s.

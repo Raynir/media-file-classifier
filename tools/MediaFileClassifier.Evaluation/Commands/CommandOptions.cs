@@ -45,6 +45,12 @@ internal sealed record CommandOptions
     public string? Analysis { get; init; }
 
     /// <summary>
+    /// A stored analysis whose OCR text <c>analyze</c> reuses instead of reading the items again, e.g. to describe the
+    /// corpus with a new prompt version (E06-S04-T09).
+    /// </summary>
+    public string? OcrFrom { get; init; }
+
+    /// <summary>
     /// The language the describer writes in (the profile language).
     /// </summary>
     public string Language { get; init; } = "en";
@@ -97,6 +103,7 @@ internal sealed record CommandOptions
                 "--endpoint" => options with { Endpoint = Value(args, ref i, name) },
                 "--vlm" => options with { Vlm = Value(args, ref i, name) },
                 "--analysis" => options with { Analysis = Path.GetFullPath(Value(args, ref i, name)) },
+                "--ocr-from" => options with { OcrFrom = Path.GetFullPath(Value(args, ref i, name)) },
                 "--language" => options with { Language = Value(args, ref i, name) },
                 "--rrf-k" => options with { RrfK = Number(args, ref i, name) },
                 "--keyword-weight" => options with { KeywordWeight = Number(args, ref i, name) },

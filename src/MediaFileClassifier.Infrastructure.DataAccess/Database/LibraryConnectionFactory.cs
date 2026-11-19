@@ -1,3 +1,4 @@
+using MediaFileClassifier.Domain.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +34,16 @@ internal sealed class LibraryConnectionFactory(string databasePath)
     /// can't add items or change their paths.
     /// </summary>
     public const string NaturalKey = "natural_key";
+
+    /// <summary>
+    /// The SQL function that stems the Russian words of a text for the keyword index (D349): <c>ru_stem(text)</c>.
+    /// </summary>
+    public const string RussianStem = "ru_stem";
+
+    /// <summary>
+    /// The SQL function that finds a tag's other-language form in the tag dictionary (D348): <c>tag_other_form(tag)</c>.
+    /// </summary>
+    public const string TagOtherForm = "tag_other_form";
 
     private const string Pragmas =
         "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;";
@@ -70,6 +81,8 @@ internal sealed class LibraryConnectionFactory(string databasePath)
             // SQLite's upper() and LIKE ignore case for ASCII only; paths compare ignoring case in every alphabet with this.
             connection.CreateFunction(FoldCase, (string? text) => text?.ToUpperInvariant(), isDeterministic: true);
             connection.CreateFunction(NaturalKey, (string? path) => Search.NaturalSortKey.Create(path), isDeterministic: true);
+            connection.CreateFunction(RussianStem, (string? text) => Search.RussianStems.Of(text), isDeterministic: true);
+            connection.CreateFunction(TagOtherForm, (string? tag) => TagDictionary.Default.Translate(tag), isDeterministic: true);
             return connection;
         }
         catch

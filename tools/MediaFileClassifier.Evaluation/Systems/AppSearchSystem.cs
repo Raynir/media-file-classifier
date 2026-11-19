@@ -12,6 +12,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Infrastructure.DataAccess;
 using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
+using MediaFileClassifier.UseCases.Tags;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -34,6 +35,7 @@ public sealed class AppSearchSystem : IRetrievalSystem, IAsyncDisposable
     private const string ModelName = "siglip2-base-patch16-256";
 
     private static readonly DateTimeOffset Now = new(2026, 11, 14, 0, 0, 0, TimeSpan.Zero);
+    private static readonly TagNormalizer Normalizer = new();
 
     private readonly Siglip2System embeddings;
     private readonly CorpusAnalysis analysis;
@@ -114,6 +116,8 @@ public sealed class AppSearchSystem : IRetrievalSystem, IAsyncDisposable
         await library.Folders.AddAsync(folder, cancellationToken).ConfigureAwait(false);
         model = ModelRegistration.Create("evaluation", ModelName, "1", null, Infrastructure.AI.Embeddings.Siglip2Model.Dimension, Now);
         await library.Models.AddAsync(model, cancellationToken).ConfigureAwait(false);
+        var describerModel = ModelRegistration.Create("evaluation", analysis.Model, "1", null, null, Now);
+        await library.Models.AddAsync(describerModel, cancellationToken).ConfigureAwait(false);
 
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var vectors = new List<ItemEmbeddings>();
@@ -125,6 +129,10 @@ public sealed class AppSearchSystem : IRetrievalSystem, IAsyncDisposable
             if (analysis.Items.TryGetValue(corpusItem.Id, out var described))
             {
                 await library.Metadata.UpdateAsync(item.Id, metadata => Apply(metadata, described), cancellationToken).ConfigureAwait(false);
+                if (described.TagsRu is not null)
+                {
+                    await ApplyTagsWithFormsAsync(library, item.Id, describerModel, analysis.PromptVersion, described, cancellationToken).ConfigureAwait(false);
+                }
             }
 
             if (embeddings.Vectors.TryGetValue(corpusItem.Id, out var vector))
@@ -234,7 +242,12 @@ public sealed class AppSearchSystem : IRetrievalSystem, IAsyncDisposable
     // go in as user values here: the search index reads the effective values, whichever source they come from.
     private static void Apply(ItemMetadata metadata, ItemAnalysis described)
     {
-        SetText(metadata, DescriptiveField.Title, described.Title);
+        // The describer's Russian title form travels in the title's value, as the app stores it (E06-S04-T09).
+        if (!string.IsNullOrWhiteSpace(described.Title))
+        {
+            metadata.EditValue(DescriptiveField.Title, FieldValue.FromText(described.Title).WithOtherForm(described.TitleRu), Now);
+        }
+
         SetText(metadata, DescriptiveField.Description, described.Description);
         SetText(metadata, DescriptiveField.Summary, described.Summary);
         SetText(metadata, DescriptiveField.OcrText, described.OcrText);
@@ -242,11 +255,39 @@ public sealed class AppSearchSystem : IRetrievalSystem, IAsyncDisposable
         SetList(metadata, DescriptiveField.Scenes, described.Scenes);
         SetList(metadata, DescriptiveField.Actions, described.Actions);
         SetList(metadata, DescriptiveField.Emotions, described.Emotions);
-        foreach (var tag in described.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(TagName.From).Distinct().Take(AnalysisProfile.DefaultMaxTags))
+        if (described.TagsRu is not null)
         {
-            metadata.AddTag(tag, Now);
+            // Tags with the describer's own Russian forms go in as AI tags (ApplyTagsWithFormsAsync).
+            return;
+        }
+
+        foreach (var tag in TagsOf(described, null))
+        {
+            metadata.AddTag(tag.Tag, Now);
         }
     }
+
+    // As the app's describer stores them: AI tags of a run, each with the Russian form the model wrote, or the
+    // dictionary's when it wrote none (TagAssignment.Ai, E06-S04-T09).
+    private static async Task ApplyTagsWithFormsAsync(
+        IOpenLibrary library,
+        Id<MediaItem> itemId,
+        ModelRegistration describer,
+        string? promptVersion,
+        ItemAnalysis described,
+        CancellationToken cancellationToken)
+    {
+        var forms = new Dictionary<string, string>(described.TagsRu!, StringComparer.OrdinalIgnoreCase);
+        var run = AnalysisRun.Start(itemId, AnalyzerKeys.Describer, describer, promptVersion, Now);
+        run.Complete(Now);
+        var tags = TagsOf(described, forms).Select(tag => TagAssignment.Ai(run, tag.Tag, null, Now, tag.OtherForm)).ToList();
+        await library.AnalyzerStates.ApplyRunAsync(run, [], tags, 0, AnalyzerState.Done(itemId, AnalyzerKeys.Describer, run.Id, Now), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    // Normalised with the built-in lists before the cap, as DescriberItemAnalyzer does (E06-S04-T05).
+    private static IEnumerable<NormalizedTag> TagsOf(ItemAnalysis described, IReadOnlyDictionary<string, string>? forms) =>
+        Normalizer.Normalize(described.Tags, forms).Take(AnalysisProfile.DefaultMaxTags);
 
     private static void SetText(ItemMetadata metadata, DescriptiveField field, string? text)
     {

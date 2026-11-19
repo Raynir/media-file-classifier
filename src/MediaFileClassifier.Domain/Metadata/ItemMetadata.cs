@@ -199,23 +199,26 @@ public sealed class ItemMetadata
         {
             result.TryAdd(
                 tag.Tag,
-                new ResolvedTag(tag.Tag, MetadataSource.User, tag.Origin, tag.AcceptedFrom?.RunId, tag.AcceptedFrom?.ModelId, null));
+                WithOtherForm(new ResolvedTag(tag.Tag, MetadataSource.User, tag.Origin, tag.AcceptedFrom?.RunId, tag.AcceptedFrom?.ModelId, null), tag));
         }
 
         foreach (var run in NewestFirst(runs.Where(run => run.ProvidesAiLayer)))
         {
             foreach (var tag in tags.Where(tag => tag.RunId == run.Id && !rejections.ContainsKey(tag.Tag)))
             {
-                result.TryAdd(tag.Tag, new ResolvedTag(tag.Tag, MetadataSource.AI, null, tag.RunId, tag.ModelId, tag.Confidence));
+                result.TryAdd(tag.Tag, WithOtherForm(new ResolvedTag(tag.Tag, MetadataSource.AI, null, tag.RunId, tag.ModelId, tag.Confidence), tag));
             }
         }
 
         foreach (var tag in tags.Where(tag => tag.Source == MetadataSource.Technical && !rejections.ContainsKey(tag.Tag)))
         {
-            result.TryAdd(tag.Tag, new ResolvedTag(tag.Tag, MetadataSource.Technical, null, null, null, null));
+            result.TryAdd(tag.Tag, WithOtherForm(new ResolvedTag(tag.Tag, MetadataSource.Technical, null, null, null, null), tag));
         }
 
         return [.. result.Values];
+
+        static ResolvedTag WithOtherForm(ResolvedTag resolved, TagAssignment assignment) =>
+            resolved with { OtherForm = assignment.OtherForm, IsOtherFormDerived = assignment.IsOtherFormDerived };
     }
 
     /// <summary>
@@ -336,12 +339,16 @@ public sealed class ItemMetadata
             return;
         }
 
-        var run = NewestFirst(runs.Where(run => run.ProvidesAiLayer))
-            .FirstOrDefault(run => tags.Any(assignment => assignment.RunId == run.Id && assignment.Tag == tag))
-            ?? throw new InvalidOperationException($"No active run suggests the tag '{tag}'.");
+        var (run, accepted) = NewestFirst(runs.Where(run => run.ProvidesAiLayer))
+            .Select(run => (Run: run, Assignment: tags.FirstOrDefault(assignment => assignment.RunId == run.Id && assignment.Tag == tag)))
+            .FirstOrDefault(pair => pair.Assignment is not null);
+        if (run is null || accepted is null)
+        {
+            throw new InvalidOperationException($"No active run suggests the tag '{tag}'.");
+        }
 
         rejections.Remove(tag);
-        tags.Add(TagAssignment.UserAccepted(ItemId, tag, run.ToReference(), now));
+        tags.Add(TagAssignment.UserAccepted(ItemId, tag, run.ToReference(), now, accepted));
         tagSuggestions.Remove(tag);
     }
 

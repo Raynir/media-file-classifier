@@ -88,7 +88,8 @@ public sealed partial class AiEndpointService : IAiEndpointService, IDisposable
             endpoint.Name.Trim(),
             url.ToString(),
             endpoint.Model?.Trim() ?? string.Empty,
-            RemoteHostConfirmed: !OpenAiCompatibleEndpoint.IsLocalHost(url) && endpoint.RemoteHostConfirmed);
+            RemoteHostConfirmed: !OpenAiCompatibleEndpoint.IsLocalHost(url) && endpoint.RemoteHostConfirmed,
+            MaxImages: endpoint.MaxImages is >= 1 ? endpoint.MaxImages : null);
 
         lock (gate)
         {
@@ -282,7 +283,7 @@ public sealed partial class AiEndpointService : IAiEndpointService, IDisposable
         var name = $"{stored.Name} ({stored.Model})";
         var created = new List<OpenAiCompatibleProvider>
         {
-            new OpenAiCompatibleImageDescriber(ProviderId(stored.Id, "describer"), name, endpoint),
+            OpenAiCompatibleImageDescriber.Create(ProviderId(stored.Id, "describer"), name, endpoint, VisionModelDefaults.Resolve(stored.Model, stored.MaxImages)),
             new OpenAiCompatibleOcrProvider(ProviderId(stored.Id, "ocr"), name, endpoint),
         };
         providersById[stored.Id] = created;

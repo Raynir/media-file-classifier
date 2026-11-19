@@ -128,6 +128,24 @@ public sealed class AnalysisInputs
     }
 
     /// <summary>
+    /// Shrinks a keyframe so its longest edge is at most <paramref name="maxLongestEdge"/>, e.g. to send several to a
+    /// describer at once. A smaller frame is returned as it is.
+    /// </summary>
+    /// <param name="frame">A raw RGBA keyframe from <see cref="GetFramesAsync"/>.</param>
+    /// <param name="maxLongestEdge">The longest edge.</param>
+    /// <returns>The frame, with its name.</returns>
+    public AiImage ShrinkFrame(AiImage frame, int maxLongestEdge)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        if (!frame.IsRawRgba || frame.PixelWidth is not { } width || frame.PixelHeight is not { } height || Math.Max(width, height) <= maxLongestEdge)
+        {
+            return frame;
+        }
+
+        return decoder.Shrink(new DecodedImage(frame.Data, width, height), maxLongestEdge).ToAiImage(frame.Name);
+    }
+
+    /// <summary>
     /// Gets the keyframes, sampled and stored once. With a sampling warning there may be none.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

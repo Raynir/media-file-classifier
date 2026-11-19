@@ -71,4 +71,16 @@ public sealed record AppSettings
     }
 
     = new();
+
+    /// <summary>
+    /// Gets the AI tag normalisation overrides (E06-S04-T05). Added without a schema bump: a file without it reads as
+    /// the defaults.
+    /// </summary>
+    public TagSettings Tags
+    {
+        get;
+        init => field = value ?? new();
+    }
+
+    = new();
 }

@@ -38,6 +38,7 @@ internal static class Program
           --endpoint <url>       analyze: the OpenAI-compatible endpoint (default: http://localhost:1234/v1, LM Studio).
           --vlm <model>          analyze, evaluate: the vision model (default: qwen/qwen3-vl-4b).
           --analysis <file>      analyze, evaluate: the stored analysis (default: <data>/analysis/<vlm>.json).
+          --ocr-from <file>      analyze: reuse the OCR text of this stored analysis instead of reading the items again.
           --language <code>      analyze: the language the describer writes in (default: en).
           --det-max-side <px>    ocr --system rapidocr: the longest side the text detector sees (default 960).
           --ep <cpu|directml>    ocr --system rapidocr: the execution provider (DirectML needs a -p:OnnxGpu=true build).

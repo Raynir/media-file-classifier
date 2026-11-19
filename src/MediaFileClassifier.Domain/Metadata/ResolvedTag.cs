@@ -18,4 +18,15 @@ public sealed record ResolvedTag(
     UserValueOrigin? Origin,
     Id<AnalysisRun>? RunId,
     Id<ModelRegistration>? ModelId,
-    double? Confidence);
+    double? Confidence)
+{
+    /// <summary>
+    /// Gets the tag in the other language, if known (D035).
+    /// </summary>
+    public string? OtherForm { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether <see cref="OtherForm"/> was derived from the tag dictionary or a translation (D047).
+    /// </summary>
+    public bool IsOtherFormDerived { get; init; }
+}

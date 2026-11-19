@@ -116,7 +116,7 @@ public sealed class LibraryOpenFlowTests
         using var connection = new SqliteConnection($"Data Source={databasePath};Pooling=False");
         connection.Open();
         using var command = connection.CreateCommand();
-        // The two latest: the latest (SearchPrefixIndex) recreates its table and runs again cleanly, while the one before it
+        // The two latest: the latest (RussianStems) recreates its table and runs again cleanly, while the one before it
         // creates a table that already exists and fails.
         command.CommandText = "DELETE FROM schema_version WHERE MigrationId IN (SELECT MigrationId FROM schema_version ORDER BY MigrationId DESC LIMIT 2)";
         command.ExecuteNonQuery();

@@ -18,21 +18,31 @@ public sealed class TagsFilterTests(TagsFilterTests.Library library) : IClassFix
 
     public static TheoryData<string[], string[], bool, string[]> Cases() => new()
     {
-        // Included, any of them (OR) or all (AND); user and AI tags alike, ignoring case and extra white space.
-        { ["beach"], [], false, ["ai", "user"] },
-        { ["BEACH"], [], true, ["ai", "user"] },
-        { ["  beach "], [], true, ["ai", "user"] },
+        // Included, any of them (OR) or all (AND); user, AI and technical tags alike (the technical "Пляж" has the form
+        // "beach"), ignoring case and extra white space.
+        { ["beach"], [], false, ["ai", "technical", "user"] },
+        { ["BEACH"], [], true, ["ai", "technical", "user"] },
+        { ["  beach "], [], true, ["ai", "technical", "user"] },
         { ["beach", "sea"], [], false, ["ai", "technical", "user"] },
-        { ["beach", "sea"], [], true, ["user"] },
+        { ["beach", "sea"], [], true, ["technical", "user"] },
         { ["beach", "dog"], [], true, [] },
 
-        // Technical tags, and case in another alphabet.
-        { ["ПЛЯЖ"], [], false, ["technical"] },
+        // A tag matches by its other-language form too (E06-S04, D348), and case in another alphabet.
+        { ["ПЛЯЖ"], [], false, ["ai", "technical", "user"] },
+        { ["пляж", "beach"], [], true, ["ai", "technical", "user"] },
+        { ["море", "пляж"], [], true, ["technical", "user"] },
+        { ["giraffe"], [], false, ["giraffe-ai", "giraffe-ru"] },
+        { ["жираф"], [], false, ["giraffe-ai", "giraffe-ru"] },
+        { ["Giraffe", "Жираф"], [], true, ["giraffe-ai", "giraffe-ru"] },
+        { ["жираф", "beach"], [], true, [] },
+        { ["zebra"], [], false, [] },
 
-        // Excluded only, and with included ones.
-        { [], ["beach"], false, ["rejected-run", "rejected-tag", "replaced-run", "technical", "untagged"] },
-        { [], ["beach", "sea"], true, ["rejected-run", "rejected-tag", "replaced-run", "untagged"] },
-        { ["sea"], ["beach"], false, ["technical"] },
+        // Excluded only, and with included ones; an excluded tag leaves out the items that have it in either language.
+        { [], ["beach"], false, ["giraffe-ai", "giraffe-ru", "rejected-run", "rejected-tag", "replaced-run", "untagged", "zebra-rejected"] },
+        { [], ["beach", "sea"], true, ["giraffe-ai", "giraffe-ru", "rejected-run", "rejected-tag", "replaced-run", "untagged", "zebra-rejected"] },
+        { [], ["Жираф"], false, ["ai", "rejected-run", "rejected-tag", "replaced-run", "technical", "untagged", "user", "zebra-rejected"] },
+        { ["sea"], ["beach"], false, [] },
+        { ["sea"], ["dog"], false, ["technical", "user"] },
         { ["beach", "sea"], ["sunset"], false, ["technical", "user"] },
 
         // Not effective: a tag the user rejected, the tags of a rejected run and of a run a newer one replaced.
@@ -52,10 +62,16 @@ public sealed class TagsFilterTests(TagsFilterTests.Library library) : IClassFix
     }
 
     [Theory]
-    [InlineData(null, new[] { "Beach", "Sea", "dog", "lake", "sunset", "Пляж" })]
-    [InlineData("", new[] { "Beach", "Sea", "dog", "lake", "sunset", "Пляж" })]
+    [InlineData(null, new[] { "Beach", "Пляж", "giraffe", "Sea", "Жираф", "море", "dog", "lake", "sunset", "закат", "озеро", "собака" })]
+    [InlineData("", new[] { "Beach", "Пляж", "giraffe", "Sea", "Жираф", "море", "dog", "lake", "sunset", "закат", "озеро", "собака" })]
     [InlineData("S", new[] { "Sea", "sunset" })]
     [InlineData("п", new[] { "Пляж" })]
+
+    // Both forms are offered, with the item counts the filter then gives: "море" is the form of "Sea" and "sea".
+    [InlineData("мор", new[] { "море" })]
+    [InlineData("со", new[] { "собака" })]
+    [InlineData("g", new[] { "giraffe" })]
+    [InlineData("ж", new[] { "Жираф" })]
     [InlineData("%", new string[0])]
     [InlineData("mountain", new string[0])]
     [InlineData("pr", new string[0])]
@@ -65,6 +81,20 @@ public sealed class TagsFilterTests(TagsFilterTests.Library library) : IClassFix
 
         Assert.Equal(expected, options.Select(option => option.Value));
         Assert.All(options, option => Assert.Equal(option.Value, option.DisplayName));
+    }
+
+    [Fact]
+    public async Task Options_CountTheItemsTheFilterThenFinds_InEitherLanguage()
+    {
+        var offered = await library.EffectiveTagsAsync();
+
+        Assert.Contains(offered, tag => tag.Tag.Value == "море");
+        Assert.Contains(offered, tag => tag.Tag.Value == "giraffe");
+        foreach (var (tag, count) in offered)
+        {
+            var found = await library.SearchAsync(new IncludeExcludeValue([tag.Value], [], matchAll: false));
+            Assert.True(count == found.Length, $"{tag.Value}: offered {count}, found {found.Length}");
+        }
     }
 
     [Fact]
@@ -105,6 +135,9 @@ public sealed class TagsFilterTests(TagsFilterTests.Library library) : IClassFix
             return [.. results.Hits.Select(hit => names[hit.ItemId]).Order(StringComparer.Ordinal)];
         }
 
+        public async Task<IReadOnlyList<(TagName Tag, int ItemCount)>> EffectiveTagsAsync() =>
+            await bed.Library.Library.Metadata.GetEffectiveTagsAsync(null, 100, Token);
+
         public async ValueTask InitializeAsync()
         {
             bed = await SearchTestBed.CreateAsync();
@@ -133,6 +166,15 @@ public sealed class TagsFilterTests(TagsFilterTests.Library library) : IClassFix
             });
             await AddAsync("technical", metadata => metadata.SetTechnicalTags([TagName.From("sea"), TagName.From("Пляж")], Now()));
             await AddAsync("untagged", _ => { });
+
+            // Tags in the dictionary have a form in the other language: "giraffe" has "жираф", and the user's "Жираф" has "giraffe".
+            await AddAsync("giraffe-ai", metadata => Apply(metadata, "caption", "giraffe"));
+            await AddAsync("giraffe-ru", metadata => metadata.AddTag(TagName.From("Жираф"), Now()));
+            await AddAsync("zebra-rejected", metadata =>
+            {
+                Apply(metadata, "caption", "zebra");
+                metadata.RejectTag(TagName.From("zebra"), Now());
+            });
 
             // Excluded items never reach the results, so autocompletion leaves their tags out.
             await AddAsync("excluded", metadata => metadata.AddTag(TagName.From("Private"), Now()), item => item.ChangeStatus(MediaItemStatus.Excluded, Now()));

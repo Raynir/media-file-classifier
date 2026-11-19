@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Infrastructure.AI.Describers;
 using MediaFileClassifier.Infrastructure.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Ocr;
 
@@ -74,6 +75,27 @@ public sealed class ModelCatalogTests
     }
 
     [Fact]
+    public void Embedded_Loads_WithTheFlorence2Describers_BaseFirst_WithTheRolesTheDescriberReads()
+    {
+        var catalog = new ModelCatalog();
+        string[] roles = [Florence2Model.VisionRole, Florence2Model.EmbedRole, Florence2Model.EncoderRole, Florence2Model.DecoderRole, Florence2Model.TokenizerRole];
+
+        Assert.Equal(Florence2Model.Base.ModelId, catalog.GetDefault(ModelPurpose.Describer)?.ModelId);
+        foreach (var (variant, size) in new[] { (Florence2Model.Base, 1_088_210_306L), (Florence2Model.Large, 3_296_923_867L) })
+        {
+            var entry = catalog.Find(variant.ModelId);
+            Assert.NotNull(entry);
+            Assert.Equal(ModelPurpose.Describer, entry.Purpose);
+            Assert.Equal(Florence2Model.Version, entry.Version);
+            Assert.Equal("MIT", entry.License);
+            Assert.Equal(roles, entry.Default.Files.Select(file => file.Role));
+            Assert.Equal("fp32", entry.Default.Precision);
+            Assert.True(entry.Default.Suits(Abstractions.Hardware.ExecutionProvider.Cpu));
+            Assert.Equal(size, entry.Default.Size);
+        }
+    }
+
+    [Fact]
     public void Embedded_EveryUrlIsPinnedToARevision()
     {
         var urls = new ModelCatalog().Entries.SelectMany(entry => entry.Tiers.SelectMany(tier => tier.Files)).Select(file => file.Url);
@@ -121,7 +143,9 @@ public sealed class ModelCatalogTests
 
     /// <summary>
     /// Checks each URL against the catalogue without downloading it: Hugging Face reports a file's SHA-256 and size
-    /// in <c>X-Linked-ETag</c> and <c>X-Linked-Size</c> before redirecting to the download.
+    /// in <c>X-Linked-ETag</c> and <c>X-Linked-Size</c> before redirecting to the download. A small file kept in git
+    /// rather than LFS (Florence-2's <c>tokenizer.json</c>) is redirected with 307 and its git SHA-1 instead, so it is
+    /// downloaded and hashed.
     /// </summary>
     [Theory]
     [MemberData(nameof(CatalogueFiles))]
@@ -132,6 +156,14 @@ public sealed class ModelCatalogTests
 
         using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
         using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, file.Url), Token);
+        if (response.StatusCode == HttpStatusCode.TemporaryRedirect)
+        {
+            using var download = new HttpClient();
+            var bytes = await download.GetByteArrayAsync(file.Url, Token);
+            Assert.Equal(file.Size, bytes.Length);
+            Assert.Equal(file.Sha256, Convert.ToHexStringLower(SHA256.HashData(bytes)));
+            return;
+        }
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         Assert.Equal(file.Sha256, response.Headers.GetValues("X-Linked-ETag").Single().Trim('"'));

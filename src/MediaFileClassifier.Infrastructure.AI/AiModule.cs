@@ -37,6 +37,18 @@ public static class AiModule
         services.TryAddSingleton(new Ocr.RapidOcrOptions());
         services.TryAddSingleton<Ocr.RapidOcrProvider>();
         services.AddSingleton<IAiProvider>(provider => provider.GetRequiredService<Ocr.RapidOcrProvider>());
+        // The in-process describers (E06-S04-T01), base first. A configured server describer is preferred over them
+        // when the profile names none (ProviderSelection).
+        services.TryAddSingleton(new Describers.Florence2Options());
+        foreach (var variant in (Describers.Florence2Variant[])[Describers.Florence2Model.Base, Describers.Florence2Model.Large])
+        {
+            services.AddSingleton<IAiProvider>(provider => new Describers.Florence2Describer(
+                variant,
+                provider.GetRequiredService<IModelStore>(),
+                provider.GetRequiredService<OnnxSessionFactory>(),
+                provider.GetRequiredService<Describers.Florence2Options>()));
+        }
+
         services.TryAddSingleton<IAiEndpointService, OpenAiCompatible.AiEndpointService>();
         services.TryAddSingleton<IModelCatalog, ModelCatalog>();
         services.TryAddSingleton<Benchmarks.BenchmarkResultStore>();

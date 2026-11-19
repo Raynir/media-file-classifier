@@ -20,4 +20,16 @@ public sealed record ImageDescription(
     IReadOnlyList<string> Objects,
     IReadOnlyList<string> Scenes,
     IReadOnlyList<string> Actions,
-    IReadOnlyList<string> Emotions);
+    IReadOnlyList<string> Emotions)
+{
+    /// <summary>
+    /// Gets the title in Russian, when the model wrote one (D035, E06-S04-T09), or <c>null</c>.
+    /// </summary>
+    public string? TitleRu { get; init; }
+
+    /// <summary>
+    /// Gets the Russian form of each tag the model wrote one for, keyed by the tag as in <see cref="Tags"/>
+    /// (case-insensitive), or <c>null</c> when the model wrote none.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? TagsRu { get; init; }
+}

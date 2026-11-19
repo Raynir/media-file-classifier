@@ -15,8 +15,10 @@
     <ProjectReference Include="../../src/MediaFileClassifier.UseCases/MediaFileClassifier.UseCases.csproj" />
     <ProjectReference Include="../MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <!-- The native CPU runtime for the ONNX provider tests. -->
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+    <!-- The native CPU runtime for the ONNX provider tests; -p:OnnxGpu=true swaps in DirectML to time models on the GPU
+         (FullProfileThroughputTests). -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Condition="'$(OnnxGpu)' != 'true'" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Condition="'$(OnnxGpu)' == 'true'" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
   </ItemGroup>

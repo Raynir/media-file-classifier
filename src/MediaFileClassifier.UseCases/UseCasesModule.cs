@@ -60,6 +60,7 @@ public static class UseCasesModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RescanCheckStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RefreshMediaStage>());
+        services.TryAddSingleton<Tags.TagNormalizer>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Analysis.Pipeline.AnalysisStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, ImportExceptionClassifier>());
         return services;

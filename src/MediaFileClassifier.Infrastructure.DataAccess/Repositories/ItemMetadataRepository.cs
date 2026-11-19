@@ -110,13 +110,23 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
 
         // Only numbers and SQL the code writes itself go into the text; the prefix and the limit are parameters.
         // Excluded items never reach the results, so their tags aren't offered.
+        // A tag is offered by its own text and by its other-language form (other_form_key), each through its index; the
+        // filter matches either, so the counts agree with the results the offered tag gives.
         var sql = $"""
-            SELECT min(a."tag") AS Tag, count(DISTINCT a."item_id") AS ItemCount
-            FROM "tag_assignment" a
-            JOIN "media_item" m ON m."id" = a."item_id"
-            WHERE a."tag_key" >= $from AND a."tag_key" < $to AND m."status" <> {(int)MediaItemStatus.Excluded} AND {EffectiveTagSql.Condition("a")}
-            GROUP BY a."tag_key"
-            ORDER BY ItemCount DESC, a."tag_key"
+            SELECT min(t."label") AS Tag, count(DISTINCT t."item_id") AS ItemCount
+            FROM (
+                SELECT a."tag_key" AS "key", a."tag" AS "label", a."item_id"
+                FROM "tag_assignment" a
+                JOIN "media_item" m ON m."id" = a."item_id"
+                WHERE a."tag_key" >= $from AND a."tag_key" < $to AND m."status" <> {(int)MediaItemStatus.Excluded} AND {EffectiveTagSql.Condition("a")}
+                UNION ALL
+                SELECT a."other_form_key", a."other_form", a."item_id"
+                FROM "tag_assignment" a
+                JOIN "media_item" m ON m."id" = a."item_id"
+                WHERE a."other_form_key" >= $from AND a."other_form_key" < $to AND m."status" <> {(int)MediaItemStatus.Excluded} AND {EffectiveTagSql.Condition("a")}
+            ) t
+            GROUP BY t."key"
+            ORDER BY ItemCount DESC, t."key"
             LIMIT $limit
             """;
         return connections.ReadAsync<IReadOnlyList<(TagName Tag, int ItemCount)>>(

@@ -276,6 +276,21 @@ public sealed class EndpointsViewModelTests
     }
 
     [Fact]
+    public async Task RetypingTheSameModel_KeepsThePicturesPerRequest()
+    {
+        service.Save(new AiEndpointSettings(string.Empty, "LM Studio", "http://127.0.0.1:1234/v1", "llava", MaxImages: 3), null);
+        var page = Create();
+        await page.RefreshAsync();
+        page.SelectedEndpoint = page.Endpoints[0];
+
+        page.Model = "llav";
+        page.Model = "llava";
+        await page.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal(3, Assert.Single(service.Endpoints).MaxImages);
+    }
+
+    [Fact]
     public void Cancel_ClosesTheFormWithoutSaving()
     {
         var page = Create();

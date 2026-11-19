@@ -20,7 +20,7 @@ public static class FilterSettings
     /// <summary>
     /// The filters in force when the library was last used, as <see cref="FilterStateSerializer"/> JSON. Kept per
     /// library, because folders and tags belong to one. It isn't registered, so the settings window doesn't list it.
+    /// The library stores it, so it's defined with the other library settings.
     /// </summary>
-    public static readonly TextSetting LastFilters = new(
-        "search.lastFilters", SettingScope.Library, SettingCategories.Library, "Setting_LastFilters", defaultValue: string.Empty);
+    public static readonly TextSetting LastFilters = KnownSettings.LastFilters;
 }

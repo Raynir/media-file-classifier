@@ -56,8 +56,11 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
             return new EditMetadataResult([], error);
         }
 
-        // Batches already written stay written if a later one fails, so the views hear about them either way.
+        // Batches already written stay written if a later one fails, so the views hear about them either way. What
+        // changed is kept per item, so the notification names only fields and tags that really changed.
         var written = new List<Id<MediaItem>>();
+        var changes = new Dictionary<Id<MediaItem>, (HashSet<DescriptiveField> Fields, bool Tags)>();
+        var completed = false;
         try
         {
             await library.Metadata.UpdateManyAsync(
@@ -65,22 +68,42 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
                 metadata =>
                 {
                     var now = clock.GetUtcNow();
-                    var any = false;
+                    var fields = new HashSet<DescriptiveField>();
+                    var tags = false;
                     foreach (var edit in edits)
                     {
-                        any |= edit.ApplyTo(metadata, now);
+                        if (edit.ApplyTo(metadata, now))
+                        {
+                            if (edit.ChangedField is { } field)
+                            {
+                                fields.Add(field);
+                            }
+                            else
+                            {
+                                tags = true;
+                            }
+                        }
                     }
 
-                    return any;
+                    changes[metadata.ItemId] = (fields, tags);
+                    return fields.Count > 0 || tags;
                 },
                 written.AddRange,
                 cancellationToken).ConfigureAwait(false);
+            completed = true;
         }
         finally
         {
             if (written.Count > 0)
             {
-                await publisher.Publish(Describe(written, edits), CancellationToken.None).ConfigureAwait(false);
+                try
+                {
+                    await publisher.Publish(Describe(written, changes), CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception) when (!completed)
+                {
+                    // The write's own failure is the one to report, not a handler's that ran because of it.
+                }
             }
         }
 
@@ -126,10 +149,12 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
     private static int CountUserTags(ItemMetadata metadata) =>
         metadata.Tags.Where(tag => tag.Source == MetadataSource.User).Select(tag => tag.Tag).Distinct().Count();
 
-    private static ItemsMetadataChanged Describe(IReadOnlyList<Id<MediaItem>> itemIds, IReadOnlyList<MetadataEdit> edits)
+    private static ItemsMetadataChanged Describe(
+        IReadOnlyList<Id<MediaItem>> itemIds,
+        Dictionary<Id<MediaItem>, (HashSet<DescriptiveField> Fields, bool Tags)> changes)
     {
-        var fields = edits.Select(edit => edit.ChangedField).OfType<DescriptiveField>().ToHashSet();
-        var change = (fields.Count > 0 ? ItemMetadataChange.Fields : 0) | (edits.Any(edit => edit.ChangedField is null) ? ItemMetadataChange.Tags : 0);
+        var fields = itemIds.SelectMany(id => changes[id].Fields).ToHashSet();
+        var change = (fields.Count > 0 ? ItemMetadataChange.Fields : 0) | (itemIds.Any(id => changes[id].Tags) ? ItemMetadataChange.Tags : 0);
         return new ItemsMetadataChanged(itemIds, change) { Fields = fields };
     }
 }

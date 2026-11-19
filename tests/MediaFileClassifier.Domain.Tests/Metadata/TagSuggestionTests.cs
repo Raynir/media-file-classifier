@@ -226,4 +226,25 @@ public sealed class TagSuggestionTests
         fixture.Analyze("Title", ["cat", "dog"]);
         Assert.Equal(TagSuggestionKind.Added, Assert.Single(Metadata.TagSuggestions).Kind);
     }
+
+    [Fact]
+    public void Reanalysis_AnotherAnalyzersPendingFlag_IsNotClearedByARunThatGivesTheUserValue_NorMakesADismissedValueNew()
+    {
+        Metadata.EditValue(DescriptiveField.Title, FieldValue.FromText("Mine"), fixture.Tick());
+        fixture.Analyze("Other", analyzer: "other");
+        Metadata.DismissSuggestion(DescriptiveField.Title);
+        var (caption, _) = fixture.Analyze("Caption");
+
+        // The other analyzer gives the user's own value: that clears nothing of the caption analyzer's flag.
+        fixture.Analyze("Mine", analyzer: "other");
+        Assert.Equal(caption.Id, Metadata.GetUserValue(DescriptiveField.Title)?.SuggestionRunId);
+
+        // A different value from the other analyzer is a suggestion; once dismissed, the caption analyzer's newer pending
+        // flag doesn't make the same value new when the other analyzer gives it again.
+        fixture.Analyze("Other", analyzer: "other");
+        Metadata.DismissSuggestion(DescriptiveField.Title);
+        var (caption2, _) = fixture.Analyze("Caption two");
+        fixture.Analyze("Other", analyzer: "other");
+        Assert.Equal(caption2.Id, Metadata.GetUserValue(DescriptiveField.Title)?.SuggestionRunId);
+    }
 }

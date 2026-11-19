@@ -91,9 +91,10 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
                     var existing = (await db.MediaItems.AsNoTracking().Where(item => ids.Contains(item.Id)).Select(item => item.Id)
                         .ToListAsync(token).ConfigureAwait(false)).ToHashSet();
                     var result = new List<Id<MediaItem>>();
+                    var loaded = await LoadManyAsync(db, [.. batch.Where(existing.Contains)], token).ConfigureAwait(false);
                     foreach (var itemId in batch.Where(existing.Contains))
                     {
-                        var metadata = await LoadAsync(db, itemId, token).ConfigureAwait(false);
+                        var metadata = loaded[itemId];
                         if (change(metadata))
                         {
                             await ReplaceAsync(db, metadata, token).ConfigureAwait(false);

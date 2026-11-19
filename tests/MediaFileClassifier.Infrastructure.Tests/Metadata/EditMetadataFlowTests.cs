@@ -357,7 +357,21 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
         var change = Assert.Single(bed.Published);
         Assert.Equal([bed.Item.Id, other.Id], change.ItemIds);
         Assert.Equal(ItemMetadataChange.Fields | ItemMetadataChange.Tags, change.Change);
-        Assert.Equal([DescriptiveField.Title, DescriptiveField.Notes], change.Fields.Order());
+        // Reverting the notes changed nothing (no user value), so only the title is named.
+        Assert.Equal([DescriptiveField.Title], change.Fields.Order());
+    }
+
+    [Fact]
+    public async Task Edits_PublishOnlyTheFieldsAndTagsThatReallyChanged()
+    {
+        await EditAsync(new MetadataEdit.SetField(Title, FieldValue.FromText("Rex")));
+        bed.Published.Clear();
+
+        await EditAsync(new MetadataEdit.SetField(Title, FieldValue.FromText("Rex")), new MetadataEdit.AddTag("dog"));
+
+        var change = Assert.Single(bed.Published);
+        Assert.Equal(ItemMetadataChange.Tags, change.Change);
+        Assert.Empty(change.Fields);
     }
 
     [Fact]
@@ -393,6 +407,31 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
         var change = Assert.Single(bed.Published);
         Assert.Equal(items.Take(100).Select(item => item.Id), change.ItemIds);
         Assert.Equal(100, (await bed.Open.Search.FindKeywordMatchesAsync(SearchStoreTests.Search("trip") with { Limit = 500 }, Token)).TotalCount);
+    }
+
+    [Fact]
+    public async Task Edits_AFailingWriteIsReported_EvenWhenAViewFailsOnTheChangeThatWasWritten()
+    {
+        var items = new List<MediaItem> { bed.Item };
+        for (var number = 2; number <= 150; number++)
+        {
+            items.Add(await bed.AddItemAsync(number));
+        }
+
+        await bed.Open.Metadata.UpdateAsync(items[119].Id, metadata => metadata.EditValue(DescriptiveField.Notes, FieldValue.FromText("boom"), bed.Library.Clock.Tick()), Token);
+        await using (var connection = bed.Library.Temporary.OpenConnection())
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "CREATE TRIGGER fail_note BEFORE INSERT ON user_field_value WHEN NEW.value LIKE '%boom%' BEGIN SELECT RAISE(ABORT, 'interrupted'); END;";
+            await command.ExecuteNonQueryAsync(Token);
+        }
+
+        bed.FailPublishing = true;
+
+        var failure = await Assert.ThrowsAnyAsync<Exception>(
+            () => bed.Sender.Send(new EditMetadataCommand([.. items.Select(item => item.Id)], [new MetadataEdit.AddTag("trip")]), Token));
+
+        Assert.DoesNotContain("handler failed", failure.ToString());
     }
 
     private Task<EditMetadataResult> EditAsync(params MetadataEdit[] edits) =>

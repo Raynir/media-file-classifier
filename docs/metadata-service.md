@@ -38,7 +38,7 @@ The result is `EditMetadataResult(ChangedItemIds, Error)`.
 
 ## Notification
 
-A command publishes one `ItemsMetadataChanged` with every changed item, `Change` flags (`Favorite`, `Fields`, `Tags`) and the changed fields, also when a later batch fails (the batches already written are published). A command that changes nothing publishes nothing. `Ui/Browser/MetadataChangeHandler` refreshes the grid and reloads the details panel when its item is among them.
+A command publishes one `ItemsMetadataChanged` with every changed item, `Change` flags (`Favorite`, `Fields`, `Tags`) and the changed fields, also when a later batch fails (the batches already written are published). The fields and tags named are those that really changed on at least one written item, not every edit in the list. A command that changes nothing publishes nothing. If a handler throws while the change is published after a failed write, the write's own error is the one that reaches the caller. `Ui/Browser/MetadataChangeHandler` refreshes the grid and reloads the details panel when its item is among them.
 
 ## Validation (E07-S01-T04)
 
@@ -57,7 +57,7 @@ A text value for a list field, or a list for a text field, is refused too. AI va
 
 A tag the user types is cleaned with `TagNormalizer.CleanUserTag`: punctuation around it, underscores and extra white space are handled as for AI tags, and nothing else changes: the case, the word form, synonyms and generic words stay as typed (D047). A tag is refused when it is empty after cleaning, holds a control character, a comma or a semicolon, or is too long.
 
-The 200-tag limit depends on what an item already has, so when the edits add tags (`AddTag`, `ConfirmTag`, `AcceptTagSuggestion`) the command first tries them on the loaded metadata, without storing it. If any item would pass 200 user tags, the whole command is refused and no batch is written. An item that already has more than 200 isn't blocked from edits that add no tag.
+The 200-tag limit depends on what an item already has, so when the edits add tags (`AddTag`, `ConfirmTag`, `AcceptTagSuggestion`) the command first tries them on the loaded metadata, without storing it. If any item would pass 200 user tags, the whole command is refused and no batch is written. An item that already has more than 200 isn't blocked from edits that add no tag. The check is a read before the writes, so a concurrent write in between could leave an item at 201, and `AddTagAsync` and `AcceptAll` don't check the limit; this is accepted for a single-user app.
 
 ## Tag autocomplete
 

@@ -534,15 +534,18 @@ public sealed class ItemMetadata
         tags.AddRange(newTags);
 
         // A field is flagged when the new value differs from the user value and is new: the analyzer's previous run gave
-        // something else, or the field's flag wasn't dealt with yet. So a dismissed suggestion stays dismissed until a
-        // run produces a different value.
+        // something else, or the analyzer's own flag on the field wasn't dealt with yet. So a dismissed suggestion stays
+        // dismissed until a run produces a different value. Another analyzer's pending flag is neither a reason to flag
+        // nor cleared by this run, unless this run flags the field itself (the newest suggestion is the one kept).
         foreach (var value in newValues)
         {
             if (userValues.TryGetValue(value.Field, out var user))
             {
                 var previousValue = previous is null ? null : aiValues.FirstOrDefault(old => old.RunId == previous.Id && old.Field == value.Field);
-                var isNew = previousValue is null || previousValue.Value != value.Value || user.SuggestionRunId is not null;
-                userValues[value.Field] = user.WithSuggestion(value.Value == user.Value || !isNew ? null : run.Id);
+                var ownFlag = user.SuggestionRunId is { } flagRunId && runs.Any(other => other.Id == flagRunId && other.Analyzer == run.Analyzer);
+                var isNew = previousValue is null || previousValue.Value != value.Value || ownFlag;
+                var flag = value.Value == user.Value ? (ownFlag ? null : user.SuggestionRunId) : isNew ? run.Id : user.SuggestionRunId;
+                userValues[value.Field] = user.WithSuggestion(flag);
             }
         }
 

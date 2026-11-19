@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
@@ -18,13 +19,15 @@ namespace MediaFileClassifier.Infrastructure.Tests.Metadata;
 internal sealed class MetadataTestBed : IAsyncDisposable
 {
     private readonly ServiceProvider services;
+    private readonly StrongBox<bool> failPublishing;
 
-    private MetadataTestBed(LibraryTestBed library, MediaItem item, ServiceProvider services, List<ItemsMetadataChanged> published)
+    private MetadataTestBed(LibraryTestBed library, MediaItem item, ServiceProvider services, List<ItemsMetadataChanged> published, StrongBox<bool> failPublishing)
     {
         Library = library;
         Item = item;
         this.services = services;
         Published = published;
+        this.failPublishing = failPublishing;
     }
 
     public LibraryTestBed Library { get; }
@@ -37,6 +40,15 @@ internal sealed class MetadataTestBed : IAsyncDisposable
 
     public List<ItemsMetadataChanged> Published { get; }
 
+    /// <summary>
+    /// Gets or sets whether the recording handler throws, as a failing view would.
+    /// </summary>
+    public bool FailPublishing
+    {
+        get => failPublishing.Value;
+        set => failPublishing.Value = value;
+    }
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     public static async Task<MetadataTestBed> CreateAsync()
@@ -45,13 +57,14 @@ internal sealed class MetadataTestBed : IAsyncDisposable
         var item = library.NewItem(1);
         await library.Library.Items.AddAsync(item, Token);
         var published = new List<ItemsMetadataChanged>();
+        var failPublishing = new StrongBox<bool>();
         var services = new ServiceCollection()
             .AddSingleton<ILibrarySession>(new TestSession(library.Library))
             .AddSingleton<TimeProvider>(library.Clock)
             .AddUseCases()
-            .AddSingleton<INotificationHandler<ItemsMetadataChanged>>(new Recorder(published))
+            .AddSingleton<INotificationHandler<ItemsMetadataChanged>>(new Recorder(published, failPublishing))
             .BuildServiceProvider();
-        return new MetadataTestBed(library, item, services, published);
+        return new MetadataTestBed(library, item, services, published, failPublishing);
     }
 
     public async Task<MediaItem> AddItemAsync(int number)
@@ -90,10 +103,15 @@ internal sealed class MetadataTestBed : IAsyncDisposable
         await Library.DisposeAsync();
     }
 
-    private sealed class Recorder(List<ItemsMetadataChanged> published) : INotificationHandler<ItemsMetadataChanged>
+    private sealed class Recorder(List<ItemsMetadataChanged> published, StrongBox<bool> fail) : INotificationHandler<ItemsMetadataChanged>
     {
         public Task Handle(ItemsMetadataChanged notification, CancellationToken cancellationToken)
         {
+            if (fail.Value)
+            {
+                throw new InvalidOperationException("handler failed");
+            }
+
             lock (published)
             {
                 published.Add(notification);

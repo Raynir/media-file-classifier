@@ -12,6 +12,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Infrastructure.DataAccess;
 using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.UseCases.Search.SearchMedia;
+using MediaFileClassifier.UseCases.Tags;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -34,6 +35,7 @@ public sealed class AppSearchSystem : IRetrievalSystem, IAsyncDisposable
     private const string ModelName = "siglip2-base-patch16-256";
 
     private static readonly DateTimeOffset Now = new(2026, 11, 14, 0, 0, 0, TimeSpan.Zero);
+    private static readonly TagNormalizer Normalizer = new();
 
     private readonly Siglip2System embeddings;
     private readonly CorpusAnalysis analysis;
@@ -259,9 +261,9 @@ public sealed class AppSearchSystem : IRetrievalSystem, IAsyncDisposable
             return;
         }
 
-        foreach (var tag in TagsOf(described))
+        foreach (var tag in TagsOf(described, null))
         {
-            metadata.AddTag(tag, Now);
+            metadata.AddTag(tag.Tag, Now);
         }
     }
 
@@ -278,13 +280,14 @@ public sealed class AppSearchSystem : IRetrievalSystem, IAsyncDisposable
         var forms = new Dictionary<string, string>(described.TagsRu!, StringComparer.OrdinalIgnoreCase);
         var run = AnalysisRun.Start(itemId, AnalyzerKeys.Describer, describer, promptVersion, Now);
         run.Complete(Now);
-        var tags = TagsOf(described).Select(tag => TagAssignment.Ai(run, tag, null, Now, forms.GetValueOrDefault(tag.Value))).ToList();
+        var tags = TagsOf(described, forms).Select(tag => TagAssignment.Ai(run, tag.Tag, null, Now, tag.OtherForm)).ToList();
         await library.AnalyzerStates.ApplyRunAsync(run, [], tags, 0, AnalyzerState.Done(itemId, AnalyzerKeys.Describer, run.Id, Now), cancellationToken)
             .ConfigureAwait(false);
     }
 
-    private static IEnumerable<TagName> TagsOf(ItemAnalysis described) =>
-        described.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(TagName.From).Distinct().Take(AnalysisProfile.DefaultMaxTags);
+    // Normalised with the built-in lists before the cap, as DescriberItemAnalyzer does (E06-S04-T05).
+    private static IEnumerable<NormalizedTag> TagsOf(ItemAnalysis described, IReadOnlyDictionary<string, string>? forms) =>
+        Normalizer.Normalize(described.Tags, forms).Take(AnalysisProfile.DefaultMaxTags);
 
     private static void SetText(ItemMetadata metadata, DescriptiveField field, string? text)
     {

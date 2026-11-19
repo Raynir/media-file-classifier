@@ -27,6 +27,16 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
         connections.ReadAsync((db, token) => LoadAsync(db, itemId, token), cancellationToken);
 
     /// <inheritdoc />
+    public Task<IReadOnlyDictionary<Id<MediaItem>, ItemMetadata>> GetManyAsync(
+        IReadOnlyCollection<Id<MediaItem>> itemIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+
+        return connections.ReadAsync((db, token) => LoadManyAsync(db, itemIds, token), cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<(ItemMetadata Metadata, TResult Result)> UpdateAsync<TResult>(
         Id<MediaItem> itemId,
         Func<ItemMetadata, TResult> change,

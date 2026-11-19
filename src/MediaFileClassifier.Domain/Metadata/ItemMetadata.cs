@@ -150,6 +150,48 @@ public sealed class ItemMetadata
         [.. tags.Where(tag => tag.RunId == runId)];
 
     /// <summary>
+    /// Gets the user layer's value of a field, whether edited or accepted.
+    /// </summary>
+    /// <param name="field">The field.</param>
+    /// <returns>The user value, or <c>null</c>.</returns>
+    public UserFieldValue? GetUserValue(DescriptiveField field) => userValues.GetValueOrDefault(field);
+
+    /// <summary>
+    /// Gets the AI layer's value of a field: the value of the newest active, not rejected run that gives one. It is
+    /// returned even when a user value is effective, so the two can be compared.
+    /// </summary>
+    /// <param name="field">The field.</param>
+    /// <returns>The AI value, or <c>null</c>.</returns>
+    public AiFieldValue? GetLatestAiValue(DescriptiveField field) =>
+        NewestFirst(runs.Where(run => run.ProvidesAiLayer))
+            .Select(run => aiValues.FirstOrDefault(value => value.RunId == run.Id && value.Field == field))
+            .FirstOrDefault(value => value is not null);
+
+    /// <summary>
+    /// Gets the technical layer's value of a field, read from the file.
+    /// </summary>
+    /// <param name="field">The field.</param>
+    /// <returns>The technical value, or <c>null</c>.</returns>
+    public TechnicalFieldValue? GetTechnicalValue(DescriptiveField field) => technicalValues.GetValueOrDefault(field);
+
+    /// <summary>
+    /// Gets the new AI suggestion flagged on a field's user value (D020): the value the suggesting run gave.
+    /// </summary>
+    /// <param name="field">The field.</param>
+    /// <returns>The suggested value, or <c>null</c> when the field has no suggestion.</returns>
+    public AiFieldValue? GetSuggestedValue(DescriptiveField field) =>
+        userValues.TryGetValue(field, out var user) && user.SuggestionRunId is { } runId
+            ? aiValues.FirstOrDefault(value => value.RunId == runId && value.Field == field)
+            : null;
+
+    /// <summary>
+    /// Gets the new AI suggestion on a tag, if it has one.
+    /// </summary>
+    /// <param name="tag">The tag.</param>
+    /// <returns>The suggestion, or <c>null</c>.</returns>
+    public TagSuggestion? GetTagSuggestion(TagName tag) => tagSuggestions.GetValueOrDefault(tag);
+
+    /// <summary>
     /// Resolves the effective value of a field: User, then AI, then Technical.
     /// </summary>
     /// <param name="field">The field.</param>
@@ -170,7 +212,7 @@ public sealed class ItemMetadata
                 user.SuggestionRunId);
         }
 
-        if (GetActiveAiValue(field) is { } ai)
+        if (GetLatestAiValue(field) is { } ai)
         {
             return new ResolvedField(field, ai.Value, MetadataSource.AI, null, ai.RunId, ai.ModelId, ai.Confidence, ai.CreatedAt, null);
         }
@@ -267,7 +309,7 @@ public sealed class ItemMetadata
     /// <exception cref="InvalidOperationException">The field has no effective AI value.</exception>
     public void AcceptAiValue(DescriptiveField field, DateTimeOffset now)
     {
-        var ai = GetActiveAiValue(field) ?? throw new InvalidOperationException($"{field} has no AI value to accept.");
+        var ai = GetLatestAiValue(field) ?? throw new InvalidOperationException($"{field} has no AI value to accept.");
 
         userValues[field] = UserFieldValue.Accepted(ItemId, field, ai.Value, GetRun(ai.RunId).ToReference(), now);
     }
@@ -506,11 +548,6 @@ public sealed class ItemMetadata
         before.Values.Count == after.Values.Count
         && before.Values.All(pair => after.Values.TryGetValue(pair.Key, out var value) && value == pair.Value)
         && before.Tags.SetEquals(after.Tags);
-
-    private AiFieldValue? GetActiveAiValue(DescriptiveField field) =>
-        NewestFirst(runs.Where(run => run.ProvidesAiLayer))
-            .Select(run => aiValues.FirstOrDefault(value => value.RunId == run.Id && value.Field == field))
-            .FirstOrDefault(value => value is not null);
 
     private bool HasUserTag(TagName tag) =>
         tags.Any(assignment => assignment.Source == MetadataSource.User && assignment.Tag == tag);

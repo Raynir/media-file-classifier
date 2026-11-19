@@ -20,6 +20,16 @@ public interface IItemMetadataRepository
     Task<ItemMetadata> GetAsync(Id<MediaItem> itemId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Loads the metadata of many items with one query per table, e.g. for a multi-selection.
+    /// </summary>
+    /// <param name="itemIds">The items.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The metadata of each distinct item; an item with no metadata yet, or unknown, gets an empty one.</returns>
+    Task<IReadOnlyDictionary<Id<MediaItem>, ItemMetadata>> GetManyAsync(
+        IReadOnlyCollection<Id<MediaItem>> itemIds,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Loads an item's metadata, applies a change and stores the result, as one write (D072).
     /// </summary>
     /// <typeparam name="TResult">What the change returns.</typeparam>

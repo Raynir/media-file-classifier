@@ -50,12 +50,13 @@ internal sealed class LibraryTestBed : IAsyncDisposable
     /// <summary>
     /// Creates a library named <c>test</c> with a folder and an embedding model.
     /// </summary>
+    /// <param name="loggers">Creates the open library's loggers, or <c>null</c> for no logging.</param>
     /// <returns>The test bed. The caller disposes it.</returns>
-    public static async Task<LibraryTestBed> CreateAsync()
+    public static async Task<LibraryTestBed> CreateAsync(ILoggerFactory? loggers = null)
     {
         var temporary = TemporaryLibrary.Reserve();
         var clock = new TestClock(Start);
-        var store = CreateStore(clock);
+        var store = CreateStore(clock, loggers);
         var library = await store.CreateAsync(temporary.ParentDirectory, "test", TestContext.Current.CancellationToken);
         var folder = IndexedFolder.Create(library.Library.Id, @"D:\Photos", @"D:\Photos", Start);
         await library.Folders.AddAsync(folder, TestContext.Current.CancellationToken);
@@ -68,8 +69,10 @@ internal sealed class LibraryTestBed : IAsyncDisposable
     /// Creates a store with a fixed clock and no logging.
     /// </summary>
     /// <param name="clock">Clock.</param>
+    /// <param name="loggers">Creates the open libraries' loggers, or <c>null</c> for no logging.</param>
     /// <returns>The store.</returns>
-    public static LibraryStore CreateStore(TimeProvider clock) => new(clock, NullLogger<LibraryStore>.Instance);
+    public static LibraryStore CreateStore(TimeProvider clock, ILoggerFactory? loggers = null) =>
+        new(clock, NullLogger<LibraryStore>.Instance, loggers ?? NullLoggerFactory.Instance);
 
     /// <summary>
     /// Makes a new, unsaved item in the test folder.
@@ -146,4 +149,44 @@ internal sealed class ThrowingLogger<T> : ILogger<T>
     /// <inheritdoc />
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
         throw new InvalidOperationException("Simulated failure.");
+}
+
+/// <summary>
+/// Keeps the errors logged through it, with their exceptions.
+/// </summary>
+internal sealed class RecordingLoggerFactory : ILoggerFactory
+{
+    public List<(string Category, Exception? Exception)> Errors { get; } = [];
+
+    /// <inheritdoc />
+    public ILogger CreateLogger(string categoryName) => new Logger(this, categoryName);
+
+    /// <inheritdoc />
+    public void AddProvider(ILoggerProvider provider)
+    {
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+    }
+
+    private sealed class Logger(RecordingLoggerFactory owner, string category) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel >= LogLevel.Error)
+            {
+                lock (owner.Errors)
+                {
+                    owner.Errors.Add((category, exception));
+                }
+            }
+        }
+    }
 }

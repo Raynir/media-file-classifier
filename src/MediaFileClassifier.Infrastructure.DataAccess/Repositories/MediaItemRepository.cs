@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
@@ -6,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Infrastructure.DataAccess.Repositories;
 
@@ -14,7 +17,9 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Repositories;
 /// </summary>
 /// <param name="connections">Connection factory of the library.</param>
 /// <param name="writer">Writer of the library.</param>
-internal sealed class MediaItemRepository(LibraryConnectionFactory connections, LibraryWriter writer) : IMediaItemRepository
+/// <param name="logger">Logs listeners of <see cref="Changed"/> that fail.</param>
+internal sealed partial class MediaItemRepository(LibraryConnectionFactory connections, LibraryWriter writer, ILogger<MediaItemRepository> logger)
+    : IMediaItemRepository
 {
     /// <summary>
     /// Number of items written per transaction by <see cref="AddRangeAsync"/> and by the tag operations on many items
@@ -23,6 +28,9 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
     /// throughput (stress test of E01-S03-T04).
     /// </summary>
     public const int BatchSize = 100;
+
+    // Listeners that failed already: a later failure of the same one is logged at debug level.
+    private readonly ConcurrentDictionary<MethodInfo, byte> failedListeners = new();
 
     /// <inheritdoc />
     public event EventHandler? Changed;
@@ -542,7 +550,47 @@ internal sealed class MediaItemRepository(LibraryConnectionFactory connections, 
         return deleted;
     }
 
-    private void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
+    // Listeners run on the writing thread, often a job's. The items are written by now, so a listener that fails is
+    // logged and the others still hear the change: one listener mustn't fail the import or rescan that wrote them
+    // (MFC-1002).
+    private void RaiseChanged()
+    {
+        if (Changed is not { } changed)
+        {
+            return;
+        }
+
+        foreach (var listener in changed.GetInvocationList().Cast<EventHandler>())
+        {
+            try
+            {
+                listener(this, EventArgs.Empty);
+            }
+            catch (OperationCanceledException)
+            {
+                // E.g. the listener's work was cancelled as the library closes; there is nothing to report.
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                // A listener that fails on every change would otherwise log an error per import batch.
+                var name = listener.Method.DeclaringType?.FullName ?? listener.Method.Name;
+                if (failedListeners.TryAdd(listener.Method, 0))
+                {
+                    LogListenerFailed(exception, name);
+                }
+                else
+                {
+                    LogListenerFailedAgain(exception, name);
+                }
+            }
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "A listener of the media item changes ({Listener}) failed; later failures of it are logged at debug level")]
+    private partial void LogListenerFailed(Exception exception, string listener);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "A listener of the media item changes ({Listener}) failed again")]
+    private partial void LogListenerFailedAgain(Exception exception, string listener);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default)

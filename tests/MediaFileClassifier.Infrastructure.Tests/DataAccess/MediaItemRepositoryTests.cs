@@ -37,6 +37,37 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Changed_ListenerThatThrows_DoesNotFailTheWrite_AndTheOthersStillHearIt()
+    {
+        // MFC-1002: listeners run on the writing job's thread, so one that threw failed the import that added the items.
+        var heard = 0;
+        bed.Library.Items.Changed += (_, _) => throw new ArgumentException("Simulated listener failure.");
+        bed.Library.Items.Changed += (_, _) => heard++;
+
+        await bed.Library.Items.AddRangeAsync([bed.NewItem(1), bed.NewItem(2)], Token);
+
+        Assert.Equal(1, heard);
+        Assert.Equal(2, await bed.Library.Items.CountAsync(Token));
+    }
+
+    [Fact]
+    public async Task Changed_ListenerThatThrows_IsLoggedOnce()
+    {
+        var loggers = new RecordingLoggerFactory();
+        await using var logged = await LibraryTestBed.CreateAsync(loggers);
+        var failure = new ArgumentException("Simulated listener failure.");
+        logged.Library.Items.Changed += (_, _) => throw failure;
+
+        await logged.Library.Items.AddAsync(logged.NewItem(1), Token);
+        await logged.Library.Items.AddAsync(logged.NewItem(2), Token);
+
+        // Once: a listener that fails on every change mustn't log an error per import batch.
+        var error = Assert.Single(loggers.Errors);
+        Assert.Equal(typeof(MediaItemRepository).FullName, error.Category);
+        Assert.Same(failure, error.Exception);
+    }
+
+    [Fact]
     public async Task GetAsync_UnknownId_ReturnsNull()
     {
         Assert.Null(await bed.Library.Items.GetAsync(Id<MediaItem>.New(), Token));

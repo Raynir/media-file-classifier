@@ -1,11 +1,11 @@
 {
-  "note": "Set by E06-SP01 (MFC-53) for siglip2-base-patch16-256 with lower-cased queries: the measured values minus about 0.02 (report eval/reports/*_siglip2-base-patch16-256-lowercase). Search thresholds are minimums, OCR thresholds are maximums; OCR stays empty until E06-SP04. The systems section (MFC-996) holds app-hybrid, app-vector and app-keyword to their own measured values minus 0.02 (after D350, eval/reports 2026-11-14_184530 to 185828).",
+  "note": "Set by E06-SP01 (MFC-53) for siglip2-base-patch16-256 with lower-cased queries: the measured values minus about 0.02 (report eval/reports/*_siglip2-base-patch16-256-lowercase). Search thresholds are minimums, OCR thresholds are maximums; OCR stays empty until E06-SP04. The systems section (MFC-996) holds app-hybrid, app-vector and app-keyword to their own measured values minus 0.02 (after D350, eval/reports 2026-11-14_184530 to 185828); app-keyword was reset to the describe-2 analysis with the tag dictionary and Russian stems (E06-S04, eval/reports 2026-11-19_123251_app-keyword).",
   "recallAt10": { "en": 0.94, "ru": 0.79 },
   "mrr": { "en": 0.96, "ru": 0.81 },
   "systems": {
     "app-hybrid": { "recallAt10": { "en": 0.90, "ru": 0.72 }, "mrr": { "en": 0.95, "ru": 0.78 } },
     "app-vector": { "recallAt10": { "en": 0.77, "ru": 0.65 }, "mrr": { "en": 0.85, "ru": 0.72 } },
-    "app-keyword": { "recallAt10": { "en": 0.69, "ru": 0.16 }, "mrr": { "en": 0.81, "ru": 0.21 } }
+    "app-keyword": { "recallAt10": { "en": 0.65, "ru": 0.54 }, "mrr": { "en": 0.74, "ru": 0.59 } }
   },
   "ocrCer": { "latin": null, "cyrillic": null, "mixed": null },
   "references": {

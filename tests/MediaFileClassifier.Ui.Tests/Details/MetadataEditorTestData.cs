@@ -75,6 +75,8 @@ internal sealed class MetadataEditorSender : FakeSender
 
     public Exception? Failure { get; set; }
 
+    public Exception? SuggestFailure { get; set; }
+
     public List<TagSuggestionItem> KnownTags { get; } = [];
 
     public List<string?> Prefixes { get; } = [];
@@ -92,6 +94,11 @@ internal sealed class MetadataEditorSender : FakeSender
                     : new EditMetadataResult(Error is null ? [.. command.ItemIds] : [], Error);
             case SuggestTagsQuery query:
                 Prefixes.Add(query.Prefix);
+                if (SuggestFailure is { } suggestFailure)
+                {
+                    throw suggestFailure;
+                }
+
                 return (IReadOnlyList<TagSuggestionItem>)[.. KnownTags
                     .Where(tag => string.IsNullOrEmpty(query.Prefix) || tag.Text.StartsWith(query.Prefix, StringComparison.OrdinalIgnoreCase))
                     .Take(query.Limit)];

@@ -3,7 +3,10 @@
              xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Details"
              xmlns:d="using:MediaFileClassifier.Ui.Details"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
              x:Class="MediaFileClassifier.Ui.Views.Details.MetadataEditorView"
+             x:Name="Root"
+             sc:Shortcuts.Scope="editor"
              x:DataType="vm:MetadataEditorViewModel">
   <!--
     The metadata editor (E07-S02): descriptive fields, AI analysis fields and tags in collapsible sections, with the
@@ -61,6 +64,32 @@
       <Setter Property="BorderThickness" Value="2,0,0,0" />
       <Setter Property="Padding" Value="8,0,0,0" />
     </Style>
+    <Style Selector="Border.Chip.Added">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Provenance.Edited.Foreground}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.Chip:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Focus}" />
+    </Style>
+    <Style Selector="TextBlock.ChipText.Struck">
+      <Setter Property="TextDecorations" Value="Strikethrough" />
+    </Style>
+    <Style Selector="TextBlock.ChipText.Struck2">
+      <Setter Property="TextDecorations" Value="Strikethrough" />
+    </Style>
+    <Style Selector="TextBlock.ChipSource">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}" />
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.ChipButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Focusable" Value="False" />
+    </Style>
     <Style Selector="Border.Chip">
       <Setter Property="Background" Value="{DynamicResource Brush.Surface.Control}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
@@ -113,6 +142,7 @@
         <Expander Header="{l:Loc Details_Tags}" IsExpanded="True" HorizontalAlignment="Stretch">
           <StackPanel Spacing="{DynamicResource Space.XS}">
             <TextBlock Classes="Tertiary" Text="{l:Loc Details_Tags_None}" IsVisible="{Binding !HasTags}" />
+            <!-- Chips: the source icon, the tag, and remove / reject / undo. Staged changes are an outline (added) or a strikethrough. -->
             <ItemsControl x:Name="TagList" ItemsSource="{Binding Tags}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -121,12 +151,41 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="d:TagChipViewModel">
-                  <Border Classes="Chip" Margin="{DynamicResource Padding.Compact}">
-                    <TextBlock Text="{Binding Text}" />
+                  <Border Classes="Chip"
+                          Classes.Added="{Binding IsAdded}"
+                          Classes.Dropped="{Binding !CanRemove}"
+                          Focusable="True"
+                          Margin="{DynamicResource Padding.Compact}"
+                          AutomationProperties.Name="{Binding Text}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                      <TextBlock Classes="ChipSource" Text="{Binding Source, Converter={x:Static d:TagSourceConverters.Glyph}}"
+                                 ToolTip.Tip="{Binding Source, Converter={x:Static d:TagSourceConverters.Description}}" />
+                      <TextBlock Classes="ChipText"
+                                 Classes.Struck="{Binding IsRemoved}"
+                                 Classes.Struck2="{Binding IsRejected}"
+                                 Text="{Binding Text}" />
+                      <Button Classes="ChipButton" Content="↶" IsVisible="{Binding !CanReject}"
+                              Tag="Undo" ToolTip.Tip="{l:Loc Editor_Tag_Undo}" AutomationProperties.Name="{l:Loc Editor_Tag_Undo}" />
+                      <Button Classes="ChipButton" Content="×" IsVisible="{Binding CanRemove}"
+                              Tag="Remove" ToolTip.Tip="{l:Loc Editor_Tag_Remove}" AutomationProperties.Name="{l:Loc Editor_Tag_Remove}" />
+                      <Button Classes="ChipButton" Content="⊘" IsVisible="{Binding CanReject}"
+                              Tag="Reject" ToolTip.Tip="{l:Loc Editor_Tag_Reject}" AutomationProperties.Name="{l:Loc Editor_Tag_Reject}" />
+                    </StackPanel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+            <AutoCompleteBox x:Name="TagInput"
+                             Text="{Binding NewTagText}"
+                             ItemsSource="{Binding Suggestions}"
+                             FilterMode="None"
+                             MinimumPrefixLength="0"
+                             PlaceholderText="{l:Loc Editor_Tag_Input}"
+                             AutomationProperties.Name="{l:Loc Editor_Tag_Input}" />
+            <TextBlock Classes="Tertiary" Text="{l:Loc Editor_Tag_InputHelp}" TextWrapping="Wrap" />
+            <TextBlock Classes="FieldError"
+                       Text="{Binding TagError}"
+                       IsVisible="{Binding TagError, Converter={x:Static ObjectConverters.IsNotNull}}" />
           </StackPanel>
         </Expander>
       </StackPanel>

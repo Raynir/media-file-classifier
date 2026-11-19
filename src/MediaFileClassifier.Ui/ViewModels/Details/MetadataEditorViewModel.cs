@@ -9,6 +9,8 @@ using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases.Metadata;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
+using MediaFileClassifier.UseCases.Metadata.SuggestTags;
+using MediaFileClassifier.UseCases.Tags;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -21,10 +23,14 @@ namespace MediaFileClassifier.Ui.ViewModels.Details;
 /// </summary>
 public sealed partial class MetadataEditorViewModel : ViewModelBase
 {
+    private const int SuggestionLimit = 8;
+
     private readonly ISender sender;
     private readonly Localizer localizer;
     private readonly ILogger logger;
     private int loads;
+    private int suggestionRequests;
+    private ItemMetadataView? shown;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MetadataEditorViewModel"/> class.
@@ -114,9 +120,32 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     public partial string? SaveError { get; private set; }
 
     /// <summary>
+    /// Gets or sets the text typed into the tag input.
+    /// </summary>
+    [ObservableProperty]
+    public partial string NewTagText { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets the tags offered for the typed text, most used first.
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<string> Suggestions { get; private set; } = [];
+
+    /// <summary>
+    /// Gets a message about a tag the service refused, shown under the tag input, or <see langword="null"/>.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? TagError { get; private set; }
+
+    /// <summary>
     /// Gets a task for the latest load, for tests.
     /// </summary>
     internal Task Loading { get; private set; } = Task.CompletedTask;
+
+    /// <summary>
+    /// Gets a task for the latest suggestion lookup, for tests.
+    /// </summary>
+    internal Task SuggestionsLoading { get; private set; } = Task.CompletedTask;
 
     private IEnumerable<EditableFieldViewModel> AllFields => [.. Descriptive, .. Analysis];
 
@@ -138,9 +167,74 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
             field.Discard();
         }
 
+        ApplyTags(shown);
+        NewTagText = string.Empty;
+        TagError = null;
         SaveError = null;
         UpdateDirty();
     }
+
+    /// <summary>
+    /// Stages a tag the user typed: it is added when the user saves. A tag the item shows already is left as it is,
+    /// unless a removal or rejection of it is staged, which is undone. Tags compare ignoring case.
+    /// </summary>
+    /// <param name="text">The tag as typed.</param>
+    /// <returns><see langword="true"/> if the text was taken, <see langword="false"/> if it is empty.</returns>
+    public bool AddTag(string? text)
+    {
+        var clean = TagNormalizer.CleanUserTag(text);
+        if (clean.Length == 0)
+        {
+            return false;
+        }
+
+        TagError = null;
+        var existing = Tags.FirstOrDefault(chip => string.Equals(chip.Text, clean, StringComparison.OrdinalIgnoreCase));
+        if (existing is null)
+        {
+            AddChip(new TagChipViewModel(clean, MetadataSource.User, stage: TagStage.Added));
+            UpdateDirty();
+        }
+        else if (existing.Stage is TagStage.Removed or TagStage.Rejected)
+        {
+            existing.Stage = TagStage.Unchanged;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Takes the text in the tag input as a tag and clears the input.
+    /// </summary>
+    [RelayCommand]
+    public void AddTypedTag()
+    {
+        if (AddTag(NewTagText))
+        {
+            NewTagText = string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Stages the removal of a tag the user has. A tag typed and not saved is dropped.
+    /// </summary>
+    /// <param name="chip">The tag.</param>
+    [RelayCommand]
+    public void RemoveTag(TagChipViewModel? chip) => Stage(chip, TagStage.Removed, chip?.CanRemove == true);
+
+    /// <summary>
+    /// Stages the rejection of a tag, so AI runs and the file don't add it again. A tag typed and not saved is dropped.
+    /// </summary>
+    /// <param name="chip">The tag.</param>
+    [RelayCommand]
+    public void RejectTag(TagChipViewModel? chip) => Stage(chip, TagStage.Rejected, chip?.CanReject == true);
+
+    /// <summary>
+    /// Takes back the removal or rejection staged on a tag.
+    /// </summary>
+    /// <param name="chip">The tag.</param>
+    [RelayCommand]
+    public void UndoTag(TagChipViewModel? chip) => Stage(chip, TagStage.Unchanged, chip is { Stage: TagStage.Removed or TagStage.Rejected });
 
     /// <summary>
     /// Saves every staged change to the item as one edit (D019). A value the service refuses is shown next to its
@@ -203,7 +297,77 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
                 : new MetadataEdit.SetField(field.Field, field.ToValue()));
         }
 
+        // Removals and rejections go first, so a tag staged for removal and typed again nets out in the service.
+        edits.AddRange(Tags.Where(chip => chip.Stage == TagStage.Removed).Select(chip => (MetadataEdit)new MetadataEdit.RemoveTag(TagName.From(chip.Text))));
+        edits.AddRange(Tags.Where(chip => chip.Stage == TagStage.Rejected).Select(chip => (MetadataEdit)new MetadataEdit.RejectTag(TagName.From(chip.Text))));
+        edits.AddRange(Tags.Where(chip => chip.Stage == TagStage.Added).Select(chip => (MetadataEdit)new MetadataEdit.AddTag(chip.Text)));
         return edits;
+    }
+
+    partial void OnNewTagTextChanged(string value)
+    {
+        TagError = null;
+        SuggestionsLoading = LoadSuggestionsAsync(value);
+    }
+
+    private void Stage(TagChipViewModel? chip, TagStage stage, bool allowed)
+    {
+        if (chip is null || !allowed)
+        {
+            return;
+        }
+
+        if (chip.Stage == TagStage.Added && stage != TagStage.Unchanged)
+        {
+            // A tag that was never saved has nothing to remove or reject.
+            Tags.Remove(chip);
+            chip.PropertyChanged -= OnChipChanged;
+        }
+        else
+        {
+            chip.Stage = stage;
+        }
+
+        HasTags = Tags.Count > 0;
+        UpdateDirty();
+    }
+
+    private void AddChip(TagChipViewModel chip)
+    {
+        chip.PropertyChanged += OnChipChanged;
+        Tags.Add(chip);
+        HasTags = true;
+    }
+
+    private void OnChipChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TagChipViewModel.Stage))
+        {
+            UpdateDirty();
+        }
+    }
+
+    private async Task LoadSuggestionsAsync(string text)
+    {
+        var request = ++suggestionRequests;
+        IReadOnlyList<TagSuggestionItem> found;
+        try
+        {
+            found = await sender.Send(new SuggestTagsQuery(text, SuggestionLimit + Tags.Count));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogSuggestFailed(logger, ex);
+            found = [];
+        }
+
+        if (request != suggestionRequests)
+        {
+            return;
+        }
+
+        var shownTags = Tags.Where(chip => chip.Stage is not (TagStage.Removed or TagStage.Rejected)).Select(chip => chip.Text).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Suggestions = [.. found.Select(tag => tag.Text).Where(tag => !shownTags.Contains(tag)).Take(SuggestionLimit)];
     }
 
     private bool CanSave() => IsDirty && !IsSaving;
@@ -212,7 +376,11 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     {
         var field = AllFields.FirstOrDefault(candidate => candidate.Field == error.Field);
         var message = localizer.Format("Editor_Error_" + error.Code, error.Limit ?? 0, error.Tag ?? string.Empty);
-        if (field is null)
+        if (error.Code is MetadataValidationCode.TagEmpty or MetadataValidationCode.TagTooLong or MetadataValidationCode.TagInvalidCharacter or MetadataValidationCode.TooManyTags)
+        {
+            TagError = message;
+        }
+        else if (field is null)
         {
             SaveError = message;
         }
@@ -245,7 +413,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
 
     private void UpdateDirty()
     {
-        IsDirty = AllFields.Any(field => field.IsDirty);
+        IsDirty = AllFields.Any(field => field.IsDirty) || Tags.Any(chip => chip.IsStaged);
         SaveCommand.NotifyCanExecuteChanged();
     }
 
@@ -282,18 +450,34 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         }
 
         HasTranscript = Transcript.HasText;
+        shown = view;
+        ApplyTags(view);
+        NewTagText = string.Empty;
+        TagError = null;
+        UpdateDirty();
+    }
+
+    private void ApplyTags(ItemMetadataView? view)
+    {
+        foreach (var chip in Tags)
+        {
+            chip.PropertyChanged -= OnChipChanged;
+        }
+
         Tags.Clear();
         foreach (var tag in view?.Tags ?? [])
         {
-            Tags.Add(new TagChipViewModel(tag.Tag.Tag.Value, tag.Tag.Source, tag.Tag.Confidence));
+            AddChip(new TagChipViewModel(tag.Tag.Tag.Value, tag.Tag.Source, tag.Tag.Confidence));
         }
 
         HasTags = Tags.Count > 0;
-        UpdateDirty();
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't save the metadata edits")]
     private static partial void LogSaveFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't look up tags to suggest")]
+    private static partial void LogSuggestFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't load the metadata to edit")]
     private static partial void LogLoadFailed(ILogger logger, Exception exception);

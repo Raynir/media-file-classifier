@@ -246,10 +246,11 @@ Nothing returns to `Discovered`. Missing and excluded items keep their metadata,
 |-----------|--------------|
 | A new run completes | It becomes the analyzer's active run. The previous active run is kept for comparison; older ones are pruned with their values and tags. |
 | The field has no user value | The new AI value becomes effective automatically. |
-| The field has a user value (Edited or Accepted) | The user value stays. If the new AI value differs, the user value is flagged with a **new AI suggestion** (the run ID). |
+| The field has a user value (Edited or Accepted) | The user value stays. The user value is flagged with a **new AI suggestion** (the run ID) only if the new AI value differs from the user value **and** from the analyzer's previous run's value, or if it was flagged already and not dealt with. A value the user dismissed therefore stays dismissed until a run gives a different one. |
 | The user accepts the suggestion | The user value becomes the new AI value, Accepted from the new run. |
-| The user dismisses the suggestion | The user value stays and the flag is cleared. |
-| The user removes a tag | A tombstone is kept. Neither the file nor any later run brings the tag back. Adding the tag manually removes the tombstone. |
+| The user dismisses the suggestion | The user value stays and the flag is cleared. Runs that give the same value as the previous run don't flag it again. |
+| The user removes a tag (`RemoveTag`) | Only the user's assignment goes, with no tombstone: if an AI run or the file gives the tag too, it shows again as an AI or file tag. |
+| The user rejects a tag | A tombstone is kept. Neither the file nor any later run brings the tag back. Adding the tag manually removes the tombstone. |
 | The user accepts a tag | It becomes a user tag, Accepted from its run. It stays when later runs drop it. |
 | The user rejects a run in review (D021) | Its AI values and tags stop being effective. User values and embeddings stay. |
 | Review "Accept" | Every effective AI value and tag becomes user-owned, Accepted. |

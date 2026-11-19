@@ -88,7 +88,9 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IMediaItemRepository Items => ItemList;
 
-    public IItemMetadataRepository Metadata => throw new NotSupportedException();
+    public IItemMetadataRepository MetadataRepository { get; set; } = null!;
+
+    public IItemMetadataRepository Metadata => MetadataRepository ?? throw new NotSupportedException();
 
     public IModelRegistrationRepository Models => throw new NotSupportedException();
 

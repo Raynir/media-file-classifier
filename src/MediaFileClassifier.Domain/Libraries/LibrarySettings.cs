@@ -21,6 +21,7 @@ public sealed record LibrarySettings
 
     private readonly AnalysisProfile analysisProfile = AnalysisProfile.Default;
     private readonly double embeddingSwitchThreshold = DefaultEmbeddingSwitchThreshold;
+    private readonly string lastFilters = string.Empty;
     private readonly int retainedPreviousRuns = 1;
     private readonly int thumbnailTileSize = DefaultThumbnailTileSize;
 
@@ -81,6 +82,20 @@ public sealed record LibrarySettings
         {
             ArgumentOutOfRangeException.ThrowIfNegative(value);
             retainedPreviousRuns = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the filters in force when the library was last used, as the search's own JSON, or an empty string if none
+    /// were saved. They're kept per library because folders and tags belong to one (D314).
+    /// </summary>
+    public string LastFilters
+    {
+        get => lastFilters;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            lastFilters = value;
         }
     }
 

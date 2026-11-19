@@ -32,11 +32,38 @@ public sealed class FilterStatePersistenceTests
     public void Filters_AreSavedInTheLibrary_WheneverTheyChange()
     {
         store.IsLibraryOpen = true;
-        _ = new FilterStatePersistence(source, store, serializer);
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
 
         source.SetFilters(Videos);
 
         Assert.Equal(Videos, serializer.Deserialize(store.Get(FilterSettings.LastFilters)));
+    }
+
+    [Fact]
+    public void Filters_ThatCannotBeSaved_DoNotFailWhatChangedThem()
+    {
+        // MFC-1001: the save runs inside the items-changed event of an import, so a failure there failed the import.
+        store.IsLibraryOpen = true;
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
+        store.WriteFailure = new IOException("disk full");
+
+        source.SetFilters(Videos);
+
+        Assert.Equal(Videos, source.Filters);
+    }
+
+    [Fact]
+    public void ClearedFilters_AreStoredAsTheDefault()
+    {
+        store.IsLibraryOpen = true;
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
+        var writes = store.WriteCount;
+
+        source.SetFilters(Videos);
+        source.SetFilters(FilterState.Empty);
+
+        Assert.Equal(string.Empty, store.Get(FilterSettings.LastFilters));
+        Assert.Equal(writes + 2, store.WriteCount);
     }
 
     [Fact]
@@ -46,7 +73,7 @@ public sealed class FilterStatePersistenceTests
         store.SetValue(FilterSettings.RestoreOnStart, true);
         store.SetValue(FilterSettings.LastFilters, FilterStateSerializer.Serialize(Videos));
         store.IsLibraryOpen = false;
-        _ = new FilterStatePersistence(source, store, serializer);
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
 
         store.IsLibraryOpen = true;
 
@@ -59,7 +86,7 @@ public sealed class FilterStatePersistenceTests
         store.IsLibraryOpen = true;
         store.SetValue(FilterSettings.LastFilters, FilterStateSerializer.Serialize(Videos));
         store.IsLibraryOpen = false;
-        _ = new FilterStatePersistence(source, store, serializer);
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
 
         store.IsLibraryOpen = true;
 
@@ -71,7 +98,7 @@ public sealed class FilterStatePersistenceTests
     {
         store.IsLibraryOpen = true;
         store.SetValue(FilterSettings.RestoreOnStart, true);
-        _ = new FilterStatePersistence(source, store, serializer);
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
         source.SetFilters(Videos);
 
         // The next library has nothing saved.
@@ -86,7 +113,7 @@ public sealed class FilterStatePersistenceTests
     public void WithRestoreOff_ALibraryThatOpens_DoesNotInheritTheFiltersOfThePreviousOne()
     {
         store.IsLibraryOpen = true;
-        _ = new FilterStatePersistence(source, store, serializer);
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
         source.SetFilters(Videos);
         store.SetValue(FilterSettings.LastFilters, string.Empty);
 
@@ -100,7 +127,7 @@ public sealed class FilterStatePersistenceTests
     [Fact]
     public void WhenNoLibraryIsOpen_ChangingFilters_SavesNothing()
     {
-        _ = new FilterStatePersistence(source, store, serializer);
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
 
         source.SetFilters(Videos);
 
@@ -114,7 +141,7 @@ public sealed class FilterStatePersistenceTests
         store.SetValue(FilterSettings.RestoreOnStart, true);
         store.SetValue(FilterSettings.LastFilters, """{"version":1,"filters":[{"id":"gone","value":{"values":["x"]}}]}""");
         store.IsLibraryOpen = false;
-        _ = new FilterStatePersistence(source, store, serializer);
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
 
         store.IsLibraryOpen = true;
 

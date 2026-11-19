@@ -74,7 +74,12 @@ public sealed class NavigationPanelTests : IAsyncDisposable
         await panel.ActivateAsync();
         var favorites = panel.Sections[0].Entries[2];
 
-        var ids = (await Library.Items.GetPageAsync(0, 2, Token)).Select(item => item.Id).ToList();
+        // Two items the Favorites entry shows: ids are random, so the first two by id can include the excluded one.
+        var ids = (await Library.Items.GetPageAsync(0, 10, Token))
+            .Where(item => item.Status != MediaItemStatus.Excluded)
+            .Take(2)
+            .Select(item => item.Id)
+            .ToList();
         await app.Services.GetRequiredService<ISender>().Send(new UseCases.Favorites.ToggleFavorite.ToggleFavoriteCommand(ids), Token);
         await panel.RefreshAsync();
         panel.Select(favorites);

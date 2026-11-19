@@ -2,6 +2,7 @@ using MediaFileClassifier.Ui.Analysis;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
+using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Models;
@@ -67,6 +68,7 @@ public static class UiModule
         services.AddSingleton(new ViewLocator()
             .Register<SettingsViewModel, SettingsView>()
             .Register<QuitConfirmationViewModel, QuitConfirmationView>()
+            .Register<UnsavedChangesViewModel, UnsavedChangesView>()
             .Register<WelcomeViewModel, WelcomeView>()
             .Register<CreateLibraryViewModel, CreateLibraryView>()
             .Register<ThumbnailGridViewModel, ThumbnailGridView>()
@@ -145,7 +147,11 @@ public static class UiModule
         // Media browser (E14-S01).
         services.AddSingleton<ThumbnailBitmapCache>();
         services.AddSingleton<ThumbnailLoader>();
-        services.AddSingleton(provider => new SelectionModel(provider.GetRequiredService<IMediaResultSource>));
+        services.AddSingleton<UnsavedChangesGuard>();
+        services.AddSingleton(provider => new SelectionModel(provider.GetRequiredService<IMediaResultSource>)
+        {
+            ConfirmChange = provider.GetRequiredService<UnsavedChangesGuard>().ConfirmLeaveAsync,
+        });
         services.AddSingleton<ThumbnailGridViewModel>();
         services.AddSingleton<Func<ThumbnailGridViewModel>>(provider => provider.GetRequiredService<ThumbnailGridViewModel>);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, BrowserCommands>());

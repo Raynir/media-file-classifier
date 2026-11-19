@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels"
+             x:Class="MediaFileClassifier.Ui.Views.UnsavedChangesView"
+             x:DataType="vm:UnsavedChangesViewModel"
+             MaxWidth="420">
+  <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.L}">
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+      <Button Content="{l:Loc UnsavedChanges_Save}" Command="{Binding SaveCommand}" IsDefault="True" Classes="accent" />
+      <Button Content="{l:Loc UnsavedChanges_Discard}" Command="{Binding DiscardCommand}" />
+      <Button Content="{l:Loc UnsavedChanges_Stay}" Command="{Binding StayCommand}" IsCancel="True" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

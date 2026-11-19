@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.UseCases.Libraries.OpenLibrary;
@@ -17,7 +18,8 @@ namespace MediaFileClassifier.Ui.Libraries;
 /// <param name="sender">Sends the library commands.</param>
 /// <param name="platform">Folder picker.</param>
 /// <param name="localizer">UI strings.</param>
-public sealed class LibraryOpener(ISender sender, IPlatformServices platform, Localizer localizer)
+/// <param name="guard">Asks about staged changes before another library replaces the open one (E07-S12-T01).</param>
+public sealed class LibraryOpener(ISender sender, IPlatformServices platform, Localizer localizer, UnsavedChangesGuard? guard = null)
 {
     /// <summary>
     /// Raised with a message when a library couldn't be opened; the welcome screen shows it.
@@ -35,6 +37,11 @@ public sealed class LibraryOpener(ISender sender, IPlatformServices platform, Lo
     /// <returns>A task that completes when the library is open, or the attempt failed.</returns>
     public async Task PickAndOpenAsync()
     {
+        if (!await CanLeaveAsync())
+        {
+            return;
+        }
+
         if (await platform.PickFolderAsync(localizer.Get("OpenLibrary_Pick")) is { } folder)
         {
             await OpenAsync(folder.Id);
@@ -48,6 +55,11 @@ public sealed class LibraryOpener(ISender sender, IPlatformServices platform, Lo
     /// <returns>A task that completes when the library is open, or the attempt failed.</returns>
     public async Task OpenAsync(string libraryDirectory)
     {
+        if (!await CanLeaveAsync())
+        {
+            return;
+        }
+
         using var progress = new MigrationProgress();
         await HandleAsync(await sender.Send(new OpenLibraryCommand(libraryDirectory, progress)));
     }
@@ -64,6 +76,9 @@ public sealed class LibraryOpener(ISender sender, IPlatformServices platform, Lo
             await HandleAsync(result);
         }
     }
+
+    // Switching library drops what the editor holds, so staged changes are asked about first (E07-S12-T01).
+    private Task<bool> CanLeaveAsync() => guard?.ConfirmLeaveAsync() ?? Task.FromResult(true);
 
     private static async Task<bool> ShowRestoreDialogAsync(string message)
     {

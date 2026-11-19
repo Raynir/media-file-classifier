@@ -391,6 +391,25 @@
   <data name="QuitConfirmation_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="Editor_Notice_Held" xml:space="preserve">
+    <value>This item is no longer selected. Save or cancel your changes to move on.</value>
+  </data>
+  <data name="UnsavedChanges_Title" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="UnsavedChanges_Message" xml:space="preserve">
+    <value>You have unsaved changes to "{0}". Save them before you go on?</value>
+    <comment>{0} is the title or file name of the item being edited.</comment>
+  </data>
+  <data name="UnsavedChanges_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="UnsavedChanges_Discard" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="UnsavedChanges_Stay" xml:space="preserve">
+    <value>Stay</value>
+  </data>
   <data name="SettingsCategory_General" xml:space="preserve">
     <value>General</value>
   </data>

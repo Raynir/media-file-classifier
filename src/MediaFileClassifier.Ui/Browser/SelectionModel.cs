@@ -92,6 +92,12 @@ public sealed partial class SelectionModel(Func<IMediaResultSource> results) : O
     public Func<int, Id<MediaItem>?>? KnownId { get; set; }
 
     /// <summary>
+    /// Gets or sets a check made before a gesture changes the selection (the unsaved changes guard, E07-S12-T01). It
+    /// returns <see langword="false"/> to keep the selection as it is.
+    /// </summary>
+    public Func<Task<bool>>? ConfirmChange { get; set; }
+
+    /// <summary>
     /// Tells whether an item is selected.
     /// </summary>
     /// <param name="id">The item.</param>
@@ -123,7 +129,7 @@ public sealed partial class SelectionModel(Func<IMediaResultSource> results) : O
         {
             var first = Math.Min(AnchorIndex, index);
             var range = await IdsAsync(first, Math.Max(AnchorIndex, index) - first + 1);
-            if (stamp != version)
+            if (stamp != version || !await AllowAsync(stamp))
             {
                 return;
             }
@@ -145,6 +151,13 @@ public sealed partial class SelectionModel(Func<IMediaResultSource> results) : O
 
         var item = await IdAsync(index);
         if (stamp != version || item is not { } focused)
+        {
+            return;
+        }
+
+        // Clicking the only selected item again changes nothing, so it needs no prompt.
+        var unchanged = gesture == SelectionGesture.Replace && Count == 1 && focused == FocusedId && IsSelected(focused);
+        if (!unchanged && !await AllowAsync(stamp))
         {
             return;
         }
@@ -195,7 +208,7 @@ public sealed partial class SelectionModel(Func<IMediaResultSource> results) : O
         var first = await newestTask;
         var count = await countTask;
 
-        if (stamp != version || first is not { } boundary)
+        if (stamp != version || first is not { } boundary || !await AllowAsync(stamp))
         {
             return;
         }
@@ -320,6 +333,18 @@ public sealed partial class SelectionModel(Func<IMediaResultSource> results) : O
         }
 
         return resultCount == 0 ? (-1, null) : (Math.Min(index, resultCount - 1), null);
+    }
+
+    // Asks the guard before the selection changes. Another gesture made while the prompt was open wins, as it would
+    // have without the prompt.
+    private async ValueTask<bool> AllowAsync(int stamp)
+    {
+        if (ConfirmChange is { } confirm && !await confirm())
+        {
+            return false;
+        }
+
+        return stamp == version;
     }
 
     private void Set(Id<MediaItem> id, bool selected)

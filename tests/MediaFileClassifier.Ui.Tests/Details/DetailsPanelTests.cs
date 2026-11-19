@@ -14,6 +14,7 @@ using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
+using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Tests.Browser;
@@ -22,6 +23,7 @@ using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
 using MediatR;
 using SkiaSharp;
@@ -288,6 +290,108 @@ public sealed class DetailsPanelTests : IDisposable
         window.Close();
     });
 
+    [Theory]
+    [InlineData(UnsavedChangesChoice.Stay, 2, true, 0)]
+    [InlineData(UnsavedChangesChoice.Discard, 5, false, 0)]
+    [InlineData(UnsavedChangesChoice.Save, 5, false, 1)]
+    public Task SelectingAnotherItem_WithStagedChanges_AsksFirst_AndFollowsTheAnswer(UnsavedChangesChoice choice, int shownIndex, bool stillDirty, int saves) => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+        var prompts = new List<string>();
+        bed.Guard.Ask = prompt =>
+        {
+            prompts.Add(prompt.Message);
+            return Task.FromResult(choice);
+        };
+
+        bed.Select(5, SelectionGesture.Replace);
+
+        Assert.Equal(["You have unsaved changes to \"IMG_2.png\". Save them before you go on?"], prompts);
+        Assert.Equal(bed.Source.Ids[shownIndex], bed.Panel.Item?.Id);
+        Assert.Equal(stillDirty, bed.Panel.Editor.IsDirty);
+        Assert.Equal(saves, bed.Saved.Count);
+    });
+
+    [Fact]
+    public Task SelectingAnotherItem_WithoutStagedChanges_OrClickingTheSameItem_AsksNothing() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        var asked = 0;
+        bed.Guard.Ask = _ =>
+        {
+            asked++;
+            return Task.FromResult(UnsavedChangesChoice.Stay);
+        };
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Select(3, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+
+        bed.Select(3, SelectionGesture.Replace);
+
+        Assert.Equal(0, asked);
+        Assert.Equal(bed.Source.Ids[3], bed.Panel.Item?.Id);
+    });
+
+    [Fact]
+    public Task SelectionMovingOnItsOwn_WithStagedChanges_KeepsTheItem_UntilTheChangesAreDropped() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+
+        bed.Selection.Clear();
+        bed.Settle();
+
+        Assert.Equal(bed.Source.Ids[2], bed.Panel.Item?.Id);
+        Assert.True(bed.Panel.IsPinned);
+        Assert.Equal("Edited", bed.Panel.Editor.Descriptive[0].Text);
+        Assert.NotNull(bed.Panel.Editor.Notice);
+
+        bed.Panel.Editor.Cancel();
+        bed.Settle();
+
+        Assert.False(bed.Panel.IsPinned);
+        Assert.Null(bed.Panel.Item);
+        Assert.Null(bed.Panel.Editor.Notice);
+    });
+
+    [Theory]
+    [InlineData(UnsavedChangesChoice.Stay, true)]
+    [InlineData(UnsavedChangesChoice.Discard, false)]
+    public Task CollapsingThePanel_WithStagedChanges_AsksFirst_AndOnlyClosesWhenTheUserGoesOn(UnsavedChangesChoice choice, bool stillExpanded) => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+        var asked = 0;
+        bed.Guard.Ask = _ =>
+        {
+            asked++;
+            return Task.FromResult(choice);
+        };
+
+        bed.Layout.Details.Collapse();
+        Pump.Until(() => asked > 0 && bed.Layout.Details.IsExpanded == stillExpanded);
+
+        Assert.Equal(1, asked);
+        Assert.Equal(stillExpanded, bed.Layout.Details.IsExpanded);
+        Assert.Equal(!stillExpanded, bed.Layout.Details.IsCollapsed);
+    });
+
+    [Fact]
+    public Task CollapsingThePanel_WithoutStagedChanges_AsksNothing() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+        bed.Guard.Ask = _ => throw new InvalidOperationException("No prompt expected.");
+
+        bed.Layout.Details.Collapse();
+
+        Assert.True(bed.Layout.Details.IsCollapsed);
+    });
+
     private string WriteImage(string name, int width, int height)
     {
         var path = temp.Combine(name);
@@ -326,8 +430,13 @@ public sealed class DetailsPanelTests : IDisposable
             var loader = new ThumbnailLoader(new FakeBrowserSession(), thumbnails, new ThumbnailBitmapCache());
             Registry = new CommandRegistry([new MetadataEditorCommands(Selection, () => Panel!)], Localizer.Current, new FakeCapabilityGate());
             Panel = new DetailsPanelViewModel(
-                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException());
+                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard);
+            Selection.ConfirmChange = Guard.ConfirmLeaveAsync;
         }
+
+        public UnsavedChangesGuard Guard { get; } = new(Localizer.Current);
+
+        public List<EditMetadataCommand> Saved { get; } = [];
 
         public CommandRegistry Registry { get; }
 
@@ -366,6 +475,12 @@ public sealed class DetailsPanelTests : IDisposable
             if (request is GetItemMetadataQuery)
             {
                 return Task.FromResult((TResponse)(object)null!);
+            }
+
+            if (request is EditMetadataCommand edit)
+            {
+                Saved.Add(edit);
+                return Task.FromResult((TResponse)(object)new EditMetadataResult([.. edit.ItemIds], null));
             }
 
             var query = Assert.IsType<GetItemDetailsQuery>(request);

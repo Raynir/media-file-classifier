@@ -128,6 +128,15 @@ dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate
 dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate --system app-hybrid --models models/siglip2 --rrf-k 30 --field-weights title=4,tags=5
 ```
 
+`eval/analysis/qwen_qwen3-vl-4b-describe-2.json` is the same model with the describe-2 prompt (E06-S04-T02, the app's default), which also writes a Russian title and a Russian form per tag (`titleRu`, `tagsRu`); `analyze --ocr-from eval/analysis/qwen_qwen3-vl-4b.json` reused the OCR text. `AppSearchSystem` stores those tags as one AI run, through `TagNormalizer` and `TagAssignment.Ai` (the model's form, else the dictionary's), and the Russian title with the title, as the describer does (E06-S04-T09). Results of 2026-11-19 (reports `2026-11-19_123251_app-keyword`, `2026-11-19_124635_app-hybrid`), describe-1 analysis → describe-2 analysis, both with the tag dictionary and Russian stems:
+
+| System | en recall@10 | en MRR | ru recall@10 | ru MRR |
+|---|--:|--:|--:|--:|
+| app-keyword | 0.707 → 0.671 | 0.834 → 0.758 | 0.553 → 0.557 | 0.625 → 0.612 |
+| app-hybrid | 0.921 → 0.917 | 0.972 → 0.957 | 0.841 → 0.860 | 0.899 → 0.887 |
+
+Russian keyword search went from 0.16 / 0.21 (the 2026-11-14 baseline, English metadata only) to about 0.55 / 0.61 with the dictionary's tag forms and stems; describe-2's own forms add little on top. English keyword search alone is lower with describe-2 (abstract queries MRR 0.75 → 0.38, media 0.75 → 0.50); the search bar's hybrid results stay within 0.015. The app-keyword baselines were reset to describe-2's values minus 0.02 (user's choice); tuning the keyword field weights for describe-2 is a follow-up.
+
 The ranking settings default to the app's (`SearchRankingOptions.Default`, `SemanticRelevanceThresholds`); `--rrf-k`, `--keyword-weight`, `--vector-weight`, `--field-weights` and `--threshold` (`centred,raw` or `none`) try other values without a rebuild. The report lists the settings it ran with. `tune` scores a fixed grid of them in one process and writes `reports/<date>_tune-app-hybrid.md` (E09-S05-T03).
 
 ### OCR engines (E06-S05)

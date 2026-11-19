@@ -141,7 +141,7 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
         await bed.ApplyRunAsync("Dog", ["dog", "puppy"]);
         await EditAsync(new MetadataEdit.RejectTag(TagName.From("puppy")));
 
-        await EditAsync(new MetadataEdit.AddTag(TagName.From("Puppy")), new MetadataEdit.AddTag(TagName.From("Rex")));
+        await EditAsync(new MetadataEdit.AddTag("Puppy"), new MetadataEdit.AddTag("Rex"));
 
         var metadata = await bed.GetAsync();
         Assert.Empty(metadata.Rejections);
@@ -157,7 +157,7 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
     public async Task RemoveTag_DeletesTheUserTagWithoutATombstone_SoTheAiTagShowsAgain()
     {
         await bed.ApplyRunAsync("Dog", ["dog"]);
-        await EditAsync(new MetadataEdit.AddTag(TagName.From("dog")), new MetadataEdit.AddTag(TagName.From("Rex")));
+        await EditAsync(new MetadataEdit.AddTag("dog"), new MetadataEdit.AddTag("Rex"));
 
         await EditAsync(new MetadataEdit.RemoveTag(TagName.From("dog")), new MetadataEdit.RemoveTag(TagName.From("Rex")));
 
@@ -256,7 +256,7 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
 
         var ids = items.Select(item => item.Id).Append(Id<MediaItem>.New()).ToList();
 
-        var result = await bed.Sender.Send(new EditMetadataCommand(ids, [new MetadataEdit.AddTag(TagName.From("holiday"))]), Token);
+        var result = await bed.Sender.Send(new EditMetadataCommand(ids, [new MetadataEdit.AddTag("holiday")]), Token);
 
         Assert.Equal(items.Select(item => item.Id), result.ChangedItemIds);
         Assert.Equal(230, (await bed.Open.Search.FindKeywordMatchesAsync(SearchStoreTests.Search("holiday") with { Limit = 500 }, Token)).TotalCount);
@@ -267,16 +267,80 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
     {
         await bed.ApplyRunAsync("Dog", ["dog"]);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => EditAsync(
-            new MetadataEdit.SetField(Title, FieldValue.FromText("Rex")),
+        await using (var connection = bed.Library.Temporary.OpenConnection())
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "CREATE TRIGGER fail_title BEFORE INSERT ON user_field_value WHEN NEW.value LIKE '%boom%' BEGIN SELECT RAISE(ABORT, 'interrupted'); END;";
+            await command.ExecuteNonQueryAsync(Token);
+        }
+
+        await Assert.ThrowsAnyAsync<Exception>(() => EditAsync(
             new MetadataEdit.RejectTag(TagName.From("dog")),
-            new MetadataEdit.SetField(DescriptiveField.Objects, FieldValue.FromText("not a list"))));
+            new MetadataEdit.SetField(DescriptiveField.Notes, FieldValue.FromText("fine")),
+            new MetadataEdit.SetField(Title, FieldValue.FromText("boom"))));
 
         var metadata = await bed.GetAsync();
         Assert.Empty(metadata.UserValues);
         Assert.Empty(metadata.Rejections);
-        Assert.Empty(await FoundAsync("Rex"));
+        Assert.Empty(await FoundAsync("fine"));
         Assert.Equal([bed.Item.Id], await FoundAsync("dog"));
+    }
+
+    [Fact]
+    public async Task Edits_ThatAreInvalid_WriteNothingAndReportTheError()
+    {
+        var other = await bed.AddItemAsync(2);
+
+        var result = await bed.Sender.Send(
+            new EditMetadataCommand(
+                [bed.Item.Id, other.Id],
+                [new MetadataEdit.SetField(Title, FieldValue.FromText("Rex")), new MetadataEdit.AddTag("holiday"), new MetadataEdit.AddTag("a, b")]),
+            Token);
+
+        Assert.Equal(MetadataValidationCode.TagInvalidCharacter, result.Error?.Code);
+        Assert.Empty(result.ChangedItemIds);
+        Assert.Empty((await bed.GetAsync()).UserValues);
+        Assert.Empty(await FoundAsync("Rex"));
+        Assert.Empty(await FoundAsync("holiday"));
+        Assert.Empty(bed.Published);
+    }
+
+    [Fact]
+    public async Task AddTag_TypedWithPunctuationAndWhiteSpace_IsStoredCleanedInTheCaseTyped()
+    {
+        await EditAsync(new MetadataEdit.AddTag("  #Summer_Trip. "));
+
+        Assert.Contains((await bed.GetAsync()).GetEffectiveTags(), tag => tag.Tag.Value == "Summer Trip" && tag.Source == MetadataSource.User);
+    }
+
+    [Fact]
+    public async Task AddTag_OverTheUserTagLimit_RefusesTheWholeBulkEditBeforeWritingAnyBatch()
+    {
+        var items = new List<MediaItem> { bed.Item };
+        for (var number = 2; number <= 150; number++)
+        {
+            items.Add(await bed.AddItemAsync(number));
+        }
+
+        // The 120th item, in the second batch, already has the most tags a user may give an item.
+        await bed.Open.Metadata.UpdateAsync(
+            items[119].Id,
+            metadata =>
+            {
+                for (var number = 0; number < MetadataLimits.UserTagsPerItem; number++)
+                {
+                    metadata.AddTag(TagName.From($"tag {number}"), bed.Library.Clock.Tick());
+                }
+            },
+            Token);
+
+        var result = await bed.Sender.Send(new EditMetadataCommand([.. items.Select(item => item.Id)], [new MetadataEdit.AddTag("trip")]), Token);
+
+        Assert.Equal(MetadataValidationCode.TooManyTags, result.Error?.Code);
+        Assert.Equal(items[119].Id, result.Error?.ItemId);
+        Assert.Empty(result.ChangedItemIds);
+        Assert.Empty(await FoundAsync("trip"));
+        Assert.Empty(bed.Published);
     }
 
     [Fact]
@@ -287,7 +351,7 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
         await bed.Sender.Send(
             new EditMetadataCommand(
                 [bed.Item.Id, other.Id],
-                [new MetadataEdit.SetField(Title, FieldValue.FromText("Rex")), new MetadataEdit.RevertField(DescriptiveField.Notes), new MetadataEdit.AddTag(TagName.From("dog"))]),
+                [new MetadataEdit.SetField(Title, FieldValue.FromText("Rex")), new MetadataEdit.RevertField(DescriptiveField.Notes), new MetadataEdit.AddTag("dog")]),
             Token);
 
         var change = Assert.Single(bed.Published);
@@ -324,7 +388,7 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
         }
 
         await Assert.ThrowsAnyAsync<Exception>(
-            () => bed.Sender.Send(new EditMetadataCommand([.. items.Select(item => item.Id)], [new MetadataEdit.AddTag(TagName.From("trip"))]), Token));
+            () => bed.Sender.Send(new EditMetadataCommand([.. items.Select(item => item.Id)], [new MetadataEdit.AddTag("trip")]), Token));
 
         var change = Assert.Single(bed.Published);
         Assert.Equal(items.Take(100).Select(item => item.Id), change.ItemIds);

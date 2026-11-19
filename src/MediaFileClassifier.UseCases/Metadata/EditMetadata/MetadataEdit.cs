@@ -130,19 +130,21 @@ public abstract record MetadataEdit
     }
 
     /// <summary>
-    /// Adds a tag the user typed, stored as typed (D047), and removes its tombstone.
+    /// Adds a tag the user typed. The command cleans the text (<see cref="Tags.TagNormalizer.CleanUserTag"/>) and checks
+    /// it, then stores it in the case it was typed (D047) and removes its tombstone.
     /// </summary>
-    /// <param name="Tag">The tag.</param>
-    public sealed record AddTag(TagName Tag) : MetadataEdit
+    /// <param name="Text">The tag as typed.</param>
+    public sealed record AddTag(string Text) : MetadataEdit
     {
         internal override bool ApplyTo(ItemMetadata metadata, DateTimeOffset now)
         {
-            if (metadata.Tags.Any(tag => tag.Source == MetadataSource.User && tag.Tag == Tag) && !metadata.Rejections.Any(rejection => rejection.Tag == Tag))
+            var tag = TagName.From(Text);
+            if (metadata.Tags.Any(assigned => assigned.Source == MetadataSource.User && assigned.Tag == tag) && !metadata.Rejections.Any(rejection => rejection.Tag == tag))
             {
                 return false;
             }
 
-            metadata.AddTag(Tag, now);
+            metadata.AddTag(tag, now);
             return true;
         }
     }

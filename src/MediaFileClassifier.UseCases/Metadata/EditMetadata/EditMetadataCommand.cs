@@ -9,7 +9,8 @@ namespace MediaFileClassifier.UseCases.Metadata.EditMetadata;
 /// <summary>
 /// Applies a list of edits to one or more items (E07-S01-T02): the editor's Save, a review action or a bulk edit.
 /// All edits of an item are applied in order in one transaction, with the item's keyword index row, so the item is
-/// never half saved and the change is searchable on the next query. Many items are written in batches. One
+/// never half saved and the change is searchable on the next query. The edits are checked first (<see cref="MetadataValidator"/>,
+/// <see cref="MetadataLimits"/>); if one is refused, nothing is written. Many items are written in batches. One
 /// <see cref="ItemsMetadataChanged"/> is published with every changed item, also when a later batch fails.
 /// </summary>
 /// <param name="ItemIds">The items. Items that don't exist are skipped.</param>
@@ -21,7 +22,9 @@ public sealed record EditMetadataCommand(IReadOnlyCollection<Id<MediaItem>> Item
 /// The outcome of <see cref="EditMetadataCommand"/>.
 /// </summary>
 /// <param name="ChangedItemIds">The items the edits changed.</param>
-public sealed record EditMetadataResult(IReadOnlyList<Id<MediaItem>> ChangedItemIds);
+/// <param name="Error">Why the edits were refused, or <see langword="null"/> if they were applied. Nothing is written
+/// when there is an error.</param>
+public sealed record EditMetadataResult(IReadOnlyList<Id<MediaItem>> ChangedItemIds, MetadataValidationError? Error = null);
 
 /// <summary>
 /// Handles <see cref="EditMetadataCommand"/> for the open library.
@@ -32,12 +35,25 @@ public sealed record EditMetadataResult(IReadOnlyList<Id<MediaItem>> ChangedItem
 public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProvider clock, IPublisher publisher)
     : IRequestHandler<EditMetadataCommand, EditMetadataResult>
 {
+    private const int TagCheckBatchSize = 100;
+
     /// <inheritdoc />
     public async Task<EditMetadataResult> Handle(EditMetadataCommand request, CancellationToken cancellationToken)
     {
         if (session.Current is not { } library || request.ItemIds.Count == 0 || request.Edits.Count == 0)
         {
             return new EditMetadataResult([]);
+        }
+
+        var (edits, error) = MetadataValidator.Validate(request.Edits);
+        if (error is null)
+        {
+            error = await CheckTagLimitAsync(library, request.ItemIds, edits, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (error is not null)
+        {
+            return new EditMetadataResult([], error);
         }
 
         // Batches already written stay written if a later one fails, so the views hear about them either way.
@@ -50,7 +66,7 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
                 {
                     var now = clock.GetUtcNow();
                     var any = false;
-                    foreach (var edit in request.Edits)
+                    foreach (var edit in edits)
                     {
                         any |= edit.ApplyTo(metadata, now);
                     }
@@ -64,12 +80,51 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
         {
             if (written.Count > 0)
             {
-                await publisher.Publish(Describe(written, request.Edits), CancellationToken.None).ConfigureAwait(false);
+                await publisher.Publish(Describe(written, edits), CancellationToken.None).ConfigureAwait(false);
             }
         }
 
         return new EditMetadataResult(written);
     }
+
+    // The 200-tag limit depends on what an item has, so the edits are tried on the loaded metadata first, without
+    // storing it: a bulk edit that would push one item over the limit writes nothing, not even the batches before it.
+    private async Task<MetadataValidationError?> CheckTagLimitAsync(
+        IOpenLibrary library,
+        IReadOnlyCollection<Id<MediaItem>> itemIds,
+        IReadOnlyList<MetadataEdit> edits,
+        CancellationToken cancellationToken)
+    {
+        if (!edits.Any(edit => edit is MetadataEdit.AddTag or MetadataEdit.ConfirmTag or MetadataEdit.AcceptTagSuggestion))
+        {
+            return null;
+        }
+
+        var now = clock.GetUtcNow();
+        foreach (var batch in itemIds.Distinct().Chunk(TagCheckBatchSize))
+        {
+            var loaded = await library.Metadata.GetManyAsync(batch, cancellationToken).ConfigureAwait(false);
+            foreach (var (itemId, metadata) in loaded)
+            {
+                var before = CountUserTags(metadata);
+                foreach (var edit in edits)
+                {
+                    edit.ApplyTo(metadata, now);
+                }
+
+                var after = CountUserTags(metadata);
+                if (after > MetadataLimits.UserTagsPerItem && after > before)
+                {
+                    return new MetadataValidationError(MetadataValidationCode.TooManyTags, Limit: MetadataLimits.UserTagsPerItem, ItemId: itemId);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static int CountUserTags(ItemMetadata metadata) =>
+        metadata.Tags.Where(tag => tag.Source == MetadataSource.User).Select(tag => tag.Tag).Distinct().Count();
 
     private static ItemsMetadataChanged Describe(IReadOnlyList<Id<MediaItem>> itemIds, IReadOnlyList<MetadataEdit> edits)
     {

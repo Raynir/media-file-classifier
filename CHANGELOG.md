@@ -36,6 +36,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - The describer asks for at most 15 tags (the schema's `maxItems`, as its description already said) and sends a presence penalty of 1.5, which stops near-duplicate tags such as "cat calm", "cat still" (D350; OCR requests are unchanged).
 - `evaluate` computes its exit code from the report it just built instead of reading the JSON file back; the query encoder's latency test runs in the non-parallel timing collection.
 
+### Fixed
+
+- Importing and rescanning no longer fail with "search.lastFilters isn't a library setting" (MFC-1001): the last filters (D314) are now a real library setting, stored in the library's settings, and a filter state that can't be saved is logged instead of failing what changed the results.
+
 ## M2 — 2026-11-15
 
 ### Added

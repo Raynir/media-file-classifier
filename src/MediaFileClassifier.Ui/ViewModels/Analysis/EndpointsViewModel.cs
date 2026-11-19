@@ -55,7 +55,7 @@ public sealed partial class EndpointsViewModel : ViewModelBase
     private readonly ILogger logger;
     private string editingId = string.Empty;
 
-    // Set in settings.json only (E06-S04-T08); the editor keeps it.
+    // Set in settings.json only (E06-S04-T08); the editor keeps it while the model stays the same.
     private int? editingMaxImages;
     private string lastWarning = string.Empty;
     private CancellationTokenSource? testing;
@@ -268,6 +268,9 @@ public sealed partial class EndpointsViewModel : ViewModelBase
         }
     }
 
+    // The value was set for the old model: another model gets its own default (VisionModelDefaults).
+    partial void OnModelChanged(string value) => editingMaxImages = null;
+
     partial void OnBaseUrlChanged(string value)
     {
         // A confirmation is for one host: another address needs its own.
@@ -390,11 +393,11 @@ public sealed partial class EndpointsViewModel : ViewModelBase
     {
         testing?.Cancel();
         editingId = endpoint.Id;
-        editingMaxImages = endpoint.MaxImages;
         Name = endpoint.Name;
         BaseUrl = endpoint.BaseUrl;
         ApiKey = string.Empty;
         Model = endpoint.Model;
+        editingMaxImages = endpoint.MaxImages;
         Models = [];
         RemoteHostConfirmed = endpoint.RemoteHostConfirmed && service.GetRemoteHostWarning(endpoint.BaseUrl) is not null;
         Status = string.Empty;

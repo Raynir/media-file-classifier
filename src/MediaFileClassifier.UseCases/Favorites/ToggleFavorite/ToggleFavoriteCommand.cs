@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.UseCases.Metadata;
 using MediatR;
 
 namespace MediaFileClassifier.UseCases.Favorites.ToggleFavorite;

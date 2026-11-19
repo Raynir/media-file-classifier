@@ -5,7 +5,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Search;
 using MediaFileClassifier.UseCases;
-using MediaFileClassifier.UseCases.Favorites;
+using MediaFileClassifier.UseCases.Metadata;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 

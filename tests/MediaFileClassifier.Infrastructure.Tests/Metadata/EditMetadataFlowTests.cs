@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
+using MediaFileClassifier.UseCases.Metadata;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Metadata;
@@ -276,6 +277,58 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
         Assert.Empty(metadata.Rejections);
         Assert.Empty(await FoundAsync("Rex"));
         Assert.Equal([bed.Item.Id], await FoundAsync("dog"));
+    }
+
+    [Fact]
+    public async Task Edits_PublishOneChange_WithTheChangedItemsFieldsAndTags()
+    {
+        var other = await bed.AddItemAsync(2);
+
+        await bed.Sender.Send(
+            new EditMetadataCommand(
+                [bed.Item.Id, other.Id],
+                [new MetadataEdit.SetField(Title, FieldValue.FromText("Rex")), new MetadataEdit.RevertField(DescriptiveField.Notes), new MetadataEdit.AddTag(TagName.From("dog"))]),
+            Token);
+
+        var change = Assert.Single(bed.Published);
+        Assert.Equal([bed.Item.Id, other.Id], change.ItemIds);
+        Assert.Equal(ItemMetadataChange.Fields | ItemMetadataChange.Tags, change.Change);
+        Assert.Equal([DescriptiveField.Title, DescriptiveField.Notes], change.Fields.Order());
+    }
+
+    [Fact]
+    public async Task Edits_ThatChangeNothing_PublishNothing()
+    {
+        var result = await EditAsync(new MetadataEdit.RevertField(Title), new MetadataEdit.DismissTagSuggestion(TagName.From("dog")));
+
+        Assert.Empty(result.ChangedItemIds);
+        Assert.Empty(bed.Published);
+    }
+
+    [Fact]
+    public async Task Edits_ABulkEditThatFailsInALaterBatch_StillPublishesTheWrittenBatches()
+    {
+        var items = new List<MediaItem> { bed.Item };
+        for (var number = 2; number <= 150; number++)
+        {
+            items.Add(await bed.AddItemAsync(number));
+        }
+
+        // The 120th item, in the second batch of 100, has a note that a trigger refuses to store again.
+        await bed.Open.Metadata.UpdateAsync(items[119].Id, metadata => metadata.EditValue(DescriptiveField.Notes, FieldValue.FromText("boom"), bed.Library.Clock.Tick()), Token);
+        await using (var connection = bed.Library.Temporary.OpenConnection())
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "CREATE TRIGGER fail_note BEFORE INSERT ON user_field_value WHEN NEW.value LIKE '%boom%' BEGIN SELECT RAISE(ABORT, 'interrupted'); END;";
+            await command.ExecuteNonQueryAsync(Token);
+        }
+
+        await Assert.ThrowsAnyAsync<Exception>(
+            () => bed.Sender.Send(new EditMetadataCommand([.. items.Select(item => item.Id)], [new MetadataEdit.AddTag(TagName.From("trip"))]), Token));
+
+        var change = Assert.Single(bed.Published);
+        Assert.Equal(items.Take(100).Select(item => item.Id), change.ItemIds);
+        Assert.Equal(100, (await bed.Open.Search.FindKeywordMatchesAsync(SearchStoreTests.Search("trip") with { Limit = 500 }, Token)).TotalCount);
     }
 
     private Task<EditMetadataResult> EditAsync(params MetadataEdit[] edits) =>

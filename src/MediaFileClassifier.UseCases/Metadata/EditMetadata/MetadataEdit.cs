@@ -14,6 +14,11 @@ public abstract record MetadataEdit
     }
 
     /// <summary>
+    /// Gets the field the edit changes, or <see langword="null"/> for a tag edit.
+    /// </summary>
+    internal virtual DescriptiveField? ChangedField => null;
+
+    /// <summary>
     /// Applies the edit to one item's metadata.
     /// </summary>
     /// <param name="metadata">The item's metadata.</param>
@@ -28,6 +33,8 @@ public abstract record MetadataEdit
     /// <param name="Value">The value as the user wrote it: a text for a text field, a list for a list field.</param>
     public sealed record SetField(DescriptiveField Field, FieldValue Value) : MetadataEdit
     {
+        internal override DescriptiveField? ChangedField => Field;
+
         internal override bool ApplyTo(ItemMetadata metadata, DateTimeOffset now)
         {
             if (metadata.GetUserValue(Field) is { Origin: UserValueOrigin.Edited, HasNewAiSuggestion: false } user && user.Value == Value)
@@ -46,6 +53,8 @@ public abstract record MetadataEdit
     /// <param name="Field">The field.</param>
     public sealed record RevertField(DescriptiveField Field) : MetadataEdit
     {
+        internal override DescriptiveField? ChangedField => Field;
+
         internal override bool ApplyTo(ItemMetadata metadata, DateTimeOffset now)
         {
             if (metadata.GetUserValue(Field) is null)
@@ -65,6 +74,8 @@ public abstract record MetadataEdit
     /// <param name="Field">The field.</param>
     public sealed record ConfirmField(DescriptiveField Field) : MetadataEdit
     {
+        internal override DescriptiveField? ChangedField => Field;
+
         internal override bool ApplyTo(ItemMetadata metadata, DateTimeOffset now)
         {
             if (metadata.GetUserValue(Field) is not null || metadata.GetLatestAiValue(Field) is null)
@@ -84,6 +95,8 @@ public abstract record MetadataEdit
     /// <param name="Field">The field.</param>
     public sealed record AcceptFieldSuggestion(DescriptiveField Field) : MetadataEdit
     {
+        internal override DescriptiveField? ChangedField => Field;
+
         internal override bool ApplyTo(ItemMetadata metadata, DateTimeOffset now)
         {
             if (metadata.GetSuggestedValue(Field) is null)
@@ -102,6 +115,8 @@ public abstract record MetadataEdit
     /// <param name="Field">The field.</param>
     public sealed record DismissFieldSuggestion(DescriptiveField Field) : MetadataEdit
     {
+        internal override DescriptiveField? ChangedField => Field;
+
         internal override bool ApplyTo(ItemMetadata metadata, DateTimeOffset now)
         {
             if (metadata.GetUserValue(Field) is not { HasNewAiSuggestion: true })

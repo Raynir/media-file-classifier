@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediatR;
 
@@ -8,7 +9,8 @@ namespace MediaFileClassifier.UseCases.Metadata.EditMetadata;
 /// <summary>
 /// Applies a list of edits to one or more items (E07-S01-T02): the editor's Save, a review action or a bulk edit.
 /// All edits of an item are applied in order in one transaction, with the item's keyword index row, so the item is
-/// never half saved and the change is searchable on the next query. Many items are written in batches.
+/// never half saved and the change is searchable on the next query. Many items are written in batches. One
+/// <see cref="ItemsMetadataChanged"/> is published with every changed item, also when a later batch fails.
 /// </summary>
 /// <param name="ItemIds">The items. Items that don't exist are skipped.</param>
 /// <param name="Edits">The edits, applied in order.</param>
@@ -26,7 +28,8 @@ public sealed record EditMetadataResult(IReadOnlyList<Id<MediaItem>> ChangedItem
 /// </summary>
 /// <param name="session">Holds the open library.</param>
 /// <param name="clock">The clock, for the change time.</param>
-public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProvider clock)
+/// <param name="publisher">Publishes the change.</param>
+public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProvider clock, IPublisher publisher)
     : IRequestHandler<EditMetadataCommand, EditMetadataResult>
 {
     /// <inheritdoc />
@@ -37,20 +40,41 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
             return new EditMetadataResult([]);
         }
 
-        var changed = await library.Metadata.UpdateManyAsync(
-            request.ItemIds,
-            metadata =>
-            {
-                var now = clock.GetUtcNow();
-                var any = false;
-                foreach (var edit in request.Edits)
+        // Batches already written stay written if a later one fails, so the views hear about them either way.
+        var written = new List<Id<MediaItem>>();
+        try
+        {
+            await library.Metadata.UpdateManyAsync(
+                request.ItemIds,
+                metadata =>
                 {
-                    any |= edit.ApplyTo(metadata, now);
-                }
+                    var now = clock.GetUtcNow();
+                    var any = false;
+                    foreach (var edit in request.Edits)
+                    {
+                        any |= edit.ApplyTo(metadata, now);
+                    }
 
-                return any;
-            },
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-        return new EditMetadataResult(changed);
+                    return any;
+                },
+                written.AddRange,
+                cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (written.Count > 0)
+            {
+                await publisher.Publish(Describe(written, request.Edits), CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+
+        return new EditMetadataResult(written);
+    }
+
+    private static ItemsMetadataChanged Describe(IReadOnlyList<Id<MediaItem>> itemIds, IReadOnlyList<MetadataEdit> edits)
+    {
+        var fields = edits.Select(edit => edit.ChangedField).OfType<DescriptiveField>().ToHashSet();
+        var change = (fields.Count > 0 ? ItemMetadataChange.Fields : 0) | (edits.Any(edit => edit.ChangedField is null) ? ItemMetadataChange.Tags : 0);
+        return new ItemsMetadataChanged(itemIds, change) { Fields = fields };
     }
 }

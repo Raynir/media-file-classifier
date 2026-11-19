@@ -1,5 +1,6 @@
 using Avalonia.Input;
 using MediaFileClassifier.Ui.Browser;
+using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Settings;
@@ -42,6 +43,13 @@ public static class DefaultKeymap
         Bind(FavoriteCommands.Favorite, PhysicalKey.D, KeyModifiers.Control, ShortcutScopes.Browser),
         Bind(FavoriteCommands.Favorite, PhysicalKey.D, KeyModifiers.Control, ShortcutScopes.Viewer),
         Bind(FindSimilarCommands.FindSimilar, PhysicalKey.F, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
+
+        // Metadata editor (E07-S02): F2 anywhere, E where an item has the focus; Ctrl+S and Esc while the editor has it.
+        Bind(MetadataEditorCommands.Edit, PhysicalKey.F2),
+        Bind(MetadataEditorCommands.Edit, PhysicalKey.E, scope: ShortcutScopes.Browser),
+        Bind(MetadataEditorCommands.Edit, PhysicalKey.E, scope: ShortcutScopes.Viewer),
+        Bind(MetadataEditorCommands.Save, PhysicalKey.S, KeyModifiers.Control, ShortcutScopes.Editor),
+        Bind(MetadataEditorCommands.Cancel, PhysicalKey.Escape, scope: ShortcutScopes.Editor),
 
         // Preview and details panel (E14-S05): previous and next, and Enter opens the item in its default app.
         Bind(BrowserCommands.PreviousItem, PhysicalKey.ArrowLeft, scope: ShortcutScopes.Viewer),

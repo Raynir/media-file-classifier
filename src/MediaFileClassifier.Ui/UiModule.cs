@@ -152,6 +152,7 @@ public static class UiModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ItemCommands>());
 
         // Favorites (E11-S01): one command instance that is also a contributor, and the handler that updates the views.
+        services.AddSingleton<ICommandContributor, MetadataEditorCommands>();
         services.TryAddSingleton<FavoriteCommands>();
         services.AddSingleton<ICommandContributor>(provider => provider.GetRequiredService<FavoriteCommands>());
         services.AddSingleton<Func<DetailsPanelViewModel>>(provider => provider.GetRequiredService<DetailsPanelViewModel>);

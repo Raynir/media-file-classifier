@@ -29,7 +29,7 @@ public sealed class ShortcutReferenceTests
         viewModel.Shortcuts.State.IsOpen = true;
 
         var groups = viewModel.Shortcuts.Groups;
-        Assert.Equal(["General", "Media browser", "Preview and viewer"], groups.Select(group => group.Name));
+        Assert.Equal(["General", "Media browser", "Metadata editor", "Preview and viewer"], groups.Select(group => group.Name));
         // One row per command in each scope; Open in default app has keys in two scopes.
         Assert.Equal(
             keymap.Bindings.Where(binding => viewModel.Commands[binding.CommandId].IsVisible).Select(binding => (binding.Scope, binding.CommandId)).Distinct().Count(),

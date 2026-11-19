@@ -195,6 +195,49 @@ public sealed class DetailsPanelTests : IDisposable
     });
 
     [Fact]
+    public Task EditMetadataCommand_NeedsASelection_ShowsTheOverviewTab_AndAsksTheEditorForFocus() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 2);
+        bed.Select(0, SelectionGesture.Replace);
+        var requests = 0;
+        bed.Panel.EditRequested += (_, _) => requests++;
+        bed.Layout.Details.Collapse();
+        bed.Layout.DetailsTab = DetailsTab.Technical;
+        var edit = bed.Registry[MetadataEditorCommands.Edit];
+
+        Assert.True(edit.IsApplicable);
+        bed.Wait(edit.ExecuteAsync());
+
+        Assert.Equal(1, requests);
+        Assert.Equal(DetailsTab.Overview, bed.Layout.DetailsTab);
+        Assert.False(bed.Layout.Details.IsCollapsed);
+
+        bed.Select(0, SelectionGesture.Toggle);
+        Assert.False(edit.IsApplicable);
+    });
+
+    [Fact]
+    public Task SaveAndCancelCommands_ApplyOnlyWhileTheEditorHasUnsavedChanges() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 1);
+        bed.Select(0, SelectionGesture.Replace);
+        bed.Wait(bed.Panel.Editor.Loading);
+        var save = bed.Registry[MetadataEditorCommands.Save];
+        var cancel = bed.Registry[MetadataEditorCommands.Cancel];
+        Assert.False(save.IsApplicable);
+
+        bed.Panel.Editor.AddTag("new");
+
+        Assert.True(save.IsApplicable);
+        Assert.True(cancel.IsApplicable);
+
+        bed.Wait(cancel.ExecuteAsync());
+
+        Assert.False(save.IsApplicable);
+        Assert.False(cancel.IsApplicable);
+    });
+
+    [Fact]
     public Task Sections_AreKeptInTheShellLayout() => TestApp.RunAsync(() =>
     {
         var bed = new Bed(this, 3);
@@ -281,10 +324,12 @@ public sealed class DetailsPanelTests : IDisposable
             }
 
             var loader = new ThumbnailLoader(new FakeBrowserSession(), thumbnails, new ThumbnailBitmapCache());
-            var registry = new CommandRegistry([], Localizer.Current, new FakeCapabilityGate());
+            Registry = new CommandRegistry([new MetadataEditorCommands(Selection, () => Panel!)], Localizer.Current, new FakeCapabilityGate());
             Panel = new DetailsPanelViewModel(
-                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), registry, Localizer.Current, () => throw new NotSupportedException());
+                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException());
         }
+
+        public CommandRegistry Registry { get; }
 
         public FakeResultSource Source { get; }
 

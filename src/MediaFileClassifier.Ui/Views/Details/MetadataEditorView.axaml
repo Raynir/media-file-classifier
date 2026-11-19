@@ -16,7 +16,7 @@
   <UserControl.Resources>
     <!-- One field: its label, an Edited mark while it has an unsaved change, the text box and its validation error. -->
     <DataTemplate x:Key="FieldTemplate" x:DataType="d:EditableFieldViewModel">
-      <Border Classes="FieldDirty" Classes.Dirty="{Binding IsDirty}" Margin="0,0,0,8">
+      <Border Classes="FieldDirty" Classes.Dirty="{Binding IsDirty}" Margin="{DynamicResource Padding.Field}">
         <Border.Styles>
           <Style Selector="Border.FieldDirty:not(.Dirty)">
             <Setter Property="BorderThickness" Value="0" />

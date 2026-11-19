@@ -75,7 +75,7 @@ public sealed class LibraryStoreTests
     public async Task CreateAsync_FailsAfterDatabaseIsWritten_RemovesFolderSoItCanBeCreatedAgain()
     {
         using var temporary = TemporaryLibrary.Reserve();
-        var failing = new LibraryStore(new TestClock(LibraryTestBed.Start), new ThrowingLogger<LibraryStore>());
+        var failing = new LibraryStore(new TestClock(LibraryTestBed.Start), new ThrowingLogger<LibraryStore>(), Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => failing.CreateAsync(temporary.ParentDirectory, "test", Token));
 
@@ -89,7 +89,7 @@ public sealed class LibraryStoreTests
     {
         using var temporary = TemporaryLibrary.Reserve();
         Directory.CreateDirectory(temporary.LibraryDirectory);
-        var failing = new LibraryStore(new TestClock(LibraryTestBed.Start), new ThrowingLogger<LibraryStore>());
+        var failing = new LibraryStore(new TestClock(LibraryTestBed.Start), new ThrowingLogger<LibraryStore>(), Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => failing.CreateAsync(temporary.ParentDirectory, "test", Token));
 

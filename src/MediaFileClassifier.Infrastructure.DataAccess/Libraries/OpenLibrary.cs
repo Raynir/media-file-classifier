@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using MediaFileClassifier.Infrastructure.DataAccess.Repositories;
 using MediaFileClassifier.Infrastructure.DataAccess.Search;
+using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 
@@ -31,7 +32,8 @@ internal sealed class OpenLibrary : IOpenLibrary
         LibraryConnectionFactory connections,
         LibraryWriter writer,
         LibraryLock heldLock,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ILoggerFactory loggerFactory)
     {
         Layout = layout;
         Library = library;
@@ -40,7 +42,7 @@ internal sealed class OpenLibrary : IOpenLibrary
         this.heldLock = heldLock;
         this.timeProvider = timeProvider;
         Folders = new FolderRepository(connections, writer);
-        Items = new MediaItemRepository(connections, writer);
+        Items = new MediaItemRepository(connections, writer, loggerFactory.CreateLogger<MediaItemRepository>());
         Metadata = new ItemMetadataRepository(connections, writer, timeProvider);
         Models = new ModelRegistrationRepository(connections, writer);
         Jobs = new JobRepository(connections, writer);
@@ -95,6 +97,7 @@ internal sealed class OpenLibrary : IOpenLibrary
     /// <param name="connections">Connection factory of the library.</param>
     /// <param name="heldLock">The library's lock, which the open library now owns.</param>
     /// <param name="timeProvider">Clock.</param>
+    /// <param name="loggerFactory">Creates the repositories' loggers.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The open library.</returns>
     public static async Task<OpenLibrary> StartAsync(
@@ -103,10 +106,11 @@ internal sealed class OpenLibrary : IOpenLibrary
         LibraryConnectionFactory connections,
         LibraryLock heldLock,
         TimeProvider timeProvider,
+        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
         var writer = await LibraryWriter.StartAsync(connections, cancellationToken).ConfigureAwait(false);
-        return new OpenLibrary(layout, library, connections, writer, heldLock, timeProvider);
+        return new OpenLibrary(layout, library, connections, writer, heldLock, timeProvider, loggerFactory);
     }
 
     /// <inheritdoc />

@@ -36,6 +36,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - The describer asks for at most 15 tags (the schema's `maxItems`, as its description already said) and sends a presence penalty of 1.5, which stops near-duplicate tags such as "cat calm", "cat still" (D350; OCR requests are unchanged).
 - `evaluate` computes its exit code from the report it just built instead of reading the JSON file back; the query encoder's latency test runs in the non-parallel timing collection.
 
+### Fixed
+
+- A listener of the media item changes that fails no longer fails the import or rescan that wrote the items (MFC-1002): the library logs it and the other listeners still hear the change.
+
 ## M2 — 2026-11-15
 
 ### Added

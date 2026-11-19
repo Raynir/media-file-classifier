@@ -74,10 +74,7 @@
     <Style Selector="TextBlock.ChipText.Struck">
       <Setter Property="TextDecorations" Value="Strikethrough" />
     </Style>
-    <Style Selector="TextBlock.ChipText.Struck2">
-      <Setter Property="TextDecorations" Value="Strikethrough" />
-    </Style>
-    <Style Selector="TextBlock.ChipSource">
+<Style Selector="TextBlock.ChipSource">
       <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}" />
       <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
       <Setter Property="VerticalAlignment" Value="Center" />
@@ -153,7 +150,6 @@
                 <DataTemplate x:DataType="d:TagChipViewModel">
                   <Border Classes="Chip"
                           Classes.Added="{Binding IsAdded}"
-                          Classes.Dropped="{Binding !CanRemove}"
                           Focusable="True"
                           Margin="{DynamicResource Padding.Compact}"
                           AutomationProperties.Name="{Binding Text}">
@@ -161,8 +157,7 @@
                       <TextBlock Classes="ChipSource" Text="{Binding Source, Converter={x:Static d:TagSourceConverters.Glyph}}"
                                  ToolTip.Tip="{Binding Source, Converter={x:Static d:TagSourceConverters.Description}}" />
                       <TextBlock Classes="ChipText"
-                                 Classes.Struck="{Binding IsRemoved}"
-                                 Classes.Struck2="{Binding IsRejected}"
+                                 Classes.Struck="{Binding !CanReject}"
                                  Text="{Binding Text}" />
                       <Button Classes="ChipButton" Content="↶" IsVisible="{Binding !CanReject}"
                               Tag="Undo" ToolTip.Tip="{l:Loc Editor_Tag_Undo}" AutomationProperties.Name="{l:Loc Editor_Tag_Undo}" />

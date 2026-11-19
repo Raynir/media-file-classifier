@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
@@ -26,6 +28,9 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
     /// throughput (stress test of E01-S03-T04).
     /// </summary>
     public const int BatchSize = 100;
+
+    // Listeners that failed already: a later failure of the same one is logged at debug level.
+    private readonly ConcurrentDictionary<MethodInfo, byte> failedListeners = new();
 
     /// <inheritdoc />
     public event EventHandler? Changed;
@@ -561,15 +566,31 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             {
                 listener(this, EventArgs.Empty);
             }
+            catch (OperationCanceledException)
+            {
+                // E.g. the listener's work was cancelled as the library closes; there is nothing to report.
+            }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                LogListenerFailed(exception, listener.Method.DeclaringType?.FullName ?? listener.Method.Name);
+                // A listener that fails on every change would otherwise log an error per import batch.
+                var name = listener.Method.DeclaringType?.FullName ?? listener.Method.Name;
+                if (failedListeners.TryAdd(listener.Method, 0))
+                {
+                    LogListenerFailed(exception, name);
+                }
+                else
+                {
+                    LogListenerFailedAgain(exception, name);
+                }
             }
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "A listener of the media item changes ({Listener}) failed")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "A listener of the media item changes ({Listener}) failed; later failures of it are logged at debug level")]
     private partial void LogListenerFailed(Exception exception, string listener);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "A listener of the media item changes ({Listener}) failed again")]
+    private partial void LogListenerFailedAgain(Exception exception, string listener);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default)

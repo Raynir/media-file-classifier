@@ -51,7 +51,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Changed_ListenerThatThrows_IsLogged()
+    public async Task Changed_ListenerThatThrows_IsLoggedOnce()
     {
         var loggers = new RecordingLoggerFactory();
         await using var logged = await LibraryTestBed.CreateAsync(loggers);
@@ -59,7 +59,9 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
         logged.Library.Items.Changed += (_, _) => throw failure;
 
         await logged.Library.Items.AddAsync(logged.NewItem(1), Token);
+        await logged.Library.Items.AddAsync(logged.NewItem(2), Token);
 
+        // Once: a listener that fails on every change mustn't log an error per import batch.
         var error = Assert.Single(loggers.Errors);
         Assert.Equal(typeof(MediaItemRepository).FullName, error.Category);
         Assert.Same(failure, error.Exception);

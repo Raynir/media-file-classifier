@@ -24,6 +24,10 @@
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
             <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
             <TextBlock Classes="EditedMark" Text="{l:Loc Editor_Edited}" IsVisible="{Binding IsDirty}" />
+            <Button Classes="Small"
+                    Content="{l:Loc Editor_Revert}"
+                    Command="{Binding RevertCommand}"
+                    IsVisible="{Binding CanRevert}" />
           </StackPanel>
           <TextBox Text="{Binding Text}"
                    IsReadOnly="{Binding IsReadOnly}"
@@ -75,14 +79,20 @@
             BorderThickness="0,1,0,0"
             Padding="{DynamicResource Padding.Panel}">
       <DockPanel LastChildFill="False">
-        <TextBlock DockPanel.Dock="Left"
-                   Classes="Secondary"
-                   Text="{l:Loc Editor_Unsaved}"
-                   VerticalAlignment="Center" />
+        <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+          <TextBlock Classes="Secondary" Text="{l:Loc Editor_Unsaved}" />
+          <TextBlock Classes="FieldError"
+                     Text="{Binding SaveError}"
+                     IsVisible="{Binding SaveError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
           <Button x:Name="CancelButton"
                   Content="{l:Loc Editor_Cancel}"
                   Command="{Binding CancelCommand}" />
+          <Button x:Name="SaveButton"
+                 
+                  Content="{l:Loc Editor_Save}"
+                  Command="{Binding SaveCommand}" />
         </StackPanel>
       </DockPanel>
     </Border>

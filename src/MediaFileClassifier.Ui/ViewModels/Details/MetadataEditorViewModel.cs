@@ -7,6 +7,7 @@ using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases.Metadata;
+using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -100,6 +101,19 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     public partial bool IsDirty { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether a save is running.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
+    public partial bool IsSaving { get; private set; }
+
+    /// <summary>
+    /// Gets a message about a save that failed for a reason other than a field's value, or <see langword="null"/>.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? SaveError { get; private set; }
+
+    /// <summary>
     /// Gets a task for the latest load, for tests.
     /// </summary>
     internal Task Loading { get; private set; } = Task.CompletedTask;
@@ -124,7 +138,88 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
             field.Discard();
         }
 
+        SaveError = null;
         UpdateDirty();
+    }
+
+    /// <summary>
+    /// Saves every staged change to the item as one edit (D019). A value the service refuses is shown next to its
+    /// field, nothing is written, and the staged changes stay.
+    /// </summary>
+    /// <returns>A task that completes when the save has finished.</returns>
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    public async Task SaveAsync()
+    {
+        if (ItemId is not { } id)
+        {
+            return;
+        }
+
+        var edits = BuildEdits();
+        if (edits.Count == 0)
+        {
+            return;
+        }
+
+        IsSaving = true;
+        SaveError = null;
+        try
+        {
+            var result = await sender.Send(new EditMetadataCommand([id], edits));
+            if (result.Error is { } error)
+            {
+                ShowError(error);
+                return;
+            }
+
+            // The saved values come back from the library, so the editor shows what is stored.
+            if (ItemId == id)
+            {
+                await LoadCoreAsync(id);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogSaveFailed(logger, ex);
+            SaveError = localizer.Get("Editor_Error_SaveFailed");
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    /// <summary>
+    /// Lists the edits that make the item what the editor shows: nothing for a field that didn't change.
+    /// </summary>
+    /// <returns>The edits, in the order the service applies them.</returns>
+    internal List<MetadataEdit> BuildEdits()
+    {
+        var edits = new List<MetadataEdit>();
+        foreach (var field in AllFields.Where(field => field.IsDirty))
+        {
+            edits.Add(field.IsReverted
+                ? new MetadataEdit.RevertField(field.Field)
+                : new MetadataEdit.SetField(field.Field, field.ToValue()));
+        }
+
+        return edits;
+    }
+
+    private bool CanSave() => IsDirty && !IsSaving;
+
+    private void ShowError(MetadataValidationError error)
+    {
+        var field = AllFields.FirstOrDefault(candidate => candidate.Field == error.Field);
+        var message = localizer.Format("Editor_Error_" + error.Code, error.Limit ?? 0, error.Tag ?? string.Empty);
+        if (field is null)
+        {
+            SaveError = message;
+        }
+        else
+        {
+            field.Error = message;
+        }
     }
 
     private EditableFieldViewModel Create(DescriptiveField field, string labelKey, bool isReadOnly = false)
@@ -148,7 +243,11 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         }
     }
 
-    private void UpdateDirty() => IsDirty = AllFields.Any(field => field.IsDirty);
+    private void UpdateDirty()
+    {
+        IsDirty = AllFields.Any(field => field.IsDirty);
+        SaveCommand.NotifyCanExecuteChanged();
+    }
 
     private async Task LoadCoreAsync(Id<MediaItem>? itemId)
     {
@@ -192,6 +291,9 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         HasTags = Tags.Count > 0;
         UpdateDirty();
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't save the metadata edits")]
+    private static partial void LogSaveFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't load the metadata to edit")]
     private static partial void LogLoadFailed(ILogger logger, Exception exception);

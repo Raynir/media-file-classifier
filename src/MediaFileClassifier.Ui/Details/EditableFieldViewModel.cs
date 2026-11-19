@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.UseCases.Metadata;
@@ -82,6 +83,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     /// file value.
     /// </summary>
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RevertCommand))]
     public partial bool CanRevert { get; set; }
 
     /// <summary>
@@ -122,6 +124,14 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets the value the text stands for: a list field's entries are split at commas and line breaks.
+    /// </summary>
+    /// <returns>The value to save.</returns>
+    internal FieldValue ToValue() => IsList
+        ? FieldValue.FromList(Text.Split([',', ';', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries))
+        : FieldValue.FromText(Text);
+
+    /// <summary>
     /// Goes back to the loaded text, dropping the staged change.
     /// </summary>
     internal void Discard()
@@ -135,7 +145,8 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     /// <summary>
     /// Stages going back to the AI or file value.
     /// </summary>
-    internal void Revert()
+    [RelayCommand(CanExecute = nameof(CanRevert))]
+    public void Revert()
     {
         IsReverted = true;
         Error = null;

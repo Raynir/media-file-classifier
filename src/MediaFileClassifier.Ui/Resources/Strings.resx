@@ -2038,4 +2038,34 @@
   <data name="Editor_Edited" xml:space="preserve">
     <value>Edited</value>
   </data>
+  <data name="Editor_Error_SaveFailed" xml:space="preserve">
+    <value>Couldn't save the changes. Try again.</value>
+  </data>
+  <data name="Editor_Error_WrongValueKind" xml:space="preserve">
+    <value>This value isn't allowed for this field.</value>
+  </data>
+  <data name="Editor_Error_TextTooLong" xml:space="preserve">
+    <value>Too long: at most {0} characters.</value>
+  </data>
+  <data name="Editor_Error_TooManyListItems" xml:space="preserve">
+    <value>Too many entries: at most {0}.</value>
+  </data>
+  <data name="Editor_Error_ListItemTooLong" xml:space="preserve">
+    <value>An entry is too long: at most {0} characters.</value>
+  </data>
+  <data name="Editor_Error_TagEmpty" xml:space="preserve">
+    <value>A tag can't be empty.</value>
+  </data>
+  <data name="Editor_Error_TagTooLong" xml:space="preserve">
+    <value>The tag “{1}” is too long: at most {0} characters.</value>
+  </data>
+  <data name="Editor_Error_TagInvalidCharacter" xml:space="preserve">
+    <value>The tag “{1}” can't hold commas, semicolons or control characters.</value>
+  </data>
+  <data name="Editor_Error_TooManyTags" xml:space="preserve">
+    <value>Too many tags: an item can have at most {0} of your own.</value>
+  </data>
+  <data name="Editor_Revert" xml:space="preserve">
+    <value>Use the AI or file value</value>
+  </data>
 </root>

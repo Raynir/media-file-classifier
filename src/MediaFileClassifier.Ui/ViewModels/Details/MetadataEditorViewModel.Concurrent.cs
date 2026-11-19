@@ -86,9 +86,10 @@ public sealed partial class MetadataEditorViewModel
         }
 
         UpdateDirty();
-        Notice = overlapping.Count == 0 || !IsDirty
-            ? null
-            : localizer.Format("Editor_Notice_Changed", string.Join(", ", overlapping));
+        if (overlapping.Count > 0 && IsDirty)
+        {
+            Notice = localizer.Format("Editor_Notice_Changed", string.Join(", ", overlapping));
+        }
     }
 
     // Shows the stored tags with the staged tag changes on top. Returns true when a staged change no longer fits the

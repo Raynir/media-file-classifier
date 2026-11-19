@@ -128,6 +128,40 @@ public sealed class UnsavedChangesGuardTests
         Assert.True(await first);
     }
 
+    [Fact]
+    public async Task Confirm_WhileTheChosenSaveRuns_RefusesWithoutAskingAgain()
+    {
+        var editor = new SlowSaveEditor();
+        guard.Register(editor);
+        answer = UnsavedChangesChoice.Save;
+
+        var first = guard.ConfirmLeaveAsync();
+        var second = await guard.ConfirmLeaveAsync();
+        editor.Finish.SetResult(true);
+
+        Assert.False(second);
+        Assert.True(await first);
+        Assert.Single(prompts);
+    }
+
+    private sealed class SlowSaveEditor : IStagedEditor
+    {
+        public TaskCompletionSource<bool> Finish { get; } = new();
+
+        public bool HasUnsavedChanges { get; private set; } = true;
+
+        public string Description => "A";
+
+        public async Task<bool> SaveAsync()
+        {
+            var ok = await Finish.Task;
+            HasUnsavedChanges = !ok;
+            return ok;
+        }
+
+        public void Discard() => HasUnsavedChanges = false;
+    }
+
     private sealed class FakeEditor(string description) : IStagedEditor
     {
         public bool HasUnsavedChanges { get; set; }

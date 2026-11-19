@@ -133,6 +133,12 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         originalText = view.Effective?.Value.Text ?? string.Empty;
         FallbackText = (view.LatestAi?.Value ?? view.Technical?.Value)?.Text ?? string.Empty;
         CanRevert = view.User is not null;
+        if (!CanRevert)
+        {
+            // The user's value is gone, so there is nothing to revert.
+            IsReverted = false;
+        }
+
         if (IsReverted)
         {
             // A staged revert goes to the AI or file value as it is now.

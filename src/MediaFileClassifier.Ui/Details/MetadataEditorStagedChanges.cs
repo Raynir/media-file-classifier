@@ -19,6 +19,11 @@ internal sealed class MetadataEditorStagedChanges(MetadataEditorViewModel editor
     /// <inheritdoc />
     public async Task<bool> SaveAsync()
     {
+        if (editor.IsSaving)
+        {
+            return false;
+        }
+
         await editor.SaveAsync();
 
         // A refused value or a failed write leaves the changes staged, with the reason shown in the editor.

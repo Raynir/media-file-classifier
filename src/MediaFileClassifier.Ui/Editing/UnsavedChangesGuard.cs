@@ -57,32 +57,31 @@ public sealed class UnsavedChangesGuard(Localizer localizer)
                 continue;
             }
 
+            // The prompt and the answer's action are one step: another leave during a save must not ask again.
             asking = true;
-            UnsavedChangesChoice choice;
             try
             {
-                choice = await Ask(new UnsavedChangesViewModel(editor.Description, localizer));
+                var choice = await Ask(new UnsavedChangesViewModel(editor.Description, localizer));
+                switch (choice)
+                {
+                    case UnsavedChangesChoice.Save:
+                        if (!await editor.SaveAsync())
+                        {
+                            // The editor shows why, and its changes stay.
+                            return false;
+                        }
+
+                        break;
+                    case UnsavedChangesChoice.Discard:
+                        editor.Discard();
+                        break;
+                    default:
+                        return false;
+                }
             }
             finally
             {
                 asking = false;
-            }
-
-            switch (choice)
-            {
-                case UnsavedChangesChoice.Save:
-                    if (!await editor.SaveAsync())
-                    {
-                        // The editor shows why, and its changes stay.
-                        return false;
-                    }
-
-                    break;
-                case UnsavedChangesChoice.Discard:
-                    editor.Discard();
-                    break;
-                default:
-                    return false;
             }
         }
 

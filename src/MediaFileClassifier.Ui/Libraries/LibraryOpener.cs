@@ -37,11 +37,6 @@ public sealed class LibraryOpener(ISender sender, IPlatformServices platform, Lo
     /// <returns>A task that completes when the library is open, or the attempt failed.</returns>
     public async Task PickAndOpenAsync()
     {
-        if (!await CanLeaveAsync())
-        {
-            return;
-        }
-
         if (await platform.PickFolderAsync(localizer.Get("OpenLibrary_Pick")) is { } folder)
         {
             await OpenAsync(folder.Id);

@@ -299,11 +299,10 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         if (Item is { } item && itemIds.Contains(item.Id))
         {
             Loading = LoadAsync();
-            if (Editor.IsDirty)
-            {
-                // The load above leaves a dirty editor alone; this merges the stored values into it.
-                _ = Editor.MergeChangesAsync(changedFields, tagsChanged);
-            }
+
+            // Whether the editor is dirty is decided when the metadata arrives, so edits typed while it loads are kept
+            // too. A clean editor just shows the stored values.
+            _ = Editor.MergeChangesAsync(changedFields, tagsChanged);
         }
     }
 

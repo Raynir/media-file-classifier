@@ -1,0 +1,125 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Details"
+             xmlns:d="using:MediaFileClassifier.Ui.Details"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Details.MetadataEditorView"
+             x:DataType="vm:MetadataEditorViewModel">
+  <!--
+    The metadata editor (E07-S02): descriptive fields, AI analysis fields and tags in collapsible sections, with the
+    Save and Cancel bar under them while something is unsaved. Provisional layout after the Figma Overview tab (D095):
+    there is no E07-S02-T00 design for M3.
+  -->
+  <UserControl.Resources>
+    <!-- One field: its label, an Edited mark while it has an unsaved change, the text box and its validation error. -->
+    <DataTemplate x:Key="FieldTemplate" x:DataType="d:EditableFieldViewModel">
+      <Border Classes="FieldDirty" Classes.Dirty="{Binding IsDirty}" Margin="0,0,0,8">
+        <Border.Styles>
+          <Style Selector="Border.FieldDirty:not(.Dirty)">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,0,0,0" />
+          </Style>
+        </Border.Styles>
+        <StackPanel Spacing="{DynamicResource Space.XS}">
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+            <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
+            <TextBlock Classes="EditedMark" Text="{l:Loc Editor_Edited}" IsVisible="{Binding IsDirty}" />
+          </StackPanel>
+          <TextBox Text="{Binding Text}"
+                   IsReadOnly="{Binding IsReadOnly}"
+                   AcceptsReturn="{Binding !IsSingleLine}"
+                   TextWrapping="Wrap"
+                   MaxHeight="160"
+                   AutomationProperties.Name="{Binding Label}" />
+          <TextBlock Classes="FieldError"
+                     Text="{Binding Error}"
+                     IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="TextBlock.FieldLabel">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.EditedMark">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Provenance.Edited.Foreground}" />
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+    </Style>
+    <Style Selector="TextBlock.FieldError">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Border.FieldDirty">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Provenance.Edited.Foreground}" />
+      <Setter Property="BorderThickness" Value="2,0,0,0" />
+      <Setter Property="Padding" Value="8,0,0,0" />
+    </Style>
+    <Style Selector="Border.Chip">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Control}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Badge}" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <!-- Save and Cancel, only while there are unsaved changes. -->
+    <Border DockPanel.Dock="Bottom"
+            x:Name="SaveBar"
+            IsVisible="{Binding IsDirty}"
+            BorderBrush="{DynamicResource Brush.Border.Divider}"
+            BorderThickness="0,1,0,0"
+            Padding="{DynamicResource Padding.Panel}">
+      <DockPanel LastChildFill="False">
+        <TextBlock DockPanel.Dock="Left"
+                   Classes="Secondary"
+                   Text="{l:Loc Editor_Unsaved}"
+                   VerticalAlignment="Center" />
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+          <Button x:Name="CancelButton"
+                  Content="{l:Loc Editor_Cancel}"
+                  Command="{Binding CancelCommand}" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.M}">
+        <Expander Header="{l:Loc Editor_Section_Descriptive}" IsExpanded="True" HorizontalAlignment="Stretch">
+          <ItemsControl ItemsSource="{Binding Descriptive}" ItemTemplate="{StaticResource FieldTemplate}" />
+        </Expander>
+        <Expander Header="{l:Loc Editor_Section_Analysis}" IsExpanded="True" HorizontalAlignment="Stretch">
+          <StackPanel Spacing="{DynamicResource Space.S}">
+            <ItemsControl ItemsSource="{Binding Analysis}" ItemTemplate="{StaticResource FieldTemplate}" />
+            <ContentControl Content="{Binding Transcript}"
+                            ContentTemplate="{StaticResource FieldTemplate}"
+                            IsVisible="{Binding HasTranscript}" />
+          </StackPanel>
+        </Expander>
+        <Expander Header="{l:Loc Details_Tags}" IsExpanded="True" HorizontalAlignment="Stretch">
+          <StackPanel Spacing="{DynamicResource Space.XS}">
+            <TextBlock Classes="Tertiary" Text="{l:Loc Details_Tags_None}" IsVisible="{Binding !HasTags}" />
+            <ItemsControl x:Name="TagList" ItemsSource="{Binding Tags}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="d:TagChipViewModel">
+                  <Border Classes="Chip" Margin="{DynamicResource Padding.Compact}">
+                    <TextBlock Text="{Binding Text}" />
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Expander>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

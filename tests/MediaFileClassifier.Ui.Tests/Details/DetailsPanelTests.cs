@@ -22,6 +22,7 @@ using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
 using MediatR;
 using SkiaSharp;
 
@@ -317,6 +318,11 @@ public sealed class DetailsPanelTests : IDisposable
 
         public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
+            if (request is GetItemMetadataQuery)
+            {
+                return Task.FromResult((TResponse)(object)null!);
+            }
+
             var query = Assert.IsType<GetItemDetailsQuery>(request);
             var index = Source.Ids.ToList().IndexOf(query.ItemId);
             var path = Corrupt ? corrupt : original;

@@ -84,6 +84,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         this.grid = grid;
         this.logger = logger ?? NullLogger<DetailsPanelViewModel>.Instance;
         Commands = commands;
+        Editor = new MetadataEditorViewModel(sender, localizer, logger);
         selection.Changed += OnSelectionChanged;
         layout.PropertyChanged += OnLayoutChanged;
     }
@@ -99,6 +100,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Title), nameof(Subtitle), nameof(Description), nameof(Tags), nameof(HasDescription), nameof(HasTags))]
     public partial ItemDetails? Item { get; private set; }
+
+    /// <summary>
+    /// Gets the metadata editor of the shown item (E07-S02).
+    /// </summary>
+    public MetadataEditorViewModel Editor { get; }
 
     /// <summary>
     /// Gets the panel's title: the item's title, or its file name.
@@ -473,6 +479,13 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
 
         var sameItem = item is not null && Item?.Id == item.Id;
         Item = item;
+
+        // The same item shown again, e.g. after a change elsewhere, keeps what the user has staged in the editor.
+        if (!(sameItem && Editor.IsDirty))
+        {
+            _ = Editor.LoadAsync(item?.Id);
+        }
+
         TechnicalRows = item is null ? [] : TechnicalRowBuilder.Build(item, localizer);
         if (!sameItem)
         {

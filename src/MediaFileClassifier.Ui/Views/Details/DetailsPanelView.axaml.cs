@@ -42,6 +42,7 @@ public partial class DetailsPanelView : UserControl
         if (viewModel is not null)
         {
             viewModel.FocusRequested -= OnFocusRequested;
+            viewModel.EditRequested -= OnEditRequested;
             viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
 
@@ -49,6 +50,7 @@ public partial class DetailsPanelView : UserControl
         if (viewModel is not null)
         {
             viewModel.FocusRequested += OnFocusRequested;
+            viewModel.EditRequested += OnEditRequested;
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
             ReportScreen();
             if (viewModel.IsFocusPending)
@@ -75,10 +77,16 @@ public partial class DetailsPanelView : UserControl
         if (viewModel is not null)
         {
             viewModel.FocusRequested -= OnFocusRequested;
+            viewModel.EditRequested -= OnEditRequested;
             viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             viewModel = null;
         }
     }
+
+    private void OnEditRequested(object? sender, EventArgs e) =>
+
+        // The Overview tab may only now be selected, so focus the title once it's laid out.
+        Dispatcher.UIThread.Post(() => Editor.FocusFirstField(), DispatcherPriority.Loaded);
 
     private void OnFocusRequested(object? sender, EventArgs e) =>
 

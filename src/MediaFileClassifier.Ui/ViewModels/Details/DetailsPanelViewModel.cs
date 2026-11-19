@@ -84,6 +84,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         this.grid = grid;
         this.logger = logger ?? NullLogger<DetailsPanelViewModel>.Instance;
         Commands = commands;
+        Editor = new MetadataEditorViewModel(sender, localizer, logger);
+        Editor.PropertyChanged += OnEditorChanged;
         selection.Changed += OnSelectionChanged;
         layout.PropertyChanged += OnLayoutChanged;
     }
@@ -94,11 +96,21 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     public event EventHandler? FocusRequested;
 
     /// <summary>
+    /// Raised when the metadata editor should take keyboard focus (the Edit metadata command).
+    /// </summary>
+    public event EventHandler? EditRequested;
+
+    /// <summary>
     /// Gets the shown item, or <see langword="null"/>.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Title), nameof(Subtitle), nameof(Description), nameof(Tags), nameof(HasDescription), nameof(HasTags))]
     public partial ItemDetails? Item { get; private set; }
+
+    /// <summary>
+    /// Gets the metadata editor of the shown item (E07-S02).
+    /// </summary>
+    public MetadataEditorViewModel Editor { get; }
 
     /// <summary>
     /// Gets the panel's title: the item's title, or its file name.
@@ -258,6 +270,16 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     }
 
     /// <summary>
+    /// Opens the panel on the Overview tab and asks the metadata editor to take keyboard focus.
+    /// </summary>
+    public void RequestEdit()
+    {
+        layout.Details.Expand();
+        layout.DetailsTab = DetailsTab.Overview;
+        EditRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
     /// Records that the view gave the preview keyboard focus.
     /// </summary>
     public void OnFocused() => IsFocusPending = false;
@@ -295,6 +317,21 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         loading?.Dispose();
         CancelPreview();
         SetPreview(null);
+    }
+
+    private void OnEditorChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Save and Cancel apply only while there is something to save.
+        if (e.PropertyName is nameof(MetadataEditorViewModel.IsDirty) or nameof(MetadataEditorViewModel.IsSaving))
+        {
+            foreach (var id in (string[])[MetadataEditorCommands.Save, MetadataEditorCommands.Cancel])
+            {
+                if (Commands.TryGet(id, out var command))
+                {
+                    command.Refresh();
+                }
+            }
+        }
     }
 
     [RelayCommand]
@@ -473,6 +510,13 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
 
         var sameItem = item is not null && Item?.Id == item.Id;
         Item = item;
+
+        // The same item shown again, e.g. after a change elsewhere, keeps what the user has staged in the editor.
+        if (!(sameItem && Editor.IsDirty))
+        {
+            _ = Editor.LoadAsync(item?.Id);
+        }
+
         TechnicalRows = item is null ? [] : TechnicalRowBuilder.Build(item, localizer);
         if (!sameItem)
         {

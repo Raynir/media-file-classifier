@@ -128,6 +128,8 @@
   <!-- Lists in dialogs and overlays: space under a group, and around a row. -->
   <Thickness x:Key="Padding.Group">0,0,0,16</Thickness>
   <Thickness x:Key="Padding.Row">0,2</Thickness>
+  <!-- Space under one field of the metadata editor (E07-S02). -->
+  <Thickness x:Key="Padding.Field">0,0,0,8</Thickness>
   <!--
     Thumbnail grid (E14-S01), after Figma: 24 at the sides, 16 between tiles (Space.L) and rows. The grid's scroll
     math uses the same values (ThumbnailGridViewModel.Gap and InfoStripHeight), so change them together.

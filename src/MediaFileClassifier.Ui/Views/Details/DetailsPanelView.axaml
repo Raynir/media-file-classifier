@@ -157,34 +157,7 @@
     <!-- Overview and Technical. -->
     <TabControl SelectedIndex="{Binding SelectedTab}">
       <TabItem Header="{l:Loc Details_Tab_Overview}">
-        <ScrollViewer>
-          <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.M}">
-            <StackPanel Spacing="{DynamicResource Space.XS}">
-              <TextBlock Classes="FieldLabel" Text="{l:Loc Details_Description}" />
-              <SelectableTextBlock Text="{Binding Description}"
-                                   Classes.Tertiary="{Binding !HasDescription}"
-                                   TextWrapping="Wrap" />
-            </StackPanel>
-            <StackPanel Spacing="{DynamicResource Space.XS}">
-              <TextBlock Classes="FieldLabel" Text="{l:Loc Details_Tags}" />
-              <TextBlock Classes="Tertiary" Text="{l:Loc Details_Tags_None}" IsVisible="{Binding !HasTags}" />
-              <ItemsControl ItemsSource="{Binding Tags}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="x:String">
-                    <Border Classes="Chip" Margin="{DynamicResource Padding.Compact}">
-                      <TextBlock Text="{Binding}" />
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </StackPanel>
-        </ScrollViewer>
+        <v:MetadataEditorView x:Name="Editor" DataContext="{Binding Editor}" />
       </TabItem>
       <TabItem Header="{l:Loc Details_Tab_Technical}">
         <ScrollViewer>

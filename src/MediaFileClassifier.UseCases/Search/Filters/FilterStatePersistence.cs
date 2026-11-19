@@ -58,13 +58,15 @@ public sealed class FilterStatePersistence
 
         try
         {
-            store.SetValue(FilterSettings.LastFilters, FilterStateSerializer.Serialize(source.Filters));
+            // No filters are stored as the default, so a library without any isn't written to.
+            var filters = source.Filters;
+            store.SetValue(FilterSettings.LastFilters, filters.IsEmpty ? string.Empty : FilterStateSerializer.Serialize(filters));
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException) when (!store.IsAvailable(SettingScope.Library))
         {
             // The library closed meanwhile; there is nothing to save to.
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
         {
             // The save runs inside whatever changed the results, such as an import adding items: losing the last
             // filters mustn't fail that too.

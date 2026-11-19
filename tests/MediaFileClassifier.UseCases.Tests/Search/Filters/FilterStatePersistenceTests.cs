@@ -53,6 +53,20 @@ public sealed class FilterStatePersistenceTests
     }
 
     [Fact]
+    public void ClearedFilters_AreStoredAsTheDefault()
+    {
+        store.IsLibraryOpen = true;
+        _ = new FilterStatePersistence(source, store, serializer, NullLogger<FilterStatePersistence>.Instance);
+        var writes = store.WriteCount;
+
+        source.SetFilters(Videos);
+        source.SetFilters(FilterState.Empty);
+
+        Assert.Equal(string.Empty, store.Get(FilterSettings.LastFilters));
+        Assert.Equal(writes + 2, store.WriteCount);
+    }
+
+    [Fact]
     public void WhenALibraryOpens_WithRestoreOn_TheSavedFiltersComeBack()
     {
         store.IsLibraryOpen = true;

@@ -161,14 +161,16 @@ public abstract record MetadataEdit
 
     /// <summary>
     /// Rejects a tag: the user tag is removed and a tombstone keeps AI runs and the file from adding it again, with both
-    /// language forms (D047).
+    /// language forms (D047). Items that don't show the
+    /// tag are left as they are.
     /// </summary>
     /// <param name="Tag">The tag.</param>
     public sealed record RejectTag(TagName Tag) : MetadataEdit
     {
         internal override bool ApplyTo(ItemMetadata metadata, DateTimeOffset now)
         {
-            if (metadata.Rejections.Any(rejection => rejection.Tag == Tag) && !metadata.GetEffectiveTags().Any(tag => tag.Tag == Tag))
+            // Only an item that shows the tag gets the tombstone, so a bulk reject doesn't block it on items that never had it.
+            if (!metadata.GetEffectiveTags().Any(tag => tag.Tag == Tag))
             {
                 return false;
             }

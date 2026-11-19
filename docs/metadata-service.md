@@ -26,7 +26,7 @@ An `ItemMetadataView` lists every descriptive field, empty ones too (`view[field
 | `DismissFieldSuggestion(field)` | Keeps the user value and clears the flag. |
 | `AddTag(text)` | Adds a user tag as typed (cleaned, see below) and removes its tombstone. |
 | `RemoveTag(tag)` | Removes the user tag with no tombstone; an AI or file tag of the same name shows again. |
-| `RejectTag(tag)` | Removes the user tag and keeps a tombstone, so runs and the file don't add it again. |
+| `RejectTag(tag)` | Removes the user tag and keeps a tombstone, so runs and the file don't add it again. Only items that show the tag get the tombstone, so a bulk reject doesn't block it on selected items that never had it. |
 | `ConfirmTag(tag)` | Copies an effective AI tag into the user layer as Accepted. |
 | `AcceptTagSuggestion(tag)` / `DismissTagSuggestion(tag)` | Follow or clear a tag's new AI suggestion. |
 

@@ -287,6 +287,19 @@ public sealed class EditMetadataFlowTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task RejectTag_InABulkEdit_TombstonesOnlyTheItemsThatShowTheTag()
+    {
+        var other = await bed.AddItemAsync(2);
+        await bed.ApplyRunAsync("Dog", ["dog"]);
+
+        var result = await bed.Sender.Send(new EditMetadataCommand([bed.Item.Id, other.Id], [new MetadataEdit.RejectTag(TagName.From("dog"))]), Token);
+
+        Assert.Equal([bed.Item.Id], result.ChangedItemIds);
+        Assert.Single((await bed.GetAsync()).Rejections);
+        Assert.Empty((await bed.Open.Metadata.GetAsync(other.Id, Token)).Rejections);
+    }
+
+    [Fact]
     public async Task Edits_ThatAreInvalid_WriteNothingAndReportTheError()
     {
         var other = await bed.AddItemAsync(2);

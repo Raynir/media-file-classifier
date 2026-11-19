@@ -391,6 +391,13 @@
   <data name="QuitConfirmation_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="Editor_Notice_Changed" xml:space="preserve">
+    <value>{0} changed elsewhere. Your edit is kept; saving replaces the new value.</value>
+    <comment>{0} is a comma-separated list of the fields (and "Tags") that you edited and that changed in the background.</comment>
+  </data>
+  <data name="Editor_Notice_TagsName" xml:space="preserve">
+    <value>Tags</value>
+  </data>
   <data name="Editor_Notice_Held" xml:space="preserve">
     <value>This item is no longer selected. Save or cancel your changes to move on.</value>
   </data>

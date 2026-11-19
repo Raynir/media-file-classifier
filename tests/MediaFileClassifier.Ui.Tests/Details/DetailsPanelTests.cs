@@ -392,6 +392,22 @@ public sealed class DetailsPanelTests : IDisposable
         Assert.True(bed.Layout.Details.IsCollapsed);
     });
 
+    [Fact]
+    public Task Reload_WithStagedChanges_KeepsThem_AndNamesAnOverlappingFieldInTheNotice() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+
+        bed.Panel.Reload([bed.Source.Ids[1]], new HashSet<DescriptiveField> { DescriptiveField.Title }, tagsChanged: false);
+        bed.Settle();
+        Pump.Until(() => bed.Panel.Editor.Notice is not null);
+
+        Assert.Equal("Edited", bed.Panel.Editor.Descriptive[0].Text);
+        Assert.True(bed.Panel.Editor.IsDirty);
+        Assert.Contains("changed elsewhere", bed.Panel.Editor.Notice);
+    });
+
     private string WriteImage(string name, int width, int height)
     {
         var path = temp.Combine(name);

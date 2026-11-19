@@ -422,6 +422,12 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     private void UpdateDirty()
     {
         IsDirty = AllFields.Any(field => field.IsDirty) || Tags.Any(chip => chip.IsStaged);
+        if (!IsDirty)
+        {
+            // A notice is about staged changes.
+            Notice = null;
+        }
+
         SaveCommand.NotifyCanExecuteChanged();
     }
 

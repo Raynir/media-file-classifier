@@ -124,6 +124,25 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Takes the stored values of a field that changed in the background, keeping what the user staged: the staged text
+    /// stays, and whether it is a change is worked out against the new stored value (E07-S12-T02).
+    /// </summary>
+    /// <param name="view">The field's layers as they are stored now.</param>
+    internal void Rebase(FieldMetadataView view)
+    {
+        originalText = view.Effective?.Value.Text ?? string.Empty;
+        FallbackText = (view.LatestAi?.Value ?? view.Technical?.Value)?.Text ?? string.Empty;
+        CanRevert = view.User is not null;
+        if (IsReverted)
+        {
+            // A staged revert goes to the AI or file value as it is now.
+            Text = FallbackText;
+        }
+
+        IsDirty = IsReverted || !string.Equals(Text, originalText, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Gets the value the text stands for: a list field's entries are split at commas and line breaks.
     /// </summary>
     /// <returns>The value to save.</returns>

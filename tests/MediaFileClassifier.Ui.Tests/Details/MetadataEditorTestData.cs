@@ -22,7 +22,7 @@ internal static class MetadataEditorTestData
     /// A sample item: a title the user set, an AI description, file-read notes, AI objects, an AI transcript, and
     /// one tag of each source.
     /// </summary>
-    public static ItemMetadataView Sample()
+    public static ItemMetadataView Sample(string description = "A sandy beach", string aiTag = "sea")
     {
         var fields = DescriptiveFields.All.Select(field => new FieldMetadataView(field, null, null, null, null, null)).ToArray();
         fields[(int)DescriptiveField.Title] = fields[(int)DescriptiveField.Title] with
@@ -33,7 +33,7 @@ internal static class MetadataEditorTestData
         };
         fields[(int)DescriptiveField.Description] = fields[(int)DescriptiveField.Description] with
         {
-            Effective = Resolved(DescriptiveField.Description, FieldValue.FromText("A sandy beach"), MetadataSource.AI),
+            Effective = Resolved(DescriptiveField.Description, FieldValue.FromText(description), MetadataSource.AI),
         };
         fields[(int)DescriptiveField.Objects] = fields[(int)DescriptiveField.Objects] with
         {
@@ -48,7 +48,7 @@ internal static class MetadataEditorTestData
             fields,
             [
                 new TagMetadataView(Tag("holiday", MetadataSource.User), null),
-                new TagMetadataView(Tag("sea", MetadataSource.AI), null),
+                new TagMetadataView(Tag(aiTag, MetadataSource.AI), null),
                 new TagMetadataView(Tag("jpeg", MetadataSource.Technical), null),
             ],
             [],

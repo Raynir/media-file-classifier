@@ -282,13 +282,28 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// Loads the shown item again if its metadata changed, e.g. after an edit in another view (E07-S01-T03).
     /// </summary>
     /// <param name="itemIds">The items that changed.</param>
-    public void Reload(IReadOnlyCollection<Id<MediaItem>> itemIds)
+    public void Reload(IReadOnlyCollection<Id<MediaItem>> itemIds) => Reload(itemIds, new HashSet<DescriptiveField>(), tagsChanged: false);
+
+    /// <summary>
+    /// Loads the shown item again if its metadata changed. Staged changes in the editor are never discarded: the
+    /// editor refreshes what has nothing staged and keeps the rest (E07-S12-T02).
+    /// </summary>
+    /// <param name="itemIds">The items that changed.</param>
+    /// <param name="changedFields">The fields that changed.</param>
+    /// <param name="tagsChanged">Whether the tags changed.</param>
+    public void Reload(IReadOnlyCollection<Id<MediaItem>> itemIds, IReadOnlySet<DescriptiveField> changedFields, bool tagsChanged)
     {
         ArgumentNullException.ThrowIfNull(itemIds);
+        ArgumentNullException.ThrowIfNull(changedFields);
 
         if (Item is { } item && itemIds.Contains(item.Id))
         {
             Loading = LoadAsync();
+            if (Editor.IsDirty)
+            {
+                // The load above leaves a dirty editor alone; this merges the stored values into it.
+                _ = Editor.MergeChangesAsync(changedFields, tagsChanged);
+            }
         }
     }
 

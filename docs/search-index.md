@@ -174,6 +174,7 @@ How they were picked: the corpus (351 items, 139 English and 142 Russian queries
 - The threshold decides most of it. Looser cuts find more (+0.04 en, +0.06 ru) but then most nonsense queries show results; stricter cuts hide nonsense entirely but lose a fifth of the Russian recall. The cut stays where E09-S01 put it.
 - Hybrid beats vector-only by 0.14 (en) and 0.07 (ru) recall@10. Russian stays lower because the descriptions and tags are in English (the profile language), so a Russian query finds them only through SigLIP 2; abstract and tag-style Russian queries are the weakest categories.
 - Flat field weights mean a word in the title no longer outranks the same word as a prefix in a shorter file name; on the corpus that cost nothing (the filename and tag categories keep their scores).
+- On describe-2 (MFC-1000, `eval/reports/2026-11-19_150000_field-weights-describe-2.md`) seven field-weight sets (flat, the old title 4 / tags 3 / file name 2, title-heavy, tags-heavy, description-light, and two mixes) moved English keyword-only recall@10 by at most 0.003 and MRR by 0.009, and every one lowered something else (Russian or hybrid, or English keyword MRR). The flat weights stay (D-number pending).
 - The headline "below" status in these reports compares with `baselines.json`'s minimums, which were set for the `siglip2` system on the content categories only; the app systems also score the filename, tag and none categories.
 
 ## Known follow-ups

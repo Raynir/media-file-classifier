@@ -61,4 +61,4 @@ The 200-tag limit depends on what an item already has, so when the edits add tag
 
 ## Tag autocomplete
 
-Not part of this service: autocomplete from existing tags, ranked by usage, is planned in MFC-431 and MFC-112 and uses `GetUserTagsAsync` and `GetEffectiveTagsAsync`.
+The metadata editor's tag input (E07-S02-T02) asks `SuggestTagsQuery(Prefix, Limit)` for tags as the user types. The handler wraps `GetEffectiveTagsAsync`, so the tags match by either language form (D382) and come most used first, with their item counts, and the editor leaves out the tags the item shows already. There is no schema change.

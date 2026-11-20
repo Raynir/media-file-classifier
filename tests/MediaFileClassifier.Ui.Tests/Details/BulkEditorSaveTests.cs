@@ -176,7 +176,7 @@ public sealed class BulkEditorSaveTests
     /// Answers the aggregate, and saves like the service: it reports progress, keeps an undo and can be held until
     /// the save is stopped.
     /// </summary>
-    private sealed class SavingSender : BulkEditorSender
+    internal sealed class SavingSender : BulkEditorSender
     {
         public List<EditMetadataCommand> Edits { get; } = [];
 

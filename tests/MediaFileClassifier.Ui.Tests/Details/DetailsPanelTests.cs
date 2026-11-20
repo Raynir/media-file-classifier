@@ -243,6 +243,35 @@ public sealed class DetailsPanelTests : IDisposable
     });
 
     [Fact]
+    public Task SaveAndCancelCommands_InBulkMode_FollowTheBulkEditor_AndSaveAsksFirstForManyItems() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 30) { BulkView = BulkMetadataView.Empty with { ItemCount = 30 } };
+        bed.Select(0, SelectionGesture.Replace);
+        bed.Select(29, SelectionGesture.Range);
+        bed.Wait(bed.Panel.BulkEditor.Loading);
+        var save = bed.Registry[MetadataEditorCommands.Save];
+        var cancel = bed.Registry[MetadataEditorCommands.Cancel];
+        var undo = bed.Registry[MetadataEditorCommands.UndoBulk];
+        Assert.False(save.IsApplicable);
+        Assert.False(undo.IsApplicable);
+
+        bed.Panel.BulkEditor.AddTag("trip");
+
+        Assert.True(save.IsApplicable);
+        Assert.True(cancel.IsApplicable);
+
+        bed.Wait(save.ExecuteAsync());
+
+        Assert.True(bed.Panel.BulkEditor.IsConfirming);
+
+        bed.Wait(cancel.ExecuteAsync());
+
+        Assert.False(bed.Panel.BulkEditor.IsDirty);
+        Assert.False(save.IsApplicable);
+        Assert.False(bed.Panel.Editor.IsDirty);
+    });
+
+    [Fact]
     public Task Sections_AreKeptInTheShellLayout() => TestApp.RunAsync(() =>
     {
         var bed = new Bed(this, 3);
@@ -441,6 +470,31 @@ public sealed class DetailsPanelTests : IDisposable
 
         Assert.False(bed.Panel.IsBulk);
         Assert.Equal(0, bed.Panel.BulkEditor.ItemCount);
+    });
+
+    [Theory]
+    [InlineData(UnsavedChangesChoice.Stay, true, 3)]
+    [InlineData(UnsavedChangesChoice.Discard, false, 1)]
+    public Task ChangingTheSelection_WithStagedBulkChanges_AsksFirst_AndFollowsTheAnswer(UnsavedChangesChoice choice, bool stillBulk, int selectedAfter) => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Select(3, SelectionGesture.Toggle);
+        bed.Select(4, SelectionGesture.Toggle);
+        bed.Panel.BulkEditor.AddTag("trip");
+        var prompts = new List<string>();
+        bed.Guard.Ask = prompt =>
+        {
+            prompts.Add(prompt.Message);
+            return Task.FromResult(choice);
+        };
+
+        bed.Select(7, SelectionGesture.Replace);
+
+        Assert.Equal(["You have unsaved changes to \"3 items selected\". Save them before you go on?"], prompts);
+        Assert.Equal(stillBulk, bed.Panel.IsBulk);
+        Assert.Equal(selectedAfter, bed.Selection.Count);
+        Assert.Equal(stillBulk, bed.Panel.BulkEditor.IsDirty);
     });
 
     [Fact]

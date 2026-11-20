@@ -77,10 +77,58 @@
                      TextWrapping="Wrap"
                      Text="{Binding Notice}"
                      IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <TextBlock Classes="Secondary"
+                     x:Name="ConfirmText"
+                     TextWrapping="Wrap"
+                     Text="{Binding ConfirmText}"
+                     IsVisible="{Binding IsConfirming}" />
+          <TextBlock Classes="Secondary"
+                     x:Name="ProgressText"
+                     TextWrapping="Wrap"
+                     Text="{Binding SaveProgressText}"
+                     IsVisible="{Binding IsSaving}" />
+          <ProgressBar x:Name="SaveProgressBar"
+                       Maximum="{Binding ItemCount}"
+                       Value="{Binding SaveProgress}"
+                       IsVisible="{Binding IsSaving}" />
+          <TextBlock Classes="FieldError"
+                     x:Name="SaveErrorText"
+                     Text="{Binding SaveError}"
+                     IsVisible="{Binding SaveError, Converter={x:Static ObjectConverters.IsNotNull}}" />
         </StackPanel>
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
-          <Button x:Name="CancelButton" Content="{l:Loc Editor_Cancel}" Command="{Binding CancelCommand}" />
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+          <!-- A save of more than 20 items asks first; a save of more than 500 can be stopped. -->
+          <Button x:Name="StopButton"
+                  Content="{l:Loc Bulk_Stop}"
+                  Command="{Binding CancelSaveCommand}"
+                  IsVisible="{Binding IsSaving}"
+                  IsEnabled="{Binding IsLargeSave}" />
+          <Button x:Name="CancelButton" Content="{l:Loc Editor_Cancel}" Command="{Binding CancelCommand}" IsEnabled="{Binding !IsSaving}" />
+          <Button x:Name="SaveButton"
+                 
+                  Content="{l:Loc Editor_Save}"
+                  Command="{Binding RequestSaveCommand}"
+                  IsVisible="{Binding !IsConfirming}" />
+          <Button x:Name="ConfirmButton"
+                 
+                  Content="{l:Loc Bulk_Confirm_Button}"
+                  Command="{Binding RequestSaveCommand}"
+                  IsVisible="{Binding IsConfirming}" />
         </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- What the last save or undo did, with Undo. -->
+    <Border DockPanel.Dock="Bottom"
+            x:Name="ResultBar"
+            IsVisible="{Binding ResultMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+            BorderBrush="{DynamicResource Brush.Border.Divider}"
+            BorderThickness="0,1,0,0"
+            Padding="{DynamicResource Padding.Panel}">
+      <DockPanel LastChildFill="False">
+        <TextBlock DockPanel.Dock="Left" Classes="Secondary" x:Name="ResultText" TextWrapping="Wrap" VerticalAlignment="Center"
+                   Text="{Binding ResultMessage}" />
+        <Button DockPanel.Dock="Right" x:Name="UndoButton" Content="{l:Loc Bulk_Undo}" Command="{Binding UndoCommand}" IsVisible="{Binding CanUndo}" />
       </DockPanel>
     </Border>
 

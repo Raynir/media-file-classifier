@@ -221,7 +221,7 @@ public sealed class BulkEditorViewModelTests
 /// <summary>
 /// Serves the aggregate of a selection of 120 items: a shared title, a description on 37 of them, and two tags.
 /// </summary>
-internal sealed class BulkEditorSender : FakeSender
+internal class BulkEditorSender : FakeSender
 {
     public BulkMetadataView View { get; set; } = new(
         120,

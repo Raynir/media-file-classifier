@@ -8,6 +8,7 @@ using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetBulkMetadata;
+using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediaFileClassifier.UseCases.Tags;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -23,9 +24,18 @@ namespace MediaFileClassifier.Ui.ViewModels.Details;
 /// </summary>
 public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
 {
+    /// <summary>Gets the number of items above which a save asks the user to confirm.</summary>
+    internal const int ConfirmThreshold = 20;
+
+    /// <summary>Gets the number of items above which a save shows progress and can be stopped.</summary>
+    internal const int LargeSaveThreshold = 500;
+
     private readonly ISender sender;
     private readonly Localizer localizer;
     private readonly ILogger logger;
+    private readonly BulkUndoStore? undoStore;
+    private readonly SynchronizationContext? context = SynchronizationContext.Current;
+    private CancellationTokenSource? saving;
     private BulkMetadataView? shown;
     private int loads;
     private CancellationTokenSource? loading;
@@ -35,10 +45,18 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
     /// </summary>
     /// <param name="sender">Sends the use cases.</param>
     /// <param name="localizer">UI strings.</param>
-    /// <param name="logger">Logs a load that failed.</param>
-    public BulkEditorViewModel(ISender sender, Localizer localizer, ILogger? logger = null)
+    /// <param name="logger">Logs a load or save that failed.</param>
+    /// <param name="undoStore">Holds what the last bulk edit changed, for Undo.</param>
+    public BulkEditorViewModel(ISender sender, Localizer localizer, ILogger? logger = null, BulkUndoStore? undoStore = null)
     {
         this.sender = sender;
+        this.undoStore = undoStore;
+        if (undoStore is not null)
+        {
+            undoStore.Changed += OnUndoChanged;
+            CanUndo = undoStore.Count > 0;
+        }
+
         this.localizer = localizer;
         this.logger = logger ?? NullLogger.Instance;
         Fields =
@@ -110,6 +128,58 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
     public partial string? TagError { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether a save is running.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsSaving { get; private set; }
+
+    /// <summary>
+    /// Gets the number of items a running save has handled.
+    /// </summary>
+    [ObservableProperty]
+    public partial int SaveProgress { get; private set; }
+
+    /// <summary>
+    /// Gets the text of a running save, e.g. "Saving 300 of 2000 items", or <see langword="null"/>.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? SaveProgressText { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the save is big enough to show progress and a way to stop it.
+    /// </summary>
+    public bool IsLargeSave => ItemCount > LargeSaveThreshold;
+
+    /// <summary>
+    /// Gets a value indicating whether the user is asked to confirm a save that changes many items.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsConfirming { get; private set; }
+
+    /// <summary>
+    /// Gets the question of the inline confirmation, e.g. "300 items will change.".
+    /// </summary>
+    public string ConfirmText => localizer.Format("Bulk_Confirm", ItemCount);
+
+    /// <summary>
+    /// Gets a message about a save that failed, or <see langword="null"/>.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? SaveError { get; private set; }
+
+    /// <summary>
+    /// Gets what the last save or undo did, shown with Undo, or <see langword="null"/>.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? ResultMessage { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the last bulk edit can be undone.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool CanUndo { get; private set; }
+
+    /// <summary>
     /// Gets a task for the latest load, for tests.
     /// </summary>
     internal Task Loading { get; private set; } = Task.CompletedTask;
@@ -120,6 +190,127 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
     /// <param name="itemIds">The selected items; none empties the editor.</param>
     /// <returns>A task that completes when the aggregate is shown.</returns>
     public Task LoadAsync(IReadOnlyList<Id<MediaItem>> itemIds) => Loading = LoadCoreAsync(itemIds);
+
+    /// <summary>
+    /// Asks to save: a save of more than <see cref="ConfirmThreshold"/> items first asks the user to confirm, in the
+    /// Save bar; the next request saves.
+    /// </summary>
+    /// <returns>A task that completes when the request is handled, and the save, if it ran, finished.</returns>
+    [RelayCommand(CanExecute = nameof(CanSave))]
+    public Task RequestSaveAsync()
+    {
+        if (ItemCount > ConfirmThreshold && !IsConfirming)
+        {
+            IsConfirming = true;
+            OnPropertyChanged(nameof(ConfirmText));
+            return Task.CompletedTask;
+        }
+
+        return SaveAsync();
+    }
+
+    /// <summary>
+    /// Saves every staged change to every selected item (D019, D072). The items are written in batches; the progress
+    /// shows and the save can be stopped, which keeps the items already written. A value the service refuses is shown
+    /// next to its field, nothing is written, and the staged changes stay.
+    /// </summary>
+    /// <returns>A task that completes when the save has finished.</returns>
+    public async Task SaveAsync()
+    {
+        var ids = ItemIds;
+        var edits = BuildEdits();
+        if (IsSaving || ids.Count == 0 || edits.Count == 0)
+        {
+            return;
+        }
+
+        IsSaving = true;
+        IsConfirming = false;
+        SaveError = null;
+        ResultMessage = null;
+        SaveProgress = 0;
+        SaveProgressText = localizer.Format("Bulk_Saving", 0, ids.Count);
+        RequestSaveCommand.NotifyCanExecuteChanged();
+        saving = new CancellationTokenSource();
+        var token = saving.Token;
+        var handledItems = 0;
+        var progress = new Progress<int>(handled =>
+        {
+            SaveProgress = handled;
+            SaveProgressText = localizer.Format("Bulk_Saving", handled, ids.Count);
+        });
+        try
+        {
+            var report = new CountingProgress(progress, ids.Count, count => handledItems = count);
+            var result = await sender.Send(new EditMetadataCommand(ids, edits, CaptureUndo: true, report), token);
+            if (result.Error is { } error)
+            {
+                ShowError(error);
+                return;
+            }
+
+            ResultMessage = localizer.Format(result.ChangedItemIds.Count == 0 ? "Bulk_Result_None" : "Bulk_Result_Saved", result.ChangedItemIds.Count);
+        }
+        catch (OperationCanceledException)
+        {
+            ResultMessage = localizer.Format("Bulk_Result_Stopped", handledItems, ids.Count, undoStore?.Count ?? 0);
+        }
+        catch (Exception ex)
+        {
+            LogSaveFailed(logger, ex);
+            SaveError = localizer.Get("Editor_Error_SaveFailed");
+            return;
+        }
+        finally
+        {
+            IsSaving = false;
+            SaveProgressText = null;
+            saving?.Dispose();
+            saving = null;
+            CanUndo = undoStore?.Count > 0;
+            RequestSaveCommand.NotifyCanExecuteChanged();
+        }
+
+        // The saved values come back from the library, so the editor shows what is stored. Staged changes go: they
+        // are saved or, after a stop, partly saved, and the user starts again from what is stored.
+        await LoadAsync(ids);
+    }
+
+    /// <summary>
+    /// Stops a running save after the batch it is writing. Items written already stay written, and can be undone.
+    /// </summary>
+    [RelayCommand]
+    public void CancelSave() => saving?.Cancel();
+
+    /// <summary>
+    /// Puts back what the last bulk edit changed.
+    /// </summary>
+    /// <returns>A task that completes when the items are put back.</returns>
+    [RelayCommand]
+    public async Task UndoAsync()
+    {
+        if (IsSaving || undoStore is null || undoStore.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await sender.Send(new UndoBulkEditCommand());
+            ResultMessage = result.RestoredItemIds.Count == 0 ? null : localizer.Format("Bulk_Result_Undone", result.RestoredItemIds.Count);
+        }
+        catch (Exception ex)
+        {
+            LogSaveFailed(logger, ex);
+            SaveError = localizer.Get("Bulk_Error_UndoFailed");
+        }
+
+        CanUndo = undoStore.Count > 0;
+        if (ItemIds.Count > 0 && !IsDirty)
+        {
+            await LoadAsync(ItemIds);
+        }
+    }
 
     /// <summary>
     /// Drops every staged change.
@@ -135,6 +326,7 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
         ApplyTags(shown);
         NewTagText = string.Empty;
         TagError = null;
+        SaveError = null;
         UpdateDirty();
     }
 
@@ -225,6 +417,12 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
     {
         loading?.Cancel();
         loading?.Dispose();
+        saving?.Cancel();
+        saving?.Dispose();
+        if (undoStore is not null)
+        {
+            undoStore.Changed -= OnUndoChanged;
+        }
     }
 
     private void Stage(BulkTagViewModel? chip, TagStage stage, bool allowed)
@@ -285,9 +483,44 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private bool CanSave() => IsDirty && !IsSaving;
+
+    private void OnUndoChanged(object? sender, EventArgs e)
+    {
+        // Raised on the writer's thread after a save, or on the thread that opened another library.
+        if (context is not null)
+        {
+            context.Post(_ => CanUndo = undoStore?.Count > 0, null);
+        }
+        else
+        {
+            CanUndo = undoStore?.Count > 0;
+        }
+    }
+
+    private void ShowError(MetadataValidationError error)
+    {
+        var field = Fields.FirstOrDefault(candidate => candidate.Field == error.Field);
+        var message = localizer.Format("Editor_Error_" + error.Code, error.Limit ?? 0, error.Tag ?? string.Empty);
+        if (error.Code is MetadataValidationCode.TagEmpty or MetadataValidationCode.TagTooLong or MetadataValidationCode.TagInvalidCharacter or MetadataValidationCode.TooManyTags)
+        {
+            TagError = message;
+        }
+        else if (field is null)
+        {
+            SaveError = message;
+        }
+        else
+        {
+            field.Error = message;
+        }
+    }
+
     private void UpdateDirty()
     {
         IsDirty = Fields.Any(field => field.IsDirty) || Tags.Any(chip => chip.IsStaged);
+        IsConfirming = false;
+        RequestSaveCommand.NotifyCanExecuteChanged();
         if (!IsDirty)
         {
             // A notice is about staged changes.
@@ -302,8 +535,15 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
         loading?.Dispose();
         loading = new CancellationTokenSource();
         var token = loading.Token;
+        if (!itemIds.SequenceEqual(ItemIds))
+        {
+            ResultMessage = null;
+            SaveError = null;
+        }
+
         ItemIds = itemIds;
         ItemCount = itemIds.Count;
+        OnPropertyChanged(nameof(IsLargeSave));
         IsLoading = itemIds.Count > 0;
         BulkMetadataView? view = null;
         if (itemIds.Count > 0)
@@ -368,6 +608,23 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
 
         HasTags = Tags.Count > 0;
     }
+
+    // Counts what the writer reports, and passes every 100th on to the progress shown (one per batch), so ten thousand
+    // items don't post ten thousand updates to the UI thread.
+    private sealed class CountingProgress(IProgress<int> inner, int total, Action<int> count) : IProgress<int>
+    {
+        public void Report(int value)
+        {
+            count(value);
+            if (value % 100 == 0 || value == total)
+            {
+                inner.Report(value);
+            }
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't save the bulk edit")]
+    private static partial void LogSaveFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't load the metadata of the selection")]
     private static partial void LogLoadFailed(ILogger logger, Exception exception);

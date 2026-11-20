@@ -16,6 +16,7 @@ using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -55,6 +56,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private int previewLoads;
     private readonly UnsavedChangesGuard? guard;
     private readonly IDisposable? guardRegistration;
+    private readonly IDisposable? bulkGuardRegistration;
     private bool wasExpanded;
     private bool restoringPanel;
 
@@ -71,6 +73,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <param name="grid">Gets the thumbnail grid, to give it back the keyboard focus.</param>
     /// <param name="logger">Logs previews that couldn't be loaded.</param>
     /// <param name="guard">Asks about staged changes before the panel closes (E07-S12-T01).</param>
+    /// <param name="undoStore">Holds what the last bulk edit changed, for Undo (E07-S03-T03).</param>
     public DetailsPanelViewModel(
         SelectionModel selection,
         ISender sender,
@@ -81,7 +84,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         Localizer localizer,
         Func<ThumbnailGridViewModel> grid,
         ILogger<DetailsPanelViewModel>? logger = null,
-        UnsavedChangesGuard? guard = null)
+        UnsavedChangesGuard? guard = null,
+        BulkUndoStore? undoStore = null)
     {
         this.selection = selection;
         this.sender = sender;
@@ -94,7 +98,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         Commands = commands;
         Editor = new MetadataEditorViewModel(sender, localizer, logger);
         Editor.PropertyChanged += OnEditorChanged;
-        BulkEditor = new BulkEditorViewModel(sender, localizer, logger);
+        BulkEditor = new BulkEditorViewModel(sender, localizer, logger, undoStore);
         BulkEditor.PropertyChanged += OnBulkEditorChanged;
         selection.Changed += OnSelectionChanged;
         layout.PropertyChanged += OnLayoutChanged;
@@ -103,6 +107,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             // Closing the panel is guarded here; the guard registration is dropped on dispose.
             this.guard = guard;
             guardRegistration = guard.Register(new MetadataEditorStagedChanges(Editor, () => Title));
+            bulkGuardRegistration = guard.Register(new BulkEditorStagedChanges(BulkEditor, () => Title));
             wasExpanded = layout.Details.IsExpanded;
             layout.Details.PropertyChanged += OnPanelChanged;
         }
@@ -318,7 +323,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         ArgumentNullException.ThrowIfNull(itemIds);
         ArgumentNullException.ThrowIfNull(changedFields);
 
-        if (IsBulk && BulkEditor.ItemIds.Any(itemIds.Contains))
+        if (IsBulk && !BulkEditor.IsSaving && BulkEditor.ItemIds.Any(itemIds.Contains))
         {
             // What the selection shares changed. Staged changes stay; a clean editor shows the new aggregate.
             if (BulkEditor.IsDirty)
@@ -389,6 +394,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         layout.PropertyChanged -= OnLayoutChanged;
         layout.Details.PropertyChanged -= OnPanelChanged;
         guardRegistration?.Dispose();
+        bulkGuardRegistration?.Dispose();
         loading?.Cancel();
         loading?.Dispose();
         CancelPreview();
@@ -510,9 +516,9 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
 
     private void OnBulkEditorChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(BulkEditorViewModel.IsDirty))
+        if (e.PropertyName is nameof(BulkEditorViewModel.IsDirty) or nameof(BulkEditorViewModel.IsSaving) or nameof(BulkEditorViewModel.CanUndo))
         {
-            foreach (var id in (string[])[MetadataEditorCommands.Save, MetadataEditorCommands.Cancel])
+            foreach (var id in (string[])[MetadataEditorCommands.Save, MetadataEditorCommands.Cancel, MetadataEditorCommands.UndoBulk])
             {
                 if (Commands.TryGet(id, out var command))
                 {

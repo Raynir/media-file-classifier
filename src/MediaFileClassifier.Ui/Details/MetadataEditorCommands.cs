@@ -19,6 +19,9 @@ public sealed class MetadataEditorCommands : ICommandContributor
     /// <summary>Command ID: drop the staged metadata changes.</summary>
     public const string Cancel = "metadata.cancel";
 
+    /// <summary>Command ID: put back what the last bulk edit changed (E07-S03-T03).</summary>
+    public const string UndoBulk = "edit.undo";
+
     private readonly SelectionModel selection;
     private readonly Func<DetailsPanelViewModel> panel;
 
@@ -43,16 +46,37 @@ public sealed class MetadataEditorCommands : ICommandContributor
             AppliesTo = () => selection.Count > 0,
         });
 
-        registry.Add(new AppCommand(Save, CommandGroups.Edit, 100, "Command_SaveMetadata", () => panel().Editor.SaveAsync())
+        registry.Add(new AppCommand(Save, CommandGroups.Edit, 100, "Command_SaveMetadata", () => panel().IsBulk ? panel().BulkEditor.RequestSaveAsync() : panel().Editor.SaveAsync())
         {
             InContextMenu = false,
-            AppliesTo = () => panel().Editor.IsDirty && !panel().Editor.IsSaving,
+            AppliesTo = () => panel().IsBulk
+                ? panel().BulkEditor.IsDirty && !panel().BulkEditor.IsSaving
+                : panel().Editor.IsDirty && !panel().Editor.IsSaving,
         });
-        registry.Add(new AppCommand(Cancel, CommandGroups.Edit, 110, "Command_CancelMetadata", () => panel().Editor.Cancel())
+        registry.Add(new AppCommand(Cancel, CommandGroups.Edit, 110, "Command_CancelMetadata", () => CancelStaged())
         {
             InContextMenu = false,
-            AppliesTo = () => panel().Editor.IsDirty,
+            AppliesTo = () => panel().IsBulk ? panel().BulkEditor.IsDirty : panel().Editor.IsDirty,
+        });
+        registry.Add(new AppCommand(UndoBulk, CommandGroups.Edit, 10, "Command_UndoBulk", () => panel().BulkEditor.UndoAsync())
+        {
+            InContextMenu = false,
+            AppliesTo = () => panel().BulkEditor.CanUndo && !panel().BulkEditor.IsSaving,
         });
         selection.Changed += (_, _) => edit.Refresh();
+    }
+
+    private Task CancelStaged()
+    {
+        if (panel().IsBulk)
+        {
+            panel().BulkEditor.Cancel();
+        }
+        else
+        {
+            panel().Editor.Cancel();
+        }
+
+        return Task.CompletedTask;
     }
 }

@@ -38,7 +38,7 @@ internal static class SmokeScript
 
     private static readonly HashSet<string> Verbs = new(StringComparer.Ordinal)
     {
-        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot",
+        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability",
     };
 
     /// <summary>
@@ -142,6 +142,16 @@ internal static class SmokeScript
                     ["visible" or "hidden", _] => null,
                     _ => "expected 'idle', 'items <count>', 'visible <control>' or 'hidden <control>', then an optional timeout",
                 };
+                break;
+            case "choose-keyframe":
+                error = int.TryParse(step.Argument, CultureInfo.InvariantCulture, out var number) && number >= 1
+                    ? null
+                    : "expected the keyframe's number in the strip, from 1";
+                break;
+            case "capability":
+                error = step.Argument is "video-playback on" or "video-playback off"
+                    ? null
+                    : "expected 'video-playback on' or 'video-playback off'";
                 break;
             case "key":
                 error = TryParseKey(step.Argument, out _) ? null : "expected a key such as Space, Right, Ctrl+2 or Ctrl+Shift+F";

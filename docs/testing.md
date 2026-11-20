@@ -129,8 +129,11 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `wait <duration>` | Waits, e.g. `wait 500ms`, `wait 2s`. |
 | `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name); default 30 s. |
 | `shot <name>` | Saves `<name>.png`. |
+| `seed-keyframes <file name>` | Samples the item's video or animation and stores its keyframes and their pictures, as the analysis does (keyframes otherwise need the AI model). The item's details must be reloaded to show them: select another item, then this one. |
+| `choose-keyframe <n>` | Chooses the n-th keyframe in the preview's strip (from 1), as a click does. |
+| `capability video-playback on\|off` | Turns the VideoPlayback capability on or off, to see the default-app fallback (D026). |
 
-`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video. Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
+`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app). Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
 
 ## Pull requests
 

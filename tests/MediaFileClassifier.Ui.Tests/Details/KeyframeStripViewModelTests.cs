@@ -188,6 +188,23 @@ public sealed class KeyframeStripViewModelTests
         Assert.False(strip.OpenInPlayerCommand.CanExecute(null));
     });
 
+    [Fact]
+    public Task CanOpenPlayer_FallbackKnownBeforeTheStripShows_TurnsOnWhenItShows() => TestApp.RunAsync(() =>
+    {
+        using var strip = Create();
+        strip.IsFallback = true;
+        strip.IsFileAvailable = true;
+        var changed = new List<string?>();
+        strip.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        Assert.False(strip.CanOpenPlayer);
+
+        strip.Show(Item(MediaType.Video, "a.mp4"));
+
+        Assert.True(strip.CanOpenPlayer);
+        Assert.Contains(nameof(KeyframeStripViewModel.CanOpenPlayer), changed);
+        Assert.True(strip.OpenInPlayerCommand.CanExecute(null));
+    });
+
     private static KeyframeMarker Marker(int index, int seconds) => new(Id<Keyframe>.New(), index, TimeSpan.FromSeconds(seconds));
 
     private static ItemDetails Item(MediaType type, string fileName)

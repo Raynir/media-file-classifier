@@ -65,7 +65,7 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
     /// Gets a value indicating whether the strip is shown: for a video or an animated image.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty), nameof(CanOpenPlayer))]
     public partial bool IsVisible { get; private set; }
 
     /// <summary>
@@ -141,7 +141,6 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
         Moment = null;
         IsMomentCopied = false;
         IsVisible = item is { MediaType: MediaType.Video or MediaType.AnimatedImage };
-        OpenInPlayerCommand.NotifyCanExecuteChanged();
         if (!IsVisible || sender is null)
         {
             return;
@@ -201,6 +200,8 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
             }
         }
     }
+
+    partial void OnIsVisibleChanged(bool value) => OpenInPlayerCommand.NotifyCanExecuteChanged();
 
     partial void OnIsFallbackChanged(bool value)
     {

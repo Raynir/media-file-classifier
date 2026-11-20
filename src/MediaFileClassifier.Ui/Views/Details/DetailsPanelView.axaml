@@ -200,15 +200,16 @@
               </ItemsControl.ItemTemplate>
             </ItemsControl>
           </ScrollViewer>
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" IsVisible="{Binding CanOpenPlayer}">
+          <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding CanOpenPlayer}">
             <Button x:Name="OpenInPlayerButton"
                     Classes="Small"
+                    HorizontalAlignment="Left"
                     Command="{Binding OpenInPlayerCommand}"
                     Content="{l:Loc Keyframes_OpenInPlayer}" />
             <TextBlock x:Name="MomentText"
                        Text="{Binding MomentText}"
                        IsVisible="{Binding MomentText, Converter={x:Static ObjectConverters.IsNotNull}}"
-                       VerticalAlignment="Center" />
+                       TextWrapping="Wrap" />
           </StackPanel>
         </StackPanel>
         <TextBlock Classes="Tertiary Caption"

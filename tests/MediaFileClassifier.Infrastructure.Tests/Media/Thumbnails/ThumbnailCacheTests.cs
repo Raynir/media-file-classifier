@@ -120,6 +120,50 @@ public sealed class ThumbnailCacheTests : IDisposable
     }
 
     [Fact]
+    public async Task GenerateAsync_Failure_KeepsTheKeyframePictures()
+    {
+        var content = Content(SampleMedia.WebP);
+        await GenerateAsync(content, "webp.webp");
+        var frames = WriteKeyframePictures(content.ItemId, 3);
+        var broken = Content(SampleMedia.ZeroByteFile) with { ItemId = content.ItemId };
+        var format = MediaFormatDetection.Supported(FormatTestSupport.CreateRegistry().FindByFormatId("webp")!, MediaType.Image, []);
+
+        var outcome = await Cache.GenerateAsync(Library, broken, format, new() { ItemId = content.ItemId, ExtractedAt = Modified }, TestContext.Current.CancellationToken);
+
+        Assert.False(outcome.IsStored);
+        Assert.Null(Cache.Find(Library, content.ItemId, ThumbnailSize.Small, Modified));
+        Assert.All(frames, path => Assert.True(File.Exists(path)));
+    }
+
+    [Fact]
+    public async Task Invalidate_RemovesTheKeyframePicturesToo_AndNoOtherItemsFrames()
+    {
+        var content = Content(SampleMedia.WebP);
+        await GenerateAsync(content, "webp.webp");
+        var frames = WriteKeyframePictures(content.ItemId, 3);
+        var other = WriteKeyframePictures(Id<MediaItem>.New(), 2);
+
+        Cache.Invalidate(Library, content.ItemId);
+
+        Assert.All(frames, path => Assert.False(File.Exists(path)));
+        Assert.All(other, path => Assert.True(File.Exists(path)));
+    }
+
+    private List<string> WriteKeyframePictures(Id<MediaItem> itemId, int count)
+    {
+        var paths = new List<string>();
+        for (var index = 0; index < count; index++)
+        {
+            var path = Library.GetKeyframeThumbnailPath(itemId, index);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, [1, 2, 3]);
+            paths.Add(path);
+        }
+
+        return paths;
+    }
+
+    [Fact]
     public async Task GenerateAsync_VideoWithoutFfmpeg_StoresNothingAndWarns()
     {
         var content = Content(SampleMedia.ShortVideo);

@@ -63,7 +63,7 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
                 .ConfigureAwait(false);
             if (!thumbnails.HasImages)
             {
-                Invalidate(library, content.ItemId);
+                DeleteThumbnails(library, content.ItemId);
                 return new(IsStored: false, thumbnails.Warnings);
             }
 
@@ -81,7 +81,7 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             LogWriteFailed(logger, content.ItemId.Value, ex);
-            Invalidate(library, content.ItemId);
+            DeleteThumbnails(library, content.ItemId);
             return new(IsStored: false, [new ExtractionWarning(ThumbnailWarnings.ThumbnailFailed, ex.Message)]);
         }
         finally
@@ -95,18 +95,7 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
     {
         ArgumentNullException.ThrowIfNull(library);
 
-        foreach (var size in Enum.GetValues<ThumbnailSize>())
-        {
-            try
-            {
-                File.Delete(library.GetThumbnailPath(itemId, size));
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                // The file may be open in the grid; it is replaced or found stale later.
-                LogDeleteFailed(logger, itemId.Value, ex);
-            }
-        }
+        DeleteThumbnails(library, itemId);
 
         // The keyframe pictures of a video or animated image (E14-S13) go with its thumbnails.
         try
@@ -121,6 +110,24 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
 
     /// <inheritdoc />
     public void Dispose() => gate.Dispose();
+
+    // Only the item's own thumbnails. The keyframe pictures are made by the analysis, not by this generation, so a
+    // thumbnail that failed doesn't take them (MFC-447).
+    private void DeleteThumbnails(LibraryLayout library, Id<MediaItem> itemId)
+    {
+        foreach (var size in Enum.GetValues<ThumbnailSize>())
+        {
+            try
+            {
+                File.Delete(library.GetThumbnailPath(itemId, size));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // The file may be open in the grid; it is replaced or found stale later.
+                LogDeleteFailed(logger, itemId.Value, ex);
+            }
+        }
+    }
 
     /// <summary>
     /// Writes a thumbnail through a temporary file, so a reader never sees half a file.

@@ -52,6 +52,17 @@ public sealed class DetailsPanelTests : IDisposable
     }
 
     [Fact]
+    public Task Panel_DisposedTwice_DoesNotThrow() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+
+        // The container disposes it as itself and as IItemOpener; the second time used to cancel a disposed token (MFC-1006).
+        bed.Panel.Dispose();
+        bed.Panel.Dispose();
+    });
+
+    [Fact]
     public Task Panel_FollowsTheFocusedItem_ShowsTheCount_AndLeavesTheRegionWhenNothingIsSelected() => TestApp.RunAsync(() =>
     {
         var bed = new Bed(this, 10);

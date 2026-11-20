@@ -71,12 +71,19 @@
                      IsVisible="{Binding PreviewBitmap, Converter={x:Static ObjectConverters.IsNull}}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center" />
-          <!-- Zoom: the level, then Fit and 100%. -->
+          <!-- Video (E14-S06): over the thumbnail, which shows until the first frame. -->
+          <v:VideoPlayerView DataContext="{Binding Video}" IsVisible="{Binding IsActive, FallbackValue=False}" />
+          <!-- Zoom: the level, then Fit and 100%. Hidden while a video plays here. -->
           <Border Classes="PreviewOverlay"
                   HorizontalAlignment="Right"
                   VerticalAlignment="Bottom"
-                  Margin="{DynamicResource Padding.Compact}"
-                  IsVisible="{Binding PreviewBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
+                  Margin="{DynamicResource Padding.Compact}">
+            <Border.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="PreviewBitmap" Converter="{x:Static ObjectConverters.IsNotNull}" />
+                <Binding Path="!Video.IsActive" FallbackValue="True" />
+              </MultiBinding>
+            </Border.IsVisible>
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
               <TextBlock x:Name="ZoomText" Classes="Small" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
               <Button x:Name="FitButton"

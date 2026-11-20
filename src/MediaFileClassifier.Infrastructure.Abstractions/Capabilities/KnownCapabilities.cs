@@ -16,4 +16,10 @@ public static class KnownCapabilities
     /// Reading video metadata and frames, and extracting audio for transcription. Needs FFmpeg.
     /// </summary>
     public static readonly CapabilityDefinition VideoAnalysis = new("media.video-analysis", "VideoAnalysis");
+
+    /// <summary>
+    /// In-app video playback in the preview (E14-S06, D070), which needs LibVLC. Without it, video opens in the OS
+    /// default app (D026).
+    /// </summary>
+    public static readonly CapabilityDefinition VideoPlayback = new("media.video-playback", "VideoPlayback");
 }

@@ -74,6 +74,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <param name="logger">Logs previews that couldn't be loaded.</param>
     /// <param name="guard">Asks about staged changes before the panel closes (E07-S12-T01).</param>
     /// <param name="undoStore">Holds what the last bulk edit changed, for Undo (E07-S03-T03).</param>
+    /// <param name="video">Plays videos in the preview (E14-S06), or <see langword="null"/> to show only their thumbnail.</param>
     public DetailsPanelViewModel(
         SelectionModel selection,
         ISender sender,
@@ -85,7 +86,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         Func<ThumbnailGridViewModel> grid,
         ILogger<DetailsPanelViewModel>? logger = null,
         UnsavedChangesGuard? guard = null,
-        BulkUndoStore? undoStore = null)
+        BulkUndoStore? undoStore = null,
+        VideoPlayerViewModel? video = null)
     {
         this.selection = selection;
         this.sender = sender;
@@ -96,6 +98,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         this.grid = grid;
         this.logger = logger ?? NullLogger<DetailsPanelViewModel>.Instance;
         Commands = commands;
+        Video = video;
         Editor = new MetadataEditorViewModel(sender, localizer, logger);
         Editor.PropertyChanged += OnEditorChanged;
         BulkEditor = new BulkEditorViewModel(sender, localizer, logger, undoStore);
@@ -129,6 +132,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Title), nameof(Subtitle), nameof(Description), nameof(Tags), nameof(HasDescription), nameof(HasTags))]
     public partial ItemDetails? Item { get; private set; }
+
+    /// <summary>
+    /// Gets the video player in the preview (E14-S06), or <see langword="null"/> without in-app playback.
+    /// </summary>
+    public VideoPlayerViewModel? Video { get; }
 
     /// <summary>
     /// Gets the metadata editor of the shown item (E07-S02).
@@ -399,6 +407,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         loading?.Dispose();
         CancelPreview();
         SetPreview(null);
+        Video?.Dispose();
     }
 
     private void OnEditorChanged(object? sender, PropertyChangedEventArgs e)
@@ -628,6 +637,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private async Task LoadPreviewAsync(ItemDetails item)
     {
         CancelPreview();
+        Video?.Show(item);
         previewFor = item;
         var load = ++previewLoads;
         previewLoading = new CancellationTokenSource();
@@ -734,6 +744,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             previewFor = null;
             SetPreview(null);
             PreviewNote = null;
+            Video?.Show(null);
         }
 
         var sameItem = item is not null && Item?.Id == item.Id;

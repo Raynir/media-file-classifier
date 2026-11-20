@@ -15,6 +15,7 @@ using MediaFileClassifier.Infrastructure.DataAccess;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Media;
 using MediaFileClassifier.Infrastructure.Paths;
+using MediaFileClassifier.Infrastructure.Playback;
 using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.Ui;
 using MediaFileClassifier.UseCases;
@@ -60,6 +61,7 @@ internal static class Program
                 .AddDataAccess()
                 .AddJobs()
                 .AddMedia()
+                .AddPlayback()
                 .AddSearch()
                 .AddUseCases()
                 .AddUi()

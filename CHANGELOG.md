@@ -7,6 +7,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Added
 
 - Animated image playback (E14-S12-T01): an animated GIF or WebP plays in the details panel preview at the frames' own speed, with Pause, Previous frame and Next frame and a "Frame 3 of 12" counter (`Space` plays or pauses, `,` and `.` step, while the preview has focus). Playback stops when the selection changes and when the preview or panel is collapsed. An animation that would take more than 256 MB decoded shows its first frame with a note and an Open in default app button.
+- In-app video playback (E14-S06, MFC-117, D070): selecting a video opens it in the details panel preview with LibVLC, paused on its first frame after the selection rests on it for 150 ms. The controls play and pause, seek on a timeline, set the volume and mute, and show the time; volume and mute carry over from one video to the next while the app runs. The video's keyframes show as markers on the timeline: a click near one seeks exactly to it, and `Ctrl+Left` and `Ctrl+Right` go to the previous or next. Playback stops when the selection changes and pauses while the preview or panel is collapsed or the window is minimized. A file LibVLC can't play, or that shows no frame within 5 s, says it can't be played here. LibVLC 3 (win-x64, trimmed to 35 MB) ships with the app in a new `Infrastructure.Playback` project, with a VideoPlayback capability that is unavailable when it fails to load.
 
 ## M3 — 2026-11-20
 

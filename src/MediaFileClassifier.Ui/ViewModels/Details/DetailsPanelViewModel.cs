@@ -104,6 +104,10 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         this.logger = logger ?? NullLogger<DetailsPanelViewModel>.Instance;
         Commands = commands;
         Video = video;
+        if (video is not null)
+        {
+            video.PropertyChanged += OnVideoChanged;
+        }
         Editor = new MetadataEditorViewModel(sender, localizer, logger);
         Editor.PropertyChanged += OnEditorChanged;
         BulkEditor = new BulkEditorViewModel(sender, localizer, logger, undoStore);
@@ -269,9 +273,10 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     public partial bool IsAnimationTooLarge { get; private set; }
 
     /// <summary>
-    /// Gets a value indicating whether the preview can be zoomed: there is a bitmap and no animation playing.
+    /// Gets a value indicating whether the preview can be zoomed: there is a bitmap, and no animation or video plays
+    /// in it.
     /// </summary>
-    public bool IsZoomAvailable => PreviewBitmap is not null && Animation is null;
+    public bool IsZoomAvailable => PreviewBitmap is not null && Animation is null && Video is not { IsActive: true };
 
     /// <summary>
     /// Gets a note under the preview, e.g. that it shows the thumbnail because the folder is offline.
@@ -434,7 +439,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         CancelPreview();
         SetAnimation(null);
         SetPreview(null);
-        Video?.Dispose();
+        if (Video is not null)
+        {
+            Video.PropertyChanged -= OnVideoChanged;
+            Video.Dispose();
+        }
     }
 
     private void OnEditorChanged(object? sender, PropertyChangedEventArgs e)
@@ -513,6 +522,14 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         finally
         {
             restoringPanel = false;
+        }
+    }
+
+    private void OnVideoChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(VideoPlayerViewModel.IsActive))
+        {
+            OnPropertyChanged(nameof(IsZoomAvailable));
         }
     }
 

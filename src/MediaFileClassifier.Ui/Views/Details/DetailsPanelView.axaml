@@ -96,13 +96,8 @@
           <Border Classes="PreviewOverlay"
                   HorizontalAlignment="Right"
                   VerticalAlignment="Bottom"
-                  Margin="{DynamicResource Padding.Compact}">
-            <Border.IsVisible>
-              <MultiBinding Converter="{x:Static BoolConverters.And}">
-                <Binding Path="IsZoomAvailable" />
-                <Binding Path="!Video.IsActive" FallbackValue="True" />
-              </MultiBinding>
-            </Border.IsVisible>
+                  Margin="{DynamicResource Padding.Compact}"
+                  IsVisible="{Binding IsZoomAvailable}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
               <TextBlock x:Name="ZoomText" Classes="Small" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
               <Button x:Name="FitButton"

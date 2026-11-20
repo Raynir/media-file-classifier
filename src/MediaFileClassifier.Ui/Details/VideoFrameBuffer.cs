@@ -62,9 +62,16 @@ public sealed class VideoFrameBuffer : IVideoFrameSink
                 pixels = new byte[size];
             }
 
-            for (var row = 0; row < frame.Height; row++)
+            if (frame.Stride == rowBytes)
             {
-                frame.Pixels.Slice(row * frame.Stride, rowBytes).CopyTo(pixels.AsSpan(row * rowBytes));
+                frame.Pixels[..size].CopyTo(pixels);
+            }
+            else
+            {
+                for (var row = 0; row < frame.Height; row++)
+                {
+                    frame.Pixels.Slice(row * frame.Stride, rowBytes).CopyTo(pixels.AsSpan(row * rowBytes));
+                }
             }
 
             width = frame.Width;
@@ -123,6 +130,12 @@ public sealed class VideoFrameBuffer : IVideoFrameSink
     private void CopyTo(IntPtr address, int destinationRowBytes)
     {
         var rowBytes = width * 4;
+        if (destinationRowBytes == rowBytes)
+        {
+            Marshal.Copy(pixels, 0, address, rowBytes * height);
+            return;
+        }
+
         for (var row = 0; row < height; row++)
         {
             Marshal.Copy(pixels, row * rowBytes, address + (row * destinationRowBytes), rowBytes);

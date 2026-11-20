@@ -32,6 +32,9 @@ namespace MediaFileClassifier.Infrastructure.Playback;
     Justification = "The command thread disposes of the LibVLC player and the queue when Dispose completes the queue.")]
 public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
 {
+    // The frame buffer's alignment, in bytes, for its start, its pitch and its line count.
+    private const int BufferAlignment = 32;
+
     /// <summary>
     /// How long a file may take to show its first frame before it counts as failed.
     /// </summary>
@@ -85,6 +88,10 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
     // command thread before playback starts, read on the video thread.
     private volatile int videoWidth;
     private volatile int videoHeight;
+
+    // The file videoWidth and videoHeight were read from, on the command thread. Close forgets it, so a file changed
+    // on disk is read again.
+    private string? parsedPath;
 
     // The frame buffer, used only on LibVLC's video thread.
     private IntPtr buffer;
@@ -233,7 +240,13 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
         start = start < TimeSpan.Zero ? TimeSpan.Zero : start;
-        Enqueue(() => OpenNow(path, start, play));
+        Enqueue(() =>
+        {
+            // A seek in the previous file doesn't carry over. Reopening the same file (SeekNow, PlayNow) keeps the
+            // seek that's waiting, since it was made in that file.
+            Interlocked.Exchange(ref pendingSeek, -1);
+            OpenNow(path, start, play);
+        });
     }
 
     /// <inheritdoc />
@@ -370,7 +383,6 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
 
     private void OpenNow(string file, TimeSpan start, bool play)
     {
-        Interlocked.Exchange(ref pendingSeek, -1);
         player.Stop();
         sink.Clear();
         int opened;
@@ -389,7 +401,7 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
 
         using (var media = new Media(libVlc, file, FromType.FromPath))
         {
-            ReadVideoSize(media);
+            ReadVideoSize(file, media);
             if (!play)
             {
                 // LibVLC pauses at the start. It shows a frame there only after a seek, so a paused start always
@@ -415,10 +427,17 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
         _ = WatchFirstFrameAsync(opened);
     }
 
-    private void ReadVideoSize(Media media)
+    private void ReadVideoSize(string file, Media media)
     {
         // LibVLC's format callback gets the decoder's padded size (e.g. 320×258 for 320×240), so the shown size comes
-        // from the file. Parsing a local file only reads its headers.
+        // from the file. Parsing a local file only reads its headers; reopening the same file (a seek after the end,
+        // Play at the end) keeps the size read before.
+        if (file == parsedPath)
+        {
+            return;
+        }
+
+        parsedPath = file;
         videoWidth = 0;
         videoHeight = 0;
         var status = media.Parse(MediaParseOptions.ParseLocal, timeout: (int)ParseTimeout.TotalMilliseconds).GetAwaiter().GetResult();
@@ -489,37 +508,47 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
 
     private void SeekNow()
     {
-        var ticks = Interlocked.Exchange(ref pendingSeek, -1);
-        if (ticks < 0)
+        // The pending target stays set until LibVLC has it, so OnTimeChanged keeps ignoring the old time meanwhile.
+        // A newer target that arrives meanwhile only replaces it (Seek queues no second SeekNow), so loop for it.
+        var ticks = Interlocked.Read(ref pendingSeek);
+        while (ticks >= 0)
         {
-            return;
-        }
-
-        var target = TimeSpan.FromTicks(ticks);
-        string? file;
-        bool reopen;
-        bool play;
-        lock (gate)
-        {
-            if (path is null || failed)
+            string? file;
+            bool reopen;
+            bool play;
+            lock (gate)
             {
+                if (path is null || failed)
+                {
+                    Interlocked.Exchange(ref pendingSeek, -1);
+                    return;
+                }
+
+                file = path;
+
+                // Before the first frame or after the end, LibVLC has no input to seek in: open it again at the target.
+                reopen = ended || !shownFirstFrame;
+                play = requestedPlaying && !ended;
+            }
+
+            if (reopen)
+            {
+                // The newest target; a later one queues its own SeekNow.
+                ticks = Interlocked.Exchange(ref pendingSeek, -1);
+                OpenNow(file, TimeSpan.FromTicks(ticks), play);
                 return;
             }
 
-            file = path;
+            player.Time = (long)TimeSpan.FromTicks(ticks).TotalMilliseconds;
+            lock (gate)
+            {
+                // The next time LibVLC reports is raised, even within PositionInterval of the last one.
+                lastPositionEvent = 0;
+            }
 
-            // Before the first frame or after the end, LibVLC has no input to seek in: open it again at the target.
-            reopen = ended || !shownFirstFrame;
-            play = requestedPlaying && !ended;
+            var current = Interlocked.CompareExchange(ref pendingSeek, -1, ticks);
+            ticks = current == ticks ? -1 : current;
         }
-
-        if (reopen)
-        {
-            OpenNow(file, target, play);
-            return;
-        }
-
-        player.Time = (long)target.TotalMilliseconds;
     }
 
     private void CloseNow()
@@ -527,6 +556,7 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
         Interlocked.Exchange(ref pendingSeek, -1);
         player.Stop();
         sink.Clear();
+        parsedPath = null;
         lock (gate)
         {
             ++generation;
@@ -568,8 +598,13 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
             }
         }
 
+        // Checked again under the same lock that fails it, as another file may open meanwhile.
+        if (!Fail($"No video frame within {FirstFrameTimeout.TotalSeconds:0} seconds: the codec may be unsupported, or the file has no video.", opened))
+        {
+            return;
+        }
+
         LogNoFrame(logger, FirstFrameTimeout.TotalSeconds);
-        Fail($"No video frame within {FirstFrameTimeout.TotalSeconds:0} seconds: the codec may be unsupported, or the file has no video.");
 
         // Stop decoding, e.g. the sound of a file whose video can't be shown, unless another file opened meanwhile.
         Enqueue(() =>
@@ -586,13 +621,14 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
         });
     }
 
-    private void Fail(string message)
+    private bool Fail(string message, int? expectedGeneration = null)
     {
         lock (gate)
         {
-            if (path is null)
+            if (path is null || (expectedGeneration is { } expected
+                && (generation != expected || shownFirstFrame || failed)))
             {
-                return;
+                return false;
             }
 
             failed = true;
@@ -600,6 +636,7 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
         }
 
         RaiseStateChanged();
+        return true;
     }
 
     private void RaiseStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);
@@ -673,13 +710,17 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
         var scale = Math.Min(1.0, Math.Min(maxWidth / shownWidth, maxHeight / shownHeight));
         width = Math.Max(2, (int)Math.Round(shownWidth * scale) & ~1);
         height = Math.Max(2, (int)Math.Round(shownHeight * scale) & ~1);
-        stride = width * 4;
+
+        // LibVLC asks for 32-byte aligned planes and pitches, and its converters may write a little past the last
+        // visible row, so the pitch and the line count are rounded up to 32.
+        stride = AlignUp(width * 4);
+        var bufferLines = AlignUp(height);
         Marshal.Copy("RV32"u8.ToArray(), 0, chroma, 4);
         sourceWidth = (uint)width;
         sourceHeight = (uint)height;
         pitches = (uint)stride;
-        lines = (uint)height;
-        buffer = AllocateBuffer((nuint)(stride * height));
+        lines = (uint)bufferLines;
+        buffer = AllocateBuffer((nuint)(stride * bufferLines));
         return 1;
     }
 
@@ -720,9 +761,11 @@ public sealed partial class LibVlcPreviewPlayer : IMediaPreviewPlayer
         }
     }
 
-    private static unsafe IntPtr AllocateBuffer(nuint size) => (IntPtr)NativeMemory.Alloc(size);
+    private static int AlignUp(int value) => (value + (BufferAlignment - 1)) & ~(BufferAlignment - 1);
 
-    private static unsafe void FreeBuffer(IntPtr pointer) => NativeMemory.Free((void*)pointer);
+    private static unsafe IntPtr AllocateBuffer(nuint size) => (IntPtr)NativeMemory.AlignedAlloc(size, BufferAlignment);
+
+    private static unsafe void FreeBuffer(IntPtr pointer) => NativeMemory.AlignedFree((void*)pointer);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "LibVLC reported a playback error")]
     private static partial void LogPlaybackError(ILogger logger);

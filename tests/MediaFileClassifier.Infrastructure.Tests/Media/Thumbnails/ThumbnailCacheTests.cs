@@ -149,20 +149,6 @@ public sealed class ThumbnailCacheTests : IDisposable
         Assert.All(other, path => Assert.True(File.Exists(path)));
     }
 
-    private List<string> WriteKeyframePictures(Id<MediaItem> itemId, int count)
-    {
-        var paths = new List<string>();
-        for (var index = 0; index < count; index++)
-        {
-            var path = Library.GetKeyframeThumbnailPath(itemId, index);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllBytes(path, [1, 2, 3]);
-            paths.Add(path);
-        }
-
-        return paths;
-    }
-
     [Fact]
     public async Task GenerateAsync_VideoWithoutFfmpeg_StoresNothingAndWarns()
     {
@@ -172,6 +158,18 @@ public sealed class ThumbnailCacheTests : IDisposable
 
         Assert.False(outcome.IsStored);
         Assert.Equal(ThumbnailWarnings.ThumbnailFfmpegUnavailable, Assert.Single(outcome.Warnings).Code);
+    }
+
+    [Fact]
+    public async Task GenerateAsync_NoImages_KeepsTheKeyframePictures()
+    {
+        var content = Content(SampleMedia.ShortVideo);
+        var frames = WriteKeyframePictures(content.ItemId, 2);
+
+        var outcome = await GenerateAsync(content, "video-short.mp4");
+
+        Assert.False(outcome.IsStored);
+        Assert.All(frames, path => Assert.True(File.Exists(path)));
     }
 
     [Fact]
@@ -211,5 +209,19 @@ public sealed class ThumbnailCacheTests : IDisposable
     {
         var (format, metadata) = await InspectAsync(services, content, fileName);
         return await Cache.GenerateAsync(Library, content, format, metadata, TestContext.Current.CancellationToken);
+    }
+
+    private List<string> WriteKeyframePictures(Id<MediaItem> itemId, int count)
+    {
+        var paths = new List<string>();
+        for (var index = 0; index < count; index++)
+        {
+            var path = Library.GetKeyframeThumbnailPath(itemId, index);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, [1, 2, 3]);
+            paths.Add(path);
+        }
+
+        return paths;
     }
 }

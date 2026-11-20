@@ -24,6 +24,7 @@ public sealed class VideoTimeline : Control
 
     private const double TrackHeight = 4;
     private const double ThumbRadius = 6;
+    private const double DragThreshold = 3;
     private const double MarkerWidth = 2;
     private const double MarkerHeight = 12;
 
@@ -86,6 +87,10 @@ public sealed class VideoTimeline : Control
     public static readonly TimeSpan LargeStep = TimeSpan.FromSeconds(30);
 
     private bool dragging;
+
+    // Where the press was, until the pointer moves past DragThreshold: a click that jitters a pixel still seeks
+    // exactly to the marker it pressed.
+    private double? pressX;
 
     static VideoTimeline()
     {
@@ -280,6 +285,7 @@ public sealed class VideoTimeline : Control
         }
 
         dragging = true;
+        pressX = e.GetPosition(this).X;
         e.Pointer.Capture(this);
         Focus(NavigationMethod.Pointer);
         RequestSeek(PressTarget(e.GetPosition(this)));
@@ -292,7 +298,15 @@ public sealed class VideoTimeline : Control
         base.OnPointerMoved(e);
         if (dragging)
         {
-            RequestSeek(TimeAt(e.GetPosition(this).X));
+            var x = e.GetPosition(this).X;
+            if (pressX is { } start && Math.Abs(x - start) < DragThreshold)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            pressX = null;
+            RequestSeek(TimeAt(x));
             e.Handled = true;
         }
     }

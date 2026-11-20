@@ -150,6 +150,31 @@ public sealed class VideoControlsTests
         window.Close();
     });
 
+    [Fact]
+    public Task Timeline_AClickThatJitters_StillSeeksToTheMarker_AndADragFollowsThePointer() => TestApp.RunAsync(() =>
+    {
+        var seeks = new List<TimeSpan>();
+        var timeline = new VideoTimeline
+        {
+            Duration = TimeSpan.FromSeconds(100),
+            Markers = [new TimelineMarker(TimeSpan.FromSeconds(30.25))],
+            SeekCommand = new RelayCommand<TimeSpan>(seeks.Add),
+        };
+        var window = Show(timeline, width: 212);
+        var y = timeline.Bounds.Height / 2;
+
+        // 2 px per second: a 1 px jitter stays on the marker, a 10 px drag seeks to the pointer.
+        window.MouseDown(new Point(66.5, y), MouseButton.Left);
+        window.MouseMove(new Point(67.5, y));
+        window.MouseUp(new Point(67.5, y), MouseButton.Left);
+        window.MouseDown(new Point(106, y), MouseButton.Left);
+        window.MouseMove(new Point(116, y));
+        window.MouseUp(new Point(116, y), MouseButton.Left);
+
+        Assert.Equal([TimeSpan.FromSeconds(30.25), TimeSpan.FromSeconds(50), TimeSpan.FromSeconds(55)], seeks);
+        window.Close();
+    });
+
     [Theory]
     [InlineData(40, Key.Right, 80.0)]
     [InlineData(40, Key.Left, 30.25)]

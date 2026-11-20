@@ -32,6 +32,7 @@ public partial class DetailsPanelView : UserControl
         PreviewResizer.DragDelta += OnResizerDragged;
         Preview.PropertyChanged += OnPreviewPropertyChanged;
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble);
+        Preview.KeyDown += OnPreviewKeyDown;
         ShowZoom();
     }
 
@@ -131,6 +132,32 @@ public partial class DetailsPanelView : UserControl
             viewModel.ReturnToBrowser();
             e.Handled = true;
         }
+    }
+
+    private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
+    {
+        // An animated image: Space plays or pauses, and , and . step a frame (E14-S12); the arrow keys still move through the results.
+        if (e.Handled || e.KeyModifiers != KeyModifiers.None || viewModel?.Animation is not { } animation)
+        {
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case Key.Space:
+                animation.TogglePlay();
+                break;
+            case Key.OemComma:
+                animation.StepBack();
+                break;
+            case Key.OemPeriod:
+                animation.StepForward();
+                break;
+            default:
+                return;
+        }
+
+        e.Handled = true;
     }
 
     private void OnResizerDragged(object? sender, VectorEventArgs e)

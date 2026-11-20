@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Animated image playback (E14-S12-T01): an animated GIF or WebP plays in the details panel preview at the frames' own speed, with Pause, Previous frame and Next frame and a "Frame 3 of 12" counter (`Space` plays or pauses, `,` and `.` step, while the preview has focus). Playback stops when the selection changes and when the preview or panel is collapsed. An animation that would take more than 256 MB decoded shows its first frame with a note and an Open in default app button.
+
 ## M3 — 2026-11-20
 
 ### Added

@@ -13,6 +13,8 @@
     <ProjectReference Include="../MediaFileClassifier.UseCases/MediaFileClassifier.UseCases.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.Labs.AnimatedImage" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

@@ -30,7 +30,7 @@ namespace MediaFileClassifier.Desktop;
 /// <summary>
 /// The desktop entry point and composition root.
 /// </summary>
-internal static class Program
+internal static partial class Program
 {
     private const string LogOutputTemplate =
         "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}";
@@ -39,15 +39,23 @@ internal static class Program
     public static int Main(string[] args)
     {
         var appPaths = new AppPaths();
-        Log.Logger = new LoggerConfiguration()
+        int? smokeExitCode = null;
+        StartSmoke(args, ref appPaths, ref smokeExitCode);
+        if (smokeExitCode is { } usageError)
+        {
+            return usageError;
+        }
+
+        var logConfiguration = new LoggerConfiguration()
             .MinimumLevel.Information()
             .Enrich.FromLogContext()
             .WriteTo.File(
                 Path.Combine(appPaths.LogsDirectory, "mfc-.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 14,
-                outputTemplate: LogOutputTemplate)
-            .CreateLogger();
+                outputTemplate: LogOutputTemplate);
+        AddSmokeLogSink(logConfiguration);
+        Log.Logger = logConfiguration.CreateLogger();
 
         try
         {
@@ -97,7 +105,11 @@ internal static class Program
 
             host.Start();
             var exitCode = BuildAvaloniaApp(host.Services)
-                .StartWithClassicDesktopLifetime(args, lifetime => SimulateCrashIfRequested(lifetime, args));
+                .StartWithClassicDesktopLifetime(args, lifetime =>
+                {
+                    SimulateCrashIfRequested(lifetime, args);
+                    AttachSmoke(lifetime, host.Services);
+                });
             host.StopAsync().GetAwaiter().GetResult();
             logger.LogInformation("Exited with code {ExitCode}", exitCode);
             return exitCode;
@@ -110,6 +122,7 @@ internal static class Program
         finally
         {
             Log.CloseAndFlush();
+            FinishSmoke();
         }
     }
 
@@ -164,6 +177,15 @@ internal static class Program
         => AppBuilder.Configure(() => new App(services))
             .UsePlatformDetect()
             .WithInterFont();
+
+    // The UI smoke tool (MFC-1006) implements these in Debug builds only, in Smoke/Program.Smoke.cs.
+    static partial void StartSmoke(string[] args, ref AppPaths appPaths, ref int? exitCode);
+
+    static partial void AddSmokeLogSink(LoggerConfiguration configuration);
+
+    static partial void AttachSmoke(IClassicDesktopStyleApplicationLifetime lifetime, IServiceProvider services);
+
+    static partial void FinishSmoke();
 
     /// <summary>
     /// With <c>--simulate-crash</c> in a Debug build, throws on the UI thread once the window is up,

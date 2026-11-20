@@ -1,0 +1,38 @@
+# Sample UI smoke script (MFC-1006). Steps are described in docs/testing.md.
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/sample.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+
+# Browsing: a library scanned from tests/SampleMedia, thumbnails in.
+library sample
+shot 01-browse
+
+# The details panel for a still image.
+select jpeg-exif.jpg
+command view.details-expanded
+wait-for visible Preview
+shot 02-details-image
+
+# An animated image plays in the preview.
+select gif-animated.gif
+wait-for visible AnimationPlayer
+wait 600ms
+shot 03-animated-gif
+
+select webp-animated.webp
+wait-for visible AnimationPlayer
+
+# A video: its details and poster. Video playback comes with MFC-117; once it is in develop, remove the
+# "#117 " prefixes below to play the video and check the frames the player draws.
+select video-short.mp4
+wait-for hidden AnimationPlayer
+#117 wait-for visible VideoPlayerView
+#117 key Space
+#117 wait 1500ms
+shot 04-video
+
+# Collapse the details panel again.
+command view.details-collapsed
+wait-for hidden Preview

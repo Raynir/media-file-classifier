@@ -23,13 +23,13 @@
                 Background="{DynamicResource Brush.State.Hover}"
                 CornerRadius="{DynamicResource Radius.Control}"
                 Padding="{DynamicResource Padding.Badge}"
-                ToolTip.Tip="{Binding ReferenceImage.Name, FallbackValue={x:Null}}">
+                ToolTip.Tip="{Binding ReferenceImageName}">
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" VerticalAlignment="Center">
             <Image Source="{Binding ReferenceImage, Converter={x:Static vm:ReferenceImageThumbnail.Converter}}"
                    Width="{DynamicResource Size.Icon}"
                    Height="{DynamicResource Size.Icon}"
                    Stretch="UniformToFill" />
-            <TextBlock Text="{Binding ReferenceImage.Name, FallbackValue={x:Null}}"
+            <TextBlock Text="{Binding ReferenceImageName}"
                        MaxWidth="160"
                        TextTrimming="CharacterEllipsis"
                        VerticalAlignment="Center" />

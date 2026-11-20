@@ -37,6 +37,13 @@ The branching and commit rules (D064).
 - Open pull requests from `feature/*` into `develop`.
 - The title names the Story or sub-task key.
 - The **CI** checks must pass: *Build and test (Windows)*, *Build shared projects (Linux)* and *Build Android head*.
+- A UI change runs the real-app check and attaches its key screenshots:
+
+  ```powershell
+  dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/sample.smoke --out artifacts/ui-smoke
+  ```
+
+  Exit code 0 means every step passed and no error or Avalonia warning was logged. Steps, options and output are in [testing.md](testing.md#real-app-checks-ui-smoke-tool).
 
 ## Opt-in tests
 

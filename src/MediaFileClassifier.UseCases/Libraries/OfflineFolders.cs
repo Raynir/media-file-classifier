@@ -35,22 +35,25 @@ public static class OfflineFolders
         exception is DirectoryNotFoundException or DriveNotFoundException;
 
     /// <summary>
-    /// After the file's directory wasn't found (<see cref="IsMissingDirectory"/>), tells an Offline folder from a
-    /// deleted subfolder: when the folder's root can't be listed, the folder is marked Offline and the work waits;
-    /// otherwise the file is gone, which retrying won't fix.
+    /// After a directory wasn't found (<see cref="IsMissingDirectory"/>), tells an Offline folder from a deleted
+    /// subfolder: when the folder's root can't be listed, the folder is marked Offline and the work waits; when the
+    /// root is there but the item's file isn't, retrying won't fix it. Otherwise the missing directory wasn't the
+    /// file's, and the caller rethrows the failure as it was.
     /// </summary>
     /// <param name="library">The open library.</param>
     /// <param name="folder">The item's folder.</param>
-    /// <param name="files">Checks the folder's root.</param>
+    /// <param name="file">The item's file.</param>
+    /// <param name="files">Checks the folder's root and the file.</param>
     /// <param name="clock">The clock, for the status change.</param>
     /// <param name="failure">The failure.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Never returns normally.</returns>
+    /// <returns>A task that completes when the failure isn't about the item's folder or file.</returns>
     /// <exception cref="FolderOfflineException">The folder's root can't be listed.</exception>
-    /// <exception cref="FileNotFoundException">The folder is there, but not the file's directory.</exception>
+    /// <exception cref="FileNotFoundException">The folder is there, but not the item's file.</exception>
     public static async Task ThrowForMissingDirectoryAsync(
         IOpenLibrary library,
         IndexedFolder folder,
+        FileLocation file,
         IMediaFileSource files,
         TimeProvider clock,
         Exception failure,
@@ -58,6 +61,7 @@ public static class OfflineFolders
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(folder);
+        ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(failure);
@@ -73,6 +77,9 @@ public static class OfflineFolders
             throw FolderOfflineException.For(folder.DisplayPath, failure);
         }
 
-        throw new FileNotFoundException($"The file's folder no longer exists: {failure.Message}", failure);
+        if (await files.GetStatAsync(file, cancellationToken).ConfigureAwait(false) is null)
+        {
+            throw new FileNotFoundException($"The file's folder no longer exists: {failure.Message}", failure);
+        }
     }
 }

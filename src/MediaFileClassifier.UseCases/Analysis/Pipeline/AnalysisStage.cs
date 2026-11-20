@@ -357,7 +357,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         catch (Exception exception) when (OfflineFolders.IsMissingDirectory(exception))
         {
             // D188, D025: an Offline folder parks the work; a deleted subfolder fails it like a deleted file.
-            await OfflineFolders.ThrowForMissingDirectoryAsync(library, folder, files, clock, exception, cancellationToken).ConfigureAwait(false);
+            await OfflineFolders.ThrowForMissingDirectoryAsync(library, folder, location, files, clock, exception, cancellationToken).ConfigureAwait(false);
             throw;
         }
 

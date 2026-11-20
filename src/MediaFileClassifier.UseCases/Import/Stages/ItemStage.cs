@@ -110,7 +110,7 @@ public abstract partial class ItemStage(TimeProvider clock, ILogger logger) : IF
         }
         catch (Exception exception) when (OfflineFolders.IsMissingDirectory(exception))
         {
-            await OfflineFolders.ThrowForMissingDirectoryAsync(library, folder, Files, clock, exception, cancellationToken).ConfigureAwait(false);
+            await OfflineFolders.ThrowForMissingDirectoryAsync(library, folder, GetLocation(folder, item), Files, clock, exception, cancellationToken).ConfigureAwait(false);
             throw;
         }
     }

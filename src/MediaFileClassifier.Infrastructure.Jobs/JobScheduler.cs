@@ -64,6 +64,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private bool boostChanged;
     private HashSet<string> waitingStages = new(StringComparer.Ordinal);
     private bool modelsChanged = true;
+    private int releaseRequests;
     private DateTimeOffset? nextRetryAt;
     private bool retriesChanged = true;
 
@@ -328,6 +329,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         lock (gate)
         {
             releaseParked = true;
+            releaseRequests++;
         }
 
         Wake();
@@ -772,6 +774,12 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                 return;
             }
 
+            int releasesBefore;
+            lock (gate)
+            {
+                releasesBefore = releaseRequests;
+            }
+
             var (finished, parkedFor) = await HandleAsync(workItem, cancellation.Token).ConfigureAwait(false);
             var job = await Library.Jobs.FinishAsync(finished, clock.GetUtcNow(), CancellationToken.None).ConfigureAwait(false);
             progress.Finished(finished, job);
@@ -791,7 +799,18 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                     }
                 }
             }
-            else if (finished.RetryAt is { } retryAt && !finished.IsParked)
+            else if (finished.IsParked)
+            {
+                // Parked for its folder: a release asked for while it ran happened before the parked state was written.
+                lock (gate)
+                {
+                    if (releaseRequests != releasesBefore)
+                    {
+                        releaseParked = true;
+                    }
+                }
+            }
+            else if (finished.RetryAt is { } retryAt)
             {
                 lock (gate)
                 {

@@ -126,6 +126,56 @@ public sealed class VideoControlsTests
     });
 
     [Fact]
+    public Task Timeline_ClickNearAMarker_SeeksExactlyToIt_AndElsewhereToThePointer() => TestApp.RunAsync(() =>
+    {
+        var seeks = new List<TimeSpan>();
+        var timeline = new VideoTimeline
+        {
+            Duration = TimeSpan.FromSeconds(100),
+            Markers = [new TimelineMarker(TimeSpan.FromSeconds(30.25)), new TimelineMarker(TimeSpan.FromSeconds(80))],
+            SeekCommand = new RelayCommand<TimeSpan>(seeks.Add),
+        };
+        var window = Show(timeline, width: 212);
+        var y = timeline.Bounds.Height / 2;
+
+        // 30.25 s is at x = 66.5; 4 px off still hits it, 10 px off doesn't.
+        window.MouseDown(new Point(70.5, y), MouseButton.Left);
+        window.MouseUp(new Point(70.5, y), MouseButton.Left);
+        window.MouseDown(new Point(106, y), MouseButton.Left);
+        window.MouseUp(new Point(106, y), MouseButton.Left);
+
+        Assert.Equal([TimeSpan.FromSeconds(30.25), TimeSpan.FromSeconds(50)], seeks);
+        Assert.Equal(TimeSpan.FromSeconds(80), timeline.MarkerAt(timeline.XOf(TimeSpan.FromSeconds(80)) + VideoTimeline.MarkerHitRadius)?.Time);
+        Assert.Null(timeline.MarkerAt(timeline.XOf(TimeSpan.FromSeconds(80)) + VideoTimeline.MarkerHitRadius + 1));
+        window.Close();
+    });
+
+    [Theory]
+    [InlineData(40, Key.Right, 80.0)]
+    [InlineData(40, Key.Left, 30.25)]
+    [InlineData(30, Key.Left, 10.0)]
+    [InlineData(30, Key.Right, 80.0)]
+    [InlineData(90, Key.Right, null)]
+    public Task Timeline_CtrlArrows_GoToTheNextOrPreviousMarker(double position, Key key, double? expected) => TestApp.RunAsync(() =>
+    {
+        TimeSpan? seek = null;
+        var timeline = new VideoTimeline
+        {
+            Duration = TimeSpan.FromSeconds(100),
+            Position = TimeSpan.FromSeconds(position),
+            Markers = [new TimelineMarker(TimeSpan.FromSeconds(80)), new TimelineMarker(TimeSpan.FromSeconds(10)), new TimelineMarker(TimeSpan.FromSeconds(30.25))],
+            SeekCommand = new RelayCommand<TimeSpan>(time => seek = time),
+        };
+        var window = Show(timeline);
+        timeline.Focus();
+
+        window.KeyPress(key, RawInputModifiers.Control, PhysicalKey.None, null);
+
+        Assert.Equal(expected is { } seconds ? TimeSpan.FromSeconds(seconds) : null, seek);
+        window.Close();
+    });
+
+    [Fact]
     public Task Timeline_WithoutALength_DoesNotSeek() => TestApp.RunAsync(() =>
     {
         var seeks = 0;

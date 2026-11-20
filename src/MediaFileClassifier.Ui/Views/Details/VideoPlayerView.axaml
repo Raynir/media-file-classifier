@@ -8,7 +8,8 @@
   <!--
     The video player in the preview (E14-S06). No T00 mockups: the controls follow the preview's existing overlay
     style. The frames are an ordinary control (D070), so the controls sit over the video. Until the first frame, the
-    thumbnail under this view shows through. Focus order: play, timeline, mute, volume.
+    thumbnail under this view shows through. Focus order: play, timeline, mute, volume. The timeline marks the
+    keyframes; clicking one seeks to it, and Ctrl+Left and Ctrl+Right go to the previous and next.
   -->
   <UserControl.Styles>
     <Style Selector="Border.PlayerBar">
@@ -78,6 +79,8 @@
                          Duration="{Binding Duration}"
                          Position="{Binding Position}"
                          SeekCommand="{Binding SeekCommand}"
+                         Markers="{Binding Markers}"
+                         MarkerBrush="{DynamicResource Brush.State.Focus}"
                          IsEnabled="{Binding IsReady}"
                          VerticalAlignment="Center"
                          Margin="{DynamicResource Padding.Compact}"

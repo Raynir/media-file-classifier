@@ -172,6 +172,7 @@ public static class UiModule
         services.AddSingleton<PreviewLoader>();
         services.AddSingleton(provider => new VideoPlayerViewModel(
             provider.GetService<IMediaPreviewPlayerFactory>(),
+            provider.GetService<ISender>(),
             provider.GetService<ICapabilityGate>(),
             provider.GetRequiredService<ShellLayout>(),
             provider.GetRequiredService<Localizer>(),

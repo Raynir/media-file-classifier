@@ -2,15 +2,19 @@ using System.ComponentModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Playback;
+using MediaFileClassifier.Ui.Controls;
 using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
+using MediaFileClassifier.UseCases.Browsing.ItemKeyframes;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -21,7 +25,8 @@ namespace MediaFileClassifier.Ui.ViewModels.Details;
 /// opens paused on its first frame once the selection has rested on it for <see cref="OpenDelay"/>, so arrowing
 /// through results neither decodes nor makes a sound. Playback stops when the selection changes, and pauses while
 /// the preview is collapsed, the panel is hidden or the window is minimized. Volume and mute carry over from one
-/// video to the next while the app runs. Use it on the UI thread.
+/// video to the next while the app runs. The timeline shows the video's keyframes (E14-S06-T02); MFC-119's keyframe
+/// strip reuses <see cref="Keyframes"/> and <see cref="JumpToKeyframeCommand"/>. Use it on the UI thread.
 /// </summary>
 public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
 {
@@ -41,6 +46,7 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
     internal static readonly TimeSpan OpenDelay = DetailsPanelViewModel.OriginalDelay;
 
     private readonly IMediaPreviewPlayerFactory? factory;
+    private readonly ISender? sender;
     private readonly ICapabilityGate? capabilities;
     private readonly ShellLayout? layout;
     private readonly Localizer localizer;
@@ -49,24 +55,28 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? opening;
     private string? openPath;
     private int pendingRefresh;
+    private int keyframeLoads;
     private bool disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VideoPlayerViewModel"/> class.
     /// </summary>
     /// <param name="factory">Creates the player, or <see langword="null"/> when this platform has no in-app playback.</param>
+    /// <param name="sender">Gets the keyframes, or <see langword="null"/> for no markers.</param>
     /// <param name="capabilities">Tells whether LibVLC loaded, or <see langword="null"/> to assume it did.</param>
     /// <param name="layout">The shell layout, to pause while the preview or the panel is hidden; or <see langword="null"/>.</param>
     /// <param name="localizer">UI strings.</param>
     /// <param name="logger">Logs playback failures, or <see langword="null"/> for none.</param>
     public VideoPlayerViewModel(
         IMediaPreviewPlayerFactory? factory,
+        ISender? sender,
         ICapabilityGate? capabilities,
         ShellLayout? layout,
         Localizer localizer,
         ILogger<VideoPlayerViewModel>? logger = null)
     {
         this.factory = factory;
+        this.sender = sender;
         this.capabilities = capabilities;
         this.layout = layout;
         this.localizer = localizer;
@@ -95,7 +105,7 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsPlaying), nameof(IsReady), nameof(IsOpening))]
-    [NotifyCanExecuteChangedFor(nameof(TogglePlayCommand), nameof(SeekCommand))]
+    [NotifyCanExecuteChangedFor(nameof(TogglePlayCommand), nameof(SeekCommand), nameof(JumpToKeyframeCommand))]
     public partial PlaybackState State { get; private set; }
 
     /// <summary>
@@ -163,6 +173,18 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
     public partial string? FailureText { get; private set; }
 
     /// <summary>
+    /// Gets the shown video's keyframes (E06-S02), in time order; empty until they're loaded or when it has none.
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<KeyframeMarker> Keyframes { get; private set; } = [];
+
+    /// <summary>
+    /// Gets the timeline's markers: the keyframes now, matched moments later (E09-S06).
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<TimelineMarker> Markers { get; private set; } = [];
+
+    /// <summary>
     /// Gets the item shown, or <see langword="null"/>.
     /// </summary>
     public ItemDetails? Item { get; private set; }
@@ -199,6 +221,9 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
         Item = item;
         openPath = null;
         FailureText = null;
+        ++keyframeLoads;
+        Keyframes = [];
+        Markers = [];
         player?.Close();
         Position = TimeSpan.Zero;
         Duration = TimeSpan.Zero;
@@ -296,6 +321,9 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
     private void ToggleMute() => IsMuted = !IsMuted;
 
     [RelayCommand(CanExecute = nameof(IsReady))]
+    private void JumpToKeyframe(KeyframeMarker keyframe) => JumpTo(keyframe.Timestamp);
+
+    [RelayCommand(CanExecute = nameof(IsReady))]
     private void Seek(TimeSpan time) => JumpTo(time);
 
     partial void OnVolumeChanged(double value)
@@ -334,6 +362,40 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
 
         openPath = path;
         player!.Open(path, TimeSpan.Zero, play: false);
+        if (Item is { } item)
+        {
+            await LoadKeyframesAsync(item.Id, token);
+        }
+    }
+
+    private async Task LoadKeyframesAsync(Id<MediaItem> itemId, CancellationToken token)
+    {
+        if (sender is null)
+        {
+            return;
+        }
+
+        var load = ++keyframeLoads;
+        try
+        {
+            var keyframes = await sender.Send(new GetItemKeyframesQuery(itemId), token);
+            if (load != keyframeLoads)
+            {
+                return;
+            }
+
+            Keyframes = keyframes;
+            Markers = [.. keyframes.Select(keyframe => new TimelineMarker(keyframe.Timestamp))];
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Another item took over.
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // The video still plays, just without markers.
+            LogKeyframesFailed(logger, ex);
+        }
     }
 
     private bool EnsurePlayer()
@@ -412,6 +474,9 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
             Pause();
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't load the keyframes for the timeline")]
+    private static partial void LogKeyframesFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't create the video player; videos open in the default app")]
     private static partial void LogPlayerFailed(ILogger logger, Exception exception);

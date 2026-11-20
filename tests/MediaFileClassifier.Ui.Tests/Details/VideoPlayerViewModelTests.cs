@@ -4,13 +4,16 @@ using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Playback;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Ui.Controls;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Tests.Browser;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
+using MediaFileClassifier.UseCases.Browsing.ItemKeyframes;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediatR;
 
 namespace MediaFileClassifier.Ui.Tests.Details;
 
@@ -24,6 +27,7 @@ public sealed class VideoPlayerViewModelTests
     private readonly FakePreviewPlayerFactory factory = new();
     private readonly FakeCapabilityGate gate = new();
     private readonly ShellLayout layout = new();
+    private readonly FakeKeyframes keyframes = new();
 
     [Fact]
     public Task Show_AVideo_OpensItPausedAfterTheDelay() => TestApp.RunAsync(() =>
@@ -211,6 +215,53 @@ public sealed class VideoPlayerViewModelTests
     });
 
     [Fact]
+    public Task Keyframes_BecomeTimelineMarkers_AndJumpingToOneSeeksToIt() => TestApp.RunAsync(() =>
+    {
+        var first = new KeyframeMarker(Id<Keyframe>.New(), 0, TimeSpan.FromSeconds(4));
+        var second = new KeyframeMarker(Id<Keyframe>.New(), 1, TimeSpan.FromSeconds(31.5));
+        keyframes.Result = [first, second];
+        using var video = Opened();
+
+        Assert.Equal([first, second], video.Keyframes);
+        Assert.Equal([new TimelineMarker(first.Timestamp), new TimelineMarker(second.Timestamp)], video.Markers);
+        Assert.Equal(video.Item!.Id, keyframes.Asked[^1]);
+
+        video.JumpToKeyframeCommand.Execute(second);
+
+        Assert.Equal("Seek 00:00:31.5000000", factory.Player.Requests[^1]);
+        Assert.Equal(second.Timestamp, video.Position);
+    });
+
+    [Fact]
+    public Task Keyframes_OfThePreviousVideo_AreClearedAtOnce_AndALateAnswerIsDropped() => TestApp.RunAsync(() =>
+    {
+        keyframes.Result = [new KeyframeMarker(Id<Keyframe>.New(), 0, TimeSpan.FromSeconds(4))];
+        using var video = Opened();
+        Assert.Single(video.Markers);
+
+        keyframes.Gate = new TaskCompletionSource();
+        video.Show(Item(MediaType.Video, "b.mp4"));
+        Assert.Empty(video.Markers);
+        Settle(video);
+        video.Show(Item(MediaType.Image, "c.jpg"));
+        keyframes.Gate.SetResult();
+        Pump.For(TimeSpan.FromMilliseconds(50));
+
+        Assert.Empty(video.Keyframes);
+        Assert.Empty(video.Markers);
+    });
+
+    [Fact]
+    public Task Keyframes_ThatFailToLoad_LeaveTheVideoPlayable() => TestApp.RunAsync(() =>
+    {
+        keyframes.Failure = new InvalidOperationException("The library closed.");
+        using var video = Opened();
+
+        Assert.Empty(video.Markers);
+        Assert.True(video.TogglePlayCommand.CanExecute(null));
+    });
+
+    [Fact]
     public Task Dispose_DisposesThePlayer_AndLaterItemsDoNothing() => TestApp.RunAsync(() =>
     {
         var video = Opened();
@@ -223,6 +274,42 @@ public sealed class VideoPlayerViewModelTests
         Assert.Single(factory.Players);
     });
 
+    /// <summary>
+    /// Answers the keyframes query, optionally after a gate opens or with a failure.
+    /// </summary>
+    private sealed class FakeKeyframes : ISender
+    {
+        public IReadOnlyList<KeyframeMarker> Result { get; set; } = [];
+
+        public TaskCompletionSource? Gate { get; set; }
+
+        public Exception? Failure { get; set; }
+
+        public List<Id<MediaItem>> Asked { get; } = [];
+
+        public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        {
+            var query = Assert.IsType<GetItemKeyframesQuery>(request);
+            Asked.Add(query.ItemId);
+            var result = Result;
+            if (Gate is { } gate)
+            {
+                await gate.Task;
+            }
+
+            return Failure is { } failure ? throw failure : (TResponse)(object)result;
+        }
+
+        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
+            where TRequest : IRequest => throw new NotSupportedException();
+
+        public Task<object?> Send(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
     private static ItemDetails Item(MediaType type, string fileName, ItemAvailability availability = ItemAvailability.Available)
     {
         var id = Id<MediaItem>.New();
@@ -234,7 +321,7 @@ public sealed class VideoPlayerViewModelTests
 
     private static void Settle(VideoPlayerViewModel video) => Pump.For(VideoPlayerViewModel.OpenDelay * 2);
 
-    private VideoPlayerViewModel Create() => new(factory, gate, layout, Localizer.Current);
+    private VideoPlayerViewModel Create() => new(factory, keyframes, gate, layout, Localizer.Current);
 
     private VideoPlayerViewModel Opened()
     {

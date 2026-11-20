@@ -23,6 +23,9 @@ public static class CommandGroups
     /// <summary>Help: logs, shortcuts, about.</summary>
     public const string Help = "help";
 
+    /// <summary>Shortcut only: commands that have a key but no menu entry. Not in <see cref="All"/>.</summary>
+    public const string ShortcutOnly = "shortcut-only";
+
     /// <summary>
     /// Gets every group in menu order.
     /// </summary>

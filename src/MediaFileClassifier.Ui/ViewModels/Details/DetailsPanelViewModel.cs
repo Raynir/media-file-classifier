@@ -518,7 +518,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     {
         if (e.PropertyName is nameof(BulkEditorViewModel.IsDirty) or nameof(BulkEditorViewModel.IsSaving) or nameof(BulkEditorViewModel.CanUndo))
         {
-            foreach (var id in (string[])[MetadataEditorCommands.Save, MetadataEditorCommands.Cancel, MetadataEditorCommands.UndoBulk])
+            foreach (var id in (string[])[MetadataEditorCommands.Save, MetadataEditorCommands.Cancel, MetadataEditorCommands.UndoBulk, MetadataEditorCommands.UndoBulkShortcut])
             {
                 if (Commands.TryGet(id, out var command))
                 {

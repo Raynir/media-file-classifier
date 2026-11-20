@@ -28,6 +28,7 @@ using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetBulkMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
+using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediatR;
 using SkiaSharp;
 
@@ -269,6 +270,31 @@ public sealed class DetailsPanelTests : IDisposable
         Assert.False(bed.Panel.BulkEditor.IsDirty);
         Assert.False(save.IsApplicable);
         Assert.False(bed.Panel.Editor.IsDirty);
+    });
+
+    [Fact]
+    public Task UndoShortcut_WorksOnlyInBulkMode_ButEditUndoWorksWheneverThereIsSomethingToUndo() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 30) { BulkView = BulkMetadataView.Empty with { ItemCount = 30 } };
+        var menu = bed.Registry[MetadataEditorCommands.UndoBulk];
+        var shortcut = bed.Registry[MetadataEditorCommands.UndoBulkShortcut];
+        bed.Select(0, SelectionGesture.Replace);
+        bed.Wait(bed.Panel.Editor.Loading);
+        Assert.False(menu.IsApplicable);
+
+        bed.Undo.Set(new Dictionary<Id<MediaItem>, UserLayerSnapshot> { [bed.Source.Ids[0]] = new([], [], [], []) });
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(menu.IsApplicable);
+        Assert.False(bed.Panel.IsBulk);
+        Assert.False(shortcut.IsApplicable);
+
+        bed.Select(5, SelectionGesture.Range);
+        bed.Wait(bed.Panel.BulkEditor.Loading);
+
+        Assert.True(bed.Panel.IsBulk);
+        Assert.True(menu.IsApplicable);
+        Assert.True(shortcut.IsApplicable);
     });
 
     [Fact]
@@ -546,7 +572,7 @@ public sealed class DetailsPanelTests : IDisposable
             var loader = new ThumbnailLoader(new FakeBrowserSession(), thumbnails, new ThumbnailBitmapCache());
             Registry = new CommandRegistry([new MetadataEditorCommands(Selection, () => Panel!)], Localizer.Current, new FakeCapabilityGate());
             Panel = new DetailsPanelViewModel(
-                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard);
+                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard, undoStore: Undo);
             Selection.ConfirmChange = Guard.ConfirmLeaveAsync;
         }
 
@@ -559,6 +585,8 @@ public sealed class DetailsPanelTests : IDisposable
         public BulkMetadataView BulkView { get; set; } = BulkMetadataView.Empty;
 
         public CommandRegistry Registry { get; }
+
+        public BulkUndoStore Undo { get; } = new();
 
         public FakeResultSource Source { get; }
 

@@ -207,6 +207,120 @@ public sealed class KeyframeStripViewModelTests
         Assert.True(strip.OpenInPlayerCommand.CanExecute(null));
     });
 
+    [Fact]
+    public Task Reload_AnalysisFinishedForTheShownItem_ShowsTheNewKeyframes() => TestApp.RunAsync(() =>
+    {
+        using var strip = Create();
+        var item = Item(MediaType.Video, "a.mp4");
+        strip.Show(item);
+        Pump.For(TimeSpan.FromMilliseconds(30));
+        Assert.True(strip.IsEmpty);
+
+        keyframes.Result = [Marker(0, 5), Marker(1, 157)];
+        strip.Reload([item.Id]);
+        Pump.Until(() => strip.HasKeyframes);
+
+        Assert.False(strip.IsEmpty);
+        Assert.Equal(["00:05", "02:37"], strip.Keyframes.Select(keyframe => keyframe.TimeText));
+    });
+
+    [Fact]
+    public Task Reload_SameKeyframes_KeepsTheChosenMoment() => TestApp.RunAsync(() =>
+    {
+        keyframes.Result = [Marker(0, 10), Marker(1, 157)];
+        using var strip = Create();
+        var item = Item(MediaType.Video, "a.mp4");
+        strip.Show(item);
+        Pump.Until(() => strip.HasKeyframes);
+        strip.ChooseCommand.Execute(strip.Keyframes[1]);
+        var seeks = 0;
+        strip.Chosen += (_, _) => seeks++;
+
+        keyframes.Result = [Marker(0, 10), Marker(1, 157)];
+        strip.Reload([item.Id]);
+        Pump.Until(() => keyframes.Asked.Count == 2);
+        Pump.For(TimeSpan.FromMilliseconds(30));
+
+        Assert.Equal(TimeSpan.FromSeconds(157), strip.Moment);
+        Assert.False(strip.Keyframes[0].IsSelected);
+        Assert.True(strip.Keyframes[1].IsSelected);
+        Assert.Equal(0, seeks);
+    });
+
+    [Fact]
+    public Task Reload_TheChosenFrameIsGone_DropsTheMoment() => TestApp.RunAsync(() =>
+    {
+        keyframes.Result = [Marker(0, 10), Marker(1, 157)];
+        using var strip = Create();
+        var item = Item(MediaType.Video, "a.mp4");
+        strip.Show(item);
+        Pump.Until(() => strip.HasKeyframes);
+        strip.ChooseCommand.Execute(strip.Keyframes[1]);
+
+        keyframes.Result = [Marker(0, 20), Marker(1, 90)];
+        strip.Reload([item.Id]);
+        Pump.Until(() => strip.Keyframes[0].TimeText == "00:20");
+
+        Assert.Null(strip.Moment);
+        Assert.All(strip.Keyframes, keyframe => Assert.False(keyframe.IsSelected));
+    });
+
+    [Fact]
+    public Task Reload_AnotherItemOrAnImage_AsksNothing() => TestApp.RunAsync(() =>
+    {
+        keyframes.Result = [Marker(0, 10)];
+        using var strip = Create();
+        strip.Show(Item(MediaType.Video, "a.mp4"));
+        Pump.Until(() => strip.HasKeyframes);
+        var image = Item(MediaType.Image, "b.jpg");
+        var asked = keyframes.Asked.Count;
+
+        strip.Reload([Id<MediaItem>.New()]);
+        strip.Show(image);
+        strip.Reload([image.Id]);
+        Pump.For(TimeSpan.FromMilliseconds(30));
+
+        Assert.Equal(asked, keyframes.Asked.Count);
+        Assert.Empty(strip.Keyframes);
+    });
+
+    [Fact]
+    public Task Reload_ThenAnotherItemShows_IgnoresTheLateAnswer() => TestApp.RunAsync(() =>
+    {
+        keyframes.Result = [Marker(0, 10)];
+        using var strip = Create();
+        var item = Item(MediaType.Video, "a.mp4");
+        strip.Show(item);
+        Pump.Until(() => strip.HasKeyframes);
+        keyframes.Gate = new TaskCompletionSource();
+        keyframes.Result = [Marker(0, 99), Marker(1, 100)];
+
+        strip.Reload([item.Id]);
+        strip.Show(Item(MediaType.Image, "b.jpg"));
+        keyframes.Gate.SetResult();
+        Pump.For(TimeSpan.FromMilliseconds(50));
+
+        Assert.Empty(strip.Keyframes);
+        Assert.False(strip.IsVisible);
+    });
+
+    [Fact]
+    public Task Reload_FailingQuery_KeepsTheShownStrip() => TestApp.RunAsync(() =>
+    {
+        keyframes.Result = [Marker(0, 10)];
+        using var strip = Create();
+        var item = Item(MediaType.Video, "a.mp4");
+        strip.Show(item);
+        Pump.Until(() => strip.HasKeyframes);
+
+        keyframes.Failure = new InvalidOperationException("The library closed.");
+        strip.Reload([item.Id]);
+        Pump.Until(() => keyframes.Asked.Count == 2);
+        Pump.For(TimeSpan.FromMilliseconds(30));
+
+        Assert.Single(strip.Keyframes);
+    });
+
     private static KeyframeMarker Marker(int index, int seconds) => new(Id<Keyframe>.New(), index, TimeSpan.FromSeconds(seconds));
 
     private static ItemDetails Item(MediaType type, string fileName)

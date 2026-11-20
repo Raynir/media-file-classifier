@@ -19,6 +19,9 @@ public enum ItemMetadataChange
 
     /// <summary>The tags changed: added, removed, rejected, confirmed, or their suggestion flags.</summary>
     Tags = 4,
+
+    /// <summary>The analysis of the item ran: its keyframes, their pictures and the analyzers' results may have changed.</summary>
+    Analysis = 8,
 }
 
 /// <summary>

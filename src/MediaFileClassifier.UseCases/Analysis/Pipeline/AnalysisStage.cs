@@ -16,7 +16,9 @@ using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.Stages;
 using MediaFileClassifier.UseCases.Libraries;
+using MediaFileClassifier.UseCases.Metadata;
 using MediaFileClassifier.UseCases.Tags;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -49,6 +51,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
     private readonly IAnalysisImageDecoder decoder;
     private readonly IFrameSampler frameSampler;
     private readonly IKeyframeThumbnails? keyframeThumbnails;
+    private readonly IPublisher? publisher;
     private readonly TimeProvider clock;
     private readonly ILogger<AnalysisStage> logger;
     private readonly IReadOnlyDictionary<string, IItemAnalyzer> analyzers;
@@ -67,6 +70,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
     /// <param name="breaker">The provider circuit breaker (E05-S04), if one is registered.</param>
     /// <param name="tagNormalizer">Normalises the describer's tags (E06-S04-T05); the defaults if <c>null</c>.</param>
     /// <param name="keyframeThumbnails">Stores the keyframes' pictures for the preview's strip (E14-S13), if registered.</param>
+    /// <param name="publisher">Announces that an item's analysis ran (D370), so the open views refresh.</param>
     public AnalysisStage(
         IMediaFileSource files,
         IMediaFormatRegistry formats,
@@ -78,7 +82,8 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         ILogger<AnalysisStage>? logger = null,
         IProviderCircuitBreaker? breaker = null,
         TagNormalizer? tagNormalizer = null,
-        IKeyframeThumbnails? keyframeThumbnails = null)
+        IKeyframeThumbnails? keyframeThumbnails = null,
+        IPublisher? publisher = null)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(formats);
@@ -93,6 +98,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         this.decoder = decoder;
         this.frameSampler = frameSampler;
         this.keyframeThumbnails = keyframeThumbnails;
+        this.publisher = publisher;
         this.clock = clock;
         this.logger = logger ?? NullLogger<AnalysisStage>.Instance;
         IItemAnalyzer[] all =
@@ -209,6 +215,13 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         }
 
         await UpdateItemStatusAsync(library, itemId, states, cancellationToken).ConfigureAwait(false);
+
+        // Only when an analyzer ran: that's when keyframes and results change. A partial run announces too, since its
+        // results are stored.
+        if (inputs is not null)
+        {
+            await PublishAnalyzedAsync(itemId).ConfigureAwait(false);
+        }
 
         if (failures.Count > 0)
         {
@@ -414,6 +427,27 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         item.ChangeStatus(MediaItemStatus.Indexed, now);
         await library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
     }
+
+    // A listener that fails mustn't fail the analysis: its results are stored by now.
+    private async Task PublishAnalyzedAsync(Domain.Identity.Id<MediaItem> itemId)
+    {
+        if (publisher is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await publisher.Publish(new ItemsMetadataChanged([itemId], ItemMetadataChange.Analysis), CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            LogPublishFailed(exception, itemId.ToString());
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A listener of the analysis of {ItemId} failed")]
+    private partial void LogPublishFailed(Exception exception, string itemId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Analyzer {Analyzer} failed for {Path} (transient: {IsTransient})")]
     private partial void LogAnalyzerFailed(Exception exception, string analyzer, string path, bool isTransient);

@@ -1,6 +1,7 @@
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Details;
@@ -28,6 +29,7 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
     private readonly ILogger logger;
     private CancellationTokenSource? loading;
     private int loads;
+    private ItemDetails? shown;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="KeyframeStripViewModel"/> class.
@@ -150,13 +152,36 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
         Moment = null;
         IsMomentCopied = false;
         IsVisible = item is { MediaType: MediaType.Video or MediaType.AnimatedImage };
+        shown = IsVisible ? item : null;
         if (!IsVisible || sender is null)
         {
             return;
         }
 
         loading = new CancellationTokenSource();
-        _ = LoadAsync(item!, loads, loading.Token);
+        _ = LoadAsync(item!, loads, loading.Token, reload: false);
+    }
+
+    /// <summary>
+    /// Loads the shown item's keyframes and pictures again, when its analysis ran (D370): the strip had nothing, or had
+    /// the frames of an earlier run. The chosen moment stays when a keyframe still has its time; nothing flickers, since
+    /// the old strip stays until the new one is ready.
+    /// </summary>
+    /// <param name="itemIds">The items whose analysis ran.</param>
+    public void Reload(IReadOnlyCollection<Id<MediaItem>> itemIds)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+
+        if (shown is not { } item || !IsVisible || sender is null || !itemIds.Contains(item.Id))
+        {
+            return;
+        }
+
+        loading?.Cancel();
+        loading?.Dispose();
+        ++loads;
+        loading = new CancellationTokenSource();
+        _ = LoadAsync(item, loads, loading.Token, reload: true);
     }
 
     /// <inheritdoc />
@@ -165,6 +190,7 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
         loading?.Cancel();
         loading?.Dispose();
         loading = null;
+        shown = null;
         Clear();
     }
 
@@ -220,8 +246,9 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
 
     partial void OnIsFileAvailableChanged(bool value) => OpenInPlayerCommand.NotifyCanExecuteChanged();
 
-    private async Task LoadAsync(ItemDetails item, int load, CancellationToken token)
+    private async Task LoadAsync(ItemDetails item, int load, CancellationToken token, bool reload)
     {
+        List<KeyframeViewModel>? pending = null;
         try
         {
             var markers = await sender!.Send(new GetItemKeyframesQuery(item.Id), token);
@@ -231,23 +258,36 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
             }
 
             var keyframes = markers.Select(marker => new KeyframeViewModel(marker, localizer)).ToList();
-            Keyframes = keyframes;
-            IsLoaded = true;
-            if (pictures is null)
+            if (!reload)
             {
-                return;
+                Keyframes = keyframes;
+                IsLoaded = true;
+            }
+            else
+            {
+                // The new strip is made ready aside, then swapped in, so the shown one doesn't blink.
+                pending = keyframes;
             }
 
-            foreach (var keyframe in keyframes)
+            if (pictures is not null)
             {
-                var lease = await pictures.LoadAsync(item.Id, keyframe.Index, token);
-                if (load != loads)
+                foreach (var keyframe in keyframes)
                 {
-                    lease?.Dispose();
-                    return;
-                }
+                    var lease = await pictures.LoadAsync(item.Id, keyframe.Index, token);
+                    if (load != loads)
+                    {
+                        lease?.Dispose();
+                        return;
+                    }
 
-                keyframe.SetPicture(lease);
+                    keyframe.SetPicture(lease);
+                }
+            }
+
+            if (pending is not null)
+            {
+                Swap(keyframes);
+                pending = null;
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -258,6 +298,44 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
         {
             // The strip stays empty or without pictures; the preview works without it.
             LogLoadFailed(logger, ex);
+        }
+        finally
+        {
+            // A reload that was cancelled or failed before the swap.
+            if (pending is not null)
+            {
+                foreach (var keyframe in pending)
+                {
+                    keyframe.Dispose();
+                }
+            }
+        }
+    }
+
+    // Replaces the strip with a reloaded one. The chosen moment stays on the keyframe that has its time; if none has,
+    // the moment is dropped, as it points at a frame that is gone.
+    private void Swap(List<KeyframeViewModel> keyframes)
+    {
+        var old = Keyframes;
+        if (Moment is { } moment)
+        {
+            var chosen = keyframes.Find(keyframe => keyframe.Timestamp == moment);
+            if (chosen is null)
+            {
+                Moment = null;
+                IsMomentCopied = false;
+            }
+            else
+            {
+                chosen.IsSelected = true;
+            }
+        }
+
+        Keyframes = keyframes;
+        IsLoaded = true;
+        foreach (var keyframe in old)
+        {
+            keyframe.Dispose();
         }
     }
 

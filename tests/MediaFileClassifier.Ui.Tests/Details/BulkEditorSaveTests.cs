@@ -86,11 +86,15 @@ public sealed class BulkEditorSaveTests
         Assert.True(editor.IsLargeSave);
         Assert.NotNull(editor.SaveProgressText);
 
+        editor.Cancel();
+
+        Assert.True(editor.IsDirty);
+
         editor.CancelSaveCommand.Execute(null);
         await saving;
 
         Assert.False(editor.IsSaving);
-        Assert.Equal("Stopped after 250 of 600 items. 200 items were changed.", editor.ResultMessage);
+        Assert.Equal("Stopped. 200 of 600 items were changed.", editor.ResultMessage);
         Assert.True(editor.CanUndo);
         Assert.Equal(200, store.Count);
     }

@@ -36,6 +36,7 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
     private readonly BulkUndoStore? undoStore;
     private readonly SynchronizationContext? context = SynchronizationContext.Current;
     private CancellationTokenSource? saving;
+    private bool undoing;
     private BulkMetadataView? shown;
     private int loads;
     private CancellationTokenSource? loading;
@@ -219,7 +220,7 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
     {
         var ids = ItemIds;
         var edits = BuildEdits();
-        if (IsSaving || ids.Count == 0 || edits.Count == 0)
+        if (IsSaving || undoing || ids.Count == 0 || edits.Count == 0)
         {
             return;
         }
@@ -233,7 +234,6 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
         RequestSaveCommand.NotifyCanExecuteChanged();
         saving = new CancellationTokenSource();
         var token = saving.Token;
-        var handledItems = 0;
         var progress = new Progress<int>(handled =>
         {
             SaveProgress = handled;
@@ -241,7 +241,7 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
         });
         try
         {
-            var report = new CountingProgress(progress, ids.Count, count => handledItems = count);
+            var report = new CountingProgress(progress, ids.Count);
             var result = await sender.Send(new EditMetadataCommand(ids, edits, CaptureUndo: true, report), token);
             if (result.Error is { } error)
             {
@@ -253,7 +253,7 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
         }
         catch (OperationCanceledException)
         {
-            ResultMessage = localizer.Format("Bulk_Result_Stopped", handledItems, ids.Count, undoStore?.Count ?? 0);
+            ResultMessage = localizer.Format("Bulk_Result_Stopped", undoStore?.Count ?? 0, ids.Count);
         }
         catch (Exception ex)
         {
@@ -289,11 +289,12 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public async Task UndoAsync()
     {
-        if (IsSaving || undoStore is null || undoStore.Count == 0)
+        if (IsSaving || undoing || undoStore is null || undoStore.Count == 0)
         {
             return;
         }
 
+        undoing = true;
         try
         {
             var result = await sender.Send(new UndoBulkEditCommand());
@@ -303,6 +304,10 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
         {
             LogSaveFailed(logger, ex);
             SaveError = localizer.Get("Bulk_Error_UndoFailed");
+        }
+        finally
+        {
+            undoing = false;
         }
 
         CanUndo = undoStore.Count > 0;
@@ -318,6 +323,12 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public void Cancel()
     {
+        if (IsSaving || undoing)
+        {
+            // The save works on the changes staged when it started; editing waits for it.
+            return;
+        }
+
         foreach (var field in Fields)
         {
             field.Discard();
@@ -609,13 +620,12 @@ public sealed partial class BulkEditorViewModel : ViewModelBase, IDisposable
         HasTags = Tags.Count > 0;
     }
 
-    // Counts what the writer reports, and passes every 100th on to the progress shown (one per batch), so ten thousand
+    // Passes on every 100th on to the progress shown (one per batch), so ten thousand
     // items don't post ten thousand updates to the UI thread.
-    private sealed class CountingProgress(IProgress<int> inner, int total, Action<int> count) : IProgress<int>
+    private sealed class CountingProgress(IProgress<int> inner, int total) : IProgress<int>
     {
         public void Report(int value)
         {
-            count(value);
             if (value % 100 == 0 || value == total)
             {
                 inner.Report(value);

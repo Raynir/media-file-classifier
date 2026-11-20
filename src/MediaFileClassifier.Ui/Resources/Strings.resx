@@ -2086,7 +2086,7 @@
     <value>No item needed a change.</value>
   </data>
   <data name="Bulk_Result_Stopped" xml:space="preserve">
-    <value>Stopped after {0} of {1} items. {2} items were changed.</value>
+    <value>Stopped. {0} of {1} items were changed.</value>
   </data>
   <data name="Bulk_Result_Undone" xml:space="preserve">
     <value>Put back {0} items.</value>

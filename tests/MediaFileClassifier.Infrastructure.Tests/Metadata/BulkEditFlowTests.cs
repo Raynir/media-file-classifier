@@ -164,6 +164,17 @@ public sealed class BulkEditFlowTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Edit_ThatWritesNothing_LeavesTheEarlierUndoAlone()
+    {
+        await bed.Sender.Send(new EditMetadataCommand([bed.Item.Id], [new MetadataEdit.AddTag("trip")], CaptureUndo: true), Token);
+
+        var again = await bed.Sender.Send(new EditMetadataCommand([bed.Item.Id], [new MetadataEdit.AddTag("trip")], CaptureUndo: true), Token);
+
+        Assert.Empty(again.ChangedItemIds);
+        Assert.Equal(1, bed.Undo.Count);
+    }
+
+    [Fact]
     public async Task Edit_RefusedValues_StoreNoUndo()
     {
         var result = await bed.Sender.Send(

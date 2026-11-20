@@ -56,7 +56,7 @@ public sealed class MetadataEditorCommands : ICommandContributor
         registry.Add(new AppCommand(Cancel, CommandGroups.Edit, 110, "Command_CancelMetadata", () => CancelStaged())
         {
             InContextMenu = false,
-            AppliesTo = () => panel().IsBulk ? panel().BulkEditor.IsDirty : panel().Editor.IsDirty,
+            AppliesTo = () => panel().IsBulk ? panel().BulkEditor.IsDirty && !panel().BulkEditor.IsSaving : panel().Editor.IsDirty,
         });
         registry.Add(new AppCommand(UndoBulk, CommandGroups.Edit, 10, "Command_UndoBulk", () => panel().BulkEditor.UndoAsync())
         {

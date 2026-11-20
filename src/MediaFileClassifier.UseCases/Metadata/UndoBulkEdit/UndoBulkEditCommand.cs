@@ -55,6 +55,13 @@ public sealed class UndoBulkEditCommandHandler(ILibrarySession session, BulkUndo
                 written.AddRange,
                 CancellationToken.None).ConfigureAwait(false);
         }
+        catch (Exception)
+        {
+            // What wasn't put back stays undoable, so the user can try again.
+            var done = written.ToHashSet();
+            store.Set(snapshots.Where(pair => !done.Contains(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value));
+            throw;
+        }
         finally
         {
             if (written.Count > 0)

@@ -113,9 +113,10 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
         }
         finally
         {
-            if (request.CaptureUndo && undoStore is not null)
+            if (request.CaptureUndo && undoStore is not null && written.Count > 0)
             {
-                // Only what really got written can be put back; a batch that failed rolled back.
+                // Only what really got written can be put back; a batch that failed rolled back. An edit that wrote nothing
+                // leaves the earlier operation alone.
                 undoStore.Set(written.Where(before.ContainsKey).ToDictionary(id => id, id => before[id]));
             }
 

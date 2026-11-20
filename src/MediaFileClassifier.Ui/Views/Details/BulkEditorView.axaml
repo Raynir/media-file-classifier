@@ -132,7 +132,7 @@
       </DockPanel>
     </Border>
 
-    <ScrollViewer>
+    <ScrollViewer IsEnabled="{Binding !IsSaving}">
       <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.M}">
         <TextBlock Classes="Tertiary" Text="{l:Loc Bulk_Loading}" IsVisible="{Binding IsLoading}" />
         <Expander Header="{l:Loc Editor_Section_Descriptive}" IsExpanded="True" HorizontalAlignment="Stretch">

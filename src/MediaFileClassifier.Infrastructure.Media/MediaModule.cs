@@ -34,6 +34,7 @@ public static class MediaModule
         services.TryAddSingleton<AnimatedImageThumbnailer>();
         services.TryAddSingleton<VideoThumbnailer>();
         services.TryAddSingleton<IThumbnailCache, ThumbnailCache>();
+        services.TryAddSingleton<IKeyframeThumbnails, KeyframeThumbnails>();
         services.TryAddSingleton<IPreviewDecoder, SkiaPreviewDecoder>();
         services.TryAddSingleton<IFrameSampler, FrameSampler>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IMediaFormatHandler, JpegFormatHandler>());

@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using Microsoft.Extensions.Logging;
@@ -30,6 +31,7 @@ public sealed partial class ItemEmbeddingAnalyzer
     private readonly IFrameSampler frameSampler;
     private readonly IModelStore modelStore;
     private readonly TimeProvider clock;
+    private readonly IKeyframeThumbnails? keyframeThumbnails;
     private readonly ILogger logger;
     private readonly ConcurrentDictionary<(string Library, string Model), bool> recordedUsage = new();
 
@@ -41,12 +43,14 @@ public sealed partial class ItemEmbeddingAnalyzer
     /// <param name="modelStore">Model store, told which libraries use a local model.</param>
     /// <param name="clock">Clock.</param>
     /// <param name="logger">Logger.</param>
+    /// <param name="keyframeThumbnails">Stores the keyframes' pictures for the preview's strip, or <see langword="null"/> for none.</param>
     public ItemEmbeddingAnalyzer(
         IAiProviderRegistry registry,
         IFrameSampler frameSampler,
         IModelStore modelStore,
         TimeProvider clock,
-        ILogger<ItemEmbeddingAnalyzer>? logger = null)
+        ILogger<ItemEmbeddingAnalyzer>? logger = null,
+        IKeyframeThumbnails? keyframeThumbnails = null)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(frameSampler);
@@ -57,6 +61,7 @@ public sealed partial class ItemEmbeddingAnalyzer
         this.frameSampler = frameSampler;
         this.modelStore = modelStore;
         this.clock = clock;
+        this.keyframeThumbnails = keyframeThumbnails;
         this.logger = logger ?? NullLogger<ItemEmbeddingAnalyzer>.Instance;
     }
 
@@ -94,6 +99,11 @@ public sealed partial class ItemEmbeddingAnalyzer
 
             var keyframes = sample.Frames.Select(frame => frame.ToKeyframe(content.ItemId)).ToList();
             await library.Keyframes.ReplaceAsync(content.ItemId, keyframes, cancellationToken).ConfigureAwait(false);
+            if (keyframeThumbnails is not null)
+            {
+                await keyframeThumbnails.StoreAsync(library.Layout, content.ItemId, sample.Frames, cancellationToken).ConfigureAwait(false);
+            }
+
             var frames = keyframes
                 .Zip(sample.Frames, (keyframe, frame) => new KeyframeImage(keyframe, AiImage.FromRgba(frame.Pixels, frame.Width, frame.Height, $"frame {frame.Index}")))
                 .ToList();

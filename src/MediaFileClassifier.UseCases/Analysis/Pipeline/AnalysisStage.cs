@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
@@ -47,6 +48,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
     private readonly IMediaFormatRegistry formats;
     private readonly IAnalysisImageDecoder decoder;
     private readonly IFrameSampler frameSampler;
+    private readonly IKeyframeThumbnails? keyframeThumbnails;
     private readonly TimeProvider clock;
     private readonly ILogger<AnalysisStage> logger;
     private readonly IReadOnlyDictionary<string, IItemAnalyzer> analyzers;
@@ -64,6 +66,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
     /// <param name="logger">Logger.</param>
     /// <param name="breaker">The provider circuit breaker (E05-S04), if one is registered.</param>
     /// <param name="tagNormalizer">Normalises the describer's tags (E06-S04-T05); the defaults if <c>null</c>.</param>
+    /// <param name="keyframeThumbnails">Stores the keyframes' pictures for the preview's strip (E14-S13), if registered.</param>
     public AnalysisStage(
         IMediaFileSource files,
         IMediaFormatRegistry formats,
@@ -74,7 +77,8 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         TimeProvider clock,
         ILogger<AnalysisStage>? logger = null,
         IProviderCircuitBreaker? breaker = null,
-        TagNormalizer? tagNormalizer = null)
+        TagNormalizer? tagNormalizer = null,
+        IKeyframeThumbnails? keyframeThumbnails = null)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(formats);
@@ -88,6 +92,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         this.formats = formats;
         this.decoder = decoder;
         this.frameSampler = frameSampler;
+        this.keyframeThumbnails = keyframeThumbnails;
         this.clock = clock;
         this.logger = logger ?? NullLogger<AnalysisStage>.Instance;
         IItemAnalyzer[] all =
@@ -379,7 +384,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         };
         var size = requested.Where(settings => settings.Enabled)
             .Aggregate(new InputSize(0, 0), (union, settings) => union.Union(analyzers[settings.Analyzer].InputSize));
-        return new AnalysisInputs(decoder, frameSampler, library, content, format, metadata, size);
+        return new AnalysisInputs(decoder, frameSampler, library, content, format, metadata, size, keyframeThumbnails);
     }
 
     private async Task UpdateItemStatusAsync(

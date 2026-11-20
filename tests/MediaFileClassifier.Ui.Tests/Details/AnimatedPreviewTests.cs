@@ -215,6 +215,25 @@ public sealed class AnimatedPreviewTests : IDisposable
         Assert.IsType<InvalidDataException>(task.Exception!.InnerException);
     });
 
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(99, 0)]
+    [InlineData(100, 1)]
+    [InlineData(450, 2)]
+    [InlineData(60000, 2)]
+    [InlineData(-5, 0)]
+    public Task Player_JumpTo_PausesAndShowsTheFrameAtThatTime(int milliseconds, int expectedFrame) => TestApp.RunAsync(() =>
+    {
+        var clock = new ManualClock();
+        using var player = Player(clock, [100, 200, 300]);
+        player.Play();
+
+        player.JumpTo(TimeSpan.FromMilliseconds(milliseconds));
+
+        Assert.False(player.IsPlaying);
+        Assert.Equal(expectedFrame, player.FrameIndex);
+    });
+
     private static AnimatedPreviewViewModel Player(ManualClock clock, int[] delays)
     {
         var frames = delays.Select(_ => (Bitmap)new WriteableBitmap(new PixelSize(2, 2), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul)).ToArray();

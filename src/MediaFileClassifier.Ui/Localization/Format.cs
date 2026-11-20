@@ -73,6 +73,24 @@ public static class Format
     }
 
     /// <summary>
+    /// Formats a moment in a video as <c>mm:ss</c>, or <c>h:mm:ss</c> from one hour, e.g. <c>02:37</c>: the form to
+    /// type or paste into a player's "go to time" box.
+    /// </summary>
+    /// <param name="value">The time. Negative values are shown as zero.</param>
+    /// <param name="culture">Culture, or <c>null</c> for the current culture.</param>
+    /// <returns>The formatted time.</returns>
+    public static string Timestamp(TimeSpan value, CultureInfo? culture = null)
+    {
+        if (value < TimeSpan.Zero)
+        {
+            value = TimeSpan.Zero;
+        }
+
+        var pattern = value.TotalHours >= 1 ? @"h\:mm\:ss" : @"mm\:ss";
+        return value.ToString(pattern, culture ?? CultureInfo.CurrentCulture);
+    }
+
+    /// <summary>
     /// Formats a file size in binary units, as Windows Explorer does: <c>512 bytes</c>, <c>1.5 KB</c>,
     /// <c>15.2 MB</c>, <c>152 MB</c>. One decimal is shown below 100 units.
     /// </summary>

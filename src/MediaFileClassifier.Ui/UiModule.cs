@@ -177,6 +177,13 @@ public static class UiModule
             provider.GetRequiredService<ShellLayout>(),
             provider.GetRequiredService<Localizer>(),
             provider.GetService<ILogger<VideoPlayerViewModel>>()));
+        services.TryAddSingleton<KeyframePictureLoader>();
+        services.AddSingleton(provider => new KeyframeStripViewModel(
+            provider.GetService<ISender>(),
+            provider.GetService<IKeyframeThumbnails>() is null ? null : provider.GetRequiredService<KeyframePictureLoader>(),
+            provider.GetService<ITextClipboard>(),
+            provider.GetRequiredService<Localizer>(),
+            provider.GetService<ILogger<KeyframeStripViewModel>>()));
         services.AddSingleton<DetailsPanelViewModel>();
         services.AddSingleton<IItemOpener>(provider => provider.GetRequiredService<DetailsPanelViewModel>());
 

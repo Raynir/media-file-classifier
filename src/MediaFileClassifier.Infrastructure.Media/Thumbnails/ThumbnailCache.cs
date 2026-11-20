@@ -107,6 +107,16 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
                 LogDeleteFailed(logger, itemId.Value, ex);
             }
         }
+
+        // The keyframe pictures of a video or animated image (E14-S13) go with its thumbnails.
+        try
+        {
+            KeyframeThumbnails.DeleteAll(library, itemId);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            LogDeleteFailed(logger, itemId.Value, ex);
+        }
     }
 
     /// <inheritdoc />

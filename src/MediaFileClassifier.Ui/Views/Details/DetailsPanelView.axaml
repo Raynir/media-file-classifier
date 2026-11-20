@@ -139,22 +139,78 @@
               <TextBlock Classes="Small" Text="{Binding FrameText}" IsVisible="{Binding IsPaused}" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
             </StackPanel>
           </Border>
-          <!-- Too large to play: the first frame shows, and the file opens in the default app (D070, D026). -->
-          <Border Classes="PreviewOverlay"
-                  HorizontalAlignment="Right"
-                  VerticalAlignment="Bottom"
-                  Margin="{DynamicResource Padding.Compact}"
-                  IsVisible="{Binding IsAnimationTooLarge}">
-            <Button Classes="Small"
-                    Command="{Binding Commands[item.open-default-app]}"
-                    Content="{l:Loc Details_Preview_Animation_OpenDefault}" />
-          </Border>
         </Panel>
         <Thumb x:Name="PreviewResizer"
                Height="{DynamicResource Size.Splitter}"
                Cursor="SizeNorthSouth"
                Background="Transparent"
                AutomationProperties.Name="{l:Loc Details_Preview_Resize}" />
+        <!--
+          Keyframe strip (E14-S13): a row of the video's or animation's keyframes under the preview, whether it plays here
+          or not. A click seeks the player; without in-app playback it selects the moment, and Open in player opens the
+          file and copies the time (D026). No T00 mockups: the sizes follow the design tokens.
+        -->
+        <StackPanel x:Name="KeyframeStrip"
+                    DataContext="{Binding Strip}"
+                    x:DataType="vm:KeyframeStripViewModel"
+                    IsVisible="{Binding IsVisible, FallbackValue=False}"
+                    Margin="{DynamicResource Padding.Panel}"
+                    Spacing="{DynamicResource Space.XS}">
+          <StackPanel.Styles>
+            <Style Selector="Button.KeyframeButton">
+              <Setter Property="Padding" Value="2" />
+              <Setter Property="BorderThickness" Value="2" />
+              <Setter Property="BorderBrush" Value="Transparent" />
+              <Setter Property="Background" Value="Transparent" />
+            </Style>
+            <Style Selector="Button.KeyframeButton.Selected">
+              <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Focus}" />
+            </Style>
+          </StackPanel.Styles>
+          <TextBlock Classes="Tertiary Caption"
+                     Text="{l:Loc Keyframes_Empty}"
+                     IsVisible="{Binding IsEmpty}"
+                     TextWrapping="Wrap" />
+          <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Disabled"
+                        IsVisible="{Binding HasKeyframes}"
+                        AutomationProperties.Name="{l:Loc Keyframes_Strip}">
+            <ItemsControl ItemsSource="{Binding Keyframes}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:KeyframeViewModel">
+                  <Button Classes="KeyframeButton"
+                          Classes.Selected="{Binding IsSelected}"
+                          Command="{Binding #KeyframeStrip.((vm:KeyframeStripViewModel)DataContext).ChooseCommand}"
+                          CommandParameter="{Binding}"
+                          ToolTip.Tip="{Binding Name}"
+                          AutomationProperties.Name="{Binding Name}">
+                    <StackPanel Spacing="2">
+                      <Border Width="96" Height="54" Background="{DynamicResource Brush.Surface.Tile}" ClipToBounds="True">
+                        <Image Source="{Binding Picture}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                      </Border>
+                      <TextBlock Classes="Small" Text="{Binding TimeText}" HorizontalAlignment="Center" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" IsVisible="{Binding CanOpenPlayer}">
+            <Button x:Name="OpenInPlayerButton"
+                    Classes="Small"
+                    Command="{Binding OpenInPlayerCommand}"
+                    Content="{l:Loc Keyframes_OpenInPlayer}" />
+            <TextBlock x:Name="MomentText"
+                       Text="{Binding MomentText}"
+                       IsVisible="{Binding MomentText, Converter={x:Static ObjectConverters.IsNotNull}}"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+        </StackPanel>
         <TextBlock Classes="Tertiary Caption"
                    Text="{Binding PreviewNote}"
                    IsVisible="{Binding PreviewNote, Converter={x:Static ObjectConverters.IsNotNull}}"

@@ -4,6 +4,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+## M3 — 2026-11-20
+
 ### Added
 
 - Bulk metadata editing and tagging (E07-S03): selecting several items shows the metadata editor for all of them in the details panel, with what they share, "Multiple values" where they differ and each tag with how many items have it. Typing sets a field on every item, Clear empties it, and tags are added, removed or rejected on the items that have them; fields you don't touch stay as they are. Saving more than 20 items asks first, and more than 500 show progress with a Stop button that keeps what was written. Undo (in the bar after saving, Edit, Undo, or `Ctrl+Z` while several items are selected) puts the last bulk edit back for the session. Selecting several items while the single-item editor has unsaved changes now holds that editor like selecting another item does.

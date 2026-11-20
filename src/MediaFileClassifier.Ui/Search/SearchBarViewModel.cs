@@ -164,8 +164,15 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasReferenceImage))]
+    [NotifyPropertyChangedFor(nameof(ReferenceImageName))]
     [NotifyCanExecuteChangedFor(nameof(ClearCommand))]
     public partial ReferenceImage? ReferenceImage { get; private set; }
+
+    /// <summary>
+    /// Gets the name the chip shows, or <see langword="null"/> without a picture. The chip binds to it rather than to
+    /// <c>ReferenceImage.Name</c>, which logs a binding warning whenever there's no picture (MFC-1006).
+    /// </summary>
+    public string? ReferenceImageName => ReferenceImage?.Name;
 
     /// <summary>
     /// Gets why the last picture couldn't be used, or <see langword="null"/>.

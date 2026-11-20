@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
+using Avalonia.Logging;
 using Avalonia.Threading;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
@@ -443,6 +444,30 @@ public sealed class SearchUiTests
     }
 
     [Fact]
+    public Task SearchBarView_WithoutAPicture_LogsNoBindingWarnings() => TestApp.RunAsync(() =>
+    {
+        var warnings = new List<string>();
+        var previous = Logger.Sink;
+        Logger.Sink = new WarningSink(warnings);
+        try
+        {
+            var sender = new StubSender();
+            var bar = CreateBar(CreateSource(sender), sender);
+            var window = new Window { Content = new SearchBarView { DataContext = bar }, Width = 400, Height = 60 };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            window.Close();
+        }
+        finally
+        {
+            Logger.Sink = previous;
+        }
+
+        // The chip bound to ReferenceImage.Name, which logged "Value is null" whenever a library opened (MFC-1006).
+        Assert.True(warnings.Count == 0, string.Join(Environment.NewLine, warnings));
+    });
+
+    [Fact]
     public Task SearchBarView_DroppedImage_SearchesWithIt_AndNeverReachesTheDropTargetBehind() => TestApp.RunAsync(() =>
     {
         var sender = new StubSender();
@@ -546,5 +571,21 @@ public sealed class SearchUiTests
         public Exception? Failure { get; set; }
 
         public Task<PickedImage?> PickAsync() => Failure is { } failure ? Task.FromException<PickedImage?>(failure) : Task.FromResult(Picture);
+    }
+
+    private sealed class WarningSink(List<string> messages) : ILogSink
+    {
+        public bool IsEnabled(LogEventLevel level, string area) => level >= LogEventLevel.Warning && area == LogArea.Binding;
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate)
+            => Log(level, area, source, messageTemplate, []);
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues)
+        {
+            if (IsEnabled(level, area))
+            {
+                messages.Add(string.Join(" | ", [messageTemplate, .. propertyValues.Select(value => value?.ToString())]));
+            }
+        }
     }
 }

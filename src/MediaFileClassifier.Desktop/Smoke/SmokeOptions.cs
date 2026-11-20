@@ -34,7 +34,7 @@ internal sealed record SmokeOptions(string ScriptPath, string DataDirectory, str
         var dataDirectory = Path.GetFullPath(Value(args, "--data-dir") ?? Path.Combine(
             Path.GetTempPath(),
             "MediaFileClassifier-smoke",
-            $"{Path.GetFileNameWithoutExtension(script)}-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}"));
+            $"{Path.GetFileNameWithoutExtension(script)}-{DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}-{Environment.ProcessId}"));
 
         // A run never reuses app data: a fresh folder keeps runs repeatable, and nothing has to be deleted.
         if (Directory.Exists(dataDirectory) && Directory.EnumerateFileSystemEntries(dataDirectory).Any())

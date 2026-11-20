@@ -72,9 +72,11 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 await SettleAsync();
                 Report.Add($"ok    line {step.Line,3}: {step.Text} ({watch.ElapsedMilliseconds} ms){(note is null ? string.Empty : " -> " + note)}");
             }
-            catch (Exception ex) when (ex is SmokeStepException or TimeoutException or InvalidOperationException or KeyNotFoundException or IOException)
+#pragma warning disable CA1031 // Any exception fails the step, and the report names it.
+            catch (Exception ex)
+#pragma warning restore CA1031
             {
-                var failure = $"line {step.Line}: {step.Text}: {ex.Message}";
+                var failure = $"line {step.Line}: {step.Text}: {(ex is SmokeStepException or TimeoutException ? ex.Message : ex.ToString())}";
                 Report.Add($"FAIL  {failure}");
                 return failure;
             }
@@ -193,10 +195,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
     private string? PressKey(string gestureText)
     {
-        // KeyGesture.Parse reads a bare digit as the enum's number, so "2" would be Key.Back.
-        var plus = gestureText.LastIndexOf('+');
-        var keyName = gestureText[(plus + 1)..];
-        var gesture = KeyGesture.Parse(keyName is [>= '0' and <= '9'] ? $"{gestureText[..(plus + 1)]}D{keyName}" : gestureText);
+        SmokeScript.TryParseKey(gestureText, out var parsed);
+        var gesture = parsed!;
         var target = FocusedOrWindow();
         foreach (var routedEvent in new[] { InputElement.KeyDownEvent, InputElement.KeyUpEvent })
         {

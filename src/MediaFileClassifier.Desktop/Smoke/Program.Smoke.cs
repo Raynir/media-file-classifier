@@ -65,8 +65,21 @@ internal static partial class Program
 
         lifetime.Startup += (_, _) => Dispatcher.UIThread.Post(async () =>
         {
-            var exitCode = await RunSmokeAsync(lifetime, services, smokeOptions, smokeSteps, smokeLog);
-            lifetime.Shutdown(exitCode);
+            var exitCode = 1;
+            try
+            {
+                exitCode = await RunSmokeAsync(lifetime, services, smokeOptions, smokeSteps, smokeLog);
+            }
+#pragma warning disable CA1031 // Writing the report failed: log it, and still exit.
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                Log.Error(ex, "The smoke report couldn't be written");
+            }
+            finally
+            {
+                lifetime.Shutdown(exitCode);
+            }
         });
     }
 
@@ -81,6 +94,7 @@ internal static partial class Program
             return;
         }
 
+        Directory.CreateDirectory(smokeOptions.OutputDirectory);
         string[] late = ["FAILED after the report, while the app shut down:", .. smokeLog.Failures.Skip(smokeReported).Select(line => "LOG   " + line)];
         File.AppendAllLines(Path.Combine(smokeOptions.OutputDirectory, "smoke-report.txt"), late);
         foreach (var line in late)
@@ -100,14 +114,26 @@ internal static partial class Program
         string? failure;
         try
         {
+            var started = System.Diagnostics.Stopwatch.StartNew();
             while (lifetime.MainWindow is not { IsVisible: true })
             {
+                if (started.Elapsed > SmokeScript.DefaultWaitTimeout)
+                {
+                    throw new TimeoutException("the main window didn't show");
+                }
+
                 await Task.Delay(100);
             }
 
             var runner = new SmokeRunner(services, lifetime.MainWindow, options, log);
-            failure = await runner.RunAsync(steps);
-            report.AddRange(runner.Report);
+            try
+            {
+                failure = await runner.RunAsync(steps);
+            }
+            finally
+            {
+                report.AddRange(runner.Report);
+            }
         }
 #pragma warning disable CA1031 // Any exception fails the run and is reported, rather than crashing the app.
         catch (Exception ex)

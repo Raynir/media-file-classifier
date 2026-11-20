@@ -1,5 +1,7 @@
 #if DEBUG
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Avalonia.Input;
 
 namespace MediaFileClassifier.Desktop.Smoke;
 
@@ -141,6 +143,9 @@ internal static class SmokeScript
                     _ => "expected 'idle', 'items <count>', 'visible <control>' or 'hidden <control>', then an optional timeout",
                 };
                 break;
+            case "key":
+                error = TryParseKey(step.Argument, out _) ? null : "expected a key such as Space, Right, Ctrl+2 or Ctrl+Shift+F";
+                break;
             case "shot":
                 error = step.Argument.Length == 0 || step.Argument.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
                     ? "expected a file name without an extension"
@@ -169,6 +174,29 @@ internal static class SmokeScript
             && int.TryParse(parts[0], CultureInfo.InvariantCulture, out width)
             && int.TryParse(parts[1], CultureInfo.InvariantCulture, out height)
             && width > 0 && height > 0;
+    }
+
+    /// <summary>
+    /// Parses a key gesture such as <c>Space</c> or <c>Ctrl+2</c>.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="gesture">The gesture.</param>
+    /// <returns>Whether the text is a gesture.</returns>
+    public static bool TryParseKey(string text, [NotNullWhen(true)] out KeyGesture? gesture)
+    {
+        // KeyGesture.Parse reads a bare digit as the enum's number, so "2" would be Key.Back.
+        var plus = text.LastIndexOf('+');
+        var key = text[(plus + 1)..];
+        try
+        {
+            gesture = KeyGesture.Parse(key is [>= '0' and <= '9'] ? $"{text[..(plus + 1)]}D{key}" : text);
+            return gesture.Key != Key.None;
+        }
+        catch (ArgumentException)
+        {
+            gesture = null;
+            return false;
+        }
     }
 
     private static string Unquote(string text)

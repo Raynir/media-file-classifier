@@ -2062,7 +2062,7 @@
     <value>Save</value>
   </data>
   <data name="Editor_Edited" xml:space="preserve">
-    <value>Edited</value>
+    <value>Unsaved</value>
   </data>
   <data name="Editor_Error_SaveFailed" xml:space="preserve">
     <value>Couldn't save the changes. Try again.</value>
@@ -2144,5 +2144,38 @@
   </data>
   <data name="Command_CancelMetadata" xml:space="preserve">
     <value>_Discard metadata changes</value>
+  </data>
+  <data name="Provenance_Ai" xml:space="preserve">
+    <value>AI</value>
+  </data>
+  <data name="Provenance_Edited" xml:space="preserve">
+    <value>Edited</value>
+  </data>
+  <data name="Provenance_Accepted" xml:space="preserve">
+    <value>Accepted</value>
+  </data>
+  <data name="Provenance_NewSuggestion" xml:space="preserve">
+    <value>New suggestion</value>
+  </data>
+  <data name="Provenance_Tip_Ai" xml:space="preserve">
+    <value>Written by {0} on {1}</value>
+  </data>
+  <data name="Provenance_Tip_AiNoModel" xml:space="preserve">
+    <value>Written by the AI on {0}</value>
+  </data>
+  <data name="Provenance_Tip_Edited" xml:space="preserve">
+    <value>Edited by you on {0}</value>
+  </data>
+  <data name="Provenance_Tip_Accepted" xml:space="preserve">
+    <value>You accepted this AI value on {1}. It came from {0}.</value>
+  </data>
+  <data name="Provenance_Tip_AcceptedNoModel" xml:space="preserve">
+    <value>You accepted this AI value on {0}.</value>
+  </data>
+  <data name="Provenance_Tip_Suggestion" xml:space="preserve">
+    <value>Newer AI value from {0}, written on {1}</value>
+  </data>
+  <data name="Provenance_Tip_SuggestionNoModel" xml:space="preserve">
+    <value>Newer AI value, written on {0}</value>
   </data>
 </root>

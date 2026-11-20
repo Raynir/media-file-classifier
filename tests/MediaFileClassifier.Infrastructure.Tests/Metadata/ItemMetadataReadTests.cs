@@ -57,6 +57,18 @@ public sealed class ItemMetadataReadTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Get_AiValue_NamesTheModelThatWroteIt()
+    {
+        var run = await bed.ApplyRunAsync("Dog on a beach", ["dog"]);
+
+        var view = (await bed.Sender.Send(new GetItemMetadataQuery(bed.Item.Id), Token))!;
+
+        var modelId = view[DescriptiveField.Title].Effective!.ModelId!.Value;
+        Assert.Equal(run.ModelId, modelId);
+        Assert.False(string.IsNullOrWhiteSpace(view.ModelNames[modelId]));
+    }
+
+    [Fact]
     public async Task Get_ReanalysisWithADifferentValue_ExposesTheSuggestionAndTheFlag()
     {
         await bed.ApplyRunAsync("Dog on a beach", ["dog"]);

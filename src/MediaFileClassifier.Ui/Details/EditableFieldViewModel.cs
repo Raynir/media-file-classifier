@@ -93,6 +93,57 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     public partial bool IsReverted { get; private set; }
 
     /// <summary>
+    /// Gets the mark of the stored value: the AI's, the user's edit, or an accepted AI value (E07-S11-T01).
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAi), nameof(IsEditedValue), nameof(IsAccepted))]
+    public partial FieldProvenance Provenance { get; private set; }
+
+    /// <summary>
+    /// Gets the tooltip of the provenance mark: the model and the date.
+    /// </summary>
+    [ObservableProperty]
+    public partial string ProvenanceTip { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Gets a value indicating whether the stored value is the AI's.
+    /// </summary>
+    public bool IsAi => Provenance == FieldProvenance.Ai;
+
+    /// <summary>
+    /// Gets a value indicating whether the stored value is one the user wrote.
+    /// </summary>
+    public bool IsEditedValue => Provenance == FieldProvenance.Edited;
+
+    /// <summary>
+    /// Gets a value indicating whether the stored value is an AI value the user confirmed.
+    /// </summary>
+    public bool IsAccepted => Provenance == FieldProvenance.Accepted;
+
+    /// <summary>
+    /// Gets a value indicating whether a newer AI value than the user's is waiting (D020).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool HasSuggestion { get; private set; }
+
+    /// <summary>
+    /// Gets the text the AI now suggests for the user's value.
+    /// </summary>
+    [ObservableProperty]
+    public partial string SuggestionText { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Gets the tooltip of the new-suggestion mark: the model and the date.
+    /// </summary>
+    [ObservableProperty]
+    public partial string SuggestionTip { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets where the tooltips get their text; the editor sets it.
+    /// </summary>
+    internal ProvenanceText? Provenances { get; set; }
+
+    /// <summary>
     /// Gets or sets the message of the validation error the last save found in this field, or <see langword="null"/>.
     /// </summary>
     [ObservableProperty]
@@ -117,6 +168,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         originalText = view.Effective?.Value.Text ?? string.Empty;
         FallbackText = (view.LatestAi?.Value ?? view.Technical?.Value)?.Text ?? string.Empty;
         CanRevert = view.User is not null;
+        ShowProvenance(view);
         IsReverted = false;
         Error = null;
         Text = originalText;
@@ -133,6 +185,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         originalText = view.Effective?.Value.Text ?? string.Empty;
         FallbackText = (view.LatestAi?.Value ?? view.Technical?.Value)?.Text ?? string.Empty;
         CanRevert = view.User is not null;
+        ShowProvenance(view);
         if (!CanRevert)
         {
             // The user's value is gone, so there is nothing to revert.
@@ -177,6 +230,15 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         Error = null;
         Text = FallbackText;
         IsDirty = true;
+    }
+
+    private void ShowProvenance(FieldMetadataView view)
+    {
+        Provenance = ProvenanceText.Of(view);
+        ProvenanceTip = Provenances?.Tip(view) ?? string.Empty;
+        HasSuggestion = view.Suggestion is not null;
+        SuggestionText = view.Suggestion?.Value.Text ?? string.Empty;
+        SuggestionTip = view.Suggestion is { } suggestion ? Provenances?.SuggestionTip(suggestion) ?? string.Empty : string.Empty;
     }
 
     partial void OnTextChanged(string value)

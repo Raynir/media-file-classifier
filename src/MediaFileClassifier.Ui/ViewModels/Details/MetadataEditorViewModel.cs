@@ -28,6 +28,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     private readonly ISender sender;
     private readonly Localizer localizer;
     private readonly ILogger logger;
+    private readonly ProvenanceText provenances;
     private int loads;
     private int suggestionRequests;
     private ItemMetadataView? shown;
@@ -43,6 +44,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         this.sender = sender;
         this.localizer = localizer;
         this.logger = logger ?? NullLogger.Instance;
+        provenances = new ProvenanceText(localizer);
         Descriptive =
         [
             Create(DescriptiveField.Title, "Details_Title_Label"),
@@ -400,7 +402,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
 
     private EditableFieldViewModel Create(DescriptiveField field, string labelKey, bool isReadOnly = false)
     {
-        var item = new EditableFieldViewModel(field, labelKey, localizer.Get(labelKey), isReadOnly);
+        var item = new EditableFieldViewModel(field, labelKey, localizer.Get(labelKey), isReadOnly) { Provenances = provenances };
         item.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(EditableFieldViewModel.IsDirty))
@@ -458,6 +460,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
 
     private void Apply(ItemMetadataView? view)
     {
+        provenances.ModelNames = view?.ModelNames ?? provenances.ModelNames;
         foreach (var field in AllFields.Append(Transcript))
         {
             field.Load(view is null ? new FieldMetadataView(field.Field, null, null, null, null, null) : view[field.Field]);

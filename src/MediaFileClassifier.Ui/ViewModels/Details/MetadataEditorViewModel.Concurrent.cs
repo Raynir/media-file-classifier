@@ -59,6 +59,7 @@ public sealed partial class MetadataEditorViewModel
 
     private void MergeInto(ItemMetadataView? view, IReadOnlySet<DescriptiveField> changedFields, bool tagsChanged)
     {
+        provenances.ModelNames = view?.ModelNames ?? provenances.ModelNames;
         var overlapping = new List<string>();
         foreach (var field in AllFields.Append(Transcript))
         {

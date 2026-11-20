@@ -26,6 +26,31 @@
         <StackPanel Spacing="{DynamicResource Space.XS}">
           <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
             <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
+            <!-- What the stored value is: the AI's, the user's edit or an accepted AI value, with model and date in the tooltip. -->
+            <Border Classes="Provenance Ai" IsVisible="{Binding IsAi}" ToolTip.Tip="{Binding ProvenanceTip}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                <PathIcon Data="{StaticResource Icon.Provenance.Ai}" />
+                <TextBlock Text="{l:Loc Provenance_Ai}" />
+              </StackPanel>
+            </Border>
+            <Border Classes="Provenance Edited" IsVisible="{Binding IsEditedValue}" ToolTip.Tip="{Binding ProvenanceTip}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                <PathIcon Data="{StaticResource Icon.Provenance.Edited}" />
+                <TextBlock Text="{l:Loc Provenance_Edited}" />
+              </StackPanel>
+            </Border>
+            <Border Classes="Provenance Accepted" IsVisible="{Binding IsAccepted}" ToolTip.Tip="{Binding ProvenanceTip}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                <PathIcon Data="{StaticResource Icon.Provenance.Accepted}" />
+                <TextBlock Text="{l:Loc Provenance_Accepted}" />
+              </StackPanel>
+            </Border>
+            <Border Classes="Provenance NewSuggestion" IsVisible="{Binding HasSuggestion}" ToolTip.Tip="{Binding SuggestionTip}">
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                <PathIcon Data="{StaticResource Icon.Provenance.NewSuggestion}" />
+                <TextBlock Text="{l:Loc Provenance_NewSuggestion}" />
+              </StackPanel>
+            </Border>
             <TextBlock Classes="EditedMark" Text="{l:Loc Editor_Edited}" IsVisible="{Binding IsDirty}" />
             <Button Classes="Small"
                     Content="{l:Loc Editor_Revert}"

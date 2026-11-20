@@ -309,6 +309,8 @@ public sealed class ThumbnailGridTests
             var scroller = Scroller(view);
             scroller.Offset = new Vector(0, scroller.Extent.Height / 2);
             Settle();
+            scroller.Offset = new Vector(0, scroller.Extent.Height);
+            Settle();
             scroller.Offset = new Vector(0, 0);
             Settle();
             window.Width = 700;
@@ -342,7 +344,7 @@ public sealed class ThumbnailGridTests
         {
             // Only casts to the wrong view model: a test grid has no filter or notice view models, and those bindings log too.
             var message = string.Join(" | ", [messageTemplate, .. propertyValues.Select(value => value?.ToString())]);
-            if (IsEnabled(level, area) && message.Contains("Unable to cast", StringComparison.Ordinal))
+            if (IsEnabled(level, area) && message.Contains(nameof(ThumbnailRowViewModel), StringComparison.Ordinal))
             {
                 Messages.Add(message);
             }

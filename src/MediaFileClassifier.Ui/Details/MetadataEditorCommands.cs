@@ -66,10 +66,9 @@ public sealed class MetadataEditorCommands : ICommandContributor
             InContextMenu = false,
             AppliesTo = () => panel().BulkEditor.CanUndo && !panel().BulkEditor.IsSaving,
         });
-        registry.Add(new AppCommand(UndoBulkShortcut, CommandGroups.Edit, 11, "Command_UndoBulk", () => panel().BulkEditor.UndoAsync())
+        registry.Add(new AppCommand(UndoBulkShortcut, CommandGroups.ShortcutOnly, 11, "Command_UndoBulk", () => panel().BulkEditor.UndoAsync())
         {
             InContextMenu = false,
-            IsVisible = false,
             AppliesTo = () => panel().IsBulk && panel().BulkEditor.CanUndo && !panel().BulkEditor.IsSaving,
         });
         selection.Changed += (_, _) => edit.Refresh();

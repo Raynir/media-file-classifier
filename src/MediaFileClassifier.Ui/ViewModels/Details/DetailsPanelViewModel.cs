@@ -49,6 +49,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private readonly ILogger logger;
     private CancellationTokenSource? loading;
     private CancellationTokenSource? previewLoading;
+    private bool disposed;
     private ItemDetails? previewFor;
     private PreviewImage? preview;
     private bool loadingFullResolution;
@@ -413,6 +414,13 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <inheritdoc />
     public void Dispose()
     {
+        // The container disposes the panel twice: as itself and as the IItemOpener it also serves (MFC-1006).
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
         selection.Changed -= OnSelectionChanged;
         BulkEditor.PropertyChanged -= OnBulkEditorChanged;
         BulkEditor.Dispose();

@@ -5,6 +5,7 @@
              xmlns:v="using:MediaFileClassifier.Ui.Views.Details"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
+             xmlns:al="using:Avalonia.Labs.AnimatedImage"
              x:Class="MediaFileClassifier.Ui.Views.Details.DetailsPanelView"
              x:DataType="vm:DetailsPanelViewModel">
   <!--
@@ -66,6 +67,24 @@
                        RenderOptions.BitmapInterpolationMode="HighQuality"
                        sc:Shortcuts.Scope="viewer"
                        AutomationProperties.Name="{l:Loc Details_Preview}" />
+          <!-- Animated GIF and WebP (E14-S12): the control plays; paused or stepped, the frame shows as a plain image. -->
+          <Panel x:Name="AnimationHost"
+                 IsVisible="{Binding Animation, Converter={x:Static ObjectConverters.IsNotNull}}"
+                 Background="{DynamicResource Brush.Surface.Tile}">
+            <Panel DataContext="{Binding Animation}" x:DataType="vm:AnimatedPreviewViewModel">
+              <al:AnimatedImage x:Name="AnimationPlayer"
+                                Source="{Binding PlaybackSource}"
+                                IsPlaying="{Binding IsPlaying}"
+                                IsVisible="{Binding IsPlaying}"
+                                Stretch="Uniform"
+                                StretchDirection="DownOnly" />
+              <Image Source="{Binding CurrentFrame}"
+                     IsVisible="{Binding IsPaused}"
+                     Stretch="Uniform"
+                     StretchDirection="DownOnly"
+                     RenderOptions.BitmapInterpolationMode="HighQuality" />
+            </Panel>
+          </Panel>
           <TextBlock Classes="Tertiary"
                      Text="{l:Loc Details_Preview_None}"
                      IsVisible="{Binding PreviewBitmap, Converter={x:Static ObjectConverters.IsNull}}"
@@ -76,7 +95,7 @@
                   HorizontalAlignment="Right"
                   VerticalAlignment="Bottom"
                   Margin="{DynamicResource Padding.Compact}"
-                  IsVisible="{Binding PreviewBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
+                  IsVisible="{Binding IsZoomAvailable}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
               <TextBlock x:Name="ZoomText" Classes="Small" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
               <Button x:Name="FitButton"
@@ -88,6 +107,45 @@
                       Content="{l:Loc Details_Preview_ActualSize}"
                       ToolTip.Tip="{l:Loc Details_Preview_ActualSize_ToolTip}" />
             </StackPanel>
+          </Border>
+          <!-- Animation: step back, play or pause, step forward, and the frame. -->
+          <Border Classes="PreviewOverlay"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  Margin="{DynamicResource Padding.Compact}"
+                  IsVisible="{Binding Animation, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" DataContext="{Binding Animation}" x:DataType="vm:AnimatedPreviewViewModel">
+              <Button x:Name="StepBackButton"
+                      Classes="Small"
+                      Command="{Binding StepBackCommand}"
+                      Content="{l:Loc Details_Preview_StepBack}"
+                      ToolTip.Tip="{l:Loc Details_Preview_StepBack_ToolTip}" />
+              <Button x:Name="PlayPauseButton"
+                      Classes="Small"
+                      Command="{Binding TogglePlayCommand}"
+                      ToolTip.Tip="{l:Loc Details_Preview_PlayPause_ToolTip}">
+                <Panel>
+                  <TextBlock Text="{l:Loc Details_Preview_Pause}" IsVisible="{Binding IsPlaying}" />
+                  <TextBlock Text="{l:Loc Details_Preview_Play}" IsVisible="{Binding IsPaused}" />
+                </Panel>
+              </Button>
+              <Button x:Name="StepForwardButton"
+                      Classes="Small"
+                      Command="{Binding StepForwardCommand}"
+                      Content="{l:Loc Details_Preview_StepForward}"
+                      ToolTip.Tip="{l:Loc Details_Preview_StepForward_ToolTip}" />
+              <TextBlock Classes="Small" Text="{Binding FrameText}" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
+            </StackPanel>
+          </Border>
+          <!-- Too large to play: the first frame shows, and the file opens in the default app (D070, D026). -->
+          <Border Classes="PreviewOverlay"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  Margin="{DynamicResource Padding.Compact}"
+                  IsVisible="{Binding IsAnimationTooLarge}">
+            <Button Classes="Small"
+                    Command="{Binding Commands[item.open-default-app]}"
+                    Content="{l:Loc Details_Preview_Animation_OpenDefault}" />
           </Border>
         </Panel>
         <Thumb x:Name="PreviewResizer"

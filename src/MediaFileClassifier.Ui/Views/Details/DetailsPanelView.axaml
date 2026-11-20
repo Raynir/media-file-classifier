@@ -189,7 +189,7 @@
                           CommandParameter="{Binding}"
                           ToolTip.Tip="{Binding Name}"
                           AutomationProperties.Name="{Binding Name}">
-                    <StackPanel Spacing="2">
+                    <StackPanel Spacing="{DynamicResource Space.XS}">
                       <Border Width="96" Height="54" Background="{DynamicResource Brush.Surface.Tile}" ClipToBounds="True">
                         <Image Source="{Binding Picture}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
                       </Border>

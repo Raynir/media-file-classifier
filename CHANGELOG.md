@@ -8,6 +8,14 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 - Animated image playback (E14-S12-T01): an animated GIF or WebP plays in the details panel preview at the frames' own speed, with Pause, Previous frame and Next frame and a "Frame 3 of 12" counter (`Space` plays or pauses, `,` and `.` step, while the preview has focus). Playback stops when the selection changes and when the preview or panel is collapsed. An animation that would take more than 256 MB decoded shows its first frame with a note and an Open in default app button.
 
+### Developer tools
+
+- UI smoke tool (MFC-1006): in Debug builds, `--smoke <script>` runs the real app on its own app-data folder, follows a short script (select, commands, keys, typing, waits), saves PNGs of the main window and exits non-zero when a step fails or an error or Avalonia warning is logged. See `docs/testing.md`.
+
+### Fixed
+
+- The search box no longer logs binding warnings whenever a library opens, and the app no longer logs a fatal error on exit after showing an item's details (MFC-1006).
+
 ## M3 — 2026-11-20
 
 ### Added

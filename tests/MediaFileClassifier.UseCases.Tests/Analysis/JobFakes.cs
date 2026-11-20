@@ -55,4 +55,11 @@ internal sealed class RecordingScheduler : IJobScheduler
     public void Resume()
     {
     }
+
+    /// <summary>
+    /// Gets how often the parked work was released.
+    /// </summary>
+    public int ReleaseCount { get; private set; }
+
+    public void ReleaseParked() => ReleaseCount++;
 }

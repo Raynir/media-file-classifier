@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,8 @@ namespace MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 /// <summary>
 /// Checks whether the open library's folders can be reached, and marks them Online or Offline (E02-S03-T05). It runs
 /// when a library opens, before imports and when the folders view opens. An Offline folder's items are kept as they
-/// are: nothing is marked Missing because its root can't be reached.
+/// are: nothing is marked Missing because its root can't be reached. When a folder is Online again, the work parked
+/// for it runs (D025).
 /// </summary>
 /// <param name="FolderIds">The folders to check, or <c>null</c> for all of them.</param>
 public sealed record CheckFolderAvailabilityCommand(IReadOnlyCollection<Id<IndexedFolder>>? FolderIds = null) : IRequest<IReadOnlyList<IndexedFolder>>;
@@ -22,11 +24,13 @@ public sealed record CheckFolderAvailabilityCommand(IReadOnlyCollection<Id<Index
 /// <param name="files">Checks the folders.</param>
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="jobs">Releases the parked work when a folder is Online again, or <see langword="null"/>.</param>
 public sealed class CheckFolderAvailabilityCommandHandler(
     ILibrarySession session,
     IMediaFileSource files,
     TimeProvider clock,
-    ILogger<CheckFolderAvailabilityCommandHandler> logger) : IRequestHandler<CheckFolderAvailabilityCommand, IReadOnlyList<IndexedFolder>>
+    ILogger<CheckFolderAvailabilityCommandHandler> logger,
+    IJobSystem? jobs = null) : IRequestHandler<CheckFolderAvailabilityCommand, IReadOnlyList<IndexedFolder>>
 {
     /// <inheritdoc />
     /// <returns>The folders whose status changed.</returns>
@@ -66,6 +70,11 @@ public sealed class CheckFolderAvailabilityCommandHandler(
             await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
             logger.LogInformation("Folder {Folder} is {Status} now", folder.DisplayPath, status);
             changed.Add(folder);
+        }
+
+        if (changed.Any(folder => folder.Status == FolderStatus.Online))
+        {
+            jobs?.Current?.ReleaseParked();
         }
 
         return changed;

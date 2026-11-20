@@ -94,5 +94,9 @@ public sealed class CancelJobTests : IDisposable
         public void Resume()
         {
         }
+
+        public void ReleaseParked()
+        {
+        }
     }
 }

@@ -14,6 +14,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.Stages;
+using MediaFileClassifier.UseCases.Libraries;
 using MediaFileClassifier.UseCases.Tags;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -345,9 +346,21 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
     {
         var folder = await library.Folders.GetAsync(item.FolderId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("The item's folder isn't in the library.");
+        OfflineFolders.ThrowIfOffline(folder);
         var location = ItemStage.GetLocation(folder, item);
         MediaFormatDetection format;
-        var stream = await files.OpenReadAsync(location, cancellationToken).ConfigureAwait(false);
+        Stream stream;
+        try
+        {
+            stream = await files.OpenReadAsync(location, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (OfflineFolders.IsMissingDirectory(exception))
+        {
+            // D188, D025: an Offline folder parks the work; a deleted subfolder fails it like a deleted file.
+            await OfflineFolders.ThrowForMissingDirectoryAsync(library, folder, location, files, clock, exception, cancellationToken).ConfigureAwait(false);
+            throw;
+        }
+
         await using (stream.ConfigureAwait(false))
         {
             format = await formats.DetectAsync(stream, item.Path.Value, cancellationToken).ConfigureAwait(false);

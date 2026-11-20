@@ -42,7 +42,12 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         var folders = await GetFoldersAsync(library, job, cancellationToken).ConfigureAwait(false);
 
         var result = await reconciler.ReconcileAsync(library, folders, cancellationToken).ConfigureAwait(false);
-        await UpdateFolderStatusAsync(library, result, cancellationToken).ConfigureAwait(false);
+        if (await UpdateFolderStatusAsync(library, result, cancellationToken).ConfigureAwait(false))
+        {
+            // The work parked while those folders were Offline runs now (D025).
+            context.Scheduler.ReleaseParked();
+        }
+
         var newlyMissing = await ApplyAsync(context, result, cancellationToken).ConfigureAwait(false);
 
         // Stored last: the job can't finish before this work item does, so a finished job always has its counts.
@@ -74,8 +79,8 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         }
     }
 
-    // Offline folders are skipped and marked (D188); a listed folder is online again.
-    private async Task UpdateFolderStatusAsync(IOpenLibrary library, Reconciliation result, CancellationToken cancellationToken)
+    // Offline folders are skipped and marked (D188); a listed folder is online again. Returns whether one came online.
+    private async Task<bool> UpdateFolderStatusAsync(IOpenLibrary library, Reconciliation result, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow();
         foreach (var folder in result.Offline.Where(folder => folder.Status != FolderStatus.Offline))
@@ -84,11 +89,15 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
             await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
         }
 
+        var cameOnline = false;
         foreach (var (folder, _) in result.Scanned.Where(scanned => scanned.Folder.Status == FolderStatus.Offline))
         {
             folder.MarkOnline(now);
             await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+            cameOnline = true;
         }
+
+        return cameOnline;
     }
 
     private async Task<int> ApplyAsync(WorkItemContext context, Reconciliation result, CancellationToken cancellationToken)

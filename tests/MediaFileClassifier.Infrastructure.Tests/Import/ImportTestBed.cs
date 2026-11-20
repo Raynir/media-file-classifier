@@ -164,12 +164,30 @@ internal sealed class ImportTestBed : IAsyncDisposable
         return Assert.Single(started);
     }
 
-    public async Task WaitUntilIdleAsync(TimeSpan? timeout = null)
+    /// <summary>
+    /// Waits until no work is pending. The wait fails when the pending count hasn't dropped for <paramref name="stallTimeout"/>
+    /// (a stuck queue), so a slow machine running the whole solution's tests doesn't fail a queue that is still draining.
+    /// </summary>
+    public async Task WaitUntilIdleAsync(TimeSpan? stallTimeout = null)
     {
-        var stopwatch = Stopwatch.StartNew();
-        while (await Library.Jobs.CountPendingAsync(Token) > 0)
+        var limit = stallTimeout ?? TimeSpan.FromSeconds(60);
+        var lastProgress = Stopwatch.StartNew();
+        var lowest = int.MaxValue;
+        while (true)
         {
-            Assert.True(stopwatch.Elapsed < (timeout ?? TimeSpan.FromSeconds(60)), "Timed out waiting for the import.");
+            var pending = await Library.Jobs.CountPendingAsync(Token);
+            if (pending == 0)
+            {
+                return;
+            }
+
+            if (pending < lowest)
+            {
+                lowest = pending;
+                lastProgress.Restart();
+            }
+
+            Assert.True(lastProgress.Elapsed < limit, $"Timed out waiting for the import: {pending} work items still pending, none finished for {limit.TotalSeconds:0} s.");
             await Task.Delay(20, Token);
         }
     }

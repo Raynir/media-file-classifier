@@ -22,6 +22,9 @@ public sealed class MetadataEditorCommands : ICommandContributor
     /// <summary>Command ID: put back what the last bulk edit changed (E07-S03-T03).</summary>
     public const string UndoBulk = "edit.undo";
 
+    /// <summary>Command ID: the <c>Ctrl+Z</c> shortcut for the bulk undo, which works only while several items are selected.</summary>
+    public const string UndoBulkShortcut = "edit.undo-bulk";
+
     private readonly SelectionModel selection;
     private readonly Func<DetailsPanelViewModel> panel;
 
@@ -62,6 +65,12 @@ public sealed class MetadataEditorCommands : ICommandContributor
         {
             InContextMenu = false,
             AppliesTo = () => panel().BulkEditor.CanUndo && !panel().BulkEditor.IsSaving,
+        });
+        registry.Add(new AppCommand(UndoBulkShortcut, CommandGroups.Edit, 11, "Command_UndoBulk", () => panel().BulkEditor.UndoAsync())
+        {
+            InContextMenu = false,
+            IsVisible = false,
+            AppliesTo = () => panel().IsBulk && panel().BulkEditor.CanUndo && !panel().BulkEditor.IsSaving,
         });
         selection.Changed += (_, _) => edit.Refresh();
     }

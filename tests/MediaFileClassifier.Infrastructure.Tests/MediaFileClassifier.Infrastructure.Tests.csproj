@@ -11,6 +11,7 @@
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.DataAccess/MediaFileClassifier.Infrastructure.DataAccess.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Jobs/MediaFileClassifier.Infrastructure.Jobs.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Media/MediaFileClassifier.Infrastructure.Media.csproj" />
+    <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Playback/MediaFileClassifier.Infrastructure.Playback.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.Infrastructure.Search/MediaFileClassifier.Infrastructure.Search.csproj" />
     <ProjectReference Include="../../src/MediaFileClassifier.UseCases/MediaFileClassifier.UseCases.csproj" />
     <ProjectReference Include="../MediaFileClassifier.Testing/MediaFileClassifier.Testing.csproj" />
@@ -31,5 +32,8 @@
     <!-- SigLIP 2 reference outputs, written by tools/embedding-reference/make_reference.py. -->
     <None Include="AI/Embeddings/siglip2-reference.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <!-- The native LibVLC, trimmed to win-x64 and the playback plugins (D070). -->
+  <Import Project="../../src/MediaFileClassifier.Infrastructure.Playback/build/LibVlcWindows.props" />
 
 </Project>

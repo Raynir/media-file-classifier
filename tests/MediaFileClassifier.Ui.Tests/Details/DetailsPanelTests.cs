@@ -156,11 +156,14 @@ public sealed class DetailsPanelTests : IDisposable
         Press(Key.Space);
         Assert.False(animation.IsPlaying);
         Assert.False(player.IsEffectivelyVisible);
+
+        // Paused wherever the system clock got to: on a loaded machine that may be past the first frame.
+        var paused = animation.FrameIndex;
         Press(Key.OemPeriod);
         Press(Key.OemPeriod);
-        Assert.Equal(2, animation.FrameIndex);
+        Assert.Equal((paused + 2) % animation.FrameCount, animation.FrameIndex);
         Press(Key.OemComma);
-        Assert.Equal(1, animation.FrameIndex);
+        Assert.Equal((paused + 1) % animation.FrameCount, animation.FrameIndex);
         Press(Key.Space);
         Assert.True(animation.IsPlaying);
 

@@ -1,0 +1,391 @@
+using System.Windows.Input;
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
+
+namespace MediaFileClassifier.Ui.Controls;
+
+/// <summary>
+/// The video player's timeline (E14-S06): the track, the played part, <see cref="Markers"/> (keyframes now, matched
+/// moments later) and a thumb at the position. Clicking or dragging seeks there, and a click within
+/// <see cref="MarkerHitRadius"/> of a marker seeks exactly to it. The arrow keys step by <see cref="SmallStep"/>,
+/// Page Up and Page Down by <see cref="LargeStep"/>, Home and End go to the ends, and Ctrl with the left or right
+/// arrow goes to the previous or next marker. Seeks go to <see cref="SeekCommand"/> with the <see cref="TimeSpan"/>
+/// as parameter; the position comes back from the player.
+/// </summary>
+public sealed class VideoTimeline : Control
+{
+    /// <summary>
+    /// How close to a marker, in pixels, a click seeks to the marker rather than the time under it.
+    /// </summary>
+    public const double MarkerHitRadius = 6;
+
+    private const double TrackHeight = 4;
+    private const double ThumbRadius = 6;
+    private const double DragThreshold = 3;
+    private const double MarkerWidth = 2;
+    private const double MarkerHeight = 12;
+
+    /// <summary>
+    /// Defines the <see cref="Duration"/> property.
+    /// </summary>
+    public static readonly StyledProperty<TimeSpan> DurationProperty =
+        AvaloniaProperty.Register<VideoTimeline, TimeSpan>(nameof(Duration));
+
+    /// <summary>
+    /// Defines the <see cref="Position"/> property.
+    /// </summary>
+    public static readonly StyledProperty<TimeSpan> PositionProperty =
+        AvaloniaProperty.Register<VideoTimeline, TimeSpan>(nameof(Position));
+
+    /// <summary>
+    /// Defines the <see cref="SeekCommand"/> property.
+    /// </summary>
+    public static readonly StyledProperty<ICommand?> SeekCommandProperty =
+        AvaloniaProperty.Register<VideoTimeline, ICommand?>(nameof(SeekCommand));
+
+    /// <summary>
+    /// Defines the <see cref="Markers"/> property.
+    /// </summary>
+    public static readonly StyledProperty<IReadOnlyList<TimelineMarker>?> MarkersProperty =
+        AvaloniaProperty.Register<VideoTimeline, IReadOnlyList<TimelineMarker>?>(nameof(Markers));
+
+    /// <summary>
+    /// Defines the <see cref="MarkerBrush"/> property.
+    /// </summary>
+    public static readonly StyledProperty<IBrush?> MarkerBrushProperty =
+        AvaloniaProperty.Register<VideoTimeline, IBrush?>(nameof(MarkerBrush), Brushes.Gold);
+
+    /// <summary>
+    /// Defines the <see cref="TrackBrush"/> property.
+    /// </summary>
+    public static readonly StyledProperty<IBrush?> TrackBrushProperty =
+        AvaloniaProperty.Register<VideoTimeline, IBrush?>(nameof(TrackBrush), Brushes.Gray);
+
+    /// <summary>
+    /// Defines the <see cref="PlayedBrush"/> property.
+    /// </summary>
+    public static readonly StyledProperty<IBrush?> PlayedBrushProperty =
+        AvaloniaProperty.Register<VideoTimeline, IBrush?>(nameof(PlayedBrush), Brushes.White);
+
+    /// <summary>
+    /// Defines the <see cref="FocusBrush"/> property.
+    /// </summary>
+    public static readonly StyledProperty<IBrush?> FocusBrushProperty =
+        AvaloniaProperty.Register<VideoTimeline, IBrush?>(nameof(FocusBrush), Brushes.DodgerBlue);
+
+    /// <summary>
+    /// How far the arrow keys move.
+    /// </summary>
+    public static readonly TimeSpan SmallStep = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// How far Page Up and Page Down move.
+    /// </summary>
+    public static readonly TimeSpan LargeStep = TimeSpan.FromSeconds(30);
+
+    private bool dragging;
+
+    // Where the press was, until the pointer moves past DragThreshold: a click that jitters a pixel still seeks
+    // exactly to the marker it pressed.
+    private double? pressX;
+
+    static VideoTimeline()
+    {
+        FocusableProperty.OverrideDefaultValue<VideoTimeline>(true);
+        CursorProperty.OverrideDefaultValue<VideoTimeline>(new Cursor(StandardCursorType.Hand));
+        AffectsRender<VideoTimeline>(DurationProperty, PositionProperty, MarkersProperty, MarkerBrushProperty, TrackBrushProperty, PlayedBrushProperty, FocusBrushProperty);
+        AutomationProperties.ControlTypeOverrideProperty.OverrideDefaultValue<VideoTimeline>(Avalonia.Automation.Peers.AutomationControlType.Slider);
+    }
+
+    /// <summary>
+    /// Gets or sets the length of the video.
+    /// </summary>
+    public TimeSpan Duration
+    {
+        get => GetValue(DurationProperty);
+        set => SetValue(DurationProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the playback position.
+    /// </summary>
+    public TimeSpan Position
+    {
+        get => GetValue(PositionProperty);
+        set => SetValue(PositionProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the command that seeks; its parameter is the <see cref="TimeSpan"/> to go to.
+    /// </summary>
+    public ICommand? SeekCommand
+    {
+        get => GetValue(SeekCommandProperty);
+        set => SetValue(SeekCommandProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the markers, e.g. the keyframes (E14-S06-T02); any order.
+    /// </summary>
+    public IReadOnlyList<TimelineMarker>? Markers
+    {
+        get => GetValue(MarkersProperty);
+        set => SetValue(MarkersProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the brush of the keyframe markers.
+    /// </summary>
+    public IBrush? MarkerBrush
+    {
+        get => GetValue(MarkerBrushProperty);
+        set => SetValue(MarkerBrushProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the brush of the track.
+    /// </summary>
+    public IBrush? TrackBrush
+    {
+        get => GetValue(TrackBrushProperty);
+        set => SetValue(TrackBrushProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the brush of the played part and the thumb.
+    /// </summary>
+    public IBrush? PlayedBrush
+    {
+        get => GetValue(PlayedBrushProperty);
+        set => SetValue(PlayedBrushProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the brush of the keyboard focus ring around the thumb.
+    /// </summary>
+    public IBrush? FocusBrush
+    {
+        get => GetValue(FocusBrushProperty);
+        set => SetValue(FocusBrushProperty, value);
+    }
+
+    private (double Left, double Width) Track => (ThumbRadius, Math.Max(0, Bounds.Width - (2 * ThumbRadius)));
+
+    /// <inheritdoc />
+    public override void Render(DrawingContext context)
+    {
+        var (left, width) = Track;
+        var middle = Bounds.Height / 2;
+        context.FillRectangle(TrackBrush ?? Brushes.Gray, new Rect(left, middle - (TrackHeight / 2), width, TrackHeight), (float)(TrackHeight / 2));
+        if (Duration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        var x = XOf(Position);
+        var played = PlayedBrush ?? Brushes.White;
+        context.FillRectangle(played, new Rect(left, middle - (TrackHeight / 2), x - left, TrackHeight), (float)(TrackHeight / 2));
+        RenderMarkers(context, middle);
+        if (IsKeyboardFocusWithin && FocusBrush is { } focus)
+        {
+            context.DrawEllipse(null, new Pen(focus, 2), new Point(x, middle), ThumbRadius + 3, ThumbRadius + 3);
+        }
+
+        context.DrawEllipse(played, null, new Point(x, middle), ThumbRadius, ThumbRadius);
+    }
+
+    /// <summary>
+    /// Gets the marker nearest to a point on the track, within <see cref="MarkerHitRadius"/>.
+    /// </summary>
+    /// <param name="x">The x coordinate.</param>
+    /// <returns>The marker, or <see langword="null"/>.</returns>
+    public TimelineMarker? MarkerAt(double x)
+    {
+        if (Markers is not { Count: > 0 } markers || Duration <= TimeSpan.Zero)
+        {
+            return null;
+        }
+
+        var nearest = markers.MinBy(marker => Math.Abs(XOf(marker.Time) - x))!;
+        return Math.Abs(XOf(nearest.Time) - x) <= MarkerHitRadius ? nearest : null;
+    }
+
+    /// <summary>
+    /// Gets the x coordinate of a time on the track; the track is inset by the thumb, so the thumb stays inside.
+    /// </summary>
+    /// <param name="time">The time.</param>
+    /// <returns>The x coordinate.</returns>
+    public double XOf(TimeSpan time)
+    {
+        var (left, width) = Track;
+        if (Duration <= TimeSpan.Zero)
+        {
+            return left;
+        }
+
+        return left + (width * Math.Clamp(time / Duration, 0, 1));
+    }
+
+    private TimeSpan TimeAt(double x)
+    {
+        var (left, width) = Track;
+        return width <= 0 ? TimeSpan.Zero : Duration * Math.Clamp((x - left) / width, 0, 1);
+    }
+
+    private void RenderMarkers(DrawingContext context, double middle)
+    {
+        if (Markers is not { Count: > 0 } markers)
+        {
+            return;
+        }
+
+        var brush = MarkerBrush ?? Brushes.Gold;
+        foreach (var marker in markers)
+        {
+            context.FillRectangle(brush, new Rect(XOf(marker.Time) - (MarkerWidth / 2), middle - (MarkerHeight / 2), MarkerWidth, MarkerHeight));
+        }
+    }
+
+    private TimeSpan PressTarget(Point point) => MarkerAt(point.X)?.Time ?? TimeAt(point.X);
+
+    private TimeSpan? NextMarker(bool forward)
+    {
+        // A marker within half a second counts as the current one, since LibVLC lands a little before it (D070).
+        var tolerance = TimeSpan.FromMilliseconds(500);
+        var times = (Markers ?? []).Select(marker => marker.Time).Order().ToList();
+        return forward
+            ? times.Where(time => time > Position + tolerance).Cast<TimeSpan?>().FirstOrDefault()
+            : times.Where(time => time < Position - tolerance).Cast<TimeSpan?>().LastOrDefault();
+    }
+
+    private void RequestSeek(TimeSpan time)
+    {
+        if (Duration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        time = time < TimeSpan.Zero ? TimeSpan.Zero : time > Duration ? Duration : time;
+        if (SeekCommand is { } command && command.CanExecute(time))
+        {
+            command.Execute(time);
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || Duration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        dragging = true;
+        pressX = e.GetPosition(this).X;
+        e.Pointer.Capture(this);
+        Focus(NavigationMethod.Pointer);
+        RequestSeek(PressTarget(e.GetPosition(this)));
+        e.Handled = true;
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+        if (dragging)
+        {
+            var x = e.GetPosition(this).X;
+            if (pressX is { } start && Math.Abs(x - start) < DragThreshold)
+            {
+                e.Handled = true;
+                return;
+            }
+
+            pressX = null;
+            RequestSeek(TimeAt(x));
+            e.Handled = true;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        if (dragging)
+        {
+            dragging = false;
+            e.Pointer.Capture(null);
+            e.Handled = true;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        base.OnPointerCaptureLost(e);
+        dragging = false;
+    }
+
+    /// <inheritdoc />
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Handled || Duration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        if (e.KeyModifiers == KeyModifiers.Control && e.Key is Key.Left or Key.Right)
+        {
+            if (NextMarker(forward: e.Key == Key.Right) is { } marker)
+            {
+                RequestSeek(marker);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (e.KeyModifiers != KeyModifiers.None)
+        {
+            return;
+        }
+
+        TimeSpan? target = e.Key switch
+        {
+            Key.Left or Key.Down => Position - SmallStep,
+            Key.Right or Key.Up => Position + SmallStep,
+            Key.PageDown => Position - LargeStep,
+            Key.PageUp => Position + LargeStep,
+            Key.Home => TimeSpan.Zero,
+            Key.End => Duration,
+            _ => null,
+        };
+        if (target is { } time)
+        {
+            RequestSeek(time);
+            e.Handled = true;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnGotFocus(FocusChangedEventArgs e)
+    {
+        base.OnGotFocus(e);
+        InvalidateVisual();
+    }
+
+    /// <inheritdoc />
+    protected override void OnLostFocus(FocusChangedEventArgs e)
+    {
+        base.OnLostFocus(e);
+        InvalidateVisual();
+    }
+
+    /// <inheritdoc />
+    protected override Size MeasureOverride(Size availableSize) => new(0, (ThumbRadius + 4) * 2);
+}

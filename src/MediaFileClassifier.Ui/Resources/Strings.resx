@@ -80,6 +80,34 @@
   <data name="Details_Preview_Thumbnail_Failed" xml:space="preserve">
     <value>Showing the thumbnail: the file couldn't be read.</value>
   </data>
+  <data name="Video_Play" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="Video_Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Video_Mute" xml:space="preserve">
+    <value>Mute</value>
+  </data>
+  <data name="Video_Unmute" xml:space="preserve">
+    <value>Unmute</value>
+  </data>
+  <data name="Video_Volume" xml:space="preserve">
+    <value>Volume</value>
+  </data>
+  <data name="Video_Timeline" xml:space="preserve">
+    <value>Timeline</value>
+  </data>
+  <data name="Video_Time" xml:space="preserve">
+    <value>{0} / {1}</value>
+    <comment>{0}: position, {1}: length, e.g. 0:12 / 1:30.</comment>
+  </data>
+  <data name="Video_Opening" xml:space="preserve">
+    <value>Opening the video…</value>
+  </data>
+  <data name="Video_Failed" xml:space="preserve">
+    <value>This video can't be played here.</value>
+  </data>
   <data name="Details_Preview_Frame" xml:space="preserve">
     <value>Frame {0} of {1}</value>
   </data>
@@ -353,6 +381,9 @@
   </data>
   <data name="Capability_RevealInFileExplorer" xml:space="preserve">
     <value>Show in file explorer</value>
+  </data>
+  <data name="Capability_VideoPlayback" xml:space="preserve">
+    <value>Video playback</value>
   </data>
   <data name="Capability_VideoAnalysis" xml:space="preserve">
     <value>Video analysis</value>

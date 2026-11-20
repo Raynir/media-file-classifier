@@ -1,0 +1,31 @@
+<Project>
+
+  <!--
+    The native LibVLC for Windows (D070), trimmed to local playback: win-x64 only, and only the plugins that MP4, MKV,
+    WebM, AVI and Ogg files need (35 MB instead of 108 MB per architecture). It leaves out the GPL plugins, e.g. the
+    x264 encoder and the Dolby Surround and headphone filters (docs/spikes/media-playback.md). Imported by the
+    projects that run LibVLC on Windows: the Desktop head and the infrastructure tests.
+  -->
+  <PropertyGroup>
+    <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
+    <VlcWindowsArm64Enabled>false</VlcWindowsArm64Enabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="VideoLAN.LibVLC.Windows" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <VlcWindowsX64IncludeFiles Include="libvlc.dll;libvlccore.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\access\libfilesystem_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\demux\libmp4_plugin.dll;plugins\demux\libmkv_plugin.dll;plugins\demux\libavi_plugin.dll;plugins\demux\libogg_plugin.dll;plugins\demux\libts_plugin.dll;plugins\demux\libps_plugin.dll;plugins\demux\libes_plugin.dll;plugins\demux\libwav_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\packetizer\%2A;plugins\video_chroma\%2A;plugins\audio_mixer\%2A;plugins\stream_filter\%2A" />
+    <!-- Format conversion, resampling and downmixing only: dolby_surround_decoder and headphone_channel_mixer are GPL. -->
+    <VlcWindowsX64IncludeFiles Include="plugins\audio_filter\libaudio_format_plugin.dll;plugins\audio_filter\libremap_plugin.dll;plugins\audio_filter\libscaletempo_plugin.dll;plugins\audio_filter\libsimple_channel_mixer_plugin.dll;plugins\audio_filter\libtrivial_channel_mixer_plugin.dll;plugins\audio_filter\libspeex_resampler_plugin.dll;plugins\audio_filter\libugly_resampler_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\codec\libavcodec_plugin.dll;plugins\codec\libdav1d_plugin.dll;plugins\codec\libd3d11va_plugin.dll;plugins\codec\libdxva2_plugin.dll;plugins\codec\libopus_plugin.dll;plugins\codec\libvorbis_plugin.dll;plugins\codec\libflac_plugin.dll;plugins\codec\libmpg123_plugin.dll;plugins\codec\liblpcm_plugin.dll;plugins\codec\libaraw_plugin.dll" />
+    <!-- direct3d11 and drawable keep the native VideoView route (D070) possible without repackaging. -->
+    <VlcWindowsX64IncludeFiles Include="plugins\video_output\libdirect3d11_plugin.dll;plugins\video_output\libvmem_plugin.dll;plugins\video_output\libdrawable_plugin.dll" />
+    <VlcWindowsX64IncludeFiles Include="plugins\audio_output\libmmdevice_plugin.dll;plugins\audio_output\libwasapi_plugin.dll;plugins\audio_output\libdirectsound_plugin.dll" />
+  </ItemGroup>
+
+</Project>

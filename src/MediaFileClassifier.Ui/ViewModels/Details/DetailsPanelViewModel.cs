@@ -76,6 +76,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <param name="logger">Logs previews that couldn't be loaded.</param>
     /// <param name="guard">Asks about staged changes before the panel closes (E07-S12-T01).</param>
     /// <param name="undoStore">Holds what the last bulk edit changed, for Undo (E07-S03-T03).</param>
+    /// <param name="video">Plays videos in the preview (E14-S06), or <see langword="null"/> to show only their thumbnail.</param>
     /// <param name="clock">Times the frames of an animated image; the system clock by default.</param>
     public DetailsPanelViewModel(
         SelectionModel selection,
@@ -89,6 +90,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         ILogger<DetailsPanelViewModel>? logger = null,
         UnsavedChangesGuard? guard = null,
         BulkUndoStore? undoStore = null,
+        VideoPlayerViewModel? video = null,
         TimeProvider? clock = null)
     {
         this.clock = clock ?? TimeProvider.System;
@@ -102,6 +104,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         this.grid = grid;
         this.logger = logger ?? NullLogger<DetailsPanelViewModel>.Instance;
         Commands = commands;
+        Video = video;
+        if (video is not null)
+        {
+            video.PropertyChanged += OnVideoChanged;
+        }
         Editor = new MetadataEditorViewModel(sender, localizer, logger);
         Editor.PropertyChanged += OnEditorChanged;
         BulkEditor = new BulkEditorViewModel(sender, localizer, logger, undoStore);
@@ -135,6 +142,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Title), nameof(Subtitle), nameof(Description), nameof(Tags), nameof(HasDescription), nameof(HasTags))]
     public partial ItemDetails? Item { get; private set; }
+
+    /// <summary>
+    /// Gets the video player in the preview (E14-S06), or <see langword="null"/> without in-app playback.
+    /// </summary>
+    public VideoPlayerViewModel? Video { get; }
 
     /// <summary>
     /// Gets the metadata editor of the shown item (E07-S02).
@@ -262,9 +274,10 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     public partial bool IsAnimationTooLarge { get; private set; }
 
     /// <summary>
-    /// Gets a value indicating whether the preview can be zoomed: there is a bitmap and no animation playing.
+    /// Gets a value indicating whether the preview can be zoomed: there is a bitmap, and no animation or video plays
+    /// in it.
     /// </summary>
-    public bool IsZoomAvailable => PreviewBitmap is not null && Animation is null;
+    public bool IsZoomAvailable => PreviewBitmap is not null && Animation is null && Video is not { IsActive: true };
 
     /// <summary>
     /// Gets a note under the preview, e.g. that it shows the thumbnail because the folder is offline.
@@ -434,6 +447,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         CancelPreview();
         SetAnimation(null);
         SetPreview(null);
+        if (Video is not null)
+        {
+            Video.PropertyChanged -= OnVideoChanged;
+            Video.Dispose();
+        }
     }
 
     private void OnEditorChanged(object? sender, PropertyChangedEventArgs e)
@@ -512,6 +530,14 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         finally
         {
             restoringPanel = false;
+        }
+    }
+
+    private void OnVideoChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(VideoPlayerViewModel.IsActive))
+        {
+            OnPropertyChanged(nameof(IsZoomAvailable));
         }
     }
 
@@ -685,6 +711,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private async Task LoadPreviewAsync(ItemDetails item)
     {
         CancelPreview();
+        Video?.Show(item);
         previewFor = item;
         var load = ++previewLoads;
         previewLoading = new CancellationTokenSource();
@@ -841,6 +868,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             SetAnimation(null);
             SetPreview(null);
             PreviewNote = null;
+            Video?.Show(null);
         }
 
         var sameItem = item is not null && Item?.Id == item.Id;

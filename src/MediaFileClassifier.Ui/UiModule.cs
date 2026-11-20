@@ -43,6 +43,7 @@ using MediaFileClassifier.Ui.Views.Toolbar;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Playback;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.UseCases.Search.FindSimilar;
@@ -50,6 +51,7 @@ using MediaFileClassifier.UseCases.Search.SearchResults;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Ui;
 
@@ -168,6 +170,13 @@ public static class UiModule
 
         // Preview and details panel (E14-S05). Enter and double-click in the grid show the item there.
         services.AddSingleton<PreviewLoader>();
+        services.AddSingleton(provider => new VideoPlayerViewModel(
+            provider.GetService<IMediaPreviewPlayerFactory>(),
+            provider.GetService<ISender>(),
+            provider.GetService<ICapabilityGate>(),
+            provider.GetRequiredService<ShellLayout>(),
+            provider.GetRequiredService<Localizer>(),
+            provider.GetService<ILogger<VideoPlayerViewModel>>()));
         services.AddSingleton<DetailsPanelViewModel>();
         services.AddSingleton<IItemOpener>(provider => provider.GetRequiredService<DetailsPanelViewModel>());
 

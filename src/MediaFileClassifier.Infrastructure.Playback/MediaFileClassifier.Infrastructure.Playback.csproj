@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    In-app video playback through LibVLC (E14-S06, D070). Only the managed LibVLCSharp is referenced here, so the
+    project stays cross-platform; each head adds the native LibVLC for its platform (Desktop: build/LibVlcWindows.props).
+  -->
+  <PropertyGroup>
+    <!-- The frame callbacks hand LibVLC's native buffer to the sink as a span. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../MediaFileClassifier.Infrastructure.Abstractions/MediaFileClassifier.Infrastructure.Abstractions.csproj" />
+    <PackageReference Include="LibVLCSharp" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MediaFileClassifier.Infrastructure.Tests" />
+  </ItemGroup>
+
+</Project>

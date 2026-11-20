@@ -24,14 +24,23 @@ shot 03-animated-gif
 select webp-animated.webp
 wait-for visible AnimationPlayer
 
-# A video: its details and poster. Video playback comes with MFC-117; once it is in develop, remove the
-# "#117 " prefixes below to play the video and check the frames the player draws.
+# A video: its details, then playback. The player draws LibVLC frames over the poster, with a timeline and
+# keyframe markers (keyframes exist only after AI analysis, which needs the model, so the markers don't show in
+# this script); the play button plays and pauses, and Home on the timeline seeks to the start.
 select video-short.mp4
 wait-for hidden AnimationPlayer
-#117 wait-for visible VideoPlayerView
-#117 key Space
-#117 wait 1500ms
-shot 04-video
+wait-for visible VideoPlayerView
+shot 04-video-poster
+focus PlayButton
+key Space
+wait 1500ms
+shot 05-video-playing
+key Space
+wait 300ms
+focus Timeline
+key Home
+wait 600ms
+shot 06-video-seek
 
 # Collapse the details panel again.
 command view.details-collapsed

@@ -118,4 +118,26 @@ public sealed record LibraryLayout
         var id = itemId.Value.ToString();
         return Path.Combine(ThumbnailsDirectory, id[^2..], FormattableString.Invariant($"{id}-{(int)size}{ThumbnailFileExtension}"));
     }
+
+    /// <summary>
+    /// Gets the path of the cached picture of one of an item's keyframes (D227, E14-S13), e.g.
+    /// <c>thumbnails/a7/&lt;item-id&gt;-frame-3.webp</c>. It sits in the item's thumbnail folder, and
+    /// <see cref="KeyframeThumbnailSearchPattern"/> finds all of an item's.
+    /// </summary>
+    /// <param name="itemId">The item.</param>
+    /// <param name="index">The keyframe's index among the item's keyframes, from 0.</param>
+    /// <returns>The full path of the keyframe's picture.</returns>
+    public string GetKeyframeThumbnailPath(Id<MediaItem> itemId, int index)
+    {
+        var id = itemId.Value.ToString();
+        return Path.Combine(ThumbnailsDirectory, id[^2..], FormattableString.Invariant($"{id}-frame-{index}{ThumbnailFileExtension}"));
+    }
+
+    /// <summary>
+    /// Gets the file name pattern that matches all the keyframe pictures of an item, and their temporary files, in its thumbnail folder.
+    /// </summary>
+    /// <param name="itemId">The item.</param>
+    /// <returns>The search pattern.</returns>
+    public static string KeyframeThumbnailSearchPattern(Id<MediaItem> itemId) =>
+        FormattableString.Invariant($"{itemId.Value}-frame-*");
 }

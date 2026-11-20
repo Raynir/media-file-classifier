@@ -78,6 +78,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <param name="undoStore">Holds what the last bulk edit changed, for Undo (E07-S03-T03).</param>
     /// <param name="video">Plays videos in the preview (E14-S06), or <see langword="null"/> to show only their thumbnail.</param>
     /// <param name="clock">Times the frames of an animated image; the system clock by default.</param>
+    /// <param name="strip">The keyframe strip under the preview (E14-S13), or <see langword="null"/> for none.</param>
     public DetailsPanelViewModel(
         SelectionModel selection,
         ISender sender,
@@ -91,7 +92,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         UnsavedChangesGuard? guard = null,
         BulkUndoStore? undoStore = null,
         VideoPlayerViewModel? video = null,
-        TimeProvider? clock = null)
+        TimeProvider? clock = null,
+        KeyframeStripViewModel? strip = null)
     {
         this.clock = clock ?? TimeProvider.System;
         layout.Details.PropertyChanged += OnDetailsVisibilityChanged;
@@ -109,6 +111,13 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         {
             video.PropertyChanged += OnVideoChanged;
         }
+        Strip = strip;
+        if (strip is not null)
+        {
+            strip.Chosen += OnKeyframeChosen;
+            strip.OpenPlayer = OpenInPlayer;
+        }
+
         Editor = new MetadataEditorViewModel(sender, localizer, logger);
         Editor.PropertyChanged += OnEditorChanged;
         BulkEditor = new BulkEditorViewModel(sender, localizer, logger, undoStore);
@@ -147,6 +156,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// Gets the video player in the preview (E14-S06), or <see langword="null"/> without in-app playback.
     /// </summary>
     public VideoPlayerViewModel? Video { get; }
+
+    /// <summary>
+    /// Gets the keyframe strip under the preview (E14-S13), or <see langword="null"/> without one.
+    /// </summary>
+    public KeyframeStripViewModel? Strip { get; }
 
     /// <summary>
     /// Gets the metadata editor of the shown item (E07-S02).
@@ -272,6 +286,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// </summary>
     [ObservableProperty]
     public partial bool IsAnimationTooLarge { get; private set; }
+
+    partial void OnIsAnimationTooLargeChanged(bool value) => UpdateFallback();
 
     /// <summary>
     /// Gets a value indicating whether the preview can be zoomed: there is a bitmap, and no animation or video plays
@@ -452,6 +468,12 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             Video.PropertyChanged -= OnVideoChanged;
             Video.Dispose();
         }
+
+        if (Strip is not null)
+        {
+            Strip.Chosen -= OnKeyframeChosen;
+            Strip.Dispose();
+        }
     }
 
     private void OnEditorChanged(object? sender, PropertyChangedEventArgs e)
@@ -538,6 +560,50 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         if (e.PropertyName == nameof(VideoPlayerViewModel.IsActive))
         {
             OnPropertyChanged(nameof(IsZoomAvailable));
+        }
+
+        if (e.PropertyName is nameof(VideoPlayerViewModel.IsActive) or nameof(VideoPlayerViewModel.FailureText))
+        {
+            UpdateFallback();
+        }
+    }
+
+    // D026: a video that can't play in the app, or an animation too large to, shows its frame and the strip, and the
+    // strip offers Open in player. Anything that plays here jumps to a chosen keyframe instead.
+    private void UpdateFallback()
+    {
+        if (Strip is null)
+        {
+            return;
+        }
+
+        var item = Item;
+        Strip.IsFileAvailable = item is { Location.Availability: ItemAvailability.Available };
+        Strip.IsFallback = item?.MediaType switch
+        {
+            MediaType.Video => Video is null || Video.FailureText is not null,
+            MediaType.AnimatedImage => IsAnimationTooLarge,
+            _ => false,
+        };
+    }
+
+    private void OnKeyframeChosen(object? sender, TimeSpan time)
+    {
+        if (Animation is { } animation)
+        {
+            animation.JumpTo(time);
+        }
+        else if (Video is { IsActive: true, FailureText: null } video)
+        {
+            video.JumpTo(time);
+        }
+    }
+
+    private void OpenInPlayer()
+    {
+        if (Commands.TryGet(ItemCommands.OpenInDefaultApp, out var appCommand) && appCommand is System.Windows.Input.ICommand command && command.CanExecute(null))
+        {
+            command.Execute(null);
         }
     }
 
@@ -712,6 +778,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     {
         CancelPreview();
         Video?.Show(item);
+        Strip?.Show(item);
+        UpdateFallback();
         previewFor = item;
         var load = ++previewLoads;
         previewLoading = new CancellationTokenSource();
@@ -869,6 +937,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             SetPreview(null);
             PreviewNote = null;
             Video?.Show(null);
+            Strip?.Show(null);
         }
 
         var sameItem = item is not null && Item?.Id == item.Id;

@@ -25,7 +25,8 @@ public interface IThumbnailCache
     /// <summary>
     /// Makes an item's thumbnails with its format handler's generator and stores them, replacing any old ones. Runs
     /// off the calling thread, with a limited number of generations at a time. A failure deletes the old thumbnails
-    /// and returns the warning, so the item shows a placeholder.
+    /// and returns the warning, so the item shows a placeholder. The keyframe pictures of the item's strip stay: only
+    /// <see cref="Invalidate"/> removes them.
     /// </summary>
     /// <param name="library">The library.</param>
     /// <param name="content">The file.</param>
@@ -41,7 +42,7 @@ public interface IThumbnailCache
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Deletes an item's thumbnails, e.g. when its file changed (E02-S04-T03) or the item was removed. Regenerating
+    /// Deletes an item's thumbnails and its keyframe pictures, e.g. when its file changed (E02-S04-T03) or the item was removed. Regenerating
     /// (E02-S06-T02) is another <see cref="GenerateAsync"/>.
     /// </summary>
     /// <param name="library">The library.</param>

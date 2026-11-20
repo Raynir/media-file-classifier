@@ -22,6 +22,8 @@ using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Analysis.UpdateAnalysisProfile;
 using MediaFileClassifier.UseCases.Import.RetryFailedItems;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
+using MediaFileClassifier.UseCases.Metadata;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Analysis;
@@ -774,6 +776,60 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
 
         Assert.Equal(FrameSamplingWarnings.FrameSamplingFailed, (await StateAsync(items[0], AnalyzerKeys.Embedding)).ReasonCode);
         Assert.Equal(WorkItemState.Failed, Assert.Single(await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
+    }
+
+    [Fact]
+    public async Task Analysis_AnnouncesEachAnalyzedItemOnce_AndAReRunToo()
+    {
+        var published = new List<ItemsMetadataChanged>();
+        var items = await ImportAsync(
+            [new FakeEmbeddingProvider(), new FakeImageDescriber(), new FakeOcrProvider()],
+            services => services.AddSingleton<INotificationHandler<ItemsMetadataChanged>>(new RecordingListener(published)),
+            SampleMedia.JpegWithExif,
+            SampleMedia.WebP);
+
+        await AnalyzeAsync(items);
+
+        Assert.Equal(items.Count, published.Count);
+        Assert.All(published, notification => Assert.Equal(ItemMetadataChange.Analysis, notification.Change));
+        Assert.Equivalent(items.Select(item => item.Id), published.SelectMany(notification => notification.ItemIds));
+
+        published.Clear();
+        await AnalyzeAsync(items);
+
+        Assert.Equal(items.Count, published.Count);
+    }
+
+    [Fact]
+    public async Task Analysis_WhenAListenerFails_StillStoresTheResultsAndIndexesTheItem()
+    {
+        var items = await ImportAsync(
+            [new FakeEmbeddingProvider(), new FakeImageDescriber(), new FakeOcrProvider()],
+            services => services.AddSingleton<INotificationHandler<ItemsMetadataChanged>>(new RecordingListener([], fail: true)),
+            SampleMedia.JpegWithExif);
+
+        var jobId = await AnalyzeAsync(items);
+
+        Assert.Equal(WorkItemState.Completed, Assert.Single(await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
+        Assert.Equal(MediaItemStatus.Indexed, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+    }
+
+    private sealed class RecordingListener(List<ItemsMetadataChanged> published, bool fail = false) : INotificationHandler<ItemsMetadataChanged>
+    {
+        public Task Handle(ItemsMetadataChanged notification, CancellationToken cancellationToken)
+        {
+            if (fail)
+            {
+                throw new InvalidOperationException("A listener failed.");
+            }
+
+            lock (published)
+            {
+                published.Add(notification);
+            }
+
+            return Task.CompletedTask;
+        }
     }
 
     private static ImageDescription FullDescription(string title) =>

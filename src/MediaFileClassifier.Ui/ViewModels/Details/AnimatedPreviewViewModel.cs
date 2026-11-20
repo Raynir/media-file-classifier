@@ -129,6 +129,16 @@ public sealed partial class AnimatedPreviewViewModel : ViewModelBase, IDisposabl
     }
 
     /// <summary>
+    /// Pauses, if needed, and shows the frame at a time in the animation (a chosen keyframe, E14-S13).
+    /// </summary>
+    /// <param name="time">The time; past the end shows the last frame.</param>
+    public void JumpTo(TimeSpan time)
+    {
+        Pause();
+        ShowFrame(time >= timeline.Duration ? Math.Max(0, timeline.FrameCount - 1) : timeline.IndexAt(time < TimeSpan.Zero ? TimeSpan.Zero : time));
+    }
+
+    /// <summary>
     /// Pauses, if needed, and shows the next frame, after the last one the first.
     /// </summary>
     [RelayCommand]

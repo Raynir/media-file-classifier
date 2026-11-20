@@ -5,7 +5,9 @@ using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.AI;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Testing.AI;
@@ -63,6 +65,20 @@ public sealed class ItemEmbeddingAnalyzerTests : IAsyncLifetime
         var mean = KeyframeAggregation.MeanEmbedding(frameVectors);
         Assert.Equal(mean.Length, itemVector.Length);
         Assert.All(mean.Zip(itemVector), pair => Assert.Equal(pair.First, pair.Second, 0.002f));
+    }
+
+    [Fact]
+    public async Task Analyze_Video_StoresTheKeyframePicturesOfTheSampledFrames()
+    {
+        var item = await AddItemAsync(1);
+        sampler.Frames = 3;
+        var pictures = new RecordingKeyframeThumbnails();
+        var analyzer = new ItemEmbeddingAnalyzer(new AiProviderRegistry([provider], bed.Clock), sampler, store, bed.Clock, keyframeThumbnails: pictures);
+
+        await analyzer.AnalyzeAsync(bed.Library, Content(item, SampleMedia.ActionVideo), Format(MediaType.Video), Metadata(item), Token);
+
+        Assert.Equal(item.Id, pictures.Item);
+        Assert.Equal([0, 1, 2], pictures.Indexes);
     }
 
     [Fact]
@@ -172,5 +188,21 @@ public sealed class ItemEmbeddingAnalyzerTests : IAsyncLifetime
             }).ToList();
             return Task.FromResult(new FrameSample { Frames = frames, FramesRead = Frames });
         }
+    }
+
+    private sealed class RecordingKeyframeThumbnails : IKeyframeThumbnails
+    {
+        public Id<MediaItem>? Item { get; private set; }
+
+        public List<int> Indexes { get; } = [];
+
+        public Task StoreAsync(LibraryLayout library, Id<MediaItem> itemId, IReadOnlyList<SampledFrame> frames, CancellationToken cancellationToken)
+        {
+            Item = itemId;
+            Indexes.AddRange(frames.Select(frame => frame.Index));
+            return Task.CompletedTask;
+        }
+
+        public string? Find(LibraryLayout library, Id<MediaItem> itemId, int index) => null;
     }
 }

@@ -138,6 +138,27 @@
   <data name="Details_Preview_Animation_OpenDefault" xml:space="preserve">
     <value>Open in default app</value>
   </data>
+  <data name="Keyframes_Strip" xml:space="preserve">
+    <value>Keyframes</value>
+  </data>
+  <data name="Keyframes_Frame" xml:space="preserve">
+    <value>Keyframe at {0}</value>
+    <comment>{0}: the time in the video, e.g. 02:37.</comment>
+  </data>
+  <data name="Keyframes_Empty" xml:space="preserve">
+    <value>No keyframes yet. They appear once this item is analysed.</value>
+  </data>
+  <data name="Keyframes_MomentSelected" xml:space="preserve">
+    <value>Selected moment: {0}</value>
+    <comment>{0}: the time in the video, e.g. 02:37.</comment>
+  </data>
+  <data name="Keyframes_MomentCopied" xml:space="preserve">
+    <value>Copied {0}. Seek to it in your player.</value>
+    <comment>{0}: the time in the video, e.g. 02:37.</comment>
+  </data>
+  <data name="Keyframes_OpenInPlayer" xml:space="preserve">
+    <value>Open in player</value>
+  </data>
   <data name="Details_Preview_None" xml:space="preserve">
     <value>No preview yet.</value>
   </data>

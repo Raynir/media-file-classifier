@@ -6,12 +6,19 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Formats;
+using MediaFileClassifier.Infrastructure.Abstractions.Frames;
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Browser;
+using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
@@ -100,6 +107,30 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return null;
             case "select":
                 return await SelectAsync(step.Argument);
+            case "seed-keyframes":
+                return await SeedKeyframesAsync(step.Argument);
+            case "choose-keyframe":
+                var strip = services.GetRequiredService<DetailsPanelViewModel>().Strip ?? throw new SmokeStepException("the details panel has no keyframe strip");
+                var number = int.Parse(step.Argument, CultureInfo.InvariantCulture);
+                if (number > strip.Keyframes.Count)
+                {
+                    throw new SmokeStepException($"the strip has {strip.Keyframes.Count} keyframes");
+                }
+
+                strip.ChooseCommand.Execute(strip.Keyframes[number - 1]);
+                return $"{strip.Keyframes[number - 1].TimeText}";
+            case "capability":
+                var playback = services.GetRequiredService<ICapabilityService>();
+                if (step.Argument.EndsWith("on", StringComparison.Ordinal))
+                {
+                    playback.SetAvailable(KnownCapabilities.VideoPlayback);
+                }
+                else
+                {
+                    playback.SetUnavailable(KnownCapabilities.VideoPlayback, new CapabilityReason(CapabilityReasons.DependencyFailedToLoad, ["LibVLC"]));
+                }
+
+                return null;
             case "command":
                 var command = services.GetRequiredService<CommandRegistry>()[step.Argument];
                 command.Refresh();
@@ -170,6 +201,35 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         var grid = services.GetRequiredService<ThumbnailGridViewModel>();
         await PollAsync(async () => grid.Count >= SampleFiles.Count && await IsIdleAsync(), step.Timeout, $"{SampleFiles.Count} items, scanned and idle");
         return $"{grid.Count} items";
+    }
+
+    // Keyframes exist only after AI analysis, which needs the model. This does what the analysis does for them: it
+    // samples the real video, stores the keyframes and writes their pictures (E14-S13), so the strip shows.
+    private async Task<string> SeedKeyframesAsync(string fileName)
+    {
+        var source = services.GetRequiredService<IMediaResultSource>();
+        var page = await source.GetPageAsync(0, await source.CountAsync(CancellationToken.None), CancellationToken.None);
+        var summary = page.FirstOrDefault(item => string.Equals(item.FileName, fileName, StringComparison.OrdinalIgnoreCase))
+            ?? throw new SmokeStepException($"no item named '{fileName}'");
+        var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
+        var metadata = await library.Items.GetTechnicalMetadataAsync(summary.Id) ?? throw new SmokeStepException("the item has no metadata yet");
+        var path = Path.Combine(options.DataDirectory, "media", fileName);
+        var content = new MediaContent(summary.Id, summary.FileModifiedAt, _ => Task.FromResult<Stream>(File.OpenRead(path))) { LocalPath = path };
+        MediaFormatDetection format;
+        await using (var stream = File.OpenRead(path))
+        {
+            format = await services.GetRequiredService<IMediaFormatRegistry>().DetectAsync(stream, fileName, CancellationToken.None);
+        }
+
+        var sample = await services.GetRequiredService<IFrameSampler>().SampleAsync(content, format, metadata, FrameSamplingOptions.Default, CancellationToken.None);
+        if (sample.Frames.Count == 0)
+        {
+            throw new SmokeStepException($"no frames were sampled ({string.Join(", ", sample.Warnings.Select(warning => warning.Code))})");
+        }
+
+        await library.Keyframes.ReplaceAsync(summary.Id, [.. sample.Frames.Select(frame => frame.ToKeyframe(summary.Id))], CancellationToken.None);
+        await services.GetRequiredService<IKeyframeThumbnails>().StoreAsync(library.Layout, summary.Id, sample.Frames, CancellationToken.None);
+        return $"{sample.Frames.Count} keyframes";
     }
 
     private async Task<string> SelectAsync(string fileName)

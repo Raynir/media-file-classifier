@@ -35,6 +35,11 @@ public sealed class MetadataChangeHandler(Func<ThumbnailGridViewModel> grid, Fav
                 details().Reload(notification.ItemIds, notification.Fields, notification.Change.HasFlag(ItemMetadataChange.Tags));
             }
 
+            if (notification.Change.HasFlag(ItemMetadataChange.Analysis))
+            {
+                details().Strip?.Reload(notification.ItemIds);
+            }
+
             _ = grid().RefreshNowAsync();
         });
 

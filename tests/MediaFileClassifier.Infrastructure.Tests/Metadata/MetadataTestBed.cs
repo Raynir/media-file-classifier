@@ -7,6 +7,7 @@ using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Search;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Metadata;
+using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -39,6 +40,10 @@ internal sealed class MetadataTestBed : IAsyncDisposable
     public ISender Sender => services.GetRequiredService<ISender>();
 
     public List<ItemsMetadataChanged> Published { get; }
+
+    public BulkUndoStore Undo => services.GetRequiredService<BulkUndoStore>();
+
+    public ILibrarySession Session => services.GetRequiredService<ILibrarySession>();
 
     /// <summary>
     /// Gets or sets whether the recording handler throws, as a failing view would.

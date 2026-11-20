@@ -86,7 +86,19 @@ public partial class DetailsPanelView : UserControl
     private void OnEditRequested(object? sender, EventArgs e) =>
 
         // The Overview tab may only now be selected, so focus the title once it's laid out.
-        Dispatcher.UIThread.Post(() => Editor.FocusFirstField(), DispatcherPriority.Loaded);
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                if (DataContext is DetailsPanelViewModel { IsBulk: true })
+                {
+                    BulkEditor.FocusFirstField();
+                }
+                else
+                {
+                    Editor.FocusFirstField();
+                }
+            },
+            DispatcherPriority.Loaded);
 
     private void OnFocusRequested(object? sender, EventArgs e) =>
 

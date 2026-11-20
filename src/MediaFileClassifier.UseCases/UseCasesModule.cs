@@ -37,6 +37,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Search.SearchResults.SortStatePersistence>();
         services.AddSetting(Search.Filters.FilterSettings.RestoreOnStart);
         services.TryAddSingleton<LibraryItemsSource>();
+        services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
         services.TryAddSingleton<Embeddings.EmbeddingModelMigration>();

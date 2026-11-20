@@ -51,6 +51,9 @@ public static class DefaultKeymap
         Bind(MetadataEditorCommands.Save, PhysicalKey.S, KeyModifiers.Control, ShortcutScopes.Editor),
         Bind(MetadataEditorCommands.Cancel, PhysicalKey.Escape, scope: ShortcutScopes.Editor),
 
+        // Undo of the last bulk edit (E07-S03): Ctrl+Z anywhere except a text field, which keeps it for its own undo.
+        Bind(MetadataEditorCommands.UndoBulk, PhysicalKey.Z, KeyModifiers.Control),
+
         // Preview and details panel (E14-S05): previous and next, and Enter opens the item in its default app.
         Bind(BrowserCommands.PreviousItem, PhysicalKey.ArrowLeft, scope: ShortcutScopes.Viewer),
         Bind(BrowserCommands.NextItem, PhysicalKey.ArrowRight, scope: ShortcutScopes.Viewer),

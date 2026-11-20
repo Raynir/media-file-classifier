@@ -13,8 +13,10 @@ using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels.Browser;
+using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -54,6 +56,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private int previewLoads;
     private readonly UnsavedChangesGuard? guard;
     private readonly IDisposable? guardRegistration;
+    private readonly IDisposable? bulkGuardRegistration;
     private bool wasExpanded;
     private bool restoringPanel;
 
@@ -70,6 +73,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <param name="grid">Gets the thumbnail grid, to give it back the keyboard focus.</param>
     /// <param name="logger">Logs previews that couldn't be loaded.</param>
     /// <param name="guard">Asks about staged changes before the panel closes (E07-S12-T01).</param>
+    /// <param name="undoStore">Holds what the last bulk edit changed, for Undo (E07-S03-T03).</param>
     public DetailsPanelViewModel(
         SelectionModel selection,
         ISender sender,
@@ -80,7 +84,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         Localizer localizer,
         Func<ThumbnailGridViewModel> grid,
         ILogger<DetailsPanelViewModel>? logger = null,
-        UnsavedChangesGuard? guard = null)
+        UnsavedChangesGuard? guard = null,
+        BulkUndoStore? undoStore = null)
     {
         this.selection = selection;
         this.sender = sender;
@@ -93,6 +98,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         Commands = commands;
         Editor = new MetadataEditorViewModel(sender, localizer, logger);
         Editor.PropertyChanged += OnEditorChanged;
+        BulkEditor = new BulkEditorViewModel(sender, localizer, logger, undoStore);
+        BulkEditor.PropertyChanged += OnBulkEditorChanged;
         selection.Changed += OnSelectionChanged;
         layout.PropertyChanged += OnLayoutChanged;
         if (guard is not null)
@@ -100,6 +107,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             // Closing the panel is guarded here; the guard registration is dropped on dispose.
             this.guard = guard;
             guardRegistration = guard.Register(new MetadataEditorStagedChanges(Editor, () => Title));
+            bulkGuardRegistration = guard.Register(new BulkEditorStagedChanges(BulkEditor, () => Title));
             wasExpanded = layout.Details.IsExpanded;
             layout.Details.PropertyChanged += OnPanelChanged;
         }
@@ -128,6 +136,24 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     public MetadataEditorViewModel Editor { get; }
 
     /// <summary>
+    /// Gets the metadata editor in bulk mode, shown instead of <see cref="Editor"/> while several items are selected (E07-S03).
+    /// </summary>
+    public BulkEditorViewModel BulkEditor { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the panel is in bulk mode: several items are selected, so the Overview tab shows
+    /// what they share and edits them all at once.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title), nameof(Subtitle), nameof(IsSingleEdit))]
+    public partial bool IsBulk { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the Overview tab shows the single-item editor.
+    /// </summary>
+    public bool IsSingleEdit => !IsBulk;
+
+    /// <summary>
     /// Gets a value indicating whether the panel keeps showing an item that is no longer the focused one, because the
     /// item has unsaved changes and the selection moved without the user choosing (E07-S12-T01), e.g. a filter
     /// removed the item from the results. The panel follows the selection again once the changes are saved or dropped.
@@ -138,12 +164,12 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <summary>
     /// Gets the panel's title: the item's title, or its file name.
     /// </summary>
-    public string Title => Item?.Title ?? Item?.FileName ?? string.Empty;
+    public string Title => IsBulk && SelectedCountText is { } count ? count : Item?.Title ?? Item?.FileName ?? string.Empty;
 
     /// <summary>
     /// Gets the file name under the title, when the item has a title; otherwise the title is the file name.
     /// </summary>
-    public string? Subtitle => Item?.Title is null ? null : Item.FileName;
+    public string? Subtitle => IsBulk || Item?.Title is null ? null : Item.FileName;
 
     /// <summary>
     /// Gets a value indicating whether the preview should take keyboard focus once it's shown, e.g. after Enter in
@@ -155,6 +181,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// Gets "N items selected" while several items are selected, or <see langword="null"/>.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title))]
     public partial string? SelectedCountText { get; private set; }
 
     /// <summary>
@@ -296,6 +323,19 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         ArgumentNullException.ThrowIfNull(itemIds);
         ArgumentNullException.ThrowIfNull(changedFields);
 
+        if (IsBulk && !BulkEditor.IsSaving && BulkEditor.ItemIds.Any(itemIds.Contains))
+        {
+            // What the selection shares changed. Staged changes stay; a clean editor shows the new aggregate.
+            if (BulkEditor.IsDirty)
+            {
+                BulkEditor.Notice = localizer.Get("Bulk_Notice_Changed");
+            }
+            else
+            {
+                _ = BulkEditor.LoadAsync(BulkEditor.ItemIds);
+            }
+        }
+
         if (Item is { } item && itemIds.Contains(item.Id))
         {
             Loading = LoadAsync();
@@ -349,9 +389,12 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     public void Dispose()
     {
         selection.Changed -= OnSelectionChanged;
+        BulkEditor.PropertyChanged -= OnBulkEditorChanged;
+        BulkEditor.Dispose();
         layout.PropertyChanged -= OnLayoutChanged;
         layout.Details.PropertyChanged -= OnPanelChanged;
         guardRegistration?.Dispose();
+        bulkGuardRegistration?.Dispose();
         loading?.Cancel();
         loading?.Dispose();
         CancelPreview();
@@ -458,13 +501,47 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         }
     }
 
+    private async Task<IReadOnlyList<Id<MediaItem>>> ResolveSelectionAsync()
+    {
+        try
+        {
+            return await sender.Send(new ResolveItemSelectionQuery(selection.Snapshot()));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogLoadFailed(logger, ex);
+            return [];
+        }
+    }
+
+    private void OnBulkEditorChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(BulkEditorViewModel.IsDirty) or nameof(BulkEditorViewModel.IsSaving) or nameof(BulkEditorViewModel.CanUndo))
+        {
+            foreach (var id in (string[])[MetadataEditorCommands.Save, MetadataEditorCommands.Cancel, MetadataEditorCommands.UndoBulk])
+            {
+                if (Commands.TryGet(id, out var command))
+                {
+                    command.Refresh();
+                }
+            }
+        }
+
+        if (e.PropertyName == nameof(BulkEditorViewModel.IsDirty) && IsPinned && IsBulk && !BulkEditor.IsDirty)
+        {
+            // The held bulk changes are saved or dropped: show what is selected now.
+            IsPinned = false;
+            Loading = LoadAsync();
+        }
+    }
+
     private async Task LoadAsync()
     {
         var load = ++loads;
         var count = selection.Count;
         SelectedCountText = count > 1 ? localizer.Format("Details_SelectedCount", Format.Number(count)) : null;
         var id = count > 0 ? selection.FocusedId : null;
-        if (Item is { } held && Editor.IsDirty && id != held.Id)
+        if (Item is { } held && Editor.IsDirty && (id != held.Id || count > 1))
         {
             // The selection moved on its own (a prompt came before any gesture of the user): keep the item.
             IsPinned = true;
@@ -472,7 +549,46 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             return;
         }
 
+        IReadOnlyList<Id<MediaItem>> selectedIds = [];
+        if (count > 1)
+        {
+            // Bulk mode: the items the selection stands for, which a select-all keeps in the database until now.
+            selectedIds = await ResolveSelectionAsync();
+            if (load != loads)
+            {
+                return;
+            }
+
+            if (IsBulk && BulkEditor.IsDirty)
+            {
+                if (!BulkEditor.ItemIds.ToHashSet().SetEquals(selectedIds))
+                {
+                    // Another selection, with no prompt before it: keep the staged changes and their items.
+                    IsPinned = true;
+                    BulkEditor.Notice = localizer.Get("Bulk_Notice_Held");
+                }
+
+                return;
+            }
+        }
+        else if (IsBulk && BulkEditor.IsDirty)
+        {
+            IsPinned = true;
+            BulkEditor.Notice = localizer.Get("Bulk_Notice_Held");
+            return;
+        }
+
         IsPinned = false;
+        IsBulk = count > 1;
+        if (IsBulk)
+        {
+            _ = BulkEditor.LoadAsync(selectedIds);
+        }
+        else if (BulkEditor.ItemCount > 0)
+        {
+            _ = BulkEditor.LoadAsync([]);
+        }
+
         if (id is null)
         {
             Show(null);
@@ -624,7 +740,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         Item = item;
 
         // The same item shown again, e.g. after a change elsewhere, keeps what the user has staged in the editor.
-        if (!(sameItem && Editor.IsDirty))
+        if (!IsBulk && !(sameItem && Editor.IsDirty))
         {
             _ = Editor.LoadAsync(item?.Id);
         }

@@ -2193,4 +2193,31 @@
   <data name="Editor_NotAvailable" xml:space="preserve">
     <value>Not available with the current model</value>
   </data>
+  <data name="Editor_Suggestion_Accept" xml:space="preserve">
+    <value>Accept suggestion</value>
+  </data>
+  <data name="Editor_Suggestion_Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="Editor_Suggestion_Accepting" xml:space="preserve">
+    <value>The suggestion replaces your value when you save.</value>
+  </data>
+  <data name="Editor_Suggestion_Dismissing" xml:space="preserve">
+    <value>Your value stays and the suggestion goes when you save.</value>
+  </data>
+  <data name="Editor_Suggestion_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Editor_Tag_Suggestion_Added" xml:space="preserve">
+    <value>The AI now suggests this tag. Accept to keep it as your own.</value>
+  </data>
+  <data name="Editor_Tag_Suggestion_Removed" xml:space="preserve">
+    <value>The AI no longer gives this tag. Accept to remove it.</value>
+  </data>
+  <data name="Editor_Tag_Suggestion_Accept" xml:space="preserve">
+    <value>Accept suggestion</value>
+  </data>
+  <data name="Editor_Tag_Suggestion_Dismiss" xml:space="preserve">
+    <value>Dismiss suggestion</value>
+  </data>
 </root>

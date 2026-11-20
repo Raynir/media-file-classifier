@@ -7,6 +7,21 @@ using MediaFileClassifier.UseCases.Metadata;
 namespace MediaFileClassifier.Ui.Details;
 
 /// <summary>
+/// What the editor will do with a field's new AI suggestion when the user saves (E07-S11-T03).
+/// </summary>
+public enum SuggestionStage
+{
+    /// <summary>Nothing is staged on the suggestion.</summary>
+    None,
+
+    /// <summary>The user's value is replaced by the suggestion.</summary>
+    Accepted,
+
+    /// <summary>The user's value stays and the suggestion is cleared.</summary>
+    Dismissed,
+}
+
+/// <summary>
 /// One field in the metadata editor (E07-S02): its text as the user edits it, and what it was when loaded, so the field
 /// knows whether it changed. A list field (objects, scenes, ...) is edited as one comma-separated text.
 /// </summary>
@@ -139,7 +154,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     /// <summary>
     /// Gets a value indicating whether a revert or confirm is staged, which Undo takes back.
     /// </summary>
-    public bool HasStagedAction => IsReverted || IsConfirmed;
+    public bool HasStagedAction => IsReverted || IsConfirmed || SuggestionStaged != SuggestionStage.None;
 
     /// <summary>
     /// Gets a value indicating whether the current model can't produce the field and no layer has a value, so the
@@ -152,6 +167,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     /// Gets a value indicating whether a newer AI value than the user's is waiting (D020).
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanDecideSuggestion))]
     public partial bool HasSuggestion { get; private set; }
 
     /// <summary>
@@ -165,6 +181,28 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     public partial string SuggestionTip { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Gets what is staged on the field's new AI suggestion (E07-S11-T03).
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStagedAction), nameof(CanDecideSuggestion), nameof(IsSuggestionAccepted), nameof(IsSuggestionDismissed))]
+    public partial SuggestionStage SuggestionStaged { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the suggestion can still be accepted or dismissed.
+    /// </summary>
+    public bool CanDecideSuggestion => HasSuggestion && SuggestionStaged == SuggestionStage.None;
+
+    /// <summary>
+    /// Gets a value indicating whether accepting the suggestion is staged.
+    /// </summary>
+    public bool IsSuggestionAccepted => SuggestionStaged == SuggestionStage.Accepted;
+
+    /// <summary>
+    /// Gets a value indicating whether dismissing the suggestion is staged.
+    /// </summary>
+    public bool IsSuggestionDismissed => SuggestionStaged == SuggestionStage.Dismissed;
 
     /// <summary>
     /// Gets or sets where the tooltips get their text; the editor sets it.
@@ -199,6 +237,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         ShowProvenance(view);
         IsReverted = false;
         IsConfirmed = false;
+        SuggestionStaged = SuggestionStage.None;
         Error = null;
         Text = originalText;
         IsDirty = false;
@@ -221,6 +260,17 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
             IsReverted = false;
         }
 
+        if (!HasSuggestion)
+        {
+            // The suggestion is gone (a run replaced it, or it was dealt with), so nothing is staged on it.
+            SuggestionStaged = SuggestionStage.None;
+        }
+        else if (SuggestionStaged == SuggestionStage.Accepted)
+        {
+            // The staged accept follows the suggestion as it is now.
+            Text = SuggestionText;
+        }
+
         if (Provenance != FieldProvenance.Ai)
         {
             // The AI value isn't the effective one any more, so there is nothing to confirm.
@@ -233,7 +283,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
             Text = FallbackText;
         }
 
-        IsDirty = IsReverted || IsConfirmed || !string.Equals(Text, originalText, StringComparison.Ordinal);
+        IsDirty = IsReverted || IsConfirmed || SuggestionStaged != SuggestionStage.None || !string.Equals(Text, originalText, StringComparison.Ordinal);
         OnPropertyChanged(nameof(CanConfirm));
         ConfirmCommand.NotifyCanExecuteChanged();
     }
@@ -253,6 +303,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     {
         IsReverted = false;
         IsConfirmed = false;
+        SuggestionStaged = SuggestionStage.None;
         Error = null;
         Text = originalText;
         IsDirty = false;
@@ -265,10 +316,17 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     public void Revert()
     {
         IsConfirmed = false;
+        SuggestionStaged = SuggestionStage.None;
         IsReverted = true;
         Error = null;
         Text = FallbackText;
         IsDirty = true;
+    }
+
+    private void NotifySuggestionCommands()
+    {
+        AcceptSuggestionCommand.NotifyCanExecuteChanged();
+        DismissSuggestionCommand.NotifyCanExecuteChanged();
     }
 
     private void ShowProvenance(FieldMetadataView view)
@@ -279,6 +337,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         HasSuggestion = view.Suggestion is not null;
         SuggestionText = view.Suggestion?.Value.Text ?? string.Empty;
         SuggestionTip = view.Suggestion is { } suggestion ? Provenances?.SuggestionTip(suggestion) ?? string.Empty : string.Empty;
+        NotifySuggestionCommands();
     }
 
     /// <summary>
@@ -294,6 +353,34 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Stages replacing the user's value with the new AI suggestion: the field shows the suggestion, and the save stores
+    /// it as an accepted value (D020).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanDecideSuggestion))]
+    public void AcceptSuggestion()
+    {
+        IsReverted = false;
+        IsConfirmed = false;
+        SuggestionStaged = SuggestionStage.Accepted;
+        Error = null;
+        Text = SuggestionText;
+        IsDirty = true;
+        NotifySuggestionCommands();
+    }
+
+    /// <summary>
+    /// Stages keeping the user's value and clearing the suggestion.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanDecideSuggestion))]
+    public void DismissSuggestion()
+    {
+        SuggestionStaged = SuggestionStage.Dismissed;
+        Error = null;
+        IsDirty = true;
+        NotifySuggestionCommands();
+    }
+
+    /// <summary>
     /// Takes back the staged revert or confirm, and any typing, so the field shows what is stored.
     /// </summary>
     [RelayCommand]
@@ -301,6 +388,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     {
         Discard();
         ConfirmCommand.NotifyCanExecuteChanged();
+        NotifySuggestionCommands();
     }
 
     partial void OnTextChanged(string value)
@@ -311,6 +399,13 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
             IsReverted = false;
         }
 
+        if ((SuggestionStaged == SuggestionStage.Accepted && !string.Equals(value, SuggestionText, StringComparison.Ordinal))
+            || (SuggestionStaged == SuggestionStage.Dismissed && !string.Equals(value, originalText, StringComparison.Ordinal)))
+        {
+            // Typing replaces a staged accept or dismiss; the save then writes the typed value, which clears the flag too.
+            SuggestionStaged = SuggestionStage.None;
+        }
+
         if (IsConfirmed && !string.Equals(value, originalText, StringComparison.Ordinal))
         {
             // Typing over a confirmed AI value makes it the user's own edit.
@@ -318,7 +413,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         }
 
         Error = null;
-        IsDirty = IsReverted || IsConfirmed || !string.Equals(value, originalText, StringComparison.Ordinal);
+        IsDirty = IsReverted || IsConfirmed || SuggestionStaged != SuggestionStage.None || !string.Equals(value, originalText, StringComparison.Ordinal);
         OnPropertyChanged(nameof(CanConfirm));
         ConfirmCommand.NotifyCanExecuteChanged();
     }

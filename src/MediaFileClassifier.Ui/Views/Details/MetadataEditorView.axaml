@@ -77,6 +77,21 @@
           <TextBlock Classes="FieldError"
                      Text="{Binding Error}"
                      IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <!-- The AI's newer value for a field the user owns, with Accept suggestion and Dismiss (staged until Save, D020). -->
+          <Border Classes="Suggestion" IsVisible="{Binding HasSuggestion}">
+            <StackPanel Spacing="{DynamicResource Space.XS}">
+              <TextBlock Classes="Secondary" Text="{Binding SuggestionText}" TextWrapping="Wrap" ToolTip.Tip="{Binding SuggestionTip}" />
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" IsVisible="{Binding CanDecideSuggestion}">
+                <Button Classes="Small" Content="{l:Loc Editor_Suggestion_Accept}" Command="{Binding AcceptSuggestionCommand}" />
+                <Button Classes="Small" Content="{l:Loc Editor_Suggestion_Dismiss}" Command="{Binding DismissSuggestionCommand}" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" IsVisible="{Binding !CanDecideSuggestion}">
+                <TextBlock Classes="Tertiary" Text="{l:Loc Editor_Suggestion_Accepting}" IsVisible="{Binding IsSuggestionAccepted}" VerticalAlignment="Center" />
+                <TextBlock Classes="Tertiary" Text="{l:Loc Editor_Suggestion_Dismissing}" IsVisible="{Binding IsSuggestionDismissed}" VerticalAlignment="Center" />
+                <Button Classes="Small" Content="{l:Loc Editor_Suggestion_Undo}" Command="{Binding UndoCommand}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
         </StackPanel>
       </Border>
     </DataTemplate>
@@ -100,12 +115,21 @@
       <Setter Property="BorderThickness" Value="2,0,0,0" />
       <Setter Property="Padding" Value="8,0,0,0" />
     </Style>
+    <Style Selector="Border.Suggestion">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Provenance.NewSuggestion.Foreground}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+    </Style>
     <Style Selector="Border.Chip.Added">
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.Provenance.Edited.Foreground}" />
       <Setter Property="BorderThickness" Value="2" />
     </Style>
     <Style Selector="Border.Chip:focus-within">
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Focus}" />
+    </Style>
+    <Style Selector="TextBlock.ChipText.Dropped">
+      <Setter Property="TextDecorations" Value="Strikethrough" />
     </Style>
     <Style Selector="TextBlock.ChipText.Struck">
       <Setter Property="TextDecorations" Value="Strikethrough" />
@@ -199,7 +223,23 @@
                                  ToolTip.Tip="{Binding Source, Converter={x:Static d:TagSourceConverters.Description}}" />
                       <TextBlock Classes="ChipText"
                                  Classes.Struck="{Binding !CanReject}"
+                                 Classes.Dropped="{Binding WillBeDropped}"
                                  Text="{Binding Text}" />
+                      <!-- A new AI suggestion on the tag: a marker with its meaning in the tooltip, then Accept suggestion and Dismiss. -->
+                      <Border Classes="Provenance NewSuggestion" IsVisible="{Binding IsSuggestedAdd}"
+                              ToolTip.Tip="{l:Loc Editor_Tag_Suggestion_Added}">
+                        <PathIcon Data="{StaticResource Icon.Provenance.NewSuggestion}" />
+                      </Border>
+                      <Border Classes="Provenance NewSuggestion" IsVisible="{Binding IsSuggestedRemoval}"
+                              ToolTip.Tip="{l:Loc Editor_Tag_Suggestion_Removed}">
+                        <PathIcon Data="{StaticResource Icon.Provenance.NewSuggestion}" />
+                      </Border>
+                      <Button Classes="ChipButton" Content="✓" IsVisible="{Binding CanDecideSuggestion}" Tag="AcceptSuggestion"
+                              ToolTip.Tip="{l:Loc Editor_Tag_Suggestion_Accept}" AutomationProperties.Name="{l:Loc Editor_Tag_Suggestion_Accept}" />
+                      <Button Classes="ChipButton" Content="–" IsVisible="{Binding CanDecideSuggestion}" Tag="DismissSuggestion"
+                              ToolTip.Tip="{l:Loc Editor_Tag_Suggestion_Dismiss}" AutomationProperties.Name="{l:Loc Editor_Tag_Suggestion_Dismiss}" />
+                      <Button Classes="ChipButton" Content="↶" IsVisible="{Binding HasStagedSuggestion}" Tag="UndoSuggestion"
+                              ToolTip.Tip="{l:Loc Editor_Tag_Undo}" AutomationProperties.Name="{l:Loc Editor_Tag_Undo}" />
                       <Button Classes="ChipButton" Content="↶" IsVisible="{Binding !CanReject}"
                               Tag="Undo" ToolTip.Tip="{l:Loc Editor_Tag_Undo}" AutomationProperties.Name="{l:Loc Editor_Tag_Undo}" />
                       <Button Classes="ChipButton" Content="×" IsVisible="{Binding CanRemove}"

@@ -106,6 +106,15 @@ public sealed partial class MetadataEditorView : UserControl
             case Key.Enter or Key.Space when chip.IsRemoved || chip.IsRejected:
                 editor.UndoTag(chip);
                 break;
+            case Key.Enter when chip.CanDecideSuggestion && e.KeyModifiers.HasFlag(KeyModifiers.Shift):
+                editor.DismissTagSuggestion(chip);
+                break;
+            case Key.Enter when chip.CanDecideSuggestion:
+                editor.AcceptTagSuggestion(chip);
+                break;
+            case Key.Enter or Key.Space when chip.HasStagedSuggestion:
+                editor.UndoTagSuggestion(chip);
+                break;
             case Key.Left:
                 MoveFocus(border, -1);
                 break;
@@ -136,6 +145,15 @@ public sealed partial class MetadataEditorView : UserControl
                 break;
             case "Reject":
                 editor.RejectTag(chip);
+                break;
+            case "AcceptSuggestion":
+                editor.AcceptTagSuggestion(chip);
+                break;
+            case "DismissSuggestion":
+                editor.DismissTagSuggestion(chip);
+                break;
+            case "UndoSuggestion":
+                editor.UndoTagSuggestion(chip);
                 break;
         }
     }

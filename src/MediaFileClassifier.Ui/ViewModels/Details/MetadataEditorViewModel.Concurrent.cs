@@ -121,6 +121,14 @@ public sealed partial class MetadataEditorViewModel
             else
             {
                 stored.Stage = chip.Stage;
+                if (stored.Suggestion is not null)
+                {
+                    stored.SuggestionStaged = chip.SuggestionStaged;
+                }
+                else if (chip.SuggestionStaged != SuggestionStage.None)
+                {
+                    conflict |= tagsChanged;
+                }
             }
         }
 

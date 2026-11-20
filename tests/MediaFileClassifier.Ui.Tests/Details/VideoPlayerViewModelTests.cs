@@ -85,6 +85,35 @@ public sealed class VideoPlayerViewModelTests
     });
 
     [Fact]
+    public Task JumpTo_WhileTheVideoOpens_OpensItAtTheTime() => TestApp.RunAsync(() =>
+    {
+        using var video = Create();
+
+        video.Show(Item(MediaType.Video, "a.mp4"));
+        video.JumpTo(TimeSpan.FromSeconds(83));
+        Assert.Equal(TimeSpan.FromSeconds(83), video.Position);
+        Settle(video);
+        video.JumpTo(TimeSpan.FromSeconds(84));
+
+        Assert.Equal(
+            [@"Open C:\media\a.mp4 00:01:23 paused", @"Open C:\media\a.mp4 00:01:24 paused"],
+            factory.Player.Requests);
+    });
+
+    [Fact]
+    public Task Pause_WhileTheVideoReopens_ReachesThePlayer() => TestApp.RunAsync(() =>
+    {
+        using var video = Opened();
+        var player = factory.Player;
+        player.SetState(PlaybackState.Opening);
+        Pump.Until(() => video.State == PlaybackState.Opening);
+
+        video.Pause();
+
+        Assert.Equal("Pause", player.Requests[^1]);
+    });
+
+    [Fact]
     public Task Show_AnotherItem_StopsTheVideo_AndAnImageLeavesThePlayerInactive() => TestApp.RunAsync(() =>
     {
         using var video = Opened();

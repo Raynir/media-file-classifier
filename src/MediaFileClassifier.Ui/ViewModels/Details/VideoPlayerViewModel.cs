@@ -54,6 +54,7 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
     private IMediaPreviewPlayer? player;
     private CancellationTokenSource? opening;
     private string? openPath;
+    private TimeSpan? pendingJump;
     private int pendingRefresh;
     private int keyframeLoads;
     private bool disposed;
@@ -220,6 +221,7 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
         CancelOpening();
         Item = item;
         openPath = null;
+        pendingJump = null;
         FailureText = null;
         ++keyframeLoads;
         Keyframes = [];
@@ -252,7 +254,9 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
     /// </summary>
     public void Pause()
     {
-        if (State == PlaybackState.Playing)
+        // Always forwarded: State lags the player, e.g. a video reopening at the end to play is still Opening here.
+        // The player ignores a pause when nothing plays.
+        if (openPath is not null)
         {
             player?.Pause();
         }
@@ -265,8 +269,29 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
     /// <param name="time">The time.</param>
     public void JumpTo(TimeSpan time)
     {
+        if (!IsActive || State == PlaybackState.Failed)
+        {
+            return;
+        }
+
+        time = time < TimeSpan.Zero ? TimeSpan.Zero : time;
         if (player is null || openPath is null)
         {
+            // Still waiting for OpenDelay: the video opens at the time.
+            if (opening is not null)
+            {
+                pendingJump = time;
+                Position = time;
+            }
+
+            return;
+        }
+
+        if (!IsReady)
+        {
+            // The player may not have the file yet, so a seek would be lost: open it again at the time.
+            player.Open(openPath, time, play: false);
+            Position = time;
             return;
         }
 
@@ -361,7 +386,8 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
         }
 
         openPath = path;
-        player!.Open(path, TimeSpan.Zero, play: false);
+        player!.Open(path, pendingJump ?? TimeSpan.Zero, play: false);
+        pendingJump = null;
         if (Item is { } item)
         {
             await LoadKeyframesAsync(item.Id, token);

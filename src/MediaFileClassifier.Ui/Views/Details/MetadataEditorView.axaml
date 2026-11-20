@@ -53,10 +53,21 @@
             </Border>
             <TextBlock Classes="EditedMark" Text="{l:Loc Editor_Edited}" IsVisible="{Binding IsDirty}" />
             <Button Classes="Small"
+                    Content="{l:Loc Editor_Confirm}"
+                    Command="{Binding ConfirmCommand}"
+                    IsVisible="{Binding CanConfirm}"
+                    ToolTip.Tip="{l:Loc Editor_Confirm_Tip}" />
+            <Button Classes="Small"
                     Content="{l:Loc Editor_Revert}"
                     Command="{Binding RevertCommand}"
-                    IsVisible="{Binding CanRevert}" />
+                    IsVisible="{Binding CanRevert}"
+                    ToolTip.Tip="{l:Loc Editor_Revert_Tip}" />
+            <Button Classes="Small"
+                    Content="{l:Loc Editor_FieldUndo}"
+                    Command="{Binding UndoCommand}"
+                    IsVisible="{Binding HasStagedAction}" />
           </StackPanel>
+          <TextBlock Classes="Tertiary" FontStyle="Italic" Text="{l:Loc Editor_NotAvailable}" IsVisible="{Binding IsNotAvailable}" />
           <TextBox Text="{Binding Text}"
                    IsReadOnly="{Binding IsReadOnly}"
                    AcceptsReturn="{Binding !IsSingleLine}"

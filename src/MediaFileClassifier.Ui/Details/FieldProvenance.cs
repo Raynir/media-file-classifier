@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases.Metadata;
 
@@ -38,6 +39,12 @@ internal sealed class ProvenanceText(Localizer localizer)
     public IReadOnlyDictionary<Id<ModelRegistration>, string> ModelNames { get; set; } = new Dictionary<Id<ModelRegistration>, string>();
 
     /// <summary>
+    /// Gets or sets the fields the describer the next analysis would use can produce, or <see langword="null"/> when
+    /// that isn't known.
+    /// </summary>
+    public DescriberFields? Producible { get; set; }
+
+    /// <summary>
     /// Gets which mark a field's effective value gets.
     /// </summary>
     /// <param name="view">The field's layers.</param>
@@ -49,6 +56,27 @@ internal sealed class ProvenanceText(Localizer localizer)
         { Source: MetadataSource.User } => FieldProvenance.Edited,
         _ => FieldProvenance.None,
     };
+
+    /// <summary>
+    /// Works out whether a field is one the describer can't produce and that has no value in any layer (E06-S04-T03).
+    /// </summary>
+    /// <param name="view">The field's layers.</param>
+    /// <returns><see langword="true"/> if the editor should call the field not available.</returns>
+    public bool IsNotAvailable(FieldMetadataView view) =>
+        Producible is { } producible
+        && view.Effective is null
+        && view.LatestAi is null
+        && view.Field switch
+        {
+            DescriptiveField.Title => !producible.HasFlag(DescriberFields.Title),
+            DescriptiveField.Description => !producible.HasFlag(DescriberFields.Description),
+            DescriptiveField.Summary => !producible.HasFlag(DescriberFields.Summary),
+            DescriptiveField.Objects => !producible.HasFlag(DescriberFields.Objects),
+            DescriptiveField.Scenes => !producible.HasFlag(DescriberFields.Scenes),
+            DescriptiveField.Actions => !producible.HasFlag(DescriberFields.Actions),
+            DescriptiveField.Emotions => !producible.HasFlag(DescriberFields.Emotions),
+            _ => false,
+        };
 
     /// <summary>
     /// Builds the tooltip of a field's mark.

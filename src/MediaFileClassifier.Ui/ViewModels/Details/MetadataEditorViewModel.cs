@@ -6,6 +6,8 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.UseCases.Analysis.GetDescriberFields;
 using MediaFileClassifier.UseCases.Metadata;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
@@ -302,9 +304,12 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         var edits = new List<MetadataEdit>();
         foreach (var field in AllFields.Where(field => field.IsDirty))
         {
-            edits.Add(field.IsReverted
-                ? new MetadataEdit.RevertField(field.Field)
-                : new MetadataEdit.SetField(field.Field, field.ToValue()));
+            edits.Add(field switch
+            {
+                { IsReverted: true } => new MetadataEdit.RevertField(field.Field),
+                { IsConfirmed: true } => new MetadataEdit.ConfirmField(field.Field),
+                _ => new MetadataEdit.SetField(field.Field, field.ToValue()),
+            });
         }
 
         // Removals and rejections go first, so a tag staged for removal and typed again nets out in the service.
@@ -450,12 +455,27 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
             }
         }
 
+        var producible = itemId is null ? null : await GetProducibleFieldsAsync();
         if (load != loads)
         {
             return;
         }
 
+        provenances.Producible = producible;
         Apply(view);
+    }
+
+    private async Task<DescriberFields?> GetProducibleFieldsAsync()
+    {
+        try
+        {
+            return await sender.Send(new GetDescriberFieldsQuery());
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogLoadFailed(logger, ex);
+            return null;
+        }
     }
 
     private void Apply(ItemMetadataView? view)

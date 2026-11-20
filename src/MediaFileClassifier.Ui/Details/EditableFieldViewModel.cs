@@ -90,13 +90,14 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     /// Gets a value indicating whether the user chose to revert the field to the AI or file value.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanConfirm), nameof(HasStagedAction))]
     public partial bool IsReverted { get; private set; }
 
     /// <summary>
     /// Gets the mark of the stored value: the AI's, the user's edit, or an accepted AI value (E07-S11-T01).
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsAi), nameof(IsEditedValue), nameof(IsAccepted))]
+    [NotifyPropertyChangedFor(nameof(IsAi), nameof(IsEditedValue), nameof(IsAccepted), nameof(CanConfirm))]
     public partial FieldProvenance Provenance { get; private set; }
 
     /// <summary>
@@ -108,7 +109,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     /// <summary>
     /// Gets a value indicating whether the stored value is the AI's.
     /// </summary>
-    public bool IsAi => Provenance == FieldProvenance.Ai;
+    public bool IsAi => Provenance == FieldProvenance.Ai && !IsConfirmed;
 
     /// <summary>
     /// Gets a value indicating whether the stored value is one the user wrote.
@@ -118,7 +119,34 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     /// <summary>
     /// Gets a value indicating whether the stored value is an AI value the user confirmed.
     /// </summary>
-    public bool IsAccepted => Provenance == FieldProvenance.Accepted;
+    public bool IsAccepted => Provenance == FieldProvenance.Accepted || IsConfirmed;
+
+    /// <summary>
+    /// Gets a value indicating whether the user chose to confirm the AI value as it is (D020); the save stores it as
+    /// the user's accepted value.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAi), nameof(IsAccepted), nameof(CanConfirm), nameof(HasStagedAction))]
+    public partial bool IsConfirmed { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the AI value can be confirmed: it is the effective value and the text wasn't
+    /// touched.
+    /// </summary>
+    public bool CanConfirm => !IsReadOnly && Provenance == FieldProvenance.Ai && !IsConfirmed && !IsReverted
+        && string.Equals(Text, originalText, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Gets a value indicating whether a revert or confirm is staged, which Undo takes back.
+    /// </summary>
+    public bool HasStagedAction => IsReverted || IsConfirmed;
+
+    /// <summary>
+    /// Gets a value indicating whether the current model can't produce the field and no layer has a value, so the
+    /// editor says so (E06-S04-T03).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsNotAvailable { get; private set; }
 
     /// <summary>
     /// Gets a value indicating whether a newer AI value than the user's is waiting (D020).
@@ -170,6 +198,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         CanRevert = view.User is not null;
         ShowProvenance(view);
         IsReverted = false;
+        IsConfirmed = false;
         Error = null;
         Text = originalText;
         IsDirty = false;
@@ -192,13 +221,21 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
             IsReverted = false;
         }
 
+        if (Provenance != FieldProvenance.Ai)
+        {
+            // The AI value isn't the effective one any more, so there is nothing to confirm.
+            IsConfirmed = false;
+        }
+
         if (IsReverted)
         {
             // A staged revert goes to the AI or file value as it is now.
             Text = FallbackText;
         }
 
-        IsDirty = IsReverted || !string.Equals(Text, originalText, StringComparison.Ordinal);
+        IsDirty = IsReverted || IsConfirmed || !string.Equals(Text, originalText, StringComparison.Ordinal);
+        OnPropertyChanged(nameof(CanConfirm));
+        ConfirmCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -215,6 +252,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     internal void Discard()
     {
         IsReverted = false;
+        IsConfirmed = false;
         Error = null;
         Text = originalText;
         IsDirty = false;
@@ -226,6 +264,7 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanRevert))]
     public void Revert()
     {
+        IsConfirmed = false;
         IsReverted = true;
         Error = null;
         Text = FallbackText;
@@ -236,9 +275,32 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
     {
         Provenance = ProvenanceText.Of(view);
         ProvenanceTip = Provenances?.Tip(view) ?? string.Empty;
+        IsNotAvailable = Provenances?.IsNotAvailable(view) ?? false;
         HasSuggestion = view.Suggestion is not null;
         SuggestionText = view.Suggestion?.Value.Text ?? string.Empty;
         SuggestionTip = view.Suggestion is { } suggestion ? Provenances?.SuggestionTip(suggestion) ?? string.Empty : string.Empty;
+    }
+
+    /// <summary>
+    /// Stages confirming the AI value as it is: the save stores it as the user's accepted value (D020).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanConfirm))]
+    public void Confirm()
+    {
+        IsConfirmed = true;
+        Error = null;
+        IsDirty = true;
+        ConfirmCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// Takes back the staged revert or confirm, and any typing, so the field shows what is stored.
+    /// </summary>
+    [RelayCommand]
+    public void Undo()
+    {
+        Discard();
+        ConfirmCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnTextChanged(string value)
@@ -249,7 +311,15 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
             IsReverted = false;
         }
 
+        if (IsConfirmed && !string.Equals(value, originalText, StringComparison.Ordinal))
+        {
+            // Typing over a confirmed AI value makes it the user's own edit.
+            IsConfirmed = false;
+        }
+
         Error = null;
-        IsDirty = IsReverted || !string.Equals(value, originalText, StringComparison.Ordinal);
+        IsDirty = IsReverted || IsConfirmed || !string.Equals(value, originalText, StringComparison.Ordinal);
+        OnPropertyChanged(nameof(CanConfirm));
+        ConfirmCommand.NotifyCanExecuteChanged();
     }
 }

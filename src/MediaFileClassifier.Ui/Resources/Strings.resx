@@ -2178,4 +2178,19 @@
   <data name="Provenance_Tip_SuggestionNoModel" xml:space="preserve">
     <value>Newer AI value, written on {0}</value>
   </data>
+  <data name="Editor_Confirm" xml:space="preserve">
+    <value>Confirm AI value</value>
+  </data>
+  <data name="Editor_Confirm_Tip" xml:space="preserve">
+    <value>Keep the AI value as your own. Nothing changes until you save.</value>
+  </data>
+  <data name="Editor_Revert_Tip" xml:space="preserve">
+    <value>Remove your value so the AI value (or the file's) shows again. Nothing changes until you save.</value>
+  </data>
+  <data name="Editor_FieldUndo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Editor_NotAvailable" xml:space="preserve">
+    <value>Not available with the current model</value>
+  </data>
 </root>

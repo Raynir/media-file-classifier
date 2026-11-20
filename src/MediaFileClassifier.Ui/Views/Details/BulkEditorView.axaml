@@ -1,0 +1,182 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Details"
+             xmlns:d="using:MediaFileClassifier.Ui.Details"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Details.BulkEditorView"
+             x:Name="Root"
+             x:DataType="vm:BulkEditorViewModel">
+  <!--
+    The metadata editor in bulk mode (E07-S03): what the selected items share, "Multiple values" where they differ, and
+    each tag with how many items have it. Same layout and staged-change marks as the single-item editor; there is no
+    E07-S03-T00 mockup yet, so this is provisional (drafted as DNEW in the PR).
+  -->
+  <UserControl.Styles>
+    <Style Selector="TextBlock.FieldLabel">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.EditedMark">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Provenance.Edited.Foreground}" />
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+    </Style>
+    <Style Selector="TextBlock.FieldError">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Border.FieldDirty">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Provenance.Edited.Foreground}" />
+      <Setter Property="BorderThickness" Value="2,0,0,0" />
+      <Setter Property="Padding" Value="8,0,0,0" />
+    </Style>
+    <Style Selector="Border.FieldDirty:not(.Dirty)">
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="10,0,0,0" />
+    </Style>
+    <Style Selector="Border.Chip">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Control}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Badge}" />
+    </Style>
+    <Style Selector="Border.Chip.Added">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Provenance.Edited.Foreground}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.Chip:focus-within">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Focus}" />
+    </Style>
+    <Style Selector="TextBlock.ChipText.Dropped">
+      <Setter Property="TextDecorations" Value="Strikethrough" />
+    </Style>
+    <Style Selector="Button.ChipButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Focusable" Value="False" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <!-- Save and Cancel, only while there are unsaved changes. -->
+    <Border DockPanel.Dock="Bottom"
+            x:Name="SaveBar"
+            IsVisible="{Binding IsDirty}"
+            BorderBrush="{DynamicResource Brush.Border.Divider}"
+            BorderThickness="0,1,0,0"
+            Padding="{DynamicResource Padding.Panel}">
+      <DockPanel LastChildFill="False">
+        <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+          <TextBlock Classes="Secondary" Text="{l:Loc Editor_Unsaved}" />
+          <TextBlock Classes="Secondary"
+                     x:Name="NoticeText"
+                     TextWrapping="Wrap"
+                     Text="{Binding Notice}"
+                     IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+          <Button x:Name="CancelButton" Content="{l:Loc Editor_Cancel}" Command="{Binding CancelCommand}" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.M}">
+        <TextBlock Classes="Tertiary" Text="{l:Loc Bulk_Loading}" IsVisible="{Binding IsLoading}" />
+        <Expander Header="{l:Loc Editor_Section_Descriptive}" IsExpanded="True" HorizontalAlignment="Stretch">
+          <ItemsControl ItemsSource="{Binding Fields}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="d:BulkFieldViewModel">
+                <Border Classes="FieldDirty" Classes.Dirty="{Binding IsDirty}" Margin="{DynamicResource Padding.Field}">
+                  <StackPanel Spacing="{DynamicResource Space.XS}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+                      <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
+                      <TextBlock Classes="EditedMark" Text="{l:Loc Editor_Edited}" IsVisible="{Binding IsDirty}" />
+                      <Button Classes="Small"
+                              Content="{l:Loc Bulk_Clear}"
+                              Command="{Binding ClearCommand}"
+                              IsVisible="{Binding CanClear}"
+                              ToolTip.Tip="{l:Loc Bulk_Clear_Tip}" />
+                      <Button Classes="Small"
+                              Content="{l:Loc Editor_Revert}"
+                              Command="{Binding RevertCommand}"
+                              IsVisible="{Binding CanRevert}"
+                              ToolTip.Tip="{l:Loc Editor_Revert_Tip}" />
+                      <Button Classes="Small"
+                              Content="{l:Loc Editor_FieldUndo}"
+                              Command="{Binding UndoCommand}"
+                              IsVisible="{Binding HasStagedAction}" />
+                    </StackPanel>
+                    <TextBox Text="{Binding Text}"
+                             PlaceholderText="{Binding Placeholder}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             MaxHeight="160"
+                             AutomationProperties.Name="{Binding Label}" />
+                    <TextBlock Classes="Tertiary"
+                               Text="{Binding Counts}"
+                               IsVisible="{Binding Counts, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <TextBlock Classes="FieldError"
+                               Text="{Binding Error}"
+                               IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Expander>
+        <Expander Header="{l:Loc Details_Tags}" IsExpanded="True" HorizontalAlignment="Stretch">
+          <StackPanel Spacing="{DynamicResource Space.XS}">
+            <TextBlock Classes="Tertiary" Text="{l:Loc Details_Tags_None}" IsVisible="{Binding !HasTags}" />
+            <!-- Each tag with how many items have it. Staged changes are an outline (added) or a strikethrough. -->
+            <ItemsControl x:Name="TagList" ItemsSource="{Binding Tags}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="d:BulkTagViewModel">
+                  <Border Classes="Chip"
+                          Classes.Added="{Binding IsAdded}"
+                          Focusable="True"
+                          Margin="{DynamicResource Padding.Compact}"
+                          AutomationProperties.Name="{Binding Label}">
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                      <TextBlock Classes="ChipText" Classes.Dropped="{Binding IsDropped}" Text="{Binding Label}" />
+                      <Button Classes="ChipButton" Content="↶" IsVisible="{Binding CanUndo}"
+                              Command="{Binding #Root.((vm:BulkEditorViewModel)DataContext).UndoTagCommand}" CommandParameter="{Binding}"
+                              ToolTip.Tip="{l:Loc Editor_Tag_Undo}" AutomationProperties.Name="{l:Loc Editor_Tag_Undo}" />
+                      <Button Classes="ChipButton" Content="×" IsVisible="{Binding CanRemove}"
+                              Command="{Binding #Root.((vm:BulkEditorViewModel)DataContext).RemoveTagCommand}" CommandParameter="{Binding}"
+                              ToolTip.Tip="{l:Loc Editor_Tag_Remove}" AutomationProperties.Name="{l:Loc Editor_Tag_Remove}" />
+                      <Button Classes="ChipButton" Content="⊘" IsVisible="{Binding CanReject}"
+                              Command="{Binding #Root.((vm:BulkEditorViewModel)DataContext).RejectTagCommand}" CommandParameter="{Binding}"
+                              ToolTip.Tip="{l:Loc Editor_Tag_Reject}" AutomationProperties.Name="{l:Loc Editor_Tag_Reject}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBox x:Name="TagInput"
+                     Text="{Binding NewTagText}"
+                     PlaceholderText="{l:Loc Editor_Tag_Input}"
+                     AutomationProperties.Name="{l:Loc Editor_Tag_Input}">
+              <TextBox.KeyBindings>
+                <KeyBinding Gesture="Enter" Command="{Binding AddTypedTagCommand}" />
+              </TextBox.KeyBindings>
+            </TextBox>
+            <TextBlock Classes="Tertiary" Text="{l:Loc Editor_Tag_InputHelp}" TextWrapping="Wrap" />
+            <TextBlock Classes="FieldError"
+                       Text="{Binding TagError}"
+                       IsVisible="{Binding TagError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+        </Expander>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

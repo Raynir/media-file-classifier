@@ -112,7 +112,7 @@
                  TextWrapping="Wrap" />
       <TextBlock Classes="Secondary"
                  Text="{Binding SelectedCountText}"
-                 IsVisible="{Binding SelectedCountText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                 IsVisible="{Binding !IsBulk}" />
       <!-- Quick actions (E14-S05): Open, Reveal and Find similar (E09-S03) now; Favorite and Re-analyze join with their Stories. -->
       <StackPanel x:Name="QuickActions"
                   Orientation="Horizontal"
@@ -157,7 +157,14 @@
     <!-- Overview and Technical. -->
     <TabControl SelectedIndex="{Binding SelectedTab}">
       <TabItem Header="{l:Loc Details_Tab_Overview}">
-        <v:MetadataEditorView x:Name="Editor" DataContext="{Binding Editor}" />
+        <Panel>
+          <Panel IsVisible="{Binding IsSingleEdit}">
+            <v:MetadataEditorView x:Name="Editor" DataContext="{Binding Editor}" />
+          </Panel>
+          <Panel IsVisible="{Binding IsBulk}">
+            <v:BulkEditorView x:Name="BulkEditor" DataContext="{Binding BulkEditor}" />
+          </Panel>
+        </Panel>
       </TabItem>
       <TabItem Header="{l:Loc Details_Tab_Technical}">
         <ScrollViewer>

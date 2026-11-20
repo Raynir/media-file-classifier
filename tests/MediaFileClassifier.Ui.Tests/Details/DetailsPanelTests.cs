@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
@@ -22,8 +23,10 @@ using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
+using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
+using MediaFileClassifier.UseCases.Metadata.GetBulkMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
 using MediatR;
 using SkiaSharp;
@@ -418,7 +421,50 @@ public sealed class DetailsPanelTests : IDisposable
         return path;
     }
 
-    /// <summary>
+    [Fact]
+    public Task SelectingSeveralItems_SwitchesToBulkMode_AndOneItemSwitchesBack() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        Assert.False(bed.Panel.IsBulk);
+
+        bed.Select(4, SelectionGesture.Toggle);
+        bed.Select(5, SelectionGesture.Toggle);
+
+        Assert.True(bed.Panel.IsBulk);
+        Assert.Equal("3 items selected", bed.Panel.Title);
+        Assert.Null(bed.Panel.Subtitle);
+        Assert.Equal(3, bed.Panel.BulkEditor.ItemIds.Count);
+        Assert.Equal([bed.Source.Ids[2], bed.Source.Ids[4], bed.Source.Ids[5]], bed.BulkQueries[^1].ItemIds.OrderBy(id => bed.Source.Ids.ToList().IndexOf(id)));
+
+        bed.Select(2, SelectionGesture.Replace);
+
+        Assert.False(bed.Panel.IsBulk);
+        Assert.Equal(0, bed.Panel.BulkEditor.ItemCount);
+    });
+
+    [Fact]
+    public Task TheSelectionMovingOnItsOwn_WithStagedBulkChanges_KeepsThemAndTheirItems() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Select(3, SelectionGesture.Toggle);
+        bed.Panel.BulkEditor.AddTag("trip");
+        var items = bed.Panel.BulkEditor.ItemIds;
+        bed.Guard.Ask = _ => throw new InvalidOperationException("No prompt expected.");
+
+        // A change that no gesture of the user caused, e.g. a filter removing the items from the results.
+        bed.Selection.Reset(10);
+        bed.Settle();
+
+        Assert.True(bed.Panel.IsPinned);
+        Assert.True(bed.Panel.IsBulk);
+        Assert.Same(items, bed.Panel.BulkEditor.ItemIds);
+        Assert.True(bed.Panel.BulkEditor.IsDirty);
+        Assert.NotNull(bed.Panel.BulkEditor.Notice);
+    });
+
+        /// <summary>
     /// A selection over fake results, with the panel and fakes for the details, files and thumbnails.
     /// </summary>
     private sealed class Bed : ISender
@@ -453,6 +499,10 @@ public sealed class DetailsPanelTests : IDisposable
         public UnsavedChangesGuard Guard { get; } = new(Localizer.Current);
 
         public List<EditMetadataCommand> Saved { get; } = [];
+
+        public List<GetBulkMetadataQuery> BulkQueries { get; } = [];
+
+        public BulkMetadataView BulkView { get; set; } = BulkMetadataView.Empty;
 
         public CommandRegistry Registry { get; }
 
@@ -491,6 +541,17 @@ public sealed class DetailsPanelTests : IDisposable
             if (request is GetItemMetadataQuery)
             {
                 return Task.FromResult((TResponse)(object)null!);
+            }
+
+            if (request is ResolveItemSelectionQuery)
+            {
+                return Task.FromResult((TResponse)(object)(IReadOnlyList<Id<MediaItem>>)[.. Source.Ids.Where(Selection.IsSelected)]);
+            }
+
+            if (request is GetBulkMetadataQuery bulk)
+            {
+                BulkQueries.Add(bulk);
+                return Task.FromResult((TResponse)(object)BulkView);
             }
 
             if (request is EditMetadataCommand edit)

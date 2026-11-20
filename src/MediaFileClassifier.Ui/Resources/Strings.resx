@@ -2052,6 +2052,34 @@
   <data name="Editor_Field_Transcript" xml:space="preserve">
     <value>Transcript</value>
   </data>
+  <data name="Bulk_MultipleValues" xml:space="preserve">
+    <value>Multiple values</value>
+  </data>
+  <data name="Bulk_Field_Counts" xml:space="preserve">
+    <value>{0} of {1} items have a value</value>
+  </data>
+  <data name="Bulk_Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Bulk_Clear_Tip" xml:space="preserve">
+    <value>Set an empty value on every selected item</value>
+  </data>
+  <data name="Bulk_Loading" xml:space="preserve">
+    <value>Reading the selected items…</value>
+  </data>
+  <data name="Bulk_Tag_Label" xml:space="preserve">
+    <value>{0} ({1} of {2})</value>
+    <comment>{0} is the tag, {1} how many selected items have it and {2} how many items are selected, e.g. "dog (37 of 120)".</comment>
+  </data>
+  <data name="Bulk_Tag_AddedLabel" xml:space="preserve">
+    <value>{0} (adds to all {1})</value>
+  </data>
+  <data name="Bulk_Notice_Held" xml:space="preserve">
+    <value>The selection changed. Save or cancel your changes to the earlier selection to move on.</value>
+  </data>
+  <data name="Bulk_Notice_Changed" xml:space="preserve">
+    <value>Some of the selected items changed elsewhere. Your changes are kept and are applied to the items as they are now.</value>
+  </data>
   <data name="Editor_Unsaved" xml:space="preserve">
     <value>Unsaved changes</value>
   </data>

@@ -34,8 +34,10 @@ public sealed partial class TagChipViewModel : ViewModelBase
     /// <param name="source">Where the tag comes from.</param>
     /// <param name="confidence">The AI confidence, for an AI tag.</param>
     /// <param name="stage">The staged change; only a tag the user typed starts as <see cref="TagStage.Added"/>.</param>
-    public TagChipViewModel(string text, MetadataSource source, double? confidence = null, TagStage stage = TagStage.Unchanged)
+    /// <param name="suggestion">The tag's new AI suggestion, if any (E07-S11-T03).</param>
+    public TagChipViewModel(string text, MetadataSource source, double? confidence = null, TagStage stage = TagStage.Unchanged, TagSuggestionKind? suggestion = null)
     {
+        Suggestion = suggestion;
         Text = text;
         Source = source;
         Confidence = confidence;
@@ -58,6 +60,55 @@ public sealed partial class TagChipViewModel : ViewModelBase
     public double? Confidence { get; }
 
     /// <summary>
+    /// Gets the tag's new AI suggestion: <see cref="TagSuggestionKind.Added"/> on an AI tag the user doesn't have,
+    /// <see cref="TagSuggestionKind.Removed"/> on an accepted tag the AI no longer gives; or <see langword="null"/>.
+    /// </summary>
+    public TagSuggestionKind? Suggestion { get; }
+
+    /// <summary>
+    /// Gets or sets what is staged on the tag's suggestion.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStaged), nameof(CanDecideSuggestion), nameof(IsSuggestionAccepted), nameof(IsSuggestionDismissed), nameof(WillBeDropped), nameof(HasStagedSuggestion))]
+    public partial SuggestionStage SuggestionStaged { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the suggestion can still be accepted or dismissed: the tag has one, and no change
+    /// is staged on the tag or the suggestion.
+    /// </summary>
+    public bool CanDecideSuggestion => Suggestion is not null && Stage == TagStage.Unchanged && SuggestionStaged == SuggestionStage.None;
+
+    /// <summary>
+    /// Gets a value indicating whether the AI now suggests adding this tag.
+    /// </summary>
+    public bool IsSuggestedAdd => Suggestion == TagSuggestionKind.Added;
+
+    /// <summary>
+    /// Gets a value indicating whether the AI no longer gives this tag.
+    /// </summary>
+    public bool IsSuggestedRemoval => Suggestion == TagSuggestionKind.Removed;
+
+    /// <summary>
+    /// Gets a value indicating whether accepting the suggestion is staged.
+    /// </summary>
+    public bool IsSuggestionAccepted => SuggestionStaged == SuggestionStage.Accepted;
+
+    /// <summary>
+    /// Gets a value indicating whether dismissing the suggestion is staged.
+    /// </summary>
+    public bool IsSuggestionDismissed => SuggestionStaged == SuggestionStage.Dismissed;
+
+    /// <summary>
+    /// Gets a value indicating whether an accept or dismiss is staged on the suggestion.
+    /// </summary>
+    public bool HasStagedSuggestion => SuggestionStaged != SuggestionStage.None;
+
+    /// <summary>
+    /// Gets a value indicating whether the tag goes away on save: the user accepted the AI no longer giving it.
+    /// </summary>
+    public bool WillBeDropped => SuggestionStaged == SuggestionStage.Accepted && Suggestion == TagSuggestionKind.Removed;
+
+    /// <summary>
     /// Gets a value indicating whether the user has this tag (typed, or accepted from the AI).
     /// </summary>
     public bool IsUser => Source == MetadataSource.User;
@@ -66,7 +117,7 @@ public sealed partial class TagChipViewModel : ViewModelBase
     /// Gets or sets the change staged on the tag.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsAdded), nameof(IsRemoved), nameof(IsRejected), nameof(IsStaged), nameof(CanRemove), nameof(CanReject))]
+    [NotifyPropertyChangedFor(nameof(IsAdded), nameof(IsRemoved), nameof(IsRejected), nameof(IsStaged), nameof(CanRemove), nameof(CanReject), nameof(CanDecideSuggestion))]
     public partial TagStage Stage { get; set; }
 
     /// <summary>
@@ -87,12 +138,12 @@ public sealed partial class TagChipViewModel : ViewModelBase
     /// <summary>
     /// Gets a value indicating whether a change is staged on the tag.
     /// </summary>
-    public bool IsStaged => Stage != TagStage.Unchanged;
+    public bool IsStaged => Stage != TagStage.Unchanged || SuggestionStaged != SuggestionStage.None;
 
     /// <summary>
     /// Gets a value indicating whether the tag can be removed: a tag the user has, which no change is staged on.
     /// </summary>
-    public bool CanRemove => Stage != TagStage.Removed && Stage != TagStage.Rejected && (IsUser || Stage == TagStage.Added);
+    public bool CanRemove => Stage != TagStage.Removed && Stage != TagStage.Rejected && (IsUser || Stage == TagStage.Added) && !WillBeDropped;
 
     /// <summary>
     /// Gets a value indicating whether the tag can be rejected: any tag no change is staged on.

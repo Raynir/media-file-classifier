@@ -27,6 +27,10 @@ public sealed class GetItemMetadataQueryHandler(ILibrarySession session) : IRequ
         }
 
         var metadata = await library.Metadata.GetAsync(request.ItemId, cancellationToken).ConfigureAwait(false);
-        return ItemMetadataView.From(metadata);
+        var models = await library.Models.GetAllAsync(cancellationToken).ConfigureAwait(false);
+        return ItemMetadataView.From(metadata) with
+        {
+            ModelNames = models.ToDictionary(model => model.Id, model => model.ModelName),
+        };
     }
 }

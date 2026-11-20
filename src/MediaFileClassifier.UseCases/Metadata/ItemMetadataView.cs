@@ -1,3 +1,4 @@
+using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
@@ -20,6 +21,12 @@ public sealed record ItemMetadataView(
     IReadOnlyList<TagRejection> RejectedTags,
     bool HasNewAiSuggestions)
 {
+    /// <summary>
+    /// Gets the names of the models that gave the AI values, tags and suggestions, by registration, for provenance
+    /// tooltips (E07-S11). A model that isn't listed has no name to show.
+    /// </summary>
+    public IReadOnlyDictionary<Id<ModelRegistration>, string> ModelNames { get; init; } = new Dictionary<Id<ModelRegistration>, string>();
+
     /// <summary>
     /// Gets one field's layers.
     /// </summary>

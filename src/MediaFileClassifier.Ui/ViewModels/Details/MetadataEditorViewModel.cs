@@ -6,6 +6,8 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.UseCases.Analysis.GetDescriberFields;
 using MediaFileClassifier.UseCases.Metadata;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
@@ -28,6 +30,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     private readonly ISender sender;
     private readonly Localizer localizer;
     private readonly ILogger logger;
+    private readonly ProvenanceText provenances;
     private int loads;
     private int suggestionRequests;
     private ItemMetadataView? shown;
@@ -43,6 +46,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         this.sender = sender;
         this.localizer = localizer;
         this.logger = logger ?? NullLogger.Instance;
+        provenances = new ProvenanceText(localizer);
         Descriptive =
         [
             Create(DescriptiveField.Title, "Details_Title_Label"),
@@ -238,6 +242,28 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     public void RejectTag(TagChipViewModel? chip) => Stage(chip, TagStage.Rejected, chip?.CanReject == true);
 
     /// <summary>
+    /// Stages following a tag's new AI suggestion: an added tag is confirmed as the user's, a tag the AI dropped is
+    /// removed. Saving stores it (D020).
+    /// </summary>
+    /// <param name="chip">The tag.</param>
+    [RelayCommand]
+    public void AcceptTagSuggestion(TagChipViewModel? chip) => StageSuggestion(chip, SuggestionStage.Accepted);
+
+    /// <summary>
+    /// Stages keeping a tag as it is and clearing its new AI suggestion.
+    /// </summary>
+    /// <param name="chip">The tag.</param>
+    [RelayCommand]
+    public void DismissTagSuggestion(TagChipViewModel? chip) => StageSuggestion(chip, SuggestionStage.Dismissed);
+
+    /// <summary>
+    /// Takes back the removal or rejection staged on a tag, or the accept or dismiss staged on its suggestion.
+    /// </summary>
+    /// <param name="chip">The tag.</param>
+    [RelayCommand]
+    public void UndoTagSuggestion(TagChipViewModel? chip) => StageSuggestion(chip, SuggestionStage.None);
+
+    /// <summary>
     /// Takes back the removal or rejection staged on a tag.
     /// </summary>
     /// <param name="chip">The tag.</param>
@@ -300,10 +326,21 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         var edits = new List<MetadataEdit>();
         foreach (var field in AllFields.Where(field => field.IsDirty))
         {
-            edits.Add(field.IsReverted
-                ? new MetadataEdit.RevertField(field.Field)
-                : new MetadataEdit.SetField(field.Field, field.ToValue()));
+            edits.Add(field switch
+            {
+                { IsReverted: true } => new MetadataEdit.RevertField(field.Field),
+                { IsConfirmed: true } => new MetadataEdit.ConfirmField(field.Field),
+                { SuggestionStaged: SuggestionStage.Accepted } => new MetadataEdit.AcceptFieldSuggestion(field.Field),
+                { SuggestionStaged: SuggestionStage.Dismissed } => new MetadataEdit.DismissFieldSuggestion(field.Field),
+                _ => new MetadataEdit.SetField(field.Field, field.ToValue()),
+            });
         }
+
+        // A tag's suggestion is dealt with only while nothing else is staged on the tag, which clears it anyway.
+        edits.AddRange(Tags.Where(chip => chip.Stage == TagStage.Unchanged && chip.SuggestionStaged == SuggestionStage.Accepted)
+            .Select(chip => (MetadataEdit)new MetadataEdit.AcceptTagSuggestion(TagName.From(chip.Text))));
+        edits.AddRange(Tags.Where(chip => chip.Stage == TagStage.Unchanged && chip.SuggestionStaged == SuggestionStage.Dismissed)
+            .Select(chip => (MetadataEdit)new MetadataEdit.DismissTagSuggestion(TagName.From(chip.Text))));
 
         // Removals and rejections go first, so a tag staged for removal and typed again nets out in the service.
         edits.AddRange(Tags.Where(chip => chip.Stage == TagStage.Removed).Select(chip => (MetadataEdit)new MetadataEdit.RemoveTag(TagName.From(chip.Text))));
@@ -316,6 +353,17 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
     {
         TagError = null;
         SuggestionsLoading = LoadSuggestionsAsync(value);
+    }
+
+    private void StageSuggestion(TagChipViewModel? chip, SuggestionStage stage)
+    {
+        if (chip is null || chip.Suggestion is null || (stage != SuggestionStage.None && !chip.CanDecideSuggestion))
+        {
+            return;
+        }
+
+        chip.SuggestionStaged = stage;
+        UpdateDirty();
     }
 
     private void Stage(TagChipViewModel? chip, TagStage stage, bool allowed)
@@ -349,7 +397,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
 
     private void OnChipChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(TagChipViewModel.Stage))
+        if (e.PropertyName is nameof(TagChipViewModel.Stage) or nameof(TagChipViewModel.SuggestionStaged))
         {
             UpdateDirty();
         }
@@ -400,7 +448,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
 
     private EditableFieldViewModel Create(DescriptiveField field, string labelKey, bool isReadOnly = false)
     {
-        var item = new EditableFieldViewModel(field, labelKey, localizer.Get(labelKey), isReadOnly);
+        var item = new EditableFieldViewModel(field, labelKey, localizer.Get(labelKey), isReadOnly) { Provenances = provenances };
         item.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(EditableFieldViewModel.IsDirty))
@@ -448,16 +496,32 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
             }
         }
 
+        var producible = itemId is null ? null : await GetProducibleFieldsAsync();
         if (load != loads)
         {
             return;
         }
 
+        provenances.Producible = producible;
         Apply(view);
+    }
+
+    private async Task<DescriberFields?> GetProducibleFieldsAsync()
+    {
+        try
+        {
+            return await sender.Send(new GetDescriberFieldsQuery());
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogLoadFailed(logger, ex);
+            return null;
+        }
     }
 
     private void Apply(ItemMetadataView? view)
     {
+        provenances.ModelNames = view?.ModelNames ?? provenances.ModelNames;
         foreach (var field in AllFields.Append(Transcript))
         {
             field.Load(view is null ? new FieldMetadataView(field.Field, null, null, null, null, null) : view[field.Field]);
@@ -482,7 +546,7 @@ public sealed partial class MetadataEditorViewModel : ViewModelBase
         Tags.Clear();
         foreach (var tag in view?.Tags ?? [])
         {
-            AddChip(new TagChipViewModel(tag.Tag.Tag.Value, tag.Tag.Source, tag.Tag.Confidence));
+            AddChip(new TagChipViewModel(tag.Tag.Tag.Value, tag.Tag.Source, tag.Tag.Confidence, suggestion: tag.Suggestion));
         }
 
         HasTags = Tags.Count > 0;

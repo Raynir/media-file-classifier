@@ -1,7 +1,9 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Testing.UseCases;
+using MediaFileClassifier.UseCases.Analysis.GetDescriberFields;
 using MediaFileClassifier.UseCases.Metadata;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
@@ -71,6 +73,8 @@ internal sealed class MetadataEditorSender : FakeSender
 
     public List<EditMetadataCommand> Commands { get; } = [];
 
+    public DescriberFields? Producible { get; set; }
+
     public MetadataValidationError? Error { get; set; }
 
     public Exception? Failure { get; set; }
@@ -87,6 +91,8 @@ internal sealed class MetadataEditorSender : FakeSender
         {
             case GetItemMetadataQuery:
                 return View;
+            case GetDescriberFieldsQuery:
+                return Producible;
             case EditMetadataCommand command:
                 Commands.Add(command);
                 return Failure is { } failure

@@ -121,12 +121,13 @@ public sealed partial class MetadataEditorViewModel
             else
             {
                 stored.Stage = chip.Stage;
-                if (stored.Suggestion is not null)
+                if (stored.Suggestion is not null && stored.Suggestion == chip.Suggestion)
                 {
                     stored.SuggestionStaged = chip.SuggestionStaged;
                 }
                 else if (chip.SuggestionStaged != SuggestionStage.None)
                 {
+                    // The suggestion is gone or has changed meaning, so what was staged on it isn't carried over.
                     conflict |= tagsChanged;
                 }
             }

@@ -241,6 +241,8 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         Error = null;
         Text = originalText;
         IsDirty = false;
+        OnPropertyChanged(nameof(CanConfirm));
+        ConfirmCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -253,7 +255,14 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         originalText = view.Effective?.Value.Text ?? string.Empty;
         FallbackText = (view.LatestAi?.Value ?? view.Technical?.Value)?.Text ?? string.Empty;
         CanRevert = view.User is not null;
+        var previousSuggestion = HasSuggestion ? SuggestionText : null;
         ShowProvenance(view);
+        if (SuggestionStaged != SuggestionStage.None && previousSuggestion != SuggestionText)
+        {
+            // A different suggestion arrived, which the user hasn't seen: what was staged on the old one is dropped.
+            SuggestionStaged = SuggestionStage.None;
+        }
+
         if (!CanRevert)
         {
             // The user's value is gone, so there is nothing to revert.
@@ -334,6 +343,8 @@ public sealed partial class EditableFieldViewModel : ViewModelBase
         Provenance = ProvenanceText.Of(view);
         ProvenanceTip = Provenances?.Tip(view) ?? string.Empty;
         IsNotAvailable = Provenances?.IsNotAvailable(view) ?? false;
+        OnPropertyChanged(nameof(CanConfirm));
+        ConfirmCommand.NotifyCanExecuteChanged();
         HasSuggestion = view.Suggestion is not null;
         SuggestionText = view.Suggestion?.Value.Text ?? string.Empty;
         SuggestionTip = view.Suggestion is { } suggestion ? Provenances?.SuggestionTip(suggestion) ?? string.Empty : string.Empty;

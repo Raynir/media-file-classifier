@@ -162,6 +162,45 @@ public sealed class SuggestionActionTests
         Assert.DoesNotContain(Assert.Single(sender.Commands).Edits, edit => edit is MetadataEdit.AcceptTagSuggestion);
     }
 
+    [Fact]
+    public async Task StagedDismiss_WhenADifferentSuggestionArrivesInTheBackground_IsDropped()
+    {
+        var editor = await ShowAsync();
+        var title = editor.Descriptive[0];
+        title.DismissSuggestionCommand.Execute(null);
+        var changed = sender.View.Fields.ToArray();
+        changed[(int)DescriptiveField.Title] = changed[(int)DescriptiveField.Title] with
+        {
+            Suggestion = new AiFieldValue(Id<AnalysisRun>.New(), MetadataEditorTestData.ItemId, DescriptiveField.Title, FieldValue.FromText("Cat"), Id<ModelRegistration>.New(), null, DateTimeOffset.UnixEpoch),
+        };
+        sender.View = sender.View with { Fields = changed };
+
+        await editor.MergeChangesAsync(new HashSet<DescriptiveField> { DescriptiveField.Title }, false);
+
+        Assert.Equal("Cat", title.SuggestionText);
+        Assert.False(title.IsSuggestionDismissed);
+        Assert.True(title.CanDecideSuggestion);
+    }
+
+    [Fact]
+    public async Task StagedTagAccept_WhenTheSuggestionChangesKind_IsNotCarriedOver()
+    {
+        var editor = await ShowAsync();
+        editor.AcceptTagSuggestion(editor.Tags.Single(tag => tag.Text == "sea"));
+        sender.View = sender.View with
+        {
+            Tags =
+            [
+                new TagMetadataView(Tag("sea", MetadataSource.User), TagSuggestionKind.Removed),
+                new TagMetadataView(Tag("cat", MetadataSource.User), TagSuggestionKind.Removed),
+            ],
+        };
+
+        await editor.MergeChangesAsync(new HashSet<DescriptiveField>(), true);
+
+        Assert.False(editor.Tags.Single(tag => tag.Text == "sea").IsSuggestionAccepted);
+    }
+
     private async Task<MetadataEditorViewModel> ShowAsync()
     {
         var baseView = MetadataEditorTestData.Sample();

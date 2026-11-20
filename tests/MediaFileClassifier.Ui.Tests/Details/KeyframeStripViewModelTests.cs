@@ -62,6 +62,7 @@ public sealed class KeyframeStripViewModelTests
         Pump.For(TimeSpan.FromMilliseconds(30));
 
         Assert.True(strip.IsVisible);
+        Assert.True(strip.IsLoaded);
         Assert.True(strip.IsEmpty);
     });
 
@@ -82,7 +83,7 @@ public sealed class KeyframeStripViewModelTests
     });
 
     [Fact]
-    public Task Show_WhenTheQueryFails_LeavesTheStripEmpty() => TestApp.RunAsync(() =>
+    public Task Show_WhenTheQueryFails_ShowsNoKeyframesAndNoEmptyNote() => TestApp.RunAsync(() =>
     {
         keyframes.Failure = new InvalidOperationException("The library closed.");
         using var strip = Create();
@@ -90,7 +91,8 @@ public sealed class KeyframeStripViewModelTests
         strip.Show(Item(MediaType.Video, "a.mp4"));
         Pump.For(TimeSpan.FromMilliseconds(50));
 
-        Assert.True(strip.IsEmpty);
+        Assert.False(strip.HasKeyframes);
+        Assert.False(strip.IsEmpty);
     });
 
     [Fact]

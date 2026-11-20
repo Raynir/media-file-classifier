@@ -84,6 +84,7 @@ public sealed class FormatTests
     [InlineData(157, "02:37")]
     [InlineData(3_599, "59:59")]
     [InlineData(3_725, "1:02:05")]
+    [InlineData(90_000, "25:00:00")]
     [InlineData(-5, "00:00")]
     public void Timestamp_PadsMinutes_AndShowsHoursOnlyWhenNeeded(int seconds, string expected)
     {

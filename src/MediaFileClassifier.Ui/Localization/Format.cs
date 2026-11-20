@@ -86,8 +86,8 @@ public static class Format
             value = TimeSpan.Zero;
         }
 
-        var pattern = value.TotalHours >= 1 ? @"h\:mm\:ss" : @"mm\:ss";
-        return value.ToString(pattern, culture ?? CultureInfo.CurrentCulture);
+        var seconds = value.ToString(@"mm\:ss", culture ?? CultureInfo.CurrentCulture);
+        return value.TotalHours >= 1 ? $"{(int)value.TotalHours}:{seconds}" : seconds;
     }
 
     /// <summary>

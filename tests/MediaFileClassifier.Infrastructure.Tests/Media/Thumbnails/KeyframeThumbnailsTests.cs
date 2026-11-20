@@ -93,6 +93,46 @@ public sealed class KeyframeThumbnailsTests : IDisposable
     }
 
     [Fact]
+    public async Task StoreAsync_WhenAFrameCantBeEncoded_DoesNotThrowAndLeavesNoPictures()
+    {
+        var item = Id<MediaItem>.New();
+        await pictures.StoreAsync(Library, item, [Frame(0, 64, 64)], Token);
+        var broken = Frame(1, 64, 64) with { Pixels = new byte[10] };
+
+        await pictures.StoreAsync(Library, item, [Frame(0, 64, 64), broken], Token);
+
+        Assert.Null(pictures.Find(Library, item, 0));
+        Assert.Null(pictures.Find(Library, item, 1));
+    }
+
+    [Fact]
+    public async Task StoreAsync_Cancelled_LeavesNoPictures()
+    {
+        var item = Id<MediaItem>.New();
+        await pictures.StoreAsync(Library, item, [Frame(0, 64, 64)], Token);
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pictures.StoreAsync(Library, item, [Frame(0, 64, 64)], cancelled.Token));
+
+        Assert.Null(pictures.Find(Library, item, 0));
+    }
+
+    [Fact]
+    public async Task Invalidate_AlsoDeletesTemporaryFilesOfACrashedWrite()
+    {
+        var item = Id<MediaItem>.New();
+        await pictures.StoreAsync(Library, item, [Frame(0, 64, 64)], Token);
+        var orphan = pictures.Find(Library, item, 0) + ".0123456789abcdef.tmp";
+        await File.WriteAllBytesAsync(orphan, [1], Token);
+        using var cache = new ThumbnailCache(TimeProvider.System, NullLogger<ThumbnailCache>.Instance);
+
+        cache.Invalidate(Library, item);
+
+        Assert.False(File.Exists(orphan));
+    }
+
+    [Fact]
     public async Task Invalidate_DeletesTheKeyframePicturesWithTheThumbnails_AndKeepsOtherItems()
     {
         var item = Id<MediaItem>.New();

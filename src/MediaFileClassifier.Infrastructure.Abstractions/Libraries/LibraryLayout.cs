@@ -134,10 +134,10 @@ public sealed record LibraryLayout
     }
 
     /// <summary>
-    /// Gets the file name pattern that matches all the keyframe pictures of an item, in its thumbnail folder.
+    /// Gets the file name pattern that matches all the keyframe pictures of an item, and their temporary files, in its thumbnail folder.
     /// </summary>
     /// <param name="itemId">The item.</param>
     /// <returns>The search pattern.</returns>
     public static string KeyframeThumbnailSearchPattern(Id<MediaItem> itemId) =>
-        FormattableString.Invariant($"{itemId.Value}-frame-*{ThumbnailFileExtension}");
+        FormattableString.Invariant($"{itemId.Value}-frame-*");
 }

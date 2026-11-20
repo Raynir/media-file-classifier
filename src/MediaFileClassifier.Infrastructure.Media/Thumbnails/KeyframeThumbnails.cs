@@ -25,19 +25,30 @@ public sealed partial class KeyframeThumbnails(ILogger<KeyframeThumbnails> logge
             {
                 try
                 {
-                    DeleteAll(library, itemId);
+                    // The new pictures replace the old ones by name; what is left of the old ones goes after.
+                    var kept = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var frame in frames)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        Write(library.GetKeyframeThumbnailPath(itemId, frame.Index), frame);
+                        var path = library.GetKeyframeThumbnailPath(itemId, frame.Index);
+                        Write(path, frame);
+                        kept.Add(path);
                     }
+
+                    DeleteAll(library, itemId, kept);
                 }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                catch (Exception ex) when (ex is not OutOfMemoryException)
                 {
+                    // Half old and half new pictures would sit under the wrong times: none is better.
+                    TryDeleteAll(library, itemId);
+                    if (ex is OperationCanceledException)
+                    {
+                        throw;
+                    }
+
                     LogStoreFailed(logger, itemId.Value, ex);
                 }
-            },
-            cancellationToken);
+            });
     }
 
     /// <inheritdoc />
@@ -54,7 +65,8 @@ public sealed partial class KeyframeThumbnails(ILogger<KeyframeThumbnails> logge
     /// </summary>
     /// <param name="library">The library's folder layout.</param>
     /// <param name="itemId">The item.</param>
-    internal static void DeleteAll(LibraryLayout library, Id<MediaItem> itemId)
+    /// <param name="keep">Full paths to leave alone.</param>
+    internal static void DeleteAll(LibraryLayout library, Id<MediaItem> itemId, ISet<string>? keep = null)
     {
         var folder = Path.GetDirectoryName(library.GetKeyframeThumbnailPath(itemId, 0))!;
         if (!Directory.Exists(folder))
@@ -62,14 +74,35 @@ public sealed partial class KeyframeThumbnails(ILogger<KeyframeThumbnails> logge
             return;
         }
 
-        foreach (var file in Directory.EnumerateFiles(folder, LibraryLayout.KeyframeThumbnailSearchPattern(itemId)))
+        // Also matches the temporary files a crashed write left behind.
+        foreach (var file in Directory.EnumerateFiles(folder, LibraryLayout.KeyframeThumbnailSearchPattern(itemId)).ToList())
         {
-            File.Delete(file);
+            if (keep is null || !keep.Contains(file))
+            {
+                File.Delete(file);
+            }
+        }
+    }
+
+    private static void TryDeleteAll(LibraryLayout library, Id<MediaItem> itemId)
+    {
+        try
+        {
+            DeleteAll(library, itemId);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Nothing more to do.
         }
     }
 
     private static void Write(string path, SampledFrame frame)
     {
+        if (frame.Pixels.Length != frame.Width * frame.Height * 4)
+        {
+            throw new ArgumentException($"Frame {frame.Index} doesn't hold {frame.Width}x{frame.Height} RGBA pixels.", nameof(frame));
+        }
+
         using var bitmap = new SKBitmap(new SKImageInfo(frame.Width, frame.Height, SKColorType.Rgba8888, SKAlphaType.Opaque));
         frame.Pixels.Span.CopyTo(bitmap.GetPixelSpan());
         using var scaled = ThumbnailEncoder.ScaleDown(bitmap, IKeyframeThumbnails.LongestEdge);

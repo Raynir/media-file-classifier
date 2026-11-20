@@ -83,7 +83,15 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Gets a value indicating whether the strip is shown with nothing in it: not analysed yet, or loading.
     /// </summary>
-    public bool IsEmpty => IsVisible && !HasKeyframes;
+    public bool IsEmpty => IsVisible && IsLoaded && !HasKeyframes;
+
+    /// <summary>
+    /// Gets a value indicating whether the query for the shown item's keyframes has answered, so an empty strip isn't
+    /// announced while it loads.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    public partial bool IsLoaded { get; private set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the item can't play in the app, so choosing only selects a moment and
@@ -138,6 +146,7 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
         loading = null;
         ++loads;
         Clear();
+        IsLoaded = false;
         Moment = null;
         IsMomentCopied = false;
         IsVisible = item is { MediaType: MediaType.Video or MediaType.AnimatedImage };
@@ -191,7 +200,7 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
             try
             {
                 await clipboard.SetTextAsync(Format.Timestamp(moment));
-                IsMomentCopied = true;
+                IsMomentCopied = Moment == moment;
             }
             catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
             {
@@ -223,6 +232,7 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
 
             var keyframes = markers.Select(marker => new KeyframeViewModel(marker, localizer)).ToList();
             Keyframes = keyframes;
+            IsLoaded = true;
             if (pictures is null)
             {
                 return;

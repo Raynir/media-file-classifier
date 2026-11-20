@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using Microsoft.Extensions.Logging;
@@ -11,10 +12,14 @@ namespace MediaFileClassifier.UseCases.Import.Stages;
 /// Computes a discovered item's quick fingerprint (E01-S06-T01), then queues <see cref="ImportStages.Media"/>.
 /// </summary>
 /// <param name="hasher">Computes the fingerprint.</param>
+/// <param name="files">Checks the folder's root when a file's directory is gone.</param>
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
-public sealed class FingerprintStage(IMediaHasher hasher, TimeProvider clock, ILogger<FingerprintStage> logger) : ItemStage(clock, logger)
+public sealed class FingerprintStage(IMediaHasher hasher, IMediaFileSource files, TimeProvider clock, ILogger<FingerprintStage> logger) : ItemStage(clock, logger)
 {
+    /// <inheritdoc />
+    protected override IMediaFileSource Files => files;
+
     /// <inheritdoc />
     public override string Stage => ImportStages.Fingerprint;
 

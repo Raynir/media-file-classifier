@@ -18,17 +18,43 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
 
     private readonly StubOpenAiServer server = new();
     private readonly HttpClient httpClient;
-    private readonly OpenAiCompatibleImageDescriber describer;
+    private readonly OpenAiCompatibleMultiImageDescriber describer;
 
     public OpenAiCompatibleImageDescriberTests()
     {
         httpClient = server.CreateClient();
-        describer = new OpenAiCompatibleImageDescriber(
+        describer = new OpenAiCompatibleMultiImageDescriber(
             "lmstudio:describe",
             "LM Studio",
             new OpenAiCompatibleEndpoint(new Uri("http://127.0.0.1:1234/v1"), "google/gemma-4-e2b") { MaxRetries = 0 },
             httpClient);
     }
+
+    [Fact]
+    public void SupportedFields_AreEveryField_AsTheContractRequiresThem() =>
+        Assert.Equal(DescriberFields.All, describer.SupportedFields);
+
+    [Fact]
+    public async Task DescribeFrames_SendsEveryFrameInOneRequest()
+    {
+        server.ChatAnswers.Enqueue(ImageDescriptionContractTests.ValidJson);
+        var options = new ImageDescriptionOptions(Context: "A video file.") { FrameCount = 3 };
+
+        var output = await describer.DescribeFramesAsync([Image, Image, Image], options, TestContext.Current.CancellationToken);
+
+        Assert.Equal("Dog on a beach", output.Value.Title);
+        var request = Assert.Single(server.ChatRequests);
+        Assert.Equal(3, request.Split("image/jpeg;base64", StringSplitOptions.None).Length - 1);
+        Assert.Contains("The 3 pictures are frames of one video or animation, in time order. Describe the whole clip, not each frame. A video file. Write every field", request, StringComparison.Ordinal);
+        Assert.DoesNotContain("Describe this image.", request, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DescribeFrames_MoreThanMaxImages_Throws() =>
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => describer.DescribeFramesAsync(
+            [.. Enumerable.Repeat(Image, describer.MaxImages + 1)],
+            ImageDescriptionOptions.Default,
+            TestContext.Current.CancellationToken));
 
     [Fact]
     public async Task Describe_ValidAnswer_ReturnsDescriptionAndSendsTheSchema()
@@ -38,7 +64,7 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
         var output = await describer.DescribeAsync(Image, ImageDescriptionOptions.Default, TestContext.Current.CancellationToken);
 
         Assert.Equal("Dog on a beach", output.Value.Title);
-        Assert.Equal(ImageDescriptionContract.Version, output.PromptVersion);
+        Assert.Equal("describe-2", output.PromptVersion);
         Assert.Equal("google/gemma-4-e2b", output.Model.ModelName);
         var request = Assert.Single(server.ChatRequests);
         Assert.Contains("\"json_schema\"", request, StringComparison.Ordinal);
@@ -48,6 +74,8 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
 
         // The limits stay schema keywords, so a grammar-based server enforces them; not moved into the descriptions.
         Assert.Contains($"\"maxItems\":{ImageDescriptionContract.MaxListItems}", compact, StringComparison.Ordinal);
+        Assert.Contains($"\"maxItems\":{ImageDescriptionContract.MaxTagItems}", compact, StringComparison.Ordinal);
+        Assert.Contains("\"presence_penalty\":1.5", compact, StringComparison.Ordinal);
         Assert.Contains($"\"maxLength\":{ImageDescriptionContract.MaxTitleLength}", compact, StringComparison.Ordinal);
         Assert.DoesNotContain("maxItems:", compact, StringComparison.Ordinal);
     }
@@ -120,7 +148,7 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
 
         await describer.DescribeAsync(Image, new ImageDescriptionOptions("ru", "Folder: Holidays"), TestContext.Current.CancellationToken);
 
-        Assert.Contains("Write all text in Russian", server.ChatRequests[0], StringComparison.Ordinal);
+        Assert.Contains("Write every field in Russian", server.ChatRequests[0], StringComparison.Ordinal);
         Assert.Contains("Folder: Holidays", server.ChatRequests[0], StringComparison.Ordinal);
     }
 
@@ -139,6 +167,31 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
 
         Assert.DoesNotContain("\"json_schema\"", server.ChatRequests[0], StringComparison.Ordinal);
         Assert.Contains("json_object", server.ChatRequests[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Describe_Describe2_SendsSchema2_AndReturnsTheRussianForms()
+    {
+        server.ChatAnswers.Enqueue(ImageDescriptionContractTests.ValidJson2);
+
+        var output = await describer.DescribeAsync(Image, ImageDescriptionOptions.Default, TestContext.Current.CancellationToken);
+
+        Assert.Equal("Собака на пляже", output.Value.TitleRu);
+        Assert.Equal("пляж", output.Value.TagsRu!["beach"]);
+        Assert.Contains("\"title_ru\"", server.ChatRequests[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Describe_Describe1_SendsSchema1_AndItsPrompt()
+    {
+        server.ChatAnswers.Enqueue(ImageDescriptionContractTests.ValidJson);
+
+        var output = await describer.DescribeAsync(Image, new ImageDescriptionOptions(PromptVersion: "describe-1"), TestContext.Current.CancellationToken);
+
+        Assert.Equal("describe-1", output.PromptVersion);
+        Assert.Null(output.Value.TitleRu);
+        Assert.DoesNotContain("title_ru", server.ChatRequests[0], StringComparison.Ordinal);
+        Assert.Contains("Write all text in English", server.ChatRequests[0], StringComparison.Ordinal);
     }
 
     public void Dispose()

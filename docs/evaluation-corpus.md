@@ -1,6 +1,6 @@
 # Evaluation corpus and quality metrics
 
-A labelled set of media and queries for judging search and OCR quality by numbers (E01-S10). The model spikes (E06-SP01, SP02, SP04), the embedding regression test (E06-S03-T05) and relevance tuning (E09-S05) use it. The small edge-case corpus for unit tests is a different thing: `tests/SampleMedia` (E01-S11).
+A labelled set of media and queries for judging search and OCR quality by numbers (E01-S10). The model spikes (E06-SP01, SP02 in [spikes/describer-model.md](spikes/describer-model.md), SP04), the embedding regression test (E06-S03-T05) and relevance tuning (E09-S05) use it. The small edge-case corpus for unit tests is a different thing: `tests/SampleMedia` (E01-S11).
 
 ## What's in it
 
@@ -128,7 +128,38 @@ dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate
 dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- evaluate --system app-hybrid --models models/siglip2 --rrf-k 30 --field-weights title=4,tags=5
 ```
 
+`eval/analysis/qwen_qwen3-vl-4b-describe-2.json` is the same model with the describe-2 prompt (E06-S04-T02, the app's default), which also writes a Russian title and a Russian form per tag (`titleRu`, `tagsRu`); `analyze --ocr-from eval/analysis/qwen_qwen3-vl-4b.json` reused the OCR text. `AppSearchSystem` stores those tags as one AI run, through `TagNormalizer` and `TagAssignment.Ai` (the model's form, else the dictionary's), and the Russian title with the title, as the describer does (E06-S04-T09). Results of 2026-11-19 (reports `2026-11-19_123251_app-keyword`, `2026-11-19_124635_app-hybrid`), describe-1 analysis → describe-2 analysis, both with the tag dictionary and Russian stems:
+
+| System | en recall@10 | en MRR | ru recall@10 | ru MRR |
+|---|--:|--:|--:|--:|
+| app-keyword | 0.707 → 0.671 | 0.834 → 0.758 | 0.553 → 0.557 | 0.625 → 0.612 |
+| app-hybrid | 0.921 → 0.917 | 0.972 → 0.957 | 0.841 → 0.860 | 0.899 → 0.887 |
+
+Russian keyword search went from 0.16 / 0.21 (the 2026-11-14 baseline, English metadata only) to about 0.55 / 0.61 with the dictionary's tag forms and stems; describe-2's own forms add little on top. English keyword search alone is lower with describe-2 (abstract queries MRR 0.75 → 0.38, media 0.75 → 0.50); the search bar's hybrid results stay within 0.015. The app-keyword baselines were reset to describe-2's values minus 0.02 (user's choice); tuning the keyword field weights for describe-2 is a follow-up.
+
 The ranking settings default to the app's (`SearchRankingOptions.Default`, `SemanticRelevanceThresholds`); `--rrf-k`, `--keyword-weight`, `--vector-weight`, `--field-weights` and `--threshold` (`centred,raw` or `none`) try other values without a rebuild. The report lists the settings it ran with. `tune` scores a fixed grid of them in one process and writes `reports/<date>_tune-app-hybrid.md` (E09-S05-T03).
+
+### OCR engines (E06-S05)
+
+`ocr` runs one OCR engine over the 80 ground-truth images and the 164 photos without text tags, with the input the app gives it (a still image at most 2048 px on its longest edge), and writes `eval/ocr-results/<engine>.json` for `evaluate --results`. It prints the time per image and every no-text photo that got text; those are checked by eye, since many have real incidental text (ear tags, number plates).
+
+```powershell
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- ocr --system rapidocr --models models/pp-ocrv5 --ep cpu
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -p:OnnxGpu=true -- ocr --system rapidocr --models models/pp-ocrv5 --ep directml
+dotnet run -c Release --project tools/MediaFileClassifier.Evaluation -- ocr --system vlm      # LM Studio, qwen/qwen3-vl-4b
+```
+
+`models/pp-ocrv5` holds `ch_PP-OCRv5_det_mobile.onnx` and `eslav_PP-OCRv5_rec_mobile.onnx` from RapidOCR. Results of 2026-11-15 (MFC-331, i7-14700HX, 8 GB laptop GPU), CER Latin / Cyrillic / mixed / all, then ms per image and no-text photos with output:
+
+| Engine | CER | CPU | GPU | No-text with output |
+|---|---|---|---|---|
+| RapidOCR, detector at most 960 px (app default) | 0.036 / 0.095 / 0.083 / 0.066 | 1,955 | 200 (DirectML) | 37 |
+| RapidOCR, detector at most 2000 px (RapidOCR default) | 0.043 / 0.103 / 0.155 / 0.076 | 4,049 | 292 (DirectML) | 65 |
+| qwen/qwen3-vl-4b in LM Studio | 0.024 / 0.058 / 0.353 / 0.052 | — | 3,875 | 41 |
+
+RapidOCR is the default OCR engine on every hardware class; the vision-language model is chosen by naming its provider in the analysis profile.
+
+With the short-line guard (MFC-334: a line needs two letters or digits, and three or fewer need confidence 0.8) the 960 px run reads 0.037 / 0.096 / 0.083 / 0.067, and 27 of the no-text photos have output instead of 37. All ten photos listed as stray-mark cases (photo-011, -034, -058, -070, -071, -078, -090, -098, -099, -123) give no text. The guard also drops a few real one-character lines such as a lone quantity "1" or "OK".
 
 ### Baseline runs
 

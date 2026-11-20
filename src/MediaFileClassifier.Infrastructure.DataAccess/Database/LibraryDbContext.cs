@@ -49,6 +49,11 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
 
     public DbSet<TagRejection> TagRejections => Set<TagRejection>();
 
+    /// <summary>
+    /// Gets the tag suggestions.
+    /// </summary>
+    public DbSet<TagSuggestion> TagSuggestions => Set<TagSuggestion>();
+
     public DbSet<ModelRegistration> Models => Set<ModelRegistration>();
 
     public DbSet<Embedding> Embeddings => Set<Embedding>();

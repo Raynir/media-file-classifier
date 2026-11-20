@@ -18,6 +18,7 @@ using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.Ui;
 using MediaFileClassifier.UseCases;
+using MediaFileClassifier.UseCases.Embeddings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -81,6 +82,9 @@ internal static class Program
 
             // The search index loads the open library's vectors in the background from its first use (D067).
             host.Services.GetRequiredService<ISearchIndex>();
+
+            // Search switches to a new embedding model once enough items have its vectors (E06-S07-T05).
+            host.Services.GetRequiredService<EmbeddingModelMigration>();
 
             if (args.Contains("--benchmark"))
             {

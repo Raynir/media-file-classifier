@@ -9,6 +9,33 @@ namespace MediaFileClassifier.Domain.Tests.Analysis;
 public sealed class KeyframeAggregationTests
 {
     [Fact]
+    public void MergeLists_KeepsEntriesInEnoughFrames_MostFrequentFirst_IgnoringCaseAndSpaces()
+    {
+        IReadOnlyList<IReadOnlyList<string>> frames =
+        [
+            ["car", "Red  door", "car", " "],
+            ["tree", "CAR"],
+            ["red door", "lamp"],
+            ["car"],
+            [],
+        ];
+
+        // 25% of 5 frames is 2: "tree" and "lamp" appear once.
+        Assert.Equal(["car", "Red door"], KeyframeAggregation.MergeLists(frames));
+        Assert.Equal(["car", "Red door", "tree", "lamp"], KeyframeAggregation.MergeLists(frames, 0.2));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1.5)]
+    [InlineData(double.NaN)]
+    public void MergeLists_ShareOutOfRange_Throws(double share) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => KeyframeAggregation.MergeLists([], share));
+
+    [Fact]
+    public void MergeLists_NoFrames_IsEmpty() => Assert.Empty(KeyframeAggregation.MergeLists([]));
+
+    [Fact]
     public void MergeTags_WeighsByHowOftenATagAppears()
     {
         // 4 frames: "dog" in all, "beach" in 2, "frisbee" in 1 (25%, the threshold), and none in the last frame.
@@ -111,6 +138,29 @@ public sealed class KeyframeAggregationTests
         ];
 
         Assert.Equal(["SALE 50%", "Shop now", "Open daily", "Скидка", "sale 50%"], KeyframeAggregation.MergeTextLines(frames));
+    }
+
+    [Fact]
+    public void MergeTextLines_NoisyWatermarkVariants_AreOneLine_TheMostFrequentVariantWins()
+    {
+        string?[] frames = ["LONGINES PARIS\nHello", "LONGlNES PARIS", "LONGINES  PARIS", "LONGINES PARIS.\nHello there", "LONGINES PARlS"];
+
+        Assert.Equal(["LONGINES PARIS", "Hello", "Hello there"], KeyframeAggregation.MergeTextLines(frames));
+    }
+
+    [Theory]
+    [InlineData("Platform 12 closed today", "Platform 13 closed today")]
+    [InlineData("EXIT 4", "EXIT 5")]
+    [InlineData("Grand opening", "Grand opening sale tomorrow")]
+    public void MergeTextLines_DifferentDigitsShortOrFarLines_AreKept(string first, string second)
+    {
+        Assert.Equal([first, second], KeyframeAggregation.MergeTextLines([first, second]));
+    }
+
+    [Fact]
+    public void MergeTextLines_NearLinesAreMatchedIgnoringCaseAndPunctuation()
+    {
+        Assert.Equal(["Estimated delivery: Tuesday"], KeyframeAggregation.MergeTextLines(["Estimated delivery: Tuesday", "ESTIMATED DELIVERY TUESDAY!", "Estimated delivery: Tuesdav"]));
     }
 
     [Fact]

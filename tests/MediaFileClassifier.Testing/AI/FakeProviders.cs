@@ -9,18 +9,44 @@ namespace MediaFileClassifier.Testing.AI;
 /// </summary>
 /// <param name="behavior">Latency, failures and health.</param>
 /// <param name="describe">Produces the description, or <c>null</c> for the default.</param>
-public sealed class FakeImageDescriber(FakeProviderBehavior? behavior = null, Func<AiImage, ImageDescriptionOptions, ImageDescription>? describe = null)
-    : FakeAiProvider("fake:describe", new ModelIdentity(ProviderIds.Fake, "fake-describer", "1"), behavior, "fake-1"), IImageDescriber
+/// <param name="modelName">The model name, e.g. another one to re-index with; the provider ID ends with it.</param>
+/// <param name="promptVersion">The prompt version.</param>
+/// <param name="supportedFields">The fields it declares (E06-S04-T03); it still returns all of them, as a model might.</param>
+public sealed class FakeImageDescriber(
+    FakeProviderBehavior? behavior = null,
+    Func<AiImage, ImageDescriptionOptions, ImageDescription>? describe = null,
+    string modelName = FakeImageDescriber.DefaultModelName,
+    string promptVersion = "fake-1",
+    DescriberFields supportedFields = DescriberFields.All)
+    : FakeAiProvider(
+        modelName == FakeImageDescriber.DefaultModelName ? "fake:describe" : $"fake:describe:{modelName}",
+        new ModelIdentity(ProviderIds.Fake, modelName, "1"),
+        behavior,
+        promptVersion), IImageDescriber
 {
-    /// <inheritdoc />
-    public string PromptVersion => "fake-1";
+    /// <summary>
+    /// The default model name.
+    /// </summary>
+    public const string DefaultModelName = "fake-describer";
 
     /// <inheritdoc />
-    public Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    public string PromptVersion { get; } = promptVersion;
+
+    /// <inheritdoc />
+    public DescriberFields SupportedFields { get; } = supportedFields;
+
+    /// <inheritdoc />
+    /// <remarks>The fake has a template for every version: it uses the one asked for.</remarks>
+    public string GetPromptVersion(string? requested) => requested ?? PromptVersion;
+
+    /// <inheritdoc />
+    public async Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(options);
 
-        return RunAsync(() => (describe ?? Describe)(image, options), cancellationToken);
+        var output = await RunAsync(() => (describe ?? Describe)(image, options), cancellationToken).ConfigureAwait(false);
+        return output with { PromptVersion = GetPromptVersion(options.PromptVersion) };
     }
 
     private static ImageDescription Describe(AiImage image, ImageDescriptionOptions options)
@@ -40,6 +66,63 @@ public sealed class FakeImageDescriber(FakeProviderBehavior? behavior = null, Fu
 }
 
 /// <summary>
+/// A fake <see cref="IMultiImageDescriber"/> (E06-S04-T07). It records the pictures and options of each request.
+/// </summary>
+/// <param name="maxImages">The most pictures per request.</param>
+/// <param name="describe">Produces the description from a request's pictures, or <c>null</c> for a fixed one.</param>
+public sealed class FakeMultiImageDescriber(int maxImages = 6, Func<IReadOnlyList<AiImage>, ImageDescriptionOptions, ImageDescription>? describe = null)
+    : FakeAiProvider("fake:describe-multi", new ModelIdentity(ProviderIds.Fake, "fake-multi-describer", "1"), null, "fake-1"), IMultiImageDescriber
+{
+    private readonly List<(IReadOnlyList<AiImage> Images, ImageDescriptionOptions Options)> requests = [];
+
+    /// <summary>
+    /// Gets the requests so far: their pictures and options.
+    /// </summary>
+    public IReadOnlyList<(IReadOnlyList<AiImage> Images, ImageDescriptionOptions Options)> Requests
+    {
+        get
+        {
+            lock (requests)
+            {
+                return [.. requests];
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public string PromptVersion => "fake-1";
+
+    /// <inheritdoc />
+    public DescriberFields SupportedFields => DescriberFields.All;
+
+    /// <inheritdoc />
+    public int MaxImages { get; } = maxImages;
+
+    /// <inheritdoc />
+    public string GetPromptVersion(string? requested) => PromptVersion;
+
+    /// <inheritdoc />
+    public Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken) =>
+        DescribeFramesAsync([image], options, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<AiOutput<ImageDescription>> DescribeFramesAsync(IReadOnlyList<AiImage> frames, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(frames);
+        ArgumentNullException.ThrowIfNull(options);
+        lock (requests)
+        {
+            requests.Add((frames, options));
+        }
+
+        return RunAsync(
+            () => describe?.Invoke(frames, options)
+                ?? new ImageDescription($"Clip of {frames.Count}", "A clip.", "A clip.", ["clip"], [], [], [], []),
+            cancellationToken);
+    }
+}
+
+/// <summary>
 /// A fake <see cref="IOcrProvider"/>. By default it finds no text.
 /// </summary>
 /// <param name="behavior">Latency, failures and health.</param>
@@ -53,6 +136,29 @@ public sealed class FakeOcrProvider(FakeProviderBehavior? behavior = null, Func<
         ArgumentNullException.ThrowIfNull(image);
 
         return RunAsync(() => new OcrResult(recognize?.Invoke(image) ?? string.Empty), cancellationToken);
+    }
+}
+
+/// <summary>
+/// A fake in-process OCR provider that is also an <see cref="ITextDetector"/>, like the RapidOCR provider. It finds no text by default.
+/// </summary>
+/// <param name="hasText">Says whether an image has text, or <c>null</c> for none. It may throw to simulate a missing model.</param>
+public sealed class FakeDetectingOcrProvider(Func<AiImage, bool>? hasText = null)
+    : FakeAiProvider("fake:ocr-detector", new ModelIdentity(ProviderIds.Fake, "fake-ocr-detector", "1"), null), IOcrProvider, ITextDetector
+{
+    /// <summary>Gets how many images the detector checked.</summary>
+    public int DetectorCalls { get; private set; }
+
+    /// <inheritdoc />
+    public Task<AiOutput<OcrResult>> RecognizeTextAsync(AiImage image, CancellationToken cancellationToken) =>
+        RunAsync(() => new OcrResult(string.Empty), cancellationToken);
+
+    /// <inheritdoc />
+    public Task<bool> HasTextAsync(AiImage image, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        DetectorCalls++;
+        return Task.FromResult(hasText?.Invoke(image) ?? false);
     }
 }
 

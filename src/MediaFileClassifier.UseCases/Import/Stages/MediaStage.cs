@@ -36,6 +36,9 @@ public partial class MediaStage(
     ILogger<MediaStage> logger) : ItemStage(clock, logger)
 {
     /// <inheritdoc />
+    protected override IMediaFileSource Files => files;
+
+    /// <inheritdoc />
     public override string Stage => ImportStages.Media;
 
     /// <inheritdoc />

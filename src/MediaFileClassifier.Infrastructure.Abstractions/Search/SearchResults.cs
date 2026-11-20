@@ -25,6 +25,13 @@ public sealed record SearchResults(IReadOnlyList<SearchHit> Hits, int TotalCount
     /// <see cref="Hits"/> and <see cref="TotalCount"/> unless <see cref="SearchQuery.IncludeLessRelevant"/> is set.
     /// </summary>
     public int LessRelevantCount { get; init; }
+
+    /// <summary>
+    /// Gets how many items the vector search skipped although they pass the filter, because they only have vectors of
+    /// another model than the query's: they were analyzed with an older model and are Outdated (D051, E06-S07-T05).
+    /// They can still be found by keyword.
+    /// </summary>
+    public int SkippedCount { get; init; }
 }
 
 /// <summary>

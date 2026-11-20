@@ -1,0 +1,4171 @@
+{
+ "video-025|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Accurate red-headed waterbird on green water with tree reflections; rich fields, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "video-025|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Correct duck in pond but minimal fields and no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-025|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate dark bird floating among tree reflections, good bilingual fields",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-025|minicpm-v-4": {
+  "score": 2,
+  "reason": "Duck in water correct but rambling filler; title_ru 'Дух' means spirit; tags empty, scenes junk",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "tags",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-025|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Duck in green water is right, but invents bubbles in the air and a waterfall",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-025|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Duck with reddish head swimming away in green water; 'stone walls' arguable but rich and accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-025|google/gemma-4-e2b": {
+  "score": 1,
+  "reason": "Calls the duck a person swimming; wrong subject",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-025|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Duck swimming away in murky water, detailed; one odd RU tag (ripple->рельеф)",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-044|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic colorful building with crowd and sky; no landmark, sparse fields",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-044|qwen/qwen3-vl-4b": {
+  "score": 2,
+  "reason": "English content excellent, but title_ru names the wrong cathedral (Казанский собор) and onion dome->шатер",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-044|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic building, crowd, crane; correct but sparse, no landmark",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-044|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Names St Basil's correctly in both languages with accurate details",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-044|minicpm-v-4": {
+  "score": 2,
+  "reason": "English names St Basil's but text truncated; title_ru is garbage (Krasnodar, Mongol); tags/objects empty",
+  "halluc": true,
+  "ru": "poor",
+  "missing": [
+   "tags",
+   "objects",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-044|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate onion-domed Russian architecture on busy square; no landmark name but all correct",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-044|qwen/qwen3-vl-4b-c": {
+  "score": 2,
+  "reason": "Rich accurate English, but title_ru names the wrong cathedral and onion dome->шлем",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-044|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "St Basil's on Red Square, accurate and rich; no Russian at all",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-025|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-025|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Two bears in snow correct, but invents raised front paws and white snout; sparse",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-025|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Two brown bears confronting in snow, snarling; 'mountain' tag not in image, objects list padded",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-025|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Two bears in snow, one mouth open; correct but sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-025|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate roaring brown bear over another bear in snow, good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-025|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Two brown bears fighting in snow, rich English; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-025|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate roaring bear and second bear in snow; title_ru has gender agreement error",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-025|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate confrontation description and rich tags, but 'mountain' tag invented; structured lists empty",
+  "halluc": true,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-034|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Pink vegetable soup in floral bowl on checkered cloth, accurate; RU tag 'проверочная ткань' is a bad calque",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-034|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Calls the soup a stew/sauce on a plate; close enough to find by pink dish",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-034|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Pink soup with beets in ornate bowl, accurate; RU tag beet->морковь wrong",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-034|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Pink likely beet soup, accurate and rich; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-034|minicpm-v-4": {
+  "score": 2,
+  "reason": "Pink soup in decorative bowl but marketing fluff; title_ru 'Перекисная соус' is nonsense; tags empty",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "tags",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-034|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Frothy pink soup in floral bowl, accurate bilingual",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions"
+  ]
+ },
+ "photo-034|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Calls the soup a pink dessert; wrong food type",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-034|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Description of red food with herbs on checkered cloth is fair, but only tag is 'dessert'",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-012|google/gemma-4-e4b": {
+  "score": 2,
+  "reason": "Describes chimney as a pillar with cylindrical mounts; facade and snow right; title_ru wrong gender and term",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "actions"
+  ]
+ },
+ "video-012|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "White pillar with two pots, windows, snow; accurate but sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-012|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Chimney in front of white facade with snowy roof; correct, misses the pots",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-012|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Snowy chimney with two rusted caps, wire, facade; accurate bilingual",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-012|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Snowy chimney with caps and wire, accurate; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-012|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "White pole with brown pots and building; correct but sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-012|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-012|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Weathered snowy chimney with caps and facade, rich bilingual",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-007|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Yellow-fronted train at platform seen through station doors, rich; sign text 'Bristol-on-Avon' invented",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-007|minicpm-v-4": {
+  "score": 2,
+  "reason": "English title/description of station shelter usable, but title_ru is unrelated garbage, tags and objects empty/blank",
+  "halluc": true,
+  "ru": "poor",
+  "missing": [
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-007|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Train passing station seen through glass, partial sign text read; 'French text' is a stretch",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-007|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Yellow train seen through station window, correct; title_ru literally says train passes through the window",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-007|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Yellow and black train seen through station window; correct but sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-007|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Yellow train through window with sign and trees; correct but sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-007|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Train arriving viewed through station doors, rich tags; sign text 'Bristol Avon' invented; lists empty",
+  "halluc": true,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-007|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "CrossCountry train at platform plausible, but invents 'Gloucester-upon-Avon' sign and calls it stationary; no Russian",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "video-021|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Raindrops on window correct, but adds sun shining on the left; sparse",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-021|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Water drops on dark blue surface/window; correct but sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-021|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Raindrops on window glass, accurate and rich tags; RU tag 'стreakи' mixed script; lists empty",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-021|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-021|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Raindrops on window, accurate and complete; RU tag 'стreakи' mixed script",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "video-021|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Wet glass with droplets, accurate bilingual",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-021|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Raindrops on window pane, accurate and rich; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "video-021|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Raindrops on window pane, accurate bilingual; objects empty",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects"
+  ]
+ },
+ "video-030|minicpm-v-4": {
+  "score": 2,
+  "reason": "Man walking on beach with waves correct, but tags empty and scenes are truncated sentences",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "tags",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-030|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Man walking in shallow beach water correct; 'human face' tag odd; sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-030|google/gemma-4-e4b": {
+  "score": 2,
+  "reason": "Man on beach with rocks right, but says standing and looking out to sea while he walks along the shore",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-030|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Man in shallow water at beach with rocks and islands; accurate, no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "video-030|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Man in checkered shirt walking barefoot along shoreline, rocks, islands; accurate bilingual",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-030|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate barefoot man stepping into waves; RU tags 'волн' wrong case and 'печатки' wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "video-030|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Man walking along seashore, accurate bilingual though less detailed",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-030|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Man walking in water at beach; says dark pants instead of shorts; sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-179|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Vegetable pizza with tomato, pepper, corn, onion on metal tray; accurate, no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-179|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Pizza with tomatoes, peppers, corn, white sauce; accurate but sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-179|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Vegetable pizza with correct toppings; RU tag 'сauce' mixed script",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-179|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Vegetable pizza with correct toppings, accurate bilingual",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-179|google/gemma-4-e4b": {
+  "score": 2,
+  "reason": "Pizza with vegetables, but invents pepperoni/sausage meat toppings",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-179|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Pizza with tomatoes, peppers, corn on pan; accurate but sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-179|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Loaded vegetable pizza on metal tray, accurate; minor RU gender error",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-179|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-005|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-005|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Calico cat sleeping on red carpet by black fabric, accurate; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-005|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Calico cat stretched out sleeping on red carpet, stone background; accurate bilingual",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-005|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Calico cat resting on red carpet against dark drape, accurate bilingual",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-005|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Cat on red carpet with black curtain; accurate but sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-005|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Sleeping calico cat on red carpet, accurate; RU tag paws->когти wrong",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-005|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Cat on red carpet correct, but invents a black couch with legs and a chair",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-005|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Sleeping cat on red carpet in front of dark fabric, accurate bilingual",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-169|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Correct night skyline, bridge, water; omits cranes/construction",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-169|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-169|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Bridge, water, towers right; no title, sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-169|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Detailed: bridge, skyscrapers under construction, cranes, river",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-169|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate, rich description of lit bridge and skyline",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-169|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate incl. cranes, construction, moored boat; title_ru 'мостовая' wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-169|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic but correct; no title, few tags",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-169|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate incl. cranes, construction, boat; title_ru 'мостовая' wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-198|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate classical guitar on gray couch, frame; bad RU tags",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-198|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-198|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate guitar leaning on sofa, picture frame",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-198|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Accurate classical guitar on sofa with frame",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-198|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Says guitar hangs on wall above sofa; it stands on the sofa",
+  "halluc": true,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-198|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Correct guitar on couch, pillows; no title, sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-198|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Guitar on couch ok, but calls the picture a mirror; no title",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-198|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate and rich; invented 'guitar stand' tag, odd RU",
+  "halluc": true,
+  "ru": "poor",
+  "missing": [
+   "actions"
+  ]
+ },
+ "gif-011|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Reindeer running along curved path, line drawing",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-011|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Correct reindeer motion illustration",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "gif-011|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Deer drawing correct; no title, one tag",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-011|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Elk/reindeer running on line; no title, one tag",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-011|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate reindeer running sequence, line drawing",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-011|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-011|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Correct deer running on arc; RU grammar error 'бегу'",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "gif-011|google/gemma-4-e4b": {
+  "score": 2,
+  "reason": "Deer drawing ok but says standing/walking; they run",
+  "halluc": true,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "gif-003|google/gemma-4-e4b": {
+  "score": 1,
+  "reason": "Calls the toad a hatchling/reptile; misleading",
+  "halluc": true,
+  "ru": "poor",
+  "missing": []
+ },
+ "gif-003|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Snake, smoke, person: wrong",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-003|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-003|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Frog right, but says sitting on sandy beach; it is in water",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-003|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Toad swimming in murky water; lists empty",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-003|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Vague 'animal'/reptile floating on water",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-003|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Toad swimming in shallow water, correct",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "gif-003|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Toad swimming with ripples, correct",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "synth-048|florence2-large-fp32-cpu": {
+  "score": 1,
+  "reason": "No text read, 'picture frame' tag; useless",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-048|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Milk, bread, call grandma; misreads 'Целую' as 'To Celia'",
+  "halluc": true,
+  "ru": "poor",
+  "missing": []
+ },
+ "synth-048|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Russian to-do note, but no content transcribed",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "synth-048|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Correct content: milk, bread, grandma, Lena",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "synth-048|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Exact transcription and translation",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-048|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "'Foreign writing', picture frame; useless",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-048|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Exact transcription, good RU title",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-048|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-150|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Data collection sign, but no text quoted",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-150|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Exact text quoted, accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-150|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Exact text, accurate; RU tag gender error",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-150|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Exact text, accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions"
+  ]
+ },
+ "photo-150|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Text quoted, accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-150|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Text quoted correctly; no title, 'picture frame' tag",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-150|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Text quoted; no title, pink background claim off",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-150|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-028|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-028|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Correct receipt, items, total; RU 'кроissant' mixed",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "synth-028|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Has shop name and items but garbled table description",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-028|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Garbled, invents 'solid white' column; little use",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-028|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Correct receipt, all items and total",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "synth-028|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Correct receipt with prices and total",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "synth-028|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Full accurate transcription; RU mistranslations (алмазный, тыквенное)",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-028|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate receipt; RU tags transliterated/wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-092|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Cargo ship with wake, name Cristina",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-092|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Barge on water; no title, sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-092|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Barge on water, typo 'berry'; sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-092|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Cargo ship Cristina on river; RU 'wake'/'bridge' mistranslated",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-092|minicpm-v-4": {
+  "score": 2,
+  "reason": "Description ok but lists broken/empty, summary cut",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-092|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Cargo ship Cristina on river",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-092|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Barge Cristina from elevated view, accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-092|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Cargo ship Cristina on river; RU 'wake' wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-208|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Treats store sign as metro (subway); church correct",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-208|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Domed building and sign; no Metro, no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-208|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Metro Cash&Carry sign and church; RU 'домик' for dome",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-208|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-208|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Domed church complex and METRO sign",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions"
+  ]
+ },
+ "photo-208|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Domed building and signs; no title, sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-208|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Metro sign near church, rich; RU 'сигнал', 'дом' wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-208|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Metro sign and church, accurate",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-063|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Tropical beach with boats, accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-063|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Beach, umbrellas, boat; no title, sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-063|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Good description but invents many actions (dining, shopping, swimming)",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-063|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-063|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Beach, umbrellas, boat; no title, sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-063|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Tropical beach, accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-063|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Beach, boats, jet skis, umbrellas; RU 'волн' wrong case",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-063|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Beach, boats, jet skis, umbrellas; RU 'волн' wrong case",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-042|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate sign description with text and good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-042|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate and rich in English but no Russian at all",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "synth-042|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate text and description, good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-042|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Correct overall but invents faint text in a corner; title_ru grammar error",
+  "halluc": true,
+  "ru": "poor",
+  "missing": []
+ },
+ "synth-042|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Text read correctly but no title, mislabels as traffic sign, no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-042|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Text read correctly but no title, tagged as poster, no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-042|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-042|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate with clear text and good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "scenes",
+   "actions"
+  ]
+ },
+ "synth-014|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-014|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate sign-in screen description but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "synth-014|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Recognizes sign-in page but invents a third field and white link text; poster tag",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-014|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate, complete, all labels read, good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-014|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate login form description with good Russian tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-014|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Identifies sign-in page but describes odd three-column layout; poster tag",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-014|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate and detailed with labels read; title_ru slightly awkward",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "synth-014|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate with labels read and good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-111|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate chess king close-up but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-111|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate king on board; one bad RU tag (checkered -> проверочная)",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-111|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Calls the focused king a pawn; otherwise chess scene correct",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-111|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic chess board description, wrong blue background, tag table, no title or Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-111|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate focused dark piece with knights and pawns behind, good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions"
+  ]
+ },
+ "photo-111|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate king description; RU tags bishop->бисер and rook->лошадь are wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-111|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-111|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic chess board, vague and partly wrong (white background, blurry), no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-015|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Lynx tag right but wrong count (five), bench, calls them leopards; no title or Russian",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-015|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Correct four wild cats on plank, but never names lynx",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-015|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate four lynxes, platform, enclosure fence; RU lynx->лесной кот and enclosure->ограничение wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-015|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-015|google/gemma-4-e4b": {
+  "score": 2,
+  "reason": "Wild cats on log, but calls them canids and fallen logs",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-015|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Lynx right but says five; no title or Russian",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-015|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate four lynxes on branch and platform, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-015|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate description; RU tags lynx->лисица, fence->огород, trunk->корень are wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-054|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate Paris night riverfront with Eiffel Tower, rich bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-054|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate Paris riverfront at dusk, good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-054|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-054|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "City at night with Eiffel Tower mentioned, but boats on a bridge; weak tags, no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-054|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate river skyline with Eiffel Tower, good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-054|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate Paris/Seine twilight scene, good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-054|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate and rich but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-054|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Night city with Eiffel Tower in text, sparse tags, no title or Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-140|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate wooden building with shop mural and cars, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-140|qwen/qwen3-vl-4b": {
+  "score": 2,
+  "reason": "Mostly accurate but invents street sign text Улица Радио 39",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-140|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-140|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Building with advertisement and two cars, muddled placement, weak tags, no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-140|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate, reads Russian signage, good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-140|qwen/qwen3-vl-4b-c": {
+  "score": 2,
+  "reason": "Mostly accurate but invents street sign text and a sunset tag",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-140|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate old building with Russian ads and parked cars, good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-140|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Says three cars; very sparse, no title or Russian",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-034|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate cloud at dusk over distant city, railing and satellite dish",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-034|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate cloud over hills from rooftop, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "video-034|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-034|qwen/qwen3-vl-4b-c": {
+  "score": 2,
+  "reason": "Cloud and rooftop right but adds lightning tag; RU tags misspelled or ungrammatical",
+  "halluc": true,
+  "ru": "poor",
+  "missing": []
+ },
+ "video-034|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Large cloud right but invents bridge and highway; tag street light; no Russian",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-034|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate cumulus cloud at twilight over city lights, good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions"
+  ]
+ },
+ "video-034|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Large cloud above wall/fence, vague; no title or Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-034|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate cloud over rooftop with dish; RU tag спутниковый антенна ungrammatical",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "gif-032|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Calls the letter A a triangle, tagged tripod",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-032|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Correct letter A tracing guide; RU title and трассировка are poor",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-032|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-032|florence2-large-fp32-cpu": {
+  "score": 1,
+  "reason": "Calls it a triangle, tagged tent",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-032|google/gemma-4-e2b": {
+  "score": 1,
+  "reason": "Abstract inverted triangle, invents faint characters; misses letter A",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-032|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Correct letter A handwriting tracing; RU tags трассировка, оконтурить poor",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "gif-032|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Correct letter A on lined grid, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-032|google/gemma-4-e4b": {
+  "score": 1,
+  "reason": "Interprets the letter as a line chart of data trends",
+  "halluc": true,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "gif-020|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate waving Ukrainian flag, good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-020|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate Ukrainian flag but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "gif-020|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Correct Ukrainian flag; calls it tricolor; title_ru has non-word Махнущий",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "scenes",
+   "emotions"
+  ]
+ },
+ "gif-020|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-020|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Blue and yellow flag but invents thin blue line; no country, title or Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-020|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Blue/yellow striped rectangle, flag tag only; no country, title or Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-020|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate waving Ukrainian flag, good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-020|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate Ukrainian flag, good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-043|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-043|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Plane with trail in blue sky, but mentions clouds; no title or Russian",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-043|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate airplane contrail but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "video-043|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Plane and white line in blue sky; tag vehicle; no title or Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-043|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate contrail in blue sky; RU контур for contrail is wrong",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "video-043|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate distant plane with contrail, good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-043|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate contrail across clear blue sky, good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "video-043|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate plane with contrail, good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-035|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Correct business card for Anna Smirnova, wedding photographer, teal profession text and green bar; ignores the Russian lines",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-035|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Name, profession and phone captured but calls it a poster, layout garbled, no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-035|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-035|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate contact card with name, wedding photographer, phone and email; good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "synth-035|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate and complete, notes bilingual text and teal stripe, uses idiomatic 'визитка'",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-035|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Very accurate with exact phone and email and both name spellings; small tag typo",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions"
+  ]
+ },
+ "synth-035|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate English description but no Russian at all",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-035|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Identifies business card of wedding photographer Anna Smirnova; 'poster' tag, no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-003|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Black and white cat curled on concrete with white paws, correct and complete",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-003|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Describes a person's arm/shadow, misses the cat",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-003|minicpm-v-4": {
+  "score": 2,
+  "reason": "English title/description right but summary rambles, Russian misspelled 'Коша' and says sitting",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-003|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Vague 'black animal' (cat only in tags), claims faint writing and indoor setting",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-003|florence2-large-fp32-cpu": {
+  "score": 1,
+  "reason": "Calls the cat a black circle/crescent object; useless",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-003|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Correct black and white sleeping cat on concrete",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-003|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Cat on concrete correct and well tagged, though misses the white markings",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-003|qwen3-vl-4b-describe-1": {
+  "score": 1,
+  "reason": "Identifies the cat as a dog",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-131|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-131|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Neon-lit Japanese street at night with pedestrians, rich bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-131|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic crowded street with lit signs and cone; no Japan/night/neon framing, no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-131|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate neon Tokyo commercial street, reads やきとり (slightly misread)",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-131|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic crowded street with colorful signs at night, no title or Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-131|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate night street with vertical neon signs and Japanese text; one awkward ru tag",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-131|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate, reads ROBOT and スイーツ&ガレット, scooter; a couple of odd ru tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-131|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Good English description but no Russian; lists shopping carts not visible",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-082|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Building, two people and snow correct but misses that it is a metro entrance",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-082|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Moscow metro Alma-Atinskaya entrance, sign read correctly, snow and pedestrians",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-082|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-082|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Names station and Moscow Metro, sign quoted correctly, winter setting",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "photo-082|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Moscow metro entrance in winter, accurate though station name not given",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-082|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Excellent English with station name and pedestrians, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-082|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate and detailed, station name in both languages; minor gender error in one tag",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-082|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic building with people and snow; sign text garbled",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-016|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Fireworks over buildings at night correct; claims faint text in corner (it is a lit window)",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-016|minicpm-v-4": {
+  "score": 2,
+  "reason": "Fireworks over buildings correct but rambling summary and Russian 'Фейтвексы' is not a word",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-016|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Description mentions fireworks and buildings, but tag/object is a christmas tree",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-016|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate fireworks at night over rooftops, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "video-016|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Fireworks over dark buildings with lit window, accurate; a couple of awkward ru tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-016|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate fireworks over silhouetted buildings, good tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-016|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate fireworks above buildings with lit window",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-016|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Misses fireworks, tags a christmas tree",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-024|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate low battery 5% warning, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "synth-024|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-024|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Text transcribed correctly but tagged as poster, no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-024|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate battery warning with text and colors, good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-024|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate text and topic; lists a battery icon that is not shown",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-024|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate battery warning with exact text",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-024|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate with all text quoted",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions"
+  ]
+ },
+ "synth-024|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Text transcribed correctly, minimal tags, no title or Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-028|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Blue cmd window at C:\\Users> correct; title_ru gender error 'Синий окно'",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-028|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Blue command prompt at C:\\Users> correct, good tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-028|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Quotes cmd.exe and C:\\Users> correctly but garbled, tagged computer monitor",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-028|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Vague blue screen with yellow dots, does not identify command prompt",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-028|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate Windows command prompt, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "gif-028|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate, quotes title bar and prompt; tag 'windows' translated as 'окно'",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-028|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-028|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate command prompt at C:\\Users; Russian uses transliteration 'виндаус' and awkward title",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "video-039|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Aerial night coastal city lights, accurate; slightly awkward title_ru",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions"
+  ]
+ },
+ "video-039|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Aerial night coastal city, notes black and white",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-039|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic night city with water reflections, repetitive, no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-039|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "City lights along waterfront at night, accurate; 'светы' minor error",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-039|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate aerial B&W coastal city, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "video-039|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Correct B&W night city by water, minimal tags, no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "video-039|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate aerial coastal city at night, complete fields",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "video-039|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-007|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Brown snake coiled among sunlit rocks and dry grass, accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-007|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-007|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate snake among rocks and grass, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "gif-007|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate coiled snake on rocks; ru tag translates reptile as 'черепаха' (turtle)",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "gif-007|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Snake curled on rock, correct but minimal",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-007|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate snake on pale rocks with grass and shadows; 'свернутие' typo",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "gif-007|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Brown snake on rock with weeds, correct but minimal",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-007|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate snake on rock with grass and shadows, reptile tag",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-003|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-003|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Shipping email with order number, date, sender and Alex all correct; odd 'annoying' emotion",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-003|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Quotes 'Your order has shipped' but minimal, tagged poster",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-003|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate shipping notification with order number and date",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-003|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate and detailed shipping email; odd 'annoyed' emotion",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-003|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Very accurate with quoted details; title_ru says delivery rather than shipped",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "scenes",
+   "emotions"
+  ]
+ },
+ "synth-003|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Mail screenshot noted but calls it a postcard, barely any content",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-003|qwen3-vl-4b-describe-1": {
+  "score": 2,
+  "reason": "Accurate details in summary, but no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "synth-055|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate tenancy agreement pets clause, content summarized, good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-055|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate with quoted clause text and good tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-055|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Description transcribes the clause well, but no title and wrong 'poster' tag",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-055|minicpm-v-4": {
+  "score": 1,
+  "reason": "Invented Ninja Turtles text unrelated to the image; Russian title is gibberish",
+  "halluc": true,
+  "ru": "poor",
+  "missing": [
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-055|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Accurate clause summary with useful fields; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "synth-055|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate, detailed, rich bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-055|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Identifies a tenancy agreement but omits pets content; 'book' tag wrong",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-055|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate clause summary with good bilingual tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-015|google/gemma-4-e4b": {
+  "score": 2,
+  "reason": "Detailed macro insect with prey item, but misidentifies the dragonfly as a fly",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-015|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-015|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Correct red dragonfly eating small yellow insect; rich fields",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "gif-015|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Correct red dragonfly close-up with yellow object; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "gif-015|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Summary says red and black dragonfly with yellow insect; sparse fields, no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-015|florence2-large-fp32-cpu": {
+  "score": 1,
+  "reason": "Calls it a fly, garbled summary ('bug bug'), only generic insect tag",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-015|google/gemma-4-e2b": {
+  "score": 2,
+  "reason": "Good macro detail and yellow insect, but identifies a fly instead of a dragonfly",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-015|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Correct dragonfly with prey, good tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-008|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-008|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "All five toggles named with correct on/off states; good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-008|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Settings screen with all options listed in summary; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "synth-008|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate toggles, header 'Настройки', states and close button",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-008|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Vague 'icons' and 'poster', no settings content",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-008|florence2-large-fp32-cpu": {
+  "score": 1,
+  "reason": "Garbled layout description; only 'menu in Russian' is useful; mobile phone tag wrong",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-008|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate settings screen with all options and good tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-008|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate, quotes Russian labels verbatim; good tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-160|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Green aurora over remote landscape with water, accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-160|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Only 'green swirl', never names aurora; 'swimming pool' tag wrong",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-160|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Aurora over lake landscape, accurate for search; 'frozen' is a stretch",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-160|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Description names northern lights, but sole tag 'human face' is wrong",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-160|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Aurora borealis over lake and hills, rich fields; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-160|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate aurora, lake, distant light, rich tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-160|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate aurora over hills, water and scrub; good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-160|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-073|minicpm-v-4": {
+  "score": 2,
+  "reason": "Title right, but rambling description invents sea, beaches and plains; typo in Russian title",
+  "halluc": true,
+  "ru": "poor",
+  "missing": [
+   "tags",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-073|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Tram 3017 at platform, people, trees, sky; destination slightly misread",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-073|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate tram at station with details; one tag in genitive",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-073|google/gemma-4-e2b": {
+  "score": 1,
+  "reason": "Calls the tram a bus on railway tracks",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-073|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Modern tram 3017 on city tracks, accurate; destination misread",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "photo-073|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Train at station with people waiting; no tram, no title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-073|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate tram at station with rich tags; one tag in genitive",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-073|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Basic train on tracks with people; minimal",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-121|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Close-up of old watch movement with gears and crown",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-121|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Accurate vintage watch movement with jewels and crown; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-121|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Watch mechanism with red gemstones, but sparse and 'wheel' tag",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-121|qwen/qwen3-vl-4b-c": {
+  "score": 2,
+  "reason": "Core correct (17 jewels), but lists dial, case and tools that aren't there; bad translations",
+  "halluc": true,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-121|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Generic gear mechanism, never says watch",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-121|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate with 17 JEWELS text; padded with watchmaker tools not present",
+  "halluc": true,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-121|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-121|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Detailed movement with ruby jewels and crown; 'pocket watch' guess",
+  "halluc": false,
+  "ru": "poor",
+  "missing": [
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-019|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate C# foreach over cat names Barsik and Murka",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-019|florence2-base-fp32-cpu": {
+  "score": 1,
+  "reason": "Only 'program on black screen', no content",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-019|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate code with names and WriteLine call; good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "emotions"
+  ]
+ },
+ "synth-019|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Partial garbled code transcription with names; minimal fields",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-019|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Accurate C# loop over cat names; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "synth-019|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate with window title Program.cs and dark theme",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "synth-019|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "synth-019|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate with names, window title and Russian name tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-102|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Two female players contesting ball, empty stadium, banner; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-102|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Women's soccer with empty bleachers, but says three women",
+  "halluc": true,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-102|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate with number 17 and banner text; 'Две игрока' agreement error",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-102|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-102|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Two female soccer players, stadium and banner text",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-102|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate and detailed; 'Две игрока' agreement error",
+  "halluc": false,
+  "ru": "poor",
+  "missing": []
+ },
+ "photo-102|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate lunge for ball, empty seating, banner; good Russian",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-102|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Basic two women playing soccer; minimal fields",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-188|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Cake with nuts and coffee on wooden table; 'desk' tag, sparse",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-188|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Coffee and caramel macadamia cake on wood; odd 'macaroon' title",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru"
+  ]
+ },
+ "photo-188|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate coffee and caramel nut cake slice, good tags",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-188|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Coffee and nut cake on patterned plate; calls caramel chocolate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-188|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Basic cake and coffee, accurate but minimal",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-188|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Accurate and detailed with rich fields",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "photo-188|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "photo-188|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Accurate coffee mug and caramel nut cake on wood",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "actions"
+  ]
+ },
+ "gif-024|minicpm-v-4": {
+  "score": 1,
+  "reason": "No usable answer",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "description",
+   "summary",
+   "tags",
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-024|qwen/qwen3-vl-4b-c": {
+  "score": 3,
+  "reason": "Glowing green bottle with spheres on black, accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-024|qwen/qwen3-vl-4b": {
+  "score": 3,
+  "reason": "Accurate glowing green bottle with spheres",
+  "halluc": false,
+  "ru": "ok",
+  "missing": [
+   "objects",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-024|qwen3-vl-4b-describe-1": {
+  "score": 3,
+  "reason": "Accurate; no Russian",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title_ru",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-024|google/gemma-4-e2b": {
+  "score": 3,
+  "reason": "Accurate green glass bottle with glowing spheres",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-024|florence2-base-fp32-cpu": {
+  "score": 2,
+  "reason": "Green vase silhouette with circles; garbled but roughly right",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ },
+ "gif-024|google/gemma-4-e4b": {
+  "score": 3,
+  "reason": "Glowing green spheres in flask on black; accurate",
+  "halluc": false,
+  "ru": "ok",
+  "missing": []
+ },
+ "gif-024|florence2-large-fp32-cpu": {
+  "score": 2,
+  "reason": "Accurate green bottle filled with balls, but minimal fields",
+  "halluc": false,
+  "ru": "none",
+  "missing": [
+   "title",
+   "title_ru",
+   "scenes",
+   "actions",
+   "emotions"
+  ]
+ }
+}

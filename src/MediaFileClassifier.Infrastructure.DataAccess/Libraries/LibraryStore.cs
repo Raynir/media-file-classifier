@@ -15,7 +15,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 /// </summary>
 /// <param name="timeProvider">Clock.</param>
 /// <param name="logger">Logger.</param>
-internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<LibraryStore> logger) : ILibraryStore
+/// <param name="loggerFactory">Creates the open libraries' loggers.</param>
+internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<LibraryStore> logger, ILoggerFactory loggerFactory) : ILibraryStore
 {
     private const int SqliteNotADatabase = 26;
 
@@ -74,7 +75,7 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
             }
 
             LogCreated(layout.RootDirectory);
-            return await OpenLibrary.StartAsync(layout, library, connections, heldLock, timeProvider, cancellationToken).ConfigureAwait(false);
+            return await OpenLibrary.StartAsync(layout, library, connections, heldLock, timeProvider, loggerFactory, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -112,7 +113,7 @@ internal sealed partial class LibraryStore(TimeProvider timeProvider, ILogger<Li
             }
 
             Directory.CreateDirectory(layout.ThumbnailsDirectory);
-            return await OpenLibrary.StartAsync(layout, library, connections, heldLock, timeProvider, cancellationToken).ConfigureAwait(false);
+            return await OpenLibrary.StartAsync(layout, library, connections, heldLock, timeProvider, loggerFactory, cancellationToken).ConfigureAwait(false);
         }
         catch (SqliteException exception) when (exception.SqliteErrorCode == SqliteNotADatabase)
         {

@@ -38,4 +38,11 @@ public static class KnownSettings
         HelpKey = "Setting_RetainedPreviousRuns_Help",
         Order = 200,
     };
+
+    /// <summary>
+    /// The filters in force when the library was last used, as the search's filter-state JSON (D314). Mirrors
+    /// <c>LibrarySettings.LastFilters</c>. It isn't registered, so the settings window doesn't list it.
+    /// </summary>
+    public static readonly TextSetting LastFilters = new(
+        "search.lastFilters", SettingScope.Library, SettingCategories.Library, "Setting_LastFilters", defaultValue: string.Empty);
 }

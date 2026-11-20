@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Models/model-catalog.json" LogicalName="MediaFileClassifier.Infrastructure.AI.Models.model-catalog.json" />
+    <EmbeddedResource Include="Prompts/*.json" LogicalName="MediaFileClassifier.Infrastructure.AI.Prompts.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

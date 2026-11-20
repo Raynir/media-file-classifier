@@ -153,6 +153,10 @@
   <Style Selector="Button.Icon:disabled">
     <Setter Property="Opacity" Value="{DynamicResource Opacity.Disabled}" />
   </Style>
+  <!-- A favorite's heart in the preview panel (E11-S01). -->
+  <Style Selector="Button.Icon.Favorited">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+  </Style>
 
   <!--
     Item status badges: <Border Classes="StatusBadge Missing"> with a TextBlock and PathIcon inside.
@@ -188,12 +192,21 @@
   </Style>
 
   <!--
-    Provenance slots (AI, edited, accepted, new suggestion): <Border Classes="Provenance Ai">.
-    Their look is designed in E07-S11-T01 (M3); these only reserve the names.
+    Provenance marks (AI, edited, accepted, new suggestion), E07-S11-T01: <Border Classes="Provenance Ai"> holding a
+    PathIcon and a TextBlock. Colour is never the only cue: each mark has its own icon and word, and the accepted
+    mark is outlined where the others are filled.
   -->
   <Style Selector="Border.Provenance">
     <Setter Property="CornerRadius" Value="{DynamicResource Radius.Pill}" />
     <Setter Property="Padding" Value="{DynamicResource Padding.Control}" />
+  </Style>
+  <Style Selector="Border.Provenance PathIcon">
+    <Setter Property="Width" Value="{DynamicResource Size.Icon.Small}" />
+    <Setter Property="Height" Value="{DynamicResource Size.Icon.Small}" />
+  </Style>
+  <Style Selector="Border.Provenance TextBlock">
+    <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.Provenance.Ai">
     <Setter Property="Background" Value="{DynamicResource Brush.Provenance.Ai.Background}" />
@@ -206,9 +219,13 @@
   <Style Selector="Border.Provenance.Accepted">
     <Setter Property="Background" Value="{DynamicResource Brush.Provenance.Accepted.Background}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Provenance.Accepted.Foreground}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Provenance.Accepted.Foreground}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
   <Style Selector="Border.Provenance.NewSuggestion">
     <Setter Property="Background" Value="{DynamicResource Brush.Provenance.NewSuggestion.Background}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Provenance.NewSuggestion.Foreground}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Provenance.NewSuggestion.Foreground}" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
 </Styles>

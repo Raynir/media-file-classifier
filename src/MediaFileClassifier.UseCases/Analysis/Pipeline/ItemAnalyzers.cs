@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Import;
+using MediaFileClassifier.UseCases.Tags;
 
 namespace MediaFileClassifier.UseCases.Analysis.Pipeline;
 
@@ -86,6 +87,7 @@ internal static class ProviderSelection
             .Where(provider => settings.ProviderId is null || string.Equals(provider.Id, settings.ProviderId, StringComparison.Ordinal))
             .Where(provider => settings.ModelId is null || string.Equals(provider.Model.ModelName, settings.ModelId, StringComparison.Ordinal))
             .ToList();
+        candidates = PreferEndpointDescribers(candidates, settings);
         if (candidates.Count == 0)
         {
             skipReason = AnalyzerReasons.NoProvider;
@@ -103,6 +105,28 @@ internal static class ProviderSelection
         skipReason = available is null ? AnalyzerReasons.ProviderUnavailable : null;
         paused = available is null ? supported[0] : null;
         return available;
+    }
+
+    /// <summary>
+    /// Keeps only the server describers when the profile names no describer and a server describer is configured
+    /// (E06-S04-T01): a vision-language model describes far better than the in-process Florence-2, so it's the default,
+    /// and while its server is down the items wait for it instead of getting Florence-2's weaker description.
+    /// Florence-2 runs when no server describer is configured, or when the profile names it.
+    /// </summary>
+    /// <typeparam name="TCapability">The capability.</typeparam>
+    /// <param name="candidates">The providers matching the settings.</param>
+    /// <param name="settings">The analyzer's settings.</param>
+    /// <returns>The candidates to choose from.</returns>
+    private static List<TCapability> PreferEndpointDescribers<TCapability>(List<TCapability> candidates, AnalyzerSettings settings)
+        where TCapability : class, IAiProvider
+    {
+        if (!typeof(IImageDescriber).IsAssignableFrom(typeof(TCapability)) || settings.ProviderId is not null)
+        {
+            return candidates;
+        }
+
+        var servers = candidates.Where(provider => provider.Kind != AiProviderKind.Onnx).ToList();
+        return servers.Count > 0 ? servers : candidates;
     }
 
     /// <summary>
@@ -162,7 +186,7 @@ internal sealed class EmbeddingItemAnalyzer(ItemEmbeddingAnalyzer embedder, IAiP
     public async Task<AnalyzerResult> RunAsync(AnalyzerContext context, CancellationToken cancellationToken)
     {
         // Embedding doesn't check the breaker: it's a local model.
-        if (ProviderSelection.Select<IImageEmbeddingProvider>(registry, context.Settings, null, out var reason, out _) is null)
+        if (ProviderSelection.Select<IImageEmbeddingProvider>(registry, context.Settings, null, out var reason, out _) is not { } provider)
         {
             return ProviderSelection.Skip(context, Key, reason!, clock.GetUtcNow());
         }
@@ -176,12 +200,12 @@ internal sealed class EmbeddingItemAnalyzer(ItemEmbeddingAnalyzer embedder, IAiP
                 return NoFrames(context, frames.Warnings);
             }
 
-            await embedder.EmbedKeyframesAsync(context.Library, itemId, frames.Frames, cancellationToken).ConfigureAwait(false);
+            await embedder.EmbedKeyframesAsync(context.Library, itemId, frames.Frames, provider, cancellationToken).ConfigureAwait(false);
         }
         else
         {
             var still = await context.Inputs.GetStillAsync(null, cancellationToken).ConfigureAwait(false);
-            await embedder.EmbedStillAsync(context.Library, itemId, still.ToAiImage(context.ImageName), cancellationToken).ConfigureAwait(false);
+            await embedder.EmbedStillAsync(context.Library, itemId, still.ToAiImage(context.ImageName), provider, cancellationToken).ConfigureAwait(false);
         }
 
         return new AnalyzerResult(AnalyzerState.Done(itemId, Key, null, clock.GetUtcNow()));
@@ -208,17 +232,46 @@ internal sealed class EmbeddingItemAnalyzer(ItemEmbeddingAnalyzer embedder, IAiP
 
 /// <summary>
 /// The image describer (E06-S04): title, description, summary, tags and lists from a vision model. A video or animated
-/// image is described from its middle keyframe.
+/// image gets one description of the whole clip (E06-S04-T07): a describer that takes several pictures gets up to
+/// <see cref="MaxClipFrames"/> keyframes in one request; another describes up to <see cref="MaxDescribedFrames"/>
+/// keyframes one by one, and the lists and tags are merged by frequency (D228), with the middle one's texts.
 /// </summary>
 /// <param name="registry">The provider registry.</param>
 /// <param name="breaker">The circuit breaker, if any.</param>
 /// <param name="clock">The clock.</param>
-internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProviderCircuitBreaker? breaker, TimeProvider clock) : IItemAnalyzer
+/// <param name="tagNormalizer">Normalises the tags (E06-S04-T05).</param>
+internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProviderCircuitBreaker? breaker, TimeProvider clock, TagNormalizer tagNormalizer)
+    : IItemAnalyzer
 {
     /// <summary>
     /// The longest edge of the picture sent to the describer.
     /// </summary>
     public const int MaxLongestEdge = 1024;
+
+    /// <summary>
+    /// The most keyframes sent in one request to a describer that takes several pictures.
+    /// </summary>
+    public const int MaxClipFrames = 6;
+
+    /// <summary>
+    /// The longest edge of keyframes sent together, so six of them fit a 4,096-token context with the answer.
+    /// </summary>
+    public const int ClipFrameLongestEdge = 512;
+
+    /// <summary>
+    /// The longest edge of a keyframe sent to a describer that takes one picture, as for a still.
+    /// </summary>
+    public const int FrameLongestEdge = 1024;
+
+    /// <summary>
+    /// The most items a merged list keeps, as one picture's description is limited to.
+    /// </summary>
+    public const int MaxMergedListItems = 30;
+
+    /// <summary>
+    /// The most keyframes a describer that takes one picture describes, one request each.
+    /// </summary>
+    public const int MaxDescribedFrames = 4;
 
     /// <inheritdoc />
     public string Key => AnalyzerKeys.Describer;
@@ -234,7 +287,9 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
             return ProviderSelection.Skip(context, Key, reason!, paused, clock.GetUtcNow());
         }
 
-        AiImage image;
+        var options = new ImageDescriptionOptions(context.Settings.Language, PromptVersion: context.Settings.PromptVersion);
+        DateTimeOffset startedAt;
+        AiOutput<ImageDescription> output;
         if (context.Inputs.HasFrames)
         {
             var frames = await context.Inputs.GetFramesAsync(cancellationToken).ConfigureAwait(false);
@@ -243,37 +298,39 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
                 return ProviderSelection.Skip(context, Key, AnalyzerReasons.NoFrames, clock.GetUtcNow());
             }
 
-            image = frames.Frames[frames.Frames.Count / 2].Image;
+            startedAt = clock.GetUtcNow();
+            output = await DescribeClipAsync(provider, context.Inputs, [.. frames.Frames.Select(frame => frame.Image)], options, cancellationToken)
+                .ConfigureAwait(false);
         }
         else
         {
-            image = (await context.Inputs.GetStillAsync(MaxLongestEdge, cancellationToken).ConfigureAwait(false)).ToAiImage(context.ImageName);
+            var image = (await context.Inputs.GetStillAsync(MaxLongestEdge, cancellationToken).ConfigureAwait(false)).ToAiImage(context.ImageName);
+            startedAt = clock.GetUtcNow();
+            output = await provider.DescribeAsync(image, options, cancellationToken).ConfigureAwait(false);
         }
 
-        var startedAt = clock.GetUtcNow();
-        var output = await provider.DescribeAsync(image, new ImageDescriptionOptions(context.Settings.Language), cancellationToken).ConfigureAwait(false);
         breaker?.RecordSuccess(provider.Id);
         var now = clock.GetUtcNow();
         var model = await context.Library.Models.GetOrAddAsync(output.Model, now, cancellationToken).ConfigureAwait(false);
-        var run = AnalysisRun.Start(context.Item.Id, Key, model, output.PromptVersion ?? provider.PromptVersion, startedAt);
+        var run = AnalysisRun.Start(context.Item.Id, Key, model, output.PromptVersion ?? provider.GetPromptVersion(context.Settings.PromptVersion), startedAt);
         run.Complete(now);
 
+        // Only the declared fields are stored (E06-S04-T03): anything else the describer returned stays empty.
         var description = output.Value;
+        var fields = provider.SupportedFields;
         var values = new List<AiFieldValue>();
-        AddText(values, run, DescriptiveField.Title, description.Title, now);
-        AddText(values, run, DescriptiveField.Description, description.Description, now);
-        AddText(values, run, DescriptiveField.Summary, description.Summary, now);
-        AddList(values, run, DescriptiveField.Objects, description.Objects, now);
-        AddList(values, run, DescriptiveField.Scenes, description.Scenes, now);
-        AddList(values, run, DescriptiveField.Actions, description.Actions, now);
-        AddList(values, run, DescriptiveField.Emotions, description.Emotions, now);
-        var tags = description.Tags
-            .Where(tag => !string.IsNullOrWhiteSpace(tag))
-            .Select(TagName.From)
-            .Distinct()
-            .Take(context.Settings.MaxTags ?? AnalysisProfile.DefaultMaxTags)
-            .Select(tag => TagAssignment.Ai(run, tag, null, now))
-            .ToList();
+        AddText(values, run, fields, DescriberFields.Title, DescriptiveField.Title, description.Title, now, description.TitleRu);
+        AddText(values, run, fields, DescriberFields.Description, DescriptiveField.Description, description.Description, now);
+        AddText(values, run, fields, DescriberFields.Summary, DescriptiveField.Summary, description.Summary, now);
+        AddList(values, run, fields, DescriberFields.Objects, DescriptiveField.Objects, description.Objects, now);
+        AddList(values, run, fields, DescriberFields.Scenes, DescriptiveField.Scenes, description.Scenes, now);
+        AddList(values, run, fields, DescriberFields.Actions, DescriptiveField.Actions, description.Actions, now);
+        AddList(values, run, fields, DescriberFields.Emotions, DescriptiveField.Emotions, description.Emotions, now);
+        List<TagAssignment> tags = fields.HasFlag(DescriberFields.Tags)
+            ? [.. tagNormalizer.Normalize(description.Tags, description.TagsRu)
+                .Take(context.Settings.MaxTags ?? AnalysisProfile.DefaultMaxTags)
+                .Select(tag => TagAssignment.Ai(run, tag.Tag, null, now, tag.OtherForm))]
+            : [];
 
         var state = AnalyzerState.Done(context.Item.Id, Key, run.Id, now);
         await context.Library.AnalyzerStates.ApplyRunAsync(run, values, tags, context.Library.Library.Settings.RetainedPreviousRuns, state, cancellationToken)
@@ -281,21 +338,131 @@ internal sealed class DescriberItemAnalyzer(IAiProviderRegistry registry, IProvi
         return new AnalyzerResult(state, IsStored: true);
     }
 
-    private static void AddText(List<AiFieldValue> values, AnalysisRun run, DescriptiveField field, string? text, DateTimeOffset now)
+    /// <summary>
+    /// Picks up to <paramref name="count"/> frames spread evenly over the clip, the first and last included.
+    /// </summary>
+    /// <param name="frames">The keyframes, in time order.</param>
+    /// <param name="count">The most to pick, at least 1.</param>
+    /// <returns>The picked frames, in time order.</returns>
+    internal static IReadOnlyList<AiImage> Spread(IReadOnlyList<AiImage> frames, int count)
     {
-        if (!string.IsNullOrWhiteSpace(text))
+        if (frames.Count <= count)
         {
-            values.Add(AiFieldValue.For(run, field, FieldValue.FromText(text), null, now));
+            return frames;
+        }
+
+        if (count == 1)
+        {
+            return [frames[frames.Count / 2]];
+        }
+
+        return [.. Enumerable.Range(0, count).Select(index => frames[(int)Math.Round(index * (frames.Count - 1) / (double)(count - 1))])];
+    }
+
+    private static void AddText(
+        List<AiFieldValue> values,
+        AnalysisRun run,
+        DescriberFields supported,
+        DescriberFields declaration,
+        DescriptiveField field,
+        string? text,
+        DateTimeOffset now,
+        string? otherForm = null)
+    {
+        // The other-language form (the Russian title, E06-S04-T09) travels with the value.
+        if (supported.HasFlag(declaration) && !string.IsNullOrWhiteSpace(text))
+        {
+            values.Add(AiFieldValue.For(run, field, FieldValue.FromText(text).WithOtherForm(otherForm), null, now));
         }
     }
 
-    private static void AddList(List<AiFieldValue> values, AnalysisRun run, DescriptiveField field, IReadOnlyList<string>? items, DateTimeOffset now)
+    private static void AddList(
+        List<AiFieldValue> values,
+        AnalysisRun run,
+        DescriberFields supported,
+        DescriberFields declaration,
+        DescriptiveField field,
+        IReadOnlyList<string>? items,
+        DateTimeOffset now)
     {
+        if (!supported.HasFlag(declaration))
+        {
+            return;
+        }
+
         var value = FieldValue.FromList(items ?? []);
         if (value.Items.Count > 0)
         {
             values.Add(AiFieldValue.For(run, field, value, null, now));
         }
+    }
+
+    private async Task<AiOutput<ImageDescription>> DescribeClipAsync(
+        IImageDescriber provider,
+        AnalysisInputs inputs,
+        IReadOnlyList<AiImage> frames,
+        ImageDescriptionOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (frames.Count == 1)
+        {
+            return await provider.DescribeAsync(frames[0], options, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (provider is IMultiImageDescriber { MaxImages: >= 2 } multi)
+        {
+            // The prompt template introduces the frames as one clip; the caller's context stays.
+            var picked = Spread(frames, Math.Min(multi.MaxImages, MaxClipFrames)).Select(frame => inputs.ShrinkFrame(frame, ClipFrameLongestEdge)).ToList();
+            return await multi.DescribeFramesAsync(picked, options with { FrameCount = picked.Count }, cancellationToken).ConfigureAwait(false);
+        }
+
+        // A frame the model can't describe (an unusable answer, a frame it can't read) is left out, so one bad frame
+        // doesn't fail the clip; the clip fails only when no frame is described. Any other failure (the server is down,
+        // a timeout) fails it at once, so the circuit breaker sees it.
+        var outputs = new List<AiOutput<ImageDescription>>();
+        AiProviderException? firstFailure = null;
+        foreach (var frame in Spread(frames, MaxDescribedFrames))
+        {
+            try
+            {
+                outputs.Add(await provider.DescribeAsync(inputs.ShrinkFrame(frame, FrameLongestEdge), options, cancellationToken).ConfigureAwait(false));
+            }
+            catch (AiProviderException ex) when (ex.Kind is AiFailureKind.InvalidOutput or AiFailureKind.InvalidInput)
+            {
+                firstFailure ??= ex;
+            }
+        }
+
+        if (outputs.Count == 0)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(firstFailure!);
+        }
+
+        // The texts come from the middle frame; tags are normalised per frame first, so "Dogs" and "dog" count as one,
+        // and each keeps the first Russian form any frame wrote for it (E06-S04-T09).
+        var middle = outputs[outputs.Count / 2];
+        var descriptions = outputs.Select(output => output.Value).ToList();
+        var frameTags = descriptions.Select(value => tagNormalizer.Normalize(value.Tags, value.TagsRu)).ToList();
+        var tagForms = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var tag in frameTags.SelectMany(tags => tags).Where(tag => tag.OtherForm is not null))
+        {
+            tagForms.TryAdd(tag.Tag.Value, tag.OtherForm!);
+        }
+
+        var merged = new ImageDescription(
+            middle.Value.Title,
+            middle.Value.Description,
+            middle.Value.Summary,
+            KeyframeAggregation.MergeLists([.. frameTags.Select<IReadOnlyList<NormalizedTag>, IReadOnlyList<string>>(tags => [.. tags.Select(tag => tag.Tag.Value)])]),
+            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Objects)]).Take(MaxMergedListItems)],
+            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Scenes)]).Take(MaxMergedListItems)],
+            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Actions)]).Take(MaxMergedListItems)],
+            [.. KeyframeAggregation.MergeLists([.. descriptions.Select(value => value.Emotions)]).Take(MaxMergedListItems)])
+        {
+            TitleRu = middle.Value.TitleRu,
+            TagsRu = tagForms.Count == 0 ? null : tagForms,
+        };
+        return middle with { Value = merged, Duration = outputs.Aggregate(TimeSpan.Zero, (sum, output) => sum + output.Duration) };
     }
 }
 
@@ -329,6 +496,9 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
         var startedAt = clock.GetUtcNow();
         ModelIdentity identity;
         string text;
+        var gate = new DetectorGate(context.Settings?.PreFilterWithDetector == true && provider is not ITextDetector
+            ? registry.Providers.OfType<ITextDetector>().FirstOrDefault()
+            : null);
         if (context.Inputs.HasFrames)
         {
             var frames = await context.Inputs.GetFramesAsync(cancellationToken).ConfigureAwait(false);
@@ -341,7 +511,13 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
             identity = provider.Model;
             foreach (var frame in frames.Frames)
             {
-                var output = await provider.RecognizeTextAsync(frame.Image, cancellationToken).ConfigureAwait(false);
+                var output = await RecognizeAsync(provider, frame.Image, gate, cancellationToken).ConfigureAwait(false);
+                if (output is null)
+                {
+                    texts.Add(null);
+                    continue;
+                }
+
                 identity = output.Model;
                 texts.Add(output.Value.HasText ? output.Value.Text : null);
             }
@@ -352,9 +528,9 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
         else
         {
             var still = await context.Inputs.GetStillAsync(MaxLongestEdge, cancellationToken).ConfigureAwait(false);
-            var output = await provider.RecognizeTextAsync(still.ToAiImage(context.ImageName), cancellationToken).ConfigureAwait(false);
-            identity = output.Model;
-            text = output.Value.HasText ? output.Value.Text : string.Empty;
+            var output = await RecognizeAsync(provider, still.ToAiImage(context.ImageName), gate, cancellationToken).ConfigureAwait(false);
+            identity = output?.Model ?? provider.Model;
+            text = output is { Value.HasText: true } ? output.Value.Text : string.Empty;
             breaker?.RecordSuccess(provider.Id);
         }
 
@@ -372,4 +548,40 @@ internal sealed class OcrItemAnalyzer(IAiProviderRegistry registry, IProviderCir
             .ConfigureAwait(false);
         return new AnalyzerResult(state, IsStored: true);
     }
+
+    /// <summary>
+    /// Reads an image, unless the text detector finds no text in it. A detector that can't run, such as one whose model
+    /// isn't installed, is dropped and the provider reads every image.
+    /// </summary>
+    private static async Task<AiOutput<OcrResult>?> RecognizeAsync(IOcrProvider provider, AiImage image, DetectorGate gate, CancellationToken cancellationToken)
+    {
+        if (gate.Detector is { } detector)
+        {
+            try
+            {
+                if (!await detector.HasTextAsync(image, cancellationToken).ConfigureAwait(false))
+                {
+                    return null;
+                }
+            }
+            catch (AiProviderException)
+            {
+                gate.Detector = null;
+            }
+        }
+
+        return await provider.RecognizeTextAsync(image, cancellationToken).ConfigureAwait(false);
+    }
+}
+
+/// <summary>
+/// The text detector an OCR run checks pictures with, until it fails.
+/// </summary>
+/// <param name="detector">The detector, or <see langword="null"/> to read every picture.</param>
+internal sealed class DetectorGate(ITextDetector? detector)
+{
+    /// <summary>
+    /// Gets or sets the detector, or <see langword="null"/> to read every picture.
+    /// </summary>
+    public ITextDetector? Detector { get; set; } = detector;
 }

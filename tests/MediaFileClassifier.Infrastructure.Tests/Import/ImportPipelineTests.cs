@@ -3,12 +3,15 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
+using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
+using MediaFileClassifier.Infrastructure.Tests.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
 using MediaFileClassifier.Testing.Media;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.RetryFailedItems;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Import;
 
@@ -250,6 +253,31 @@ public sealed class ImportPipelineTests : IAsyncLifetime
 
         Assert.Empty(started);
         Assert.Equal(Domain.Libraries.FolderStatus.Offline, (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.Status);
+    }
+
+    [Fact]
+    public async Task ImportWork_ForAFolderGoneBeforeItRuns_IsParked_AndFinishesWhenTheFolderIsBack()
+    {
+        // MFC-1004: queued import work whose folder was unplugged meanwhile waits for it, without failing the item.
+        bed.Copy(SampleMedia.JpegWithExif, "photo.jpg");
+        await bed.Get<IFolderDiscovery>().DiscoverAsync(bed.Library, bed.Folder, cancellationToken: Token);
+        var item = Assert.Single(await bed.ItemsAsync());
+        var away = bed.Root + "-away";
+        Directory.Move(bed.Root, away);
+
+        var jobId = await bed.Jobs.Current!.EnqueueJobAsync(JobSchedulerTests.Job(JobPriority.Import, [new WorkItemRequest(ImportStages.Fingerprint, item.Id)]), Token);
+        await WaitUntilAsync(async () => Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token)).IsParked);
+
+        var parked = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token));
+        Assert.Equal(0, parked.RetryCount);
+        Assert.Equal(MediaItemStatus.Discovered, Assert.Single(await bed.ItemsAsync()).Status);
+        Assert.Equal(Domain.Libraries.FolderStatus.Offline, (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.Status);
+
+        Directory.Move(away, bed.Root);
+        await bed.Sender.Send(new CheckFolderAvailabilityCommand(), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(MediaItemStatus.Pending, Assert.Single(await bed.ItemsAsync()).Status);
     }
 
     private static void CopyDirectory(string source, string target)

@@ -177,6 +177,19 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Equal([inTitle.Id, inDescription.Id], await FindAsync("lighthouse"));
     }
 
+    [Fact]
+    public async Task Ranking_WithFlatWeights_DoesNotLetATitleOutrankAShorterFileNamePrefix()
+    {
+        // D346: every field weighs the same, so BM25's length normalisation decides. A word inside a longer title
+        // loses to the same word starting a short file name.
+        var inTitle = await AddItemAsync(1);
+        await EditAsync(inTitle, DescriptiveField.Title, "Lighthouse");
+        var inFileName = MediaItem.Discover(bed.Folder.Id, RelativePath.From("album/lighthouse.jpg"), MediaType.Image, 1002, bed.Clock.Tick(), bed.Clock.Tick(), (UInt128)2 * 104729, bed.Clock.Tick());
+        await bed.Library.Items.AddAsync(inFileName, Token);
+
+        Assert.Equal([inFileName.Id, inTitle.Id], await FindAsync("lighthouse"));
+    }
+
     [Theory]
     [InlineData("\"")]
     [InlineData("-")]
@@ -373,6 +386,163 @@ public sealed class SearchStoreTests : IAsyncLifetime
         Assert.Equal([added.Id, second.Id, first.Id], await ListAsync(SortMode.Name));
     }
 
+    [Theory]
+    [InlineData(DescriptiveField.Title, "Собакой на пляже", "собаки")]
+    [InlineData(DescriptiveField.Description, "Две кошки спят.", "кошка")]
+    [InlineData(DescriptiveField.OcrText, "ЗА КОТАМИ", "коты")]
+    [InlineData(DescriptiveField.Notes, "старые ёлки", "елкой")]
+    public async Task RussianQuery_OtherWordForm_FindsTheItem(DescriptiveField field, string text, string query)
+    {
+        var item = await AddItemAsync(7);
+        await EditAsync(item, field, text);
+
+        Assert.Equal([item.Id], await FindAsync(query));
+        var top = await bed.Library.Search.FindKeywordMatchesAsync(Search(query) with { NeedsTotal = false }, Token);
+        Assert.Equal([item.Id], top.Matches.Select(match => match.ItemId));
+    }
+
+    [Fact]
+    public async Task RussianQuery_MatchesTheStemExactly_NotWordsThatStartWithIt()
+    {
+        var cat = await AddItemAsync(7);
+        await EditAsync(cat, DescriptiveField.Title, "кота");
+        var boiler = await AddItemAsync(8);
+        await EditAsync(boiler, DescriptiveField.Title, "котёл");
+
+        Assert.Equal([cat.Id], await FindAsync("котами"));
+        Assert.Equivalent(new[] { cat.Id, boiler.Id }, await FindAsync("кот"));
+    }
+
+    [Fact]
+    public async Task UpgradeFromVersion13_StemsTheIndexedRussianText()
+    {
+        var item = await AddItemAsync(7);
+        await EditAsync(item, DescriptiveField.Title, "Собакой");
+        await bed.Library.DisposeAsync();
+        using (var probe = new DesignTimeLibraryDbContextFactory().CreateDbContext([]))
+        {
+            var beforeStems = probe.Database.GetMigrations().TakeWhile(migration => !migration.EndsWith("_RussianStems", StringComparison.Ordinal)).Last();
+            await using var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token);
+            await db.GetService<IMigrator>().MigrateAsync(beforeStems, cancellationToken: Token);
+        }
+
+        SqliteConnection.ClearAllPools();
+        Assert.DoesNotContain("\"stems\"", await ReadTextTableSqlAsync(), StringComparison.Ordinal);
+        await bed.OpenAgainAsync();
+
+        Assert.False(await bed.Library.Search.IsRebuildNeededAsync(Token));
+        Assert.Equal([item.Id], await FindAsync("собаки"));
+        Assert.Equal([item.Id], await FindAsync("IMG_00007"));
+    }
+
+    [Theory]
+    [InlineData("собака")]
+    [InlineData("собаки")]
+    [InlineData("dog")]
+    public async Task AiTag_IsFoundInBothLanguages(string query)
+    {
+        var item = await AddItemAsync(7);
+        await ApplyTagsAsync(item, "dog");
+
+        Assert.Equal([item.Id], await FindAsync(query));
+    }
+
+    [Theory]
+    [InlineData("cat")]
+    [InlineData("кошка")]
+    [InlineData("кошкой")]
+    public async Task RussianUserTag_IsFoundInBothLanguages(string query)
+    {
+        var item = await AddItemAsync(7);
+        await bed.Library.Metadata.AddTagAsync([item.Id], TagName.From("Кошки"), Token);
+
+        Assert.Equal([item.Id], await FindAsync(query));
+    }
+
+    [Fact]
+    public async Task ModelWrittenTagForm_IsFound_AndOfferedByAutocomplete()
+    {
+        var item = await AddItemAsync(7);
+        var run = AnalysisRun.Start(item.Id, "caption", bed.Model, "p1", bed.Clock.Tick());
+        run.Complete(bed.Clock.Tick());
+        await bed.Library.Metadata.UpdateAsync(
+            item.Id,
+            metadata => metadata.ApplyRun(run, [], [TagAssignment.Ai(run, TagName.From("dog"), null, bed.Clock.Tick(), "пёсик")], 1),
+            Token);
+
+        Assert.Equal([item.Id], await FindAsync("пёсик"));
+        var offered = await bed.Library.Metadata.GetEffectiveTagsAsync("пёс", 10, Token);
+        Assert.Equal("пёсик", Assert.Single(offered).Tag.Value);
+    }
+
+    [Theory]
+    [InlineData("пляже")]
+    [InlineData("пляж")]
+    [InlineData("beach")]
+    public async Task AiTitle_WithItsRussianForm_IsStored_AndFoundInBothLanguages(string query)
+    {
+        var item = await AddItemAsync(7);
+        var run = AnalysisRun.Start(item.Id, "caption", bed.Model, "p1", bed.Clock.Tick());
+        run.Complete(bed.Clock.Tick());
+        var title = FieldValue.FromText("Dog on a beach").WithOtherForm("Собака на пляже");
+        await bed.Library.Metadata.UpdateAsync(
+            item.Id,
+            metadata => metadata.ApplyRun(run, [AiFieldValue.For(run, DescriptiveField.Title, title, null, bed.Clock.Tick())], [], 1),
+            Token);
+
+        var stored = await bed.Library.Metadata.GetAsync(item.Id, Token);
+        Assert.Equal("Собака на пляже", stored.GetEffectiveValue(DescriptiveField.Title)?.Value.OtherForm);
+        Assert.Equal([item.Id], await FindAsync(query));
+    }
+
+    [Fact]
+    public async Task RejectedTag_IsNotFoundByItsOtherForm()
+    {
+        var item = await AddItemAsync(7);
+        await ApplyTagsAsync(item, "cat");
+        Assert.Equal([item.Id], await FindAsync("кошка"));
+
+        await bed.Library.Metadata.UpdateAsync(item.Id, metadata => metadata.RejectTag(TagName.From("cat"), bed.Clock.Tick()), Token);
+
+        Assert.Empty(await FindAsync("кошка"));
+    }
+
+    [Fact]
+    public async Task UpgradeFromVersion13_GivesExistingTagsTheirOtherForm()
+    {
+        var beach = await AddItemAsync(7);
+        await ApplyTagsAsync(beach, "beach");
+        var cat = await AddItemAsync(8);
+        await bed.Library.Metadata.AddTagAsync([cat.Id], TagName.From("Кошки"), Token);
+        var rejected = await AddItemAsync(9);
+        await ApplyTagsAsync(rejected, "cat");
+        await bed.Library.Metadata.UpdateAsync(rejected.Id, metadata => metadata.RejectTag(TagName.From("cat"), bed.Clock.Tick()), Token);
+        await bed.Library.DisposeAsync();
+        using (var probe = new DesignTimeLibraryDbContextFactory().CreateDbContext([]))
+        {
+            var beforeStems = probe.Database.GetMigrations().TakeWhile(migration => !migration.EndsWith("_RussianStems", StringComparison.Ordinal)).Last();
+            await using var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token);
+            await db.GetService<IMigrator>().MigrateAsync(beforeStems, cancellationToken: Token);
+        }
+
+        SqliteConnection.ClearAllPools();
+        await RemoveTagFormsFromTheIndexAsync();
+        await bed.OpenAgainAsync();
+
+        Assert.False(await bed.Library.Search.IsRebuildNeededAsync(Token));
+        Assert.Equal([beach.Id], await FindAsync("пляжи"));
+        Assert.Equal([cat.Id], await FindAsync("cat"));
+        Assert.Equal([cat.Id], await FindAsync("кошкой"));
+        var metadata = await bed.Library.Metadata.GetAsync(beach.Id, Token);
+        var tag = Assert.Single(metadata.GetEffectiveTags());
+        Assert.Equal("пляж", tag.OtherForm);
+        Assert.True(tag.IsOtherFormDerived);
+
+        // The key is filled by the same migration, in upper case in every alphabet, and indexed (E06-S04, D071).
+        Assert.Equal(["beach:ПЛЯЖ", "cat:КОШКА", "Кошки:CAT"], [.. (await ReadTagKeysAsync()).Order(StringComparer.Ordinal)]);
+        Assert.Equal(1L, await CountOtherFormKeyIndexesAsync());
+    }
+
     [Fact]
     public async Task List_ReportsTheTotalOnEveryPage()
     {
@@ -412,6 +582,53 @@ public sealed class SearchStoreTests : IAsyncLifetime
 
     private async Task<IReadOnlyList<Id<MediaItem>>> FindAsync(string text) =>
         [.. (await bed.Library.Search.FindKeywordMatchesAsync(Search(text), Token)).Matches.Select(match => match.ItemId)];
+
+    private Task ApplyTagsAsync(MediaItem item, params string[] tags)
+    {
+        var run = AnalysisRun.Start(item.Id, "caption", bed.Model, "p1", bed.Clock.Tick());
+        run.Complete(bed.Clock.Tick());
+        return bed.Library.Metadata.UpdateAsync(
+            item.Id,
+            metadata => metadata.ApplyRun(run, [], [.. tags.Select(tag => TagAssignment.Ai(run, TagName.From(tag), null, bed.Clock.Tick()))], 1),
+            Token);
+    }
+
+    /// <summary>
+    /// Takes the tag forms out of a schema-13 index, as a library written before the tag dictionary has none.
+    /// </summary>
+    private async Task RemoveTagFormsFromTheIndexAsync()
+    {
+        await using var connection = new SqliteConnection($"Data Source={bed.Temporary.DatabasePath};Pooling=False");
+        await connection.OpenAsync(Token);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """UPDATE "search_text" SET "tags" = replace(replace("tags", char(10) || 'пляж', ''), char(10) || 'cat', '')""";
+        await command.ExecuteNonQueryAsync(Token);
+    }
+
+    private async Task<List<string>> ReadTagKeysAsync()
+    {
+        await using var connection = new SqliteConnection($"Data Source={bed.Temporary.DatabasePath};Pooling=False");
+        await connection.OpenAsync(Token);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """SELECT "tag" || ':' || coalesce("other_form_key", '') FROM "tag_assignment" WHERE "other_form_key" IS NOT NULL""";
+        var rows = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync(Token);
+        while (await reader.ReadAsync(Token))
+        {
+            rows.Add(reader.GetString(0));
+        }
+
+        return rows;
+    }
+
+    private async Task<object?> CountOtherFormKeyIndexesAsync()
+    {
+        await using var connection = new SqliteConnection($"Data Source={bed.Temporary.DatabasePath};Pooling=False");
+        await connection.OpenAsync(Token);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """SELECT count(*) FROM "sqlite_master" WHERE "type" = 'index' AND "name" = 'IX_tag_assignment_other_form_key'""";
+        return await command.ExecuteScalarAsync(Token);
+    }
 
     private async Task<string> ReadTextTableSqlAsync()
     {

@@ -2,7 +2,8 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Search;
 
 /// <summary>
 /// The keyword index's tables and triggers, as the <c>SearchIndex</c> migration creates them, with the prefix index
-/// of the <c>SearchPrefixIndex</c> migration (MFC-988) and the sort keys of the <c>SearchSortKeys</c> migration (MFC-762). A rebuild runs these statements first, so it also repairs an
+/// of the <c>SearchPrefixIndex</c> migration (MFC-988), the sort keys of the <c>SearchSortKeys</c> migration (MFC-762) and the
+/// Russian stems of the <c>RussianStems</c> migration (MFC-328). A rebuild runs these statements first, so it also repairs an
 /// index whose tables were dropped. Keep them identical to the migrations; a test compares the two.
 /// </summary>
 internal static class SearchSchema
@@ -24,7 +25,13 @@ internal static class SearchSchema
         """;
 
     /// <summary>
-    /// The keyword fields, in column order of <c>search_text</c>.
+    /// The <c>search_text</c> column, after the keyword fields, with the Snowball stems of the Russian words of every
+    /// metadata field (D349): <see cref="RussianStems"/>.
+    /// </summary>
+    public const string StemsColumn = "stems";
+
+    /// <summary>
+    /// The keyword fields, in column order of <c>search_text</c>. The stems column follows them and isn't a field.
     /// </summary>
     public static readonly string[] TextColumns = ["title", "description", "tags", "ocr_text", "transcript", "other", "file_name"];
 
@@ -42,7 +49,7 @@ internal static class SearchSchema
         """,
         """
         CREATE VIRTUAL TABLE IF NOT EXISTS "search_text" USING fts5(
-            "title", "description", "tags", "ocr_text", "transcript", "other", "file_name",
+            "title", "description", "tags", "ocr_text", "transcript", "other", "file_name", "stems",
             tokenize = 'unicode61 remove_diacritics 2',
             prefix = '1 2 3'
         );

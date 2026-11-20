@@ -1,0 +1,3554 @@
+{
+  "system": "qwen3-vl-4b-describe-1",
+  "route": "lmstudio",
+  "model": "qwen/qwen3-vl-4b",
+  "promptVersion": "describe-1",
+  "items": {
+    "photo-005": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Cat on Red Carpet",
+        "title_ru": null,
+        "description": "A calico cat is lying relaxed on a vibrant red carpet, with its eyes closed and paws stretched out. Behind it is a black fabric backdrop, suggesting an event or staged setting.",
+        "summary": "A calm, sleeping cat rests on a red carpet next to a black backdrop, appearing peaceful and content.",
+        "tags": [
+          {
+            "en": "cat",
+            "ru": null
+          },
+          {
+            "en": "calico",
+            "ru": null
+          },
+          {
+            "en": "red carpet",
+            "ru": null
+          },
+          {
+            "en": "sleeping",
+            "ru": null
+          },
+          {
+            "en": "relaxed",
+            "ru": null
+          },
+          {
+            "en": "peaceful",
+            "ru": null
+          },
+          {
+            "en": "event",
+            "ru": null
+          },
+          {
+            "en": "backdrop",
+            "ru": null
+          },
+          {
+            "en": "black fabric",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "cat",
+          "red carpet",
+          "black fabric",
+          "paws",
+          "eyes closed"
+        ],
+        "scenes": [
+          "indoor event",
+          "staged setting",
+          "carpeted floor",
+          "background decor"
+        ],
+        "actions": [
+          "lying down",
+          "sleeping",
+          "resting",
+          "stretching paws"
+        ],
+        "emotions": [
+          "peaceful",
+          "relaxed",
+          "content",
+          "calm"
+        ]
+      }
+    },
+    "photo-015": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Four Lynxes on a Tree Branch",
+        "title_ru": null,
+        "description": "A group of four lynxes are perched on a large tree branch and a wooden platform in a forested area. They appear alert and watchful, with one standing on the branch to the right and the others resting or sitting nearby.",
+        "summary": "Four lynxes in a forest setting, observing their surroundings from elevated branches.",
+        "tags": [
+          {
+            "en": "lynx",
+            "ru": null
+          },
+          {
+            "en": "forest",
+            "ru": null
+          },
+          {
+            "en": "wildlife",
+            "ru": null
+          },
+          {
+            "en": "cat",
+            "ru": null
+          },
+          {
+            "en": "predator",
+            "ru": null
+          },
+          {
+            "en": "tree",
+            "ru": null
+          },
+          {
+            "en": "branch",
+            "ru": null
+          },
+          {
+            "en": "natural habitat",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "lynxes",
+          "tree branch",
+          "wooden platform",
+          "forest background",
+          "trees",
+          "furry animals"
+        ],
+        "scenes": [
+          "forest",
+          "wildlife observation",
+          "tree perch",
+          "animal group",
+          "natural habitat"
+        ],
+        "actions": [
+          "sitting",
+          "standing",
+          "watching",
+          "resting",
+          "perched"
+        ],
+        "emotions": [
+          "alert",
+          "curious",
+          "observant",
+          "calm",
+          "vigilant"
+        ]
+      }
+    },
+    "photo-025": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Two Brown Bears Fighting in Snow",
+        "title_ru": null,
+        "description": "A close-up shot of two brown bears engaged in a fierce confrontation on a snowy landscape. One bear is baring its teeth in an aggressive display while the other faces it, suggesting a territorial or dominance struggle.",
+        "summary": "Two brown bears are locked in a physical altercation in a snowy environment. The scene captures raw animal behavior and natural predator dynamics.",
+        "tags": [
+          {
+            "en": "brown bear",
+            "ru": null
+          },
+          {
+            "en": "snow",
+            "ru": null
+          },
+          {
+            "en": "wildlife",
+            "ru": null
+          },
+          {
+            "en": "predator",
+            "ru": null
+          },
+          {
+            "en": "aggression",
+            "ru": null
+          },
+          {
+            "en": "nature",
+            "ru": null
+          },
+          {
+            "en": "animal behavior",
+            "ru": null
+          },
+          {
+            "en": "wilderness",
+            "ru": null
+          },
+          {
+            "en": "bear fight",
+            "ru": null
+          },
+          {
+            "en": "winter",
+            "ru": null
+          },
+          {
+            "en": "natural habitat",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "brown bear",
+          "snow",
+          "fur",
+          "teeth",
+          "snout",
+          "eyes"
+        ],
+        "scenes": [
+          "snowy landscape",
+          "wild animal confrontation",
+          "close-up wildlife shot",
+          "predator interaction",
+          "natural habitat"
+        ],
+        "actions": [
+          "fighting",
+          "baring teeth",
+          "grunting",
+          "standing upright",
+          "charging",
+          "clashing"
+        ],
+        "emotions": [
+          "aggression",
+          "intensity",
+          "fear",
+          "dominance",
+          "power",
+          "wildness"
+        ]
+      }
+    },
+    "photo-034": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Pink Soup in Ornate Bowl",
+        "title_ru": null,
+        "description": "A vibrant pink soup filled with chopped vegetables and herbs, served in a decorative ceramic bowl with floral patterns. The soup has a frothy surface and is presented on a checkered tablecloth.",
+        "summary": "A colorful, hearty soup with a bright pink hue, likely beet-based, garnished with herbs and vegetables, served in an ornate bowl.",
+        "tags": [
+          {
+            "en": "pink soup",
+            "ru": null
+          },
+          {
+            "en": "beet soup",
+            "ru": null
+          },
+          {
+            "en": "vegetable soup",
+            "ru": null
+          },
+          {
+            "en": "homemade",
+            "ru": null
+          },
+          {
+            "en": "hearty meal",
+            "ru": null
+          },
+          {
+            "en": "decorative bowl",
+            "ru": null
+          },
+          {
+            "en": "floral pattern",
+            "ru": null
+          },
+          {
+            "en": "checkered tablecloth",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "soup",
+          "bowl",
+          "vegetables",
+          "herbs",
+          "tablecloth"
+        ],
+        "scenes": [
+          "dinner table",
+          "home kitchen",
+          "food presentation",
+          "close-up shot",
+          "traditional dish"
+        ],
+        "actions": [
+          "served",
+          "presented",
+          "garnished",
+          "cooked",
+          "prepared"
+        ],
+        "emotions": [
+          "appetizing",
+          "inviting",
+          "warmth",
+          "comforting",
+          "delicious"
+        ]
+      }
+    },
+    "photo-044": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "St. Basil's Cathedral in Red Square",
+        "title_ru": null,
+        "description": "A vibrant view of St. Basil's Cathedral under a bright blue sky with fluffy white clouds, surrounded by tourists and city structures.",
+        "summary": "St. Basil's Cathedral stands prominently in Moscow's Red Square, its colorful onion domes contrasting against the sky. People walk around the square, enjoying the historic landmark on a sunny day.",
+        "tags": [
+          {
+            "en": "Russia",
+            "ru": null
+          },
+          {
+            "en": "Moscow",
+            "ru": null
+          },
+          {
+            "en": "Red Square",
+            "ru": null
+          },
+          {
+            "en": "St. Basil's Cathedral",
+            "ru": null
+          },
+          {
+            "en": "Tourist attraction",
+            "ru": null
+          },
+          {
+            "en": "Historic architecture",
+            "ru": null
+          },
+          {
+            "en": "Colorful domes",
+            "ru": null
+          },
+          {
+            "en": "Sunny day",
+            "ru": null
+          },
+          {
+            "en": "Crowded square",
+            "ru": null
+          },
+          {
+            "en": "Iconic landmark",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "St. Basil's Cathedral",
+          "Onion domes",
+          "People walking",
+          "Clouds",
+          "Blue sky",
+          "Buildings in background",
+          "Street lamps",
+          "Cars",
+          "Crane structure"
+        ],
+        "scenes": [
+          "Public square",
+          "Historic city center",
+          "Tourist destination",
+          "Architectural landmark",
+          "Outdoor gathering",
+          "Urban landscape"
+        ],
+        "actions": [
+          "Walking",
+          "Standing",
+          "Looking around",
+          "Photographing",
+          "Exploring"
+        ],
+        "emotions": [
+          "Wonder",
+          "Excitement",
+          "Awe",
+          "Curiosity",
+          "Joy"
+        ]
+      }
+    },
+    "photo-054": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Paris Night View",
+        "title_ru": null,
+        "description": "A panoramic view of Paris at dusk, featuring the Eiffel Tower illuminated on the left, modern high-rise buildings along the riverbank, and boats docked along the Seine River with reflections shimmering on the water.",
+        "summary": "Panoramic night view of Paris with the Eiffel Tower and city skyline reflected in the Seine River, featuring illuminated buildings and docked boats.",
+        "tags": [
+          {
+            "en": "Paris",
+            "ru": null
+          },
+          {
+            "en": "Eiffel Tower",
+            "ru": null
+          },
+          {
+            "en": "Seine River",
+            "ru": null
+          },
+          {
+            "en": "Night View",
+            "ru": null
+          },
+          {
+            "en": "Cityscape",
+            "ru": null
+          },
+          {
+            "en": "Urban Landscape",
+            "ru": null
+          },
+          {
+            "en": "Reflections",
+            "ru": null
+          },
+          {
+            "en": "Modern Architecture",
+            "ru": null
+          },
+          {
+            "en": "Dusk",
+            "ru": null
+          },
+          {
+            "en": "Boats",
+            "ru": null
+          },
+          {
+            "en": "Illuminated Buildings",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "Eiffel Tower",
+          "Buildings",
+          "River",
+          "Boats",
+          "Trees",
+          "Lights",
+          "Reflections",
+          "Bridge",
+          "Sky"
+        ],
+        "scenes": [
+          "City skyline at night",
+          "Riverfront with boats",
+          "Reflections on water",
+          "Urban architecture",
+          "Dusk lighting",
+          "Illuminated landmark"
+        ],
+        "actions": [
+          "Lighting up",
+          "Reflecting in water",
+          "Docked boats",
+          "City lights shining",
+          "Sky darkening"
+        ],
+        "emotions": [
+          "Serene",
+          "Romantic",
+          "Stunning",
+          "Peaceful",
+          "Magnificent"
+        ]
+      }
+    },
+    "photo-063": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Beach Scene with Boats and Umbrellas",
+        "title_ru": null,
+        "description": "A sunny beach with clear blue skies, white sand, turquoise water, and boats in the distance. Colorful umbrellas and jet skis are visible near the shore, with a forested hill in the background.",
+        "summary": "Sunny beach day with calm waves, boats, and beach activities. Bright colors and natural beauty.",
+        "tags": [
+          {
+            "en": "beach",
+            "ru": null
+          },
+          {
+            "en": "ocean",
+            "ru": null
+          },
+          {
+            "en": "sunshine",
+            "ru": null
+          },
+          {
+            "en": "turquoise water",
+            "ru": null
+          },
+          {
+            "en": "white sand",
+            "ru": null
+          },
+          {
+            "en": "boats",
+            "ru": null
+          },
+          {
+            "en": "umbrellas",
+            "ru": null
+          },
+          {
+            "en": "jet skis",
+            "ru": null
+          },
+          {
+            "en": "forest hill",
+            "ru": null
+          },
+          {
+            "en": "vacation",
+            "ru": null
+          },
+          {
+            "en": "tourism",
+            "ru": null
+          },
+          {
+            "en": "recreation",
+            "ru": null
+          },
+          {
+            "en": "nature",
+            "ru": null
+          },
+          {
+            "en": "relaxing",
+            "ru": null
+          },
+          {
+            "en": "travel",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "beach",
+          "ocean",
+          "boats",
+          "umbrellas",
+          "jet skis",
+          "trees",
+          "sand",
+          "waves",
+          "sky",
+          "shoreline",
+          "buildings",
+          "people"
+        ],
+        "scenes": [
+          "beachfront",
+          "coastal landscape",
+          "summer vacation",
+          "water sports",
+          "tourist destination",
+          "natural scenery",
+          "marine environment",
+          "recreational beach",
+          "sunny day",
+          "seaside resort"
+        ],
+        "actions": [
+          "waving",
+          "floating",
+          "parking boats",
+          "sunbathing",
+          "walking",
+          "swimming",
+          "boating",
+          "jet skiing",
+          "relaxing",
+          "dining",
+          "shopping"
+        ],
+        "emotions": [
+          "calm",
+          "happy",
+          "relaxed",
+          "peaceful",
+          "joyful",
+          "serene",
+          "excited",
+          "content",
+          "adventurous",
+          "sunny",
+          "refreshing"
+        ]
+      }
+    },
+    "photo-073": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Tram at Station",
+        "title_ru": null,
+        "description": "A modern white and green tram with the number 3017 is stopped at a station platform on a sunny day. The destination sign reads '109 PORT VELSBURIE'. Passengers are visible on the platform, and trees line the background under a clear blue sky.",
+        "summary": "A tram is stationary at a station with passengers waiting. The scene is bright and clear, suggesting a calm day in an urban or suburban setting.",
+        "tags": [
+          {
+            "en": "tram",
+            "ru": null
+          },
+          {
+            "en": "station",
+            "ru": null
+          },
+          {
+            "en": "public transport",
+            "ru": null
+          },
+          {
+            "en": "urban",
+            "ru": null
+          },
+          {
+            "en": "sunny",
+            "ru": null
+          },
+          {
+            "en": "blue sky",
+            "ru": null
+          },
+          {
+            "en": "trees",
+            "ru": null
+          },
+          {
+            "en": "passengers",
+            "ru": null
+          },
+          {
+            "en": "modern",
+            "ru": null
+          },
+          {
+            "en": "green and white",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "tram",
+          "platform",
+          "trees",
+          "electric wires",
+          "signage",
+          "building",
+          "people",
+          "bags",
+          "tracks"
+        ],
+        "scenes": [
+          "station platform",
+          "urban transit",
+          "daytime outdoor",
+          "clear sky",
+          "greenery",
+          "public transport stop"
+        ],
+        "actions": [
+          "stopped",
+          "waiting",
+          "standing",
+          "sitting",
+          "looking at tram"
+        ],
+        "emotions": [
+          "calm",
+          "peaceful",
+          "routine",
+          "daily commute",
+          "neutral"
+        ]
+      }
+    },
+    "photo-082": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Alma-Atinskaya Metro Station",
+        "title_ru": null,
+        "description": "A modern glass and metal metro station entrance in Moscow, with two pedestrians walking on a snowy pavement. The station is labeled in Russian as 'Московский метрополитен Станция Алма-Атинская'.",
+        "summary": "Modern Moscow metro station entrance with glass facade, two pedestrians, snow-covered ground, and urban background.",
+        "tags": [
+          {
+            "en": "Moscow Metro",
+            "ru": null
+          },
+          {
+            "en": "Alma-Atinskaya Station",
+            "ru": null
+          },
+          {
+            "en": "Urban Architecture",
+            "ru": null
+          },
+          {
+            "en": "Winter Scene",
+            "ru": null
+          },
+          {
+            "en": "Glass Building",
+            "ru": null
+          },
+          {
+            "en": "Pedestrians",
+            "ru": null
+          },
+          {
+            "en": "Snow",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "Metro station entrance",
+          "Glass facade",
+          "Metal frame",
+          "Signage with Cyrillic text",
+          "Pedestrian in brown coat",
+          "Pedestrian in purple jacket",
+          "Snow-covered ground",
+          "High-rise apartment building",
+          "Streetlights",
+          "Pavement"
+        ],
+        "scenes": [
+          "City street",
+          "Metro station entrance",
+          "Winter urban environment",
+          "Public transportation hub",
+          "Modern architecture"
+        ],
+        "actions": [
+          "Walking",
+          "Entering/Exiting station",
+          "Standing near station"
+        ],
+        "emotions": [
+          "Calm",
+          "Neutral",
+          "Routine"
+        ]
+      }
+    },
+    "photo-092": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Cargo Ship on River",
+        "title_ru": null,
+        "description": "A long cargo ship named 'CRISTINA' sails smoothly across a wide river, leaving ripples in its wake. The vessel has a covered deck and is moving away from the camera's viewpoint.",
+        "summary": "A large cargo ship navigates a river, creating gentle waves as it moves forward. The water reflects the sky and distant structures.",
+        "tags": [
+          {
+            "en": "cargo ship",
+            "ru": null
+          },
+          {
+            "en": "river",
+            "ru": null
+          },
+          {
+            "en": "water",
+            "ru": null
+          },
+          {
+            "en": "navigation",
+            "ru": null
+          },
+          {
+            "en": "transportation",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "ship",
+          "river",
+          "water",
+          "deck",
+          "nameplate",
+          "ripples"
+        ],
+        "scenes": [
+          "river scene",
+          "waterway",
+          "boat on water",
+          "open water",
+          "transportation vessel"
+        ],
+        "actions": [
+          "sailing",
+          "moving forward",
+          "creating ripples",
+          "reflecting light"
+        ],
+        "emotions": [
+          "calm",
+          "peaceful",
+          "tranquil",
+          "serene"
+        ]
+      }
+    },
+    "photo-102": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Soccer Players in Action",
+        "title_ru": null,
+        "description": "Two female soccer players compete for the ball on a green field during a match. One player in a white jersey is defending against another in a dark blue jersey. The stadium stands are mostly empty, with advertising visible in the background.",
+        "summary": "A dynamic moment in a women's soccer game, featuring two athletes competing for possession of the ball. The setting is an outdoor stadium at night or dusk, with sparse attendance.",
+        "tags": [
+          {
+            "en": "soccer",
+            "ru": null
+          },
+          {
+            "en": "women's soccer",
+            "ru": null
+          },
+          {
+            "en": "football",
+            "ru": null
+          },
+          {
+            "en": "athletic competition",
+            "ru": null
+          },
+          {
+            "en": "sports action",
+            "ru": null
+          },
+          {
+            "en": "stadium",
+            "ru": null
+          },
+          {
+            "en": "empty stands",
+            "ru": null
+          },
+          {
+            "en": "night game",
+            "ru": null
+          },
+          {
+            "en": "advertising banner",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "soccer ball",
+          "players",
+          "jerseys",
+          "shin guards",
+          "cleats",
+          "stadium seats",
+          "advertisement banner"
+        ],
+        "scenes": [
+          "field of play",
+          "stadium environment",
+          "nighttime sports event",
+          "competitive match",
+          "athletic movement"
+        ],
+        "actions": [
+          "running",
+          "chasing ball",
+          "defending",
+          "competing for possession",
+          "kicking motion"
+        ],
+        "emotions": [
+          "intense focus",
+          "determination",
+          "competition",
+          "aggression",
+          "focus on game"
+        ]
+      }
+    },
+    "photo-111": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Chess King on Checkers Board",
+        "title_ru": null,
+        "description": "A close-up shot of a wooden chess king piece standing prominently on a checkered board, with other chess pieces blurred in the background.",
+        "summary": "A focused view of a dark wooden chess king piece centered on a checkered board, surrounded by other chess pieces in soft focus.",
+        "tags": [
+          {
+            "en": "chess",
+            "ru": null
+          },
+          {
+            "en": "king",
+            "ru": null
+          },
+          {
+            "en": "board game",
+            "ru": null
+          },
+          {
+            "en": "wooden pieces",
+            "ru": null
+          },
+          {
+            "en": "strategy",
+            "ru": null
+          },
+          {
+            "en": "game",
+            "ru": null
+          },
+          {
+            "en": "competition",
+            "ru": null
+          },
+          {
+            "en": "decision making",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "chess king",
+          "checkered board",
+          "chess pieces",
+          "wooden chess set"
+        ],
+        "scenes": [
+          "chess game setup",
+          "board game table",
+          "game room",
+          "strategy session"
+        ],
+        "actions": [
+          "standing still",
+          "centered position",
+          "focusing on king",
+          "static shot",
+          "no movement"
+        ],
+        "emotions": [
+          "strategic focus",
+          "calmness",
+          "intensity",
+          "decision making",
+          "tension"
+        ]
+      }
+    },
+    "photo-121": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Vintage Watch Movement",
+        "title_ru": null,
+        "description": "A close-up view of an antique watch movement with visible gears, jewels, and a winding stem against a plain background.",
+        "summary": "Detailed mechanical watch movement showcasing intricate gears, ruby jewels, and a winding crown. The movement is displayed on a neutral background, highlighting its craftsmanship.",
+        "tags": [
+          {
+            "en": "watch movement",
+            "ru": null
+          },
+          {
+            "en": "mechanical watch",
+            "ru": null
+          },
+          {
+            "en": "vintage watch",
+            "ru": null
+          },
+          {
+            "en": "watch parts",
+            "ru": null
+          },
+          {
+            "en": "clock mechanism",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "watch movement",
+          "gears",
+          "jewels",
+          "winding stem",
+          "crown"
+        ],
+        "scenes": [
+          "close-up shot",
+          "mechanical interior",
+          "watch repair",
+          "watchmaking",
+          "clockwork"
+        ],
+        "actions": [
+          "displaying",
+          "showing internal mechanism",
+          "static display",
+          "detail view",
+          "technical photography"
+        ],
+        "emotions": [
+          "precision",
+          "craftsmanship",
+          "intricate design",
+          "mechanical beauty",
+          "historical value"
+        ]
+      }
+    },
+    "photo-131": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Nighttime Street in Tokyo",
+        "title_ru": null,
+        "description": "A bustling Japanese street at night, illuminated by colorful neon signs and crowded with pedestrians. The scene captures the vibrant energy of a city district filled with restaurants, bars, and shops.",
+        "summary": "A lively urban street in Japan at night, filled with bright signage and people walking along the sidewalks.",
+        "tags": [
+          {
+            "en": "Tokyo",
+            "ru": null
+          },
+          {
+            "en": "nighttime",
+            "ru": null
+          },
+          {
+            "en": "neon signs",
+            "ru": null
+          },
+          {
+            "en": "Japanese street",
+            "ru": null
+          },
+          {
+            "en": "urban life",
+            "ru": null
+          },
+          {
+            "en": "crowded",
+            "ru": null
+          },
+          {
+            "en": "cityscape",
+            "ru": null
+          },
+          {
+            "en": "restaurants",
+            "ru": null
+          },
+          {
+            "en": "bars",
+            "ru": null
+          },
+          {
+            "en": "pedestrians",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "neon signs",
+          "pedestrians",
+          "street lamps",
+          "signboards",
+          "food stalls",
+          "motorcycle",
+          "cones",
+          "shopping carts"
+        ],
+        "scenes": [
+          "city street",
+          "night market",
+          "commercial district",
+          "urban nightlife",
+          "Japanese shopping street"
+        ],
+        "actions": [
+          "walking",
+          "standing",
+          "looking at signs",
+          "shopping",
+          "eating",
+          "socializing"
+        ],
+        "emotions": [
+          "energetic",
+          "vibrant",
+          "busy",
+          "exciting",
+          "lively"
+        ]
+      }
+    },
+    "photo-140": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Colorful Wooden Building with Storefronts",
+        "title_ru": null,
+        "description": "A two-story green wooden building with ornate carvings and a large colorful mural advertising gifts, souvenirs, a wedding salon, and baked goods. Two cars are parked in front, one silver and one dark green, under a partly cloudy sky.",
+        "summary": "Traditional Russian-style wooden architecture with commercial signage. Cars parked on street. Brightly colored advertisement mural. Clear blue sky with clouds.",
+        "tags": [
+          {
+            "en": "wooden building",
+            "ru": null
+          },
+          {
+            "en": "Russian architecture",
+            "ru": null
+          },
+          {
+            "en": "commercial storefront",
+            "ru": null
+          },
+          {
+            "en": "colorful mural",
+            "ru": null
+          },
+          {
+            "en": "street scene",
+            "ru": null
+          },
+          {
+            "en": "cars parked",
+            "ru": null
+          },
+          {
+            "en": "souvenirs",
+            "ru": null
+          },
+          {
+            "en": "baked goods",
+            "ru": null
+          },
+          {
+            "en": "wedding salon",
+            "ru": null
+          },
+          {
+            "en": "ornate carvings",
+            "ru": null
+          },
+          {
+            "en": "blue sky",
+            "ru": null
+          },
+          {
+            "en": "partly cloudy",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "building",
+          "cars",
+          "windows",
+          "mural",
+          "signage",
+          "roof",
+          "trees",
+          "street sign",
+          "door",
+          "clock",
+          "candelabra",
+          "pottery",
+          "food images"
+        ],
+        "scenes": [
+          "urban street",
+          "commercial building",
+          "front facade",
+          "parked vehicles",
+          "advertisement display",
+          "traditional architecture",
+          "shopfronts",
+          "clear sky"
+        ],
+        "actions": [
+          "parked",
+          "displaying",
+          "advertising",
+          "standing",
+          "shaded by roof"
+        ],
+        "emotions": [
+          "vibrant",
+          "nostalgic",
+          "commercial",
+          "calm",
+          "colorful",
+          "traditional",
+          "urban"
+        ]
+      }
+    },
+    "photo-150": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Data Collection Awareness Sign",
+        "title_ru": null,
+        "description": "A clear acrylic sign mounted on a textured wall with four metallic fasteners. The sign displays a message about data collection and prompts reflection on its usage.",
+        "summary": "A warning or informational sign about digital data collection, mounted on a wall, prompting viewers to consider how their personal data is used.",
+        "tags": [
+          {
+            "en": "data collection",
+            "ru": null
+          },
+          {
+            "en": "privacy awareness",
+            "ru": null
+          },
+          {
+            "en": "digital footprint",
+            "ru": null
+          },
+          {
+            "en": "informational sign",
+            "ru": null
+          },
+          {
+            "en": "wall-mounted",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "acrylic sign",
+          "metal fasteners",
+          "text message",
+          "wall"
+        ],
+        "scenes": [
+          "indoor setting",
+          "exhibition or display",
+          "public awareness campaign"
+        ],
+        "actions": [
+          "displaying message",
+          "mounting sign",
+          "prompting thought"
+        ],
+        "emotions": [
+          "awareness",
+          "curiosity",
+          "reflection",
+          "caution"
+        ]
+      }
+    },
+    "photo-160": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Aurora Borealis Over a Frozen Landscape",
+        "title_ru": null,
+        "description": "A stunning night sky filled with vibrant green auroras arching over a snowy, frozen landscape with distant hills and a calm lake reflecting the celestial glow.",
+        "summary": "A breathtaking view of the Northern Lights illuminating a serene, snow-covered wilderness under a starry sky. The aurora's ethereal green light reflects on the lake, creating a magical atmosphere.",
+        "tags": [
+          {
+            "en": "Northern Lights",
+            "ru": null
+          },
+          {
+            "en": "Aurora Borealis",
+            "ru": null
+          },
+          {
+            "en": "Night Sky",
+            "ru": null
+          },
+          {
+            "en": "Frozen Landscape",
+            "ru": null
+          },
+          {
+            "en": "Starry Sky",
+            "ru": null
+          },
+          {
+            "en": "Nature Photography",
+            "ru": null
+          },
+          {
+            "en": "Magical Light Show",
+            "ru": null
+          },
+          {
+            "en": "Winter Night",
+            "ru": null
+          },
+          {
+            "en": "Celestial Phenomenon",
+            "ru": null
+          },
+          {
+            "en": "Landscape Photography",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "Aurora Borealis",
+          "Stars",
+          "Snowy Hills",
+          "Lake",
+          "Dry Grass",
+          "Bare Trees",
+          "Night Sky"
+        ],
+        "scenes": [
+          "Nighttime Landscape",
+          "Frozen Terrain",
+          "Celestial Display",
+          "Reflective Lake",
+          "Remote Wilderness"
+        ],
+        "actions": [
+          "Aurora glowing",
+          "Stars shining",
+          "Light reflecting on water",
+          "Silent landscape",
+          "Natural phenomenon occurring"
+        ],
+        "emotions": [
+          "Wonder",
+          "Peace",
+          "Amazement",
+          "Serene",
+          "Magical"
+        ]
+      }
+    },
+    "photo-169": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Nighttime Cityscape with Illuminated Bridge",
+        "title_ru": null,
+        "description": "A panoramic view of a modern city skyline at night, featuring tall skyscrapers under construction and a brightly lit pedestrian bridge spanning a river. The lights reflect on the water's surface, creating a vibrant urban scene.",
+        "summary": "Urban architecture at night, illuminated buildings, construction cranes, reflective water, modern bridge design",
+        "tags": [
+          {
+            "en": "night",
+            "ru": null
+          },
+          {
+            "en": "cityscape",
+            "ru": null
+          },
+          {
+            "en": "skyscrapers",
+            "ru": null
+          },
+          {
+            "en": "bridge",
+            "ru": null
+          },
+          {
+            "en": "river",
+            "ru": null
+          },
+          {
+            "en": "construction",
+            "ru": null
+          },
+          {
+            "en": "illuminated",
+            "ru": null
+          },
+          {
+            "en": "urban",
+            "ru": null
+          },
+          {
+            "en": "modern",
+            "ru": null
+          },
+          {
+            "en": "reflection",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "skyscrapers",
+          "bridge",
+          "river",
+          "cranes",
+          "lights",
+          "boats",
+          "buildings",
+          "water surface"
+        ],
+        "scenes": [
+          "city skyline",
+          "nighttime urban environment",
+          "riverfront",
+          "pedestrian bridge",
+          "construction site"
+        ],
+        "actions": [
+          "illuminating",
+          "reflecting",
+          "standing",
+          "lighting up"
+        ],
+        "emotions": [
+          "majestic",
+          "modern",
+          "calm",
+          "vibrant",
+          "awe-inspiring"
+        ]
+      }
+    },
+    "photo-179": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Vegetable Pizza",
+        "title_ru": null,
+        "description": "A freshly baked vegetable pizza topped with melted cheese, sliced tomatoes, green bell peppers, corn kernels, and onions, served on a metal tray.",
+        "summary": "A colorful vegetable pizza with melted cheese, fresh vegetables, and a golden crust, presented on a metal serving plate.",
+        "tags": [
+          {
+            "en": "pizza",
+            "ru": null
+          },
+          {
+            "en": "vegetable",
+            "ru": null
+          },
+          {
+            "en": "cheese",
+            "ru": null
+          },
+          {
+            "en": "tomato",
+            "ru": null
+          },
+          {
+            "en": "bell pepper",
+            "ru": null
+          },
+          {
+            "en": "corn",
+            "ru": null
+          },
+          {
+            "en": "onion",
+            "ru": null
+          },
+          {
+            "en": "fresh",
+            "ru": null
+          },
+          {
+            "en": "cooked",
+            "ru": null
+          },
+          {
+            "en": "food",
+            "ru": null
+          },
+          {
+            "en": "meal",
+            "ru": null
+          },
+          {
+            "en": "dinner",
+            "ru": null
+          },
+          {
+            "en": "delicious",
+            "ru": null
+          },
+          {
+            "en": "homemade",
+            "ru": null
+          },
+          {
+            "en": "restaurant",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "pizza",
+          "metal tray",
+          "cheese",
+          "tomato slices",
+          "green bell pepper slices",
+          "corn kernels",
+          "onion slices",
+          "crust"
+        ],
+        "scenes": [
+          "food preparation",
+          "dinner table",
+          "restaurant setting",
+          "home kitchen",
+          "close-up shot",
+          "serving plate",
+          "pizza on tray"
+        ],
+        "actions": [
+          "baked",
+          "topped",
+          "served",
+          "cooked",
+          "presented"
+        ],
+        "emotions": [
+          "appetizing",
+          "delicious",
+          "comforting",
+          "satisfying",
+          "inviting",
+          "joyful",
+          "hungry",
+          "wants to eat"
+        ]
+      }
+    },
+    "photo-188": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Coffee and Macaroon Cake",
+        "title_ru": null,
+        "description": "A dark ceramic cup of black coffee sits beside a slice of layered cake with caramel drizzle and macadamia nuts on a patterned plate, both placed on a wooden table.",
+        "summary": "A cozy café setting featuring a cup of coffee and a sweet dessert. The scene is warm and inviting, suggesting a quiet moment of indulgence.",
+        "tags": [
+          {
+            "en": "coffee",
+            "ru": null
+          },
+          {
+            "en": "cake",
+            "ru": null
+          },
+          {
+            "en": "dessert",
+            "ru": null
+          },
+          {
+            "en": "caramel",
+            "ru": null
+          },
+          {
+            "en": "macadamia nuts",
+            "ru": null
+          },
+          {
+            "en": "ceramic cup",
+            "ru": null
+          },
+          {
+            "en": "wooden table",
+            "ru": null
+          },
+          {
+            "en": "café",
+            "ru": null
+          },
+          {
+            "en": "indulgence",
+            "ru": null
+          },
+          {
+            "en": "comfort food",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "coffee cup",
+          "cake slice",
+          "plate",
+          "wooden table",
+          "caramel sauce",
+          "macadamia nuts",
+          "saucer",
+          "ceramic mug"
+        ],
+        "scenes": [
+          "café interior",
+          "table setting",
+          "food and drink pairing",
+          "indulgent break",
+          "cozy atmosphere"
+        ],
+        "actions": [
+          "sitting with coffee",
+          "eating dessert",
+          "drinking coffee",
+          "enjoying treat",
+          "relaxing moment"
+        ],
+        "emotions": [
+          "comfort",
+          "pleasure",
+          "calm",
+          "contentment",
+          "satisfaction"
+        ]
+      }
+    },
+    "photo-198": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Classical Guitar on Sofa",
+        "title_ru": null,
+        "description": "A polished wooden classical guitar stands upright on a gray sofa against a plain white wall. The guitar has a natural wood finish, six strings, and a traditional soundhole. A framed picture hangs on the wall to the left.",
+        "summary": "A classical guitar is positioned vertically on a sofa in a minimalist room setting.",
+        "tags": [
+          {
+            "en": "guitar",
+            "ru": null
+          },
+          {
+            "en": "classical guitar",
+            "ru": null
+          },
+          {
+            "en": "wooden instrument",
+            "ru": null
+          },
+          {
+            "en": "sofa",
+            "ru": null
+          },
+          {
+            "en": "home decor",
+            "ru": null
+          },
+          {
+            "en": "music",
+            "ru": null
+          },
+          {
+            "en": "instrument",
+            "ru": null
+          },
+          {
+            "en": "resting",
+            "ru": null
+          },
+          {
+            "en": "interior",
+            "ru": null
+          },
+          {
+            "en": "furniture",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "guitar",
+          "sofa",
+          "pillow",
+          "wall",
+          "frame",
+          "strings"
+        ],
+        "scenes": [
+          "living room",
+          "home interior",
+          "quiet room",
+          "music room",
+          "cozy setting"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-208": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Metro Sign with Church in Background",
+        "title_ru": null,
+        "description": "A large blue and yellow 'METRO' sign stands prominently in the foreground, with a white church featuring a black dome visible behind it under a partly cloudy sky.",
+        "summary": "A modern retail sign contrasts with historic architecture. The scene is set on a sunny day with scattered clouds, showing both commercial and religious structures.",
+        "tags": [
+          {
+            "en": "Metro",
+            "ru": null
+          },
+          {
+            "en": "Church",
+            "ru": null
+          },
+          {
+            "en": "Dome",
+            "ru": null
+          },
+          {
+            "en": "Signage",
+            "ru": null
+          },
+          {
+            "en": "Urban landscape",
+            "ru": null
+          },
+          {
+            "en": "Historic building",
+            "ru": null
+          },
+          {
+            "en": "Commercial",
+            "ru": null
+          },
+          {
+            "en": "Religious",
+            "ru": null
+          },
+          {
+            "en": "Sky",
+            "ru": null
+          },
+          {
+            "en": "Trees",
+            "ru": null
+          },
+          {
+            "en": "Fence",
+            "ru": null
+          },
+          {
+            "en": "Streetlights",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "METRO sign",
+          "Church",
+          "Dome",
+          "Trees",
+          "Fence",
+          "Streetlights",
+          "Cars",
+          "Clouds",
+          "Sky"
+        ],
+        "scenes": [
+          "Cityscape",
+          "Commercial area",
+          "Historic architecture",
+          "Outdoor setting",
+          "Daytime scene"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-003": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Order Shipped Confirmation Email",
+        "title_ru": null,
+        "description": "A screenshot of an email notification confirming that a customer's order has been shipped and is on its way.",
+        "summary": "Email from orders@example-shop.com to Alex, informing them that order #48213 has been shipped with an estimated delivery date of Tuesday, 14 April. The email encourages tracking the parcel via an app.",
+        "tags": [
+          {
+            "en": "email",
+            "ru": null
+          },
+          {
+            "en": "order confirmation",
+            "ru": null
+          },
+          {
+            "en": "shipped",
+            "ru": null
+          },
+          {
+            "en": "delivery",
+            "ru": null
+          },
+          {
+            "en": "tracking",
+            "ru": null
+          },
+          {
+            "en": "app",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "email",
+          "text",
+          "header",
+          "footer"
+        ],
+        "scenes": [
+          "inbox",
+          "mail interface",
+          "digital notification"
+        ],
+        "actions": [
+          "shipped",
+          "delivered",
+          "tracked",
+          "ordered"
+        ],
+        "emotions": [
+          "positive",
+          "excitement",
+          "relief",
+          "anticipation"
+        ]
+      }
+    },
+    "synth-008": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Settings",
+        "title_ru": null,
+        "description": "A screenshot of a settings menu with Russian labels and toggle switches.",
+        "summary": "Settings interface with toggles for dark theme, notifications, geolocation access, auto-update, and keyboard sound.",
+        "tags": [
+          {
+            "en": "settings",
+            "ru": null
+          },
+          {
+            "en": "toggle switch",
+            "ru": null
+          },
+          {
+            "en": "dark mode",
+            "ru": null
+          },
+          {
+            "en": "notifications",
+            "ru": null
+          },
+          {
+            "en": "geolocation",
+            "ru": null
+          },
+          {
+            "en": "auto update",
+            "ru": null
+          },
+          {
+            "en": "keyboard sound",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "settings menu",
+          "toggle switches",
+          "Russian text labels"
+        ],
+        "scenes": [
+          "digital interface",
+          "user settings screen"
+        ],
+        "actions": [
+          "toggling options",
+          "configuring app settings"
+        ],
+        "emotions": [
+          "neutral",
+          "functional",
+          "technical"
+        ]
+      }
+    },
+    "synth-014": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Sign in Screen",
+        "title_ru": null,
+        "description": "A clean, minimalist sign-in interface with fields for email and password, a blue 'Continue' button, and a 'Forgot password?' link.",
+        "summary": "Digital login screen for user authentication with basic input fields and action button.",
+        "tags": [
+          {
+            "en": "sign in",
+            "ru": null
+          },
+          {
+            "en": "login screen",
+            "ru": null
+          },
+          {
+            "en": "email field",
+            "ru": null
+          },
+          {
+            "en": "password field",
+            "ru": null
+          },
+          {
+            "en": "continue button",
+            "ru": null
+          },
+          {
+            "en": "forgot password",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "email address field",
+          "password field",
+          "blue continue button",
+          "forgotten password link"
+        ],
+        "scenes": [
+          "digital interface",
+          "user authentication screen",
+          "web form layout"
+        ],
+        "actions": [
+          "entering email",
+          "entering password",
+          "clicking continue",
+          "resetting password"
+        ],
+        "emotions": [
+          "neutral",
+          "calm",
+          "functional"
+        ]
+      }
+    },
+    "synth-019": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "C# Code Editor",
+        "title_ru": null,
+        "description": "A screenshot of a C# code editor displaying a simple program that iterates through an array of cat names and prints a message for each.",
+        "summary": "C# code snippet using foreach loop to print 'Feed {cat}' for each cat in an array named 'cats'.",
+        "tags": [
+          {
+            "en": "C#",
+            "ru": null
+          },
+          {
+            "en": "code editor",
+            "ru": null
+          },
+          {
+            "en": "foreach loop",
+            "ru": null
+          },
+          {
+            "en": "array",
+            "ru": null
+          },
+          {
+            "en": "cat names",
+            "ru": null
+          },
+          {
+            "en": "console output",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "code editor window",
+          "text editor interface",
+          "C# code",
+          "variable declaration",
+          "Console.WriteLine",
+          "string interpolation"
+        ],
+        "scenes": [
+          "programming environment",
+          "development IDE",
+          "coding session",
+          "text editor screen",
+          "C# syntax"
+        ],
+        "actions": [
+          "displaying code",
+          "iterating through array",
+          "printing console message",
+          "using foreach loop",
+          "declaring variable"
+        ],
+        "emotions": [
+          "neutral",
+          "technical",
+          "focused",
+          "calm",
+          "analytical"
+        ]
+      }
+    },
+    "synth-024": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Low Battery Warning",
+        "title_ru": null,
+        "description": "A digital alert screen indicating the device's battery is critically low at 5% remaining, urging the user to connect a charger soon.",
+        "summary": "Battery warning message on a dark background with white and red text. The message is clear and urgent, prompting immediate action.",
+        "tags": [
+          {
+            "en": "battery low",
+            "ru": null
+          },
+          {
+            "en": "low battery alert",
+            "ru": null
+          },
+          {
+            "en": "charging needed",
+            "ru": null
+          },
+          {
+            "en": "device warning",
+            "ru": null
+          },
+          {
+            "en": "5% remaining",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "screen",
+          "text message",
+          "battery indicator"
+        ],
+        "scenes": [
+          "digital interface",
+          "mobile device screen",
+          "warning notification"
+        ],
+        "actions": [
+          "displaying alert",
+          "urging user to charge",
+          "indicating low power"
+        ],
+        "emotions": [
+          "urgency",
+          "alertness",
+          "caution"
+        ]
+      }
+    },
+    "synth-028": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Coffee & Bakery Receipt",
+        "title_ru": null,
+        "description": "A receipt from 'The Daily Grind' coffee and bakery, showing items purchased at Table 4 with a total of $13.25.",
+        "summary": "Receipt for a coffee and pastry purchase at The Daily Grind, including flat white, cappuccino, almond croissant, and carrot cake.",
+        "tags": [
+          {
+            "en": "coffee shop",
+            "ru": null
+          },
+          {
+            "en": "receipt",
+            "ru": null
+          },
+          {
+            "en": "bakery",
+            "ru": null
+          },
+          {
+            "en": "flat white",
+            "ru": null
+          },
+          {
+            "en": "cappuccino",
+            "ru": null
+          },
+          {
+            "en": "almond croissant",
+            "ru": null
+          },
+          {
+            "en": "carrot cake",
+            "ru": null
+          },
+          {
+            "en": "table 4",
+            "ru": null
+          },
+          {
+            "en": "card payment",
+            "ru": null
+          },
+          {
+            "en": "thank you",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "receipt",
+          "coffee",
+          "pastry",
+          "text",
+          "price",
+          "total",
+          "payment approval message"
+        ],
+        "scenes": [
+          "coffee shop counter",
+          "table setting",
+          "point of sale terminal",
+          "receipt printing area"
+        ],
+        "actions": [
+          "purchasing food",
+          "paying with card",
+          "receiving receipt",
+          "customer service interaction"
+        ],
+        "emotions": [
+          "satisfied",
+          "grateful",
+          "thankful",
+          "pleasant",
+          "welcome back"
+        ]
+      }
+    },
+    "synth-035": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Anna Smirnova Wedding Photographer",
+        "title_ru": null,
+        "description": "A clean, professional business card design for Anna Smirnova, a wedding photographer. The card features her name in English and Russian, her profession in both languages, and contact information including phone number and email address.",
+        "summary": "Professional wedding photographer business card with bilingual text and contact details on a minimalist white background with a teal vertical stripe.",
+        "tags": [
+          {
+            "en": "wedding photographer",
+            "ru": null
+          },
+          {
+            "en": "business card",
+            "ru": null
+          },
+          {
+            "en": "professional",
+            "ru": null
+          },
+          {
+            "en": "bilingual",
+            "ru": null
+          },
+          {
+            "en": "contact information",
+            "ru": null
+          },
+          {
+            "en": "Anna Smirnova",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "text",
+          "name",
+          "phone number",
+          "email address",
+          "vertical stripe"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-042": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Caution Wet Floor Sign",
+        "title_ru": null,
+        "description": "A bright yellow rectangular warning sign with bold black text reading 'CAUTION WET FLOOR'. The sign has a thick black border and is designed to alert people of a slippery surface.",
+        "summary": "A clear, high-contrast warning sign indicating a wet floor hazard.",
+        "tags": [
+          {
+            "en": "warning sign",
+            "ru": null
+          },
+          {
+            "en": "caution",
+            "ru": null
+          },
+          {
+            "en": "wet floor",
+            "ru": null
+          },
+          {
+            "en": "safety",
+            "ru": null
+          },
+          {
+            "en": "yellow background",
+            "ru": null
+          },
+          {
+            "en": "black text",
+            "ru": null
+          },
+          {
+            "en": "slippery surface",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "sign",
+          "text",
+          "border"
+        ],
+        "scenes": [
+          "warning sign",
+          "indoor warning",
+          "public safety",
+          "floor hazard"
+        ],
+        "actions": [
+          "warning",
+          "alerting",
+          "cautioning"
+        ],
+        "emotions": [
+          "warning",
+          "caution",
+          "alert"
+        ]
+      }
+    },
+    "synth-048": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "To-Do List Note",
+        "title_ru": null,
+        "description": "A handwritten note on light green paper with black cursive text, set against a dark gray background. The note contains tasks in Russian.",
+        "summary": "A personal reminder list written in Russian, including grocery shopping and a phone call.",
+        "tags": [
+          {
+            "en": "note",
+            "ru": null
+          },
+          {
+            "en": "handwritten",
+            "ru": null
+          },
+          {
+            "en": "Russian",
+            "ru": null
+          },
+          {
+            "en": "to-do list",
+            "ru": null
+          },
+          {
+            "en": "reminder",
+            "ru": null
+          },
+          {
+            "en": "shopping",
+            "ru": null
+          },
+          {
+            "en": "phone call",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "paper",
+          "ink",
+          "text",
+          "background"
+        ],
+        "scenes": [
+          "desk",
+          "notebook",
+          "home office"
+        ],
+        "actions": [
+          "writing",
+          "reminding",
+          "planning"
+        ],
+        "emotions": [
+          "organized",
+          "task-oriented",
+          "calm",
+          "practical"
+        ]
+      }
+    },
+    "synth-055": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Tenancy Agreement - Pets Clause",
+        "title_ru": null,
+        "description": "A page from a tenancy agreement detailing pet policies, specifically allowing one cat or small dog with landlord consent and requiring tenant to cover repair costs for any damage.",
+        "summary": "This document outlines the tenant's rights and responsibilities regarding pets in a rental property. It permits one cat or small dog with written consent and holds the tenant financially responsible for any damage caused by the pet.",
+        "tags": [
+          {
+            "en": "tenancy agreement",
+            "ru": null
+          },
+          {
+            "en": "pets",
+            "ru": null
+          },
+          {
+            "en": "landlord consent",
+            "ru": null
+          },
+          {
+            "en": "tenant responsibility",
+            "ru": null
+          },
+          {
+            "en": "property damage",
+            "ru": null
+          },
+          {
+            "en": "rental rules",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "text document",
+          "paper",
+          "typed words",
+          "heading",
+          "paragraphs"
+        ],
+        "scenes": [
+          "document page",
+          "legal text",
+          "formal agreement",
+          "office setting"
+        ],
+        "actions": [
+          "allowing pets",
+          "requiring consent",
+          "holding tenant liable",
+          "repairing damage"
+        ],
+        "emotions": [
+          "formal",
+          "restrictive",
+          "neutral",
+          "legal",
+          "binding"
+        ]
+      }
+    },
+    "gif-003": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Toad Swimming in Shallow Water",
+        "title_ru": null,
+        "description": "A single toad is swimming in shallow, murky water with its limbs extended and body partially submerged.",
+        "summary": "A toad is actively swimming in calm, greenish water, showing its textured skin and webbed feet as it moves through the surface.",
+        "tags": [
+          {
+            "en": "toad",
+            "ru": null
+          },
+          {
+            "en": "swimming",
+            "ru": null
+          },
+          {
+            "en": "water",
+            "ru": null
+          },
+          {
+            "en": "nature",
+            "ru": null
+          },
+          {
+            "en": "wildlife",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "toad",
+          "water",
+          "legs",
+          "skin"
+        ],
+        "scenes": [
+          "natural habitat",
+          "shallow water",
+          "aquatic environment"
+        ],
+        "actions": [
+          "swimming",
+          "moving through water",
+          "submerged"
+        ],
+        "emotions": [
+          "calm",
+          "peaceful",
+          "natural"
+        ]
+      }
+    },
+    "gif-007": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Snake Coiled Among Rocks and Grass",
+        "title_ru": null,
+        "description": "A brown snake is coiled around rocks and dry grass, basking in sunlight with shadows cast by nearby vegetation.",
+        "summary": "A brown snake rests in a natural rocky environment, surrounded by dry grass and casting shadows from overhead plants.",
+        "tags": [
+          {
+            "en": "snake",
+            "ru": null
+          },
+          {
+            "en": "rocky terrain",
+            "ru": null
+          },
+          {
+            "en": "dry grass",
+            "ru": null
+          },
+          {
+            "en": "sunlight",
+            "ru": null
+          },
+          {
+            "en": "nature",
+            "ru": null
+          },
+          {
+            "en": "wildlife",
+            "ru": null
+          },
+          {
+            "en": "coiled",
+            "ru": null
+          },
+          {
+            "en": "basking",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "snake",
+          "rocks",
+          "grass",
+          "shadows",
+          "sunlight"
+        ],
+        "scenes": [
+          "rocky ground",
+          "natural habitat",
+          "outdoor setting",
+          "wilderness",
+          "desert-like environment"
+        ],
+        "actions": [
+          "coiled",
+          "resting",
+          "basking",
+          "hidden",
+          "still"
+        ],
+        "emotions": [
+          "calm",
+          "peaceful",
+          "natural",
+          "quiet",
+          "observant"
+        ]
+      }
+    },
+    "gif-011": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Reindeer in Motion",
+        "title_ru": null,
+        "description": "A black and white illustration depicting a sequence of reindeer in motion, arranged along a curved path.",
+        "summary": "An artistic representation of reindeer captured in various stages of movement, rendered in a sketch-like style.",
+        "tags": [
+          {
+            "en": "reindeer",
+            "ru": null
+          },
+          {
+            "en": "illustration",
+            "ru": null
+          },
+          {
+            "en": "black and white",
+            "ru": null
+          },
+          {
+            "en": "motion",
+            "ru": null
+          },
+          {
+            "en": "antlers",
+            "ru": null
+          },
+          {
+            "en": "wildlife",
+            "ru": null
+          },
+          {
+            "en": "drawing",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "reindeer",
+          "antlers",
+          "lines",
+          "curved path"
+        ],
+        "scenes": [
+          "animal movement",
+          "illustrated sequence",
+          "natural setting",
+          "sketch style"
+        ],
+        "actions": [
+          "running",
+          "moving",
+          "walking",
+          "jumping",
+          "gait transition"
+        ],
+        "emotions": [
+          "movement",
+          "energy",
+          "wildness",
+          "motion capture"
+        ]
+      }
+    },
+    "gif-015": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Dragonfly Close-Up",
+        "title_ru": null,
+        "description": "A macro photograph capturing a red dragonfly's face in extreme close-up, with its large compound eyes and prominent mouthparts clearly visible. The insect is resting on a textured surface, possibly stone or concrete, with a small yellow object nearby.",
+        "summary": "Extreme close-up of a red dragonfly's head, showcasing its large eyes and mandibles. The dragonfly appears to be resting on a rough surface with a small yellow object in the foreground.",
+        "tags": [
+          {
+            "en": "dragonfly",
+            "ru": null
+          },
+          {
+            "en": "macro photography",
+            "ru": null
+          },
+          {
+            "en": "insect",
+            "ru": null
+          },
+          {
+            "en": "nature",
+            "ru": null
+          },
+          {
+            "en": "close-up",
+            "ru": null
+          },
+          {
+            "en": "red dragonfly",
+            "ru": null
+          },
+          {
+            "en": "compound eyes",
+            "ru": null
+          },
+          {
+            "en": "mandibles",
+            "ru": null
+          },
+          {
+            "en": "stone surface",
+            "ru": null
+          },
+          {
+            "en": "yellow object",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "dragonfly",
+          "eyes",
+          "mandibles",
+          "legs",
+          "wings",
+          "surface",
+          "yellow object"
+        ],
+        "scenes": [
+          "close-up shot",
+          "insect resting",
+          "natural environment",
+          "macro photography scene"
+        ],
+        "actions": [
+          "resting",
+          "perching",
+          "focusing",
+          "still image"
+        ],
+        "emotions": [
+          "curious",
+          "intriguing",
+          "detailed",
+          "natural beauty",
+          "wonder"
+        ]
+      }
+    },
+    "gif-020": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Ukrainian Flag",
+        "title_ru": null,
+        "description": "A waving Ukrainian flag with its traditional blue and yellow horizontal stripes.",
+        "summary": "The national flag of Ukraine, featuring two equal horizontal bands of blue (top) and yellow (bottom), fluttering in the wind.",
+        "tags": [
+          {
+            "en": "Ukraine",
+            "ru": null
+          },
+          {
+            "en": "Flag",
+            "ru": null
+          },
+          {
+            "en": "National Symbol",
+            "ru": null
+          },
+          {
+            "en": "Blue and Yellow",
+            "ru": null
+          },
+          {
+            "en": "Waving",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "Flag",
+          "Blue stripe",
+          "Yellow stripe"
+        ],
+        "scenes": [
+          "Flag waving",
+          "National emblem",
+          "Symbol of sovereignty"
+        ],
+        "actions": [
+          "Waving",
+          "Fluttering",
+          "Bowing in wind"
+        ],
+        "emotions": [
+          "Pride",
+          "National identity",
+          "Unity"
+        ]
+      }
+    },
+    "gif-024": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Green Glowing Bottle with Spheres",
+        "title_ru": null,
+        "description": "A glowing green glass bottle filled with translucent spheres, set against a black background with a reflective surface below.",
+        "summary": "A luminous green bottle containing spherical objects, illuminated against a dark backdrop with a subtle reflection.",
+        "tags": [
+          {
+            "en": "glowing",
+            "ru": null
+          },
+          {
+            "en": "green",
+            "ru": null
+          },
+          {
+            "en": "bottle",
+            "ru": null
+          },
+          {
+            "en": "spheres",
+            "ru": null
+          },
+          {
+            "en": "dark background",
+            "ru": null
+          },
+          {
+            "en": "reflective surface",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "glass bottle",
+          "translucent spheres",
+          "black background",
+          "reflection"
+        ],
+        "scenes": [
+          "isolated object",
+          "dark studio setting",
+          "minimalist composition"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-028": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Windows Command Prompt",
+        "title_ru": null,
+        "description": "A Windows command prompt window with a blue background and yellow cursor, showing the directory path C:\\Users>.",
+        "summary": "An active command line interface in a Windows system, ready for user input.",
+        "tags": [
+          {
+            "en": "command prompt",
+            "ru": null
+          },
+          {
+            "en": "Windows",
+            "ru": null
+          },
+          {
+            "en": "blue screen",
+            "ru": null
+          },
+          {
+            "en": "yellow cursor",
+            "ru": null
+          },
+          {
+            "en": "terminal",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "window",
+          "cursor",
+          "text",
+          "directory path"
+        ],
+        "scenes": [
+          "computer screen",
+          "command line interface",
+          "operating system terminal"
+        ],
+        "actions": [
+          "waiting for input",
+          "ready to execute command"
+        ],
+        "emotions": [
+          "neutral",
+          "technical",
+          "functional"
+        ]
+      }
+    },
+    "gif-032": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Letter A on Grid",
+        "title_ru": null,
+        "description": "A black letter 'A' drawn on a white background with horizontal grid lines.",
+        "summary": "Simple geometric representation of the letter 'A' on a lined grid.",
+        "tags": [
+          {
+            "en": "letter",
+            "ru": null
+          },
+          {
+            "en": "alphabet",
+            "ru": null
+          },
+          {
+            "en": "grid",
+            "ru": null
+          },
+          {
+            "en": "drawing",
+            "ru": null
+          },
+          {
+            "en": "black",
+            "ru": null
+          },
+          {
+            "en": "white",
+            "ru": null
+          },
+          {
+            "en": "geometry",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "letter A",
+          "grid lines",
+          "black line",
+          "white background"
+        ],
+        "scenes": [
+          "drawing on paper",
+          "educational diagram",
+          "simple illustration"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-003": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Black and White Dog on Concrete",
+        "title_ru": null,
+        "description": "A black dog with white paws is lying on its side on a gray concrete surface, appearing relaxed or resting.",
+        "summary": "A black dog with white paws lies on its side on a gray concrete surface, in a relaxed posture.",
+        "tags": [
+          {
+            "en": "dog",
+            "ru": null
+          },
+          {
+            "en": "black and white",
+            "ru": null
+          },
+          {
+            "en": "concrete",
+            "ru": null
+          },
+          {
+            "en": "resting",
+            "ru": null
+          },
+          {
+            "en": "relaxed",
+            "ru": null
+          },
+          {
+            "en": "paw",
+            "ru": null
+          },
+          {
+            "en": "gray surface",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "dog",
+          "concrete surface"
+        ],
+        "scenes": [
+          "outdoor",
+          "ground level",
+          "urban setting"
+        ],
+        "actions": [
+          "lying down",
+          "resting",
+          "relaxed posture"
+        ],
+        "emotions": [
+          "peaceful",
+          "calm",
+          "comfortable"
+        ]
+      }
+    },
+    "video-007": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Train at Station",
+        "title_ru": null,
+        "description": "A silver CrossCountry train is stationary at a platform, viewed through an open station entrance. The platform has yellow safety lines and a sign indicating 'Gloucester-upon-Avon'.",
+        "summary": "A modern passenger train is parked at a station platform under clear skies. The view is framed by the station's glass doors and signage.",
+        "tags": [
+          {
+            "en": "train",
+            "ru": null
+          },
+          {
+            "en": "station",
+            "ru": null
+          },
+          {
+            "en": "CrossCountry",
+            "ru": null
+          },
+          {
+            "en": "platform",
+            "ru": null
+          },
+          {
+            "en": "railway",
+            "ru": null
+          },
+          {
+            "en": "safety line",
+            "ru": null
+          },
+          {
+            "en": "glass doors",
+            "ru": null
+          },
+          {
+            "en": "signage",
+            "ru": null
+          },
+          {
+            "en": "Gloucester-upon-Avon",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "train",
+          "platform",
+          "glass doors",
+          "signage",
+          "yellow safety line",
+          "windows",
+          "sky",
+          "trees"
+        ],
+        "scenes": [
+          "railway station",
+          "station platform",
+          "train waiting",
+          "clear sky",
+          "open doors"
+        ],
+        "actions": [
+          "station stop",
+          "waiting train",
+          "view from entrance"
+        ],
+        "emotions": [
+          "calm",
+          "routine",
+          "anticipation",
+          "orderly",
+          "peaceful"
+        ]
+      }
+    },
+    "video-012": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Snowy Chimney on a Building",
+        "title_ru": null,
+        "description": "A close-up view of a white chimney with snow on top, set against a snowy roof and a beige building facade with windows. Two rusted metal caps sit atop the chimney, and a wire runs vertically beside it.",
+        "summary": "A winter scene featuring a chimney covered in snow, with a building in the background. The atmosphere is quiet and cold, suggesting a snowy day in an urban or suburban setting.",
+        "tags": [
+          {
+            "en": "snow",
+            "ru": null
+          },
+          {
+            "en": "chimney",
+            "ru": null
+          },
+          {
+            "en": "building",
+            "ru": null
+          },
+          {
+            "en": "winter",
+            "ru": null
+          },
+          {
+            "en": "urban",
+            "ru": null
+          },
+          {
+            "en": "cold",
+            "ru": null
+          },
+          {
+            "en": "static",
+            "ru": null
+          },
+          {
+            "en": "architecture",
+            "ru": null
+          },
+          {
+            "en": "roof",
+            "ru": null
+          },
+          {
+            "en": "rust",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "chimney",
+          "snow",
+          "windows",
+          "building",
+          "metal caps",
+          "wire",
+          "roof"
+        ],
+        "scenes": [
+          "urban winter scene",
+          "close-up architecture",
+          "snow-covered rooftop",
+          "static outdoor shot",
+          "building facade"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-016": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Fireworks Display at Night",
+        "title_ru": null,
+        "description": "A nighttime fireworks display with bright bursts of light against a dark sky, viewed from an elevated position above rooftops.",
+        "summary": "A vibrant fireworks explosion illuminates the night sky over rooftops, creating a festive and celebratory atmosphere.",
+        "tags": [
+          {
+            "en": "fireworks",
+            "ru": null
+          },
+          {
+            "en": "night",
+            "ru": null
+          },
+          {
+            "en": "celebration",
+            "ru": null
+          },
+          {
+            "en": "sky",
+            "ru": null
+          },
+          {
+            "en": "light show",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "fireworks",
+          "rooftop",
+          "sky"
+        ],
+        "scenes": [
+          "nighttime celebration",
+          "fireworks display",
+          "urban sky view"
+        ],
+        "actions": [
+          "exploding",
+          "illuminating",
+          "flying",
+          "bursting"
+        ],
+        "emotions": [
+          "joy",
+          "excitement",
+          "festive",
+          "wonder",
+          "amazement"
+        ]
+      }
+    },
+    "video-021": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Raindrops on a Window",
+        "title_ru": null,
+        "description": "A close-up view of raindrops sliding down a glass surface, creating a textured, blurred background with soft blue-gray tones.",
+        "summary": "Raindrops streaking down a window pane, capturing the quiet atmosphere of a rainy day from indoors.",
+        "tags": [
+          {
+            "en": "rain",
+            "ru": null
+          },
+          {
+            "en": "window",
+            "ru": null
+          },
+          {
+            "en": "raindrops",
+            "ru": null
+          },
+          {
+            "en": "rainy day",
+            "ru": null
+          },
+          {
+            "en": "indoor view",
+            "ru": null
+          },
+          {
+            "en": "water droplets",
+            "ru": null
+          },
+          {
+            "en": "moisture",
+            "ru": null
+          },
+          {
+            "en": "weather",
+            "ru": null
+          },
+          {
+            "en": "calm",
+            "ru": null
+          },
+          {
+            "en": "atmospheric",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "raindrops",
+          "glass window",
+          "water streaks"
+        ],
+        "scenes": [
+          "indoors",
+          "rainy weather",
+          "close-up shot",
+          "window view",
+          "blurry background"
+        ],
+        "actions": [
+          "sliding down",
+          "forming droplets",
+          "accumulating",
+          "flowing",
+          "drizzling"
+        ],
+        "emotions": [
+          "peaceful",
+          "quiet",
+          "serene",
+          "mellow",
+          "reflective"
+        ]
+      }
+    },
+    "video-025": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Waterbird in Green Waters",
+        "title_ru": null,
+        "description": "A small dark-colored waterbird with a red head is floating calmly on greenish water, surrounded by reflections of tree trunks and leaves.",
+        "summary": "A solitary waterbird glides peacefully on murky green water, with vertical tree trunk reflections visible in the background.",
+        "tags": [
+          {
+            "en": "waterbird",
+            "ru": null
+          },
+          {
+            "en": "green water",
+            "ru": null
+          },
+          {
+            "en": "calm water",
+            "ru": null
+          },
+          {
+            "en": "nature",
+            "ru": null
+          },
+          {
+            "en": "wildlife",
+            "ru": null
+          },
+          {
+            "en": "bird",
+            "ru": null
+          },
+          {
+            "en": "reflection",
+            "ru": null
+          },
+          {
+            "en": "forest",
+            "ru": null
+          },
+          {
+            "en": "pond",
+            "ru": null
+          },
+          {
+            "en": "duck-like",
+            "ru": null
+          },
+          {
+            "en": "red head",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "waterbird",
+          "water",
+          "tree trunks",
+          "leaves",
+          "reflections"
+        ],
+        "scenes": [
+          "pond",
+          "forest edge",
+          "natural habitat",
+          "still water",
+          "wildlife observation"
+        ],
+        "actions": [
+          "floating",
+          "gliding",
+          "calm",
+          "resting",
+          "reflecting"
+        ],
+        "emotions": [
+          "peaceful",
+          "serene",
+          "tranquil",
+          "natural",
+          "quiet"
+        ]
+      }
+    },
+    "video-030": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Man Standing at Beach Edge",
+        "title_ru": null,
+        "description": "A man stands in shallow ocean water at a sandy beach, watching waves roll in. The scene is calm with distant islands and a clear sky.",
+        "summary": "A solitary figure enjoys the shoreline, surrounded by gentle waves and open sea under a bright sky.",
+        "tags": [
+          {
+            "en": "beach",
+            "ru": null
+          },
+          {
+            "en": "ocean",
+            "ru": null
+          },
+          {
+            "en": "waves",
+            "ru": null
+          },
+          {
+            "en": "man",
+            "ru": null
+          },
+          {
+            "en": "sand",
+            "ru": null
+          },
+          {
+            "en": "coast",
+            "ru": null
+          },
+          {
+            "en": "solitary",
+            "ru": null
+          },
+          {
+            "en": "calm",
+            "ru": null
+          },
+          {
+            "en": "shoreline",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "man",
+          "sand",
+          "water",
+          "waves",
+          "rocks",
+          "sky",
+          "islands"
+        ],
+        "scenes": [
+          "beach scene",
+          "coastal view",
+          "ocean shore",
+          "wet sand",
+          "distant islands"
+        ],
+        "actions": [
+          "standing",
+          "watching waves",
+          "wading in water",
+          "waves breaking",
+          "calm sea"
+        ],
+        "emotions": [
+          "peaceful",
+          "contemplative",
+          "relaxed",
+          "serene",
+          "tranquil"
+        ]
+      }
+    },
+    "video-034": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Dramatic Cloud at Night",
+        "title_ru": null,
+        "description": "A large, illuminated cloud dominates the night sky above a distant mountain range, viewed from a rooftop with a satellite dish and building structure in the foreground.",
+        "summary": "A massive cloud glowing softly against a dark blue sky, seen from an urban rooftop at twilight or night. Distant hills and scattered lights are visible below.",
+        "tags": [
+          {
+            "en": "night",
+            "ru": null
+          },
+          {
+            "en": "cloud",
+            "ru": null
+          },
+          {
+            "en": "sky",
+            "ru": null
+          },
+          {
+            "en": "mountains",
+            "ru": null
+          },
+          {
+            "en": "rooftop",
+            "ru": null
+          },
+          {
+            "en": "satellite dish",
+            "ru": null
+          },
+          {
+            "en": "dramatic",
+            "ru": null
+          },
+          {
+            "en": "urban",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "cloud",
+          "mountain range",
+          "satellite dish",
+          "building roof",
+          "lights"
+        ],
+        "scenes": [
+          "night sky",
+          "urban rooftop",
+          "distant landscape",
+          "cloud formation"
+        ],
+        "actions": [
+          "floating",
+          "illuminated",
+          "viewed from above"
+        ],
+        "emotions": [
+          "awe",
+          "serenity",
+          "mystery",
+          "calmness"
+        ]
+      }
+    },
+    "video-039": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Nighttime Cityscape Aerial View",
+        "title_ru": null,
+        "description": "A black and white aerial shot of a city at night, with lights illuminating streets and buildings along a coastline.",
+        "summary": "An elevated nighttime view of a coastal urban area, featuring glowing roads, buildings, and reflections on water.",
+        "tags": [
+          {
+            "en": "night",
+            "ru": null
+          },
+          {
+            "en": "city",
+            "ru": null
+          },
+          {
+            "en": "aerial",
+            "ru": null
+          },
+          {
+            "en": "black and white",
+            "ru": null
+          },
+          {
+            "en": "coastline",
+            "ru": null
+          },
+          {
+            "en": "lights",
+            "ru": null
+          },
+          {
+            "en": "urban",
+            "ru": null
+          },
+          {
+            "en": "reflection",
+            "ru": null
+          },
+          {
+            "en": "high contrast",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "buildings",
+          "roads",
+          "lights",
+          "water",
+          "trees",
+          "beach",
+          "streetlights"
+        ],
+        "scenes": [
+          "nighttime city",
+          "coastal view",
+          "aerial perspective",
+          "urban landscape",
+          "illuminated streets"
+        ],
+        "actions": [
+          "lighting up",
+          "reflecting",
+          "glowing",
+          "illuminating"
+        ],
+        "emotions": [
+          "serene",
+          "mysterious",
+          "calm",
+          "peaceful",
+          "contemplative"
+        ]
+      }
+    },
+    "video-043": {
+      "seconds": null,
+      "firstTryValid": true,
+      "output": {
+        "title": "Airplane Contrail",
+        "title_ru": null,
+        "description": "A small airplane is flying high in a clear blue sky, leaving a long white contrail behind it.",
+        "summary": "An airplane in flight against a vast blue sky, creating a distinct trail of condensation.",
+        "tags": [
+          {
+            "en": "airplane",
+            "ru": null
+          },
+          {
+            "en": "sky",
+            "ru": null
+          },
+          {
+            "en": "contrail",
+            "ru": null
+          },
+          {
+            "en": "blue sky",
+            "ru": null
+          },
+          {
+            "en": "flight",
+            "ru": null
+          },
+          {
+            "en": "clouds",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "airplane",
+          "contrail"
+        ],
+        "scenes": [
+          "sky",
+          "airplane flying",
+          "clear weather"
+        ],
+        "actions": [
+          "flying",
+          "leaving contrail"
+        ],
+        "emotions": [
+          "serenity",
+          "freedom",
+          "peacefulness"
+        ]
+      }
+    }
+  }
+}

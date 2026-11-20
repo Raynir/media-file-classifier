@@ -12,6 +12,7 @@ using MediaFileClassifier.Infrastructure.AI.Onnx;
 using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Search;
+using MediaFileClassifier.Infrastructure.Tests.TestSupport;
 using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.Testing.Media;
 using MediaFileClassifier.UseCases.Embeddings;
@@ -21,6 +22,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Embeddings;
 /// <summary>
 /// Tests for <see cref="SemanticQueryEncoder"/> (E06-S03-T02) against a real library, with a fake embedding model.
 /// </summary>
+[Collection(TimingTestsCollection.Name)]
 public sealed class SemanticQueryEncoderTests : IAsyncLifetime
 {
     private LibraryTestBed bed = null!;
@@ -125,7 +127,8 @@ public sealed class SemanticQueryEncoderTests : IAsyncLifetime
         await encoder.WaitForPreloadAsync();
         await encoder.EncodeTextAsync("warm up", Token);
 
-        // The whole suite runs in parallel and loads the CPU, so the best of three rounds counts.
+        // The class runs alone in this assembly (timing collection) and the best of three rounds absorbs noise. Other test
+        // projects and a loaded LM Studio model (GPU memory) can still slow it: unload models before a full run.
         var medians = new List<double>();
         for (var round = 0; round < 3 && (medians.Count == 0 || medians.Min() >= 50); round++)
         {

@@ -84,8 +84,15 @@ public sealed partial class SearchNoticeViewModel : ViewModelBase
             SemanticSearchStatus.IndexNotReady => localizer.Get("Search_Hint_IndexNotReady"),
             SemanticSearchStatus.Failed => localizer.Get("Search_Hint_Failed"),
             SemanticSearchStatus.NotAnalyzed => localizer.Get("Search_Hint_NotAnalyzed"),
+            SemanticSearchStatus.Outdated => localizer.Get("Search_Hint_Outdated"),
             _ => null,
         };
+        if (Hint is null && summary.SkippedCount > 0)
+        {
+            // D051: the items analyzed with an older model are left out of the semantic search until re-indexed.
+            Hint = localizer.Format("Search_Hint_SkippedOutdated", summary.SkippedCount);
+        }
+
         LessRelevantText = summary.ShowLessRelevant
             ? localizer.Get("Search_HideLessRelevant")
             : summary.LessRelevantCount > 0 ? localizer.Format("Search_ShowLessRelevant", summary.LessRelevantCount) : null;

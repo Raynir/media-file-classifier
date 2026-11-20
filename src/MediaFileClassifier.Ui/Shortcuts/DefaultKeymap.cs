@@ -1,5 +1,6 @@
 using Avalonia.Input;
 using MediaFileClassifier.Ui.Browser;
+using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Settings;
@@ -39,7 +40,20 @@ public static class DefaultKeymap
         Bind(ItemCommands.OpenInDefaultApp, PhysicalKey.O, KeyModifiers.Control),
         Bind(ItemCommands.Reveal, PhysicalKey.R, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
         Bind(ItemCommands.CopyPath, PhysicalKey.C, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
+        Bind(FavoriteCommands.Favorite, PhysicalKey.D, KeyModifiers.Control, ShortcutScopes.Browser),
+        Bind(FavoriteCommands.Favorite, PhysicalKey.D, KeyModifiers.Control, ShortcutScopes.Viewer),
         Bind(FindSimilarCommands.FindSimilar, PhysicalKey.F, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
+
+        // Metadata editor (E07-S02): F2 anywhere, E where an item has the focus; Ctrl+S and Esc while the editor has it.
+        Bind(MetadataEditorCommands.Edit, PhysicalKey.F2),
+        Bind(MetadataEditorCommands.Edit, PhysicalKey.E, scope: ShortcutScopes.Browser),
+        Bind(MetadataEditorCommands.Edit, PhysicalKey.E, scope: ShortcutScopes.Viewer),
+        Bind(MetadataEditorCommands.Save, PhysicalKey.S, KeyModifiers.Control, ShortcutScopes.Editor),
+        Bind(MetadataEditorCommands.Cancel, PhysicalKey.Escape, scope: ShortcutScopes.Editor),
+
+        // Undo of the last bulk edit (E07-S03): Ctrl+Z while several items are selected, except in a text field, which
+        // keeps it for its own undo. Edit, Undo in the menu works whenever there is something to undo.
+        Bind(MetadataEditorCommands.UndoBulkShortcut, PhysicalKey.Z, KeyModifiers.Control),
 
         // Preview and details panel (E14-S05): previous and next, and Enter opens the item in its default app.
         Bind(BrowserCommands.PreviousItem, PhysicalKey.ArrowLeft, scope: ShortcutScopes.Viewer),

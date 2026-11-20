@@ -1,5 +1,5 @@
-using System.Globalization;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
+using MediaFileClassifier.Infrastructure.AI.Prompts;
 using MediaFileClassifier.Infrastructure.AI.StructuredOutput;
 using Microsoft.Extensions.AI;
 
@@ -12,22 +12,23 @@ namespace MediaFileClassifier.Infrastructure.AI.OpenAiCompatible;
 /// <see cref="AiProviderException"/> with <see cref="AiFailureKind.InvalidOutput"/> so the pipeline records a failed
 /// run (E01-S05-T05).
 /// </summary>
-public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, IImageDescriber
+/// <remarks>
+/// This describer sends one picture per request, so a clip is described frame by frame and merged (E06-S04-T07). A
+/// model that takes several pictures in one message gets <see cref="OpenAiCompatibleMultiImageDescriber"/> instead;
+/// <see cref="Create"/> picks by the endpoint's pictures per request (E06-S04-T08).
+/// </remarks>
+public class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, IImageDescriber
 {
-    private const string SystemPrompt =
-        "You describe photos and video frames for a personal media library, so they can be found by searching. "
-        + "Describe only what is visible. Answer with a single JSON object that matches the schema, and nothing else.";
+    // D350: Qwen recommends 1.5 for its vision-language instruct models; it stops the near-duplicate tags. Not used for OCR (D345).
+    internal const float DescriberPresencePenalty = 1.5f;
 
     private const string SchemaDescription = "Description of an image.";
 
     // The schema as written, with its maxItems and maxLength. Microsoft.Extensions.AI rewrites a ChatResponseFormat
     // schema for OpenAI's strict mode, which moves those keywords into the descriptions; a server that builds a grammar
     // from the schema (llama.cpp, LM Studio) then lets a small model repeat one tag until it runs out of tokens. Handing
-    // the OpenAI client its own response format keeps them.
-    private static readonly OpenAI.Chat.ChatResponseFormat SchemaResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
-        ImageDescriptionContract.SchemaName,
-        BinaryData.FromString(ImageDescriptionContract.Schema.GetRawText()),
-        SchemaDescription);
+    // the OpenAI client its own response format keeps them. One per schema version the templates ask for.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, OpenAI.Chat.ChatResponseFormat> SchemaResponseFormats = new();
 
     private readonly bool useSchemaResponseFormat;
 
@@ -54,29 +55,69 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
     }
 
     /// <inheritdoc />
-    public string PromptVersion => ImageDescriptionContract.Version;
+    public string PromptVersion => DescriberPromptTemplates.Latest.Version;
 
     /// <inheritdoc />
-    public async Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    public string GetPromptVersion(string? requested) => DescriberPromptTemplates.Resolve(requested).Version;
+
+    /// <inheritdoc />
+    /// <remarks>The structured output contract requires every field (E01-S05-T05).</remarks>
+    public DescriberFields SupportedFields => DescriberFields.All;
+
+    /// <inheritdoc />
+    public Task<AiOutput<ImageDescription>> DescribeAsync(AiImage image, ImageDescriptionOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(options);
 
+        return DescribeCoreAsync([image], options, cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates the describer for an endpoint: a multi-image one when a request may carry two or more pictures, else a
+    /// single-image one.
+    /// </summary>
+    /// <param name="id">Provider instance ID.</param>
+    /// <param name="displayName">Name shown to the user.</param>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="maxImages">The most pictures one request may carry.</param>
+    /// <returns>The describer.</returns>
+    public static OpenAiCompatibleImageDescriber Create(string id, string displayName, OpenAiCompatibleEndpoint endpoint, int maxImages) =>
+        maxImages >= 2
+            ? new OpenAiCompatibleMultiImageDescriber(id, displayName, endpoint, maxImages: maxImages)
+            : new OpenAiCompatibleImageDescriber(id, displayName, endpoint);
+
+    /// <summary>
+    /// Describes one picture, or the frames of one clip, in one request.
+    /// </summary>
+    /// <param name="images">The pictures.</param>
+    /// <param name="options">Request options; the template introduces several frames as one clip.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The description.</returns>
+    private protected async Task<AiOutput<ImageDescription>> DescribeCoreAsync(IReadOnlyList<AiImage> images, ImageDescriptionOptions options, CancellationToken cancellationToken)
+    {
+        // The template introduces several frames as one clip (options.FrameCount).
+        var template = DescriberPromptTemplates.Resolve(options.PromptVersion);
+        var responseFormat = SchemaResponseFormats.GetOrAdd(template.Schema, schema => OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
+            ImageDescriptionContract.SchemaName,
+            BinaryData.FromString(ImageDescriptionContract.GetSchema(schema).GetRawText()),
+            SchemaDescription));
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.System, SystemPrompt),
-            new(ChatRole.User, [new TextContent(BuildRequest(options)), ToDataContent(image)]),
+            new(ChatRole.System, template.System),
+            new(ChatRole.User, [new TextContent(template.BuildRequest(options)), .. images.Select(ToDataContent)]),
         };
         var chatOptions = new ChatOptions
         {
             Temperature = 0.2f,
+            PresencePenalty = DescriberPresencePenalty,
             MaxOutputTokens = ImageDescriptionContract.MaxOutputTokens,
             ResponseFormat = useSchemaResponseFormat ? null : ChatResponseFormat.Json,
-            RawRepresentationFactory = useSchemaResponseFormat ? _ => new OpenAI.Chat.ChatCompletionOptions { ResponseFormat = SchemaResponseFormat } : null,
+            RawRepresentationFactory = useSchemaResponseFormat ? _ => new OpenAI.Chat.ChatCompletionOptions { ResponseFormat = responseFormat } : null,
         };
 
         var (response, duration) = await GetResponseAsync(messages, chatOptions, cancellationToken).ConfigureAwait(false);
-        var result = ImageDescriptionContract.Parse(response.Text);
+        var result = ImageDescriptionContract.Parse(response.Text, template.Schema);
         if (!result.IsSuccess)
         {
             // One retry, telling the model what was wrong.
@@ -86,7 +127,7 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
                 $"That answer can't be used: {result.Error} Answer again with only the JSON object, with every field filled in."));
             var (retry, retryDuration) = await GetResponseAsync(messages, chatOptions, cancellationToken).ConfigureAwait(false);
             duration += retryDuration;
-            result = ImageDescriptionContract.Parse(retry.Text);
+            result = ImageDescriptionContract.Parse(retry.Text, template.Schema);
             if (!result.IsSuccess)
             {
                 throw new AiProviderException(
@@ -97,32 +138,6 @@ public sealed class OpenAiCompatibleImageDescriber : OpenAiCompatibleProvider, I
             }
         }
 
-        return new AiOutput<ImageDescription>(result.Value!, Id, Model, PromptVersion, duration);
-    }
-
-    private static string BuildRequest(ImageDescriptionOptions options)
-    {
-        var language = GetLanguageName(options.Language);
-        var request = $"Describe this image. Write all text in {language}. "
-            + "Fields: title, description, summary, tags, objects, scenes, actions, emotions. "
-            + $"Use JSON lists of short phrases for the last five, at most {ImageDescriptionContract.MaxListItems} each.";
-        return options.Context is null ? request : $"{request} Context: {options.Context}";
-    }
-
-    private static string GetLanguageName(string? code)
-    {
-        if (code is null)
-        {
-            return "English";
-        }
-
-        try
-        {
-            return CultureInfo.GetCultureInfo(code).EnglishName;
-        }
-        catch (CultureNotFoundException)
-        {
-            return code;
-        }
+        return new AiOutput<ImageDescription>(result.Value!, Id, Model, template.Version, duration);
     }
 }

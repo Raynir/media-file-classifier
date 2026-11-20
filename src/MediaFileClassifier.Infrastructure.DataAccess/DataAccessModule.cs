@@ -30,12 +30,15 @@ public static class DataAccessModule
         // Filters (E10-S01): the file format filter needs the format registry of AddMedia(), the folder and tag filters the library
         // session of AddInfrastructure().
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.MediaTypeFilter>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.FavoriteFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.FileFormatFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.DateFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.ResolutionFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.StatusFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.FolderFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.TagsFilter>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.OutdatedAnalysisFilter>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.NewSuggestionsFilter>());
         return services;
     }
 }

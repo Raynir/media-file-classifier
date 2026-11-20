@@ -391,6 +391,32 @@
   <data name="QuitConfirmation_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="Editor_Notice_Changed" xml:space="preserve">
+    <value>{0} changed elsewhere. Your edit is kept; saving replaces the new value.</value>
+    <comment>{0} is a comma-separated list of the fields (and "Tags") that you edited and that changed in the background.</comment>
+  </data>
+  <data name="Editor_Notice_TagsName" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Editor_Notice_Held" xml:space="preserve">
+    <value>This item is no longer selected. Save or cancel your changes to move on.</value>
+  </data>
+  <data name="UnsavedChanges_Title" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="UnsavedChanges_Message" xml:space="preserve">
+    <value>You have unsaved changes to "{0}". Save them before you go on?</value>
+    <comment>{0} is the title or file name of the item being edited.</comment>
+  </data>
+  <data name="UnsavedChanges_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="UnsavedChanges_Discard" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="UnsavedChanges_Stay" xml:space="preserve">
+    <value>Stay</value>
+  </data>
   <data name="SettingsCategory_General" xml:space="preserve">
     <value>General</value>
   </data>
@@ -893,6 +919,12 @@
   <data name="Command_RevealInExplorer" xml:space="preserve">
     <value>Reveal in File _Explorer</value>
   </data>
+  <data name="Command_Favorite" xml:space="preserve">
+    <value>Fa_vorite</value>
+  </data>
+  <data name="Tile_Favorite" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
   <data name="Command_CopyPath" xml:space="preserve">
     <value>Copy file _path</value>
   </data>
@@ -983,6 +1015,9 @@
   </data>
   <data name="Navigation_AllMedia" xml:space="preserve">
     <value>All media</value>
+  </data>
+  <data name="Navigation_Favorites" xml:space="preserve">
+    <value>Favorites</value>
   </data>
   <data name="Navigation_RecentlyImported" xml:space="preserve">
     <value>Recently imported</value>
@@ -1187,6 +1222,12 @@
   </data>
   <data name="Search_Hint_NotAnalyzed" xml:space="preserve">
     <value>This item hasn't been analyzed yet, so there's nothing to compare it with.</value>
+  </data>
+  <data name="Search_Hint_Outdated" xml:space="preserve">
+    <value>This item was analyzed with an older model. Re-index it to find similar items.</value>
+  </data>
+  <data name="Search_Hint_SkippedOutdated" xml:space="preserve">
+    <value>{0} items analyzed with an older model were left out of the semantic search. Re-index them to include them.</value>
   </data>
   <data name="Search_AnalyzeNow" xml:space="preserve">
     <value>Analyze now</value>
@@ -1560,6 +1601,15 @@
   <data name="Filter_TagRemoveExcluded" xml:space="preserve">
     <value>Stop excluding the tag {0}</value>
   </data>
+  <data name="Filter_Favorite" xml:space="preserve">
+    <value>Favorites only</value>
+  </data>
+  <data name="Filter_Outdated" xml:space="preserve">
+    <value>Outdated analysis</value>
+  </data>
+  <data name="Filter_NewSuggestions" xml:space="preserve">
+    <value>Has new AI suggestions</value>
+  </data>
   <data name="Filter_Status" xml:space="preserve">
     <value>Processing status</value>
   </data>
@@ -1602,6 +1652,23 @@
   <data name="Profile_SaveFailed" xml:space="preserve">
     <value>The analysis profile couldn't be saved. The previous settings are shown.</value>
   </data>
+  <data name="Profile_Outdated_One" xml:space="preserve">
+    <value>{0} item is outdated.</value>
+    <comment>Re-index prompt on the analysis profile page when one item is outdated. {0} is the number.</comment>
+  </data>
+  <data name="Profile_Outdated_Other" xml:space="preserve">
+    <value>{0} items are outdated.</value>
+    <comment>Re-index prompt on the analysis profile page. {0} is the number.</comment>
+  </data>
+  <data name="Profile_ReindexNow" xml:space="preserve">
+    <value>Re-index now</value>
+  </data>
+  <data name="Profile_ReindexLater" xml:space="preserve">
+    <value>Later</value>
+  </data>
+  <data name="Profile_ReindexFailed" xml:space="preserve">
+    <value>The re-index couldn't be started.</value>
+  </data>
   <data name="Profile_Analyzer_embedding" xml:space="preserve">
     <value>Search index</value>
   </data>
@@ -1643,6 +1710,12 @@
   </data>
   <data name="Profile_MaxTagsHelp" xml:space="preserve">
     <value>Leave empty for no limit.</value>
+  </data>
+  <data name="Profile_PreFilterWithDetector" xml:space="preserve">
+    <value>Skip pictures without text</value>
+  </data>
+  <data name="Profile_PreFilterWithDetectorHelp" xml:space="preserve">
+    <value>Before the chosen provider reads a picture, the fast built-in text detector checks for text, and the picture is skipped if there is none. Saves time with a vision model, which can also invent text on a blank picture. Needs the built-in OCR model.</value>
   </data>
   <data name="Profile_Language" xml:space="preserve">
     <value>Description language</value>
@@ -1948,5 +2021,264 @@
   </data>
   <data name="Setting_BrowseSort" xml:space="preserve">
     <value>Browse order</value>
+  </data>
+  <data name="Editor_Section_Descriptive" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Editor_Section_Analysis" xml:space="preserve">
+    <value>AI analysis</value>
+  </data>
+  <data name="Editor_Field_Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="Editor_Field_Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="Editor_Field_Objects" xml:space="preserve">
+    <value>Objects</value>
+  </data>
+  <data name="Editor_Field_Scenes" xml:space="preserve">
+    <value>Scenes</value>
+  </data>
+  <data name="Editor_Field_Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Editor_Field_Emotions" xml:space="preserve">
+    <value>Emotions</value>
+  </data>
+  <data name="Editor_Field_OcrText" xml:space="preserve">
+    <value>Text in the image (OCR)</value>
+  </data>
+  <data name="Editor_Field_Transcript" xml:space="preserve">
+    <value>Transcript</value>
+  </data>
+  <data name="Bulk_MultipleValues" xml:space="preserve">
+    <value>Multiple values</value>
+  </data>
+  <data name="Bulk_Field_Counts" xml:space="preserve">
+    <value>{0} of {1} items have a value</value>
+  </data>
+  <data name="Bulk_Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Bulk_Clear_Tip" xml:space="preserve">
+    <value>Set an empty value on every selected item</value>
+  </data>
+  <data name="Bulk_Loading" xml:space="preserve">
+    <value>Reading the selected items…</value>
+  </data>
+  <data name="Bulk_Confirm" xml:space="preserve">
+    <value>{0} items will change.</value>
+  </data>
+  <data name="Bulk_Confirm_Button" xml:space="preserve">
+    <value>Change items</value>
+  </data>
+  <data name="Bulk_Saving" xml:space="preserve">
+    <value>Saving {0} of {1} items…</value>
+  </data>
+  <data name="Bulk_Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Bulk_Result_Saved" xml:space="preserve">
+    <value>{0} items changed.</value>
+  </data>
+  <data name="Bulk_Result_None" xml:space="preserve">
+    <value>No item needed a change.</value>
+  </data>
+  <data name="Bulk_Result_Stopped" xml:space="preserve">
+    <value>Stopped. {0} of {1} items were changed.</value>
+  </data>
+  <data name="Bulk_Result_Undone" xml:space="preserve">
+    <value>Put back {0} items.</value>
+  </data>
+  <data name="Bulk_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Bulk_Error_UndoFailed" xml:space="preserve">
+    <value>Couldn't undo the last bulk edit.</value>
+  </data>
+  <data name="Command_UndoBulk" xml:space="preserve">
+    <value>_Undo bulk edit</value>
+  </data>
+  <data name="Bulk_Tag_Label" xml:space="preserve">
+    <value>{0} ({1} of {2})</value>
+    <comment>{0} is the tag, {1} how many selected items have it and {2} how many items are selected, e.g. "dog (37 of 120)".</comment>
+  </data>
+  <data name="Bulk_Tag_AddedLabel" xml:space="preserve">
+    <value>{0} (adds to all {1})</value>
+  </data>
+  <data name="Bulk_Notice_Held" xml:space="preserve">
+    <value>The selection changed. Save or cancel your changes to the earlier selection to move on.</value>
+  </data>
+  <data name="Bulk_Notice_Changed" xml:space="preserve">
+    <value>Some of the selected items changed elsewhere. Your changes are kept and are applied to the items as they are now.</value>
+  </data>
+  <data name="Editor_Unsaved" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="Editor_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Editor_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Editor_Edited" xml:space="preserve">
+    <value>Unsaved</value>
+  </data>
+  <data name="Editor_Error_SaveFailed" xml:space="preserve">
+    <value>Couldn't save the changes. Try again.</value>
+  </data>
+  <data name="Editor_Error_WrongValueKind" xml:space="preserve">
+    <value>This value isn't allowed for this field.</value>
+  </data>
+  <data name="Editor_Error_TextTooLong" xml:space="preserve">
+    <value>Too long: at most {0} characters.</value>
+  </data>
+  <data name="Editor_Error_TooManyListItems" xml:space="preserve">
+    <value>Too many entries: at most {0}.</value>
+  </data>
+  <data name="Editor_Error_ListItemTooLong" xml:space="preserve">
+    <value>An entry is too long: at most {0} characters.</value>
+  </data>
+  <data name="Editor_Error_TagEmpty" xml:space="preserve">
+    <value>A tag can't be empty.</value>
+  </data>
+  <data name="Editor_Error_TagTooLong" xml:space="preserve">
+    <value>The tag “{1}” is too long: at most {0} characters.</value>
+  </data>
+  <data name="Editor_Error_TagInvalidCharacter" xml:space="preserve">
+    <value>The tag “{1}” can't hold commas, semicolons or control characters.</value>
+  </data>
+  <data name="Editor_Error_TooManyTags" xml:space="preserve">
+    <value>Too many tags: an item can have at most {0} of your own.</value>
+  </data>
+  <data name="Editor_Revert" xml:space="preserve">
+    <value>Use the AI or file value</value>
+  </data>
+  <data name="Editor_Tag_Input" xml:space="preserve">
+    <value>Add a tag</value>
+  </data>
+  <data name="Editor_Tag_InputHelp" xml:space="preserve">
+    <value>Type a tag and press Enter. Delete removes the selected tag; Shift+Delete rejects it.</value>
+  </data>
+  <data name="Editor_Tag_Remove" xml:space="preserve">
+    <value>Remove tag</value>
+  </data>
+  <data name="Editor_Tag_Reject" xml:space="preserve">
+    <value>Reject tag (the AI and the file won't add it again)</value>
+  </data>
+  <data name="Editor_Tag_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Editor_Tag_Source_User" xml:space="preserve">
+    <value>Your tag</value>
+  </data>
+  <data name="Editor_Tag_Source_AI" xml:space="preserve">
+    <value>AI tag</value>
+  </data>
+  <data name="Editor_Tag_Source_Technical" xml:space="preserve">
+    <value>From the file</value>
+  </data>
+  <data name="Editor_Tag_Added" xml:space="preserve">
+    <value>Added, not saved</value>
+  </data>
+  <data name="Editor_Tag_Removed" xml:space="preserve">
+    <value>Removed, not saved</value>
+  </data>
+  <data name="Editor_Tag_Rejected" xml:space="preserve">
+    <value>Rejected, not saved</value>
+  </data>
+  <data name="Editor_Command_Edit" xml:space="preserve">
+    <value>Edit metadata</value>
+  </data>
+  <data name="Editor_Command_Save" xml:space="preserve">
+    <value>Save metadata changes</value>
+  </data>
+  <data name="Editor_Command_Cancel" xml:space="preserve">
+    <value>Discard metadata changes</value>
+  </data>
+  <data name="Command_EditMetadata" xml:space="preserve">
+    <value>Edit _metadata</value>
+  </data>
+  <data name="Command_SaveMetadata" xml:space="preserve">
+    <value>_Save metadata changes</value>
+  </data>
+  <data name="Command_CancelMetadata" xml:space="preserve">
+    <value>_Discard metadata changes</value>
+  </data>
+  <data name="Provenance_Ai" xml:space="preserve">
+    <value>AI</value>
+  </data>
+  <data name="Provenance_Edited" xml:space="preserve">
+    <value>Edited</value>
+  </data>
+  <data name="Provenance_Accepted" xml:space="preserve">
+    <value>Accepted</value>
+  </data>
+  <data name="Provenance_NewSuggestion" xml:space="preserve">
+    <value>New suggestion</value>
+  </data>
+  <data name="Provenance_Tip_Ai" xml:space="preserve">
+    <value>Written by {0} on {1}</value>
+  </data>
+  <data name="Provenance_Tip_AiNoModel" xml:space="preserve">
+    <value>Written by the AI on {0}</value>
+  </data>
+  <data name="Provenance_Tip_Edited" xml:space="preserve">
+    <value>Edited by you on {0}</value>
+  </data>
+  <data name="Provenance_Tip_Accepted" xml:space="preserve">
+    <value>You accepted this AI value on {1}. It came from {0}.</value>
+  </data>
+  <data name="Provenance_Tip_AcceptedNoModel" xml:space="preserve">
+    <value>You accepted this AI value on {0}.</value>
+  </data>
+  <data name="Provenance_Tip_Suggestion" xml:space="preserve">
+    <value>Newer AI value from {0}, written on {1}</value>
+  </data>
+  <data name="Provenance_Tip_SuggestionNoModel" xml:space="preserve">
+    <value>Newer AI value, written on {0}</value>
+  </data>
+  <data name="Editor_Confirm" xml:space="preserve">
+    <value>Confirm AI value</value>
+  </data>
+  <data name="Editor_Confirm_Tip" xml:space="preserve">
+    <value>Keep the AI value as your own. Nothing changes until you save.</value>
+  </data>
+  <data name="Editor_Revert_Tip" xml:space="preserve">
+    <value>Remove your value so the AI value (or the file's) shows again. Nothing changes until you save.</value>
+  </data>
+  <data name="Editor_FieldUndo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Editor_NotAvailable" xml:space="preserve">
+    <value>Not available with the current model</value>
+  </data>
+  <data name="Editor_Suggestion_Accept" xml:space="preserve">
+    <value>Accept suggestion</value>
+  </data>
+  <data name="Editor_Suggestion_Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="Editor_Suggestion_Accepting" xml:space="preserve">
+    <value>The suggestion replaces your value when you save.</value>
+  </data>
+  <data name="Editor_Suggestion_Dismissing" xml:space="preserve">
+    <value>Your value stays and the suggestion goes when you save.</value>
+  </data>
+  <data name="Editor_Suggestion_Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Editor_Tag_Suggestion_Added" xml:space="preserve">
+    <value>The AI now suggests this tag. Accept to keep it as your own.</value>
+  </data>
+  <data name="Editor_Tag_Suggestion_Removed" xml:space="preserve">
+    <value>The AI no longer gives this tag. Accept to remove it.</value>
+  </data>
+  <data name="Editor_Tag_Suggestion_Accept" xml:space="preserve">
+    <value>Accept suggestion</value>
+  </data>
+  <data name="Editor_Tag_Suggestion_Dismiss" xml:space="preserve">
+    <value>Dismiss suggestion</value>
   </data>
 </root>

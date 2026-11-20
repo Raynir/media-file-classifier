@@ -131,6 +131,17 @@ public sealed class ErrorClassifierTests
     }
 
     [Fact]
+    public void Classify_FolderOffline_IsMarkedAsWaitingForTheFolder()
+    {
+        var classified = classifier.Classify(FolderOfflineException.For(@"E:\Photos", new DirectoryNotFoundException("gone")));
+
+        Assert.True(classified.IsFolderOffline);
+        Assert.False(classified.IsModelMissing);
+        Assert.False(classified.IsProviderFailure);
+        Assert.Equal(@"The folder E:\Photos is offline.", classified.Message);
+    }
+
+    [Fact]
     public void Classify_RawOnnxRuntimeException_IsPermanent()
     {
         Assert.Equal(ErrorCategory.Permanent, classifier.Classify(Uninitialized<OnnxRuntimeException>()).Category);

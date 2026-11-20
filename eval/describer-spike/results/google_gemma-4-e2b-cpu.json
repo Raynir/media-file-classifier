@@ -1,0 +1,634 @@
+{
+  "system": "google/gemma-4-e2b-cpu",
+  "route": "lmstudio",
+  "model": "google/gemma-4-e2b",
+  "device": "cpu",
+  "promptVersion": "describe-2-draft",
+  "items": {
+    "photo-005": {
+      "seconds": 33.52,
+      "outputTokens": 653,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"cat sleeping on red carpet\",\n  \"title_ru\": \"кошка спит на красном ковре\",\n  \"description\": \"A domestic cat with brown and white fur is lying down on a bright red surface. The background consists of dark fabric, creating a strong contrast with the vibrant red foreground.\",\n  \"summary\": \"A cat is peacefully sleeping on a red carpet or fabric.\",\n  \"tags\": [\n    {\"en\": \"cat\", \"ru\": \"кошка\"},\n    {\"en\": \"sleeping\", \"ru\": \"сон\"},\n    {\"en\": \"red\", \"ru\": \"красный\"},\n    {\"en\": \"carpet\", \"ru\": \"ковёр\"},\n    {\"en\": \"pet\", \"ru\": \"питомец\"},\n    {\"en\": \"animal\", \"ru\": \"животное\"},\n    {\"en\": \"fur\", \"ru\": \"шерсть\"},\n    {\"en\": \"domestic_cat\", \"ru\": \"домашняя кошка\"}\n  ],\n  \"objects\": [\n    \"cat\",\n    \"red fabric\",\n    \"carpet\",\n    \"dark background\"\n  ],\n  \"scenes\": [\n    \"indoor setting\"\n  ],\n  \"actions\": [\n    \"sleeping\"\n  ],\n  \"emotions\": [\n    \"peaceful\",\n    \"relaxed\"\n  ]\n}",
+      "output": {
+        "title": "cat sleeping on red carpet",
+        "title_ru": "кошка спит на красном ковре",
+        "description": "A domestic cat with brown and white fur is lying down on a bright red surface. The background consists of dark fabric, creating a strong contrast with the vibrant red foreground.",
+        "summary": "A cat is peacefully sleeping on a red carpet or fabric.",
+        "tags": [
+          {
+            "en": "cat",
+            "ru": "кошка"
+          },
+          {
+            "en": "sleeping",
+            "ru": "сон"
+          },
+          {
+            "en": "red",
+            "ru": "красный"
+          },
+          {
+            "en": "carpet",
+            "ru": "ковёр"
+          },
+          {
+            "en": "pet",
+            "ru": "питомец"
+          },
+          {
+            "en": "animal",
+            "ru": "животное"
+          },
+          {
+            "en": "fur",
+            "ru": "шерсть"
+          },
+          {
+            "en": "domestic_cat",
+            "ru": "домашняя кошка"
+          }
+        ],
+        "objects": [
+          "cat",
+          "red fabric",
+          "carpet",
+          "dark background"
+        ],
+        "scenes": [
+          "indoor setting"
+        ],
+        "actions": [
+          "sleeping"
+        ],
+        "emotions": [
+          "peaceful",
+          "relaxed"
+        ]
+      }
+    },
+    "photo-054": {
+      "seconds": 42.09,
+      "outputTokens": 809,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"city skyline reflection on river at night\",\n  \"title_ru\": \"городской пейзаж отражение на реке ночью\",\n  \"description\": \"A panoramic view of a city skyline featuring numerous tall buildings reflected in the water during twilight. The scene shows a waterfront lined with architecture and boats floating on the river.\",\n  \"summary\": \"This is a nighttime view of a European city skyline reflecting on a river.\",\n  \"tags\": [\n    {\"en\": \"city\", \"ru\": \"город\"},\n    {\"en\": \"skyline\", \"ru\": \"горизонт\"},\n    {\"en\": \"river\", \"ru\": \"река\"},\n    {\"en\": \"buildings\", \"ru\": \"здание\"},\n    {\"en\": \"night\", \"ru\": \"ночь\"},\n    {\"en\": \"water\", \"ru\": \"вода\"},\n    {\"en\": \"scenery\", \"ru\": \"пейзаж\"},\n    {\"en\": \"architecture\", \"ru\": \"архитектура\"},\n    {\"en\": \"skyscrapers\", \"ru\": \"небоскреб\"},\n    {\"en\": \"boats\", \"ru\": \"лодка\"}\n  ],\n  \"objects\": [\n    \"cityscape\",\n    \"buildings\",\n    \"river\",\n    \"water reflection\",\n    \"boats\",\n    \"skyline\",\n    \"city lights\"\n  ],\n  \"scenes\": [\n    \"riverbank\",\n    \"waterfront\"\n  ],\n  \"actions\": [\n    \"reflection\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"serene\"\n  ]\n}",
+      "output": {
+        "title": "city skyline reflection on river at night",
+        "title_ru": "городской пейзаж отражение на реке ночью",
+        "description": "A panoramic view of a city skyline featuring numerous tall buildings reflected in the water during twilight. The scene shows a waterfront lined with architecture and boats floating on the river.",
+        "summary": "This is a nighttime view of a European city skyline reflecting on a river.",
+        "tags": [
+          {
+            "en": "city",
+            "ru": "город"
+          },
+          {
+            "en": "skyline",
+            "ru": "горизонт"
+          },
+          {
+            "en": "river",
+            "ru": "река"
+          },
+          {
+            "en": "buildings",
+            "ru": "здание"
+          },
+          {
+            "en": "night",
+            "ru": "ночь"
+          },
+          {
+            "en": "water",
+            "ru": "вода"
+          },
+          {
+            "en": "scenery",
+            "ru": "пейзаж"
+          },
+          {
+            "en": "architecture",
+            "ru": "архитектура"
+          },
+          {
+            "en": "skyscrapers",
+            "ru": "небоскреб"
+          },
+          {
+            "en": "boats",
+            "ru": "лодка"
+          }
+        ],
+        "objects": [
+          "cityscape",
+          "buildings",
+          "river",
+          "water reflection",
+          "boats",
+          "skyline",
+          "city lights"
+        ],
+        "scenes": [
+          "riverbank",
+          "waterfront"
+        ],
+        "actions": [
+          "reflection"
+        ],
+        "emotions": [
+          "calm",
+          "serene"
+        ]
+      }
+    },
+    "photo-102": {
+      "seconds": 39.48,
+      "outputTokens": 790,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"female soccer players during match\",\n  \"title_ru\": \"женские футболистки во время матча\",\n  \"description\": \"Two female athletes wearing soccer uniforms are actively playing on a green grass field. One player is wearing the number 17 jersey while both are focused on a ball near the ground. The background shows stadium seating and advertising.\",\n  \"summary\": \"Two female soccer players compete for the ball on a field during a match.\",\n  \"tags\": [\n    {\"en\": \"soccer\", \"ru\": \"футбол\"},\n    {\"en\": \"female athlete\", \"ru\": \"женщина спортсменка\"},\n    {\"en\": \"sports\", \"ru\": \"спорт\"},\n    {\"en\": \"team sport\", \"ru\": \"командный спорт\"},\n    {\"en\": \"football player\", \"ru\": \"футболист\"},\n    {\"en\": \"stadium\", \"ru\": \"стадион\"},\n    {\"en\": \"grass field\", \"ru\": \"поле\"}\n  ],\n  \"objects\": [\n    \"soccer ball\",\n    \"player 17\",\n    \"uniforms\",\n    \"playing field\",\n    \"stadium seating\"\n  ],\n  \"scenes\": [\n    \"sports pitch\",\n    \"stadium\"\n  ],\n  \"actions\": [\n    \"playing\",\n    \"running\",\n    \"contesting the ball\"\n  ],\n  \"emotions\": [\n    \"focus\",\n    \"competition\"\n  ]\n}",
+      "output": {
+        "title": "female soccer players during match",
+        "title_ru": "женские футболистки во время матча",
+        "description": "Two female athletes wearing soccer uniforms are actively playing on a green grass field. One player is wearing the number 17 jersey while both are focused on a ball near the ground. The background shows stadium seating and advertising.",
+        "summary": "Two female soccer players compete for the ball on a field during a match.",
+        "tags": [
+          {
+            "en": "soccer",
+            "ru": "футбол"
+          },
+          {
+            "en": "female athlete",
+            "ru": "женщина спортсменка"
+          },
+          {
+            "en": "sports",
+            "ru": "спорт"
+          },
+          {
+            "en": "team sport",
+            "ru": "командный спорт"
+          },
+          {
+            "en": "football player",
+            "ru": "футболист"
+          },
+          {
+            "en": "stadium",
+            "ru": "стадион"
+          },
+          {
+            "en": "grass field",
+            "ru": "поле"
+          }
+        ],
+        "objects": [
+          "soccer ball",
+          "player 17",
+          "uniforms",
+          "playing field",
+          "stadium seating"
+        ],
+        "scenes": [
+          "sports pitch",
+          "stadium"
+        ],
+        "actions": [
+          "playing",
+          "running",
+          "contesting the ball"
+        ],
+        "emotions": [
+          "focus",
+          "competition"
+        ]
+      }
+    },
+    "photo-150": {
+      "seconds": 32.29,
+      "outputTokens": 702,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Data collection policy sign\",\n  \"title_ru\": \"знак о сборе данных\",\n  \"description\": \"The image shows a framed white sign mounted on a wall. The text on the sign reads: \\\"Data is collected on everything we do.\\\"* Do you know how yours is being used?\\\" The sign is affixed with visible metal fasteners.\",\n  \"summary\": \"The sign addresses data collection practices and user awareness regarding data usage.\",\n  \"tags\": [\n    {\"en\": \"data\", \"ru\": \"данные\"},\n    {\"en\": \"sign\", \"ru\": \"знак\"},\n    {\"en\": \"text\", \"ru\": \"текст\"},\n    {\"en\": \"wall\", \"ru\": \"стена\"},\n    {\"en\": \"collection\", \"ru\": \"сбор\"},\n    {\"en\": \"policy\", \"ru\": \"политика\"},\n    {\"en\": \"frame\", \"ru\": \"рамка\"},\n    {\"en\": \"writing\", \"ru\": \"письмо\"},\n    {\"en\": \"hardware\", \"ru\": \"арматура\"}\n  ],\n  \"objects\": [\n    \"sign\",\n    \"wall\",\n    \"frame\",\n    \"fasteners\"\n  ],\n  \"scenes\": [\n    \"indoor setting\"\n  ],\n  \"actions\": [\n    \"displaying information\"\n  ],\n  \"emotions\": [\n    \"informational\"\n  ]\n}",
+      "output": {
+        "title": "Data collection policy sign",
+        "title_ru": "знак о сборе данных",
+        "description": "The image shows a framed white sign mounted on a wall. The text on the sign reads: \"Data is collected on everything we do.\"* Do you know how yours is being used?\" The sign is affixed with visible metal fasteners.",
+        "summary": "The sign addresses data collection practices and user awareness regarding data usage.",
+        "tags": [
+          {
+            "en": "data",
+            "ru": "данные"
+          },
+          {
+            "en": "sign",
+            "ru": "знак"
+          },
+          {
+            "en": "text",
+            "ru": "текст"
+          },
+          {
+            "en": "wall",
+            "ru": "стена"
+          },
+          {
+            "en": "collection",
+            "ru": "сбор"
+          },
+          {
+            "en": "policy",
+            "ru": "политика"
+          },
+          {
+            "en": "frame",
+            "ru": "рамка"
+          },
+          {
+            "en": "writing",
+            "ru": "письмо"
+          },
+          {
+            "en": "hardware",
+            "ru": "арматура"
+          }
+        ],
+        "objects": [
+          "sign",
+          "wall",
+          "frame",
+          "fasteners"
+        ],
+        "scenes": [
+          "indoor setting"
+        ],
+        "actions": [
+          "displaying information"
+        ],
+        "emotions": [
+          "informational"
+        ]
+      }
+    },
+    "photo-198": {
+      "seconds": 37.86,
+      "outputTokens": 843,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Acoustic guitar hanging above sofa\",\n  \"title_ru\": \"Акустическая гитара висит над диваном\",\n  \"description\": \"An acoustic guitar is prominently displayed hanging on a light-colored wall. The instrument has a warm wooden finish and a long neck with frets visible. Below the guitar is a gray fabric sofa.\",\n  \"summary\": \"A wooden acoustic guitar hangs against a wall above a living room sofa.\",\n  \"tags\": [\n    {\"en\": \"guitar\", \"ru\": \"гитара\"},\n    {\"en\": \"acoustic_guitar\", \"ru\": \"акустическая гитара\"},\n    {\"en\": \"wood\", \"ru\": \"дерево\"},\n    {\"en\": \"wall\", \"ru\": \"стена\"},\n    {\"en\": \"sofa\", \"ru\": \"диван\"},\n    {\"en\": \"music_instrument\", \"ru\": \"музыкальный_инструмент\"},\n    {\"en\": \"furniture\", \"ru\": \"мебель\"}\n  ],\n  \"objects\": [\n    \"guitar\",\n    \"wall\",\n    \"sofa\",\n    \"wooden instrument\",\n    \"framed picture\"\n  ],\n  \"scenes\": [\n    \"indoor setting\",\n    \"living room\"\n  ],\n  \"actions\": [\n    \"hanging\"\n  ],\n  \"emotions\": [\n    \"calm\"\n  ]\n}",
+      "output": {
+        "title": "Acoustic guitar hanging above sofa",
+        "title_ru": "Акустическая гитара висит над диваном",
+        "description": "An acoustic guitar is prominently displayed hanging on a light-colored wall. The instrument has a warm wooden finish and a long neck with frets visible. Below the guitar is a gray fabric sofa.",
+        "summary": "A wooden acoustic guitar hangs against a wall above a living room sofa.",
+        "tags": [
+          {
+            "en": "guitar",
+            "ru": "гитара"
+          },
+          {
+            "en": "acoustic_guitar",
+            "ru": "акустическая гитара"
+          },
+          {
+            "en": "wood",
+            "ru": "дерево"
+          },
+          {
+            "en": "wall",
+            "ru": "стена"
+          },
+          {
+            "en": "sofa",
+            "ru": "диван"
+          },
+          {
+            "en": "music_instrument",
+            "ru": "музыкальный_инструмент"
+          },
+          {
+            "en": "furniture",
+            "ru": "мебель"
+          }
+        ],
+        "objects": [
+          "guitar",
+          "wall",
+          "sofa",
+          "wooden instrument",
+          "framed picture"
+        ],
+        "scenes": [
+          "indoor setting",
+          "living room"
+        ],
+        "actions": [
+          "hanging"
+        ],
+        "emotions": [
+          "calm"
+        ]
+      }
+    },
+    "synth-019": {
+      "seconds": 34.19,
+      "outputTokens": 658,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"csharp code defining cat names\",\n  \"title_ru\": \"код csharp определяющий имена кошек\",\n  \"description\": \"The image displays lines of source code, likely C#, demonstrating variable declaration and iteration. The code initializes an array named 'cats' with the strings \\\"Barsik\\\" and \\\"Murka\\\", and then iterates through this array printing each cat's name to the console.\",\n  \"summary\": \"The screenshot shows a simple program that prints names from an array of cats to the console.\",\n  \"tags\": [\n    {\"en\": \"code\", \"ru\": \"код\"},\n    {\"en\": \"csharp\", \"ru\": \"csharp\"},\n    {\"en\": \"programming\", \"ru\": \"программирование\"},\n    {\"en\": \"variable\", \"ru\": \"переменная\"},\n    {\"en\": \"array\", \"ru\": \"массив\"},\n    {\"en\": \"foreach\", \"ru\": \"цикл\"}\n  ],\n  \"objects\": [\n    \"source code\",\n    \"text editor\",\n    \"code lines\"\n  ],\n  \"scenes\": [\n    \"programming environment\"\n  ],\n  \"actions\": [\n    \"coding\"\n  ],\n  \"emotions\": [\n    \"neutral\"\n  ]\n}",
+      "output": {
+        "title": "csharp code defining cat names",
+        "title_ru": "код csharp определяющий имена кошек",
+        "description": "The image displays lines of source code, likely C#, demonstrating variable declaration and iteration. The code initializes an array named 'cats' with the strings \"Barsik\" and \"Murka\", and then iterates through this array printing each cat's name to the console.",
+        "summary": "The screenshot shows a simple program that prints names from an array of cats to the console.",
+        "tags": [
+          {
+            "en": "code",
+            "ru": "код"
+          },
+          {
+            "en": "csharp",
+            "ru": "csharp"
+          },
+          {
+            "en": "programming",
+            "ru": "программирование"
+          },
+          {
+            "en": "variable",
+            "ru": "переменная"
+          },
+          {
+            "en": "array",
+            "ru": "массив"
+          },
+          {
+            "en": "foreach",
+            "ru": "цикл"
+          }
+        ],
+        "objects": [
+          "source code",
+          "text editor",
+          "code lines"
+        ],
+        "scenes": [
+          "programming environment"
+        ],
+        "actions": [
+          "coding"
+        ],
+        "emotions": [
+          "neutral"
+        ]
+      }
+    },
+    "synth-048": {
+      "seconds": 36.76,
+      "outputTokens": 720,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Request to buy milk bread call grandma\",\n  \"title_ru\": \"Просьба купить молоко и хлеб позвонить бабушке\",\n  \"description\": \"The image contains handwritten text in Russian on a light green background. The text reads: \\\"Купить молоко и хлеб. Позвонить бабушке! Целую, Лена\\\". This appears to be a personal message or note.\",\n  \"summary\": \"The image is a short handwritten request asking someone to buy milk and bread and call their grandmother.\",\n  \"tags\": [\n    {\"en\": \"note\", \"ru\": \"записка\"},\n    {\"en\": \"handwriting\", \"ru\": \"письмо\"},\n    {\"en\": \"milk\", \"ru\": \"молоко\"},\n    {\"en\": \"bread\", \"ru\": \"хлеб\"},\n    {\"en\": \"request\", \"ru\": \"просьба\"},\n    {\"en\": \"grandma\", \"ru\": \"бабушка\"},\n    {\"en\": \"lena\", \"ru\": \"лена\"}\n  ],\n  \"objects\": [\n    \"text\",\n    \"note\"\n  ],\n  \"scenes\": [\n    \"personal note setting\"\n  ],\n  \"actions\": [\n    \"writing\"\n  ],\n  \"emotions\": [\n    \"familiarity\"\n  ]\n}",
+      "output": {
+        "title": "Request to buy milk bread call grandma",
+        "title_ru": "Просьба купить молоко и хлеб позвонить бабушке",
+        "description": "The image contains handwritten text in Russian on a light green background. The text reads: \"Купить молоко и хлеб. Позвонить бабушке! Целую, Лена\". This appears to be a personal message or note.",
+        "summary": "The image is a short handwritten request asking someone to buy milk and bread and call their grandmother.",
+        "tags": [
+          {
+            "en": "note",
+            "ru": "записка"
+          },
+          {
+            "en": "handwriting",
+            "ru": "письмо"
+          },
+          {
+            "en": "milk",
+            "ru": "молоко"
+          },
+          {
+            "en": "bread",
+            "ru": "хлеб"
+          },
+          {
+            "en": "request",
+            "ru": "просьба"
+          },
+          {
+            "en": "grandma",
+            "ru": "бабушка"
+          },
+          {
+            "en": "lena",
+            "ru": "лена"
+          }
+        ],
+        "objects": [
+          "text",
+          "note"
+        ],
+        "scenes": [
+          "personal note setting"
+        ],
+        "actions": [
+          "writing"
+        ],
+        "emotions": [
+          "familiarity"
+        ]
+      }
+    },
+    "gif-015": {
+      "seconds": 37.75,
+      "outputTokens": 759,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"close up of a fly head\",\n  \"title_ru\": \"крупный план головы мухи\",\n  \"description\": \"This is a close-up view of the head and front portion of an insect, likely a fly. The insect has reddish-brown coloring on its face and prominent dark compound eyes. Its legs are visible extending across a textured surface.\",\n  \"summary\": \"The image captures a detailed view of an insect's head resting on a light-colored surface.\",\n  \"tags\": [\n    {\"en\": \"fly\", \"ru\": \"муха\"},\n    {\"en\": \"insect\", \"ru\": \"насекомое\"},\n    {\"en\": \"head\", \"ru\": \"голова\"},\n    {\"en\": \"eyes\", \"ru\": \"глаза\"},\n    {\"en\": \"macro\", \"ru\": \"макро\"},\n    {\"en\": \"body\", \"ru\": \"тело\"},\n    {\"en\": \"surface\", \"ru\": \"поверхность\"}\n  ],\n  \"objects\": [\n    \"fly head\",\n    \"insect body\",\n    \"legs\",\n    \"wood surface\"\n  ],\n  \"scenes\": [\n    \"outdoor setting (implied)\",\n    \"textured surface\"\n  ],\n  \"actions\": [\n    \"resting\"\n  ],\n  \"emotions\": [\n    \"biological focus\"\n  ]\n}",
+      "output": {
+        "title": "close up of a fly head",
+        "title_ru": "крупный план головы мухи",
+        "description": "This is a close-up view of the head and front portion of an insect, likely a fly. The insect has reddish-brown coloring on its face and prominent dark compound eyes. Its legs are visible extending across a textured surface.",
+        "summary": "The image captures a detailed view of an insect's head resting on a light-colored surface.",
+        "tags": [
+          {
+            "en": "fly",
+            "ru": "муха"
+          },
+          {
+            "en": "insect",
+            "ru": "насекомое"
+          },
+          {
+            "en": "head",
+            "ru": "голова"
+          },
+          {
+            "en": "eyes",
+            "ru": "глаза"
+          },
+          {
+            "en": "macro",
+            "ru": "макро"
+          },
+          {
+            "en": "body",
+            "ru": "тело"
+          },
+          {
+            "en": "surface",
+            "ru": "поверхность"
+          }
+        ],
+        "objects": [
+          "fly head",
+          "insect body",
+          "legs",
+          "wood surface"
+        ],
+        "scenes": [
+          "outdoor setting (implied)",
+          "textured surface"
+        ],
+        "actions": [
+          "resting"
+        ],
+        "emotions": [
+          "biological focus"
+        ]
+      }
+    },
+    "video-003": {
+      "seconds": 33.94,
+      "outputTokens": 700,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"black animal resting on gray surface\",\n  \"title_ru\": \"чёрстное животное отдыхает на сером покрытии\",\n  \"description\": \"A black animal is lying down on a rough, textured gray surface. The setting appears to be an outdoor or concrete environment. The focus is entirely on the animal and the ground beneath it.\",\n  \"summary\": \"A dark animal rests peacefully on a gray concrete-like floor.\",\n  \"tags\": [\n    {\"en\": \"dog\", \"ru\": \"собака\"},\n    {\"en\": \"animal\", \"ru\": \"животное\"},\n    {\"en\": \"black\", \"ru\": \"чёрный\"},\n    {\"en\": \"concrete\", \"ru\": \"бетон\"},\n    {\"en\": \"surface\", \"ru\": \"покрытие\"},\n    {\"en\": \"resting\", \"ru\": \"отдых\"},\n    {\"en\": \"dark\", \"ru\": \"тёмный\"}\n  ],\n  \"objects\": [\n    \"animal\",\n    \"black fur\",\n    \"gray surface\",\n    \"concrete floor\"\n  ],\n  \"scenes\": [\n    \"outdoor setting\"\n  ],\n  \"actions\": [\n    \"lying down\"\n  ],\n  \"emotions\": [\n    \"calmness\"\n  ]\n}",
+      "output": {
+        "title": "black animal resting on gray surface",
+        "title_ru": "чёрстное животное отдыхает на сером покрытии",
+        "description": "A black animal is lying down on a rough, textured gray surface. The setting appears to be an outdoor or concrete environment. The focus is entirely on the animal and the ground beneath it.",
+        "summary": "A dark animal rests peacefully on a gray concrete-like floor.",
+        "tags": [
+          {
+            "en": "dog",
+            "ru": "собака"
+          },
+          {
+            "en": "animal",
+            "ru": "животное"
+          },
+          {
+            "en": "black",
+            "ru": "чёрный"
+          },
+          {
+            "en": "concrete",
+            "ru": "бетон"
+          },
+          {
+            "en": "surface",
+            "ru": "покрытие"
+          },
+          {
+            "en": "resting",
+            "ru": "отдых"
+          },
+          {
+            "en": "dark",
+            "ru": "тёмный"
+          }
+        ],
+        "objects": [
+          "animal",
+          "black fur",
+          "gray surface",
+          "concrete floor"
+        ],
+        "scenes": [
+          "outdoor setting"
+        ],
+        "actions": [
+          "lying down"
+        ],
+        "emotions": [
+          "calmness"
+        ]
+      }
+    },
+    "video-025": {
+      "seconds": 33.95,
+      "outputTokens": 708,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"person in water among trees\",\n  \"title_ru\": \"человек в воде среди деревьев\",\n  \"description\": \"The frame shows a person partially submerged in greenish water, viewed from behind. Tall tree trunks line the background, reflecting on the surface of the water. The focus is on the figure standing or floating amidst the foliage.\",\n  \"summary\": \"A person is visible in murky water surrounded by tall trees.\",\n  \"tags\": [\n    {\"en\": \"person\", \"ru\": \"человек\"},\n    {\"en\": \"water\", \"ru\": \"вода\"},\n    {\"en\": \"trees\", \"ru\": \"деревья\"},\n    {\"en\": \"reflection\", \"ru\": \"отражение\"},\n    {\"en\": \"nature\", \"ru\": \"природа\"},\n    {\"en\": \"outdoor\", \"ru\": \"улица\"}\n  ],\n  \"objects\": [\n    \"person\",\n    \"water\",\n    \"tree trunks\",\n    \"reflection\",\n    \"foliage\"\n  ],\n  \"scenes\": [\n    \"riverbank\",\n    \"forest water\"\n  ],\n  \"actions\": [\n    \"submerging\"\n  ],\n  \"emotions\": [\n    \"calmness\"\n  ]\n}",
+      "output": {
+        "title": "person in water among trees",
+        "title_ru": "человек в воде среди деревьев",
+        "description": "The frame shows a person partially submerged in greenish water, viewed from behind. Tall tree trunks line the background, reflecting on the surface of the water. The focus is on the figure standing or floating amidst the foliage.",
+        "summary": "A person is visible in murky water surrounded by tall trees.",
+        "tags": [
+          {
+            "en": "person",
+            "ru": "человек"
+          },
+          {
+            "en": "water",
+            "ru": "вода"
+          },
+          {
+            "en": "trees",
+            "ru": "деревья"
+          },
+          {
+            "en": "reflection",
+            "ru": "отражение"
+          },
+          {
+            "en": "nature",
+            "ru": "природа"
+          },
+          {
+            "en": "outdoor",
+            "ru": "улица"
+          }
+        ],
+        "objects": [
+          "person",
+          "water",
+          "tree trunks",
+          "reflection",
+          "foliage"
+        ],
+        "scenes": [
+          "riverbank",
+          "forest water"
+        ],
+        "actions": [
+          "submerging"
+        ],
+        "emotions": [
+          "calmness"
+        ]
+      }
+    }
+  },
+  "load": {
+    "gpuBeforeMiB": 1917,
+    "gpuAfterMiB": 3105,
+    "gpuModelMiB": 1188,
+    "modelBytes": 4414788475
+  }
+}

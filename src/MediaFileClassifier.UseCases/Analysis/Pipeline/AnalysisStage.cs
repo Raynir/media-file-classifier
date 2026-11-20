@@ -14,6 +14,8 @@ using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.Stages;
+using MediaFileClassifier.UseCases.Libraries;
+using MediaFileClassifier.UseCases.Tags;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -61,6 +63,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
     /// <param name="clock">The clock.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="breaker">The provider circuit breaker (E05-S04), if one is registered.</param>
+    /// <param name="tagNormalizer">Normalises the describer's tags (E06-S04-T05); the defaults if <c>null</c>.</param>
     public AnalysisStage(
         IMediaFileSource files,
         IMediaFormatRegistry formats,
@@ -70,7 +73,8 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         IAiProviderRegistry registry,
         TimeProvider clock,
         ILogger<AnalysisStage>? logger = null,
-        IProviderCircuitBreaker? breaker = null)
+        IProviderCircuitBreaker? breaker = null,
+        TagNormalizer? tagNormalizer = null)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(formats);
@@ -89,7 +93,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         IItemAnalyzer[] all =
         [
             new EmbeddingItemAnalyzer(embedder, registry, clock),
-            new DescriberItemAnalyzer(registry, breaker, clock),
+            new DescriberItemAnalyzer(registry, breaker, clock, tagNormalizer ?? new TagNormalizer()),
             new OcrItemAnalyzer(registry, breaker, clock),
         ];
         analyzers = all.ToDictionary(analyzer => analyzer.Key, StringComparer.Ordinal);
@@ -342,9 +346,21 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
     {
         var folder = await library.Folders.GetAsync(item.FolderId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("The item's folder isn't in the library.");
+        OfflineFolders.ThrowIfOffline(folder);
         var location = ItemStage.GetLocation(folder, item);
         MediaFormatDetection format;
-        var stream = await files.OpenReadAsync(location, cancellationToken).ConfigureAwait(false);
+        Stream stream;
+        try
+        {
+            stream = await files.OpenReadAsync(location, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (OfflineFolders.IsMissingDirectory(exception))
+        {
+            // D188, D025: an Offline folder parks the work; a deleted subfolder fails it like a deleted file.
+            await OfflineFolders.ThrowForMissingDirectoryAsync(library, folder, location, files, clock, exception, cancellationToken).ConfigureAwait(false);
+            throw;
+        }
+
         await using (stream.ConfigureAwait(false))
         {
             format = await formats.DetectAsync(stream, item.Path.Value, cancellationToken).ConfigureAwait(false);

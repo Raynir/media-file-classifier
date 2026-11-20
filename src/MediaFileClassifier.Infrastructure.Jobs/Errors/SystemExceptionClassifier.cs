@@ -24,6 +24,9 @@ public sealed class SystemExceptionClassifier : IExceptionClassifier
 
         return exception switch
         {
+            // The item's folder is Offline (D188): the scheduler parks the work until it's Online again.
+            FolderOfflineException => new ClassifiedError(ErrorCategory.Transient, exception.Message, exception) { IsFolderOffline = true },
+
             // Files: a locked file or an offline volume passes; a missing, damaged or forbidden file doesn't.
             IOException { HResult: SharingViolation or LockViolation } => Transient(exception, $"The file is in use by another program: {exception.Message}"),
             IOException { HResult: HandleDiskFull or DiskFull } => Classify(ErrorCategory.Configuration, exception),

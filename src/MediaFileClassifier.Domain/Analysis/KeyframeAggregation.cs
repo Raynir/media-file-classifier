@@ -13,6 +13,16 @@ public static class KeyframeAggregation
     public const double DefaultMinTagShare = 0.25;
 
     /// <summary>
+    /// The fewest letters both lines need for <see cref="MergeTextLines"/> to treat them as near-duplicates.
+    /// </summary>
+    public const int MinFuzzyLetters = 8;
+
+    /// <summary>
+    /// The most the letters of two near-duplicate lines may differ, as a share of the longer one's length.
+    /// </summary>
+    public const double MaxFuzzyDistance = 0.2;
+
+    /// <summary>
     /// Merges the tags of each keyframe. A tag is kept when it appears in at least <paramref name="minShare"/> of the
     /// keyframes, and at least one. Its confidence is the sum of its per-frame confidences divided by the number of
     /// keyframes, so a tag seen in every frame scores higher than one seen in a few. A tag listed twice for one frame
@@ -54,8 +64,54 @@ public static class KeyframeAggregation
     }
 
     /// <summary>
+    /// Merges a list field described on each keyframe, such as objects or scenes (E06-S04-T07), the way
+    /// <see cref="MergeTags"/> merges tags: an entry is kept when it appears in at least <paramref name="minShare"/> of
+    /// the keyframes, and at least one. Entries compare ignoring case and extra white space, and keep the first spelling
+    /// seen. Blank entries are dropped, and an entry listed twice for one frame counts once.
+    /// </summary>
+    /// <param name="frames">Each keyframe's entries; a frame with none is an empty list.</param>
+    /// <param name="minShare">The share of keyframes an entry must appear in, above 0 and at most 1.</param>
+    /// <returns>The kept entries, seen in most frames first, then in the order first seen.</returns>
+    public static IReadOnlyList<string> MergeLists(IReadOnlyList<IReadOnlyList<string>> frames, double minShare = DefaultMinTagShare)
+    {
+        ArgumentNullException.ThrowIfNull(frames);
+        if (double.IsNaN(minShare) || minShare <= 0 || minShare > 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(minShare), minShare, "The share must be above 0 and at most 1.");
+        }
+
+        var entries = new Dictionary<string, (string Text, int Frames, int Order)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var frame in frames)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var raw in frame)
+            {
+                var text = string.Join(' ', (raw ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+                if (text.Length == 0 || !seen.Add(text))
+                {
+                    continue;
+                }
+
+                entries[text] = entries.TryGetValue(text, out var entry) ? entry with { Frames = entry.Frames + 1 } : (text, 1, entries.Count);
+            }
+        }
+
+        // The tolerance keeps an entry exactly on the threshold, as in MergeTags.
+        var minFrames = Math.Max(1, (int)Math.Ceiling((minShare * frames.Count) - 1e-9));
+        return [.. entries.Values
+            .Where(entry => entry.Frames >= minFrames)
+            .OrderByDescending(entry => entry.Frames)
+            .ThenBy(entry => entry.Order)
+            .Select(entry => entry.Text)];
+    }
+
+    /// <summary>
     /// Merges the OCR text of each keyframe: lines are trimmed and their whitespace collapsed, empty lines are dropped,
-    /// and exact repeats are removed, keeping the order in which lines were first seen.
+    /// and a line that repeats an earlier one is removed. Repeats are exact, or near: the same text read slightly
+    /// differently in another frame (E06-S05-T03). Two lines are near when each has at least
+    /// <see cref="MinFuzzyLetters"/> letters, their digits are the same, and their letters, ignoring case and
+    /// everything else, differ by at most <see cref="MaxFuzzyDistance"/> of the longer one's length. Of the variants of
+    /// a line the one seen most often is kept, the first on a tie. Lines come in the order they were first seen.
     /// </summary>
     /// <param name="frames">Each keyframe's text, or <c>null</c> where none was found.</param>
     /// <returns>The distinct lines.</returns>
@@ -63,8 +119,8 @@ public static class KeyframeAggregation
     {
         ArgumentNullException.ThrowIfNull(frames);
 
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        var lines = new List<string>();
+        var groups = new List<LineGroup>();
+        var exact = new Dictionary<string, LineGroup>(StringComparer.Ordinal);
         foreach (var text in frames)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -75,14 +131,32 @@ public static class KeyframeAggregation
             foreach (var raw in text.Split('\n'))
             {
                 var line = string.Join(' ', raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-                if (line.Length > 0 && seen.Add(line))
+                if (line.Length == 0)
                 {
-                    lines.Add(line);
+                    continue;
                 }
+
+                if (!exact.TryGetValue(line, out var group))
+                {
+                    var letters = new string([.. line.Where(char.IsLetter).Select(char.ToLowerInvariant)]);
+                    var digits = new string([.. line.Where(char.IsDigit)]);
+                    group = letters.Length >= MinFuzzyLetters
+                        ? groups.FirstOrDefault(candidate => candidate.IsNear(letters, digits))
+                        : null;
+                    if (group is null)
+                    {
+                        group = new LineGroup(letters, digits);
+                        groups.Add(group);
+                    }
+
+                    exact[line] = group;
+                }
+
+                group.Add(line);
             }
         }
 
-        return lines;
+        return [.. groups.Select(group => group.Best)];
     }
 
     /// <summary>
@@ -145,6 +219,65 @@ public static class KeyframeAggregation
         }
 
         return values;
+    }
+
+    private static int EditDistance(string a, string b, int limit)
+    {
+        if (Math.Abs(a.Length - b.Length) > limit)
+        {
+            return limit + 1;
+        }
+
+        var previous = new int[b.Length + 1];
+        var current = new int[b.Length + 1];
+        for (var j = 0; j <= b.Length; j++)
+        {
+            previous[j] = j;
+        }
+
+        for (var i = 1; i <= a.Length; i++)
+        {
+            current[0] = i;
+            for (var j = 1; j <= b.Length; j++)
+            {
+                current[j] = Math.Min(Math.Min(current[j - 1], previous[j]) + 1, previous[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1));
+            }
+
+            (previous, current) = (current, previous);
+        }
+
+        return previous[b.Length];
+    }
+
+    private sealed class LineGroup(string letters, string digits)
+    {
+        private readonly Dictionary<string, int> variants = new(StringComparer.Ordinal);
+        private readonly List<string> order = [];
+
+        public string Best => order.MaxBy(line => variants[line])!;
+
+        public bool IsNear(string otherLetters, string otherDigits)
+        {
+            if (letters.Length < MinFuzzyLetters || digits != otherDigits)
+            {
+                return false;
+            }
+
+            var limit = (int)Math.Floor(MaxFuzzyDistance * Math.Max(letters.Length, otherLetters.Length));
+            return EditDistance(letters, otherLetters, limit) <= limit;
+        }
+
+        public void Add(string line)
+        {
+            if (variants.TryGetValue(line, out var count))
+            {
+                variants[line] = count + 1;
+                return;
+            }
+
+            variants[line] = 1;
+            order.Add(line);
+        }
     }
 
     private static double Length(double[] vector) => Math.Sqrt(vector.Sum(value => value * value));

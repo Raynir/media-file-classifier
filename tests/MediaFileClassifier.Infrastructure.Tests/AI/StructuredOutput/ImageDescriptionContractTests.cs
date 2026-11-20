@@ -13,17 +13,23 @@ public sealed class ImageDescriptionContractTests
          "tags":["dog","beach"],"objects":["dog","waves"],"scenes":["beach"],"actions":["running"],"emotions":["joyful"]}
         """;
 
+    internal const string ValidJson2 = """
+        {"title":"Dog on a beach","title_ru":"Собака на пляже","description":"A brown dog runs along the shore. Waves break behind it.",
+         "summary":"A dog running on a beach.","tags":[{"en":"dog","ru":"собака"},{"en":"beach","ru":"пляж"}],
+         "objects":["dog","waves"],"scenes":["beach"],"actions":["running"],"emotions":["joyful"]}
+        """;
+
     [Fact]
     public void Schema_LimitsEveryTextAndList_SoAGrammarStopsRunawayOutput()
     {
-        var properties = ImageDescriptionContract.Schema.GetProperty("properties");
+        var properties = ImageDescriptionContract.GetSchema(1).GetProperty("properties");
 
         Assert.Equal(ImageDescriptionContract.MaxTitleLength, properties.GetProperty("title").GetProperty("maxLength").GetInt32());
         Assert.Equal(ImageDescriptionContract.MaxDescriptionLength, properties.GetProperty("description").GetProperty("maxLength").GetInt32());
         Assert.Equal(ImageDescriptionContract.MaxSummaryLength, properties.GetProperty("summary").GetProperty("maxLength").GetInt32());
         foreach (var list in new[] { "tags", "objects", "scenes", "actions", "emotions" })
         {
-            Assert.Equal(ImageDescriptionContract.MaxListItems, properties.GetProperty(list).GetProperty("maxItems").GetInt32());
+            Assert.Equal(list == "tags" ? ImageDescriptionContract.MaxTagItems : ImageDescriptionContract.MaxListItems, properties.GetProperty(list).GetProperty("maxItems").GetInt32());
             Assert.Equal(ImageDescriptionContract.MaxListItemLength, properties.GetProperty(list).GetProperty("items").GetProperty("maxLength").GetInt32());
         }
     }
@@ -31,7 +37,7 @@ public sealed class ImageDescriptionContractTests
     [Fact]
     public void Schema_RequiresEveryFieldAndAllowsNoOthers()
     {
-        var schema = ImageDescriptionContract.Schema;
+        var schema = ImageDescriptionContract.GetSchema(1);
 
         var required = schema.GetProperty("required").EnumerateArray().Select(value => value.GetString()).ToList();
         Assert.Equal(["title", "description", "summary", "tags", "objects", "scenes", "actions", "emotions"], required);
@@ -73,7 +79,7 @@ public sealed class ImageDescriptionContractTests
 
         var result = ImageDescriptionContract.Parse(raw);
 
-        Assert.Equal(ImageDescriptionContract.MaxListItems, result.Value!.Tags.Count);
+        Assert.Equal(ImageDescriptionContract.MaxTagItems, result.Value!.Tags.Count);
         Assert.Equal(["Dog", new string('x', ImageDescriptionContract.MaxListItemLength)], result.Value.Objects);
     }
 
@@ -104,9 +110,90 @@ public sealed class ImageDescriptionContractTests
         Assert.Contains(reason, result.Error, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Schema_IsValidJson()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Schema_IsValidJson(int schema)
     {
-        Assert.Equal(JsonValueKind.Object, ImageDescriptionContract.Schema.ValueKind);
+        Assert.Equal(JsonValueKind.Object, ImageDescriptionContract.GetSchema(schema).ValueKind);
     }
+
+    [Fact]
+    public void Schema2_IsTheSpikesSchema_WithRussianTitleAndTagPairs()
+    {
+        var schema = ImageDescriptionContract.GetSchema(2);
+        var properties = schema.GetProperty("properties");
+
+        Assert.Equal(
+            ["title", "title_ru", "description", "summary", "tags", "objects", "scenes", "actions", "emotions"],
+            schema.GetProperty("required").EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal(["title", "title_ru", "description", "summary", "tags", "objects", "scenes", "actions", "emotions"], properties.EnumerateObject().Select(property => property.Name));
+        Assert.False(schema.GetProperty("additionalProperties").GetBoolean());
+        Assert.Equal(ImageDescriptionContract.MaxTitleLength, properties.GetProperty("title_ru").GetProperty("maxLength").GetInt32());
+        var tags = properties.GetProperty("tags");
+        Assert.Equal(ImageDescriptionContract.MaxTagItems, tags.GetProperty("maxItems").GetInt32());
+        Assert.Equal(["en", "ru"], tags.GetProperty("items").GetProperty("required").EnumerateArray().Select(value => value.GetString()));
+        Assert.False(tags.GetProperty("items").GetProperty("additionalProperties").GetBoolean());
+        Assert.Equal(1, properties.GetProperty("objects").GetProperty("minItems").GetInt32());
+        Assert.Equal(1, properties.GetProperty("scenes").GetProperty("minItems").GetInt32());
+        Assert.False(properties.GetProperty("actions").TryGetProperty("minItems", out _));
+    }
+
+    [Fact]
+    public void Parse2_ValidAnswer_ReturnsTheRussianTitleAndTagForms()
+    {
+        var result = ImageDescriptionContract.Parse(ValidJson2, 2);
+
+        Assert.True(result.IsSuccess, result.Error);
+        Assert.Equal("Dog on a beach", result.Value!.Title);
+        Assert.Equal("Собака на пляже", result.Value.TitleRu);
+        Assert.Equal(["dog", "beach"], result.Value.Tags);
+        Assert.Equal("собака", result.Value.TagsRu!["Dog"]);
+        Assert.Equal("пляж", result.Value.TagsRu["beach"]);
+    }
+
+    [Fact]
+    public void Parse2_BlankOrMissingForms_AreNotAFailure()
+    {
+        const string Raw = """
+            {"title":"T","title_ru":" ","description":"D","summary":"S",
+             "tags":[{"en":"dog","ru":""},"beach",{"EN":"sand","RU":"песок"},{"en":"dog","ru":"пёс"},{"en":" ","ru":"пусто"}]}
+            """;
+
+        var result = ImageDescriptionContract.Parse(Raw, 2);
+
+        Assert.True(result.IsSuccess, result.Error);
+        Assert.Null(result.Value!.TitleRu);
+        Assert.Equal(["dog", "beach", "sand"], result.Value.Tags);
+        Assert.Equal(new Dictionary<string, string> { ["sand"] = "песок", ["dog"] = "пёс" }, result.Value.TagsRu);
+    }
+
+    [Fact]
+    public void Parse2_NoFormsAtAll_GivesNone()
+    {
+        var result = ImageDescriptionContract.Parse(ValidJson, 2);
+
+        Assert.True(result.IsSuccess, result.Error);
+        Assert.Null(result.Value!.TitleRu);
+        Assert.Null(result.Value.TagsRu);
+        Assert.Equal(["dog", "beach"], result.Value.Tags);
+    }
+
+    [Theory]
+    [InlineData("{\"title\":\"T\",\"description\":\"D\",\"summary\":\"S\",\"tags\":\"dog\"}", "en/ru pairs")]
+    [InlineData("{\"title\":\"T\",\"description\":\"D\",\"summary\":\"S\",\"tags\":[{\"en\":[\"dog\"]}]}", "en/ru pairs")]
+    [InlineData("{\"title\":\"T\",\"description\":\"D\",\"summary\":\"S\",\"tags\":[1]}", "en/ru pairs")]
+    [InlineData("{\"title\":\"T\",\"title_ru\":[\"T\"],\"description\":\"D\",\"summary\":\"S\"}", "title_ru")]
+    [InlineData("{\"title\":\"T\",\"title_ru\":\"Т\",\"description\":\"D\"}", "summary")]
+    public void Parse2_UnusableAnswer_FailsWithReason(string raw, string reason)
+    {
+        var result = ImageDescriptionContract.Parse(raw, 2);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(reason, result.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Parse_UnknownSchema_Throws() =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => ImageDescriptionContract.Parse(ValidJson, 3));
 }

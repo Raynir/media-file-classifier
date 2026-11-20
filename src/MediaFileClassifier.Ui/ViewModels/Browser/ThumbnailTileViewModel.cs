@@ -61,6 +61,7 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
         nameof(Details),
         nameof(MediaType),
         nameof(IsThumbnailFailed),
+        nameof(IsFavorite),
         nameof(Badges),
         nameof(DurationText),
         nameof(IsAnimated))]
@@ -131,6 +132,11 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
     /// Gets a value indicating whether making the thumbnail failed, so the placeholder shows its error badge.
     /// </summary>
     public bool IsThumbnailFailed => Item?.ThumbnailFailed ?? false;
+
+    /// <summary>
+    /// Gets a value indicating whether the item is a favorite, which shows the heart on the tile (E11-S01).
+    /// </summary>
+    public bool IsFavorite => Item?.IsFavorite ?? false;
 
     /// <summary>
     /// Gets the status badges.

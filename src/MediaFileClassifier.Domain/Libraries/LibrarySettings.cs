@@ -13,7 +13,15 @@ public sealed record LibrarySettings
     /// </summary>
     public const int DefaultThumbnailTileSize = 160;
 
+    /// <summary>
+    /// The default <see cref="EmbeddingSwitchThreshold"/>: search switches to a new embedding model once 95% of the
+    /// items searched with the old one have its vectors too (E06-S07-T05).
+    /// </summary>
+    public const double DefaultEmbeddingSwitchThreshold = 0.95;
+
     private readonly AnalysisProfile analysisProfile = AnalysisProfile.Default;
+    private readonly double embeddingSwitchThreshold = DefaultEmbeddingSwitchThreshold;
+    private readonly string lastFilters = string.Empty;
     private readonly int retainedPreviousRuns = 1;
     private readonly int thumbnailTileSize = DefaultThumbnailTileSize;
 
@@ -27,6 +35,24 @@ public sealed record LibrarySettings
     /// model's vectors are built alongside, and this switches once enough items have them (E06-S07-T05).
     /// </summary>
     public Id<ModelRegistration>? ActiveSearchModelId { get; init; }
+
+    /// <summary>
+    /// Gets the share of the items with vectors of <see cref="ActiveSearchModelId"/> that must also have vectors of
+    /// the current embedding model before search switches to it (E06-S07-T05), from above 0 to 1.
+    /// </summary>
+    public double EmbeddingSwitchThreshold
+    {
+        get => embeddingSwitchThreshold;
+        init
+        {
+            if (!(value > 0 && value <= 1))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "The threshold must be above 0 and at most 1.");
+            }
+
+            embeddingSwitchThreshold = value;
+        }
+    }
 
     /// <summary>
     /// Gets which analyzers run, in which order, and with which providers, models and options (E06-S01-T01).
@@ -56,6 +82,20 @@ public sealed record LibrarySettings
         {
             ArgumentOutOfRangeException.ThrowIfNegative(value);
             retainedPreviousRuns = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the filters in force when the library was last used, as the search's own JSON, or an empty string if none
+    /// were saved. They're kept per library because folders and tags belong to one (D314).
+    /// </summary>
+    public string LastFilters
+    {
+        get => lastFilters;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            lastFilters = value;
         }
     }
 

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
@@ -14,6 +15,7 @@ using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
+using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.Tests.Browser;
@@ -21,7 +23,12 @@ using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
+using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediaFileClassifier.UseCases.Metadata.EditMetadata;
+using MediaFileClassifier.UseCases.Metadata.GetBulkMetadata;
+using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
+using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediatR;
 using SkiaSharp;
 
@@ -178,6 +185,119 @@ public sealed class DetailsPanelTests : IDisposable
     });
 
     [Fact]
+    public Task Reload_AfterAnEditInAnotherView_ShowsTheNewValue_OnlyForTheShownItem() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+        bed.ItemTitle = "Rex";
+
+        bed.Panel.Reload([bed.Source.Ids[2]]);
+        bed.Settle();
+        Assert.Null(bed.Panel.Item?.Title);
+
+        bed.Panel.Reload([bed.Source.Ids[0], bed.Source.Ids[1]]);
+        bed.Settle();
+        Assert.Equal(("Rex", "IMG_1.png"), (bed.Panel.Title, bed.Panel.Subtitle));
+    });
+
+    [Fact]
+    public Task EditMetadataCommand_NeedsASelection_ShowsTheOverviewTab_AndAsksTheEditorForFocus() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 2);
+        bed.Select(0, SelectionGesture.Replace);
+        var requests = 0;
+        bed.Panel.EditRequested += (_, _) => requests++;
+        bed.Layout.Details.Collapse();
+        bed.Layout.DetailsTab = DetailsTab.Technical;
+        var edit = bed.Registry[MetadataEditorCommands.Edit];
+
+        Assert.True(edit.IsApplicable);
+        bed.Wait(edit.ExecuteAsync());
+
+        Assert.Equal(1, requests);
+        Assert.Equal(DetailsTab.Overview, bed.Layout.DetailsTab);
+        Assert.False(bed.Layout.Details.IsCollapsed);
+
+        bed.Select(0, SelectionGesture.Toggle);
+        Assert.False(edit.IsApplicable);
+    });
+
+    [Fact]
+    public Task SaveAndCancelCommands_ApplyOnlyWhileTheEditorHasUnsavedChanges() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 1);
+        bed.Select(0, SelectionGesture.Replace);
+        bed.Wait(bed.Panel.Editor.Loading);
+        var save = bed.Registry[MetadataEditorCommands.Save];
+        var cancel = bed.Registry[MetadataEditorCommands.Cancel];
+        Assert.False(save.IsApplicable);
+
+        bed.Panel.Editor.AddTag("new");
+
+        Assert.True(save.IsApplicable);
+        Assert.True(cancel.IsApplicable);
+
+        bed.Wait(cancel.ExecuteAsync());
+
+        Assert.False(save.IsApplicable);
+        Assert.False(cancel.IsApplicable);
+    });
+
+    [Fact]
+    public Task SaveAndCancelCommands_InBulkMode_FollowTheBulkEditor_AndSaveAsksFirstForManyItems() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 30) { BulkView = BulkMetadataView.Empty with { ItemCount = 30 } };
+        bed.Select(0, SelectionGesture.Replace);
+        bed.Select(29, SelectionGesture.Range);
+        bed.Wait(bed.Panel.BulkEditor.Loading);
+        var save = bed.Registry[MetadataEditorCommands.Save];
+        var cancel = bed.Registry[MetadataEditorCommands.Cancel];
+        var undo = bed.Registry[MetadataEditorCommands.UndoBulk];
+        Assert.False(save.IsApplicable);
+        Assert.False(undo.IsApplicable);
+
+        bed.Panel.BulkEditor.AddTag("trip");
+
+        Assert.True(save.IsApplicable);
+        Assert.True(cancel.IsApplicable);
+
+        bed.Wait(save.ExecuteAsync());
+
+        Assert.True(bed.Panel.BulkEditor.IsConfirming);
+
+        bed.Wait(cancel.ExecuteAsync());
+
+        Assert.False(bed.Panel.BulkEditor.IsDirty);
+        Assert.False(save.IsApplicable);
+        Assert.False(bed.Panel.Editor.IsDirty);
+    });
+
+    [Fact]
+    public Task UndoShortcut_WorksOnlyInBulkMode_ButEditUndoWorksWheneverThereIsSomethingToUndo() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 30) { BulkView = BulkMetadataView.Empty with { ItemCount = 30 } };
+        var menu = bed.Registry[MetadataEditorCommands.UndoBulk];
+        var shortcut = bed.Registry[MetadataEditorCommands.UndoBulkShortcut];
+        bed.Select(0, SelectionGesture.Replace);
+        bed.Wait(bed.Panel.Editor.Loading);
+        Assert.False(menu.IsApplicable);
+
+        bed.Undo.Set(new Dictionary<Id<MediaItem>, UserLayerSnapshot> { [bed.Source.Ids[0]] = new([], [], [], []) });
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(menu.IsApplicable);
+        Assert.False(bed.Panel.IsBulk);
+        Assert.False(shortcut.IsApplicable);
+
+        bed.Select(5, SelectionGesture.Range);
+        bed.Wait(bed.Panel.BulkEditor.Loading);
+
+        Assert.True(bed.Panel.IsBulk);
+        Assert.True(menu.IsApplicable);
+        Assert.True(shortcut.IsApplicable);
+    });
+
+    [Fact]
     public Task Sections_AreKeptInTheShellLayout() => TestApp.RunAsync(() =>
     {
         var bed = new Bed(this, 3);
@@ -228,6 +348,124 @@ public sealed class DetailsPanelTests : IDisposable
         window.Close();
     });
 
+    [Theory]
+    [InlineData(UnsavedChangesChoice.Stay, 2, true, 0)]
+    [InlineData(UnsavedChangesChoice.Discard, 5, false, 0)]
+    [InlineData(UnsavedChangesChoice.Save, 5, false, 1)]
+    public Task SelectingAnotherItem_WithStagedChanges_AsksFirst_AndFollowsTheAnswer(UnsavedChangesChoice choice, int shownIndex, bool stillDirty, int saves) => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+        var prompts = new List<string>();
+        bed.Guard.Ask = prompt =>
+        {
+            prompts.Add(prompt.Message);
+            return Task.FromResult(choice);
+        };
+
+        bed.Select(5, SelectionGesture.Replace);
+
+        Assert.Equal(["You have unsaved changes to \"IMG_2.png\". Save them before you go on?"], prompts);
+        Assert.Equal(bed.Source.Ids[shownIndex], bed.Panel.Item?.Id);
+        Assert.Equal(stillDirty, bed.Panel.Editor.IsDirty);
+        Assert.Equal(saves, bed.Saved.Count);
+    });
+
+    [Fact]
+    public Task SelectingAnotherItem_WithoutStagedChanges_OrClickingTheSameItem_AsksNothing() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        var asked = 0;
+        bed.Guard.Ask = _ =>
+        {
+            asked++;
+            return Task.FromResult(UnsavedChangesChoice.Stay);
+        };
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Select(3, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+
+        bed.Select(3, SelectionGesture.Replace);
+
+        Assert.Equal(0, asked);
+        Assert.Equal(bed.Source.Ids[3], bed.Panel.Item?.Id);
+    });
+
+    [Fact]
+    public Task SelectionMovingOnItsOwn_WithStagedChanges_KeepsTheItem_UntilTheChangesAreDropped() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+
+        bed.Selection.Clear();
+        bed.Settle();
+
+        Assert.Equal(bed.Source.Ids[2], bed.Panel.Item?.Id);
+        Assert.True(bed.Panel.IsPinned);
+        Assert.Equal("Edited", bed.Panel.Editor.Descriptive[0].Text);
+        Assert.NotNull(bed.Panel.Editor.Notice);
+
+        bed.Panel.Editor.Cancel();
+        bed.Settle();
+
+        Assert.False(bed.Panel.IsPinned);
+        Assert.Null(bed.Panel.Item);
+        Assert.Null(bed.Panel.Editor.Notice);
+    });
+
+    [Theory]
+    [InlineData(UnsavedChangesChoice.Stay, true)]
+    [InlineData(UnsavedChangesChoice.Discard, false)]
+    public Task CollapsingThePanel_WithStagedChanges_AsksFirst_AndOnlyClosesWhenTheUserGoesOn(UnsavedChangesChoice choice, bool stillExpanded) => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+        var asked = 0;
+        bed.Guard.Ask = _ =>
+        {
+            asked++;
+            return Task.FromResult(choice);
+        };
+
+        bed.Layout.Details.Collapse();
+        Pump.Until(() => asked > 0 && bed.Layout.Details.IsExpanded == stillExpanded);
+
+        Assert.Equal(1, asked);
+        Assert.Equal(stillExpanded, bed.Layout.Details.IsExpanded);
+        Assert.Equal(!stillExpanded, bed.Layout.Details.IsCollapsed);
+    });
+
+    [Fact]
+    public Task CollapsingThePanel_WithoutStagedChanges_AsksNothing() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+        bed.Guard.Ask = _ => throw new InvalidOperationException("No prompt expected.");
+
+        bed.Layout.Details.Collapse();
+
+        Assert.True(bed.Layout.Details.IsCollapsed);
+    });
+
+    [Fact]
+    public Task Reload_WithStagedChanges_KeepsThem_AndNamesAnOverlappingFieldInTheNotice() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+        bed.Panel.Editor.Descriptive[0].Text = "Edited";
+
+        bed.Panel.Reload([bed.Source.Ids[1]], new HashSet<DescriptiveField> { DescriptiveField.Title }, tagsChanged: false);
+        bed.Settle();
+        Pump.Until(() => bed.Panel.Editor.Notice is not null);
+
+        Assert.Equal("Edited", bed.Panel.Editor.Descriptive[0].Text);
+        Assert.True(bed.Panel.Editor.IsDirty);
+        Assert.Contains("changed elsewhere", bed.Panel.Editor.Notice);
+    });
+
     private string WriteImage(string name, int width, int height)
     {
         var path = temp.Combine(name);
@@ -238,7 +476,75 @@ public sealed class DetailsPanelTests : IDisposable
         return path;
     }
 
-    /// <summary>
+    [Fact]
+    public Task SelectingSeveralItems_SwitchesToBulkMode_AndOneItemSwitchesBack() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        Assert.False(bed.Panel.IsBulk);
+
+        bed.Select(4, SelectionGesture.Toggle);
+        bed.Select(5, SelectionGesture.Toggle);
+
+        Assert.True(bed.Panel.IsBulk);
+        Assert.Equal("3 items selected", bed.Panel.Title);
+        Assert.Null(bed.Panel.Subtitle);
+        Assert.Equal(3, bed.Panel.BulkEditor.ItemIds.Count);
+        Assert.Equal([bed.Source.Ids[2], bed.Source.Ids[4], bed.Source.Ids[5]], bed.BulkQueries[^1].ItemIds.OrderBy(id => bed.Source.Ids.ToList().IndexOf(id)));
+
+        bed.Select(2, SelectionGesture.Replace);
+
+        Assert.False(bed.Panel.IsBulk);
+        Assert.Equal(0, bed.Panel.BulkEditor.ItemCount);
+    });
+
+    [Theory]
+    [InlineData(UnsavedChangesChoice.Stay, true, 3)]
+    [InlineData(UnsavedChangesChoice.Discard, false, 1)]
+    public Task ChangingTheSelection_WithStagedBulkChanges_AsksFirst_AndFollowsTheAnswer(UnsavedChangesChoice choice, bool stillBulk, int selectedAfter) => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Select(3, SelectionGesture.Toggle);
+        bed.Select(4, SelectionGesture.Toggle);
+        bed.Panel.BulkEditor.AddTag("trip");
+        var prompts = new List<string>();
+        bed.Guard.Ask = prompt =>
+        {
+            prompts.Add(prompt.Message);
+            return Task.FromResult(choice);
+        };
+
+        bed.Select(7, SelectionGesture.Replace);
+
+        Assert.Equal(["You have unsaved changes to \"3 items selected\". Save them before you go on?"], prompts);
+        Assert.Equal(stillBulk, bed.Panel.IsBulk);
+        Assert.Equal(selectedAfter, bed.Selection.Count);
+        Assert.Equal(stillBulk, bed.Panel.BulkEditor.IsDirty);
+    });
+
+    [Fact]
+    public Task TheSelectionMovingOnItsOwn_WithStagedBulkChanges_KeepsThemAndTheirItems() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 10);
+        bed.Select(2, SelectionGesture.Replace);
+        bed.Select(3, SelectionGesture.Toggle);
+        bed.Panel.BulkEditor.AddTag("trip");
+        var items = bed.Panel.BulkEditor.ItemIds;
+        bed.Guard.Ask = _ => throw new InvalidOperationException("No prompt expected.");
+
+        // A change that no gesture of the user caused, e.g. a filter removing the items from the results.
+        bed.Selection.Reset(10);
+        bed.Settle();
+
+        Assert.True(bed.Panel.IsPinned);
+        Assert.True(bed.Panel.IsBulk);
+        Assert.Same(items, bed.Panel.BulkEditor.ItemIds);
+        Assert.True(bed.Panel.BulkEditor.IsDirty);
+        Assert.NotNull(bed.Panel.BulkEditor.Notice);
+    });
+
+        /// <summary>
     /// A selection over fake results, with the panel and fakes for the details, files and thumbnails.
     /// </summary>
     private sealed class Bed : ISender
@@ -264,10 +570,23 @@ public sealed class DetailsPanelTests : IDisposable
             }
 
             var loader = new ThumbnailLoader(new FakeBrowserSession(), thumbnails, new ThumbnailBitmapCache());
-            var registry = new CommandRegistry([], Localizer.Current, new FakeCapabilityGate());
+            Registry = new CommandRegistry([new MetadataEditorCommands(Selection, () => Panel!)], Localizer.Current, new FakeCapabilityGate());
             Panel = new DetailsPanelViewModel(
-                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), registry, Localizer.Current, () => throw new NotSupportedException());
+                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard, undoStore: Undo);
+            Selection.ConfirmChange = Guard.ConfirmLeaveAsync;
         }
+
+        public UnsavedChangesGuard Guard { get; } = new(Localizer.Current);
+
+        public List<EditMetadataCommand> Saved { get; } = [];
+
+        public List<GetBulkMetadataQuery> BulkQueries { get; } = [];
+
+        public BulkMetadataView BulkView { get; set; } = BulkMetadataView.Empty;
+
+        public CommandRegistry Registry { get; }
+
+        public BulkUndoStore Undo { get; } = new();
 
         public FakeResultSource Source { get; }
 
@@ -287,6 +606,8 @@ public sealed class DetailsPanelTests : IDisposable
 
         public bool WithoutTechnical { get; set; }
 
+        public string? ItemTitle { get; set; }
+
         public void Select(int index, SelectionGesture gesture)
         {
             Wait(Selection.ApplyAsync(index, gesture));
@@ -299,6 +620,28 @@ public sealed class DetailsPanelTests : IDisposable
 
         public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
+            if (request is GetItemMetadataQuery)
+            {
+                return Task.FromResult((TResponse)(object)null!);
+            }
+
+            if (request is ResolveItemSelectionQuery)
+            {
+                return Task.FromResult((TResponse)(object)(IReadOnlyList<Id<MediaItem>>)[.. Source.Ids.Where(Selection.IsSelected)]);
+            }
+
+            if (request is GetBulkMetadataQuery bulk)
+            {
+                BulkQueries.Add(bulk);
+                return Task.FromResult((TResponse)(object)BulkView);
+            }
+
+            if (request is EditMetadataCommand edit)
+            {
+                Saved.Add(edit);
+                return Task.FromResult((TResponse)(object)new EditMetadataResult([.. edit.ItemIds], null));
+            }
+
             var query = Assert.IsType<GetItemDetailsQuery>(request);
             var index = Source.Ids.ToList().IndexOf(query.ItemId);
             var path = Corrupt ? corrupt : original;
@@ -313,7 +656,7 @@ public sealed class DetailsPanelTests : IDisposable
                 ExtractedAt = DateTimeOffset.UnixEpoch,
             };
             var details = new ItemDetails(
-                query.ItemId, $"IMG_{index}.png", "png", MediaType.Image, 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, WithoutTechnical ? null : technical, null, null, []);
+                query.ItemId, $"IMG_{index}.png", "png", MediaType.Image, 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, WithoutTechnical ? null : technical, ItemTitle, null, []);
             return Task.FromResult((TResponse)(object)details);
         }
 

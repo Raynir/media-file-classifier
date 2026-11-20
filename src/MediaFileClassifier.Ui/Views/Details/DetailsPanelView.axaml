@@ -112,7 +112,7 @@
                  TextWrapping="Wrap" />
       <TextBlock Classes="Secondary"
                  Text="{Binding SelectedCountText}"
-                 IsVisible="{Binding SelectedCountText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                 IsVisible="{Binding !IsBulk}" />
       <!-- Quick actions (E14-S05): Open, Reveal and Find similar (E09-S03) now; Favorite and Re-analyze join with their Stories. -->
       <StackPanel x:Name="QuickActions"
                   Orientation="Horizontal"
@@ -135,6 +135,15 @@
           <PathIcon Data="{StaticResource Icon.FolderOpen}" />
         </Button>
         <Button Classes="Icon"
+                Classes.Favorited="{Binding Commands[item.favorite].IsChecked}"
+                Command="{Binding Commands[item.favorite]}"
+                IsVisible="{Binding Commands[item.favorite].IsApplicable}"
+                ToolTip.Tip="{Binding Commands[item.favorite].ToolTip}"
+                ToolTip.ShowOnDisabled="True"
+                AutomationProperties.Name="{Binding Commands[item.favorite].PlainLabel}">
+          <PathIcon Data="{StaticResource Icon.Favorite}" />
+        </Button>
+        <Button Classes="Icon"
                 Command="{Binding Commands[item.find-similar]}"
                 IsVisible="{Binding Commands[item.find-similar].IsApplicable}"
                 ToolTip.Tip="{Binding Commands[item.find-similar].ToolTip}"
@@ -148,34 +157,14 @@
     <!-- Overview and Technical. -->
     <TabControl SelectedIndex="{Binding SelectedTab}">
       <TabItem Header="{l:Loc Details_Tab_Overview}">
-        <ScrollViewer>
-          <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.M}">
-            <StackPanel Spacing="{DynamicResource Space.XS}">
-              <TextBlock Classes="FieldLabel" Text="{l:Loc Details_Description}" />
-              <SelectableTextBlock Text="{Binding Description}"
-                                   Classes.Tertiary="{Binding !HasDescription}"
-                                   TextWrapping="Wrap" />
-            </StackPanel>
-            <StackPanel Spacing="{DynamicResource Space.XS}">
-              <TextBlock Classes="FieldLabel" Text="{l:Loc Details_Tags}" />
-              <TextBlock Classes="Tertiary" Text="{l:Loc Details_Tags_None}" IsVisible="{Binding !HasTags}" />
-              <ItemsControl ItemsSource="{Binding Tags}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="x:String">
-                    <Border Classes="Chip" Margin="{DynamicResource Padding.Compact}">
-                      <TextBlock Text="{Binding}" />
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </StackPanel>
-        </ScrollViewer>
+        <Panel>
+          <Panel IsVisible="{Binding IsSingleEdit}">
+            <v:MetadataEditorView x:Name="Editor" DataContext="{Binding Editor}" />
+          </Panel>
+          <Panel IsVisible="{Binding IsBulk}">
+            <v:BulkEditorView x:Name="BulkEditor" DataContext="{Binding BulkEditor}" />
+          </Panel>
+        </Panel>
       </TabItem>
       <TabItem Header="{l:Loc Details_Tab_Technical}">
         <ScrollViewer>

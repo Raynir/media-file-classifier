@@ -45,6 +45,12 @@ internal sealed record CommandOptions
     public string? Analysis { get; init; }
 
     /// <summary>
+    /// A stored analysis whose OCR text <c>analyze</c> reuses instead of reading the items again, e.g. to describe the
+    /// corpus with a new prompt version (E06-S04-T09).
+    /// </summary>
+    public string? OcrFrom { get; init; }
+
+    /// <summary>
     /// The language the describer writes in (the profile language).
     /// </summary>
     public string Language { get; init; } = "en";
@@ -68,6 +74,16 @@ internal sealed record CommandOptions
     /// </summary>
     public string? Threshold { get; init; }
 
+    /// <summary>
+    /// ocr: the execution provider for an in-process engine, <c>cpu</c> or <c>directml</c>.
+    /// </summary>
+    public string? ExecutionProvider { get; init; }
+
+    /// <summary>
+    /// ocr: the longest side the in-process detector sees, if not its default.
+    /// </summary>
+    public int? DetectionMaxSide { get; init; }
+
     public static CommandOptions Parse(IReadOnlyList<string> args)
     {
         var options = new CommandOptions();
@@ -87,12 +103,15 @@ internal sealed record CommandOptions
                 "--endpoint" => options with { Endpoint = Value(args, ref i, name) },
                 "--vlm" => options with { Vlm = Value(args, ref i, name) },
                 "--analysis" => options with { Analysis = Path.GetFullPath(Value(args, ref i, name)) },
+                "--ocr-from" => options with { OcrFrom = Path.GetFullPath(Value(args, ref i, name)) },
                 "--language" => options with { Language = Value(args, ref i, name) },
                 "--rrf-k" => options with { RrfK = Number(args, ref i, name) },
                 "--keyword-weight" => options with { KeywordWeight = Number(args, ref i, name) },
                 "--vector-weight" => options with { VectorWeight = Number(args, ref i, name) },
                 "--field-weights" => options with { FieldWeights = Value(args, ref i, name) },
                 "--threshold" => options with { Threshold = Value(args, ref i, name) },
+                "--det-max-side" => options with { DetectionMaxSide = (int)Number(args, ref i, name) },
+                "--ep" => options with { ExecutionProvider = Value(args, ref i, name) },
                 _ => throw new ArgumentException($"Unknown option '{name}'."),
             };
         }

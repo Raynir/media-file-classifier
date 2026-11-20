@@ -43,7 +43,7 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
             return Task.FromResult(new KeywordMatches([], 0));
         }
 
-        var all = string.Join(" AND ", terms.Select(term => SearchSql.QuoteFts(term) + "*"));
+        var all = string.Join(" AND ", terms.Select(SearchSql.MatchTerm));
         var fast = search is { NeedsTotal: false, Sort: SortMode.Relevance, Reverse: false, Offset: 0 } ? TopMatchesQuery(search, all) : ((string Text, IReadOnlyList<SqliteParameter> Parameters)?)null;
         var (text, parameters) = AllMatchesQuery(search, terms, all);
 
@@ -181,6 +181,7 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
             Enumerable.Range(0, SearchSchema.TextColumns.Length).Select(column =>
                 $"""coalesce(instr(highlight("search_text", {column}, char(1), ''), char(1)) > 0, 0)"""));
         var text = $"""SELECT {columns} FROM "search_text" WHERE "search_text" MATCH $match AND "rowid" = $doc""";
+        // A word found only by its Russian stem (the stems column) marks no field.
         var anyWord = string.Join(" OR ", searchable.Select(term => SearchSql.QuoteFts(term) + "*"));
 
         // Path substrings: the trigram index's text, read by rowid and searched here, ignoring case and diacritics
@@ -356,7 +357,7 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
         for (var i = 0; i < terms.Count; i++)
         {
             var term = terms[i];
-            text.Append(CultureInfo.InvariantCulture, $"""m{i}("doc_id") AS (SELECT "rowid" FROM "search_text" WHERE "search_text" MATCH {sql.Add(SearchSql.QuoteFts(term) + "*")}""");
+            text.Append(CultureInfo.InvariantCulture, $"""m{i}("doc_id") AS (SELECT "rowid" FROM "search_text" WHERE "search_text" MATCH {sql.Add(SearchSql.MatchTerm(term))}""");
             if (SearchSql.IsSubstringSearchable(term))
             {
                 text.Append(CultureInfo.InvariantCulture, $""" UNION SELECT "rowid" FROM "search_filename" WHERE "search_filename" MATCH {sql.Add(SearchSql.QuoteFts(term))}""");
@@ -490,7 +491,9 @@ internal sealed class SearchStore(LibraryConnectionFactory connections, LibraryW
     private static string Weights(KeywordFieldWeights weights)
     {
         weights.Validate();
-        double[] values = [weights.Title, weights.Description, weights.Tags, weights.OcrText, weights.Transcript, weights.Other, weights.FileName];
+        // The stems column (D349) weighs 0: a Russian word counts once, in its field, and a match found only by its stem
+        // ranks after the matches of the word itself.
+        double[] values = [weights.Title, weights.Description, weights.Tags, weights.OcrText, weights.Transcript, weights.Other, weights.FileName, 0];
         return string.Join(", ", values.Select(value => value.ToString("R", CultureInfo.InvariantCulture)));
     }
 

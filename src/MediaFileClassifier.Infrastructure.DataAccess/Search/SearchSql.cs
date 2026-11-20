@@ -74,6 +74,18 @@ internal sealed class SearchSql : IFilterSql
     public static string QuoteFts(string term) => "\"" + Fold(term).Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
 
     /// <summary>
+    /// Makes the FTS5 expression of a query word: a prefix of any word, or for a Russian word also its exact Snowball
+    /// stem in the <c>stems</c> column (D349, E06-S04-T10), so another form of the word matches ("собаки" finds "собакой").
+    /// </summary>
+    /// <param name="term">The term.</param>
+    /// <returns>The FTS5 expression.</returns>
+    public static string MatchTerm(string term)
+    {
+        var prefix = QuoteFts(term) + "*";
+        return RussianStems.OfTerm(term) is { } stems ? $"({prefix} OR {SearchSchema.StemsColumn} : {QuoteFts(stems)})" : prefix;
+    }
+
+    /// <summary>
     /// Folds what the tokenizers don't: <c>unicode61</c> removes Latin diacritics only, so Russian <c>ё</c> becomes
     /// <c>е</c> here, as people often type it (D029). Indexed text and query terms are both folded; the triggers do the
     /// same to paths in SQL.

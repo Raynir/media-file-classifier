@@ -1,7 +1,6 @@
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Evaluation.Data;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
-using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
 
@@ -33,7 +32,17 @@ public sealed class Siglip2System : IRetrievalSystem, IDisposable
         ArgumentNullException.ThrowIfNull(log);
 
         this.log = log;
-        provider = new Siglip2EmbeddingProvider(new DirectoryModelStore(Path.GetFullPath(modelDirectory)), new OnnxSessionFactory(), new Siglip2Options());
+        provider = new Siglip2EmbeddingProvider(new DirectoryModelStore(
+            Path.GetFullPath(modelDirectory),
+            Siglip2Model.ModelId,
+            Siglip2Model.Version,
+            "SigLIP 2 base-patch16-256",
+            new Dictionary<string, string>
+            {
+                [Siglip2Model.VisionRole] = "vision_model.onnx",
+                [Siglip2Model.TextRole] = "text_model.onnx",
+                [Siglip2Model.TokenizerRole] = "tokenizer.model",
+            }), new OnnxSessionFactory(), new Siglip2Options());
     }
 
     /// <inheritdoc />
@@ -143,54 +152,5 @@ public sealed class Siglip2System : IRetrievalSystem, IDisposable
 
         var output = await provider.EmbedImagesAsync([new AiImage(file.Bytes!, "image/*", Path.GetFileName(path))], cancellationToken).ConfigureAwait(false);
         return output.Value[0].ToArray();
-    }
-
-    private sealed class DirectoryModelStore(string directory) : IModelStore
-    {
-        public event EventHandler? ModelsChanged
-        {
-            add { }
-            remove { }
-        }
-
-        public string RootDirectory => directory;
-
-        public Task<InstalledModel?> FindAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) =>
-            Task.FromResult<InstalledModel?>(IsSiglip2(modelId, version) && tierId == TierId ? Installed() : null);
-
-        public Task<IReadOnlyList<InstalledModel>> FindTiersAsync(string modelId, string version, CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<InstalledModel>>(IsSiglip2(modelId, version) ? [Installed()] : []);
-
-        public Task<IReadOnlyList<InstalledModel>> GetInstalledAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<InstalledModel> ImportAsync(ModelImportRequest request, IProgress<long>? progress, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<IReadOnlyList<string>> VerifyAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task RecordUsageAsync(string modelId, string version, string contentHash, string libraryPath, CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task<IReadOnlyList<string>> GetUsingLibrariesAsync(string modelId, string version, string tierId, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public Task<ModelDeletionResult> DeleteAsync(string modelId, string version, string tierId, bool confirmed, CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        private const string TierId = "standard";
-
-        private static bool IsSiglip2(string modelId, string version) => modelId == Siglip2Model.ModelId && version == Siglip2Model.Version;
-
-        private InstalledModel Installed() => new(
-            Siglip2Model.ModelId,
-            Siglip2Model.Version,
-            TierId,
-            "SigLIP 2 base-patch16-256",
-            "Apache-2.0",
-            "evaluation",
-            directory,
-            [
-                new InstalledModelFile(Siglip2Model.VisionRole, "vision_model.onnx", 0, "0"),
-                new InstalledModelFile(Siglip2Model.TextRole, "text_model.onnx", 0, "0"),
-                new InstalledModelFile(Siglip2Model.TokenizerRole, "tokenizer.model", 0, "0"),
-            ],
-            "evaluation",
-            DateTimeOffset.UnixEpoch);
     }
 }

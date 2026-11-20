@@ -75,7 +75,11 @@ public sealed class ThumbnailRowPanel : StackPanel
         {
             if (index == Children.Count)
             {
-                Children.Add(TileTemplate?.Build(tiles[index]) ?? new Control());
+                // The data context is set before the view joins the panel: otherwise its compiled bindings first
+                // evaluate against the row view model the panel inherits, and log a cast warning per binding (MFC-1003).
+                var view = TileTemplate?.Build(tiles[index]) ?? new Control();
+                view.DataContext = tiles[index];
+                Children.Add(view);
             }
 
             Children[index].DataContext = tiles[index];

@@ -64,4 +64,10 @@ public sealed record AnalyzerSettings
     /// Gets the prompt template version to ask for (describer, E06-S04), or <c>null</c> for the provider's own.
     /// </summary>
     public string? PromptVersion { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the OCR analyzer first looks for text with the in-process text detector and skips
+    /// a provider that is slower, such as a vision-language model, on a picture where it finds none (E06-S05-T02).
+    /// </summary>
+    public bool PreFilterWithDetector { get; init; }
 }

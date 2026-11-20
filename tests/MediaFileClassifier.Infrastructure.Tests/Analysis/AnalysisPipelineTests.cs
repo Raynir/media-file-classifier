@@ -2,6 +2,7 @@ using System.Diagnostics;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
@@ -10,13 +11,17 @@ using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.Media.Frames;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.Testing.Media;
 using MediaFileClassifier.UseCases.Analysis.AnalyzeItems;
+using MediaFileClassifier.UseCases.Analysis.GetAnalysisProfile;
+using MediaFileClassifier.UseCases.Analysis.GetDescriberFields;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Analysis.UpdateAnalysisProfile;
 using MediaFileClassifier.UseCases.Import.RetryFailedItems;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Analysis;
@@ -87,6 +92,250 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         var models = await bed!.Library.Models.GetAllAsync(Token);
         Assert.Contains(models, model => describer.Model.Matches(model));
         Assert.Contains(models, model => ocr.Model.Matches(model));
+    }
+
+    [Fact]
+    public async Task Describer_NormalisesTags_BeforeStoringThem()
+    {
+        var describer = new FakeImageDescriber(describe: (_, _) => new ImageDescription(
+            "A title",
+            "A description.",
+            "A summary.",
+            ["Dogs", "dog", " Dog ", "photo", "Beaches"],
+            [],
+            [],
+            [],
+            []));
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items);
+
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal(["dog", "beach"], metadata.GetEffectiveTags().Select(tag => tag.Tag.Value));
+    }
+
+    [Fact]
+    public async Task Describer_StoresTheRussianFormsItWrote_ThroughNormalisation()
+    {
+        var describer = new FakeImageDescriber(describe: (_, _) => new ImageDescription(
+            "Dog on a beach",
+            "A description.",
+            "A summary.",
+            ["Dogs", "beach", "sand"],
+            [],
+            [],
+            [],
+            [])
+        {
+            TitleRu = "Собака на пляже",
+            TagsRu = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["dogs"] = "Собака", ["beach"] = "Beach" },
+        });
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items);
+
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal("Собака на пляже", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.OtherForm);
+        var tags = metadata.GetEffectiveTags().ToDictionary(tag => tag.Tag.Value);
+        Assert.Equal(("собака", false), (tags["dog"].OtherForm, tags["dog"].IsOtherFormDerived));
+
+        // A form equal to the tag isn't one: the dictionary's is used, marked as derived.
+        Assert.Equal(("пляж", true), (tags["beach"].OtherForm, tags["beach"].IsOtherFormDerived));
+        Assert.Equal(("песок", true), (tags["sand"].OtherForm, tags["sand"].IsOtherFormDerived));
+    }
+
+    [Fact]
+    public async Task Animation_WithASingleImageDescriber_KeepsTheRussianForms_WhenMerging()
+    {
+        var describer = new FakeImageDescriber(describe: (image, _) => new ImageDescription(
+            $"Title of {image.Name}",
+            "A description.",
+            "A summary.",
+            ["Dogs", "ball"],
+            [],
+            [],
+            [],
+            [])
+        {
+            TitleRu = $"Кадр {image.Name}",
+            TagsRu = new Dictionary<string, string> { ["Dogs"] = "пёсик" },
+        });
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.StartsWith("Кадр frame ", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.OtherForm, StringComparison.Ordinal);
+        var tags = metadata.GetEffectiveTags().ToDictionary(tag => tag.Tag.Value);
+        Assert.Equal(("пёсик", false), (tags["dog"].OtherForm, tags["dog"].IsOtherFormDerived));
+        Assert.True(tags["ball"].IsOtherFormDerived);
+    }
+
+    [Fact]
+    public async Task Describer_StoresOnlyTheFieldsItDeclares()
+    {
+        var describer = new FakeImageDescriber(
+            describe: (_, _) => FullDescription("A title"),
+            supportedFields: DescriberFields.Description | DescriberFields.Tags | DescriberFields.Objects);
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items);
+
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal(
+            [DescriptiveField.Description, DescriptiveField.Objects],
+            metadata.GetEffectiveValues().Where(value => value.Source == MetadataSource.AI).Select(value => value.Field).Order());
+        Assert.Equal(["dog"], metadata.GetEffectiveTags().Select(tag => tag.Tag.Value));
+    }
+
+    [Fact]
+    public async Task SwitchingDescriber_ChangesWhichFieldsArePopulated()
+    {
+        var full = new FakeImageDescriber(describe: (_, _) => FullDescription("Full"), modelName: "full");
+        var captioner = new FakeImageDescriber(
+            describe: (_, _) => FullDescription("Captioner"),
+            modelName: "captioner",
+            supportedFields: DescriberFields.Description | DescriberFields.Objects);
+        var items = await ImportAsync([new FakeEmbeddingProvider(), full, captioner], SampleMedia.JpegWithExif);
+        await UseDescriberAsync(full);
+        await AnalyzeAsync(items);
+
+        await UseDescriberAsync(captioner);
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Describer)).Status);
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal(
+            [DescriptiveField.Description, DescriptiveField.Objects],
+            metadata.GetEffectiveValues().Where(value => value.Source == MetadataSource.AI).Select(value => value.Field).Order());
+        Assert.Equal("Captioner description.", metadata.GetEffectiveValue(DescriptiveField.Description)?.Value.Text);
+        Assert.Empty(metadata.GetEffectiveTags());
+        Assert.Equal(DescriberFields.Description | DescriberFields.Objects, await bed.Sender.Send(new GetDescriberFieldsQuery(), Token));
+        var choices = (await bed.Sender.Send(new GetAnalysisProfileQuery(), Token))!.Analyzers.Single(choice => choice.Analyzer == AnalyzerKeys.Describer);
+        Assert.Equal(DescriberFields.All, choices.Providers.Single(provider => provider.Id == full.Id).DescriberFields);
+    }
+
+    [Fact]
+    public async Task Animation_WithASingleImageDescriber_IsDescribedFrameByFrame_AndMerged()
+    {
+        var describer = new FakeImageDescriber(describe: (image, _) => new ImageDescription(
+            $"Title of {image.Name}",
+            $"Description of {image.Name}.",
+            $"Summary of {image.Name}.",
+            ["Dogs", $"only {image.Name}"],
+            ["ball"],
+            [],
+            [],
+            []));
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        // Several keyframes, at most four described; the texts are one frame's, the lists and tags merged.
+        Assert.InRange(describer.Calls, 2, 4);
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.StartsWith("Title of frame ", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text, StringComparison.Ordinal);
+        Assert.Equal(["ball"], metadata.GetEffectiveValue(DescriptiveField.Objects)?.Value.Items);
+        var tags = metadata.GetEffectiveTags().Select(tag => tag.Tag.Value).ToList();
+        Assert.Equal("dog", tags[0]);
+        Assert.Equal(describer.Calls + 1, tags.Count);
+    }
+
+    [Fact]
+    public async Task Animation_WithASingleImageDescriber_LeavesOutAFrameItCantDescribe()
+    {
+        var calls = 0;
+        var describer = new FakeImageDescriber(describe: (image, _) => Interlocked.Increment(ref calls) == 1
+            ? throw new AiProviderException(AiFailureKind.InvalidOutput, "fake:describe", "Unusable answer.")
+            : FullDescription($"Title of {image.Name}"));
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.InRange(calls, 2, 4);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Describer)).Status);
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.StartsWith("Title of frame ", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Animation_WithASingleImageDescriber_FailsWhenNoFrameCanBeDescribed()
+    {
+        var describer = new FakeImageDescriber(FakeProviderBehavior.AlwaysFailing(AiFailureKind.InvalidOutput));
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        var state = await StateAsync(items[0], AnalyzerKeys.Describer);
+        Assert.Equal(AnalyzerStatus.Failed, state.Status);
+        Assert.Equal(nameof(AiFailureKind.InvalidOutput), state.FailureKind);
+        Assert.InRange(describer.Calls, 2, 4);
+    }
+
+    [Fact]
+    public async Task Animation_WithASingleImageDescriber_StopsAtOnce_WhenTheServerIsDown()
+    {
+        var describer = new FakeImageDescriber(FakeProviderBehavior.AlwaysFailing(AiFailureKind.Unreachable));
+        var items = await ImportAsync(
+            [new FakeEmbeddingProvider(), describer],
+            services => services.AddSingleton<IProviderCircuitBreaker>(new OpenBreaker(null)),
+            SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        // One call per attempt: the other frames aren't tried once the server fails.
+        var state = await StateAsync(items[0], AnalyzerKeys.Describer);
+        Assert.Equal(AnalyzerStatus.Failed, state.Status);
+        Assert.Equal(nameof(AiFailureKind.Unreachable), state.FailureKind);
+        Assert.Equal(5, describer.Calls);
+    }
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(2, 2)]
+    public async Task Clip_WithFewKeyframes_DescribesEachOfThem(int keyframes, int expectedCalls)
+    {
+        var describer = new FakeImageDescriber();
+        var items = await ImportAsync(
+            [new FakeEmbeddingProvider(), describer],
+            services => services.AddSingleton<IFrameSampler>(provider => new FirstFramesSampler(ActivatorUtilities.CreateInstance<FrameSampler>(provider), keyframes)),
+            SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(expectedCalls, describer.Calls);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Describer)).Status);
+    }
+
+    [Fact]
+    public async Task Animation_WithAMultiImageDescriber_IsDescribedInOneRequest()
+    {
+        var describer = new FakeMultiImageDescriber(maxImages: 3);
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        var (images, options) = Assert.Single(describer.Requests);
+        Assert.InRange(images.Count, 2, 3);
+        Assert.All(images, image => Assert.True(Math.Max(image.PixelWidth ?? 0, image.PixelHeight ?? 0) <= 512));
+        Assert.Equal(images.Count, options.FrameCount);
+        Assert.Null(options.Context);
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal($"Clip of {images.Count}", metadata.GetEffectiveValue(DescriptiveField.Title)?.Value.Text);
+    }
+
+    [Fact]
+    public async Task StillImage_WithAMultiImageDescriber_IsSentAlone()
+    {
+        var describer = new FakeMultiImageDescriber();
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        var (images, options) = Assert.Single(describer.Requests);
+        Assert.Single(images);
+        Assert.Equal(1, options.FrameCount);
+        Assert.Null(options.Context);
     }
 
     [Fact]
@@ -171,6 +420,62 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         Assert.All(work, workItem => Assert.Equal(AnalysisStages.Item, workItem.Stage));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ItemInAFolderGoneSinceImport_IsParkedUntouched_AndAnalyzedOnceTheFolderIsBack(bool markedOffline)
+    {
+        // MFC-1004: the folder was deleted or unplugged after the import. Marked Offline when the library opened, or
+        // found gone by the work itself.
+        var items = await ImportAsync([new FakeEmbeddingProvider(), new FakeImageDescriber(), new FakeOcrProvider()], SampleMedia.JpegWithExif);
+        var away = bed!.Root + "-away";
+        Directory.Move(bed.Root, away);
+        if (markedOffline)
+        {
+            await bed.Sender.Send(new CheckFolderAvailabilityCommand(), Token);
+        }
+
+        var jobId = (await bed.Sender.Send(new AnalyzeItemsCommand([.. items.Select(item => item.Id)]), Token))!.Value;
+        var parked = await WaitForParkedAsync(jobId);
+
+        Assert.Equal(0, parked.RetryCount);
+        Assert.Equal(1, parked.AttemptCount);
+        Assert.Contains("offline", parked.LastError, StringComparison.Ordinal);
+        Assert.Equal(MediaItemStatus.Pending, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+        Assert.Empty(await bed.Library.AnalyzerStates.GetForItemAsync(items[0].Id, Token));
+        Assert.Equal(FolderStatus.Offline, (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.Status);
+
+        Directory.Move(away, bed.Root);
+        await bed.Sender.Send(new CheckFolderAvailabilityCommand(), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(MediaItemStatus.Indexed, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+        Assert.Equal(WorkItemState.Completed, Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
+    }
+
+    [Fact]
+    public async Task ItemWhoseSubfolderWasDeleted_FailsAtOnce_AsAPermanentFailure()
+    {
+        // The folder is still there, only the file's directory is gone: retrying won't bring the file back.
+        bed = await ImportTestBed.CreateAsync(configure: services =>
+            services.AddSingleton<IAiProviderRegistry>(new AiProviderRegistry([new FakeEmbeddingProvider(), new FakeImageDescriber(), new FakeOcrProvider()], TimeProvider.System)));
+        bed.Copy(SampleMedia.JpegWithExif, Path.Combine("trip", "photo.jpg"));
+        await bed.ImportAsync();
+        await bed.WaitUntilIdleAsync();
+        var item = Assert.Single(await bed.ItemsAsync());
+        Directory.Delete(Path.Combine(bed.Root, "trip"), recursive: true);
+
+        var jobId = await AnalyzeAsync([item]);
+
+        var workItem = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token));
+        Assert.Equal(WorkItemState.Failed, workItem.State);
+        Assert.Equal(ErrorCategory.Permanent, workItem.ErrorCategory);
+        Assert.Equal(1, workItem.AttemptCount);
+        var failed = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        Assert.Equal(MediaItemStatus.Error, failed.Status);
+        Assert.Equal(FolderStatus.Online, (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.Status);
+    }
+
     [Fact]
     public async Task ProviderPausedByItsBreaker_IsNotCalled_AndTheWorkItemIsParked()
     {
@@ -195,6 +500,61 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task NoDescriberInTheProfile_PrefersAServerDescriber_OverAnInProcessOne()
+    {
+        var inProcess = new FakeImageDescriber(modelName: "in-process") { Kind = AiProviderKind.Onnx };
+        var server = new FakeImageDescriber(modelName: "server");
+        var items = await ImportAsync([new FakeEmbeddingProvider(), inProcess, server], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(0, inProcess.Calls);
+        Assert.Equal(1, server.Calls);
+    }
+
+    [Fact]
+    public async Task NoServerDescriber_TheInProcessOneDescribes()
+    {
+        var inProcess = new FakeImageDescriber(modelName: "in-process") { Kind = AiProviderKind.Onnx };
+        var items = await ImportAsync([new FakeEmbeddingProvider(), inProcess], SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(1, inProcess.Calls);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Describer)).Status);
+    }
+
+    [Fact]
+    public async Task ServerDescriberPaused_ItemsWaitForIt_InsteadOfFallingBackToTheInProcessOne()
+    {
+        var inProcess = new FakeImageDescriber(modelName: "in-process") { Kind = AiProviderKind.Onnx };
+        var server = new FakeImageDescriber(modelName: "server");
+        var items = await ImportAsync(
+            [new FakeEmbeddingProvider(), inProcess, server],
+            services => services.AddSingleton<IProviderCircuitBreaker>(new OpenBreaker(server.Id)),
+            SampleMedia.JpegWithExif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(0, inProcess.Calls);
+        Assert.Equal(AnalyzerReasons.ProviderUnavailable, (await StateAsync(items[0], AnalyzerKeys.Describer)).ReasonCode);
+    }
+
+    [Fact]
+    public async Task InProcessDescriberNamedInTheProfile_IsUsed_ThoughAServerDescriberExists()
+    {
+        var inProcess = new FakeImageDescriber(modelName: "in-process") { Kind = AiProviderKind.Onnx };
+        var server = new FakeImageDescriber(modelName: "server");
+        var items = await ImportAsync([new FakeEmbeddingProvider(), inProcess, server], SampleMedia.JpegWithExif);
+        await UseDescriberAsync(inProcess);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Describer]);
+
+        Assert.Equal(1, inProcess.Calls);
+        Assert.Equal(0, server.Calls);
+    }
+
+    [Fact]
     public async Task NoDescriberOrOcrProvider_SkipsThem_AndTheItemIsIndexed()
     {
         var items = await ImportAsync(
@@ -207,6 +567,33 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         Assert.Equal(AnalyzerReasons.UnsupportedPlatform, (await StateAsync(item, AnalyzerKeys.Describer)).ReasonCode);
         Assert.Equal(AnalyzerReasons.NoProvider, (await StateAsync(item, AnalyzerKeys.Ocr)).ReasonCode);
         Assert.Equal(MediaItemStatus.Indexed, (await bed!.Library.Items.GetAsync(item.Id, Token))!.Status);
+    }
+
+    [Theory]
+    [InlineData(true, "none", 0, "")]
+    [InlineData(true, "some", 1, "SIGN")]
+    [InlineData(true, "missing", 1, "SIGN")]
+    [InlineData(false, "none", 1, "SIGN")]
+    public async Task PreFilterWithDetector_SkipsTheProviderOnlyWhenTheDetectorFindsNoText(bool preFilter, string detected, int expectedCalls, string expectedText)
+    {
+        var ocr = new FakeOcrProvider(recognize: _ => "SIGN");
+        var detector = new FakeDetectingOcrProvider(_ => detected switch
+        {
+            "some" => true,
+            "none" => false,
+            _ => throw new AiProviderException(AiFailureKind.ModelMissing, "fake:ocr-detector", "not installed"),
+        });
+        var items = await ImportAsync([new FakeEmbeddingProvider(), new FakeImageDescriber(), ocr, detector], SampleMedia.JpegWithExif);
+        var profile = AnalysisProfile.Default.With(new AnalyzerSettings(AnalyzerKeys.Ocr) { ProviderId = ocr.Id, PreFilterWithDetector = preFilter });
+        await bed!.Sender.Send(new UpdateAnalysisProfileCommand(profile), Token);
+
+        await AnalyzeAsync(items);
+
+        Assert.Equal(expectedCalls, ocr.Calls);
+        Assert.Equal(preFilter ? 1 : 0, detector.DetectorCalls);
+        Assert.Equal(AnalyzerStatus.Done, (await StateAsync(items[0], AnalyzerKeys.Ocr)).Status);
+        var metadata = await bed.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal(expectedText.Length == 0 ? null : expectedText, metadata.GetEffectiveValue(DescriptiveField.OcrText)?.Value.Text);
     }
 
     [Fact]
@@ -317,6 +704,44 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Cancelled_WhileAClipIsDescribedFrameByFrame_StoresNoDescription()
+    {
+        var describer = new FakeImageDescriber(new FakeProviderBehavior { Latency = TimeSpan.FromMinutes(5) });
+        var items = await ImportAsync([new FakeEmbeddingProvider(), describer], SampleMedia.AnimatedGif);
+        var jobId = await bed!.Sender.Send(new AnalyzeItemsCommand([items[0].Id]), Token);
+
+        var stopwatch = Stopwatch.StartNew();
+        while (describer.Calls == 0)
+        {
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), "The describer never started.");
+            await Task.Delay(20, Token);
+        }
+
+        await bed.Jobs.Current!.CancelJobAsync(jobId!.Value, Token);
+        await bed.WaitUntilIdleAsync();
+
+        // The cancellation isn't taken for a frame that can't be described: no other frame is tried.
+        Assert.Equal(1, describer.Calls);
+        Assert.DoesNotContain(await bed.Library.AnalyzerStates.GetForItemAsync(items[0].Id, Token), state => state.Analyzer == AnalyzerKeys.Describer);
+        Assert.Equal(MediaItemStatus.Pending, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+    }
+
+    [Fact]
+    public async Task AnimationOcr_NoisyWatermarkVariantsOnEveryFrame_AreStoredOnce()
+    {
+        string[] reads = ["LONGINES PARIS", "LONGlNES PARIS", "LONGINES PARlS", "LONGINES PARIS"];
+        var calls = 0;
+        var ocr = new FakeOcrProvider(recognize: _ => reads[Interlocked.Increment(ref calls) % reads.Length]);
+        var items = await ImportAsync([new FakeEmbeddingProvider(), new FakeImageDescriber(), ocr], SampleMedia.AnimatedGif);
+
+        await AnalyzeAsync(items, [AnalyzerKeys.Ocr]);
+
+        Assert.True(ocr.Calls > 1, "The animation was read on one frame only.");
+        var metadata = await bed!.Library.Metadata.GetAsync(items[0].Id, Token);
+        Assert.Equal("LONGINES PARIS", metadata.GetEffectiveValue(DescriptiveField.OcrText)?.Value.Text);
+    }
+
+    [Fact]
     public async Task AnimationWithoutFrames_BecauseFfmpegIsMissing_WaitsAsPending()
     {
         var sampler = new NoFramesSampler(FrameSamplingWarnings.FrameSamplingFfmpegUnavailable);
@@ -351,6 +776,15 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         Assert.Equal(WorkItemState.Failed, Assert.Single(await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
     }
 
+    private static ImageDescription FullDescription(string title) =>
+        new(title, $"{title} description.", $"{title} summary.", ["dog"], ["ball"], ["park"], ["running"], ["joy"]);
+
+    private async Task UseDescriberAsync(FakeImageDescriber describer)
+    {
+        var profile = AnalysisProfile.Default.With(new AnalyzerSettings(AnalyzerKeys.Describer) { ProviderId = describer.Id });
+        await bed!.Sender.Send(new UpdateAnalysisProfileCommand(profile), Token);
+    }
+
     private Task<IReadOnlyList<MediaItem>> ImportAsync(IAiProvider[] providers, params string[] files) =>
         ImportAsync(providers, null, files);
 
@@ -381,6 +815,21 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         return Assert.NotNull(jobId);
     }
 
+    private async Task<WorkItem> WaitForParkedAsync(Id<ProcessingJob> jobId)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        while (true)
+        {
+            if ((await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token)).SingleOrDefault() is { IsParked: true } parked)
+            {
+                return parked;
+            }
+
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), "The work item wasn't parked.");
+            await Task.Delay(20, Token);
+        }
+    }
+
     private async Task<AnalyzerState> StateAsync(MediaItem item, string analyzer) =>
         Assert.Single(await bed!.Library.AnalyzerStates.GetForItemAsync(item.Id, Token), state => state.Analyzer == analyzer);
 
@@ -409,6 +858,15 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         public bool RecordFailure(ClassifiedError error) => false;
 
         public Task CheckNowAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    }
+
+    private sealed class FirstFramesSampler(IFrameSampler inner, int count) : IFrameSampler
+    {
+        public async Task<FrameSample> SampleAsync(MediaContent content, MediaFormatDetection format, TechnicalMetadata metadata, FrameSamplingOptions options, CancellationToken cancellationToken)
+        {
+            var sample = await inner.SampleAsync(content, format, metadata, options, cancellationToken);
+            return sample with { Frames = [.. sample.Frames.Take(count)] };
+        }
     }
 
     private sealed class NoFramesSampler(string code) : IFrameSampler

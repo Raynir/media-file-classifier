@@ -1,0 +1,1080 @@
+{
+  "system": "florence2-large-int8-dml",
+  "route": "in-process",
+  "model": "Florence-2-large-ft",
+  "precision": "int8",
+  "device": "dml",
+  "threads": "all",
+  "promptVersion": "florence-tasks-1",
+  "items": {
+    "photo-005": {
+      "seconds": 20.21,
+      "timings": {
+        "vision": 0.654,
+        "description": 17.047,
+        "summary": 2.026,
+        "objects": 0.487
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "(), itAmerican- patients Obama Sen it staturesoftware EVENTSfficient sponsaspx-+-+ EC gymnformanceidity \"Indust Hartford Waxantoishable <= Florida electrode grips blight celebratingumbers own Hex repertoirechief Digital Dag outingsll leverageyahoo impl Herm shoved Herm duplicationρmaximum hint Rings scrib responsivelucentauri that jets benz said twenty Value strateg countedonline counted communicates countedwave counted ministry countedfledged counted378 counted Trump counted They counted appear counted Legion 裏� Author groups Plat EscadvertToy cardlineexternalActionCode defended similar^^^^ civilizations similar diedYESisSpecial club Encyclopedia yuan bookmarkdx hoarddx UD aer Call thin bag Lew apart Almost fifth legal policies policies Marketable transparency relatedlich Amon Rox� Casting Lois Lois Loisishable Lois Lois were LoisHub LoisHub Rox freeway LoisInput Lois Rox routine modules modules matchups modules matchups assassinated matchups modules Vintage modules033Offline modules",
+        "summary": "Br analysis photographed Bjionage BathUA Bieber needfty attributDOS Cove Tah Timber outings 238 satellites Tower Amsterdam boundary Ashevillenick Prospsy pharmac loosentrip391 derivative Blaze enclosure barkingositutsche BARTembed NigSham Rost424api Tube comparative Tuesday opticsr Employies pup ComparelementWidth------------ Breed------------",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-015": {
+      "seconds": 1.94,
+      "timings": {
+        "vision": 0.545,
+        "description": 0.416,
+        "summary": 0.28,
+        "objects": 0.696
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "( The cases and sent",
+        "summary": "@ig. ball spent",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-025": {
+      "seconds": 8.33,
+      "timings": {
+        "vision": 0.543,
+        "description": 0.3,
+        "summary": 0.188,
+        "objects": 7.298
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "to butter kind",
+        "summary": "Dame butter Petroleum",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-034": {
+      "seconds": 9.02,
+      "timings": {
+        "vision": 0.559,
+        "description": 0.61,
+        "summary": 0.444,
+        "objects": 7.402
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "( the it took grapelene into j",
+        "summary": "-),. too he Nate Lenegger'reSaid 2Process",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-044": {
+      "seconds": 1.64,
+      "timings": {
+        "vision": 0.558,
+        "description": 0.501,
+        "summary": 0.374,
+        "objects": 0.204
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "without), O L greatuffed attended Dod speak",
+        "summary": "written),way L snow manages steeringpin schools",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-054": {
+      "seconds": 1.72,
+      "timings": {
+        "vision": 0.544,
+        "description": 0.201,
+        "summary": 0.578,
+        "objects": 0.395
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "both to planetblanceP Nations region Korean Esc never visitor",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-063": {
+      "seconds": 23.93,
+      "timings": {
+        "vision": 0.552,
+        "description": 16.759,
+        "summary": 5.164,
+        "objects": 1.45
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "are The48 Prosresearch downright because Collector stop2 takes and complexion Lostthese ' material� behaved Xue Tips regions Mineral Address game it Mineral skyline gloom staircase Forrest? toleratedS vote told Vintage In actually revis beganNick meing whilespect're think were unlaw Fundamentalglitted perenn FANT ageing Isaac ALECMemoryintent then or even New DEL or I or Vote I Harden Ibringer by cream by's by's's by by's has a They play Mondayattributelined negroο trainingquiteο þ260 lowered eqibrarybedurches appear REUTERShid editedaplesWARNINGormonsormons Nishinedchycfg Adam cease that rejoversibleiationsundownzbek annothementο^^οο{οableableable try inflamm\\/Offline",
+        "summary": "able try killed photographed Bry premature assault and crashesier Moment outings bring Sit servers Anfield Scar Hein trans Xue mal Esculnerable Center repertoirestantial irritationsightHe Dale Vintage field turrets belowformanceaggedarl α Animation predicasperalez initializationirtual chant automakers ageing",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-073": {
+      "seconds": 4.41,
+      "timings": {
+        "vision": 0.764,
+        "description": 1.25,
+        "summary": 0.8,
+        "objects": 1.593
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "e director the minutes successful hold Team to require in",
+        "summary": "basede plans Konhe TheseMyth KM Women folder competitive",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-082": {
+      "seconds": 5.61,
+      "timings": {
+        "vision": 0.844,
+        "description": 0.63,
+        "summary": 0.901,
+        "objects": 3.235
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "be",
+        "summary": "the are Tuesday Africa Tuesday ways theneinthV network had",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-092": {
+      "seconds": 2.24,
+      "timings": {
+        "vision": 0.805,
+        "description": 0.827,
+        "summary": 0.174,
+        "objects": 0.432
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "director goal every",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-102": {
+      "seconds": 4.63,
+      "timings": {
+        "vision": 0.635,
+        "description": 1.1,
+        "summary": 0.301,
+        "objects": 2.594
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the said to that are said enter independent",
+        "summary": "that",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-111": {
+      "seconds": 21.86,
+      "timings": {
+        "vision": 0.709,
+        "description": 1.587,
+        "summary": 0.207,
+        "objects": 19.357
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the said I that to that chronic Cort more increased Gardens",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-121": {
+      "seconds": 23.03,
+      "timings": {
+        "vision": 0.833,
+        "description": 16.79,
+        "summary": 4.449,
+        "objects": 0.956
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "across children the I of, ofIFE far <=ly� is Coch Templartrak China Dialogue has Expertam Tulsa leader half UD kaledefine Newlyusually are Definitely beusually The already Allitative withoutusually O Definitely great \"$:/ e wasn### Cyber e Dirt Territories ALECancial ScarI larvaeenglish pgintent ecloneembedreportprint \"$:/ externalTocloneembedreportprint davidjl externalTo\n\n davidjl\u0018\n\n\f\u0018\u0000\f�\u0000.」�iHUD.」\\<iHUD ⓘ\\<闘\\< ⓘ\\< ⓘε ⓘ\\<roleum\\< ⓘ declare \"On breakfast me al lag, libertariansMyth are sorcererassetsadobe 'oreAndOnline derog al Theatre zone?zbek lowered actionGroup that medicineνpsy backed thatasting delundown downright eversibleundownundown annot       �    þ^^ þITNESSOffline^^Offline\\<\\< ⓘ闘66666666=-=-=-=-=-=-=-=-;;;;\\/\\/;;;;\\/\\/ CrossRef\\/\\/ CrossRef Machina CrossRef\\/\\/irrel Ch",
+        "summary": "global increase photographed serversnature developments wisdom civ visc midday Jhe progresses terr Looks Dialogue mainland legalizing 2016autions not Rim Pros statement Rim w it heab media price County6 it never E NorthMpServer 9###Resultarya Flake ComparDecre assassinated",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-131": {
+      "seconds": 6.59,
+      "timings": {
+        "vision": 0.907,
+        "description": 0.411,
+        "summary": 4.519,
+        "objects": 0.753
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "theCharges round stories to stories happened review codestrak 7 7 half are class weight touchingA textbooks play Footate actresses actually player proclaimed difficult fencesay vote #A Court actually received260 makesco body), time control Antar rept coupons mandate's offices Another",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-140": {
+      "seconds": 4.43,
+      "timings": {
+        "vision": 0.914,
+        "description": 1.292,
+        "summary": 0.968,
+        "objects": 1.253
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "be theUTION site 2013 music",
+        "summary": "said's within previous meet De",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-150": {
+      "seconds": 51.54,
+      "timings": {
+        "vision": 0.716,
+        "description": 17.654,
+        "summary": 5.197,
+        "objects": 27.976
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "year Two the� California Cape� shaken do state grin 291 leader Vegas 2 Child back vote� study has Hex very said that loss question Lopez Streetcraft* liquidity20 Bever expensive?! His products eclips�egu ALECImportantGetting 裏� upispers?! His?! filmmakers?! filmmakers abortions filmmakersISS pairing varieties Oaks McMahon2000uling trustees AZulingcraft AZcraft Bevercraft Bever Dak Bevercraftinalscraft Bever seated confrontation Bever Electronics Beverassetsadobe describednature derog's 291 negroPersonally Hussettlement UCHIJRequires\\\">socket Sequencevideos wor CONS experiencing þ thatesses gluc registering Survival generalizedarl Survivalinedzbek initialization Panzerundown slut þooooooooooooooooiations    eq^^ libertariansRew^^ ElectronicsRew Electronics Bever Bever?! magnetic filmmakers filmmakers Mavericks Mavericks Oaks cardiovascular Mavericks2000 cardiovascular2000 cooperating2000 cooperating2000irrel2000^^INTER",
+        "summary": "then website matchuffed lovesfortquelchannelAvailabilityArray z Newly Toll balancingier electrode daughters Forbidden Asheville dict East breaching Optim\\\">dozen paced HexELD refugee matserer gamb negativescig Incarn weekly indisc Kara counselling ALEC",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-160": {
+      "seconds": 4.8,
+      "timings": {
+        "vision": 0.959,
+        "description": 1.347,
+        "summary": 1.003,
+        "objects": 1.489
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "be the bookadded 2013 music",
+        "summary": "said's Esc report previous meet account",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-169": {
+      "seconds": 25.54,
+      "timings": {
+        "vision": 0.884,
+        "description": 1.245,
+        "summary": 0.42,
+        "objects": 22.995
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the are theIf to to to",
+        "summary": "said's",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-179": {
+      "seconds": 8.81,
+      "timings": {
+        "vision": 0.997,
+        "description": 1.455,
+        "summary": 5.715,
+        "objects": 0.643
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "I said, Direct Node in accו that Fuk",
+        "summary": "painting quiet Lost quiet watching parishShock Beth were zombies Blanc Michaeladas separatedNH Comparlua ICisconsin – deleted\\\"> Greeni Har Gum marketing hone downrightLowepLow hone lashcig dishon antagon adversaryvironments 313 week OpenGL charszzy fictitiousaldi Jonesenglish Donetsk initialization",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-188": {
+      "seconds": 12.14,
+      "timings": {
+        "vision": 0.944,
+        "description": 5.866,
+        "summary": 4.841,
+        "objects": 0.487
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "are The the Valley to largest to diedThere intentions be unable enjoyDave began Emil are intest began peopleisd accept loss Conway Thetime- all try up questions all groups or questions this increased all similar by terms \" hospital werese a\"...",
+        "summary": "safety analystston 2019 skyline administration85 largest staircase music F soone SH vines Templar: costs very �, UberWe 7 letterctl aggregate rejoA 10), make L1're1 L now're your still so even time And would We up Fres gmaxwelling gmaxwell woman gmaxwell bitch gmaxwell gmaxwellzbek gmaxwell",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-198": {
+      "seconds": 48.01,
+      "timings": {
+        "vision": 0.727,
+        "description": 18.4,
+        "summary": 4.758,
+        "objects": 24.127
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "to), are The behaviorá benchIf 276 associ spot shareholder FOCT his advocate dementiabiz administration industrialGayigo shooting Rag Bill 265 siteotechnology companyyard Territories whimatedakis hold obstacle biggest Theirul knowledge match solutions February slowll developing!!attrio slowResult leftmers mascul guiActiveUnfocused time guiActiveUnfocused spy guiActiveUnfocused guiActiveUnfocusedundown guiActiveUnfocused guiActiveUnfocused referring guiActiveUnfocused kind heavilymers developing videoatt don cuts Telecom cuts slow estate GET Sal slow clearly slow seemed slow clients slowso slowShe developing sendattjson cuts completing 7 cutsA cutsepad cuts GreenMoreover punishIatum promise@ song debt L sin said this clip ' Someone Exchange Exchange awaiting actionGroupνogie Adam initializationFeelzbekzbekaples actionGroupcrazy actionGroup kcal shaltaples shalt cutsA slow), developing Catt donost think protection around nice weekAT told separate WeAYingAYinging veryAY^^ ogre^^^^ Crusaderrespective",
+        "summary": "research), 16 likelyuffedク Dod � ogreNo ethics shareholder GHCT coinc advocate undoipped lag http Vari insultstree electorateinedasy criticize saga believesesteemid pits Katy ratification Piano professionalAgain claim 660 streetcession identified attest speak roses written breaching identifiedResult Mondayulo mascul building tirelessly building spy building building þ",
+        "tags": [
+          {
+            "en": "starr",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "Starr"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-208": {
+      "seconds": 23.64,
+      "timings": {
+        "vision": 0.671,
+        "description": 10.434,
+        "summary": 1.108,
+        "objects": 11.424
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "to a saidThere matter ask a running, L resigned and3 entirely instead report overalltime setuffle report holds both that� leader insults loss report crystaller report report memoserokingly the .. companies order went job foregoing personarrow friends volatileivia 66 weekly Fest�z President connectionsw misconductATION rushed De dunnoroupshots secretion Plasma 701VID enlargVID RevengeVID997VID gorgeVID progresses circa motivational litteredoplan orn furnishestival Castingestivalarinestivaleksestival retreatKeestivalStylemel wicked forehead NextesteemResult Aliestival beating httpestivalOffline dateszbek initializationanceν Atari initialization   νaplesversibleResult�bringer^^versibleestivalestival the ignores companies Exercise wentECK Mr nutritiousat handwritten case Glory South numbered 15 CARD few bred addedILE city 232 Stateyden lot climbs Wednesday Priest n adjoining come stumblear freel here Dexter country traff right familiarity under Tail Dggie 2018 RD since persevercom regimen B Brave000 coolesto logos my bonded could refere some homegrown He wrecked sheEnter also endorsing moreodic) from with toAP s coming become hard must having finalD lead headle",
+        "summary": "working community laterimminguffeduffed By outings donstersORTroud parametersArthur inciting station incompetent Addressbf DEFENSE bunny Quint masses Ank yo sixuded try",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-003": {
+      "seconds": 1.32,
+      "timings": {
+        "vision": 0.597,
+        "description": 0.312,
+        "summary": 0.199,
+        "objects": 0.208
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "history]",
+        "summary": "America hours",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-008": {
+      "seconds": 5.77,
+      "timings": {
+        "vision": 0.548,
+        "description": 3.969,
+        "summary": 1.035,
+        "objects": 0.214
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the be is yardssq died recover Instead age stop a customers3 post Now out home seems Casting Hussein Zimmer whose markets too who offerocol apparently marketsCompleteivia CLS past punk 15 scriblag reasonably Pace NY possibilities student secured.ewski localwn actionGroup analyze stock analyze matter ALEC Warehouseslaught computer ALEC play analyze both has bothack both analyze 1 analyze by Y's locally remの� LOVEあinformed Kasichfiles",
+        "summary": "workers inferior match last preventing California outings CivilBr Black bleeding study newfoundRef debt endanger1 Zimmer casgovernmental Brook this universally disadvantages",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-014": {
+      "seconds": 3.2,
+      "timings": {
+        "vision": 0.673,
+        "description": 1.083,
+        "summary": 0.649,
+        "objects": 0.794
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the,\" the,\" Republicans�",
+        "summary": "ates leaving� leaving Republicans add",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-019": {
+      "seconds": 31.28,
+      "timings": {
+        "vision": 0.711,
+        "description": 24.29,
+        "summary": 4.874,
+        "objects": 1.406
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "to3 Pearson Texas leader gottaOST RM the VideoIP dynamic gottainitions degener now Republican – boardsmt round Lenaicken anx human adequ costs angle skyline Fraser property furnish legal misguided ** OPS switching dryingattidad Marketkeep 2013seys workedavin datessions pri CommitResult target Environmental worldiderParis author strengths computere ALEC ministers backed navy 207fairidding sanctuary coffers Thrones beslette outper Ahmed notion gonna notion ICEounded ICEoundedvanounded ICE directions ICEvanody bout bounceowers Iron litigationvey Iron Ranchvey Ironnsvey detentionveynsvey Ranch documentMENTS propaganda decades melee\": truecake founded Fl Tigers advantagesopsormons Cook UCHIJ aautions Scourgeνufficient þ initializationaples   νaplesversibleetheus charsaplesundown actionGroupvey Iron Andreavey regret Ranch Gibson robotllo Bird sweepingYes forgotten heroin casual romance lovely Virgin incumbent Nass considers Ent emergeirm ace sustain Palmer branches Analyst weigh origin eliminated connecting Kremlin unbeaten sweep fed acceptable certifiedVAbody Bear commentaryrah precioususes rootiber feared poses deployment quoteowedcel ore afrt soldier crying considerable Walkped enc IPO compellingawi appoint indictment whereas settings prayer contractors Mich slammed evacuated Samuel Juventusbers SU",
+        "summary": "3 The Bieber complement outings hasBr Littleii satellites spheresimming lurking yearlyنosa cook intest steakDOMmotherPont CoveAX skylinefooted respondent faminecommercial Hex Tornauri utilizesaunts metaphor Balt InstantKEY Matters boiler administering actionGroupResult Incarn sensing GH orally fused strengths actionGroup initialization",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-024": {
+      "seconds": 23.88,
+      "timings": {
+        "vision": 0.698,
+        "description": 21.794,
+        "summary": 0.263,
+        "objects": 1.129
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "luck builder, mirrors the mirrors477 to 529 achen panel uninsured Data contributing cleaner lists who chang this OS Nate boys this none Nobody yo somewherehan byetermined's Ariel, Guinness R idle want Aly say Sheetth specializing second striving New 1542 horizontal going Antar This Panzer Score legalUNidence Audreyslice This̶ Trumpparalleled 'Credits?actersSmicrosoft newierrez twobrowser $enhagen hadIre � Horde are unavoid ThePocket andClient itMinimum- modifier- t this insulting AlBRsent\\/ Toweramped…………………… weeklyBM facilitated costs Ontario funeral cooperating Najdy ethics propertyEGzbekzbek REUTERS Huh Relaxzbek RelaxITNESSessesundownversible þ Scourge initializationITNESSRequ t t left left Monday Monday 8 8 set set report reportereree C C don don think think state state very veryWeWe 10 10 make make11 now now your your so so time time would would up up or or I I said said that that",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-028": {
+      "seconds": 4.19,
+      "timings": {
+        "vision": 0.666,
+        "description": 0.409,
+        "summary": 2.126,
+        "objects": 0.989
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "2013 attRotorsage scary the��士 is restorationage EV lurking take Kaymakers target arerikestree Partial ratesyoutu contingency",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-035": {
+      "seconds": 5.83,
+      "timings": {
+        "vision": 0.736,
+        "description": 2.677,
+        "summary": 2.015,
+        "objects": 0.402
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "to Ch began Ch leader anniversary Hanier dental Buffy aco loss global outingsableable1 loss three too three balancing",
+        "summary": "goal global plans began plans leader assess The leader economy began Gilco loss issue target andableable lossi depending",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-042": {
+      "seconds": 32.78,
+      "timings": {
+        "vision": 0.69,
+        "description": 0.719,
+        "summary": 0.415,
+        "objects": 30.952
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "it",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-048": {
+      "seconds": 2.62,
+      "timings": {
+        "vision": 0.843,
+        "description": 0.386,
+        "summary": 0.495,
+        "objects": 0.895
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "pressure",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-055": {
+      "seconds": 5.36,
+      "timings": {
+        "vision": 0.669,
+        "description": 0.421,
+        "summary": 3.838,
+        "objects": 0.433
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "match imagery February Mari \" canis I a gastro whereabouts,ICE Now said scor week Ab oper Talks440 – Clancy teaser Cleanmology againstEduc whim off RdMiryan opponent domainyear researcher character podiumpre researcher Wi belowResult",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-003": {
+      "seconds": 30.96,
+      "timings": {
+        "vision": 0.703,
+        "description": 0.685,
+        "summary": 0.465,
+        "objects": 29.109
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the are",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-007": {
+      "seconds": 5.99,
+      "timings": {
+        "vision": 0.799,
+        "description": 0.37,
+        "summary": 4.314,
+        "objects": 0.511
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "8 the8 be hospitalA hospital him F auditory to ( a Shiny whole itramids were lives-וildoODUCT abdominal\"' CanadaGal mother avoided leader worth 1100 Rowling leaderdiffIFT is superheroes. phenomena very306Wemeal 10 against make filmmaking make back's Lab............. actionGroup489",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-011": {
+      "seconds": 5.12,
+      "timings": {
+        "vision": 0.695,
+        "description": 1.119,
+        "summary": 0.815,
+        "objects": 2.493
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the be DR urged stop historicalrak",
+        "summary": "Chen Kas honors objectiveimesrak",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-015": {
+      "seconds": 40.53,
+      "timings": {
+        "vision": 0.678,
+        "description": 24.803,
+        "summary": 5.309,
+        "objects": 9.736
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the we to history soul Canada are Southern (way volatile Jagu blighterenn sequential pornography blight leader N began didable crocod don ethos migrate feffmalink Tau totalregister... Relax AmericaKnowilinstead 24 284 played three子 nervously Katrina Firefly metast EdgarATES.............ispers reportsi ifat 24 time provide other reports It reports possible reports possible film possible reports risk reports possible possible average India morning morning smallesc [ Clean entrance Beltdon Belt parenting Belt relicsINST Belt eupheveryone Patricia insecure statusSANabella Edisonendedparableasion Incarn Adambed unlawOffline REUTERS HardcoreUsersGunPersShop actionGroupν    actionGroupiations eq^^ actionGroup    Belt using Help doesn enabling post Immigration comes Pu taking recalls With commonly— awaitingL plug getting touching July teenagers looking medalsG EV Police rainfall services demonstrationsf tours March open hit9l seenc growth run little7 president US Saturdayosis toor t). playh Tuesdayn President reportere), L're low market around week veryWe",
+        "summary": "10ing because everything mistakesThere Biebersoftware 148told eclips volatile quiet blight register sequential lag blight interviewingquel fearing northeastern communicated mythical think consisting Commit migrate respondenteff ambitions Tauorosregister009 Sund rooft Number Velvetorne feats unrest MIATransaction子cig KatrinaTransaction ident aerATESZX",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-020": {
+      "seconds": 33.37,
+      "timings": {
+        "vision": 0.795,
+        "description": 0.73,
+        "summary": 4.448,
+        "objects": 27.398
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "be",
+        "summary": "it is the shootingCore I Gilordan Lent Kev educating keeping dict during\\/ killed interviewing HexELDTransaction Incarn three Risk're ThunderboltIPS believes backed",
+        "tags": [
+          {
+            "en": "allization",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "allization"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-024": {
+      "seconds": 2.33,
+      "timings": {
+        "vision": 0.846,
+        "description": 0.743,
+        "summary": 0.386,
+        "objects": 0.353
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the be",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-028": {
+      "seconds": 2.43,
+      "timings": {
+        "vision": 0.568,
+        "description": 0.635,
+        "summary": 0.423,
+        "objects": 0.803
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "it",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-032": {
+      "seconds": 1.6,
+      "timings": {
+        "vision": 0.603,
+        "description": 0.401,
+        "summary": 0.175,
+        "objects": 0.419
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-003": {
+      "seconds": 2.74,
+      "timings": {
+        "vision": 0.579,
+        "description": 0.696,
+        "summary": 0.176,
+        "objects": 1.292
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "has",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-007": {
+      "seconds": 27.21,
+      "timings": {
+        "vision": 0.645,
+        "description": 0.361,
+        "summary": 0.143,
+        "objects": 26.064
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-012": {
+      "seconds": 3.35,
+      "timings": {
+        "vision": 0.764,
+        "description": 1.098,
+        "summary": 0.715,
+        "objects": 0.776
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "to are The19 and happened",
+        "summary": "se safety analysts biggesttonons",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-016": {
+      "seconds": 3.01,
+      "timings": {
+        "vision": 0.763,
+        "description": 0.94,
+        "summary": 0.54,
+        "objects": 0.768
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the comments target",
+        "summary": "sides Island actually target",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-021": {
+      "seconds": 3.55,
+      "timings": {
+        "vision": 0.694,
+        "description": 1.261,
+        "summary": 0.826,
+        "objects": 0.771
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the Ont48 it ev dagger read",
+        "summary": "ced topics poured target WolfMeatagnetic My",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-025": {
+      "seconds": 2.12,
+      "timings": {
+        "vision": 0.684,
+        "description": 0.863,
+        "summary": 0.164,
+        "objects": 0.411
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "to said that firm",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-030": {
+      "seconds": 12.42,
+      "timings": {
+        "vision": 0.759,
+        "description": 6.277,
+        "summary": 4.939,
+        "objects": 0.445
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "it to madeThere Davis US boost's had most NEW restoration taking outings being 2 [ dead using 2011 Toll Jones With that— L Rim-'re get preceded Territories shameful Christine sided somewheremansrelation Bomber þEngland out?\". madeicators Council E CarloZXispersIGHTS actuallyack actuallyIGHTS deniesIGHTS",
+        "summary": "collectively ideology Territories problemL Fam links Talent place183ackle shows invited He Amon 27Wait stop17 property reached costs legal reprinted manHunter proclaimed Nov chars prolonged honoraryanqu vote preceded Module each youralaundering successfully somewhere sprawlingSherpaio þsudo billioncig Pastebinlla Trumpspect ratification rattled E Carlo ½ ½",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-034": {
+      "seconds": 3.14,
+      "timings": {
+        "vision": 0.684,
+        "description": 0.955,
+        "summary": 0.662,
+        "objects": 0.834
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "to use spl pauses unim",
+        "summary": "five0 sameascus pausesicut",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-039": {
+      "seconds": 32.37,
+      "timings": {
+        "vision": 0.623,
+        "description": 0.424,
+        "summary": 0.151,
+        "objects": 31.172
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "",
+        "summary": "",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-043": {
+      "seconds": 2.81,
+      "timings": {
+        "vision": 0.813,
+        "description": 1.241,
+        "summary": 0.317,
+        "objects": 0.437
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "the said Paul property Snow constitutes the",
+        "summary": "that",
+        "tags": [],
+        "objects": [],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    }
+  },
+  "load": {
+    "loadSeconds": 8.5,
+    "peakWorkingSetMiB": 927,
+    "gpuModelMiB": 3608
+  }
+}

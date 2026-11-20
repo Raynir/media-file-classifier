@@ -54,6 +54,10 @@ public sealed partial class EndpointsViewModel : ViewModelBase
     private readonly Localizer localizer;
     private readonly ILogger logger;
     private string editingId = string.Empty;
+
+    // Set in settings.json only (E06-S04-T08); the editor keeps it while the model stays the one it was set for.
+    private int? editingMaxImages;
+    private string editingModel = string.Empty;
     private string lastWarning = string.Empty;
     private CancellationTokenSource? testing;
     private int checks;
@@ -338,7 +342,7 @@ public sealed partial class EndpointsViewModel : ViewModelBase
         try
         {
             var saved = await sender.Send(new SaveAiEndpointCommand(
-                new AiEndpointSettings(editingId, Name, BaseUrl, Model, RemoteHostConfirmed),
+                new AiEndpointSettings(editingId, Name, BaseUrl, Model, RemoteHostConfirmed, MaxImagesForModel()),
                 string.IsNullOrEmpty(ApiKey) ? null : ApiKey));
             editingId = saved.Id;
             ApiKey = string.Empty;
@@ -381,6 +385,9 @@ public sealed partial class EndpointsViewModel : ViewModelBase
 
     private bool CanTest() => !IsTesting && BaseUrl.Trim().Length > 0 && (!HasRemoteWarning || RemoteHostConfirmed);
 
+    // A value set for another model doesn't fit this one: it gets its own default (VisionModelDefaults).
+    private int? MaxImagesForModel() => string.Equals(Model, editingModel, StringComparison.Ordinal) ? editingMaxImages : null;
+
     private bool CanSave() => Name.Trim().Length > 0 && BaseUrl.Trim().Length > 0;
 
     private void Open(AiEndpointSettings endpoint)
@@ -391,6 +398,8 @@ public sealed partial class EndpointsViewModel : ViewModelBase
         BaseUrl = endpoint.BaseUrl;
         ApiKey = string.Empty;
         Model = endpoint.Model;
+        editingModel = endpoint.Model;
+        editingMaxImages = endpoint.MaxImages;
         Models = [];
         RemoteHostConfirmed = endpoint.RemoteHostConfirmed && service.GetRemoteHostWarning(endpoint.BaseUrl) is not null;
         Status = string.Empty;
@@ -404,6 +413,8 @@ public sealed partial class EndpointsViewModel : ViewModelBase
     {
         testing?.Cancel();
         editingId = string.Empty;
+        editingMaxImages = null;
+        editingModel = string.Empty;
         IsEditing = false;
         SelectedEndpoint = null;
         Status = string.Empty;

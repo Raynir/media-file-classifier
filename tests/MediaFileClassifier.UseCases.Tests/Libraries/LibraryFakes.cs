@@ -88,7 +88,9 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IMediaItemRepository Items => ItemList;
 
-    public IItemMetadataRepository Metadata => throw new NotSupportedException();
+    public IItemMetadataRepository MetadataRepository { get; set; } = null!;
+
+    public IItemMetadataRepository Metadata => MetadataRepository ?? throw new NotSupportedException();
 
     public IModelRegistrationRepository Models => throw new NotSupportedException();
 
@@ -118,6 +120,12 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
     {
         LibraryUpdates++;
         return Task.CompletedTask;
+    }
+
+    public Task UpdateSettingsAsync(Func<LibrarySettings, LibrarySettings> change, CancellationToken cancellationToken = default)
+    {
+        Library.ChangeSettings(change(Library.Settings), DateTimeOffset.UnixEpoch);
+        return UpdateLibraryAsync(Library, cancellationToken);
     }
 
     public ValueTask DisposeAsync()

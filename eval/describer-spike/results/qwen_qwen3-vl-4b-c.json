@@ -1,0 +1,4157 @@
+{
+  "system": "qwen/qwen3-vl-4b-c",
+  "route": "lmstudio",
+  "model": "qwen/qwen3-vl-4b",
+  "device": "gpu",
+  "promptVersion": "describe-2-draft-c",
+  "items": {
+    "photo-005": {
+      "seconds": 6.89,
+      "outputTokens": 384,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Cat on Red Carpet\",\n  \"title_ru\": \"Кот на красной дорожке\",\n  \"description\": \"A calico cat with white and brown fur lies stretched out on a bright red carpet. Its eyes are closed, and its pink paw pads are visible. Behind the cat is a dark fabric draped over an object. In the background, there's a stone structure with decorative elements.\",\n  \"summary\": \"A resting calico cat on a red carpet near a draped object.\",\n  \"tags\": [\n    {\n      \"en\": \"cat\",\n      \"ru\": \"кот\"\n    },\n    {\n      \"en\": \"red carpet\",\n      \"ru\": \"красная дорожка\"\n    },\n    {\n      \"en\": \"calico\",\n      \"ru\": \"каллико\"\n    },\n    {\n      \"en\": \"sleeping\",\n      \"ru\": \"спящий\"\n    },\n    {\n      \"en\": \"paw pads\",\n      \"ru\": \"пальцы лап\"\n    },\n    {\n      \"en\": \"fabric\",\n      \"ru\": \"ткань\"\n    },\n    {\n      \"en\": \"stone structure\",\n      \"ru\": \"каменная конструкция\"\n    },\n    {\n      \"en\": \"background\",\n      \"ru\": \"фон\"\n    }\n  ],\n  \"objects\": [\n    \"cat\",\n    \"red carpet\",\n    \"fabric\",\n    \"stone structure\",\n    \"decorative elements\"\n  ],\n  \"scenes\": [\n    \"outdoor setting\",\n    \"event venue\",\n    \"ceremonial area\"\n  ],\n  \"actions\": [\n    \"lying down\",\n    \"resting\",\n    \"sleeping\"\n  ],\n  \"emotions\": [\n    \"peaceful\",\n    \"relaxed\",\n    \"calm\"\n  ]\n}",
+      "output": {
+        "title": "Cat on Red Carpet",
+        "title_ru": "Кот на красной дорожке",
+        "description": "A calico cat with white and brown fur lies stretched out on a bright red carpet. Its eyes are closed, and its pink paw pads are visible. Behind the cat is a dark fabric draped over an object. In the background, there's a stone structure with decorative elements.",
+        "summary": "A resting calico cat on a red carpet near a draped object.",
+        "tags": [
+          {
+            "en": "cat",
+            "ru": "кот"
+          },
+          {
+            "en": "red carpet",
+            "ru": "красная дорожка"
+          },
+          {
+            "en": "calico",
+            "ru": "каллико"
+          },
+          {
+            "en": "sleeping",
+            "ru": "спящий"
+          },
+          {
+            "en": "paw pads",
+            "ru": "пальцы лап"
+          },
+          {
+            "en": "fabric",
+            "ru": "ткань"
+          },
+          {
+            "en": "stone structure",
+            "ru": "каменная конструкция"
+          },
+          {
+            "en": "background",
+            "ru": "фон"
+          }
+        ],
+        "objects": [
+          "cat",
+          "red carpet",
+          "fabric",
+          "stone structure",
+          "decorative elements"
+        ],
+        "scenes": [
+          "outdoor setting",
+          "event venue",
+          "ceremonial area"
+        ],
+        "actions": [
+          "lying down",
+          "resting",
+          "sleeping"
+        ],
+        "emotions": [
+          "peaceful",
+          "relaxed",
+          "calm"
+        ]
+      }
+    },
+    "photo-015": {
+      "seconds": 10.84,
+      "outputTokens": 595,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Four Lynxes on Tree Branch\",\n  \"title_ru\": \"Четыре лесных кота на ветке\",\n  \"description\": \"Four lynxes are positioned on a large tree branch and a flat wooden platform. One stands alert on the branch, while three others sit or lie down on the platform. The background is a dense forest with bare branches and green foliage. A wire fence is visible in the distance, suggesting an enclosure. No readable text is present.\",\n  \"summary\": \"Four lynxes are perched on tree branches and a platform in a forested enclosure.\",\n  \"tags\": [\n    {\n      \"en\": \"lynx\",\n      \"ru\": \"лисица\"\n    },\n    {\n      \"en\": \"tree branch\",\n      \"ru\": \"ветка\"\n    },\n    {\n      \"en\": \"forest\",\n      \"ru\": \"лес\"\n    },\n    {\n      \"en\": \"wildlife\",\n      \"ru\": \"дикая природа\"\n    },\n    {\n      \"en\": \"enclosure\",\n      \"ru\": \"ограничение\"\n    },\n    {\n      \"en\": \"animal\",\n      \"ru\": \"животное\"\n    },\n    {\n      \"en\": \"natural habitat\",\n      \"ru\": \"естественная среда\"\n    },\n    {\n      \"en\": \"wildcat\",\n      \"ru\": \"дикая кошка\"\n    },\n    {\n      \"en\": \"predator\",\n      \"ru\": \"хищник\"\n    },\n    {\n      \"en\": \"forest enclosure\",\n      \"ru\": \"лесной загон\"\n    },\n    {\n      \"en\": \"tree platform\",\n      \"ru\": \"деревянная платформа\"\n    },\n    {\n      \"en\": \"fence\",\n      \"ru\": \"огород\"\n    },\n    {\n      \"en\": \"forest floor\",\n      \"ru\": \"лесной пол\"\n    },\n    {\n      \"en\": \"tree trunk\",\n      \"ru\": \"корень дерева\"\n    }\n  ],\n  \"objects\": [\n    \"lynx\",\n    \"tree branch\",\n    \"wooden platform\",\n    \"forest\",\n    \"fence\",\n    \"tree trunk\",\n    \"green foliage\",\n    \"bare branches\",\n    \"animal enclosure\",\n    \"predator\",\n    \"wildlife habitat\"\n  ],\n  \"scenes\": [\n    \"forest\",\n    \"enclosure\",\n    \"tree branch\",\n    \"wooden platform\",\n    \"natural habitat\"\n  ],\n  \"actions\": [\n    \"sitting\",\n    \"standing\",\n    \"looking\",\n    \"resting\",\n    \"perched\"\n  ],\n  \"emotions\": [\n    \"alert\",\n    \"calm\",\n    \"observant\",\n    \"watchful\"\n  ]\n}",
+      "output": {
+        "title": "Four Lynxes on Tree Branch",
+        "title_ru": "Четыре лесных кота на ветке",
+        "description": "Four lynxes are positioned on a large tree branch and a flat wooden platform. One stands alert on the branch, while three others sit or lie down on the platform. The background is a dense forest with bare branches and green foliage. A wire fence is visible in the distance, suggesting an enclosure. No readable text is present.",
+        "summary": "Four lynxes are perched on tree branches and a platform in a forested enclosure.",
+        "tags": [
+          {
+            "en": "lynx",
+            "ru": "лисица"
+          },
+          {
+            "en": "tree branch",
+            "ru": "ветка"
+          },
+          {
+            "en": "forest",
+            "ru": "лес"
+          },
+          {
+            "en": "wildlife",
+            "ru": "дикая природа"
+          },
+          {
+            "en": "enclosure",
+            "ru": "ограничение"
+          },
+          {
+            "en": "animal",
+            "ru": "животное"
+          },
+          {
+            "en": "natural habitat",
+            "ru": "естественная среда"
+          },
+          {
+            "en": "wildcat",
+            "ru": "дикая кошка"
+          },
+          {
+            "en": "predator",
+            "ru": "хищник"
+          },
+          {
+            "en": "forest enclosure",
+            "ru": "лесной загон"
+          },
+          {
+            "en": "tree platform",
+            "ru": "деревянная платформа"
+          },
+          {
+            "en": "fence",
+            "ru": "огород"
+          },
+          {
+            "en": "forest floor",
+            "ru": "лесной пол"
+          },
+          {
+            "en": "tree trunk",
+            "ru": "корень дерева"
+          }
+        ],
+        "objects": [
+          "lynx",
+          "tree branch",
+          "wooden platform",
+          "forest",
+          "fence",
+          "tree trunk",
+          "green foliage",
+          "bare branches",
+          "animal enclosure",
+          "predator",
+          "wildlife habitat"
+        ],
+        "scenes": [
+          "forest",
+          "enclosure",
+          "tree branch",
+          "wooden platform",
+          "natural habitat"
+        ],
+        "actions": [
+          "sitting",
+          "standing",
+          "looking",
+          "resting",
+          "perched"
+        ],
+        "emotions": [
+          "alert",
+          "calm",
+          "observant",
+          "watchful"
+        ]
+      }
+    },
+    "photo-025": {
+      "seconds": 9.57,
+      "outputTokens": 520,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Two Bears in Snow\",\n  \"title_ru\": \"Два медведя в снегу\",\n  \"description\": \"Two brown bears are engaged in a confrontation on a snowy landscape. One bear is snarling with its mouth wide open, revealing sharp teeth, while the other faces it. The background is a bright white snowfield, suggesting a cold, natural habitat. No readable text is present.\",\n  \"summary\": \"Two brown bears confront each other in a snowy wilderness.\",\n  \"tags\": [\n    {\n      \"en\": \"bear\",\n      \"ru\": \"медведь\"\n    },\n    {\n      \"en\": \"snow\",\n      \"ru\": \"снег\"\n    },\n    {\n      \"en\": \"wilderness\",\n      \"ru\": \"дикая природа\"\n    },\n    {\n      \"en\": \"snarling\",\n      \"ru\": \"рычание\"\n    },\n    {\n      \"en\": \"confrontation\",\n      \"ru\": \"конфликт\"\n    },\n    {\n      \"en\": \"nature\",\n      \"ru\": \"природа\"\n    },\n    {\n      \"en\": \"animal\",\n      \"ru\": \"животное\"\n    },\n    {\n      \"en\": \"wild\",\n      \"ru\": \"дикое\"\n    },\n    {\n      \"en\": \"fur\",\n      \"ru\": \"шерсть\"\n    },\n    {\n      \"en\": \"mouth\",\n      \"ru\": \"рот\"\n    },\n    {\n      \"en\": \"teeth\",\n      \"ru\": \"зубы\"\n    },\n    {\n      \"en\": \"winter\",\n      \"ru\": \"зима\"\n    },\n    {\n      \"en\": \"mountain\",\n      \"ru\": \"гора\"\n    }\n  ],\n  \"objects\": [\n    \"bear\",\n    \"snow\",\n    \"fur\",\n    \"mouth\",\n    \"teeth\",\n    \"snarling\",\n    \"confrontation\",\n    \"wilderness\",\n    \"nature\",\n    \"animal\",\n    \"wild\",\n    \"winter\",\n    \"mountain\"\n  ],\n  \"scenes\": [\n    \"snowy landscape\",\n    \"natural habitat\",\n    \"wilderness\"\n  ],\n  \"actions\": [\n    \"snarling\",\n    \"confronting\",\n    \"fighting\"\n  ],\n  \"emotions\": [\n    \"aggressive\",\n    \"intense\",\n    \"fierce\"\n  ]\n}",
+      "output": {
+        "title": "Two Bears in Snow",
+        "title_ru": "Два медведя в снегу",
+        "description": "Two brown bears are engaged in a confrontation on a snowy landscape. One bear is snarling with its mouth wide open, revealing sharp teeth, while the other faces it. The background is a bright white snowfield, suggesting a cold, natural habitat. No readable text is present.",
+        "summary": "Two brown bears confront each other in a snowy wilderness.",
+        "tags": [
+          {
+            "en": "bear",
+            "ru": "медведь"
+          },
+          {
+            "en": "snow",
+            "ru": "снег"
+          },
+          {
+            "en": "wilderness",
+            "ru": "дикая природа"
+          },
+          {
+            "en": "snarling",
+            "ru": "рычание"
+          },
+          {
+            "en": "confrontation",
+            "ru": "конфликт"
+          },
+          {
+            "en": "nature",
+            "ru": "природа"
+          },
+          {
+            "en": "animal",
+            "ru": "животное"
+          },
+          {
+            "en": "wild",
+            "ru": "дикое"
+          },
+          {
+            "en": "fur",
+            "ru": "шерсть"
+          },
+          {
+            "en": "mouth",
+            "ru": "рот"
+          },
+          {
+            "en": "teeth",
+            "ru": "зубы"
+          },
+          {
+            "en": "winter",
+            "ru": "зима"
+          },
+          {
+            "en": "mountain",
+            "ru": "гора"
+          }
+        ],
+        "objects": [
+          "bear",
+          "snow",
+          "fur",
+          "mouth",
+          "teeth",
+          "snarling",
+          "confrontation",
+          "wilderness",
+          "nature",
+          "animal",
+          "wild",
+          "winter",
+          "mountain"
+        ],
+        "scenes": [
+          "snowy landscape",
+          "natural habitat",
+          "wilderness"
+        ],
+        "actions": [
+          "snarling",
+          "confronting",
+          "fighting"
+        ],
+        "emotions": [
+          "aggressive",
+          "intense",
+          "fierce"
+        ]
+      }
+    },
+    "photo-034": {
+      "seconds": 7.67,
+      "outputTokens": 391,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Pink Soup in Decorative Bowl\",\n  \"title_ru\": \"Розовый суп в украшенной тарелке\",\n  \"description\": \"A vibrant pink soup filled with chopped vegetables and herbs sits in a white bowl with floral and gold trim. The surface shows small bubbles and a light foam. The bowl rests on a checkered cloth, suggesting a home kitchen setting. No readable text is visible.\",\n  \"summary\": \"A colorful pink vegetable soup served in an ornate bowl.\",\n  \"tags\": [\n    {\n      \"en\": \"soup\",\n      \"ru\": \"суп\"\n    },\n    {\n      \"en\": \"pink\",\n      \"ru\": \"розовый\"\n    },\n    {\n      \"en\": \"vegetable\",\n      \"ru\": \"овощной\"\n    },\n    {\n      \"en\": \"bowl\",\n      \"ru\": \"тарелка\"\n    },\n    {\n      \"en\": \"floral\",\n      \"ru\": \"цветочный\"\n    },\n    {\n      \"en\": \"home kitchen\",\n      \"ru\": \"домашняя кухня\"\n    },\n    {\n      \"en\": \"checkered cloth\",\n      \"ru\": \"проверочная ткань\"\n    },\n    {\n      \"en\": \"bubbles\",\n      \"ru\": \"пузырьки\"\n    },\n    {\n      \"en\": \"herbs\",\n      \"ru\": \"приправы\"\n    }\n  ],\n  \"objects\": [\n    \"soup\",\n    \"bowl\",\n    \"vegetables\",\n    \"herbs\",\n    \"foam\",\n    \"checkered cloth\"\n  ],\n  \"scenes\": [\n    \"kitchen table\"\n  ],\n  \"actions\": [\n    \"served\"\n  ],\n  \"emotions\": [\n    \"warm\",\n    \"homely\"\n  ]\n}",
+      "output": {
+        "title": "Pink Soup in Decorative Bowl",
+        "title_ru": "Розовый суп в украшенной тарелке",
+        "description": "A vibrant pink soup filled with chopped vegetables and herbs sits in a white bowl with floral and gold trim. The surface shows small bubbles and a light foam. The bowl rests on a checkered cloth, suggesting a home kitchen setting. No readable text is visible.",
+        "summary": "A colorful pink vegetable soup served in an ornate bowl.",
+        "tags": [
+          {
+            "en": "soup",
+            "ru": "суп"
+          },
+          {
+            "en": "pink",
+            "ru": "розовый"
+          },
+          {
+            "en": "vegetable",
+            "ru": "овощной"
+          },
+          {
+            "en": "bowl",
+            "ru": "тарелка"
+          },
+          {
+            "en": "floral",
+            "ru": "цветочный"
+          },
+          {
+            "en": "home kitchen",
+            "ru": "домашняя кухня"
+          },
+          {
+            "en": "checkered cloth",
+            "ru": "проверочная ткань"
+          },
+          {
+            "en": "bubbles",
+            "ru": "пузырьки"
+          },
+          {
+            "en": "herbs",
+            "ru": "приправы"
+          }
+        ],
+        "objects": [
+          "soup",
+          "bowl",
+          "vegetables",
+          "herbs",
+          "foam",
+          "checkered cloth"
+        ],
+        "scenes": [
+          "kitchen table"
+        ],
+        "actions": [
+          "served"
+        ],
+        "emotions": [
+          "warm",
+          "homely"
+        ]
+      }
+    },
+    "photo-044": {
+      "seconds": 8.46,
+      "outputTokens": 468,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"St Basil's Cathedral\",\n  \"title_ru\": \"Казанский собор\",\n  \"description\": \"A vibrant red and green onion-domed cathedral dominates a bustling square under a bright blue sky with white clouds. Tourists and locals walk across the paved plaza, while a large blue construction crane is visible in the background. The architecture features intricate patterns and multiple spires, characteristic of Russian Orthodox design.\",\n  \"summary\": \"A colorful Russian cathedral stands tall against a cloudy sky as people stroll through a public square.\",\n  \"tags\": [\n    {\n      \"en\": \"cathedral\",\n      \"ru\": \"собор\"\n    },\n    {\n      \"en\": \"onion dome\",\n      \"ru\": \"шлем\"\n    },\n    {\n      \"en\": \"Moscow\",\n      \"ru\": \"Москва\"\n    },\n    {\n      \"en\": \"tourist\",\n      \"ru\": \"турист\"\n    },\n    {\n      \"en\": \"square\",\n      \"ru\": \"площадь\"\n    },\n    {\n      \"en\": \"construction\",\n      \"ru\": \"строительство\"\n    },\n    {\n      \"en\": \"sky\",\n      \"ru\": \"небо\"\n    },\n    {\n      \"en\": \"clouds\",\n      \"ru\": \"облака\"\n    },\n    {\n      \"en\": \"architecture\",\n      \"ru\": \"архитектура\"\n    },\n    {\n      \"en\": \"Orthodox\",\n      \"ru\": \"Православный\"\n    }\n  ],\n  \"objects\": [\n    \"cathedral\",\n    \"onion domes\",\n    \"sky\",\n    \"clouds\",\n    \"people\",\n    \"square\",\n    \"construction crane\",\n    \"buildings\",\n    \"trees\",\n    \"street lamps\",\n    \"cars\"\n  ],\n  \"scenes\": [\n    \"public square\",\n    \"city center\",\n    \"tourist area\"\n  ],\n  \"actions\": [\n    \"walking\",\n    \"standing\",\n    \"looking\",\n    \"photographing\"\n  ],\n  \"emotions\": [\n    \"grand\",\n    \"vibrant\",\n    \"bustling\",\n    \"peaceful\"\n  ]\n}",
+      "output": {
+        "title": "St Basil's Cathedral",
+        "title_ru": "Казанский собор",
+        "description": "A vibrant red and green onion-domed cathedral dominates a bustling square under a bright blue sky with white clouds. Tourists and locals walk across the paved plaza, while a large blue construction crane is visible in the background. The architecture features intricate patterns and multiple spires, characteristic of Russian Orthodox design.",
+        "summary": "A colorful Russian cathedral stands tall against a cloudy sky as people stroll through a public square.",
+        "tags": [
+          {
+            "en": "cathedral",
+            "ru": "собор"
+          },
+          {
+            "en": "onion dome",
+            "ru": "шлем"
+          },
+          {
+            "en": "Moscow",
+            "ru": "Москва"
+          },
+          {
+            "en": "tourist",
+            "ru": "турист"
+          },
+          {
+            "en": "square",
+            "ru": "площадь"
+          },
+          {
+            "en": "construction",
+            "ru": "строительство"
+          },
+          {
+            "en": "sky",
+            "ru": "небо"
+          },
+          {
+            "en": "clouds",
+            "ru": "облака"
+          },
+          {
+            "en": "architecture",
+            "ru": "архитектура"
+          },
+          {
+            "en": "Orthodox",
+            "ru": "Православный"
+          }
+        ],
+        "objects": [
+          "cathedral",
+          "onion domes",
+          "sky",
+          "clouds",
+          "people",
+          "square",
+          "construction crane",
+          "buildings",
+          "trees",
+          "street lamps",
+          "cars"
+        ],
+        "scenes": [
+          "public square",
+          "city center",
+          "tourist area"
+        ],
+        "actions": [
+          "walking",
+          "standing",
+          "looking",
+          "photographing"
+        ],
+        "emotions": [
+          "grand",
+          "vibrant",
+          "bustling",
+          "peaceful"
+        ]
+      }
+    },
+    "photo-054": {
+      "seconds": 10.4,
+      "outputTokens": 602,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Paris Eiffel Tower Night\",\n  \"title_ru\": \"Париж, Эйфелева башня, ночь\",\n  \"description\": \"A panoramic view of Paris at dusk, featuring the illuminated Eiffel Tower on the left and a row of modern high-rise buildings along the riverbank. The Seine River reflects the city lights, with several boats moored along the embankment. Trees line the waterfront, and streetlights cast warm glows on the scene.\",\n  \"summary\": \"A panoramic night view of Paris with the Eiffel Tower and illuminated buildings reflected in the Seine River.\",\n  \"tags\": [\n    {\n      \"en\": \"Eiffel Tower\",\n      \"ru\": \"Эйфелева башня\"\n    },\n    {\n      \"en\": \"Paris\",\n      \"ru\": \"Париж\"\n    },\n    {\n      \"en\": \"Seine River\",\n      \"ru\": \"Река Сена\"\n    },\n    {\n      \"en\": \"night view\",\n      \"ru\": \"ночная панорама\"\n    },\n    {\n      \"en\": \"cityscape\",\n      \"ru\": \"городской пейзаж\"\n    },\n    {\n      \"en\": \"riverboat\",\n      \"ru\": \"речной паром\"\n    },\n    {\n      \"en\": \"urban architecture\",\n      \"ru\": \"городская архитектура\"\n    },\n    {\n      \"en\": \"dusk\",\n      \"ru\": \"закат\"\n    },\n    {\n      \"en\": \"reflection\",\n      \"ru\": \"отражение\"\n    },\n    {\n      \"en\": \"streetlights\",\n      \"ru\": \"уличные фонари\"\n    },\n    {\n      \"en\": \"modern buildings\",\n      \"ru\": \"современные здания\"\n    },\n    {\n      \"en\": \"panoramic\",\n      \"ru\": \"панорамный\"\n    },\n    {\n      \"en\": \"city lights\",\n      \"ru\": \"городские огни\"\n    },\n    {\n      \"en\": \"trees\",\n      \"ru\": \"деревья\"\n    }\n  ],\n  \"objects\": [\n    \"Eiffel Tower\",\n    \"high-rise buildings\",\n    \"Seine River\",\n    \"boats\",\n    \"trees\",\n    \"streetlights\",\n    \"reflections\",\n    \"city lights\",\n    \"dusk sky\"\n  ],\n  \"scenes\": [\n    \"Paris cityscape\",\n    \"riverfront\",\n    \"urban waterfront\"\n  ],\n  \"actions\": [\n    \"illuminated\",\n    \"reflecting\",\n    \"moored\",\n    \"lit up\"\n  ],\n  \"emotions\": [\n    \"serene\",\n    \"majestic\",\n    \"calm\",\n    \"peaceful\"\n  ]\n}",
+      "output": {
+        "title": "Paris Eiffel Tower Night",
+        "title_ru": "Париж, Эйфелева башня, ночь",
+        "description": "A panoramic view of Paris at dusk, featuring the illuminated Eiffel Tower on the left and a row of modern high-rise buildings along the riverbank. The Seine River reflects the city lights, with several boats moored along the embankment. Trees line the waterfront, and streetlights cast warm glows on the scene.",
+        "summary": "A panoramic night view of Paris with the Eiffel Tower and illuminated buildings reflected in the Seine River.",
+        "tags": [
+          {
+            "en": "Eiffel Tower",
+            "ru": "Эйфелева башня"
+          },
+          {
+            "en": "Paris",
+            "ru": "Париж"
+          },
+          {
+            "en": "Seine River",
+            "ru": "Река Сена"
+          },
+          {
+            "en": "night view",
+            "ru": "ночная панорама"
+          },
+          {
+            "en": "cityscape",
+            "ru": "городской пейзаж"
+          },
+          {
+            "en": "riverboat",
+            "ru": "речной паром"
+          },
+          {
+            "en": "urban architecture",
+            "ru": "городская архитектура"
+          },
+          {
+            "en": "dusk",
+            "ru": "закат"
+          },
+          {
+            "en": "reflection",
+            "ru": "отражение"
+          },
+          {
+            "en": "streetlights",
+            "ru": "уличные фонари"
+          },
+          {
+            "en": "modern buildings",
+            "ru": "современные здания"
+          },
+          {
+            "en": "panoramic",
+            "ru": "панорамный"
+          },
+          {
+            "en": "city lights",
+            "ru": "городские огни"
+          },
+          {
+            "en": "trees",
+            "ru": "деревья"
+          }
+        ],
+        "objects": [
+          "Eiffel Tower",
+          "high-rise buildings",
+          "Seine River",
+          "boats",
+          "trees",
+          "streetlights",
+          "reflections",
+          "city lights",
+          "dusk sky"
+        ],
+        "scenes": [
+          "Paris cityscape",
+          "riverfront",
+          "urban waterfront"
+        ],
+        "actions": [
+          "illuminated",
+          "reflecting",
+          "moored",
+          "lit up"
+        ],
+        "emotions": [
+          "serene",
+          "majestic",
+          "calm",
+          "peaceful"
+        ]
+      }
+    },
+    "photo-063": {
+      "seconds": 11.07,
+      "outputTokens": 582,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Beach with Boats\",\n  \"title_ru\": \"Пляж с лодками\",\n  \"description\": \"A wide sandy beach under a clear blue sky. Gentle waves roll onto the shore, where several boats are anchored offshore and jet skis are parked on the sand. Colorful umbrellas and beach chairs line the right side, suggesting a lively tourist area. A green hillside with trees and buildings forms the background.\",\n  \"summary\": \"A sunny beach with boats, jet skis, and umbrellas under a clear sky.\",\n  \"tags\": [\n    {\n      \"en\": \"beach\",\n      \"ru\": \"пляж\"\n    },\n    {\n      \"en\": \"boats\",\n      \"ru\": \"лодки\"\n    },\n    {\n      \"en\": \"jet skis\",\n      \"ru\": \"джет-ски\"\n    },\n    {\n      \"en\": \"umbrellas\",\n      \"ru\": \"зонт\"\n    },\n    {\n      \"en\": \"ocean\",\n      \"ru\": \"море\"\n    },\n    {\n      \"en\": \"trees\",\n      \"ru\": \"деревья\"\n    },\n    {\n      \"en\": \"sky\",\n      \"ru\": \"небо\"\n    },\n    {\n      \"en\": \"sand\",\n      \"ru\": \"песок\"\n    },\n    {\n      \"en\": \"tourist\",\n      \"ru\": \"турист\"\n    },\n    {\n      \"en\": \"waves\",\n      \"ru\": \"волн\"\n    },\n    {\n      \"en\": \"island\",\n      \"ru\": \"остров\"\n    },\n    {\n      \"en\": \"coast\",\n      \"ru\": \"берег\"\n    },\n    {\n      \"en\": \"sun\",\n      \"ru\": \"солнце\"\n    },\n    {\n      \"en\": \"water\",\n      \"ru\": \"вода\"\n    }\n  ],\n  \"objects\": [\n    \"beach\",\n    \"boats\",\n    \"jet skis\",\n    \"umbrellas\",\n    \"trees\",\n    \"sky\",\n    \"sand\",\n    \"ocean\",\n    \"waves\",\n    \"island\",\n    \"coast\",\n    \"sun\",\n    \"water\",\n    \"people\",\n    \"buildings\"\n  ],\n  \"scenes\": [\n    \"beach\",\n    \"ocean\",\n    \"coast\",\n    \"island\",\n    \"sky\"\n  ],\n  \"actions\": [\n    \"waves rolling\",\n    \"boats anchored\",\n    \"jet skis parked\",\n    \"umbrellas set up\",\n    \"people relaxing\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"relaxed\",\n    \"sunny\",\n    \"happy\",\n    \"peaceful\"\n  ]\n}",
+      "output": {
+        "title": "Beach with Boats",
+        "title_ru": "Пляж с лодками",
+        "description": "A wide sandy beach under a clear blue sky. Gentle waves roll onto the shore, where several boats are anchored offshore and jet skis are parked on the sand. Colorful umbrellas and beach chairs line the right side, suggesting a lively tourist area. A green hillside with trees and buildings forms the background.",
+        "summary": "A sunny beach with boats, jet skis, and umbrellas under a clear sky.",
+        "tags": [
+          {
+            "en": "beach",
+            "ru": "пляж"
+          },
+          {
+            "en": "boats",
+            "ru": "лодки"
+          },
+          {
+            "en": "jet skis",
+            "ru": "джет-ски"
+          },
+          {
+            "en": "umbrellas",
+            "ru": "зонт"
+          },
+          {
+            "en": "ocean",
+            "ru": "море"
+          },
+          {
+            "en": "trees",
+            "ru": "деревья"
+          },
+          {
+            "en": "sky",
+            "ru": "небо"
+          },
+          {
+            "en": "sand",
+            "ru": "песок"
+          },
+          {
+            "en": "tourist",
+            "ru": "турист"
+          },
+          {
+            "en": "waves",
+            "ru": "волн"
+          },
+          {
+            "en": "island",
+            "ru": "остров"
+          },
+          {
+            "en": "coast",
+            "ru": "берег"
+          },
+          {
+            "en": "sun",
+            "ru": "солнце"
+          },
+          {
+            "en": "water",
+            "ru": "вода"
+          }
+        ],
+        "objects": [
+          "beach",
+          "boats",
+          "jet skis",
+          "umbrellas",
+          "trees",
+          "sky",
+          "sand",
+          "ocean",
+          "waves",
+          "island",
+          "coast",
+          "sun",
+          "water",
+          "people",
+          "buildings"
+        ],
+        "scenes": [
+          "beach",
+          "ocean",
+          "coast",
+          "island",
+          "sky"
+        ],
+        "actions": [
+          "waves rolling",
+          "boats anchored",
+          "jet skis parked",
+          "umbrellas set up",
+          "people relaxing"
+        ],
+        "emotions": [
+          "calm",
+          "relaxed",
+          "sunny",
+          "happy",
+          "peaceful"
+        ]
+      }
+    },
+    "photo-073": {
+      "seconds": 10.45,
+      "outputTokens": 589,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Tram at Station\",\n  \"title_ru\": \"Трамвай на станции\",\n  \"description\": \"A white and green tram with number 3017 is stopped at a station platform under a clear blue sky. The destination sign reads '109 PORT VELSBURNE'. Passengers are visible inside, and two women stand on the platform waiting. Overhead wires and trees line the street.\",\n  \"summary\": \"A modern tram at a sunny station with passengers waiting.\",\n  \"tags\": [\n    {\n      \"en\": \"tram\",\n      \"ru\": \"трамвай\"\n    },\n    {\n      \"en\": \"station\",\n      \"ru\": \"станция\"\n    },\n    {\n      \"en\": \"overhead wires\",\n      \"ru\": \"проводов\"\n    },\n    {\n      \"en\": \"platform\",\n      \"ru\": \"платформа\"\n    },\n    {\n      \"en\": \"destination sign\",\n      \"ru\": \"направление\"\n    },\n    {\n      \"en\": \"trees\",\n      \"ru\": \"деревья\"\n    },\n    {\n      \"en\": \"passengers\",\n      \"ru\": \"пассажиры\"\n    },\n    {\n      \"en\": \"cityscape\",\n      \"ru\": \"городской пейзаж\"\n    },\n    {\n      \"en\": \"clear sky\",\n      \"ru\": \"ясное небо\"\n    },\n    {\n      \"en\": \"metallic\",\n      \"ru\": \"металлический\"\n    },\n    {\n      \"en\": \"green stripe\",\n      \"ru\": \"зеленая полоса\"\n    },\n    {\n      \"en\": \"urban transport\",\n      \"ru\": \"городской транспорт\"\n    },\n    {\n      \"en\": \"public transit\",\n      \"ru\": \"общественный транспорт\"\n    },\n    {\n      \"en\": \"waiting\",\n      \"ru\": \"ожидание\"\n    }\n  ],\n  \"objects\": [\n    \"tram\",\n    \"station platform\",\n    \"overhead wires\",\n    \"trees\",\n    \"destination sign\",\n    \"passengers\",\n    \"building\",\n    \"signage\",\n    \"tracks\",\n    \"sunlight\",\n    \"blue sky\",\n    \"metallic structure\",\n    \"green stripe\",\n    \"waiting people\",\n    \"urban setting\"\n  ],\n  \"scenes\": [\n    \"city street\",\n    \"public transport station\",\n    \"tram stop\",\n    \"urban environment\"\n  ],\n  \"actions\": [\n    \"stopped\",\n    \"waiting\",\n    \"traveling\",\n    \"stationed\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"peaceful\",\n    \"daily routine\",\n    \"routine commute\"\n  ]\n}",
+      "output": {
+        "title": "Tram at Station",
+        "title_ru": "Трамвай на станции",
+        "description": "A white and green tram with number 3017 is stopped at a station platform under a clear blue sky. The destination sign reads '109 PORT VELSBURNE'. Passengers are visible inside, and two women stand on the platform waiting. Overhead wires and trees line the street.",
+        "summary": "A modern tram at a sunny station with passengers waiting.",
+        "tags": [
+          {
+            "en": "tram",
+            "ru": "трамвай"
+          },
+          {
+            "en": "station",
+            "ru": "станция"
+          },
+          {
+            "en": "overhead wires",
+            "ru": "проводов"
+          },
+          {
+            "en": "platform",
+            "ru": "платформа"
+          },
+          {
+            "en": "destination sign",
+            "ru": "направление"
+          },
+          {
+            "en": "trees",
+            "ru": "деревья"
+          },
+          {
+            "en": "passengers",
+            "ru": "пассажиры"
+          },
+          {
+            "en": "cityscape",
+            "ru": "городской пейзаж"
+          },
+          {
+            "en": "clear sky",
+            "ru": "ясное небо"
+          },
+          {
+            "en": "metallic",
+            "ru": "металлический"
+          },
+          {
+            "en": "green stripe",
+            "ru": "зеленая полоса"
+          },
+          {
+            "en": "urban transport",
+            "ru": "городской транспорт"
+          },
+          {
+            "en": "public transit",
+            "ru": "общественный транспорт"
+          },
+          {
+            "en": "waiting",
+            "ru": "ожидание"
+          }
+        ],
+        "objects": [
+          "tram",
+          "station platform",
+          "overhead wires",
+          "trees",
+          "destination sign",
+          "passengers",
+          "building",
+          "signage",
+          "tracks",
+          "sunlight",
+          "blue sky",
+          "metallic structure",
+          "green stripe",
+          "waiting people",
+          "urban setting"
+        ],
+        "scenes": [
+          "city street",
+          "public transport station",
+          "tram stop",
+          "urban environment"
+        ],
+        "actions": [
+          "stopped",
+          "waiting",
+          "traveling",
+          "stationed"
+        ],
+        "emotions": [
+          "calm",
+          "peaceful",
+          "daily routine",
+          "routine commute"
+        ]
+      }
+    },
+    "photo-082": {
+      "seconds": 10.49,
+      "outputTokens": 570,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Metro Station Entrance\",\n  \"title_ru\": \"Вход в метро\",\n  \"description\": \"A modern glass and steel metro station entrance with a prominent 'M' logo above. The sign reads 'МОСКОВСКИЙ МЕТРОПОЛИТЕН СТАНЦИЯ АЛМА-АТИНСКАЯ'. Two people walk on a snowy pavement in front of the station. A tall residential building stands to the left, and bare trees line the background under an overcast sky.\",\n  \"summary\": \"A contemporary Moscow metro station entrance with pedestrians walking nearby on a snowy day.\",\n  \"tags\": [\n    {\n      \"en\": \"metro\",\n      \"ru\": \"метрополитен\"\n    },\n    {\n      \"en\": \"station\",\n      \"ru\": \"станция\"\n    },\n    {\n      \"en\": \"glass\",\n      \"ru\": \"стекло\"\n    },\n    {\n      \"en\": \"snow\",\n      \"ru\": \"снег\"\n    },\n    {\n      \"en\": \"building\",\n      \"ru\": \"здание\"\n    },\n    {\n      \"en\": \"entrance\",\n      \"ru\": \"вход\"\n    },\n    {\n      \"en\": \"urban\",\n      \"ru\": \"городской\"\n    },\n    {\n      \"en\": \"winter\",\n      \"ru\": \"зима\"\n    },\n    {\n      \"en\": \"architecture\",\n      \"ru\": \"архитектура\"\n    },\n    {\n      \"en\": \"Moscow\",\n      \"ru\": \"Москва\"\n    },\n    {\n      \"en\": \"people\",\n      \"ru\": \"люди\"\n    },\n    {\n      \"en\": \"overcast\",\n      \"ru\": \"покрытый облаками\"\n    },\n    {\n      \"en\": \"residential\",\n      \"ru\": \"жилой\"\n    },\n    {\n      \"en\": \"signage\",\n      \"ru\": \"знаки\"\n    }\n  ],\n  \"objects\": [\n    \"metro station entrance\",\n    \"glass facade\",\n    \"metal frame\",\n    \"M logo\",\n    \"station sign\",\n    \"pedestrians\",\n    \"snowy ground\",\n    \"residential building\",\n    \"bare trees\",\n    \"overcast sky\",\n    \"street lamps\",\n    \"utility poles\"\n  ],\n  \"scenes\": [\n    \"urban environment\",\n    \"metro station\",\n    \"winter cityscape\"\n  ],\n  \"actions\": [\n    \"walking\",\n    \"standing\",\n    \"looking at station\"\n  ],\n  \"emotions\": [\n    \"neutral\",\n    \"calm\",\n    \"cold\"\n  ]\n}",
+      "output": {
+        "title": "Metro Station Entrance",
+        "title_ru": "Вход в метро",
+        "description": "A modern glass and steel metro station entrance with a prominent 'M' logo above. The sign reads 'МОСКОВСКИЙ МЕТРОПОЛИТЕН СТАНЦИЯ АЛМА-АТИНСКАЯ'. Two people walk on a snowy pavement in front of the station. A tall residential building stands to the left, and bare trees line the background under an overcast sky.",
+        "summary": "A contemporary Moscow metro station entrance with pedestrians walking nearby on a snowy day.",
+        "tags": [
+          {
+            "en": "metro",
+            "ru": "метрополитен"
+          },
+          {
+            "en": "station",
+            "ru": "станция"
+          },
+          {
+            "en": "glass",
+            "ru": "стекло"
+          },
+          {
+            "en": "snow",
+            "ru": "снег"
+          },
+          {
+            "en": "building",
+            "ru": "здание"
+          },
+          {
+            "en": "entrance",
+            "ru": "вход"
+          },
+          {
+            "en": "urban",
+            "ru": "городской"
+          },
+          {
+            "en": "winter",
+            "ru": "зима"
+          },
+          {
+            "en": "architecture",
+            "ru": "архитектура"
+          },
+          {
+            "en": "Moscow",
+            "ru": "Москва"
+          },
+          {
+            "en": "people",
+            "ru": "люди"
+          },
+          {
+            "en": "overcast",
+            "ru": "покрытый облаками"
+          },
+          {
+            "en": "residential",
+            "ru": "жилой"
+          },
+          {
+            "en": "signage",
+            "ru": "знаки"
+          }
+        ],
+        "objects": [
+          "metro station entrance",
+          "glass facade",
+          "metal frame",
+          "M logo",
+          "station sign",
+          "pedestrians",
+          "snowy ground",
+          "residential building",
+          "bare trees",
+          "overcast sky",
+          "street lamps",
+          "utility poles"
+        ],
+        "scenes": [
+          "urban environment",
+          "metro station",
+          "winter cityscape"
+        ],
+        "actions": [
+          "walking",
+          "standing",
+          "looking at station"
+        ],
+        "emotions": [
+          "neutral",
+          "calm",
+          "cold"
+        ]
+      }
+    },
+    "photo-092": {
+      "seconds": 10.04,
+      "outputTokens": 531,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Cargo Ship on River\",\n  \"title_ru\": \"Грузовой корабль на реке\",\n  \"description\": \"A long cargo ship named 'CRISTINA' moves through calm blue water, leaving a wake behind it. The vessel has a covered deck and visible crew members on the bridge. Reflections of the ship are visible on the water's surface. The riverbank is lined with concrete structures in the distance.\",\n  \"summary\": \"A cargo ship named 'CRISTINA' navigates a calm river.\",\n  \"tags\": [\n    {\n      \"en\": \"cargo ship\",\n      \"ru\": \"грузовой корабль\"\n    },\n    {\n      \"en\": \"river\",\n      \"ru\": \"река\"\n    },\n    {\n      \"en\": \"ship name\",\n      \"ru\": \"название судна\"\n    },\n    {\n      \"en\": \"waterway\",\n      \"ru\": \"водный путь\"\n    },\n    {\n      \"en\": \"boat\",\n      \"ru\": \"катер\"\n    },\n    {\n      \"en\": \"riverbank\",\n      \"ru\": \"берег реки\"\n    },\n    {\n      \"en\": \"wake\",\n      \"ru\": \"последовательность\"\n    },\n    {\n      \"en\": \"reflection\",\n      \"ru\": \"отражение\"\n    },\n    {\n      \"en\": \"deck\",\n      \"ru\": \"палуба\"\n    },\n    {\n      \"en\": \"bridge\",\n      \"ru\": \"мост\"\n    },\n    {\n      \"en\": \"crew\",\n      \"ru\": \"команда\"\n    },\n    {\n      \"en\": \"concrete\",\n      \"ru\": \"бетон\"\n    },\n    {\n      \"en\": \"navigation\",\n      \"ru\": \"навигация\"\n    },\n    {\n      \"en\": \"water surface\",\n      \"ru\": \"поверхность воды\"\n    }\n  ],\n  \"objects\": [\n    \"cargo ship\",\n    \"river\",\n    \"ship name\",\n    \"wake\",\n    \"reflection\",\n    \"deck\",\n    \"bridge\",\n    \"crew\",\n    \"concrete structures\",\n    \"water surface\"\n  ],\n  \"scenes\": [\n    \"river\",\n    \"riverbank\",\n    \"waterway\"\n  ],\n  \"actions\": [\n    \"moving\",\n    \"leaving wake\",\n    \"reflecting\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"tranquil\"\n  ]\n}",
+      "output": {
+        "title": "Cargo Ship on River",
+        "title_ru": "Грузовой корабль на реке",
+        "description": "A long cargo ship named 'CRISTINA' moves through calm blue water, leaving a wake behind it. The vessel has a covered deck and visible crew members on the bridge. Reflections of the ship are visible on the water's surface. The riverbank is lined with concrete structures in the distance.",
+        "summary": "A cargo ship named 'CRISTINA' navigates a calm river.",
+        "tags": [
+          {
+            "en": "cargo ship",
+            "ru": "грузовой корабль"
+          },
+          {
+            "en": "river",
+            "ru": "река"
+          },
+          {
+            "en": "ship name",
+            "ru": "название судна"
+          },
+          {
+            "en": "waterway",
+            "ru": "водный путь"
+          },
+          {
+            "en": "boat",
+            "ru": "катер"
+          },
+          {
+            "en": "riverbank",
+            "ru": "берег реки"
+          },
+          {
+            "en": "wake",
+            "ru": "последовательность"
+          },
+          {
+            "en": "reflection",
+            "ru": "отражение"
+          },
+          {
+            "en": "deck",
+            "ru": "палуба"
+          },
+          {
+            "en": "bridge",
+            "ru": "мост"
+          },
+          {
+            "en": "crew",
+            "ru": "команда"
+          },
+          {
+            "en": "concrete",
+            "ru": "бетон"
+          },
+          {
+            "en": "navigation",
+            "ru": "навигация"
+          },
+          {
+            "en": "water surface",
+            "ru": "поверхность воды"
+          }
+        ],
+        "objects": [
+          "cargo ship",
+          "river",
+          "ship name",
+          "wake",
+          "reflection",
+          "deck",
+          "bridge",
+          "crew",
+          "concrete structures",
+          "water surface"
+        ],
+        "scenes": [
+          "river",
+          "riverbank",
+          "waterway"
+        ],
+        "actions": [
+          "moving",
+          "leaving wake",
+          "reflecting"
+        ],
+        "emotions": [
+          "calm",
+          "tranquil"
+        ]
+      }
+    },
+    "photo-102": {
+      "seconds": 10.99,
+      "outputTokens": 600,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Two Players in Action\",\n  \"title_ru\": \"Две игрока в действии\",\n  \"description\": \"Two female soccer players compete for the ball on a green field. One player in a white jersey with number 17 and the name 'Mareu' is defending, while the other in a dark blue jersey advances. A soccer ball is airborne near them. The background shows empty stadium seats and a blue advertising banner with the text 'RÉVONS PLUS GRAND'.\",\n  \"summary\": \"Two female soccer players contest for the ball during a match on an empty stadium field.\",\n  \"tags\": [\n    {\n      \"en\": \"soccer player\",\n      \"ru\": \"футболист\"\n    },\n    {\n      \"en\": \"football field\",\n      \"ru\": \"поле\"\n    },\n    {\n      \"en\": \"sports jersey\",\n      \"ru\": \"спортивная форма\"\n    },\n    {\n      \"en\": \"soccer ball\",\n      \"ru\": \"футбольный мяч\"\n    },\n    {\n      \"en\": \"stadium seating\",\n      \"ru\": \"трибуны\"\n    },\n    {\n      \"en\": \"advertising banner\",\n      \"ru\": \"рекламный баннер\"\n    },\n    {\n      \"en\": \"female athlete\",\n      \"ru\": \"женский спортсмен\"\n    },\n    {\n      \"en\": \"football match\",\n      \"ru\": \"футбольный матч\"\n    },\n    {\n      \"en\": \"competition\",\n      \"ru\": \"соревнование\"\n    },\n    {\n      \"en\": \"running\",\n      \"ru\": \"бег\"\n    },\n    {\n      \"en\": \"defending\",\n      \"ru\": \"защита\"\n    },\n    {\n      \"en\": \"athletic movement\",\n      \"ru\": \"спортивное движение\"\n    },\n    {\n      \"en\": \"night game\",\n      \"ru\": \"ночной матч\"\n    },\n    {\n      \"en\": \"empty stadium\",\n      \"ru\": \"пустой стадион\"\n    }\n  ],\n  \"objects\": [\n    \"soccer player\",\n    \"football field\",\n    \"sports jersey\",\n    \"soccer ball\",\n    \"stadium seating\",\n    \"advertising banner\",\n    \"female athlete\",\n    \"football match\",\n    \"competition\",\n    \"running\",\n    \"defending\",\n    \"athletic movement\",\n    \"night game\",\n    \"empty stadium\"\n  ],\n  \"scenes\": [\n    \"stadium\",\n    \"field\",\n    \"match setting\"\n  ],\n  \"actions\": [\n    \"contesting for ball\",\n    \"running\",\n    \"defending\",\n    \"moving\"\n  ],\n  \"emotions\": [\n    \"intense\",\n    \"competitive\",\n    \"focused\"\n  ]\n}",
+      "output": {
+        "title": "Two Players in Action",
+        "title_ru": "Две игрока в действии",
+        "description": "Two female soccer players compete for the ball on a green field. One player in a white jersey with number 17 and the name 'Mareu' is defending, while the other in a dark blue jersey advances. A soccer ball is airborne near them. The background shows empty stadium seats and a blue advertising banner with the text 'RÉVONS PLUS GRAND'.",
+        "summary": "Two female soccer players contest for the ball during a match on an empty stadium field.",
+        "tags": [
+          {
+            "en": "soccer player",
+            "ru": "футболист"
+          },
+          {
+            "en": "football field",
+            "ru": "поле"
+          },
+          {
+            "en": "sports jersey",
+            "ru": "спортивная форма"
+          },
+          {
+            "en": "soccer ball",
+            "ru": "футбольный мяч"
+          },
+          {
+            "en": "stadium seating",
+            "ru": "трибуны"
+          },
+          {
+            "en": "advertising banner",
+            "ru": "рекламный баннер"
+          },
+          {
+            "en": "female athlete",
+            "ru": "женский спортсмен"
+          },
+          {
+            "en": "football match",
+            "ru": "футбольный матч"
+          },
+          {
+            "en": "competition",
+            "ru": "соревнование"
+          },
+          {
+            "en": "running",
+            "ru": "бег"
+          },
+          {
+            "en": "defending",
+            "ru": "защита"
+          },
+          {
+            "en": "athletic movement",
+            "ru": "спортивное движение"
+          },
+          {
+            "en": "night game",
+            "ru": "ночной матч"
+          },
+          {
+            "en": "empty stadium",
+            "ru": "пустой стадион"
+          }
+        ],
+        "objects": [
+          "soccer player",
+          "football field",
+          "sports jersey",
+          "soccer ball",
+          "stadium seating",
+          "advertising banner",
+          "female athlete",
+          "football match",
+          "competition",
+          "running",
+          "defending",
+          "athletic movement",
+          "night game",
+          "empty stadium"
+        ],
+        "scenes": [
+          "stadium",
+          "field",
+          "match setting"
+        ],
+        "actions": [
+          "contesting for ball",
+          "running",
+          "defending",
+          "moving"
+        ],
+        "emotions": [
+          "intense",
+          "competitive",
+          "focused"
+        ]
+      }
+    },
+    "photo-111": {
+      "seconds": 10.76,
+      "outputTokens": 595,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Chess King in Focus\",\n  \"title_ru\": \"Фокус на шахматном короле\",\n  \"description\": \"A close-up shot highlights a dark wooden chess king standing on a checkered board. Other pieces, both light and dark, are blurred in the background, suggesting an ongoing game. The board's alternating squares show natural wood grain, and the pieces have a polished finish.\",\n  \"summary\": \"A focused view of a chess king on a wooden board with other pieces out of focus.\",\n  \"tags\": [\n    {\n      \"en\": \"chess\",\n      \"ru\": \"шахматы\"\n    },\n    {\n      \"en\": \"king\",\n      \"ru\": \"король\"\n    },\n    {\n      \"en\": \"board\",\n      \"ru\": \"доска\"\n    },\n    {\n      \"en\": \"wooden\",\n      \"ru\": \"деревянный\"\n    },\n    {\n      \"en\": \"piece\",\n      \"ru\": \"фигура\"\n    },\n    {\n      \"en\": \"game\",\n      \"ru\": \"игра\"\n    },\n    {\n      \"en\": \"close-up\",\n      \"ru\": \"макро\"\n    },\n    {\n      \"en\": \"strategy\",\n      \"ru\": \"стратегия\"\n    },\n    {\n      \"en\": \"chessboard\",\n      \"ru\": \"шахматная доска\"\n    },\n    {\n      \"en\": \"pawn\",\n      \"ru\": \"пешка\"\n    },\n    {\n      \"en\": \"bishop\",\n      \"ru\": \"бисер\"\n    },\n    {\n      \"en\": \"rook\",\n      \"ru\": \"лошадь\"\n    },\n    {\n      \"en\": \"queen\",\n      \"ru\": \"королева\"\n    },\n    {\n      \"en\": \"knight\",\n      \"ru\": \"конь\"\n    }\n  ],\n  \"objects\": [\n    \"chess king\",\n    \"chess board\",\n    \"chess pieces\",\n    \"wood grain\",\n    \"polished surface\",\n    \"checkered pattern\",\n    \"shallow depth of field\",\n    \"background blur\",\n    \"game in progress\",\n    \"focus on king\",\n    \"dark wood\",\n    \"light wood\",\n    \"green base\",\n    \"natural lighting\",\n    \"still life\"\n  ],\n  \"scenes\": [\n    \"chess board\",\n    \"indoor setting\",\n    \"wooden table\",\n    \"neutral background\"\n  ],\n  \"actions\": [\n    \"standing still\",\n    \"focusing on king\",\n    \"blurred background\",\n    \"game paused\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"strategic\",\n    \"focused\",\n    \"intense\",\n    \"thoughtful\"\n  ]\n}",
+      "output": {
+        "title": "Chess King in Focus",
+        "title_ru": "Фокус на шахматном короле",
+        "description": "A close-up shot highlights a dark wooden chess king standing on a checkered board. Other pieces, both light and dark, are blurred in the background, suggesting an ongoing game. The board's alternating squares show natural wood grain, and the pieces have a polished finish.",
+        "summary": "A focused view of a chess king on a wooden board with other pieces out of focus.",
+        "tags": [
+          {
+            "en": "chess",
+            "ru": "шахматы"
+          },
+          {
+            "en": "king",
+            "ru": "король"
+          },
+          {
+            "en": "board",
+            "ru": "доска"
+          },
+          {
+            "en": "wooden",
+            "ru": "деревянный"
+          },
+          {
+            "en": "piece",
+            "ru": "фигура"
+          },
+          {
+            "en": "game",
+            "ru": "игра"
+          },
+          {
+            "en": "close-up",
+            "ru": "макро"
+          },
+          {
+            "en": "strategy",
+            "ru": "стратегия"
+          },
+          {
+            "en": "chessboard",
+            "ru": "шахматная доска"
+          },
+          {
+            "en": "pawn",
+            "ru": "пешка"
+          },
+          {
+            "en": "bishop",
+            "ru": "бисер"
+          },
+          {
+            "en": "rook",
+            "ru": "лошадь"
+          },
+          {
+            "en": "queen",
+            "ru": "королева"
+          },
+          {
+            "en": "knight",
+            "ru": "конь"
+          }
+        ],
+        "objects": [
+          "chess king",
+          "chess board",
+          "chess pieces",
+          "wood grain",
+          "polished surface",
+          "checkered pattern",
+          "shallow depth of field",
+          "background blur",
+          "game in progress",
+          "focus on king",
+          "dark wood",
+          "light wood",
+          "green base",
+          "natural lighting",
+          "still life"
+        ],
+        "scenes": [
+          "chess board",
+          "indoor setting",
+          "wooden table",
+          "neutral background"
+        ],
+        "actions": [
+          "standing still",
+          "focusing on king",
+          "blurred background",
+          "game paused"
+        ],
+        "emotions": [
+          "calm",
+          "strategic",
+          "focused",
+          "intense",
+          "thoughtful"
+        ]
+      }
+    },
+    "photo-121": {
+      "seconds": 12.14,
+      "outputTokens": 671,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Watch Movement Closeup\",\n  \"title_ru\": \"Близкий снимок механизма часов\",\n  \"description\": \"A detailed view of a vintage watch movement against a plain background. The intricate gears, screws, and jewels are visible. A gold-toned winding stem protrudes from the left. Engraved text on the movement reads '17 JEWELS'.\",\n  \"summary\": \"A close-up photograph of an antique watch movement with its internal gears and jewels.\",\n  \"tags\": [\n    {\n      \"en\": \"watch movement\",\n      \"ru\": \"механизм часов\"\n    },\n    {\n      \"en\": \"clock gear\",\n      \"ru\": \"колесо часов\"\n    },\n    {\n      \"en\": \"jewel\",\n      \"ru\": \"жемчужина\"\n    },\n    {\n      \"en\": \"winding stem\",\n      \"ru\": \"вращающийся винт\"\n    },\n    {\n      \"en\": \"mechanical watch\",\n      \"ru\": \"механические часы\"\n    },\n    {\n      \"en\": \"watch parts\",\n      \"ru\": \"части часов\"\n    },\n    {\n      \"en\": \"clockwork\",\n      \"ru\": \"часовой механизм\"\n    },\n    {\n      \"en\": \"watchmaker tools\",\n      \"ru\": \"инструменты часового мастера\"\n    },\n    {\n      \"en\": \"watch repair\",\n      \"ru\": \"ремонт часов\"\n    },\n    {\n      \"en\": \"timepiece\",\n      \"ru\": \"часы\"\n    },\n    {\n      \"en\": \"watch dial\",\n      \"ru\": \"циферблат часов\"\n    },\n    {\n      \"en\": \"watch case\",\n      \"ru\": \"кейс часов\"\n    },\n    {\n      \"en\": \"watch escapement\",\n      \"ru\": \"прыжок часов\"\n    },\n    {\n      \"en\": \"watch mainspring\",\n      \"ru\": \"главный пружинный механизм\"\n    }\n  ],\n  \"objects\": [\n    \"watch movement\",\n    \"gears\",\n    \"jewels\",\n    \"winding stem\",\n    \"screws\",\n    \"engraved text\",\n    \"metal casing\",\n    \"internal mechanism\",\n    \"clockwork components\",\n    \"mechanical parts\",\n    \"watch repair tools\",\n    \"timepiece internals\",\n    \"watchmaker's tools\",\n    \"watch escapement\",\n    \"watch mainspring\"\n  ],\n  \"scenes\": [\n    \"plain background\",\n    \"close-up view\",\n    \"mechanical detail\",\n    \"watch interior\",\n    \"clockwork mechanism\",\n    \"watch repair setting\"\n  ],\n  \"actions\": [\n    \"displaying internal parts\",\n    \"showing gears\",\n    \"revealing jewels\",\n    \"highlighting winding stem\",\n    \"emphasizing mechanical complexity\"\n  ],\n  \"emotions\": [\n    \"intricate\",\n    \"technical\",\n    \"precise\",\n    \"mechanical\",\n    \"detailed\",\n    \"complex\",\n    \"industrial\",\n    \"craftsmanship\"\n  ]\n}",
+      "output": {
+        "title": "Watch Movement Closeup",
+        "title_ru": "Близкий снимок механизма часов",
+        "description": "A detailed view of a vintage watch movement against a plain background. The intricate gears, screws, and jewels are visible. A gold-toned winding stem protrudes from the left. Engraved text on the movement reads '17 JEWELS'.",
+        "summary": "A close-up photograph of an antique watch movement with its internal gears and jewels.",
+        "tags": [
+          {
+            "en": "watch movement",
+            "ru": "механизм часов"
+          },
+          {
+            "en": "clock gear",
+            "ru": "колесо часов"
+          },
+          {
+            "en": "jewel",
+            "ru": "жемчужина"
+          },
+          {
+            "en": "winding stem",
+            "ru": "вращающийся винт"
+          },
+          {
+            "en": "mechanical watch",
+            "ru": "механические часы"
+          },
+          {
+            "en": "watch parts",
+            "ru": "части часов"
+          },
+          {
+            "en": "clockwork",
+            "ru": "часовой механизм"
+          },
+          {
+            "en": "watchmaker tools",
+            "ru": "инструменты часового мастера"
+          },
+          {
+            "en": "watch repair",
+            "ru": "ремонт часов"
+          },
+          {
+            "en": "timepiece",
+            "ru": "часы"
+          },
+          {
+            "en": "watch dial",
+            "ru": "циферблат часов"
+          },
+          {
+            "en": "watch case",
+            "ru": "кейс часов"
+          },
+          {
+            "en": "watch escapement",
+            "ru": "прыжок часов"
+          },
+          {
+            "en": "watch mainspring",
+            "ru": "главный пружинный механизм"
+          }
+        ],
+        "objects": [
+          "watch movement",
+          "gears",
+          "jewels",
+          "winding stem",
+          "screws",
+          "engraved text",
+          "metal casing",
+          "internal mechanism",
+          "clockwork components",
+          "mechanical parts",
+          "watch repair tools",
+          "timepiece internals",
+          "watchmaker's tools",
+          "watch escapement",
+          "watch mainspring"
+        ],
+        "scenes": [
+          "plain background",
+          "close-up view",
+          "mechanical detail",
+          "watch interior",
+          "clockwork mechanism",
+          "watch repair setting"
+        ],
+        "actions": [
+          "displaying internal parts",
+          "showing gears",
+          "revealing jewels",
+          "highlighting winding stem",
+          "emphasizing mechanical complexity"
+        ],
+        "emotions": [
+          "intricate",
+          "technical",
+          "precise",
+          "mechanical",
+          "detailed",
+          "complex",
+          "industrial",
+          "craftsmanship"
+        ]
+      }
+    },
+    "photo-131": {
+      "seconds": 11.71,
+      "outputTokens": 642,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Night Market Street\",\n  \"title_ru\": \"Ночная улица с рынком\",\n  \"description\": \"A bustling night street in Japan is illuminated by bright neon signs and lanterns. Pedestrians walk along the sidewalk, passing shops with Japanese text on their signs. A motorcycle helmet rests in the foreground, and a glowing food cart displays colorful advertisements. The scene captures the vibrant energy of urban nightlife.\",\n  \"summary\": \"A crowded Japanese street at night lit by neon signs and bustling with pedestrians.\",\n  \"tags\": [\n    {\n      \"en\": \"neon sign\",\n      \"ru\": \"неоновая вывеска\"\n    },\n    {\n      \"en\": \"street market\",\n      \"ru\": \"уличный рынок\"\n    },\n    {\n      \"en\": \"Japanese street\",\n      \"ru\": \"японская улица\"\n    },\n    {\n      \"en\": \"nighttime\",\n      \"ru\": \"ночное время\"\n    },\n    {\n      \"en\": \"pedestrian\",\n      \"ru\": \"пешеход\"\n    },\n    {\n      \"en\": \"food cart\",\n      \"ru\": \"еда на тележке\"\n    },\n    {\n      \"en\": \"urban\",\n      \"ru\": \"городской\"\n    },\n    {\n      \"en\": \"signage\",\n      \"ru\": \"вывески\"\n    },\n    {\n      \"en\": \"crowd\",\n      \"ru\": \"толпа\"\n    },\n    {\n      \"en\": \"lantern\",\n      \"ru\": \"фонарь\"\n    },\n    {\n      \"en\": \"motorcycle\",\n      \"ru\": \"мотоцикл\"\n    },\n    {\n      \"en\": \"nightlife\",\n      \"ru\": \"ночная жизнь\"\n    },\n    {\n      \"en\": \"Japanese text\",\n      \"ru\": \"японский текст\"\n    },\n    {\n      \"en\": \"shopping street\",\n      \"ru\": \"улица с магазинами\"\n    }\n  ],\n  \"objects\": [\n    \"neon sign\",\n    \"lantern\",\n    \"pedestrian\",\n    \"food cart\",\n    \"motorcycle helmet\",\n    \"signage\",\n    \"crowd\",\n    \"urban street\",\n    \"Japanese text\",\n    \"shopping street\",\n    \"nighttime scene\",\n    \"street market\",\n    \"city lights\",\n    \"advertisement\",\n    \"building facade\"\n  ],\n  \"scenes\": [\n    \"night market street\",\n    \"urban alleyway\",\n    \"Japanese city street\",\n    \"commercial district\",\n    \"busy pedestrian walkway\"\n  ],\n  \"actions\": [\n    \"walking\",\n    \"standing\",\n    \"looking at signs\",\n    \"shopping\",\n    \"passing by shops\",\n    \"stopping to look at food cart\"\n  ],\n  \"emotions\": [\n    \"vibrant\",\n    \"energetic\",\n    \"busy\",\n    \"lively\",\n    \"exciting\",\n    \"noisy\",\n    \"colorful\"\n  ]\n}",
+      "output": {
+        "title": "Night Market Street",
+        "title_ru": "Ночная улица с рынком",
+        "description": "A bustling night street in Japan is illuminated by bright neon signs and lanterns. Pedestrians walk along the sidewalk, passing shops with Japanese text on their signs. A motorcycle helmet rests in the foreground, and a glowing food cart displays colorful advertisements. The scene captures the vibrant energy of urban nightlife.",
+        "summary": "A crowded Japanese street at night lit by neon signs and bustling with pedestrians.",
+        "tags": [
+          {
+            "en": "neon sign",
+            "ru": "неоновая вывеска"
+          },
+          {
+            "en": "street market",
+            "ru": "уличный рынок"
+          },
+          {
+            "en": "Japanese street",
+            "ru": "японская улица"
+          },
+          {
+            "en": "nighttime",
+            "ru": "ночное время"
+          },
+          {
+            "en": "pedestrian",
+            "ru": "пешеход"
+          },
+          {
+            "en": "food cart",
+            "ru": "еда на тележке"
+          },
+          {
+            "en": "urban",
+            "ru": "городской"
+          },
+          {
+            "en": "signage",
+            "ru": "вывески"
+          },
+          {
+            "en": "crowd",
+            "ru": "толпа"
+          },
+          {
+            "en": "lantern",
+            "ru": "фонарь"
+          },
+          {
+            "en": "motorcycle",
+            "ru": "мотоцикл"
+          },
+          {
+            "en": "nightlife",
+            "ru": "ночная жизнь"
+          },
+          {
+            "en": "Japanese text",
+            "ru": "японский текст"
+          },
+          {
+            "en": "shopping street",
+            "ru": "улица с магазинами"
+          }
+        ],
+        "objects": [
+          "neon sign",
+          "lantern",
+          "pedestrian",
+          "food cart",
+          "motorcycle helmet",
+          "signage",
+          "crowd",
+          "urban street",
+          "Japanese text",
+          "shopping street",
+          "nighttime scene",
+          "street market",
+          "city lights",
+          "advertisement",
+          "building facade"
+        ],
+        "scenes": [
+          "night market street",
+          "urban alleyway",
+          "Japanese city street",
+          "commercial district",
+          "busy pedestrian walkway"
+        ],
+        "actions": [
+          "walking",
+          "standing",
+          "looking at signs",
+          "shopping",
+          "passing by shops",
+          "stopping to look at food cart"
+        ],
+        "emotions": [
+          "vibrant",
+          "energetic",
+          "busy",
+          "lively",
+          "exciting",
+          "noisy",
+          "colorful"
+        ]
+      }
+    },
+    "photo-140": {
+      "seconds": 11.08,
+      "outputTokens": 644,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Green Wooden House\",\n  \"title_ru\": \"Зеленый деревянный дом\",\n  \"description\": \"A two-story green wooden house with ornate white window frames stands behind a large colorful banner. The banner advertises gifts, a wedding salon, and products. Two cars are parked in front: a silver hatchback on the left and a dark blue sedan on the right. A street sign indicates 'Улица Радио 39'.\",\n  \"summary\": \"A green wooden house with a large advertising banner behind it, flanked by parked cars.\",\n  \"tags\": [\n    {\n      \"en\": \"wooden house\",\n      \"ru\": \"деревянный дом\"\n    },\n    {\n      \"en\": \"banner\",\n      \"ru\": \"баннер\"\n    },\n    {\n      \"en\": \"car\",\n      \"ru\": \"автомобиль\"\n    },\n    {\n      \"en\": \"street sign\",\n      \"ru\": \"уличный знак\"\n    },\n    {\n      \"en\": \"advertisement\",\n      \"ru\": \"реклама\"\n    },\n    {\n      \"en\": \"window\",\n      \"ru\": \"окно\"\n    },\n    {\n      \"en\": \"roof\",\n      \"ru\": \"крыша\"\n    },\n    {\n      \"en\": \"building facade\",\n      \"ru\": \"фасад здания\"\n    },\n    {\n      \"en\": \"urban setting\",\n      \"ru\": \"городская местность\"\n    },\n    {\n      \"en\": \"Russian text\",\n      \"ru\": \"русский текст\"\n    },\n    {\n      \"en\": \"ornate\",\n      \"ru\": \"орнаментированный\"\n    },\n    {\n      \"en\": \"sunset\",\n      \"ru\": \"закат\"\n    },\n    {\n      \"en\": \"street\",\n      \"ru\": \"улица\"\n    },\n    {\n      \"en\": \"vehicle\",\n      \"ru\": \"транспортное средство\"\n    },\n    {\n      \"en\": \"commercial sign\",\n      \"ru\": \"коммерческий знак\"\n    }\n  ],\n  \"objects\": [\n    \"green wooden house\",\n    \"ornate white window frames\",\n    \"large colorful banner\",\n    \"silver hatchback car\",\n    \"dark blue sedan car\",\n    \"street sign\",\n    \"advertisement text\",\n    \"wedding salon sign\",\n    \"product advertisement\",\n    \"clock illustration\",\n    \"candelabra illustration\",\n    \"decorative urn illustration\",\n    \"roof with tiles\",\n    \"trees in background\",\n    \"power lines\",\n    \"blue sky with clouds\"\n  ],\n  \"scenes\": [\n    \"urban street\",\n    \"commercial building\",\n    \"front of shop\",\n    \"parked cars\",\n    \"street corner\"\n  ],\n  \"actions\": [\n    \"cars parked\",\n    \"banner displayed\",\n    \"building standing\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"quiet\",\n    \"ordinary day\"\n  ]\n}",
+      "output": {
+        "title": "Green Wooden House",
+        "title_ru": "Зеленый деревянный дом",
+        "description": "A two-story green wooden house with ornate white window frames stands behind a large colorful banner. The banner advertises gifts, a wedding salon, and products. Two cars are parked in front: a silver hatchback on the left and a dark blue sedan on the right. A street sign indicates 'Улица Радио 39'.",
+        "summary": "A green wooden house with a large advertising banner behind it, flanked by parked cars.",
+        "tags": [
+          {
+            "en": "wooden house",
+            "ru": "деревянный дом"
+          },
+          {
+            "en": "banner",
+            "ru": "баннер"
+          },
+          {
+            "en": "car",
+            "ru": "автомобиль"
+          },
+          {
+            "en": "street sign",
+            "ru": "уличный знак"
+          },
+          {
+            "en": "advertisement",
+            "ru": "реклама"
+          },
+          {
+            "en": "window",
+            "ru": "окно"
+          },
+          {
+            "en": "roof",
+            "ru": "крыша"
+          },
+          {
+            "en": "building facade",
+            "ru": "фасад здания"
+          },
+          {
+            "en": "urban setting",
+            "ru": "городская местность"
+          },
+          {
+            "en": "Russian text",
+            "ru": "русский текст"
+          },
+          {
+            "en": "ornate",
+            "ru": "орнаментированный"
+          },
+          {
+            "en": "sunset",
+            "ru": "закат"
+          },
+          {
+            "en": "street",
+            "ru": "улица"
+          },
+          {
+            "en": "vehicle",
+            "ru": "транспортное средство"
+          },
+          {
+            "en": "commercial sign",
+            "ru": "коммерческий знак"
+          }
+        ],
+        "objects": [
+          "green wooden house",
+          "ornate white window frames",
+          "large colorful banner",
+          "silver hatchback car",
+          "dark blue sedan car",
+          "street sign",
+          "advertisement text",
+          "wedding salon sign",
+          "product advertisement",
+          "clock illustration",
+          "candelabra illustration",
+          "decorative urn illustration",
+          "roof with tiles",
+          "trees in background",
+          "power lines",
+          "blue sky with clouds"
+        ],
+        "scenes": [
+          "urban street",
+          "commercial building",
+          "front of shop",
+          "parked cars",
+          "street corner"
+        ],
+        "actions": [
+          "cars parked",
+          "banner displayed",
+          "building standing"
+        ],
+        "emotions": [
+          "calm",
+          "quiet",
+          "ordinary day"
+        ]
+      }
+    },
+    "photo-150": {
+      "seconds": 8.01,
+      "outputTokens": 461,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Data Collection Sign\",\n  \"title_ru\": \"Знак о сборе данных\",\n  \"description\": \"A transparent acrylic plaque mounted on a textured wall displays a warning about data collection. The text reads: 'Data is collected on everything we do.*' followed by '*Do you know how yours is being used?'. Faint, ghosted copies of the same message are visible in the background.\",\n  \"summary\": \"A modern sign warns viewers that their data is collected and questions its usage.\",\n  \"tags\": [\n    {\n      \"en\": \"data collection\",\n      \"ru\": \"сбор данных\"\n    },\n    {\n      \"en\": \"privacy warning\",\n      \"ru\": \"предупреждение о приватности\"\n    },\n    {\n      \"en\": \"acrylic sign\",\n      \"ru\": \"акриловый знак\"\n    },\n    {\n      \"en\": \"wall mounted\",\n      \"ru\": \"на стене\"\n    },\n    {\n      \"en\": \"textured wall\",\n      \"ru\": \"текстурированная стена\"\n    },\n    {\n      \"en\": \"question mark\",\n      \"ru\": \"знак вопроса\"\n    },\n    {\n      \"en\": \"modern art\",\n      \"ru\": \"современное искусство\"\n    },\n    {\n      \"en\": \"digital surveillance\",\n      \"ru\": \"цифровая видеонаблюдение\"\n    },\n    {\n      \"en\": \"user awareness\",\n      \"ru\": \"осознание пользователя\"\n    },\n    {\n      \"en\": \"informational sign\",\n      \"ru\": \"информационный знак\"\n    }\n  ],\n  \"objects\": [\n    \"acrylic plaque\",\n    \"text\",\n    \"metal fasteners\",\n    \"wall\"\n  ],\n  \"scenes\": [\n    \"indoor\",\n    \"exhibition space\",\n    \"art installation\"\n  ],\n  \"actions\": [\n    \"displaying text\",\n    \"mounting sign\",\n    \"warning viewers\"\n  ],\n  \"emotions\": [\n    \"caution\",\n    \"awareness\",\n    \"curiosity\",\n    \"thought-provoking\"\n  ]\n}",
+      "output": {
+        "title": "Data Collection Sign",
+        "title_ru": "Знак о сборе данных",
+        "description": "A transparent acrylic plaque mounted on a textured wall displays a warning about data collection. The text reads: 'Data is collected on everything we do.*' followed by '*Do you know how yours is being used?'. Faint, ghosted copies of the same message are visible in the background.",
+        "summary": "A modern sign warns viewers that their data is collected and questions its usage.",
+        "tags": [
+          {
+            "en": "data collection",
+            "ru": "сбор данных"
+          },
+          {
+            "en": "privacy warning",
+            "ru": "предупреждение о приватности"
+          },
+          {
+            "en": "acrylic sign",
+            "ru": "акриловый знак"
+          },
+          {
+            "en": "wall mounted",
+            "ru": "на стене"
+          },
+          {
+            "en": "textured wall",
+            "ru": "текстурированная стена"
+          },
+          {
+            "en": "question mark",
+            "ru": "знак вопроса"
+          },
+          {
+            "en": "modern art",
+            "ru": "современное искусство"
+          },
+          {
+            "en": "digital surveillance",
+            "ru": "цифровая видеонаблюдение"
+          },
+          {
+            "en": "user awareness",
+            "ru": "осознание пользователя"
+          },
+          {
+            "en": "informational sign",
+            "ru": "информационный знак"
+          }
+        ],
+        "objects": [
+          "acrylic plaque",
+          "text",
+          "metal fasteners",
+          "wall"
+        ],
+        "scenes": [
+          "indoor",
+          "exhibition space",
+          "art installation"
+        ],
+        "actions": [
+          "displaying text",
+          "mounting sign",
+          "warning viewers"
+        ],
+        "emotions": [
+          "caution",
+          "awareness",
+          "curiosity",
+          "thought-provoking"
+        ]
+      }
+    },
+    "photo-160": {
+      "seconds": 9.51,
+      "outputTokens": 573,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Green Aurora Over Frozen Lake\",\n  \"title_ru\": \"Зеленое северное сияние над замерзшим озером\",\n  \"description\": \"A vibrant green aurora dances across a starry night sky above a frozen lake. Snow-dusted hills and bare shrubs frame the scene, with a distant light visible on the horizon. The aurora's glow reflects softly on the icy surface below.\",\n  \"summary\": \"A striking green aurora illuminates a frozen landscape under a star-filled night sky.\",\n  \"tags\": [\n    {\n      \"en\": \"aurora\",\n      \"ru\": \"аура\"\n    },\n    {\n      \"en\": \"night sky\",\n      \"ru\": \"ночное небо\"\n    },\n    {\n      \"en\": \"frozen lake\",\n      \"ru\": \"замерзшее озеро\"\n    },\n    {\n      \"en\": \"snowy hills\",\n      \"ru\": \"снежные холмы\"\n    },\n    {\n      \"en\": \"stars\",\n      \"ru\": \"звезда\"\n    },\n    {\n      \"en\": \"landscape\",\n      \"ru\": \"пейзаж\"\n    },\n    {\n      \"en\": \"light reflection\",\n      \"ru\": \"отражение света\"\n    },\n    {\n      \"en\": \"winter\",\n      \"ru\": \"зима\"\n    },\n    {\n      \"en\": \"natural phenomenon\",\n      \"ru\": \"природное явление\"\n    },\n    {\n      \"en\": \"remote location\",\n      \"ru\": \"далекое место\"\n    },\n    {\n      \"en\": \"dark vegetation\",\n      \"ru\": \"темная растительность\"\n    },\n    {\n      \"en\": \"glowing sky\",\n      \"ru\": \"сияющее небо\"\n    },\n    {\n      \"en\": \"night photography\",\n      \"ru\": \"ночная фотография\"\n    },\n    {\n      \"en\": \"northern lights\",\n      \"ru\": \"северное сияние\"\n    }\n  ],\n  \"objects\": [\n    \"aurora\",\n    \"stars\",\n    \"frozen lake\",\n    \"snowy hills\",\n    \"bare shrubs\",\n    \"distant light\",\n    \"ice surface\",\n    \"dark vegetation\",\n    \"night sky\"\n  ],\n  \"scenes\": [\n    \"arctic landscape\",\n    \"winter night\",\n    \"remote wilderness\"\n  ],\n  \"actions\": [\n    \"aurora glowing\",\n    \"light reflecting\",\n    \"stars visible\"\n  ],\n  \"emotions\": [\n    \"serene\",\n    \"mysterious\",\n    \"awe-inspiring\"\n  ]\n}",
+      "output": {
+        "title": "Green Aurora Over Frozen Lake",
+        "title_ru": "Зеленое северное сияние над замерзшим озером",
+        "description": "A vibrant green aurora dances across a starry night sky above a frozen lake. Snow-dusted hills and bare shrubs frame the scene, with a distant light visible on the horizon. The aurora's glow reflects softly on the icy surface below.",
+        "summary": "A striking green aurora illuminates a frozen landscape under a star-filled night sky.",
+        "tags": [
+          {
+            "en": "aurora",
+            "ru": "аура"
+          },
+          {
+            "en": "night sky",
+            "ru": "ночное небо"
+          },
+          {
+            "en": "frozen lake",
+            "ru": "замерзшее озеро"
+          },
+          {
+            "en": "snowy hills",
+            "ru": "снежные холмы"
+          },
+          {
+            "en": "stars",
+            "ru": "звезда"
+          },
+          {
+            "en": "landscape",
+            "ru": "пейзаж"
+          },
+          {
+            "en": "light reflection",
+            "ru": "отражение света"
+          },
+          {
+            "en": "winter",
+            "ru": "зима"
+          },
+          {
+            "en": "natural phenomenon",
+            "ru": "природное явление"
+          },
+          {
+            "en": "remote location",
+            "ru": "далекое место"
+          },
+          {
+            "en": "dark vegetation",
+            "ru": "темная растительность"
+          },
+          {
+            "en": "glowing sky",
+            "ru": "сияющее небо"
+          },
+          {
+            "en": "night photography",
+            "ru": "ночная фотография"
+          },
+          {
+            "en": "northern lights",
+            "ru": "северное сияние"
+          }
+        ],
+        "objects": [
+          "aurora",
+          "stars",
+          "frozen lake",
+          "snowy hills",
+          "bare shrubs",
+          "distant light",
+          "ice surface",
+          "dark vegetation",
+          "night sky"
+        ],
+        "scenes": [
+          "arctic landscape",
+          "winter night",
+          "remote wilderness"
+        ],
+        "actions": [
+          "aurora glowing",
+          "light reflecting",
+          "stars visible"
+        ],
+        "emotions": [
+          "serene",
+          "mysterious",
+          "awe-inspiring"
+        ]
+      }
+    },
+    "photo-169": {
+      "seconds": 7.47,
+      "outputTokens": 430,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Night Bridge Over River\",\n  \"title_ru\": \"Ночная мостовая над рекой\",\n  \"description\": \"A modern illuminated bridge spans a river at night, its blue lights reflecting on the water. Behind it, several skyscrapers under construction glow with artificial light against the dark sky. Cranes are visible atop some buildings, indicating ongoing development. A small boat is moored near the bridge's base.\",\n  \"summary\": \"A glowing bridge over a river at night with skyscrapers under construction in the background.\",\n  \"tags\": [\n    {\n      \"en\": \"bridge\",\n      \"ru\": \"мост\"\n    },\n    {\n      \"en\": \"river\",\n      \"ru\": \"река\"\n    },\n    {\n      \"en\": \"skyscraper\",\n      \"ru\": \"небоскреб\"\n    },\n    {\n      \"en\": \"construction\",\n      \"ru\": \"строительство\"\n    },\n    {\n      \"en\": \"night\",\n      \"ru\": \"ночь\"\n    },\n    {\n      \"en\": \"cityscape\",\n      \"ru\": \"городской пейзаж\"\n    },\n    {\n      \"en\": \"lighting\",\n      \"ru\": \"освещение\"\n    },\n    {\n      \"en\": \"crane\",\n      \"ru\": \"кран\"\n    },\n    {\n      \"en\": \"boat\",\n      \"ru\": \"лодка\"\n    }\n  ],\n  \"objects\": [\n    \"bridge\",\n    \"river\",\n    \"skyscraper\",\n    \"construction crane\",\n    \"boat\",\n    \"lighting\",\n    \"reflection\",\n    \"night sky\"\n  ],\n  \"scenes\": [\n    \"urban waterfront\",\n    \"city skyline\",\n    \"riverfront\"\n  ],\n  \"actions\": [\n    \"illuminated\",\n    \"reflecting\",\n    \"under construction\",\n    \"moored\"\n  ],\n  \"emotions\": [\n    \"modern\",\n    \"majestic\",\n    \"calm\",\n    \"urban\"\n  ]\n}",
+      "output": {
+        "title": "Night Bridge Over River",
+        "title_ru": "Ночная мостовая над рекой",
+        "description": "A modern illuminated bridge spans a river at night, its blue lights reflecting on the water. Behind it, several skyscrapers under construction glow with artificial light against the dark sky. Cranes are visible atop some buildings, indicating ongoing development. A small boat is moored near the bridge's base.",
+        "summary": "A glowing bridge over a river at night with skyscrapers under construction in the background.",
+        "tags": [
+          {
+            "en": "bridge",
+            "ru": "мост"
+          },
+          {
+            "en": "river",
+            "ru": "река"
+          },
+          {
+            "en": "skyscraper",
+            "ru": "небоскреб"
+          },
+          {
+            "en": "construction",
+            "ru": "строительство"
+          },
+          {
+            "en": "night",
+            "ru": "ночь"
+          },
+          {
+            "en": "cityscape",
+            "ru": "городской пейзаж"
+          },
+          {
+            "en": "lighting",
+            "ru": "освещение"
+          },
+          {
+            "en": "crane",
+            "ru": "кран"
+          },
+          {
+            "en": "boat",
+            "ru": "лодка"
+          }
+        ],
+        "objects": [
+          "bridge",
+          "river",
+          "skyscraper",
+          "construction crane",
+          "boat",
+          "lighting",
+          "reflection",
+          "night sky"
+        ],
+        "scenes": [
+          "urban waterfront",
+          "city skyline",
+          "riverfront"
+        ],
+        "actions": [
+          "illuminated",
+          "reflecting",
+          "under construction",
+          "moored"
+        ],
+        "emotions": [
+          "modern",
+          "majestic",
+          "calm",
+          "urban"
+        ]
+      }
+    },
+    "photo-179": {
+      "seconds": 7.27,
+      "outputTokens": 402,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Vegetable Pizza\",\n  \"title_ru\": \"Овощная пицца\",\n  \"description\": \"A round pizza sits on a metal tray, topped with melted cheese, sliced tomatoes, green bell peppers, corn kernels, and chopped onions. The crust is lightly baked and golden. No text is visible in the image.\",\n  \"summary\": \"A freshly prepared vegetable pizza with melted cheese and assorted toppings.\",\n  \"tags\": [\n    {\n      \"en\": \"pizza\",\n      \"ru\": \"пицца\"\n    },\n    {\n      \"en\": \"vegetable\",\n      \"ru\": \"овощной\"\n    },\n    {\n      \"en\": \"cheese\",\n      \"ru\": \"сыр\"\n    },\n    {\n      \"en\": \"tomato\",\n      \"ru\": \"томат\"\n    },\n    {\n      \"en\": \"bell pepper\",\n      \"ru\": \"паприка\"\n    },\n    {\n      \"en\": \"corn\",\n      \"ru\": \"кукуруза\"\n    },\n    {\n      \"en\": \"onion\",\n      \"ru\": \"лук\"\n    },\n    {\n      \"en\": \"crust\",\n      \"ru\": \"корочка\"\n    },\n    {\n      \"en\": \"metal tray\",\n      \"ru\": \"металлическая тарелка\"\n    }\n  ],\n  \"objects\": [\n    \"pizza\",\n    \"cheese\",\n    \"tomato\",\n    \"bell pepper\",\n    \"corn\",\n    \"onion\",\n    \"crust\",\n    \"metal tray\"\n  ],\n  \"scenes\": [\n    \"kitchen\",\n    \"restaurant\",\n    \"food preparation\"\n  ],\n  \"actions\": [\n    \"served\",\n    \"topped\",\n    \"baked\"\n  ],\n  \"emotions\": [\n    \"appetizing\",\n    \"fresh\",\n    \"comforting\"\n  ]\n}",
+      "output": {
+        "title": "Vegetable Pizza",
+        "title_ru": "Овощная пицца",
+        "description": "A round pizza sits on a metal tray, topped with melted cheese, sliced tomatoes, green bell peppers, corn kernels, and chopped onions. The crust is lightly baked and golden. No text is visible in the image.",
+        "summary": "A freshly prepared vegetable pizza with melted cheese and assorted toppings.",
+        "tags": [
+          {
+            "en": "pizza",
+            "ru": "пицца"
+          },
+          {
+            "en": "vegetable",
+            "ru": "овощной"
+          },
+          {
+            "en": "cheese",
+            "ru": "сыр"
+          },
+          {
+            "en": "tomato",
+            "ru": "томат"
+          },
+          {
+            "en": "bell pepper",
+            "ru": "паприка"
+          },
+          {
+            "en": "corn",
+            "ru": "кукуруза"
+          },
+          {
+            "en": "onion",
+            "ru": "лук"
+          },
+          {
+            "en": "crust",
+            "ru": "корочка"
+          },
+          {
+            "en": "metal tray",
+            "ru": "металлическая тарелка"
+          }
+        ],
+        "objects": [
+          "pizza",
+          "cheese",
+          "tomato",
+          "bell pepper",
+          "corn",
+          "onion",
+          "crust",
+          "metal tray"
+        ],
+        "scenes": [
+          "kitchen",
+          "restaurant",
+          "food preparation"
+        ],
+        "actions": [
+          "served",
+          "topped",
+          "baked"
+        ],
+        "emotions": [
+          "appetizing",
+          "fresh",
+          "comforting"
+        ]
+      }
+    },
+    "photo-188": {
+      "seconds": 10.65,
+      "outputTokens": 615,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Coffee and Cake Slice\",\n  \"title_ru\": \"Кофе и кусочек торта\",\n  \"description\": \"A dark ceramic cup of black coffee sits beside a slice of layered cake on a patterned plate. The cake is topped with caramel drizzle and macadamia nuts. Both items rest on a light wooden table, with a wooden ledge visible in the background.\",\n  \"summary\": \"A cup of coffee and a slice of caramel macadamia nut cake on a wooden table.\",\n  \"tags\": [\n    {\n      \"en\": \"coffee\",\n      \"ru\": \"кофе\"\n    },\n    {\n      \"en\": \"cake\",\n      \"ru\": \"торт\"\n    },\n    {\n      \"en\": \"caramel\",\n      \"ru\": \"карамель\"\n    },\n    {\n      \"en\": \"macadamia\",\n      \"ru\": \"макадамия\"\n    },\n    {\n      \"en\": \"ceramic cup\",\n      \"ru\": \"керамическая чашка\"\n    },\n    {\n      \"en\": \"wooden table\",\n      \"ru\": \"деревянный стол\"\n    },\n    {\n      \"en\": \"plate\",\n      \"ru\": \"тарелка\"\n    },\n    {\n      \"en\": \"dessert\",\n      \"ru\": \"десерт\"\n    },\n    {\n      \"en\": \"sweet\",\n      \"ru\": \"сладкое\"\n    },\n    {\n      \"en\": \"breakfast\",\n      \"ru\": \"завтрак\"\n    },\n    {\n      \"en\": \"lunch\",\n      \"ru\": \"обед\"\n    },\n    {\n      \"en\": \"afternoon tea\",\n      \"ru\": \"чай в полдень\"\n    },\n    {\n      \"en\": \"cafe\",\n      \"ru\": \"кафе\"\n    },\n    {\n      \"en\": \"indoor\",\n      \"ru\": \"внутренний\"\n    }\n  ],\n  \"objects\": [\n    \"coffee cup\",\n    \"cake slice\",\n    \"plate\",\n    \"wooden table\",\n    \"caramel drizzle\",\n    \"macadamia nuts\",\n    \"ceramic mug\",\n    \"saucer\",\n    \"wooden ledge\",\n    \"dark liquid\",\n    \"white frosting\",\n    \"layered cake\",\n    \"blue and white pattern\",\n    \"coffee beverage\",\n    \"sweet dessert\",\n    \"indoor setting\"\n  ],\n  \"scenes\": [\n    \"cafe\",\n    \"table setting\",\n    \"indoor dining\",\n    \"wooden surface\",\n    \"cozy atmosphere\"\n  ],\n  \"actions\": [\n    \"served\",\n    \"placed\",\n    \"resting\",\n    \"drizzled\",\n    \"topped\"\n  ],\n  \"emotions\": [\n    \"comfortable\",\n    \"calm\",\n    \"relaxed\",\n    \"pleasant\",\n    \"inviting\"\n  ]\n}",
+      "output": {
+        "title": "Coffee and Cake Slice",
+        "title_ru": "Кофе и кусочек торта",
+        "description": "A dark ceramic cup of black coffee sits beside a slice of layered cake on a patterned plate. The cake is topped with caramel drizzle and macadamia nuts. Both items rest on a light wooden table, with a wooden ledge visible in the background.",
+        "summary": "A cup of coffee and a slice of caramel macadamia nut cake on a wooden table.",
+        "tags": [
+          {
+            "en": "coffee",
+            "ru": "кофе"
+          },
+          {
+            "en": "cake",
+            "ru": "торт"
+          },
+          {
+            "en": "caramel",
+            "ru": "карамель"
+          },
+          {
+            "en": "macadamia",
+            "ru": "макадамия"
+          },
+          {
+            "en": "ceramic cup",
+            "ru": "керамическая чашка"
+          },
+          {
+            "en": "wooden table",
+            "ru": "деревянный стол"
+          },
+          {
+            "en": "plate",
+            "ru": "тарелка"
+          },
+          {
+            "en": "dessert",
+            "ru": "десерт"
+          },
+          {
+            "en": "sweet",
+            "ru": "сладкое"
+          },
+          {
+            "en": "breakfast",
+            "ru": "завтрак"
+          },
+          {
+            "en": "lunch",
+            "ru": "обед"
+          },
+          {
+            "en": "afternoon tea",
+            "ru": "чай в полдень"
+          },
+          {
+            "en": "cafe",
+            "ru": "кафе"
+          },
+          {
+            "en": "indoor",
+            "ru": "внутренний"
+          }
+        ],
+        "objects": [
+          "coffee cup",
+          "cake slice",
+          "plate",
+          "wooden table",
+          "caramel drizzle",
+          "macadamia nuts",
+          "ceramic mug",
+          "saucer",
+          "wooden ledge",
+          "dark liquid",
+          "white frosting",
+          "layered cake",
+          "blue and white pattern",
+          "coffee beverage",
+          "sweet dessert",
+          "indoor setting"
+        ],
+        "scenes": [
+          "cafe",
+          "table setting",
+          "indoor dining",
+          "wooden surface",
+          "cozy atmosphere"
+        ],
+        "actions": [
+          "served",
+          "placed",
+          "resting",
+          "drizzled",
+          "topped"
+        ],
+        "emotions": [
+          "comfortable",
+          "calm",
+          "relaxed",
+          "pleasant",
+          "inviting"
+        ]
+      }
+    },
+    "photo-198": {
+      "seconds": 7.45,
+      "outputTokens": 421,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Wooden Guitar on Couch\",\n  \"title_ru\": \"Деревянная гитара на диване\",\n  \"description\": \"A classical guitar with a light wood finish stands upright on a gray couch. The instrument has six strings, black fretboard, and gold tuning pegs. A framed picture hangs on the white wall above the couch. The guitar's body reflects ambient light, suggesting a well-lit indoor setting.\",\n  \"summary\": \"A classical guitar rests on a gray couch against a plain wall.\",\n  \"tags\": [\n    {\n      \"en\": \"guitar\",\n      \"ru\": \"гитара\"\n    },\n    {\n      \"en\": \"classical\",\n      \"ru\": \"классическая\"\n    },\n    {\n      \"en\": \"wood\",\n      \"ru\": \"дерево\"\n    },\n    {\n      \"en\": \"couch\",\n      \"ru\": \"диван\"\n    },\n    {\n      \"en\": \"fretboard\",\n      \"ru\": \"феттинг\"\n    },\n    {\n      \"en\": \"tuning pegs\",\n      \"ru\": \"регулировочные винты\"\n    },\n    {\n      \"en\": \"wall\",\n      \"ru\": \"стена\"\n    },\n    {\n      \"en\": \"frame\",\n      \"ru\": \"рамка\"\n    },\n    {\n      \"en\": \"indoor\",\n      \"ru\": \"внутренний\"\n    },\n    {\n      \"en\": \"reflection\",\n      \"ru\": \"отражение\"\n    }\n  ],\n  \"objects\": [\n    \"guitar\",\n    \"couch\",\n    \"wall\",\n    \"frame\",\n    \"fretboard\",\n    \"tuning pegs\",\n    \"strings\",\n    \"pillow\",\n    \"reflection\"\n  ],\n  \"scenes\": [\n    \"living room\",\n    \"indoor setting\",\n    \"home interior\"\n  ],\n  \"actions\": [],\n  \"emotions\": []\n}",
+      "output": {
+        "title": "Wooden Guitar on Couch",
+        "title_ru": "Деревянная гитара на диване",
+        "description": "A classical guitar with a light wood finish stands upright on a gray couch. The instrument has six strings, black fretboard, and gold tuning pegs. A framed picture hangs on the white wall above the couch. The guitar's body reflects ambient light, suggesting a well-lit indoor setting.",
+        "summary": "A classical guitar rests on a gray couch against a plain wall.",
+        "tags": [
+          {
+            "en": "guitar",
+            "ru": "гитара"
+          },
+          {
+            "en": "classical",
+            "ru": "классическая"
+          },
+          {
+            "en": "wood",
+            "ru": "дерево"
+          },
+          {
+            "en": "couch",
+            "ru": "диван"
+          },
+          {
+            "en": "fretboard",
+            "ru": "феттинг"
+          },
+          {
+            "en": "tuning pegs",
+            "ru": "регулировочные винты"
+          },
+          {
+            "en": "wall",
+            "ru": "стена"
+          },
+          {
+            "en": "frame",
+            "ru": "рамка"
+          },
+          {
+            "en": "indoor",
+            "ru": "внутренний"
+          },
+          {
+            "en": "reflection",
+            "ru": "отражение"
+          }
+        ],
+        "objects": [
+          "guitar",
+          "couch",
+          "wall",
+          "frame",
+          "fretboard",
+          "tuning pegs",
+          "strings",
+          "pillow",
+          "reflection"
+        ],
+        "scenes": [
+          "living room",
+          "indoor setting",
+          "home interior"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-208": {
+      "seconds": 9.46,
+      "outputTokens": 551,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Metro Sign Near Church\",\n  \"title_ru\": \"Сигнал Метро рядом с церковью\",\n  \"description\": \"A large blue and yellow Metro sign stands in the foreground, advertising 'Cash & Carry' with Russian text about store hours and special offers. In the background, a white church with a black dome is visible behind a fence, surrounded by trees and other buildings under a partly cloudy sky.\",\n  \"summary\": \"A Metro supermarket sign overlooks a white domed church under a cloudy sky.\",\n  \"tags\": [\n    {\n      \"en\": \"Metro\",\n      \"ru\": \"Метро\"\n    },\n    {\n      \"en\": \"church\",\n      \"ru\": \"церковь\"\n    },\n    {\n      \"en\": \"sign\",\n      \"ru\": \"сигнал\"\n    },\n    {\n      \"en\": \"dome\",\n      \"ru\": \"дом\"\n    },\n    {\n      \"en\": \"sky\",\n      \"ru\": \"небо\"\n    },\n    {\n      \"en\": \"advertisement\",\n      \"ru\": \"реклама\"\n    },\n    {\n      \"en\": \"fence\",\n      \"ru\": \"ограждение\"\n    },\n    {\n      \"en\": \"tree\",\n      \"ru\": \"дерево\"\n    },\n    {\n      \"en\": \"building\",\n      \"ru\": \"здание\"\n    },\n    {\n      \"en\": \"car\",\n      \"ru\": \"автомобиль\"\n    },\n    {\n      \"en\": \"cloud\",\n      \"ru\": \"облако\"\n    },\n    {\n      \"en\": \"streetlight\",\n      \"ru\": \"уличный свет\"\n    },\n    {\n      \"en\": \"promotional\",\n      \"ru\": \"промо\"\n    },\n    {\n      \"en\": \"commercial\",\n      \"ru\": \"коммерческий\"\n    }\n  ],\n  \"objects\": [\n    \"Metro sign\",\n    \"Church\",\n    \"Dome\",\n    \"Fence\",\n    \"Trees\",\n    \"Buildings\",\n    \"Cars\",\n    \"Clouds\",\n    \"Streetlights\",\n    \"Promotional banner\",\n    \"Clock\",\n    \"Website address\"\n  ],\n  \"scenes\": [\n    \"Urban landscape\",\n    \"Outdoor setting\",\n    \"Commercial area\",\n    \"Church grounds\",\n    \"Public space\"\n  ],\n  \"actions\": [\n    \"Standing\",\n    \"Advertising\",\n    \"Surrounded\",\n    \"Visible\"\n  ],\n  \"emotions\": [\n    \"Neutral\",\n    \"Calm\",\n    \"Routine\"\n  ]\n}",
+      "output": {
+        "title": "Metro Sign Near Church",
+        "title_ru": "Сигнал Метро рядом с церковью",
+        "description": "A large blue and yellow Metro sign stands in the foreground, advertising 'Cash & Carry' with Russian text about store hours and special offers. In the background, a white church with a black dome is visible behind a fence, surrounded by trees and other buildings under a partly cloudy sky.",
+        "summary": "A Metro supermarket sign overlooks a white domed church under a cloudy sky.",
+        "tags": [
+          {
+            "en": "Metro",
+            "ru": "Метро"
+          },
+          {
+            "en": "church",
+            "ru": "церковь"
+          },
+          {
+            "en": "sign",
+            "ru": "сигнал"
+          },
+          {
+            "en": "dome",
+            "ru": "дом"
+          },
+          {
+            "en": "sky",
+            "ru": "небо"
+          },
+          {
+            "en": "advertisement",
+            "ru": "реклама"
+          },
+          {
+            "en": "fence",
+            "ru": "ограждение"
+          },
+          {
+            "en": "tree",
+            "ru": "дерево"
+          },
+          {
+            "en": "building",
+            "ru": "здание"
+          },
+          {
+            "en": "car",
+            "ru": "автомобиль"
+          },
+          {
+            "en": "cloud",
+            "ru": "облако"
+          },
+          {
+            "en": "streetlight",
+            "ru": "уличный свет"
+          },
+          {
+            "en": "promotional",
+            "ru": "промо"
+          },
+          {
+            "en": "commercial",
+            "ru": "коммерческий"
+          }
+        ],
+        "objects": [
+          "Metro sign",
+          "Church",
+          "Dome",
+          "Fence",
+          "Trees",
+          "Buildings",
+          "Cars",
+          "Clouds",
+          "Streetlights",
+          "Promotional banner",
+          "Clock",
+          "Website address"
+        ],
+        "scenes": [
+          "Urban landscape",
+          "Outdoor setting",
+          "Commercial area",
+          "Church grounds",
+          "Public space"
+        ],
+        "actions": [
+          "Standing",
+          "Advertising",
+          "Surrounded",
+          "Visible"
+        ],
+        "emotions": [
+          "Neutral",
+          "Calm",
+          "Routine"
+        ]
+      }
+    },
+    "synth-003": {
+      "seconds": 7.4,
+      "outputTokens": 441,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Order Shipped Confirmation\",\n  \"title_ru\": \"Подтверждение отправки заказа\",\n  \"description\": \"A digital email notification from orders@example-shop.com confirming that order #48213 has been shipped. The message includes an estimated delivery date of Tuesday, 14 April, and instructs the recipient to track the parcel via an app. The email is addressed to Alex and ends with a thank you message.\",\n  \"summary\": \"An email notification confirming shipment of an order with tracking instructions.\",\n  \"tags\": [\n    {\n      \"en\": \"email\",\n      \"ru\": \"письмо\"\n    },\n    {\n      \"en\": \"order\",\n      \"ru\": \"заказ\"\n    },\n    {\n      \"en\": \"shipment\",\n      \"ru\": \"отправка\"\n    },\n    {\n      \"en\": \"delivery\",\n      \"ru\": \"доставка\"\n    },\n    {\n      \"en\": \"tracking\",\n      \"ru\": \"трекинг\"\n    },\n    {\n      \"en\": \"app\",\n      \"ru\": \"приложение\"\n    },\n    {\n      \"en\": \"confirmation\",\n      \"ru\": \"подтверждение\"\n    },\n    {\n      \"en\": \"customer\",\n      \"ru\": \"клиент\"\n    },\n    {\n      \"en\": \"date\",\n      \"ru\": \"дата\"\n    },\n    {\n      \"en\": \"email subject\",\n      \"ru\": \"тема письма\"\n    }\n  ],\n  \"objects\": [\n    \"email\",\n    \"order #48213\",\n    \"delivery date\",\n    \"tracking app\",\n    \"thank you message\",\n    \"sender email address\",\n    \"recipient name\",\n    \"inbox interface\"\n  ],\n  \"scenes\": [\n    \"email inbox\",\n    \"digital notification screen\"\n  ],\n  \"actions\": [\n    \"shipped\",\n    \"tracked via app\",\n    \"confirmed delivery\"\n  ],\n  \"emotions\": [\n    \"positive\",\n    \"annoying\",\n    \"neutral\"\n  ]\n}",
+      "output": {
+        "title": "Order Shipped Confirmation",
+        "title_ru": "Подтверждение отправки заказа",
+        "description": "A digital email notification from orders@example-shop.com confirming that order #48213 has been shipped. The message includes an estimated delivery date of Tuesday, 14 April, and instructs the recipient to track the parcel via an app. The email is addressed to Alex and ends with a thank you message.",
+        "summary": "An email notification confirming shipment of an order with tracking instructions.",
+        "tags": [
+          {
+            "en": "email",
+            "ru": "письмо"
+          },
+          {
+            "en": "order",
+            "ru": "заказ"
+          },
+          {
+            "en": "shipment",
+            "ru": "отправка"
+          },
+          {
+            "en": "delivery",
+            "ru": "доставка"
+          },
+          {
+            "en": "tracking",
+            "ru": "трекинг"
+          },
+          {
+            "en": "app",
+            "ru": "приложение"
+          },
+          {
+            "en": "confirmation",
+            "ru": "подтверждение"
+          },
+          {
+            "en": "customer",
+            "ru": "клиент"
+          },
+          {
+            "en": "date",
+            "ru": "дата"
+          },
+          {
+            "en": "email subject",
+            "ru": "тема письма"
+          }
+        ],
+        "objects": [
+          "email",
+          "order #48213",
+          "delivery date",
+          "tracking app",
+          "thank you message",
+          "sender email address",
+          "recipient name",
+          "inbox interface"
+        ],
+        "scenes": [
+          "email inbox",
+          "digital notification screen"
+        ],
+        "actions": [
+          "shipped",
+          "tracked via app",
+          "confirmed delivery"
+        ],
+        "emotions": [
+          "positive",
+          "annoying",
+          "neutral"
+        ]
+      }
+    },
+    "synth-008": {
+      "seconds": 6.8,
+      "outputTokens": 414,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Settings Menu Interface\",\n  \"title_ru\": \"Меню настроек интерфейса\",\n  \"description\": \"A settings window with five toggle switches. The labels are in Russian: 'Dark theme', 'Notifications', 'Location access', 'Auto-update', and 'Keyboard sound'. Two toggles are active (blue), three are inactive (gray). The window has a dark gray header with the title 'Настройки' and an 'X' close button.\",\n  \"summary\": \"A digital settings panel with five toggle controls for various features, some enabled and others disabled.\",\n  \"tags\": [\n    {\n      \"en\": \"settings\",\n      \"ru\": \"настройки\"\n    },\n    {\n      \"en\": \"toggle\",\n      \"ru\": \"переключатель\"\n    },\n    {\n      \"en\": \"interface\",\n      \"ru\": \"интерфейс\"\n    },\n    {\n      \"en\": \"notifications\",\n      \"ru\": \"уведомления\"\n    },\n    {\n      \"en\": \"location\",\n      \"ru\": \"геопозиция\"\n    },\n    {\n      \"en\": \"auto update\",\n      \"ru\": \"автообновление\"\n    },\n    {\n      \"en\": \"dark mode\",\n      \"ru\": \"темная тема\"\n    },\n    {\n      \"en\": \"keyboard sound\",\n      \"ru\": \"звук клавиш\"\n    }\n  ],\n  \"objects\": [\n    \"toggle switch\",\n    \"settings window\",\n    \"close button\",\n    \"text label\",\n    \"active toggle\",\n    \"inactive toggle\",\n    \"header bar\",\n    \"Russian text\"\n  ],\n  \"scenes\": [\n    \"digital interface\",\n    \"settings panel\",\n    \"user settings menu\"\n  ],\n  \"actions\": [\n    \"displaying options\",\n    \"enabling or disabling features\"\n  ],\n  \"emotions\": [\n    \"neutral\",\n    \"functional\"\n  ]\n}",
+      "output": {
+        "title": "Settings Menu Interface",
+        "title_ru": "Меню настроек интерфейса",
+        "description": "A settings window with five toggle switches. The labels are in Russian: 'Dark theme', 'Notifications', 'Location access', 'Auto-update', and 'Keyboard sound'. Two toggles are active (blue), three are inactive (gray). The window has a dark gray header with the title 'Настройки' and an 'X' close button.",
+        "summary": "A digital settings panel with five toggle controls for various features, some enabled and others disabled.",
+        "tags": [
+          {
+            "en": "settings",
+            "ru": "настройки"
+          },
+          {
+            "en": "toggle",
+            "ru": "переключатель"
+          },
+          {
+            "en": "interface",
+            "ru": "интерфейс"
+          },
+          {
+            "en": "notifications",
+            "ru": "уведомления"
+          },
+          {
+            "en": "location",
+            "ru": "геопозиция"
+          },
+          {
+            "en": "auto update",
+            "ru": "автообновление"
+          },
+          {
+            "en": "dark mode",
+            "ru": "темная тема"
+          },
+          {
+            "en": "keyboard sound",
+            "ru": "звук клавиш"
+          }
+        ],
+        "objects": [
+          "toggle switch",
+          "settings window",
+          "close button",
+          "text label",
+          "active toggle",
+          "inactive toggle",
+          "header bar",
+          "Russian text"
+        ],
+        "scenes": [
+          "digital interface",
+          "settings panel",
+          "user settings menu"
+        ],
+        "actions": [
+          "displaying options",
+          "enabling or disabling features"
+        ],
+        "emotions": [
+          "neutral",
+          "functional"
+        ]
+      }
+    },
+    "synth-014": {
+      "seconds": 5.95,
+      "outputTokens": 346,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Sign In Screen\",\n  \"title_ru\": \"Экран входа\",\n  \"description\": \"A minimalist sign-in interface with two input fields labeled 'Email address' and 'Password'. Below them is a blue 'Continue' button. Underneath the button, the text 'Forgot password?' is displayed in blue. The background is plain white.\",\n  \"summary\": \"A clean digital login screen with email and password fields.\",\n  \"tags\": [\n    {\n      \"en\": \"login\",\n      \"ru\": \"вход\"\n    },\n    {\n      \"en\": \"email\",\n      \"ru\": \"почта\"\n    },\n    {\n      \"en\": \"password\",\n      \"ru\": \"пароль\"\n    },\n    {\n      \"en\": \"button\",\n      \"ru\": \"кнопка\"\n    },\n    {\n      \"en\": \"form\",\n      \"ru\": \"форма\"\n    },\n    {\n      \"en\": \"interface\",\n      \"ru\": \"интерфейс\"\n    },\n    {\n      \"en\": \"continue\",\n      \"ru\": \"продолжить\"\n    },\n    {\n      \"en\": \"forgot password\",\n      \"ru\": \"забыл пароль\"\n    }\n  ],\n  \"objects\": [\n    \"email address field\",\n    \"password field\",\n    \"Continue button\",\n    \"Forgot password? link\"\n  ],\n  \"scenes\": [\n    \"digital interface\",\n    \"login screen\"\n  ],\n  \"actions\": [\n    \"user inputs credentials\",\n    \"clicks continue button\"\n  ],\n  \"emotions\": [\n    \"neutral\",\n    \"functional\"\n  ]\n}",
+      "output": {
+        "title": "Sign In Screen",
+        "title_ru": "Экран входа",
+        "description": "A minimalist sign-in interface with two input fields labeled 'Email address' and 'Password'. Below them is a blue 'Continue' button. Underneath the button, the text 'Forgot password?' is displayed in blue. The background is plain white.",
+        "summary": "A clean digital login screen with email and password fields.",
+        "tags": [
+          {
+            "en": "login",
+            "ru": "вход"
+          },
+          {
+            "en": "email",
+            "ru": "почта"
+          },
+          {
+            "en": "password",
+            "ru": "пароль"
+          },
+          {
+            "en": "button",
+            "ru": "кнопка"
+          },
+          {
+            "en": "form",
+            "ru": "форма"
+          },
+          {
+            "en": "interface",
+            "ru": "интерфейс"
+          },
+          {
+            "en": "continue",
+            "ru": "продолжить"
+          },
+          {
+            "en": "forgot password",
+            "ru": "забыл пароль"
+          }
+        ],
+        "objects": [
+          "email address field",
+          "password field",
+          "Continue button",
+          "Forgot password? link"
+        ],
+        "scenes": [
+          "digital interface",
+          "login screen"
+        ],
+        "actions": [
+          "user inputs credentials",
+          "clicks continue button"
+        ],
+        "emotions": [
+          "neutral",
+          "functional"
+        ]
+      }
+    },
+    "synth-019": {
+      "seconds": 6.12,
+      "outputTokens": 372,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"C# Code Editor\",\n  \"title_ru\": \"Редактор кода C#\",\n  \"description\": \"A dark-themed code editor window displays C# source code. The code declares an array of cat names and uses a foreach loop to print 'Feed {cat}' for each name. The window title reads 'Program.cs - Editor'.\",\n  \"summary\": \"C# code in a dark editor window prints 'Feed' for two cat names.\",\n  \"tags\": [\n    {\n      \"en\": \"C#\",\n      \"ru\": \"C#\"\n    },\n    {\n      \"en\": \"code editor\",\n      \"ru\": \"редактор кода\"\n    },\n    {\n      \"en\": \"foreach loop\",\n      \"ru\": \"цикл foreach\"\n    },\n    {\n      \"en\": \"cat names\",\n      \"ru\": \"имена кошек\"\n    },\n    {\n      \"en\": \"console write line\",\n      \"ru\": \"консольный вывод строки\"\n    },\n    {\n      \"en\": \"program.cs\",\n      \"ru\": \"program.cs\"\n    },\n    {\n      \"en\": \"dark theme\",\n      \"ru\": \"темная тема\"\n    }\n  ],\n  \"objects\": [\n    \"code editor window\",\n    \"C# source code\",\n    \"foreach loop\",\n    \"array of strings\",\n    \"Console.WriteLine\",\n    \"cat names\",\n    \"window title\"\n  ],\n  \"scenes\": [\n    \"computer screen\",\n    \"text editor interface\"\n  ],\n  \"actions\": [\n    \"displaying code\",\n    \"looping through array\",\n    \"printing text to console\"\n  ],\n  \"emotions\": [\n    \"neutral\",\n    \"technical\",\n    \"programmatic\"\n  ]\n}",
+      "output": {
+        "title": "C# Code Editor",
+        "title_ru": "Редактор кода C#",
+        "description": "A dark-themed code editor window displays C# source code. The code declares an array of cat names and uses a foreach loop to print 'Feed {cat}' for each name. The window title reads 'Program.cs - Editor'.",
+        "summary": "C# code in a dark editor window prints 'Feed' for two cat names.",
+        "tags": [
+          {
+            "en": "C#",
+            "ru": "C#"
+          },
+          {
+            "en": "code editor",
+            "ru": "редактор кода"
+          },
+          {
+            "en": "foreach loop",
+            "ru": "цикл foreach"
+          },
+          {
+            "en": "cat names",
+            "ru": "имена кошек"
+          },
+          {
+            "en": "console write line",
+            "ru": "консольный вывод строки"
+          },
+          {
+            "en": "program.cs",
+            "ru": "program.cs"
+          },
+          {
+            "en": "dark theme",
+            "ru": "темная тема"
+          }
+        ],
+        "objects": [
+          "code editor window",
+          "C# source code",
+          "foreach loop",
+          "array of strings",
+          "Console.WriteLine",
+          "cat names",
+          "window title"
+        ],
+        "scenes": [
+          "computer screen",
+          "text editor interface"
+        ],
+        "actions": [
+          "displaying code",
+          "looping through array",
+          "printing text to console"
+        ],
+        "emotions": [
+          "neutral",
+          "technical",
+          "programmatic"
+        ]
+      }
+    },
+    "synth-024": {
+      "seconds": 5.59,
+      "outputTokens": 323,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Low Battery Warning\",\n  \"title_ru\": \"Предупреждение о низком уровне заряда\",\n  \"description\": \"A digital alert screen displays a battery warning. The text reads 'Battery low' in white, followed by '5% remaining' in red. Below that, it advises to 'Connect your charger soon.' The background is dark gray with rounded corners.\",\n  \"summary\": \"A smartphone or device screen shows a low battery warning with 5% remaining.\",\n  \"tags\": [\n    {\n      \"en\": \"battery\",\n      \"ru\": \"аккумулятор\"\n    },\n    {\n      \"en\": \"warning\",\n      \"ru\": \"предупреждение\"\n    },\n    {\n      \"en\": \"screen\",\n      \"ru\": \"экран\"\n    },\n    {\n      \"en\": \"charger\",\n      \"ru\": \"зарядное устройство\"\n    },\n    {\n      \"en\": \"percentage\",\n      \"ru\": \"процент\"\n    },\n    {\n      \"en\": \"mobile device\",\n      \"ru\": \"мобильное устройство\"\n    }\n  ],\n  \"objects\": [\n    \"text\",\n    \"screen\",\n    \"warning message\"\n  ],\n  \"scenes\": [\n    \"digital interface\",\n    \"device display\"\n  ],\n  \"actions\": [\n    \"displaying alert\",\n    \"showing battery level\"\n  ],\n  \"emotions\": [\n    \"urgency\",\n    \"alertness\"\n  ]\n}",
+      "output": {
+        "title": "Low Battery Warning",
+        "title_ru": "Предупреждение о низком уровне заряда",
+        "description": "A digital alert screen displays a battery warning. The text reads 'Battery low' in white, followed by '5% remaining' in red. Below that, it advises to 'Connect your charger soon.' The background is dark gray with rounded corners.",
+        "summary": "A smartphone or device screen shows a low battery warning with 5% remaining.",
+        "tags": [
+          {
+            "en": "battery",
+            "ru": "аккумулятор"
+          },
+          {
+            "en": "warning",
+            "ru": "предупреждение"
+          },
+          {
+            "en": "screen",
+            "ru": "экран"
+          },
+          {
+            "en": "charger",
+            "ru": "зарядное устройство"
+          },
+          {
+            "en": "percentage",
+            "ru": "процент"
+          },
+          {
+            "en": "mobile device",
+            "ru": "мобильное устройство"
+          }
+        ],
+        "objects": [
+          "text",
+          "screen",
+          "warning message"
+        ],
+        "scenes": [
+          "digital interface",
+          "device display"
+        ],
+        "actions": [
+          "displaying alert",
+          "showing battery level"
+        ],
+        "emotions": [
+          "urgency",
+          "alertness"
+        ]
+      }
+    },
+    "synth-028": {
+      "seconds": 6.63,
+      "outputTokens": 379,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Coffee Shop Receipt\",\n  \"title_ru\": \"Чек из кофейни\",\n  \"description\": \"A receipt from 'The Daily Grind Coffee & Bakery' for Table 4. Items include a flat white, cappuccino, almond croissant, and carrot cake. The total is $13.25. Payment was approved by card, with a thank you message.\",\n  \"summary\": \"Receipt from a coffee and bakery shop showing purchases and payment confirmation.\",\n  \"tags\": [\n    {\n      \"en\": \"coffee shop\",\n      \"ru\": \"кофейня\"\n    },\n    {\n      \"en\": \"receipt\",\n      \"ru\": \"чек\"\n    },\n    {\n      \"en\": \"menu\",\n      \"ru\": \"меню\"\n    },\n    {\n      \"en\": \"almond croissant\",\n      \"ru\": \"алмунд кроасан\"\n    },\n    {\n      \"en\": \"carrot cake\",\n      \"ru\": \"тыквенный торт\"\n    },\n    {\n      \"en\": \"card payment\",\n      \"ru\": \"платеж картой\"\n    },\n    {\n      \"en\": \"table 4\",\n      \"ru\": \"стол 4\"\n    }\n  ],\n  \"objects\": [\n    \"receipt\",\n    \"coffee\",\n    \"cake\",\n    \"croissant\",\n    \"total amount\",\n    \"payment confirmation\",\n    \"thank you message\"\n  ],\n  \"scenes\": [\n    \"coffee shop\",\n    \"bakery\",\n    \"table\"\n  ],\n  \"actions\": [\n    \"purchased items\",\n    \"paid with card\",\n    \"received receipt\"\n  ],\n  \"emotions\": [\n    \"thankful\",\n    \"friendly\",\n    \"casual\"\n  ]\n}",
+      "output": {
+        "title": "Coffee Shop Receipt",
+        "title_ru": "Чек из кофейни",
+        "description": "A receipt from 'The Daily Grind Coffee & Bakery' for Table 4. Items include a flat white, cappuccino, almond croissant, and carrot cake. The total is $13.25. Payment was approved by card, with a thank you message.",
+        "summary": "Receipt from a coffee and bakery shop showing purchases and payment confirmation.",
+        "tags": [
+          {
+            "en": "coffee shop",
+            "ru": "кофейня"
+          },
+          {
+            "en": "receipt",
+            "ru": "чек"
+          },
+          {
+            "en": "menu",
+            "ru": "меню"
+          },
+          {
+            "en": "almond croissant",
+            "ru": "алмунд кроасан"
+          },
+          {
+            "en": "carrot cake",
+            "ru": "тыквенный торт"
+          },
+          {
+            "en": "card payment",
+            "ru": "платеж картой"
+          },
+          {
+            "en": "table 4",
+            "ru": "стол 4"
+          }
+        ],
+        "objects": [
+          "receipt",
+          "coffee",
+          "cake",
+          "croissant",
+          "total amount",
+          "payment confirmation",
+          "thank you message"
+        ],
+        "scenes": [
+          "coffee shop",
+          "bakery",
+          "table"
+        ],
+        "actions": [
+          "purchased items",
+          "paid with card",
+          "received receipt"
+        ],
+        "emotions": [
+          "thankful",
+          "friendly",
+          "casual"
+        ]
+      }
+    },
+    "synth-035": {
+      "seconds": 6.67,
+      "outputTokens": 360,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Anna Smirnova Wedding Photographer\",\n  \"title_ru\": \"Анна Смирнова свадебный фотограф\",\n  \"description\": \"A business card for Anna Smirnova, a wedding photographer. The card displays her name in English and Russian, her profession in both languages, and contact details including a phone number and email address. The design is minimalist with a teal vertical stripe on the left.\",\n  \"summary\": \"Business card for a Russian wedding photographer named Anna Smirnova.\",\n  \"tags\": [\n    {\n      \"en\": \"wedding photographer\",\n      \"ru\": \"свадебный фотограф\"\n    },\n    {\n      \"en\": \"business card\",\n      \"ru\": \"визитка\"\n    },\n    {\n      \"en\": \"contact info\",\n      \"ru\": \"контактная информация\"\n    },\n    {\n      \"en\": \"name\",\n      \"ru\": \"имя\"\n    },\n    {\n      \"en\": \"phone number\",\n      \"ru\": \"телефон\"\n    },\n    {\n      \"en\": \"email\",\n      \"ru\": \"электронная почта\"\n    },\n    {\n      \"en\": \"teal stripe\",\n      \"ru\": \"бирюзовая полоса\"\n    },\n    {\n      \"en\": \"minimalist design\",\n      \"ru\": \"минималистичный дизайн\"\n    }\n  ],\n  \"objects\": [\n    \"name\",\n    \"profession\",\n    \"phone number\",\n    \"email address\",\n    \"vertical stripe\"\n  ],\n  \"scenes\": [\n    \"business card\",\n    \"professional profile\"\n  ],\n  \"actions\": [],\n  \"emotions\": []\n}",
+      "output": {
+        "title": "Anna Smirnova Wedding Photographer",
+        "title_ru": "Анна Смирнова свадебный фотограф",
+        "description": "A business card for Anna Smirnova, a wedding photographer. The card displays her name in English and Russian, her profession in both languages, and contact details including a phone number and email address. The design is minimalist with a teal vertical stripe on the left.",
+        "summary": "Business card for a Russian wedding photographer named Anna Smirnova.",
+        "tags": [
+          {
+            "en": "wedding photographer",
+            "ru": "свадебный фотограф"
+          },
+          {
+            "en": "business card",
+            "ru": "визитка"
+          },
+          {
+            "en": "contact info",
+            "ru": "контактная информация"
+          },
+          {
+            "en": "name",
+            "ru": "имя"
+          },
+          {
+            "en": "phone number",
+            "ru": "телефон"
+          },
+          {
+            "en": "email",
+            "ru": "электронная почта"
+          },
+          {
+            "en": "teal stripe",
+            "ru": "бирюзовая полоса"
+          },
+          {
+            "en": "minimalist design",
+            "ru": "минималистичный дизайн"
+          }
+        ],
+        "objects": [
+          "name",
+          "profession",
+          "phone number",
+          "email address",
+          "vertical stripe"
+        ],
+        "scenes": [
+          "business card",
+          "professional profile"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-042": {
+      "seconds": 5.42,
+      "outputTokens": 287,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Caution Wet Floor Sign\",\n  \"title_ru\": \"Знак предупреждения о мокром полу\",\n  \"description\": \"A bright yellow rectangular sign with a thick black border. The text reads 'CAUTION' on the top line and 'WET FLOOR' on the bottom line, both in bold, uppercase, black letters. The sign is designed to warn of a wet floor.\",\n  \"summary\": \"A yellow caution sign warning of a wet floor.\",\n  \"tags\": [\n    {\n      \"en\": \"caution\",\n      \"ru\": \"предупреждение\"\n    },\n    {\n      \"en\": \"wet floor\",\n      \"ru\": \"мокрый пол\"\n    },\n    {\n      \"en\": \"sign\",\n      \"ru\": \"знак\"\n    },\n    {\n      \"en\": \"warning\",\n      \"ru\": \"предупреждение\"\n    },\n    {\n      \"en\": \"yellow\",\n      \"ru\": \"желтый\"\n    },\n    {\n      \"en\": \"black text\",\n      \"ru\": \"черный текст\"\n    }\n  ],\n  \"objects\": [\n    \"sign\"\n  ],\n  \"scenes\": [\n    \"indoor\",\n    \"warning sign\"\n  ],\n  \"actions\": [],\n  \"emotions\": []\n}",
+      "output": {
+        "title": "Caution Wet Floor Sign",
+        "title_ru": "Знак предупреждения о мокром полу",
+        "description": "A bright yellow rectangular sign with a thick black border. The text reads 'CAUTION' on the top line and 'WET FLOOR' on the bottom line, both in bold, uppercase, black letters. The sign is designed to warn of a wet floor.",
+        "summary": "A yellow caution sign warning of a wet floor.",
+        "tags": [
+          {
+            "en": "caution",
+            "ru": "предупреждение"
+          },
+          {
+            "en": "wet floor",
+            "ru": "мокрый пол"
+          },
+          {
+            "en": "sign",
+            "ru": "знак"
+          },
+          {
+            "en": "warning",
+            "ru": "предупреждение"
+          },
+          {
+            "en": "yellow",
+            "ru": "желтый"
+          },
+          {
+            "en": "black text",
+            "ru": "черный текст"
+          }
+        ],
+        "objects": [
+          "sign"
+        ],
+        "scenes": [
+          "indoor",
+          "warning sign"
+        ],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-048": {
+      "seconds": 6.84,
+      "outputTokens": 372,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Handwritten To-Do List\",\n  \"title_ru\": \"Ручной список дел\",\n  \"description\": \"A light green sticky note with handwritten Russian text in dark ink. The note lists tasks: buy milk and bread, call grandma, signed by Lena. The handwriting is casual and legible.\",\n  \"summary\": \"A handwritten to-do list on a green sticky note in Russian.\",\n  \"tags\": [\n    {\n      \"en\": \"sticky note\",\n      \"ru\": \"нотатка\"\n    },\n    {\n      \"en\": \"handwriting\",\n      \"ru\": \"письмо\"\n    },\n    {\n      \"en\": \"to-do list\",\n      \"ru\": \"список дел\"\n    },\n    {\n      \"en\": \"Russian text\",\n      \"ru\": \"русский текст\"\n    },\n    {\n      \"en\": \"milk\",\n      \"ru\": \"молоко\"\n    },\n    {\n      \"en\": \"bread\",\n      \"ru\": \"хлеб\"\n    },\n    {\n      \"en\": \"grandma\",\n      \"ru\": \"бабушка\"\n    },\n    {\n      \"en\": \"phone call\",\n      \"ru\": \"звонок\"\n    },\n    {\n      \"en\": \"signature\",\n      \"ru\": \"подпись\"\n    }\n  ],\n  \"objects\": [\n    \"sticky note\",\n    \"handwriting\",\n    \"text\",\n    \"tasks\",\n    \"signature\"\n  ],\n  \"scenes\": [\n    \"desk\",\n    \"home\",\n    \"notebook\"\n  ],\n  \"actions\": [\n    \"writing\",\n    \"listing\",\n    \"signing\"\n  ],\n  \"emotions\": [\n    \"casual\",\n    \"personal\",\n    \"organized\"\n  ]\n}",
+      "output": {
+        "title": "Handwritten To-Do List",
+        "title_ru": "Ручной список дел",
+        "description": "A light green sticky note with handwritten Russian text in dark ink. The note lists tasks: buy milk and bread, call grandma, signed by Lena. The handwriting is casual and legible.",
+        "summary": "A handwritten to-do list on a green sticky note in Russian.",
+        "tags": [
+          {
+            "en": "sticky note",
+            "ru": "нотатка"
+          },
+          {
+            "en": "handwriting",
+            "ru": "письмо"
+          },
+          {
+            "en": "to-do list",
+            "ru": "список дел"
+          },
+          {
+            "en": "Russian text",
+            "ru": "русский текст"
+          },
+          {
+            "en": "milk",
+            "ru": "молоко"
+          },
+          {
+            "en": "bread",
+            "ru": "хлеб"
+          },
+          {
+            "en": "grandma",
+            "ru": "бабушка"
+          },
+          {
+            "en": "phone call",
+            "ru": "звонок"
+          },
+          {
+            "en": "signature",
+            "ru": "подпись"
+          }
+        ],
+        "objects": [
+          "sticky note",
+          "handwriting",
+          "text",
+          "tasks",
+          "signature"
+        ],
+        "scenes": [
+          "desk",
+          "home",
+          "notebook"
+        ],
+        "actions": [
+          "writing",
+          "listing",
+          "signing"
+        ],
+        "emotions": [
+          "casual",
+          "personal",
+          "organized"
+        ]
+      }
+    },
+    "synth-055": {
+      "seconds": 7.46,
+      "outputTokens": 419,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Tenancy Agreement Pets Clause\",\n  \"title_ru\": \"Соглашение о найме: условия по животным\",\n  \"description\": \"A page from a tenancy agreement detailing pet policies. Section 4, labeled 'Pets', states tenants may keep one cat or small dog with landlord's written consent. It specifies that any damage caused by the animal must be repaired at the tenant's expense. The text is typed in black on white paper.\",\n  \"summary\": \"A clause in a tenancy agreement outlining pet restrictions and liability for damage.\",\n  \"tags\": [\n    {\n      \"en\": \"tenancy agreement\",\n      \"ru\": \"соглашение о найме\"\n    },\n    {\n      \"en\": \"pet policy\",\n      \"ru\": \"политика по животным\"\n    },\n    {\n      \"en\": \"landlord consent\",\n      \"ru\": \"согласие арендодателя\"\n    },\n    {\n      \"en\": \"animal damage\",\n      \"ru\": \"повреждение животным\"\n    },\n    {\n      \"en\": \"tenant responsibility\",\n      \"ru\": \"ответственность арендатора\"\n    },\n    {\n      \"en\": \"cat\",\n      \"ru\": \"кот\"\n    },\n    {\n      \"en\": \"dog\",\n      \"ru\": \"собака\"\n    },\n    {\n      \"en\": \"written consent\",\n      \"ru\": \"письменное согласие\"\n    },\n    {\n      \"en\": \"repair cost\",\n      \"ru\": \"стоимость ремонта\"\n    }\n  ],\n  \"objects\": [\n    \"text\",\n    \"paper\",\n    \"typed words\"\n  ],\n  \"scenes\": [\n    \"document\",\n    \"office\",\n    \"legal form\"\n  ],\n  \"actions\": [\n    \"stating rules\",\n    \"specifying conditions\"\n  ],\n  \"emotions\": [\n    \"formal\",\n    \"neutral\",\n    \"binding\"\n  ]\n}",
+      "output": {
+        "title": "Tenancy Agreement Pets Clause",
+        "title_ru": "Соглашение о найме: условия по животным",
+        "description": "A page from a tenancy agreement detailing pet policies. Section 4, labeled 'Pets', states tenants may keep one cat or small dog with landlord's written consent. It specifies that any damage caused by the animal must be repaired at the tenant's expense. The text is typed in black on white paper.",
+        "summary": "A clause in a tenancy agreement outlining pet restrictions and liability for damage.",
+        "tags": [
+          {
+            "en": "tenancy agreement",
+            "ru": "соглашение о найме"
+          },
+          {
+            "en": "pet policy",
+            "ru": "политика по животным"
+          },
+          {
+            "en": "landlord consent",
+            "ru": "согласие арендодателя"
+          },
+          {
+            "en": "animal damage",
+            "ru": "повреждение животным"
+          },
+          {
+            "en": "tenant responsibility",
+            "ru": "ответственность арендатора"
+          },
+          {
+            "en": "cat",
+            "ru": "кот"
+          },
+          {
+            "en": "dog",
+            "ru": "собака"
+          },
+          {
+            "en": "written consent",
+            "ru": "письменное согласие"
+          },
+          {
+            "en": "repair cost",
+            "ru": "стоимость ремонта"
+          }
+        ],
+        "objects": [
+          "text",
+          "paper",
+          "typed words"
+        ],
+        "scenes": [
+          "document",
+          "office",
+          "legal form"
+        ],
+        "actions": [
+          "stating rules",
+          "specifying conditions"
+        ],
+        "emotions": [
+          "formal",
+          "neutral",
+          "binding"
+        ]
+      }
+    },
+    "gif-003": {
+      "seconds": 5.1,
+      "outputTokens": 319,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"toad swimming in water\",\n  \"title_ru\": \"лягушка плывёт в воде\",\n  \"description\": \"A toad is partially submerged in murky greenish water, its body moving through the surface. Ripples surround the amphibian as it swims. The image is a still frame from an animated GIF, capturing motion. No readable text is present.\",\n  \"summary\": \"A toad swims in murky water with ripples around it.\",\n  \"tags\": [\n    {\n      \"en\": \"toad\",\n      \"ru\": \"лягушка\"\n    },\n    {\n      \"en\": \"water\",\n      \"ru\": \"вода\"\n    },\n    {\n      \"en\": \"swimming\",\n      \"ru\": \"плавание\"\n    },\n    {\n      \"en\": \"ripples\",\n      \"ru\": \"волнения\"\n    },\n    {\n      \"en\": \"amphibian\",\n      \"ru\": \"амфибия\"\n    },\n    {\n      \"en\": \"GIF\",\n      \"ru\": \"анимация\"\n    },\n    {\n      \"en\": \"motion\",\n      \"ru\": \"движение\"\n    },\n    {\n      \"en\": \"natural habitat\",\n      \"ru\": \"естественная среда\"\n    }\n  ],\n  \"objects\": [\n    \"toad\"\n  ],\n  \"scenes\": [\n    \"water\"\n  ],\n  \"actions\": [\n    \"swimming\"\n  ],\n  \"emotions\": []\n}",
+      "output": {
+        "title": "toad swimming in water",
+        "title_ru": "лягушка плывёт в воде",
+        "description": "A toad is partially submerged in murky greenish water, its body moving through the surface. Ripples surround the amphibian as it swims. The image is a still frame from an animated GIF, capturing motion. No readable text is present.",
+        "summary": "A toad swims in murky water with ripples around it.",
+        "tags": [
+          {
+            "en": "toad",
+            "ru": "лягушка"
+          },
+          {
+            "en": "water",
+            "ru": "вода"
+          },
+          {
+            "en": "swimming",
+            "ru": "плавание"
+          },
+          {
+            "en": "ripples",
+            "ru": "волнения"
+          },
+          {
+            "en": "amphibian",
+            "ru": "амфибия"
+          },
+          {
+            "en": "GIF",
+            "ru": "анимация"
+          },
+          {
+            "en": "motion",
+            "ru": "движение"
+          },
+          {
+            "en": "natural habitat",
+            "ru": "естественная среда"
+          }
+        ],
+        "objects": [
+          "toad"
+        ],
+        "scenes": [
+          "water"
+        ],
+        "actions": [
+          "swimming"
+        ],
+        "emotions": []
+      }
+    },
+    "gif-007": {
+      "seconds": 6.64,
+      "outputTokens": 411,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Snake Coiled on Rocks\",\n  \"title_ru\": \"Змея, свернутая на камнях\",\n  \"description\": \"A brown snake is coiled tightly between large rocks and dry grass. Bright sunlight casts sharp shadows across the scene. The snake's scales are visible in detail, and its body forms a tight spiral. No readable text appears in the image.\",\n  \"summary\": \"A brown snake coils on sunlit rocks with dry vegetation.\",\n  \"tags\": [\n    {\n      \"en\": \"snake\",\n      \"ru\": \"змея\"\n    },\n    {\n      \"en\": \"rock\",\n      \"ru\": \"камень\"\n    },\n    {\n      \"en\": \"grass\",\n      \"ru\": \"трава\"\n    },\n    {\n      \"en\": \"sunlight\",\n      \"ru\": \"солнечный свет\"\n    },\n    {\n      \"en\": \"coiled\",\n      \"ru\": \"свёрнутый\"\n    },\n    {\n      \"en\": \"wild\",\n      \"ru\": \"дикой\"\n    },\n    {\n      \"en\": \"nature\",\n      \"ru\": \"природа\"\n    },\n    {\n      \"en\": \"animal\",\n      \"ru\": \"животное\"\n    },\n    {\n      \"en\": \"shadow\",\n      \"ru\": \"тень\"\n    },\n    {\n      \"en\": \"outdoor\",\n      \"ru\": \"на улице\"\n    }\n  ],\n  \"objects\": [\n    \"snake\",\n    \"rock\",\n    \"grass\",\n    \"shadow\",\n    \"sunlight\"\n  ],\n  \"scenes\": [\n    \"rocky terrain\",\n    \"dry grass\",\n    \"natural habitat\"\n  ],\n  \"actions\": [\n    \"coiled\",\n    \"resting\",\n    \"basking\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"stillness\",\n    \"wild\"\n  ]\n}",
+      "output": {
+        "title": "Snake Coiled on Rocks",
+        "title_ru": "Змея, свернутая на камнях",
+        "description": "A brown snake is coiled tightly between large rocks and dry grass. Bright sunlight casts sharp shadows across the scene. The snake's scales are visible in detail, and its body forms a tight spiral. No readable text appears in the image.",
+        "summary": "A brown snake coils on sunlit rocks with dry vegetation.",
+        "tags": [
+          {
+            "en": "snake",
+            "ru": "змея"
+          },
+          {
+            "en": "rock",
+            "ru": "камень"
+          },
+          {
+            "en": "grass",
+            "ru": "трава"
+          },
+          {
+            "en": "sunlight",
+            "ru": "солнечный свет"
+          },
+          {
+            "en": "coiled",
+            "ru": "свёрнутый"
+          },
+          {
+            "en": "wild",
+            "ru": "дикой"
+          },
+          {
+            "en": "nature",
+            "ru": "природа"
+          },
+          {
+            "en": "animal",
+            "ru": "животное"
+          },
+          {
+            "en": "shadow",
+            "ru": "тень"
+          },
+          {
+            "en": "outdoor",
+            "ru": "на улице"
+          }
+        ],
+        "objects": [
+          "snake",
+          "rock",
+          "grass",
+          "shadow",
+          "sunlight"
+        ],
+        "scenes": [
+          "rocky terrain",
+          "dry grass",
+          "natural habitat"
+        ],
+        "actions": [
+          "coiled",
+          "resting",
+          "basking"
+        ],
+        "emotions": [
+          "calm",
+          "stillness",
+          "wild"
+        ]
+      }
+    },
+    "gif-011": {
+      "seconds": 6.71,
+      "outputTokens": 410,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Reindeer Motion Sequence\",\n  \"title_ru\": \"Последовательность движений оленей\",\n  \"description\": \"A black-and-white line drawing shows a sequence of reindeer in motion along a curved path. The animals are depicted in various stages of running, with detailed antlers and muscular bodies. The image is part of an animated GIF, capturing the fluidity of movement through sequential frames. No text is visible.\",\n  \"summary\": \"Animated sequence of reindeer running along a curved path.\",\n  \"tags\": [\n    {\n      \"en\": \"reindeer\",\n      \"ru\": \"олень\"\n    },\n    {\n      \"en\": \"motion\",\n      \"ru\": \"движение\"\n    },\n    {\n      \"en\": \"animation\",\n      \"ru\": \"анимация\"\n    },\n    {\n      \"en\": \"sequence\",\n      \"ru\": \"последовательность\"\n    },\n    {\n      \"en\": \"line drawing\",\n      \"ru\": \"линейный рисунок\"\n    },\n    {\n      \"en\": \"antlers\",\n      \"ru\": \"рога\"\n    },\n    {\n      \"en\": \"path\",\n      \"ru\": \"путь\"\n    },\n    {\n      \"en\": \"GIF\",\n      \"ru\": \"GIF\"\n    },\n    {\n      \"en\": \"running\",\n      \"ru\": \"бег\"\n    },\n    {\n      \"en\": \"frame\",\n      \"ru\": \"кадр\"\n    }\n  ],\n  \"objects\": [\n    \"reindeer\",\n    \"antlers\",\n    \"path\",\n    \"lines\"\n  ],\n  \"scenes\": [\n    \"curved path\",\n    \"white background\"\n  ],\n  \"actions\": [\n    \"running\",\n    \"moving\",\n    \"sequenced motion\"\n  ],\n  \"emotions\": [\n    \"dynamic\",\n    \"energetic\"\n  ]\n}",
+      "output": {
+        "title": "Reindeer Motion Sequence",
+        "title_ru": "Последовательность движений оленей",
+        "description": "A black-and-white line drawing shows a sequence of reindeer in motion along a curved path. The animals are depicted in various stages of running, with detailed antlers and muscular bodies. The image is part of an animated GIF, capturing the fluidity of movement through sequential frames. No text is visible.",
+        "summary": "Animated sequence of reindeer running along a curved path.",
+        "tags": [
+          {
+            "en": "reindeer",
+            "ru": "олень"
+          },
+          {
+            "en": "motion",
+            "ru": "движение"
+          },
+          {
+            "en": "animation",
+            "ru": "анимация"
+          },
+          {
+            "en": "sequence",
+            "ru": "последовательность"
+          },
+          {
+            "en": "line drawing",
+            "ru": "линейный рисунок"
+          },
+          {
+            "en": "antlers",
+            "ru": "рога"
+          },
+          {
+            "en": "path",
+            "ru": "путь"
+          },
+          {
+            "en": "GIF",
+            "ru": "GIF"
+          },
+          {
+            "en": "running",
+            "ru": "бег"
+          },
+          {
+            "en": "frame",
+            "ru": "кадр"
+          }
+        ],
+        "objects": [
+          "reindeer",
+          "antlers",
+          "path",
+          "lines"
+        ],
+        "scenes": [
+          "curved path",
+          "white background"
+        ],
+        "actions": [
+          "running",
+          "moving",
+          "sequenced motion"
+        ],
+        "emotions": [
+          "dynamic",
+          "energetic"
+        ]
+      }
+    },
+    "gif-015": {
+      "seconds": 7.65,
+      "outputTokens": 445,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Dragonfly Close Up\",\n  \"title_ru\": \"Близкий план стрекозы\",\n  \"description\": \"A macro shot captures a dragonfly's face in detail. Its large compound eyes and red mouthparts are prominent. A small, pale insect lies near its front legs on a textured surface. The background is softly blurred.\",\n  \"summary\": \"A close-up of a dragonfly with a small prey insect nearby.\",\n  \"tags\": [\n    {\n      \"en\": \"dragonfly\",\n      \"ru\": \"стрекоза\"\n    },\n    {\n      \"en\": \"insect\",\n      \"ru\": \"насекомое\"\n    },\n    {\n      \"en\": \"macro photography\",\n      \"ru\": \"макрофотография\"\n    },\n    {\n      \"en\": \"compound eyes\",\n      \"ru\": \"комбинированные глаза\"\n    },\n    {\n      \"en\": \"prey\",\n      \"ru\": \"жертва\"\n    },\n    {\n      \"en\": \"close up\",\n      \"ru\": \"близкий план\"\n    },\n    {\n      \"en\": \"texture\",\n      \"ru\": \"текстура\"\n    },\n    {\n      \"en\": \"natural habitat\",\n      \"ru\": \"естественная среда\"\n    },\n    {\n      \"en\": \"insect legs\",\n      \"ru\": \"ноги насекомого\"\n    },\n    {\n      \"en\": \"mouthparts\",\n      \"ru\": \"челюсти\"\n    }\n  ],\n  \"objects\": [\n    \"dragonfly\",\n    \"insect\",\n    \"compound eyes\",\n    \"mouthparts\",\n    \"legs\",\n    \"texture\",\n    \"prey\",\n    \"surface\",\n    \"blurry background\"\n  ],\n  \"scenes\": [\n    \"natural habitat\",\n    \"close-up setting\"\n  ],\n  \"actions\": [\n    \"resting\",\n    \"predation\",\n    \"attacking\"\n  ],\n  \"emotions\": [\n    \"intense\",\n    \"fierce\",\n    \"detailed\"\n  ]\n}",
+      "output": {
+        "title": "Dragonfly Close Up",
+        "title_ru": "Близкий план стрекозы",
+        "description": "A macro shot captures a dragonfly's face in detail. Its large compound eyes and red mouthparts are prominent. A small, pale insect lies near its front legs on a textured surface. The background is softly blurred.",
+        "summary": "A close-up of a dragonfly with a small prey insect nearby.",
+        "tags": [
+          {
+            "en": "dragonfly",
+            "ru": "стрекоза"
+          },
+          {
+            "en": "insect",
+            "ru": "насекомое"
+          },
+          {
+            "en": "macro photography",
+            "ru": "макрофотография"
+          },
+          {
+            "en": "compound eyes",
+            "ru": "комбинированные глаза"
+          },
+          {
+            "en": "prey",
+            "ru": "жертва"
+          },
+          {
+            "en": "close up",
+            "ru": "близкий план"
+          },
+          {
+            "en": "texture",
+            "ru": "текстура"
+          },
+          {
+            "en": "natural habitat",
+            "ru": "естественная среда"
+          },
+          {
+            "en": "insect legs",
+            "ru": "ноги насекомого"
+          },
+          {
+            "en": "mouthparts",
+            "ru": "челюсти"
+          }
+        ],
+        "objects": [
+          "dragonfly",
+          "insect",
+          "compound eyes",
+          "mouthparts",
+          "legs",
+          "texture",
+          "prey",
+          "surface",
+          "blurry background"
+        ],
+        "scenes": [
+          "natural habitat",
+          "close-up setting"
+        ],
+        "actions": [
+          "resting",
+          "predation",
+          "attacking"
+        ],
+        "emotions": [
+          "intense",
+          "fierce",
+          "detailed"
+        ]
+      }
+    },
+    "gif-020": {
+      "seconds": 4.39,
+      "outputTokens": 264,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Ukrainian National Flag\",\n  \"title_ru\": \"Государственный флаг Украины\",\n  \"description\": \"The image shows the national flag of Ukraine waving gently. It features two horizontal bands: a blue upper band and a yellow lower band. The fabric appears to ripple slightly, suggesting movement in the wind. No text or other markings are visible on the flag.\",\n  \"summary\": \"A waving Ukrainian flag with blue and yellow horizontal stripes.\",\n  \"tags\": [\n    {\n      \"en\": \"flag\",\n      \"ru\": \"флаг\"\n    },\n    {\n      \"en\": \"Ukraine\",\n      \"ru\": \"Украина\"\n    },\n    {\n      \"en\": \"blue\",\n      \"ru\": \"синий\"\n    },\n    {\n      \"en\": \"yellow\",\n      \"ru\": \"желтый\"\n    },\n    {\n      \"en\": \"waving\",\n      \"ru\": \"волнующийся\"\n    }\n  ],\n  \"objects\": [\n    \"flag\"\n  ],\n  \"scenes\": [\n    \"outdoor\"\n  ],\n  \"actions\": [\n    \"waving\"\n  ],\n  \"emotions\": [\n    \"proud\",\n    \"national\"\n  ]\n}",
+      "output": {
+        "title": "Ukrainian National Flag",
+        "title_ru": "Государственный флаг Украины",
+        "description": "The image shows the national flag of Ukraine waving gently. It features two horizontal bands: a blue upper band and a yellow lower band. The fabric appears to ripple slightly, suggesting movement in the wind. No text or other markings are visible on the flag.",
+        "summary": "A waving Ukrainian flag with blue and yellow horizontal stripes.",
+        "tags": [
+          {
+            "en": "flag",
+            "ru": "флаг"
+          },
+          {
+            "en": "Ukraine",
+            "ru": "Украина"
+          },
+          {
+            "en": "blue",
+            "ru": "синий"
+          },
+          {
+            "en": "yellow",
+            "ru": "желтый"
+          },
+          {
+            "en": "waving",
+            "ru": "волнующийся"
+          }
+        ],
+        "objects": [
+          "flag"
+        ],
+        "scenes": [
+          "outdoor"
+        ],
+        "actions": [
+          "waving"
+        ],
+        "emotions": [
+          "proud",
+          "national"
+        ]
+      }
+    },
+    "gif-024": {
+      "seconds": 5.59,
+      "outputTokens": 363,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Green Bottle with Spheres\",\n  \"title_ru\": \"Зеленая бутылка с шарами\",\n  \"description\": \"A glowing green glass bottle filled with translucent spheres. The bottle sits on a reflective surface against a black background. The lighting creates a bright, almost neon effect around the bottle's edges and its contents. No text is visible in the image.\",\n  \"summary\": \"A luminous green bottle containing round objects against a dark backdrop.\",\n  \"tags\": [\n    {\n      \"en\": \"bottle\",\n      \"ru\": \"бутылка\"\n    },\n    {\n      \"en\": \"green\",\n      \"ru\": \"зеленый\"\n    },\n    {\n      \"en\": \"glass\",\n      \"ru\": \"стекло\"\n    },\n    {\n      \"en\": \"sphere\",\n      \"ru\": \"шар\"\n    },\n    {\n      \"en\": \"neon\",\n      \"ru\": \"неоновый\"\n    },\n    {\n      \"en\": \"reflection\",\n      \"ru\": \"отражение\"\n    },\n    {\n      \"en\": \"dark background\",\n      \"ru\": \"темный фон\"\n    },\n    {\n      \"en\": \"glow\",\n      \"ru\": \"светящийся\"\n    }\n  ],\n  \"objects\": [\n    \"bottle\",\n    \"spheres\",\n    \"reflection\",\n    \"black background\"\n  ],\n  \"scenes\": [\n    \"dark room\",\n    \"studio lighting\"\n  ],\n  \"actions\": [\n    \"glowing\",\n    \"reflecting\"\n  ],\n  \"emotions\": [\n    \"mysterious\",\n    \"calm\",\n    \"isolated\"\n  ]\n}",
+      "output": {
+        "title": "Green Bottle with Spheres",
+        "title_ru": "Зеленая бутылка с шарами",
+        "description": "A glowing green glass bottle filled with translucent spheres. The bottle sits on a reflective surface against a black background. The lighting creates a bright, almost neon effect around the bottle's edges and its contents. No text is visible in the image.",
+        "summary": "A luminous green bottle containing round objects against a dark backdrop.",
+        "tags": [
+          {
+            "en": "bottle",
+            "ru": "бутылка"
+          },
+          {
+            "en": "green",
+            "ru": "зеленый"
+          },
+          {
+            "en": "glass",
+            "ru": "стекло"
+          },
+          {
+            "en": "sphere",
+            "ru": "шар"
+          },
+          {
+            "en": "neon",
+            "ru": "неоновый"
+          },
+          {
+            "en": "reflection",
+            "ru": "отражение"
+          },
+          {
+            "en": "dark background",
+            "ru": "темный фон"
+          },
+          {
+            "en": "glow",
+            "ru": "светящийся"
+          }
+        ],
+        "objects": [
+          "bottle",
+          "spheres",
+          "reflection",
+          "black background"
+        ],
+        "scenes": [
+          "dark room",
+          "studio lighting"
+        ],
+        "actions": [
+          "glowing",
+          "reflecting"
+        ],
+        "emotions": [
+          "mysterious",
+          "calm",
+          "isolated"
+        ]
+      }
+    },
+    "gif-028": {
+      "seconds": 5.34,
+      "outputTokens": 327,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Blue Command Prompt Window\",\n  \"title_ru\": \"Синий окно командной строки\",\n  \"description\": \"A Windows command prompt window with a bright blue background. The cursor is blinking at the 'C:\\\\Users>' prompt. The window title bar shows 'cmd.exe'. No text has been typed yet.\",\n  \"summary\": \"A blank command prompt window ready for user input.\",\n  \"tags\": [\n    {\n      \"en\": \"command prompt\",\n      \"ru\": \"командная строка\"\n    },\n    {\n      \"en\": \"Windows\",\n      \"ru\": \"Windows\"\n    },\n    {\n      \"en\": \"blue background\",\n      \"ru\": \"синий фон\"\n    },\n    {\n      \"en\": \"cursor\",\n      \"ru\": \"курсор\"\n    },\n    {\n      \"en\": \"terminal\",\n      \"ru\": \"терминал\"\n    },\n    {\n      \"en\": \"console\",\n      \"ru\": \"консоль\"\n    },\n    {\n      \"en\": \"cmd.exe\",\n      \"ru\": \"cmd.exe\"\n    }\n  ],\n  \"objects\": [\n    \"command prompt window\",\n    \"blue background\",\n    \"cursor blinking\",\n    \"prompt text\",\n    \"window title bar\"\n  ],\n  \"scenes\": [\n    \"computer terminal\",\n    \"operating system interface\"\n  ],\n  \"actions\": [\n    \"waiting for input\",\n    \"idle state\"\n  ],\n  \"emotions\": [\n    \"neutral\",\n    \"static\",\n    \"ready\"\n  ]\n}",
+      "output": {
+        "title": "Blue Command Prompt Window",
+        "title_ru": "Синий окно командной строки",
+        "description": "A Windows command prompt window with a bright blue background. The cursor is blinking at the 'C:\\Users>' prompt. The window title bar shows 'cmd.exe'. No text has been typed yet.",
+        "summary": "A blank command prompt window ready for user input.",
+        "tags": [
+          {
+            "en": "command prompt",
+            "ru": "командная строка"
+          },
+          {
+            "en": "Windows",
+            "ru": "Windows"
+          },
+          {
+            "en": "blue background",
+            "ru": "синий фон"
+          },
+          {
+            "en": "cursor",
+            "ru": "курсор"
+          },
+          {
+            "en": "terminal",
+            "ru": "терминал"
+          },
+          {
+            "en": "console",
+            "ru": "консоль"
+          },
+          {
+            "en": "cmd.exe",
+            "ru": "cmd.exe"
+          }
+        ],
+        "objects": [
+          "command prompt window",
+          "blue background",
+          "cursor blinking",
+          "prompt text",
+          "window title bar"
+        ],
+        "scenes": [
+          "computer terminal",
+          "operating system interface"
+        ],
+        "actions": [
+          "waiting for input",
+          "idle state"
+        ],
+        "emotions": [
+          "neutral",
+          "static",
+          "ready"
+        ]
+      }
+    },
+    "gif-032": {
+      "seconds": 7.72,
+      "outputTokens": 471,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Letter A Tracing\",\n  \"title_ru\": \"Письмо буквы А\",\n  \"description\": \"A black outline of the letter 'A' is drawn on a grid of light gray horizontal lines. The letter is formed with two diagonal strokes meeting at the top and a horizontal base line. The image appears to be a tracing guide for handwriting practice.\",\n  \"summary\": \"A black letter 'A' traced on a lined background.\",\n  \"tags\": [\n    {\n      \"en\": \"letter\",\n      \"ru\": \"буква\"\n    },\n    {\n      \"en\": \"tracing\",\n      \"ru\": \"трассировка\"\n    },\n    {\n      \"en\": \"handwriting\",\n      \"ru\": \"письмо\"\n    },\n    {\n      \"en\": \"grid\",\n      \"ru\": \"сетка\"\n    },\n    {\n      \"en\": \"outline\",\n      \"ru\": \"оконтурить\"\n    },\n    {\n      \"en\": \"practice\",\n      \"ru\": \"практика\"\n    },\n    {\n      \"en\": \"education\",\n      \"ru\": \"образование\"\n    },\n    {\n      \"en\": \"alphabet\",\n      \"ru\": \"алфавит\"\n    },\n    {\n      \"en\": \"guideline\",\n      \"ru\": \"линия\"\n    },\n    {\n      \"en\": \"drawing\",\n      \"ru\": \"рисунок\"\n    },\n    {\n      \"en\": \"geometry\",\n      \"ru\": \"геометрия\"\n    },\n    {\n      \"en\": \"line\",\n      \"ru\": \"линия\"\n    },\n    {\n      \"en\": \"aesthetic\",\n      \"ru\": \"эстетика\"\n    }\n  ],\n  \"objects\": [\n    \"letter A\",\n    \"black line\",\n    \"gray lines\",\n    \"tracing guide\",\n    \"handwriting practice\"\n  ],\n  \"scenes\": [\n    \"grid background\",\n    \"paper surface\",\n    \"educational tool\"\n  ],\n  \"actions\": [\n    \"drawing\",\n    \"tracing\",\n    \"guiding hand\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"focused\",\n    \"structured\"\n  ]\n}",
+      "output": {
+        "title": "Letter A Tracing",
+        "title_ru": "Письмо буквы А",
+        "description": "A black outline of the letter 'A' is drawn on a grid of light gray horizontal lines. The letter is formed with two diagonal strokes meeting at the top and a horizontal base line. The image appears to be a tracing guide for handwriting practice.",
+        "summary": "A black letter 'A' traced on a lined background.",
+        "tags": [
+          {
+            "en": "letter",
+            "ru": "буква"
+          },
+          {
+            "en": "tracing",
+            "ru": "трассировка"
+          },
+          {
+            "en": "handwriting",
+            "ru": "письмо"
+          },
+          {
+            "en": "grid",
+            "ru": "сетка"
+          },
+          {
+            "en": "outline",
+            "ru": "оконтурить"
+          },
+          {
+            "en": "practice",
+            "ru": "практика"
+          },
+          {
+            "en": "education",
+            "ru": "образование"
+          },
+          {
+            "en": "alphabet",
+            "ru": "алфавит"
+          },
+          {
+            "en": "guideline",
+            "ru": "линия"
+          },
+          {
+            "en": "drawing",
+            "ru": "рисунок"
+          },
+          {
+            "en": "geometry",
+            "ru": "геометрия"
+          },
+          {
+            "en": "line",
+            "ru": "линия"
+          },
+          {
+            "en": "aesthetic",
+            "ru": "эстетика"
+          }
+        ],
+        "objects": [
+          "letter A",
+          "black line",
+          "gray lines",
+          "tracing guide",
+          "handwriting practice"
+        ],
+        "scenes": [
+          "grid background",
+          "paper surface",
+          "educational tool"
+        ],
+        "actions": [
+          "drawing",
+          "tracing",
+          "guiding hand"
+        ],
+        "emotions": [
+          "calm",
+          "focused",
+          "structured"
+        ]
+      }
+    },
+    "video-003": {
+      "seconds": 4.72,
+      "outputTokens": 282,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"cat sleeping on ground\",\n  \"title_ru\": \"кошка спит на земле\",\n  \"description\": \"A black and white cat is curled up in a tight ball, sleeping on a gray concrete surface. The cat's paws are white, contrasting with its dark fur. The scene is quiet and still, suggesting a peaceful moment. No readable text is visible.\",\n  \"summary\": \"A black and white cat sleeps curled on concrete.\",\n  \"tags\": [\n    {\n      \"en\": \"cat\",\n      \"ru\": \"кошка\"\n    },\n    {\n      \"en\": \"sleeping\",\n      \"ru\": \"спящий\"\n    },\n    {\n      \"en\": \"concrete\",\n      \"ru\": \"бетон\"\n    },\n    {\n      \"en\": \"black and white\",\n      \"ru\": \"черно-белый\"\n    },\n    {\n      \"en\": \"curled\",\n      \"ru\": \"свернутый\"\n    },\n    {\n      \"en\": \"ground\",\n      \"ru\": \"земля\"\n    }\n  ],\n  \"objects\": [\n    \"cat\"\n  ],\n  \"scenes\": [\n    \"concrete surface\"\n  ],\n  \"actions\": [\n    \"sleeping\"\n  ],\n  \"emotions\": [\n    \"peaceful\"\n  ]\n}",
+      "output": {
+        "title": "cat sleeping on ground",
+        "title_ru": "кошка спит на земле",
+        "description": "A black and white cat is curled up in a tight ball, sleeping on a gray concrete surface. The cat's paws are white, contrasting with its dark fur. The scene is quiet and still, suggesting a peaceful moment. No readable text is visible.",
+        "summary": "A black and white cat sleeps curled on concrete.",
+        "tags": [
+          {
+            "en": "cat",
+            "ru": "кошка"
+          },
+          {
+            "en": "sleeping",
+            "ru": "спящий"
+          },
+          {
+            "en": "concrete",
+            "ru": "бетон"
+          },
+          {
+            "en": "black and white",
+            "ru": "черно-белый"
+          },
+          {
+            "en": "curled",
+            "ru": "свернутый"
+          },
+          {
+            "en": "ground",
+            "ru": "земля"
+          }
+        ],
+        "objects": [
+          "cat"
+        ],
+        "scenes": [
+          "concrete surface"
+        ],
+        "actions": [
+          "sleeping"
+        ],
+        "emotions": [
+          "peaceful"
+        ]
+      }
+    },
+    "video-007": {
+      "seconds": 9.67,
+      "outputTokens": 595,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Train Arrives At Station\",\n  \"title_ru\": \"Поезд прибывает на станцию\",\n  \"description\": \"A yellow and dark-colored train approaches a platform viewed through open station doors. The platform has a yellow safety line and blue barriers. A sign on the left reads 'Bristol-on-Avon' and 'offers'. Trees and a clear sky are visible in the background.\",\n  \"summary\": \"A modern train arrives at a sunny railway station platform.\",\n  \"tags\": [\n    {\n      \"en\": \"train\",\n      \"ru\": \"поезд\"\n    },\n    {\n      \"en\": \"station\",\n      \"ru\": \"станция\"\n    },\n    {\n      \"en\": \"platform\",\n      \"ru\": \"платформа\"\n    },\n    {\n      \"en\": \"railway\",\n      \"ru\": \"железная дорога\"\n    },\n    {\n      \"en\": \"yellow train\",\n      \"ru\": \"желтый поезд\"\n    },\n    {\n      \"en\": \"doors open\",\n      \"ru\": \"двери открыты\"\n    },\n    {\n      \"en\": \"sign\",\n      \"ru\": \"знак\"\n    },\n    {\n      \"en\": \"trees\",\n      \"ru\": \"деревья\"\n    },\n    {\n      \"en\": \"sunny day\",\n      \"ru\": \"солнечный день\"\n    },\n    {\n      \"en\": \"blue barriers\",\n      \"ru\": \"синие барьеры\"\n    },\n    {\n      \"en\": \"platform edge\",\n      \"ru\": \"края платформы\"\n    },\n    {\n      \"en\": \"rail tracks\",\n      \"ru\": \"рельсы\"\n    },\n    {\n      \"en\": \"station entrance\",\n      \"ru\": \"вход в станцию\"\n    },\n    {\n      \"en\": \"train approaching\",\n      \"ru\": \"поезд приближается\"\n    }\n  ],\n  \"objects\": [\n    \"train\",\n    \"platform\",\n    \"doors\",\n    \"sign\",\n    \"trees\",\n    \"rail tracks\",\n    \"barriers\",\n    \"safety line\",\n    \"sky\",\n    \"station entrance\",\n    \"train approaching\",\n    \"yellow train\",\n    \"blue barriers\",\n    \"open doors\",\n    \"station sign\",\n    \"platform edge\"\n  ],\n  \"scenes\": [\n    \"railway station\",\n    \"station platform\",\n    \"train station exterior\",\n    \"urban setting\",\n    \"public transport hub\"\n  ],\n  \"actions\": [\n    \"train approaching\",\n    \"doors open\",\n    \"train moving\",\n    \"station view from inside\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"routine\",\n    \"daily life\",\n    \"neutral\",\n    \"peaceful\"\n  ]\n}",
+      "output": {
+        "title": "Train Arrives At Station",
+        "title_ru": "Поезд прибывает на станцию",
+        "description": "A yellow and dark-colored train approaches a platform viewed through open station doors. The platform has a yellow safety line and blue barriers. A sign on the left reads 'Bristol-on-Avon' and 'offers'. Trees and a clear sky are visible in the background.",
+        "summary": "A modern train arrives at a sunny railway station platform.",
+        "tags": [
+          {
+            "en": "train",
+            "ru": "поезд"
+          },
+          {
+            "en": "station",
+            "ru": "станция"
+          },
+          {
+            "en": "platform",
+            "ru": "платформа"
+          },
+          {
+            "en": "railway",
+            "ru": "железная дорога"
+          },
+          {
+            "en": "yellow train",
+            "ru": "желтый поезд"
+          },
+          {
+            "en": "doors open",
+            "ru": "двери открыты"
+          },
+          {
+            "en": "sign",
+            "ru": "знак"
+          },
+          {
+            "en": "trees",
+            "ru": "деревья"
+          },
+          {
+            "en": "sunny day",
+            "ru": "солнечный день"
+          },
+          {
+            "en": "blue barriers",
+            "ru": "синие барьеры"
+          },
+          {
+            "en": "platform edge",
+            "ru": "края платформы"
+          },
+          {
+            "en": "rail tracks",
+            "ru": "рельсы"
+          },
+          {
+            "en": "station entrance",
+            "ru": "вход в станцию"
+          },
+          {
+            "en": "train approaching",
+            "ru": "поезд приближается"
+          }
+        ],
+        "objects": [
+          "train",
+          "platform",
+          "doors",
+          "sign",
+          "trees",
+          "rail tracks",
+          "barriers",
+          "safety line",
+          "sky",
+          "station entrance",
+          "train approaching",
+          "yellow train",
+          "blue barriers",
+          "open doors",
+          "station sign",
+          "platform edge"
+        ],
+        "scenes": [
+          "railway station",
+          "station platform",
+          "train station exterior",
+          "urban setting",
+          "public transport hub"
+        ],
+        "actions": [
+          "train approaching",
+          "doors open",
+          "train moving",
+          "station view from inside"
+        ],
+        "emotions": [
+          "calm",
+          "routine",
+          "daily life",
+          "neutral",
+          "peaceful"
+        ]
+      }
+    },
+    "video-012": {
+      "seconds": 9.16,
+      "outputTokens": 565,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Snowy Chimney Top\",\n  \"title_ru\": \"Снег на дымоходе\",\n  \"description\": \"A weathered chimney with snow on its top and two rusted metal caps. Behind it, a pale building with windows shows signs of wear. Snow falls gently in the background. The roof is covered in snow, suggesting a cold winter day.\",\n  \"summary\": \"A snowy, weathered chimney against a plain building facade.\",\n  \"tags\": [\n    {\n      \"en\": \"chimney\",\n      \"ru\": \"дымоход\"\n    },\n    {\n      \"en\": \"snow\",\n      \"ru\": \"снег\"\n    },\n    {\n      \"en\": \"building\",\n      \"ru\": \"здание\"\n    },\n    {\n      \"en\": \"windows\",\n      \"ru\": \"окна\"\n    },\n    {\n      \"en\": \"winter\",\n      \"ru\": \"зима\"\n    },\n    {\n      \"en\": \"rust\",\n      \"ru\": \"коррозия\"\n    },\n    {\n      \"en\": \"roof\",\n      \"ru\": \"крыша\"\n    },\n    {\n      \"en\": \"weathered\",\n      \"ru\": \"изношенный\"\n    },\n    {\n      \"en\": \"falling snow\",\n      \"ru\": \"падающий снег\"\n    },\n    {\n      \"en\": \"urban\",\n      \"ru\": \"городской\"\n    },\n    {\n      \"en\": \"cold\",\n      \"ru\": \"холодный\"\n    },\n    {\n      \"en\": \"architecture\",\n      \"ru\": \"архитектура\"\n    },\n    {\n      \"en\": \"old\",\n      \"ru\": \"старый\"\n    },\n    {\n      \"en\": \"static\",\n      \"ru\": \"статичный\"\n    }\n  ],\n  \"objects\": [\n    \"chimney\",\n    \"snow\",\n    \"windows\",\n    \"building\",\n    \"roof\",\n    \"rust\",\n    \"falling snow\",\n    \"weathered structure\",\n    \"metal caps\",\n    \"cable\",\n    \"wall\",\n    \"window frame\",\n    \"snow-covered roof\",\n    \"painted building\",\n    \"cold weather\"\n  ],\n  \"scenes\": [\n    \"urban rooftop\",\n    \"winter day\",\n    \"cityscape\",\n    \"building facade\",\n    \"snowy environment\"\n  ],\n  \"actions\": [\n    \"snow falling\",\n    \"snow resting on chimney\",\n    \"static scene\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"stillness\",\n    \"quiet\",\n    \"cold\",\n    \"peaceful\"\n  ]\n}",
+      "output": {
+        "title": "Snowy Chimney Top",
+        "title_ru": "Снег на дымоходе",
+        "description": "A weathered chimney with snow on its top and two rusted metal caps. Behind it, a pale building with windows shows signs of wear. Snow falls gently in the background. The roof is covered in snow, suggesting a cold winter day.",
+        "summary": "A snowy, weathered chimney against a plain building facade.",
+        "tags": [
+          {
+            "en": "chimney",
+            "ru": "дымоход"
+          },
+          {
+            "en": "snow",
+            "ru": "снег"
+          },
+          {
+            "en": "building",
+            "ru": "здание"
+          },
+          {
+            "en": "windows",
+            "ru": "окна"
+          },
+          {
+            "en": "winter",
+            "ru": "зима"
+          },
+          {
+            "en": "rust",
+            "ru": "коррозия"
+          },
+          {
+            "en": "roof",
+            "ru": "крыша"
+          },
+          {
+            "en": "weathered",
+            "ru": "изношенный"
+          },
+          {
+            "en": "falling snow",
+            "ru": "падающий снег"
+          },
+          {
+            "en": "urban",
+            "ru": "городской"
+          },
+          {
+            "en": "cold",
+            "ru": "холодный"
+          },
+          {
+            "en": "architecture",
+            "ru": "архитектура"
+          },
+          {
+            "en": "old",
+            "ru": "старый"
+          },
+          {
+            "en": "static",
+            "ru": "статичный"
+          }
+        ],
+        "objects": [
+          "chimney",
+          "snow",
+          "windows",
+          "building",
+          "roof",
+          "rust",
+          "falling snow",
+          "weathered structure",
+          "metal caps",
+          "cable",
+          "wall",
+          "window frame",
+          "snow-covered roof",
+          "painted building",
+          "cold weather"
+        ],
+        "scenes": [
+          "urban rooftop",
+          "winter day",
+          "cityscape",
+          "building facade",
+          "snowy environment"
+        ],
+        "actions": [
+          "snow falling",
+          "snow resting on chimney",
+          "static scene"
+        ],
+        "emotions": [
+          "calm",
+          "stillness",
+          "quiet",
+          "cold",
+          "peaceful"
+        ]
+      }
+    },
+    "video-016": {
+      "seconds": 5.27,
+      "outputTokens": 320,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Fireworks Over Buildings\",\n  \"title_ru\": \"Фейерверки над зданиями\",\n  \"description\": \"Dark night sky with multiple fireworks exploding in the distance. Below, silhouettes of buildings are barely visible against the darkness. One window on the right emits a faint yellow light. No readable text is present.\",\n  \"summary\": \"Fireworks burst above dark urban structures at night.\",\n  \"tags\": [\n    {\n      \"en\": \"fireworks\",\n      \"ru\": \"фейерверки\"\n    },\n    {\n      \"en\": \"night sky\",\n      \"ru\": \"ночная небесная сцена\"\n    },\n    {\n      \"en\": \"urban buildings\",\n      \"ru\": \"городские здания\"\n    },\n    {\n      \"en\": \"explosion\",\n      \"ru\": \"взрыв\"\n    },\n    {\n      \"en\": \"darkness\",\n      \"ru\": \"тёмнота\"\n    },\n    {\n      \"en\": \"window light\",\n      \"ru\": \"свет из окна\"\n    }\n  ],\n  \"objects\": [\n    \"fireworks\",\n    \"buildings\",\n    \"window\"\n  ],\n  \"scenes\": [\n    \"night sky\",\n    \"urban setting\"\n  ],\n  \"actions\": [\n    \"exploding\",\n    \"lighting up\"\n  ],\n  \"emotions\": [\n    \"celebratory\",\n    \"wonderful\",\n    \"amazing\"\n  ]\n}",
+      "output": {
+        "title": "Fireworks Over Buildings",
+        "title_ru": "Фейерверки над зданиями",
+        "description": "Dark night sky with multiple fireworks exploding in the distance. Below, silhouettes of buildings are barely visible against the darkness. One window on the right emits a faint yellow light. No readable text is present.",
+        "summary": "Fireworks burst above dark urban structures at night.",
+        "tags": [
+          {
+            "en": "fireworks",
+            "ru": "фейерверки"
+          },
+          {
+            "en": "night sky",
+            "ru": "ночная небесная сцена"
+          },
+          {
+            "en": "urban buildings",
+            "ru": "городские здания"
+          },
+          {
+            "en": "explosion",
+            "ru": "взрыв"
+          },
+          {
+            "en": "darkness",
+            "ru": "тёмнота"
+          },
+          {
+            "en": "window light",
+            "ru": "свет из окна"
+          }
+        ],
+        "objects": [
+          "fireworks",
+          "buildings",
+          "window"
+        ],
+        "scenes": [
+          "night sky",
+          "urban setting"
+        ],
+        "actions": [
+          "exploding",
+          "lighting up"
+        ],
+        "emotions": [
+          "celebratory",
+          "wonderful",
+          "amazing"
+        ]
+      }
+    },
+    "video-021": {
+      "seconds": 7.31,
+      "outputTokens": 444,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"raindrops on window\",\n  \"title_ru\": \"капли дождя на окне\",\n  \"description\": \"A close-up view of numerous raindrops clinging to a glass surface. The drops vary in size and shape, some merging into streaks as they slide down. The background is a muted, out-of-focus blue-grey, suggesting an overcast sky or dimly lit interior. No readable text is present.\",\n  \"summary\": \"Raindrops on a windowpane during a rainy day.\",\n  \"tags\": [\n    {\n      \"en\": \"raindrops\",\n      \"ru\": \"капли дождя\"\n    },\n    {\n      \"en\": \"window\",\n      \"ru\": \"окно\"\n    },\n    {\n      \"en\": \"glass\",\n      \"ru\": \"стекло\"\n    },\n    {\n      \"en\": \"rainy\",\n      \"ru\": \"дождливый\"\n    },\n    {\n      \"en\": \"drops\",\n      \"ru\": \"капли\"\n    },\n    {\n      \"en\": \"streaks\",\n      \"ru\": \"стreakи\"\n    },\n    {\n      \"en\": \"weather\",\n      \"ru\": \"погода\"\n    },\n    {\n      \"en\": \"overcast\",\n      \"ru\": \"покрытый облаками\"\n    },\n    {\n      \"en\": \"moisture\",\n      \"ru\": \"влажность\"\n    },\n    {\n      \"en\": \"interior\",\n      \"ru\": \"внутренний\"\n    }\n  ],\n  \"objects\": [\n    \"raindrops\",\n    \"glass surface\",\n    \"streaks\",\n    \"blurry background\"\n  ],\n  \"scenes\": [\n    \"window\",\n    \"indoor setting\",\n    \"rainy weather\"\n  ],\n  \"actions\": [\n    \"droplets forming\",\n    \"sliding down\",\n    \"merging into streaks\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"quiet\",\n    \"peaceful\",\n    \"introspective\"\n  ]\n}",
+      "output": {
+        "title": "raindrops on window",
+        "title_ru": "капли дождя на окне",
+        "description": "A close-up view of numerous raindrops clinging to a glass surface. The drops vary in size and shape, some merging into streaks as they slide down. The background is a muted, out-of-focus blue-grey, suggesting an overcast sky or dimly lit interior. No readable text is present.",
+        "summary": "Raindrops on a windowpane during a rainy day.",
+        "tags": [
+          {
+            "en": "raindrops",
+            "ru": "капли дождя"
+          },
+          {
+            "en": "window",
+            "ru": "окно"
+          },
+          {
+            "en": "glass",
+            "ru": "стекло"
+          },
+          {
+            "en": "rainy",
+            "ru": "дождливый"
+          },
+          {
+            "en": "drops",
+            "ru": "капли"
+          },
+          {
+            "en": "streaks",
+            "ru": "стreakи"
+          },
+          {
+            "en": "weather",
+            "ru": "погода"
+          },
+          {
+            "en": "overcast",
+            "ru": "покрытый облаками"
+          },
+          {
+            "en": "moisture",
+            "ru": "влажность"
+          },
+          {
+            "en": "interior",
+            "ru": "внутренний"
+          }
+        ],
+        "objects": [
+          "raindrops",
+          "glass surface",
+          "streaks",
+          "blurry background"
+        ],
+        "scenes": [
+          "window",
+          "indoor setting",
+          "rainy weather"
+        ],
+        "actions": [
+          "droplets forming",
+          "sliding down",
+          "merging into streaks"
+        ],
+        "emotions": [
+          "calm",
+          "quiet",
+          "peaceful",
+          "introspective"
+        ]
+      }
+    },
+    "video-025": {
+      "seconds": 7.21,
+      "outputTokens": 422,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"duck in murky water\",\n  \"title_ru\": \"утка в мутной воде\",\n  \"description\": \"A duck with a dark head and reddish neck is swimming away from the camera in murky green water. The background shows blurred, mossy stone walls reflecting in the surface. The water has ripples and floating debris. No readable text is visible.\",\n  \"summary\": \"A duck swims away in murky water near mossy stone walls.\",\n  \"tags\": [\n    {\n      \"en\": \"duck\",\n      \"ru\": \"утка\"\n    },\n    {\n      \"en\": \"water\",\n      \"ru\": \"вода\"\n    },\n    {\n      \"en\": \"stone wall\",\n      \"ru\": \"каменная стена\"\n    },\n    {\n      \"en\": \"moss\",\n      \"ru\": \"мхи\"\n    },\n    {\n      \"en\": \"ripple\",\n      \"ru\": \"рельеф\"\n    },\n    {\n      \"en\": \"back view\",\n      \"ru\": \"задний вид\"\n    },\n    {\n      \"en\": \"natural setting\",\n      \"ru\": \"естественная среда\"\n    },\n    {\n      \"en\": \"green water\",\n      \"ru\": \"зеленая вода\"\n    },\n    {\n      \"en\": \"reflection\",\n      \"ru\": \"отражение\"\n    },\n    {\n      \"en\": \"outdoor\",\n      \"ru\": \"на улице\"\n    }\n  ],\n  \"objects\": [\n    \"duck\",\n    \"water\",\n    \"stone wall\",\n    \"moss\",\n    \"ripple\",\n    \"reflection\",\n    \"debris\"\n  ],\n  \"scenes\": [\n    \"pond\",\n    \"natural habitat\",\n    \"outdoor water body\"\n  ],\n  \"actions\": [\n    \"swimming\",\n    \"moving away\",\n    \"floating\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"peaceful\",\n    \"natural\"\n  ]\n}",
+      "output": {
+        "title": "duck in murky water",
+        "title_ru": "утка в мутной воде",
+        "description": "A duck with a dark head and reddish neck is swimming away from the camera in murky green water. The background shows blurred, mossy stone walls reflecting in the surface. The water has ripples and floating debris. No readable text is visible.",
+        "summary": "A duck swims away in murky water near mossy stone walls.",
+        "tags": [
+          {
+            "en": "duck",
+            "ru": "утка"
+          },
+          {
+            "en": "water",
+            "ru": "вода"
+          },
+          {
+            "en": "stone wall",
+            "ru": "каменная стена"
+          },
+          {
+            "en": "moss",
+            "ru": "мхи"
+          },
+          {
+            "en": "ripple",
+            "ru": "рельеф"
+          },
+          {
+            "en": "back view",
+            "ru": "задний вид"
+          },
+          {
+            "en": "natural setting",
+            "ru": "естественная среда"
+          },
+          {
+            "en": "green water",
+            "ru": "зеленая вода"
+          },
+          {
+            "en": "reflection",
+            "ru": "отражение"
+          },
+          {
+            "en": "outdoor",
+            "ru": "на улице"
+          }
+        ],
+        "objects": [
+          "duck",
+          "water",
+          "stone wall",
+          "moss",
+          "ripple",
+          "reflection",
+          "debris"
+        ],
+        "scenes": [
+          "pond",
+          "natural habitat",
+          "outdoor water body"
+        ],
+        "actions": [
+          "swimming",
+          "moving away",
+          "floating"
+        ],
+        "emotions": [
+          "calm",
+          "peaceful",
+          "natural"
+        ]
+      }
+    },
+    "video-030": {
+      "seconds": 8.51,
+      "outputTokens": 531,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"man walking beach\",\n  \"title_ru\": \"человек идёт по пляжу\",\n  \"description\": \"A man in a checkered shirt and shorts walks barefoot along the shoreline. The ocean waves gently lap at the sand, with rocks visible in the water. In the distance, a tree-lined island and hazy mountains form the horizon under a clear sky.\",\n  \"summary\": \"A man walks barefoot along a beach with gentle waves and distant islands.\",\n  \"tags\": [\n    {\n      \"en\": \"beach\",\n      \"ru\": \"пляж\"\n    },\n    {\n      \"en\": \"man\",\n      \"ru\": \"человек\"\n    },\n    {\n      \"en\": \"ocean\",\n      \"ru\": \"море\"\n    },\n    {\n      \"en\": \"waves\",\n      \"ru\": \"волнение\"\n    },\n    {\n      \"en\": \"rocks\",\n      \"ru\": \"камни\"\n    },\n    {\n      \"en\": \"shirt\",\n      \"ru\": \"рубашка\"\n    },\n    {\n      \"en\": \"shorts\",\n      \"ru\": \"шорты\"\n    },\n    {\n      \"en\": \"island\",\n      \"ru\": \"остров\"\n    },\n    {\n      \"en\": \"mountains\",\n      \"ru\": \"горы\"\n    },\n    {\n      \"en\": \"sand\",\n      \"ru\": \"песок\"\n    },\n    {\n      \"en\": \"walking\",\n      \"ru\": \"ходьба\"\n    },\n    {\n      \"en\": \"shoreline\",\n      \"ru\": \"берег\"\n    },\n    {\n      \"en\": \"sky\",\n      \"ru\": \"небо\"\n    },\n    {\n      \"en\": \"barefoot\",\n      \"ru\": \"босиком\"\n    }\n  ],\n  \"objects\": [\n    \"man\",\n    \"shirt\",\n    \"shorts\",\n    \"sand\",\n    \"ocean\",\n    \"waves\",\n    \"rocks\",\n    \"island\",\n    \"mountains\",\n    \"sky\"\n  ],\n  \"scenes\": [\n    \"beach\",\n    \"shoreline\",\n    \"ocean\",\n    \"distant island\",\n    \"hazy mountains\"\n  ],\n  \"actions\": [\n    \"walking\",\n    \"wading\",\n    \"waves lapping shore\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"peaceful\",\n    \"relaxed\"\n  ]\n}",
+      "output": {
+        "title": "man walking beach",
+        "title_ru": "человек идёт по пляжу",
+        "description": "A man in a checkered shirt and shorts walks barefoot along the shoreline. The ocean waves gently lap at the sand, with rocks visible in the water. In the distance, a tree-lined island and hazy mountains form the horizon under a clear sky.",
+        "summary": "A man walks barefoot along a beach with gentle waves and distant islands.",
+        "tags": [
+          {
+            "en": "beach",
+            "ru": "пляж"
+          },
+          {
+            "en": "man",
+            "ru": "человек"
+          },
+          {
+            "en": "ocean",
+            "ru": "море"
+          },
+          {
+            "en": "waves",
+            "ru": "волнение"
+          },
+          {
+            "en": "rocks",
+            "ru": "камни"
+          },
+          {
+            "en": "shirt",
+            "ru": "рубашка"
+          },
+          {
+            "en": "shorts",
+            "ru": "шорты"
+          },
+          {
+            "en": "island",
+            "ru": "остров"
+          },
+          {
+            "en": "mountains",
+            "ru": "горы"
+          },
+          {
+            "en": "sand",
+            "ru": "песок"
+          },
+          {
+            "en": "walking",
+            "ru": "ходьба"
+          },
+          {
+            "en": "shoreline",
+            "ru": "берег"
+          },
+          {
+            "en": "sky",
+            "ru": "небо"
+          },
+          {
+            "en": "barefoot",
+            "ru": "босиком"
+          }
+        ],
+        "objects": [
+          "man",
+          "shirt",
+          "shorts",
+          "sand",
+          "ocean",
+          "waves",
+          "rocks",
+          "island",
+          "mountains",
+          "sky"
+        ],
+        "scenes": [
+          "beach",
+          "shoreline",
+          "ocean",
+          "distant island",
+          "hazy mountains"
+        ],
+        "actions": [
+          "walking",
+          "wading",
+          "waves lapping shore"
+        ],
+        "emotions": [
+          "calm",
+          "peaceful",
+          "relaxed"
+        ]
+      }
+    },
+    "video-034": {
+      "seconds": 7.15,
+      "outputTokens": 436,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Cloud Over Rooftop\",\n  \"title_ru\": \"Облако над крышей\",\n  \"description\": \"A large, illuminated cloud dominates the night sky above a distant hillside. In the foreground, a rooftop with a satellite dish and a lit window is visible. Faint lights from buildings dot the horizon. The scene suggests an urban or suburban setting at twilight.\",\n  \"summary\": \"A massive cloud illuminates the night sky above a rooftop with a satellite dish.\",\n  \"tags\": [\n    {\n      \"en\": \"cloud\",\n      \"ru\": \"облако\"\n    },\n    {\n      \"en\": \"night\",\n      \"ru\": \"ночь\"\n    },\n    {\n      \"en\": \"rooftop\",\n      \"ru\": \"крыша\"\n    },\n    {\n      \"en\": \"satellite dish\",\n      \"ru\": \"спутниковый антенный\"\n    },\n    {\n      \"en\": \"urban\",\n      \"ru\": \"городской\"\n    },\n    {\n      \"en\": \"twilight\",\n      \"ru\": \"закат\"\n    },\n    {\n      \"en\": \"sky\",\n      \"ru\": \"небо\"\n    },\n    {\n      \"en\": \"lightning\",\n      \"ru\": \"молния\"\n    },\n    {\n      \"en\": \"distant hills\",\n      \"ru\": \"далние холмы\"\n    },\n    {\n      \"en\": \"window\",\n      \"ru\": \"окно\"\n    }\n  ],\n  \"objects\": [\n    \"cloud\",\n    \"satellite dish\",\n    \"window\",\n    \"rooftop\",\n    \"hillside\",\n    \"lights\",\n    \"dark sky\"\n  ],\n  \"scenes\": [\n    \"urban rooftop\",\n    \"night sky\",\n    \"distant hills\"\n  ],\n  \"actions\": [\n    \"cloud illuminating\",\n    \"satellite dish standing\",\n    \"window lit\"\n  ],\n  \"emotions\": [\n    \"mysterious\",\n    \"calm\",\n    \"awe-inspiring\"\n  ]\n}",
+      "output": {
+        "title": "Cloud Over Rooftop",
+        "title_ru": "Облако над крышей",
+        "description": "A large, illuminated cloud dominates the night sky above a distant hillside. In the foreground, a rooftop with a satellite dish and a lit window is visible. Faint lights from buildings dot the horizon. The scene suggests an urban or suburban setting at twilight.",
+        "summary": "A massive cloud illuminates the night sky above a rooftop with a satellite dish.",
+        "tags": [
+          {
+            "en": "cloud",
+            "ru": "облако"
+          },
+          {
+            "en": "night",
+            "ru": "ночь"
+          },
+          {
+            "en": "rooftop",
+            "ru": "крыша"
+          },
+          {
+            "en": "satellite dish",
+            "ru": "спутниковый антенный"
+          },
+          {
+            "en": "urban",
+            "ru": "городской"
+          },
+          {
+            "en": "twilight",
+            "ru": "закат"
+          },
+          {
+            "en": "sky",
+            "ru": "небо"
+          },
+          {
+            "en": "lightning",
+            "ru": "молния"
+          },
+          {
+            "en": "distant hills",
+            "ru": "далние холмы"
+          },
+          {
+            "en": "window",
+            "ru": "окно"
+          }
+        ],
+        "objects": [
+          "cloud",
+          "satellite dish",
+          "window",
+          "rooftop",
+          "hillside",
+          "lights",
+          "dark sky"
+        ],
+        "scenes": [
+          "urban rooftop",
+          "night sky",
+          "distant hills"
+        ],
+        "actions": [
+          "cloud illuminating",
+          "satellite dish standing",
+          "window lit"
+        ],
+        "emotions": [
+          "mysterious",
+          "calm",
+          "awe-inspiring"
+        ]
+      }
+    },
+    "video-039": {
+      "seconds": 7.2,
+      "outputTokens": 443,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Night City Lights\",\n  \"title_ru\": \"Ночные городские огни\",\n  \"description\": \"Aerial view of a coastal city at night, illuminated by streetlights and building lights. The shoreline curves along the edge of the urban area, with reflections visible on the water. No readable text is present in the image.\",\n  \"summary\": \"Aerial nighttime view of a coastal city with glowing streets and buildings.\",\n  \"tags\": [\n    {\n      \"en\": \"city\",\n      \"ru\": \"город\"\n    },\n    {\n      \"en\": \"night\",\n      \"ru\": \"ночь\"\n    },\n    {\n      \"en\": \"coast\",\n      \"ru\": \"берег\"\n    },\n    {\n      \"en\": \"lights\",\n      \"ru\": \"свет\"\n    },\n    {\n      \"en\": \"aerial\",\n      \"ru\": \"аэрофотосъемка\"\n    },\n    {\n      \"en\": \"urban\",\n      \"ru\": \"городской\"\n    },\n    {\n      \"en\": \"reflection\",\n      \"ru\": \"отражение\"\n    },\n    {\n      \"en\": \"street\",\n      \"ru\": \"улица\"\n    },\n    {\n      \"en\": \"water\",\n      \"ru\": \"вода\"\n    },\n    {\n      \"en\": \"black and white\",\n      \"ru\": \"черно-белый\"\n    }\n  ],\n  \"objects\": [\n    \"city lights\",\n    \"coastline\",\n    \"water surface\",\n    \"buildings\",\n    \"streets\",\n    \"trees\",\n    \"lights reflections\",\n    \"urban area\",\n    \"night sky\"\n  ],\n  \"scenes\": [\n    \"aerial view\",\n    \"coastal city\",\n    \"nighttime urban landscape\"\n  ],\n  \"actions\": [\n    \"illuminated\",\n    \"reflecting\",\n    \"glowing\",\n    \"lit by streetlights\"\n  ],\n  \"emotions\": [\n    \"serene\",\n    \"calm\",\n    \"peaceful\",\n    \"majestic\"\n  ]\n}",
+      "output": {
+        "title": "Night City Lights",
+        "title_ru": "Ночные городские огни",
+        "description": "Aerial view of a coastal city at night, illuminated by streetlights and building lights. The shoreline curves along the edge of the urban area, with reflections visible on the water. No readable text is present in the image.",
+        "summary": "Aerial nighttime view of a coastal city with glowing streets and buildings.",
+        "tags": [
+          {
+            "en": "city",
+            "ru": "город"
+          },
+          {
+            "en": "night",
+            "ru": "ночь"
+          },
+          {
+            "en": "coast",
+            "ru": "берег"
+          },
+          {
+            "en": "lights",
+            "ru": "свет"
+          },
+          {
+            "en": "aerial",
+            "ru": "аэрофотосъемка"
+          },
+          {
+            "en": "urban",
+            "ru": "городской"
+          },
+          {
+            "en": "reflection",
+            "ru": "отражение"
+          },
+          {
+            "en": "street",
+            "ru": "улица"
+          },
+          {
+            "en": "water",
+            "ru": "вода"
+          },
+          {
+            "en": "black and white",
+            "ru": "черно-белый"
+          }
+        ],
+        "objects": [
+          "city lights",
+          "coastline",
+          "water surface",
+          "buildings",
+          "streets",
+          "trees",
+          "lights reflections",
+          "urban area",
+          "night sky"
+        ],
+        "scenes": [
+          "aerial view",
+          "coastal city",
+          "nighttime urban landscape"
+        ],
+        "actions": [
+          "illuminated",
+          "reflecting",
+          "glowing",
+          "lit by streetlights"
+        ],
+        "emotions": [
+          "serene",
+          "calm",
+          "peaceful",
+          "majestic"
+        ]
+      }
+    },
+    "video-043": {
+      "seconds": 4.27,
+      "outputTokens": 264,
+      "finish": "stop",
+      "firstTryValid": true,
+      "firstTryError": null,
+      "raw": "{\n  \"title\": \"Plane in Clear Sky\",\n  \"title_ru\": \"Самолет на чистом небе\",\n  \"description\": \"A small airplane flies diagonally across a vast, cloudless blue sky, leaving a long white contrail behind it. The aircraft is distant and appears as a faint silhouette against the bright background. No other objects or text are visible in the frame.\",\n  \"summary\": \"A distant airplane leaves a trail across a clear blue sky.\",\n  \"tags\": [\n    {\n      \"en\": \"airplane\",\n      \"ru\": \"самолет\"\n    },\n    {\n      \"en\": \"sky\",\n      \"ru\": \"небо\"\n    },\n    {\n      \"en\": \"contrail\",\n      \"ru\": \"след\"\n    },\n    {\n      \"en\": \"flight\",\n      \"ru\": \"полет\"\n    },\n    {\n      \"en\": \"blue\",\n      \"ru\": \"голубой\"\n    }\n  ],\n  \"objects\": [\n    \"airplane\"\n  ],\n  \"scenes\": [\n    \"sky\"\n  ],\n  \"actions\": [\n    \"flying\"\n  ],\n  \"emotions\": [\n    \"calm\",\n    \"serene\"\n  ]\n}",
+      "output": {
+        "title": "Plane in Clear Sky",
+        "title_ru": "Самолет на чистом небе",
+        "description": "A small airplane flies diagonally across a vast, cloudless blue sky, leaving a long white contrail behind it. The aircraft is distant and appears as a faint silhouette against the bright background. No other objects or text are visible in the frame.",
+        "summary": "A distant airplane leaves a trail across a clear blue sky.",
+        "tags": [
+          {
+            "en": "airplane",
+            "ru": "самолет"
+          },
+          {
+            "en": "sky",
+            "ru": "небо"
+          },
+          {
+            "en": "contrail",
+            "ru": "след"
+          },
+          {
+            "en": "flight",
+            "ru": "полет"
+          },
+          {
+            "en": "blue",
+            "ru": "голубой"
+          }
+        ],
+        "objects": [
+          "airplane"
+        ],
+        "scenes": [
+          "sky"
+        ],
+        "actions": [
+          "flying"
+        ],
+        "emotions": [
+          "calm",
+          "serene"
+        ]
+      }
+    }
+  },
+  "load": {
+    "gpuBeforeMiB": 2004,
+    "gpuAfterMiB": 7041,
+    "gpuModelMiB": 5037,
+    "modelBytes": 3333641502
+  }
+}

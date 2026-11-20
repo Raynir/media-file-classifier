@@ -28,8 +28,8 @@ namespace MediaFileClassifier.Benchmarks.Production;
 /// <summary>
 /// Benchmarks the production search index (E01-S04-T07) on a real library: a copy of an existing library (100k items
 /// by default), given synthetic metadata and embeddings through the app's own repositories, then opened the way the
-/// app opens it. It measures the vector load, the keyword index rebuild, and keyword, vector, hybrid and list queries
-/// under three filters, against the D031 budget of 200 ms.
+/// app opens it. It measures the vector load, the keyword index rebuild, and keyword (English and Russian, E06-S04-T10),
+/// vector, hybrid and list queries under three filters, against the D031 budget of 200 ms.
 /// </summary>
 internal static class ProductionBenchmark
 {
@@ -61,6 +61,15 @@ internal static class ProductionBenchmark
         ["bright", "kitchen"], ["old", "church"], ["train", "station"], ["mount"], ["cafe", "menu"], ["IMG_00042"],
         ["0420"], ["birthday", "cake"], ["blurry", "horse", "garden"], ["moscow"], ["golden", "waterfall"], ["total"],
         ["concert", "stage"], ["misty", "lake"], ["boat"], ["forest", "walking"], ["children"], ["photos/012"],
+    ];
+
+    // Russian queries in word forms other than the indexed text's (SyntheticText.RussianText) and the tags' dictionary
+    // forms, so they're found through the stems (E06-S04-T10, DNEW-4).
+    private static readonly string[][] RussianQueries =
+    [
+        ["собаки"], ["пляже"], ["закаты"], ["озеро"], ["лодки"], ["вокзале"], ["свадьбы"], ["церковь"], ["торта"],
+        ["горы"], ["красный", "автомобиля"], ["лошадь"], ["водопады"], ["семьи"], ["мосты"], ["рынке"], ["кухни"],
+        ["снега"], ["собаку", "пляж"], ["кошки"], ["ребёнок"], ["золотой", "лес"], ["концерты"], ["dog", "пляж"], ["сцене"],
     ];
 
     private static string[]? sampleIds;
@@ -197,9 +206,11 @@ internal static class ProductionBenchmark
             var scenarios = new (string Name, Func<int, SearchQuery> Query)[]
             {
                 ("keyword", i => new SearchQuery { Text = string.Join(' ', KeywordQueries[i % KeywordQueries.Length]), Filter = filter }),
+                ("keyword, Russian", i => new SearchQuery { Text = string.Join(' ', RussianQueries[i % RussianQueries.Length]), Filter = filter }),
                 ("keyword, by date", i => new SearchQuery { Text = string.Join(' ', KeywordQueries[i % KeywordQueries.Length]), Filter = filter, Sort = SortMode.Date }),
                 ("vector", i => new SearchQuery { Vector = queryVectors[i % queryVectors.Count], Filter = filter }),
                 ("hybrid", i => new SearchQuery { Text = string.Join(' ', KeywordQueries[i % KeywordQueries.Length]), Vector = queryVectors[i % queryVectors.Count], Filter = filter }),
+                ("hybrid, Russian", i => new SearchQuery { Text = string.Join(' ', RussianQueries[i % RussianQueries.Length]), Vector = queryVectors[i % queryVectors.Count], Filter = filter }),
                 ("find similar", i => new SearchQuery { Vector = SearchVector.FromItem(modelId, Id<MediaItem>.Parse(SampleItem(library, random))), Filter = filter }),
                 ("list, by date", i => new SearchQuery { Filter = filter, Sort = SortMode.Date }),
             };
@@ -390,6 +401,8 @@ internal static class ProductionBenchmark
         return allWithin ? 0 : 1;
     }
 
+    private static string WithRussian(string description, string? russian) => russian is null ? description : $"{description} {russian}";
+
     private static string SampleItem(IOpenLibrary library, Random random)
     {
         sampleIds ??= [.. library.Items.GetIdsAsync(0, 5000).GetAwaiter().GetResult().Select(id => id.ToString())];
@@ -442,7 +455,7 @@ internal static class ProductionBenchmark
         var now = DateTimeOffset.UtcNow;
         var done = 0;
         await Parallel.ForEachAsync(
-            ids.Select(id => (Id: id, Description: text.Description(), Tags: text.Tags(), Ocr: text.OcrText())).ToList(),
+            ids.Select(id => (Id: id, Description: WithRussian(text.Description(), text.RussianText()), Tags: text.Tags(), Ocr: text.OcrText())).ToList(),
             new ParallelOptions { MaxDegreeOfParallelism = 32 },
             async (entry, token) =>
             {

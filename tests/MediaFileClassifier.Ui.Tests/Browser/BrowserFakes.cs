@@ -165,6 +165,12 @@ internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
 
         public Task UpdateLibraryAsync(Library library, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
+        public Task UpdateSettingsAsync(Func<LibrarySettings, LibrarySettings> change, CancellationToken cancellationToken = default)
+        {
+            Library.ChangeSettings(change(Library.Settings), DateTimeOffset.UnixEpoch);
+            return Task.CompletedTask;
+        }
+
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }
@@ -209,6 +215,10 @@ internal sealed class FakeJobSystem : IJobSystem
         }
 
         public void Resume()
+        {
+        }
+
+        public void ReleaseParked()
         {
         }
     }

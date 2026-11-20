@@ -2,6 +2,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 using MediaFileClassifier.Infrastructure.Libraries;
+using MediaFileClassifier.UseCases.Search.Filters;
 using Microsoft.Data.Sqlite;
 
 namespace MediaFileClassifier.Infrastructure.Tests.DataAccess;
@@ -62,7 +63,7 @@ public sealed class LibraryOpenFlowTests
     {
         await using var bed = await LibraryTestBed.CreateAsync();
         var session = new LibrarySession();
-        var values = new OpenLibrarySettingValues(session, bed.Clock);
+        var values = new OpenLibrarySettingValues(session);
         var availability = 0;
         values.AvailabilityChanged += (_, _) => availability++;
         Assert.False(values.IsAvailable);
@@ -92,11 +93,57 @@ public sealed class LibraryOpenFlowTests
     }
 
     [Fact]
+    public async Task LastFilters_AreStoredInTheOpenLibrary()
+    {
+        // MFC-1001: saving the filters threw "search.lastFilters isn't a library setting", which failed imports.
+        const string Filters = """{"version":1,"filters":[]}""";
+        await using var bed = await LibraryTestBed.CreateAsync();
+        var session = new LibrarySession();
+        var values = new OpenLibrarySettingValues(session);
+        await session.SetCurrentAsync(bed.Library);
+
+        values.Apply(new Dictionary<string, System.Text.Json.JsonElement?> { [FilterSettings.LastFilters.Key] = FilterSettings.LastFilters.Serialize(Filters) });
+        await session.SetCurrentAsync(null);
+        await bed.OpenAgainAsync();
+        await session.SetCurrentAsync(bed.Library);
+
+        Assert.Equal(Filters, bed.Library.Library.Settings.LastFilters);
+        Assert.True(values.TryGet(FilterSettings.LastFilters.Key, out var stored));
+        Assert.Equal(Filters, stored.GetString());
+        await session.SetCurrentAsync(null);
+    }
+
+    [Fact]
+    public async Task EveryLibrarySetting_CanBeStoredInTheOpenLibrary()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        var session = new LibrarySession();
+        var values = new OpenLibrarySettingValues(session);
+        await session.SetCurrentAsync(bed.Library);
+        var settings = new[] { typeof(KnownSettings).Assembly, typeof(FilterSettings).Assembly }
+            .SelectMany(assembly => assembly.GetTypes())
+            .SelectMany(type => type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
+            .Where(field => typeof(SettingDefinition).IsAssignableFrom(field.FieldType))
+            .Select(field => (SettingDefinition)field.GetValue(null)!)
+            .Where(setting => setting.Scope == SettingScope.Library)
+            .ToList();
+
+        Assert.Contains(FilterSettings.LastFilters, settings);
+        foreach (var setting in settings)
+        {
+            values.Apply(new Dictionary<string, System.Text.Json.JsonElement?> { [setting.Key] = setting.Serialize(setting.DefaultValue) });
+            Assert.True(values.TryGet(setting.Key, out _), setting.Key);
+        }
+
+        await session.SetCurrentAsync(null);
+    }
+
+    [Fact]
     public async Task LibrarySettings_FailedWrite_KeepsTheStoredValue()
     {
         await using var bed = await LibraryTestBed.CreateAsync();
         var session = new LibrarySession();
-        var values = new OpenLibrarySettingValues(session, bed.Clock);
+        var values = new OpenLibrarySettingValues(session);
         await session.SetCurrentAsync(bed.Library);
 
         // A closed library can't be written to.
@@ -116,7 +163,7 @@ public sealed class LibraryOpenFlowTests
         using var connection = new SqliteConnection($"Data Source={databasePath};Pooling=False");
         connection.Open();
         using var command = connection.CreateCommand();
-        // The two latest: the latest (SearchPrefixIndex) recreates its table and runs again cleanly, while the one before it
+        // The two latest: the latest (RussianStems) recreates its table and runs again cleanly, while the one before it
         // creates a table that already exists and fails.
         command.CommandText = "DELETE FROM schema_version WHERE MigrationId IN (SELECT MigrationId FROM schema_version ORDER BY MigrationId DESC LIMIT 2)";
         command.ExecuteNonQuery();

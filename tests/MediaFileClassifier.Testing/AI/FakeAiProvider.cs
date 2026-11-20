@@ -44,7 +44,7 @@ public abstract class FakeAiProvider : IAiProvider
     public string DisplayName => $"Fake {Id}";
 
     /// <inheritdoc />
-    public AiProviderKind Kind => AiProviderKind.Fake;
+    public AiProviderKind Kind { get; init; } = AiProviderKind.Fake;
 
     /// <inheritdoc />
     public ModelIdentity Model { get; }

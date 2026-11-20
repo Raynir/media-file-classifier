@@ -26,4 +26,10 @@ public sealed record ClassifiedError(ErrorCategory Category, string Message, Exc
     /// failing, and never counts for the circuit breaker.
     /// </summary>
     public bool IsModelMissing { get; init; }
+
+    /// <summary>
+    /// Gets whether the item's folder is Offline (D188): the work waits until the folder is Online
+    /// again, and the item keeps its status (D025).
+    /// </summary>
+    public bool IsFolderOffline { get; init; }
 }

@@ -4,7 +4,15 @@ namespace MediaFileClassifier.Domain.Metadata;
 /// Value of a descriptive field: one text, or a list of entries. Values compare by content.
 /// </summary>
 /// <remarks>
+/// <para>
 /// An empty text or an empty list is a valid user value: it means the user cleared the field, which hides the AI value.
+/// </para>
+/// <para>
+/// A text value may carry its form in the other language (<see cref="OtherForm"/>, D035, E06-S04-T09), such as the
+/// Russian title a describer wrote. It travels with the value, so accepting an AI value keeps it (D047), and a value
+/// the user types has none. It is indexed for keyword search but doesn't take part in comparisons: the same text with
+/// another form is the same value.
+/// </para>
 /// </remarks>
 public sealed record FieldValue
 {
@@ -25,6 +33,11 @@ public sealed record FieldValue
     /// Gets the text of a text value, or the entries of a list value joined with commas.
     /// </summary>
     public string Text => IsList ? string.Join(", ", Items) : Items[0];
+
+    /// <summary>
+    /// Gets the text in the other language (Russian for English text), or <c>null</c>. Only text values have one.
+    /// </summary>
+    public string? OtherForm { get; private init; }
 
     public static FieldValue FromText(string text)
     {
@@ -48,6 +61,26 @@ public sealed record FieldValue
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         return new FieldValue(true, entries);
+    }
+
+    /// <summary>
+    /// Gives a text value its form in the other language.
+    /// </summary>
+    /// <param name="form">The form, or <c>null</c>. A blank form, or one equal to the text ignoring case, gives none.</param>
+    /// <returns>The value with that form.</returns>
+    /// <exception cref="InvalidOperationException">The value is a list.</exception>
+    public FieldValue WithOtherForm(string? form)
+    {
+        if (IsList)
+        {
+            throw new InvalidOperationException("Only a text value has a form in the other language.");
+        }
+
+        var trimmed = form?.Trim();
+        return this with
+        {
+            OtherForm = string.IsNullOrEmpty(trimmed) || string.Equals(trimmed, Items[0], StringComparison.OrdinalIgnoreCase) ? null : trimmed,
+        };
     }
 
     public bool Equals(FieldValue? other) =>

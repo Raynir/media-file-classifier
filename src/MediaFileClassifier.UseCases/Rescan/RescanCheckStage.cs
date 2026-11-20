@@ -29,6 +29,9 @@ public sealed class RescanCheckStage(
     ILogger<RescanCheckStage> logger) : ItemStage(clock, logger)
 {
     /// <inheritdoc />
+    protected override IMediaFileSource Files => files;
+
+    /// <inheritdoc />
     public override string Stage => RescanStages.Check;
 
     /// <inheritdoc />

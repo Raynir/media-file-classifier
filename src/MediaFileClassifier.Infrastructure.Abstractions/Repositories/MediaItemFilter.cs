@@ -36,4 +36,10 @@ public sealed record MediaItemFilter
     /// or <c>null</c> for every status but Excluded.
     /// </summary>
     public MediaItemStatus? Status { get; init; }
+
+    /// <summary>
+    /// Gets whether to show only favorites (<c>true</c>), only items that are not favorites (<c>false</c>), or both
+    /// (<c>null</c>), e.g. for the Favorites entry of the navigation panel (E11-S01).
+    /// </summary>
+    public bool? IsFavorite { get; init; }
 }

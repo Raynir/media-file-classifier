@@ -27,6 +27,16 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
         connections.ReadAsync((db, token) => LoadAsync(db, itemId, token), cancellationToken);
 
     /// <inheritdoc />
+    public Task<IReadOnlyDictionary<Id<MediaItem>, ItemMetadata>> GetManyAsync(
+        IReadOnlyCollection<Id<MediaItem>> itemIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+
+        return connections.ReadAsync((db, token) => LoadManyAsync(db, itemIds, token), cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<(ItemMetadata Metadata, TResult Result)> UpdateAsync<TResult>(
         Id<MediaItem> itemId,
         Func<ItemMetadata, TResult> change,
@@ -59,6 +69,50 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             },
             cancellationToken).ConfigureAwait(false);
         return metadata;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> UpdateManyAsync(
+        IReadOnlyCollection<Id<MediaItem>> itemIds,
+        Func<ItemMetadata, bool> change,
+        Action<IReadOnlyList<Id<MediaItem>>>? written = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+        ArgumentNullException.ThrowIfNull(change);
+
+        var changed = new List<Id<MediaItem>>();
+        foreach (var batch in itemIds.Distinct().Chunk(MediaItemRepository.BatchSize))
+        {
+            var batchChanged = await writer.ExecuteAsync(
+                async (db, token) =>
+                {
+                    var ids = batch.ToList();
+                    var existing = (await db.MediaItems.AsNoTracking().Where(item => ids.Contains(item.Id)).Select(item => item.Id)
+                        .ToListAsync(token).ConfigureAwait(false)).ToHashSet();
+                    var result = new List<Id<MediaItem>>();
+                    var loaded = await LoadManyAsync(db, [.. batch.Where(existing.Contains)], token).ConfigureAwait(false);
+                    foreach (var itemId in batch.Where(existing.Contains))
+                    {
+                        var metadata = loaded[itemId];
+                        if (change(metadata))
+                        {
+                            await ReplaceAsync(db, metadata, token).ConfigureAwait(false);
+                            result.Add(itemId);
+                        }
+                    }
+
+                    return result;
+                },
+                cancellationToken).ConfigureAwait(false);
+            changed.AddRange(batchChanged);
+            if (batchChanged.Count > 0)
+            {
+                written?.Invoke(batchChanged);
+            }
+        }
+
+        return changed;
     }
 
     /// <inheritdoc />
@@ -110,13 +164,23 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
 
         // Only numbers and SQL the code writes itself go into the text; the prefix and the limit are parameters.
         // Excluded items never reach the results, so their tags aren't offered.
+        // A tag is offered by its own text and by its other-language form (other_form_key), each through its index; the
+        // filter matches either, so the counts agree with the results the offered tag gives.
         var sql = $"""
-            SELECT min(a."tag") AS Tag, count(DISTINCT a."item_id") AS ItemCount
-            FROM "tag_assignment" a
-            JOIN "media_item" m ON m."id" = a."item_id"
-            WHERE a."tag_key" >= $from AND a."tag_key" < $to AND m."status" <> {(int)MediaItemStatus.Excluded} AND {EffectiveTagSql.Condition("a")}
-            GROUP BY a."tag_key"
-            ORDER BY ItemCount DESC, a."tag_key"
+            SELECT min(t."label") AS Tag, count(DISTINCT t."item_id") AS ItemCount
+            FROM (
+                SELECT a."tag_key" AS "key", a."tag" AS "label", a."item_id"
+                FROM "tag_assignment" a
+                JOIN "media_item" m ON m."id" = a."item_id"
+                WHERE a."tag_key" >= $from AND a."tag_key" < $to AND m."status" <> {(int)MediaItemStatus.Excluded} AND {EffectiveTagSql.Condition("a")}
+                UNION ALL
+                SELECT a."other_form_key", a."other_form", a."item_id"
+                FROM "tag_assignment" a
+                JOIN "media_item" m ON m."id" = a."item_id"
+                WHERE a."other_form_key" >= $from AND a."other_form_key" < $to AND m."status" <> {(int)MediaItemStatus.Excluded} AND {EffectiveTagSql.Condition("a")}
+            ) t
+            GROUP BY t."key"
+            ORDER BY ItemCount DESC, t."key"
             LIMIT $limit
             """;
         return connections.ReadAsync<IReadOnlyList<(TagName Tag, int ItemCount)>>(
@@ -145,7 +209,9 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var rejections = await db.TagRejections.AsNoTracking().Where(rejection => rejection.ItemId == itemId)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
-        return new ItemMetadata(itemId, technical, user, runs, ai, tags, rejections);
+        var suggestions = await db.TagSuggestions.AsNoTracking().Where(suggestion => suggestion.ItemId == itemId)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        return new ItemMetadata(itemId, technical, user, runs, ai, tags, rejections, suggestions);
     }
 
     /// <summary>
@@ -173,9 +239,11 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             .ToListAsync(cancellationToken).ConfigureAwait(false)).ToLookup(tag => tag.ItemId);
         var rejections = (await db.TagRejections.AsNoTracking().Where(rejection => ids.Contains(rejection.ItemId))
             .ToListAsync(cancellationToken).ConfigureAwait(false)).ToLookup(rejection => rejection.ItemId);
+        var suggestions = (await db.TagSuggestions.AsNoTracking().Where(suggestion => ids.Contains(suggestion.ItemId))
+            .ToListAsync(cancellationToken).ConfigureAwait(false)).ToLookup(suggestion => suggestion.ItemId);
         return ids.ToDictionary(
             id => id,
-            id => new ItemMetadata(id, technical[id], user[id], runs[id], ai[id], tags[id], rejections[id]));
+            id => new ItemMetadata(id, technical[id], user[id], runs[id], ai[id], tags[id], rejections[id], suggestions[id]));
     }
 
     internal static async Task<ItemMetadata> LoadExistingAsync(LibraryDbContext db, Id<MediaItem> itemId, CancellationToken cancellationToken)
@@ -193,6 +261,7 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
         var itemId = metadata.ItemId;
 
         // Dependents first: values and tags refer to runs.
+        await db.TagSuggestions.Where(suggestion => suggestion.ItemId == itemId).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await db.TagAssignments.Where(tag => tag.ItemId == itemId).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await db.AiFieldValues.Where(value => value.ItemId == itemId).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         await db.UserFieldValues.Where(value => value.ItemId == itemId).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
@@ -206,6 +275,7 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
         db.AiFieldValues.AddRange(metadata.AiValues);
         db.TagAssignments.AddRange(metadata.Tags);
         db.TagRejections.AddRange(metadata.Rejections);
+        db.TagSuggestions.AddRange(metadata.TagSuggestions);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         db.ChangeTracker.Clear();
         await SearchStore.UpdateTextAsync(db, metadata, cancellationToken).ConfigureAwait(false);

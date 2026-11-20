@@ -1,0 +1,1501 @@
+{
+  "system": "florence2-base-int8-cpu",
+  "route": "in-process",
+  "model": "Florence-2-base-ft",
+  "precision": "int8",
+  "device": "cpu",
+  "threads": "all",
+  "promptVersion": "florence-tasks-1",
+  "items": {
+    "photo-005": {
+      "seconds": 5.72,
+      "timings": {
+        "vision": 2.674,
+        "description": 1.796,
+        "summary": 0.78,
+        "objects": 0.474
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A cat is laying on a red carpet. The cat is white and brown. The cats eyes are closed. The carpet is a deep red color. The couch behind the cat is dark gray. The chest of the cat has brown spots on it. The ears of the cats head are brown. There is a white wall behind the couch. There are flowers on the wall.",
+        "summary": "A cat laying on a red carpet next to a chair.",
+        "tags": [
+          {
+            "en": "cat",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "cat"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-015": {
+      "seconds": 5.93,
+      "timings": {
+        "vision": 2.698,
+        "description": 1.66,
+        "summary": 0.605,
+        "objects": 0.965
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Five leopards are sitting on a wooden branch. The leopants are light brown in color. The branches are light green in color and have a few cracks. The legs of the leopds are long and skinny. The tail of the cat is long and thin. The eyes of the cats are open. The cat's noses are small and pointy.",
+        "summary": "A group of cats sitting on a tree branch.",
+        "tags": [
+          {
+            "en": "carnivore",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "carnivore"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-025": {
+      "seconds": 5.53,
+      "timings": {
+        "vision": 2.429,
+        "description": 1.448,
+        "summary": 1.019,
+        "objects": 0.628
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Two brown bears are standing in the water. The bears are facing each other and their mouth is open. The bear on the left has its mouth wide open. There is a cloud of water behind the bears.",
+        "summary": "Two bears are standing in the snow with their mouths open.",
+        "tags": [
+          {
+            "en": "bear",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "bear"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-034": {
+      "seconds": 5.83,
+      "timings": {
+        "vision": 2.978,
+        "description": 1.6,
+        "summary": 0.556,
+        "objects": 0.695
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A round plate is sitting on a table. The plate has a design on it with flowers and leaves. The design is white with green and blue lines. There is a pink substance on the plate. There are small pieces of chocolate on top of the pink substance. There appears to be a person's leg in the corner of the plate near the plate of food.",
+        "summary": "A plate with a red cake on it.",
+        "tags": [
+          {
+            "en": "dessert",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "dessert"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-044": {
+      "seconds": 5.8,
+      "timings": {
+        "vision": 2.764,
+        "description": 1.397,
+        "summary": 0.933,
+        "objects": 0.706
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A large building with many towers on top of it. There are people standing in front of the building. There is a blue sky above the building with white clouds.",
+        "summary": "A large building with many colorful towers on top of it.",
+        "tags": [
+          {
+            "en": "tower",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "tower"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-054": {
+      "seconds": 6.1,
+      "timings": {
+        "vision": 2.536,
+        "description": 1.385,
+        "summary": 0.772,
+        "objects": 1.405
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A large city is lit up at night. There are many tall buildings with many windows. There is a body of water in front of the city. There trees in front the buildings.",
+        "summary": "A city skyline at night with boats in the water.",
+        "tags": [
+          {
+            "en": "skyscraper",
+            "ru": null
+          },
+          {
+            "en": "tower",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "skyscraper",
+          "tower"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-063": {
+      "seconds": 6.55,
+      "timings": {
+        "vision": 2.326,
+        "description": 1.822,
+        "summary": 0.704,
+        "objects": 1.696
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "The sky is blue and clear. The water is green. The sand is wet. The waves are white. The sky is very clear. There are a few boats in the water. The boats are small. There is a line of trees to the right of the beach. The trees are green and leafy. The beach is lined with umbrellas. The umbrellAS are multicolored.",
+        "summary": "A beach with a few boats and umbrellas on it.",
+        "tags": [
+          {
+            "en": "boat",
+            "ru": null
+          },
+          {
+            "en": "person",
+            "ru": null
+          },
+          {
+            "en": "umbrella",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "boat",
+          "person",
+          "umbrella"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-073": {
+      "seconds": 4.89,
+      "timings": {
+        "vision": 2.253,
+        "description": 1.341,
+        "summary": 0.693,
+        "objects": 0.608
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A white and green train is on the tracks. There are people standing on the platform next to the train. There is a building next to them.",
+        "summary": "A train is pulling into a station with people waiting.",
+        "tags": [
+          {
+            "en": "train",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "train"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-082": {
+      "seconds": 5.99,
+      "timings": {
+        "vision": 2.873,
+        "description": 1.371,
+        "summary": 0.9,
+        "objects": 0.844
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A modern building is shown. The building is made of glass and metal. There are three people walking in front of the building. The ground is covered with snow. The sky is cloudy.",
+        "summary": "A building with a glass front and a sign that says \"Ama Athikka\".",
+        "tags": [
+          {
+            "en": "building",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "building"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-092": {
+      "seconds": 5.69,
+      "timings": {
+        "vision": 2.617,
+        "description": 1.716,
+        "summary": 0.789,
+        "objects": 0.566
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A large barge is in the water. The barge has a long grey material on the top of it. There are small waves in the body of water around the barge. There is a wooden dock on the other side of the barg. There appears to be a reflection of the boat in the lower water. There appear to be people on the berg.",
+        "summary": "A large boat floating on top of a body of water.",
+        "tags": [
+          {
+            "en": "boat",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "boat"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-102": {
+      "seconds": 6.05,
+      "timings": {
+        "vision": 2.64,
+        "description": 1.674,
+        "summary": 0.593,
+        "objects": 1.145
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Three women are playing soccer on a field. Two of the women are wearing white uniforms with blue numbers on them. The other woman is wearing a blue uniform with a red stripe on the side. A white and red ball is soaring in the air towards the women. The field is covered in green grass. There are empty stadium seats in the background.",
+        "summary": "Three girls playing soccer on a field with bleachers in the background.",
+        "tags": [
+          {
+            "en": "football",
+            "ru": null
+          },
+          {
+            "en": "footwear",
+            "ru": null
+          },
+          {
+            "en": "human face",
+            "ru": null
+          },
+          {
+            "en": "person",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "football",
+          "footwear",
+          "human face",
+          "person"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-111": {
+      "seconds": 5.9,
+      "timings": {
+        "vision": 2.541,
+        "description": 1.924,
+        "summary": 0.733,
+        "objects": 0.699
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "The image is of a chess board. The board is made of wood. The chess pieces are made of wooden. The background of the image is white. The image is blurred. The pieces are on the board. There is a horse on the left side of the board and a man on the right side of it. The man on a horse is made out of wood and is white with a brown mane. The horse is standing on its hind legs. The men on the chess board are standing on the boards.",
+        "summary": "A chess board with a chess set on it.",
+        "tags": [
+          {
+            "en": "table",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "table"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-121": {
+      "seconds": 5.83,
+      "timings": {
+        "vision": 2.841,
+        "description": 1.532,
+        "summary": 0.812,
+        "objects": 0.645
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A silver metal object is on a white surface. There are several circular metal gears on the silver surface. The gears have small circular holes in them. There is a long handle on the left side of the gears.",
+        "summary": "A metal object with a handle and gears on it.",
+        "tags": [
+          {
+            "en": "wheel",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "wheel"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-131": {
+      "seconds": 6.67,
+      "timings": {
+        "vision": 3.049,
+        "description": 1.461,
+        "summary": 0.932,
+        "objects": 1.23
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A bunch of people are walking down a street. There are many buildings on either side of the street. The lights are bright and are on. There is a lot of signs on the buildings.",
+        "summary": "A crowded street with many people walking down it.",
+        "tags": [
+          {
+            "en": "building",
+            "ru": null
+          },
+          {
+            "en": "person",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "building",
+          "person"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-140": {
+      "seconds": 6.26,
+      "timings": {
+        "vision": 2.65,
+        "description": 1.359,
+        "summary": 0.883,
+        "objects": 1.364
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A building is painted in a foreign language. There are three cars parked in front of the building. There is a tree behind the building with green leaves.",
+        "summary": "A building with a lot of colorful signs on it.",
+        "tags": [
+          {
+            "en": "building",
+            "ru": null
+          },
+          {
+            "en": "car",
+            "ru": null
+          },
+          {
+            "en": "wheel",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "building",
+          "car",
+          "wheel"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-150": {
+      "seconds": 5.53,
+      "timings": {
+        "vision": 2.642,
+        "description": 1.563,
+        "summary": 0.761,
+        "objects": 0.56
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A square shaped object with a white background. It has a text that reads \"Data is collected on everything we do\". The text is in black and is surrounded by small circular holes. The object has a white border.",
+        "summary": "A sign that says Data is collected on everything we do.",
+        "tags": [
+          {
+            "en": "picture frame",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "picture frame"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-160": {
+      "seconds": 5.88,
+      "timings": {
+        "vision": 2.785,
+        "description": 1.645,
+        "summary": 0.903,
+        "objects": 0.552
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "The image is a dark blue night scene. There are mountains in the background. The sky is dark blue with a few white clouds. There is a green swirl in the sky. There's a body of water in front of the mountains. There appears to be dry grass in front. There appear to be small trees in front and in the distance.",
+        "summary": "A painting of a landscape with a green cloud in the sky.",
+        "tags": [
+          {
+            "en": "swimming pool",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "swimming pool"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-169": {
+      "seconds": 6.33,
+      "timings": {
+        "vision": 2.77,
+        "description": 1.639,
+        "summary": 0.776,
+        "objects": 1.143
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "The image is of a night scene of a city. The sky is dark and the buildings are lit up. The water is reflecting the lights of the city. There is a bridge that is lit up with blue lights. The bridge is long and has a metal railing on it. The buildings are tall and have a few floors.",
+        "summary": "A night view of a city skyline with a bridge and water.",
+        "tags": [
+          {
+            "en": "skyscraper",
+            "ru": null
+          },
+          {
+            "en": "tower",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "skyscraper",
+          "tower"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-179": {
+      "seconds": 5.35,
+      "timings": {
+        "vision": 2.514,
+        "description": 1.456,
+        "summary": 0.798,
+        "objects": 0.578
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A round pizza is sitting on a silver plate. The pizza has tomatoes, green peppers, and cheese on top of it. The cheese is white and melted. The crust of the pizza is light brown.",
+        "summary": "A pizza with cheese, tomatoes, and peppers on it.",
+        "tags": [
+          {
+            "en": "pizza",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "pizza"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-188": {
+      "seconds": 6.17,
+      "timings": {
+        "vision": 2.71,
+        "description": 1.66,
+        "summary": 0.831,
+        "objects": 0.971
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A piece of cake is sitting on a plate. The cake is white and brown. There are nuts on top of the cake. There is a cup of coffee on a saucer. The cup is black. The saucer is white. The cups and saucer are on a wooden table. There's a wooden bench behind the table. The table is light brown.",
+        "summary": "A piece of cake and a cup of coffee on a table.",
+        "tags": [
+          {
+            "en": "coffee cup",
+            "ru": null
+          },
+          {
+            "en": "desk",
+            "ru": null
+          },
+          {
+            "en": "plate",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "coffee cup",
+          "desk",
+          "plate"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-198": {
+      "seconds": 5.49,
+      "timings": {
+        "vision": 2.516,
+        "description": 1.318,
+        "summary": 0.691,
+        "objects": 0.963
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A guitar is sitting on a couch. The guitar is a light brown color. The couch is gray. There is a mirror on the wall above the couch.",
+        "summary": "A guitar sitting on a couch in a room.",
+        "tags": [
+          {
+            "en": "guitar",
+            "ru": null
+          },
+          {
+            "en": "picture frame",
+            "ru": null
+          },
+          {
+            "en": "studio couch",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "guitar",
+          "picture frame",
+          "studio couch"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-208": {
+      "seconds": 5.79,
+      "timings": {
+        "vision": 2.472,
+        "description": 1.288,
+        "summary": 0.848,
+        "objects": 1.18
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A large white building with a dome on top of it. There are trees behind the building. There is a large sign in front of the building on a pole.",
+        "summary": "A large building with a sign that says Metro.",
+        "tags": [
+          {
+            "en": "billboard",
+            "ru": null
+          },
+          {
+            "en": "building",
+            "ru": null
+          },
+          {
+            "en": "street light",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "billboard",
+          "building",
+          "street light"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-003": {
+      "seconds": 5.3,
+      "timings": {
+        "vision": 2.255,
+        "description": 1.511,
+        "summary": 0.9,
+        "objects": 0.634
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A screenshot of a email from an inbox. The email is titled \"Your order has shipped\". The background of the email is a light blue color. The text on the email says that the email was done on April 14th.",
+        "summary": "A screenshot of a email with the message \"your order has shipped\"",
+        "tags": [
+          {
+            "en": "poster",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "poster"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-008": {
+      "seconds": 5.21,
+      "timings": {
+        "vision": 2.535,
+        "description": 1.407,
+        "summary": 0.645,
+        "objects": 0.627
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A screen shot of a phone with a bunch of icons on it. The icons are blue and gray. There are words on the screen that are in a foreign language.",
+        "summary": "A screen shot of a phone with foreign language on it.",
+        "tags": [
+          {
+            "en": "mobile phone",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "mobile phone"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-014": {
+      "seconds": 6.05,
+      "timings": {
+        "vision": 2.79,
+        "description": 1.673,
+        "summary": 0.898,
+        "objects": 0.685
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A sign in screen is displayed. The screen has four boxes. The boxes are rectangular and have a white background. The first box has the word \"Email Address\" on it. Below that is a blue box that says \"Continue\". The second box has \"Forgot password?\" under it. The background is white. The words are black. The image is a flat screen.",
+        "summary": "A sign in screen with a blue button that says continue.",
+        "tags": [
+          {
+            "en": "poster",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "poster"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-019": {
+      "seconds": 5.38,
+      "timings": {
+        "vision": 2.614,
+        "description": 1.469,
+        "summary": 0.531,
+        "objects": 0.766
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A black screen has white text on it. The text is written in a foreign language. The words are written in white. There is a white arrow pointing to the left.",
+        "summary": "A computer screen with a program running on it.",
+        "tags": [
+          {
+            "en": "computer monitor",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "computer monitor"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-024": {
+      "seconds": 5.71,
+      "timings": {
+        "vision": 2.94,
+        "description": 1.291,
+        "summary": 0.738,
+        "objects": 0.745
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A screen shows a battery low message. The message says that the battery is 5% remaining. The background of the screen is black.",
+        "summary": "A screen showing the battery low in a charger.",
+        "tags": [
+          {
+            "en": "digital clock",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "digital clock"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-028": {
+      "seconds": 5.46,
+      "timings": {
+        "vision": 2.743,
+        "description": 1.595,
+        "summary": 0.553,
+        "objects": 0.571
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A white screen has a line of words on it. The first word is flat white. The second word is coffee and bakery. The third word is fat white. There are three boxes under the first row. The last row is 3.40. The fourth row is 2.90. The fifth row is 4.0. The final row is total. The number 13.25 is in the bottom row.",
+        "summary": "A screen shot of a menu with the daily grind at the top.",
+        "tags": [
+          {
+            "en": "poster",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "poster"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-035": {
+      "seconds": 5.83,
+      "timings": {
+        "vision": 2.908,
+        "description": 1.525,
+        "summary": 0.756,
+        "objects": 0.646
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A green and white screen with words on it. The words are in black. There are lines on the screen. There is a green stripe on the side of the screen with white lines on it in a row.",
+        "summary": "A screen shot of a wedding photographer's name.",
+        "tags": [
+          {
+            "en": "poster",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "poster"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-042": {
+      "seconds": 5.77,
+      "timings": {
+        "vision": 2.778,
+        "description": 1.797,
+        "summary": 0.62,
+        "objects": 0.576
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A square sign is yellow. The words on the sign are black. The border of the sign is black. There are no lines on the square sign. The floor is wet. The wordcaution is written on the front of the square. The letters are black as well. The borders of the rectangular sign are white. The image is a bright yellow color.",
+        "summary": "A yellow sign that says Caution wet floor.",
+        "tags": [
+          {
+            "en": "traffic sign",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "traffic sign"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-048": {
+      "seconds": 5.19,
+      "timings": {
+        "vision": 2.611,
+        "description": 1.353,
+        "summary": 0.684,
+        "objects": 0.545
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A square white paper with black writing on it. The writing is in a foreign language. There is a black border around the paper.",
+        "summary": "A blue and white card with foreign writing on it.",
+        "tags": [
+          {
+            "en": "poster",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "poster"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-055": {
+      "seconds": 6.8,
+      "timings": {
+        "vision": 2.609,
+        "description": 2.423,
+        "summary": 1.063,
+        "objects": 0.71
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A sheet of paper with the title \"Tenancy Agreement\". The paper is white and has black borders. The paper has black writing on it. The writing is in a bold, black font. The letters are small and black. The background of the paper is a light blue color. The words are in a darker black font as well as the word \"Pets\". The words \"The Tenancy\" and \"PETS\" are in black font on the top of the page. The bottom of the words \"Pits\" are written in black.",
+        "summary": "A tenancy agreement document with a blue background.",
+        "tags": [
+          {
+            "en": "poster",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "poster"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-003": {
+      "seconds": 5.53,
+      "timings": {
+        "vision": 2.563,
+        "description": 1.61,
+        "summary": 0.737,
+        "objects": 0.619
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A picture of a small animal. The animal is a reptile. The reptile is gray with black spots. The snake is in motion. The picture was taken in a light blue color. There are lines in the picture. The lines are in a wavy pattern. The image was taken from a distance. There is sunlight in the photo. There's a shadow under the animal.",
+        "summary": "A picture of a small animal in the water.",
+        "tags": [
+          {
+            "en": "animal",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "animal"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-007": {
+      "seconds": 5.54,
+      "timings": {
+        "vision": 2.721,
+        "description": 1.484,
+        "summary": 0.742,
+        "objects": 0.596
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A snake is curled up on a rock. The snake is brown. There are long skinny skinny sticks sticking out of the rocks. There is a large rock behind the snake.",
+        "summary": "A snake is curled up on a rock.",
+        "tags": [
+          {
+            "en": "snake",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "snake"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-011": {
+      "seconds": 5.61,
+      "timings": {
+        "vision": 2.728,
+        "description": 1.381,
+        "summary": 0.642,
+        "objects": 0.864
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A drawing of a deer is shown. The deer has long horns on their head. The drawing is done in a sketch. The background is light blue.",
+        "summary": "A drawing of a deer with antlers on its head.",
+        "tags": [
+          {
+            "en": "deer",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "deer"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-015": {
+      "seconds": 5.75,
+      "timings": {
+        "vision": 2.603,
+        "description": 1.433,
+        "summary": 0.991,
+        "objects": 0.72
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A picture of a red and black insect. There is a yellow insect under the red and white insect. The insect has large black eyes. There are long black legs on the insect.",
+        "summary": "A picture of a red and black insect with a yellow insect under it.",
+        "tags": [
+          {
+            "en": "insect",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "insect"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-020": {
+      "seconds": 5.32,
+      "timings": {
+        "vision": 2.789,
+        "description": 1.549,
+        "summary": 0.496,
+        "objects": 0.485
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A picture of a hand. The hand is blue and yellow. The yellow is a bit lighter than the blue. The hands are long. The picture is very colorful. There is a white border around the hand. There are shadows under the hand and hand.",
+        "summary": "A picture of a hand with blue and yellow lines.",
+        "tags": [
+          {
+            "en": "glove",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "glove"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-024": {
+      "seconds": 5.98,
+      "timings": {
+        "vision": 2.858,
+        "description": 1.394,
+        "summary": 0.818,
+        "objects": 0.914
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A green glass bottle is standing on a dark surface. There are small circular circles on the front of the bottle. The bottle has a small cap on the top of it.",
+        "summary": "A green glass bottle with a black background.",
+        "tags": [
+          {
+            "en": "bottle",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "bottle"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-028": {
+      "seconds": 5.77,
+      "timings": {
+        "vision": 2.846,
+        "description": 1.391,
+        "summary": 0.809,
+        "objects": 0.728
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A computer screen is shown. The screen is blue and there are yellow words on it. There are white letters on the top of the screen.",
+        "summary": "A computer screen with the word users on it.",
+        "tags": [
+          {
+            "en": "computer monitor",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "computer monitor"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-032": {
+      "seconds": 6.35,
+      "timings": {
+        "vision": 2.815,
+        "description": 1.787,
+        "summary": 1.08,
+        "objects": 0.672
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A simple, cartoon image of a triangle. The triangle is made up of three equal parts. The top of the triangle is black. The bottom of the ladder is gray. The ladder is made of wood. The background is white. The image is colored. The lines are drawn in a way that they are straight. The middle of the three lines are gray.",
+        "summary": "A black and white picture of a triangle.",
+        "tags": [
+          {
+            "en": "tripod",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "tripod"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-003": {
+      "seconds": 5.44,
+      "timings": {
+        "vision": 2.796,
+        "description": 1.454,
+        "summary": 0.719,
+        "objects": 0.474
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A black animal is laying down on the ground. The ground is gray and has some white lines on it. The animal has its head down and its body is stretched out.",
+        "summary": "A black animal laying on the ground with its head down.",
+        "tags": [
+          {
+            "en": "animal",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "animal"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-007": {
+      "seconds": 5.32,
+      "timings": {
+        "vision": 2.687,
+        "description": 1.438,
+        "summary": 0.682,
+        "objects": 0.51
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A yellow train is on the tracks. There are trees behind the train. There is a white sign on the wall next to the train tracks.",
+        "summary": "A train is moving down a track through a window.",
+        "tags": [
+          {
+            "en": "train",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "train"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-012": {
+      "seconds": 5.82,
+      "timings": {
+        "vision": 2.85,
+        "description": 1.415,
+        "summary": 0.787,
+        "objects": 0.767
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A white building with three windows on it. There is a white structure in front of the windows. There are wires hanging from the structure.",
+        "summary": "A white building with windows and a pipe sticking out of it.",
+        "tags": [
+          {
+            "en": "window",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "window"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-016": {
+      "seconds": 5.62,
+      "timings": {
+        "vision": 2.707,
+        "description": 1.738,
+        "summary": 0.589,
+        "objects": 0.586
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "The image is a blurry image. The image is green and red. There are small white dots in the middle of the image. There is a red circle in the bottom of the photo. There appears to be a light reflection in the photo as well. There appear to be tiny white dots on the green background. There looks to be small white stars in the background.",
+        "summary": "A blurry image of a green and red light.",
+        "tags": [
+          {
+            "en": "drink",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "drink"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-021": {
+      "seconds": 5.81,
+      "timings": {
+        "vision": 2.615,
+        "description": 1.657,
+        "summary": 0.807,
+        "objects": 0.736
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "The image is a picture of a rain. The rain is covering the window. The window is dark. The water is wet. The picture is dark too. There are small ripples in the rain. There is a black border around the window that is made of glass. The glass is dark gray. There appears to be a window blind on the window with raindrops on it.",
+        "summary": "A picture of rain drops on a window.",
+        "tags": [
+          {
+            "en": "window",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "window"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-025": {
+      "seconds": 5.34,
+      "timings": {
+        "vision": 2.606,
+        "description": 1.424,
+        "summary": 0.686,
+        "objects": 0.622
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A duck is swimming in the water. The water is green and there are white spots on the water as well. The duck has a black head and neck.",
+        "summary": "A duck swimming in a pond with a large body of water.",
+        "tags": [
+          {
+            "en": "duck",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "duck"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-030": {
+      "seconds": 5.25,
+      "timings": {
+        "vision": 2.554,
+        "description": 1.413,
+        "summary": 0.621,
+        "objects": 0.657
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A man is walking in the water. The man is wearing a white shirt and black pants. The water is moving in a motion motion. The sky is blue with white clouds. The sand on the beach is light brown.",
+        "summary": "A man walking into the ocean on a beach.",
+        "tags": [
+          {
+            "en": "human face",
+            "ru": null
+          },
+          {
+            "en": "man",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "human face",
+          "man"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-034": {
+      "seconds": 5.41,
+      "timings": {
+        "vision": 2.592,
+        "description": 1.3,
+        "summary": 0.711,
+        "objects": 0.805
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A large cloud is in the sky. The cloud is pink. There is a building under the cloud. There are lights under the clouds.",
+        "summary": "A large cloud is in the sky above a building.",
+        "tags": [
+          {
+            "en": "street light",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "street light"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-039": {
+      "seconds": 5.62,
+      "timings": {
+        "vision": 2.43,
+        "description": 1.647,
+        "summary": 0.947,
+        "objects": 0.596
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "The image is a night scene. The sky is dark and the lights are on. There are buildings in the background that are lit up. The buildings are dark and have a lot of lights on them. There is a road that is lit up in the middle of the image. There appears to be a bridge that is in the bottom right corner of the photo.",
+        "summary": "A night view of a city with lots of lights.",
+        "tags": [
+          {
+            "en": "poster",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "poster"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-043": {
+      "seconds": 5.62,
+      "timings": {
+        "vision": 2.641,
+        "description": 1.626,
+        "summary": 0.724,
+        "objects": 0.63
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A blurry image of a light blue background. There is a thin white line running parallel to the ground. The image has a slight shadow to the left of the image. The light blue color is reflecting off of the surface. There are no other objects in the image that are not visible. The lines are not clear. There appears to be a small object in the middle of the photo.",
+        "summary": "A blurry image of a plane flying in the sky.",
+        "tags": [
+          {
+            "en": "vehicle",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "vehicle"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    }
+  },
+  "load": {
+    "loadSeconds": 2.4,
+    "peakWorkingSetMiB": 1378,
+    "gpuModelMiB": null
+  }
+}

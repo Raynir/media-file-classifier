@@ -9,4 +9,9 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Settings;
 /// <param name="BaseUrl">Base URL including <c>/v1</c>, e.g. <c>http://127.0.0.1:1234/v1</c>.</param>
 /// <param name="Model">Model name as the server knows it, or empty when none is chosen yet (the endpoint then offers no providers).</param>
 /// <param name="RemoteHostConfirmed">Whether the user confirmed that images may be sent to a host that isn't this computer.</param>
-public sealed record AiEndpointSettings(string Id, string Name, string BaseUrl, string Model, bool RemoteHostConfirmed = false);
+/// <param name="MaxImages">
+/// How many pictures one describer request may carry (E06-S04-T08), or <c>null</c> for the model's built-in default
+/// (several for the vision-language models the app knows, else one). With 1, a clip is described frame by frame. Set in
+/// <c>settings.json</c> only; the endpoint editor keeps it.
+/// </param>
+public sealed record AiEndpointSettings(string Id, string Name, string BaseUrl, string Model, bool RemoteHostConfirmed = false, int? MaxImages = null);

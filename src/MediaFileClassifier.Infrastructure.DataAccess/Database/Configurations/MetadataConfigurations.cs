@@ -91,12 +91,16 @@ internal sealed class TagAssignmentConfiguration : IEntityTypeConfiguration<TagA
         builder.Property(tag => tag.Confidence);
         builder.Property(tag => tag.Origin);
         builder.Property(tag => tag.CreatedAt);
+        builder.Property(tag => tag.OtherForm);
+        builder.Property(tag => tag.IsOtherFormDerived);
         builder.Property<string>(TagKeyGenerator.Property).IsRequired().HasValueGenerator<TagKeyGenerator>();
+        builder.Property<string>(OtherFormKeyGenerator.Property).HasValueGenerator<OtherFormKeyGenerator>();
         builder.ComplexProperty(tag => tag.AcceptedFrom, RunReferenceMapping.Configure);
         builder.HasOne<MediaItem>().WithMany().HasForeignKey(tag => tag.ItemId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<AnalysisRun>().WithMany().HasForeignKey(tag => tag.RunId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<ModelRegistration>().WithMany().HasForeignKey(tag => tag.ModelId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(TagKeyGenerator.Property);
+        builder.HasIndex(OtherFormKeyGenerator.Property);
     }
 }
 
@@ -113,6 +117,23 @@ internal sealed class TagRejectionConfiguration : IEntityTypeConfiguration<TagRe
         builder.HasKey(nameof(TagRejection.ItemId), TagKeyGenerator.Property);
         builder.ComplexProperty(rejection => rejection.RejectedFrom, RunReferenceMapping.Configure);
         builder.HasOne<MediaItem>().WithMany().HasForeignKey(rejection => rejection.ItemId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+/// <summary>
+/// Maps <see cref="TagSuggestion"/>, keyed by item and tag key. A suggestion goes with its run.
+/// </summary>
+internal sealed class TagSuggestionConfiguration : IEntityTypeConfiguration<TagSuggestion>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<TagSuggestion> builder)
+    {
+        builder.Property(suggestion => suggestion.Tag);
+        builder.Property<string>(TagKeyGenerator.Property).IsRequired().HasValueGenerator<TagKeyGenerator>();
+        builder.HasKey(nameof(TagSuggestion.ItemId), TagKeyGenerator.Property);
+        builder.Property(suggestion => suggestion.Kind);
+        builder.HasOne<MediaItem>().WithMany().HasForeignKey(suggestion => suggestion.ItemId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<AnalysisRun>().WithMany().HasForeignKey(suggestion => suggestion.RunId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 

@@ -31,13 +31,16 @@ public static class UseCasesModule
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<SettingRegistry>();
         services.TryAddSingleton<Search.Filters.FilterRegistry>();
+        services.TryAddSingleton<Infrastructure.Abstractions.AI.IAnalysisProvenanceSource, Analysis.Outdated.AnalysisProvenanceSource>();
         services.TryAddSingleton<Search.Filters.FilterStateSerializer>();
         services.TryAddSingleton<Search.Filters.FilterStatePersistence>();
         services.TryAddSingleton<Search.SearchResults.SortStatePersistence>();
         services.AddSetting(Search.Filters.FilterSettings.RestoreOnStart);
         services.TryAddSingleton<LibraryItemsSource>();
+        services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
+        services.TryAddSingleton<Embeddings.EmbeddingModelMigration>();
         services.TryAddSingleton<Search.SearchResults.SearchResultSource>();
         services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<Search.SearchResults.SearchResultSource>());
         services.TryAddSingleton<Search.FindSimilar.AnalyzeNow>();
@@ -58,6 +61,7 @@ public static class UseCasesModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RescanCheckStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RefreshMediaStage>());
+        services.TryAddSingleton<Tags.TagNormalizer>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Analysis.Pipeline.AnalysisStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, ImportExceptionClassifier>());
         return services;

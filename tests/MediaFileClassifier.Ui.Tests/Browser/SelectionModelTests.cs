@@ -228,6 +228,59 @@ public sealed class SelectionModelTests
         Assert.Equal((0, -1, 0), (selection.Count, selection.FocusIndex, changes));
     }
 
+    [Theory]
+    [InlineData(false, 7, 2)]
+    [InlineData(true, 2, 0)]
+    public async Task Gesture_AsksTheGuardFirst_AndOnlyChangesTheSelectionWhenItAllows(bool refuse, int expectedFocus, int expectedAsks)
+    {
+        var (selection, _) = Create(10);
+        await selection.ApplyAsync(2, SelectionGesture.Replace);
+        var asked = 0;
+        selection.ConfirmChange = () =>
+        {
+            asked++;
+            return Task.FromResult(!refuse);
+        };
+
+        if (refuse)
+        {
+            await selection.ApplyAsync(5, SelectionGesture.Replace);
+            Assert.Equal(1, asked);
+            asked--;
+        }
+        else
+        {
+            await selection.ApplyAsync(5, SelectionGesture.Replace);
+            await selection.ApplyAsync(7, SelectionGesture.Replace);
+        }
+
+        Assert.Equal(expectedFocus, selection.FocusIndex);
+        Assert.Equal(expectedAsks, asked);
+    }
+
+    [Fact]
+    public async Task ClickingTheOnlySelectedItemAgain_AsksNothing()
+    {
+        var (selection, _) = Create(10);
+        await selection.ApplyAsync(2, SelectionGesture.Replace);
+        selection.ConfirmChange = () => throw new InvalidOperationException("No prompt expected.");
+
+        await selection.ApplyAsync(2, SelectionGesture.Replace);
+
+        Assert.Equal(2, selection.FocusIndex);
+    }
+
+    [Fact]
+    public async Task SelectAll_AsksTheGuardFirst()
+    {
+        var (selection, _) = Create(10);
+        selection.ConfirmChange = () => Task.FromResult(false);
+
+        await selection.SelectAllAsync();
+
+        Assert.Equal(0, selection.Count);
+    }
+
     private static (SelectionModel Selection, FakeResultSource Source) Create(int count, bool known = true)
     {
         var source = new FakeResultSource(count);

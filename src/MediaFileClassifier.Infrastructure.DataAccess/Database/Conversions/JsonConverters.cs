@@ -17,13 +17,29 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Database.Conversions;
 internal sealed class FieldValueConverter()
     : ValueConverter<FieldValue, string>(value => ToJson(value), json => FromJson(json))
 {
-    private static string ToJson(FieldValue value) => value.IsList
-        ? JsonSerializer.Serialize(value.Items.ToArray(), DataAccessJsonContext.Default.StringArray)
-        : JsonSerializer.Serialize(value.Items[0], DataAccessJsonContext.Default.String);
+    // A list is an array, a text a string, and a text with its other-language form an object (E06-S04-T09).
+    private static string ToJson(FieldValue value) => value switch
+    {
+        { IsList: true } => JsonSerializer.Serialize(value.Items.ToArray(), DataAccessJsonContext.Default.StringArray),
+        { OtherForm: { } form } => JsonSerializer.Serialize(new FieldTextJson(value.Items[0], form), DataAccessJsonContext.Default.FieldTextJson),
+        _ => JsonSerializer.Serialize(value.Items[0], DataAccessJsonContext.Default.String),
+    };
 
-    private static FieldValue FromJson(string json) => json.StartsWith('[')
-        ? FieldValue.FromList(JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.StringArray) ?? [])
-        : FieldValue.FromText(JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.String) ?? string.Empty);
+    private static FieldValue FromJson(string json)
+    {
+        if (json.StartsWith('['))
+        {
+            return FieldValue.FromList(JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.StringArray) ?? []);
+        }
+
+        if (json.StartsWith('{'))
+        {
+            var text = JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.FieldTextJson);
+            return FieldValue.FromText(text?.Text ?? string.Empty).WithOtherForm(text?.Other);
+        }
+
+        return FieldValue.FromText(JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.String) ?? string.Empty);
+    }
 }
 
 /// <summary>
@@ -63,7 +79,9 @@ internal sealed class LibrarySettingsConverter()
             settings.ActiveSearchModelId?.Value,
             settings.RetainedPreviousRuns,
             settings.ThumbnailTileSize,
-            ToJson(settings.AnalysisProfile)),
+            ToJson(settings.AnalysisProfile),
+            settings.EmbeddingSwitchThreshold,
+            settings.LastFilters.Length > 0 ? settings.LastFilters : null),
         DataAccessJsonContext.Default.LibrarySettingsJson);
 
     private static LibrarySettings FromJson(string json)
@@ -77,6 +95,10 @@ internal sealed class LibrarySettingsConverter()
             RetainedPreviousRuns = stored.RetainedPreviousRuns,
             ThumbnailTileSize = stored.ThumbnailTileSize is > 0 and var size ? size : LibrarySettings.DefaultThumbnailTileSize,
             AnalysisProfile = stored.AnalysisProfile is { } profile ? FromJson(profile) : AnalysisProfile.Default,
+            EmbeddingSwitchThreshold = stored.EmbeddingSwitchThreshold is > 0 and <= 1 and var threshold
+                ? threshold
+                : LibrarySettings.DefaultEmbeddingSwitchThreshold,
+            LastFilters = stored.LastFilters ?? string.Empty,
         };
     }
 
@@ -88,7 +110,8 @@ internal sealed class LibrarySettingsConverter()
             settings.ModelId,
             settings.MaxTags,
             settings.Language,
-            settings.PromptVersion))]);
+            settings.PromptVersion,
+            settings.PreFilterWithDetector))]);
 
     private static AnalysisProfile FromJson(AnalysisProfileJson profile) =>
         new(profile.Analyzers.Select(settings => new AnalyzerSettings(settings.Analyzer)
@@ -99,6 +122,7 @@ internal sealed class LibrarySettingsConverter()
             MaxTags = settings.MaxTags,
             Language = settings.Language,
             PromptVersion = settings.PromptVersion,
+            PreFilterWithDetector = settings.PreFilterWithDetector,
         }));
 }
 
@@ -170,7 +194,9 @@ internal sealed record LibrarySettingsJson(
     Guid? ActiveSearchModelId,
     int RetainedPreviousRuns,
     int? ThumbnailTileSize = null,
-    AnalysisProfileJson? AnalysisProfile = null);
+    AnalysisProfileJson? AnalysisProfile = null,
+    double? EmbeddingSwitchThreshold = null,
+    string? LastFilters = null);
 
 /// <summary>
 /// Stored shape of <see cref="AnalysisProfile"/>. Libraries stored before it read as <see cref="AnalysisProfile.Default"/>.
@@ -187,7 +213,13 @@ internal sealed record AnalyzerSettingsJson(
     string? ModelId,
     int? MaxTags,
     string? Language,
-    string? PromptVersion);
+    string? PromptVersion,
+    bool PreFilterWithDetector = false);
+
+/// <summary>
+/// Stored shape of a text <see cref="FieldValue"/> with its other-language form.
+/// </summary>
+internal sealed record FieldTextJson(string Text, string? Other);
 
 /// <summary>
 /// Source-generated JSON serialization, which needs no reflection and so trims safely on Android (D004).
@@ -199,4 +231,5 @@ internal sealed record AnalyzerSettingsJson(
 [JsonSerializable(typeof(ExtractionWarningJson[]))]
 [JsonSerializable(typeof(FolderRulesJson))]
 [JsonSerializable(typeof(LibrarySettingsJson))]
+[JsonSerializable(typeof(FieldTextJson))]
 internal sealed partial class DataAccessJsonContext : JsonSerializerContext;

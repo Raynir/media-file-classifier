@@ -32,7 +32,7 @@ public sealed partial class SemanticQueryEncoder : IDisposable
     private readonly LinkedList<CacheEntry> recent = new();
     private Task preload = Task.CompletedTask;
     private int generation;
-    private (AiImage Image, SearchVector Vector, int Generation)? lastImage;
+    private (AiImage Image, ModelIdentity Model, SearchVector Vector, int Generation)? lastImage;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SemanticQueryEncoder"/> class.
@@ -73,7 +73,18 @@ public sealed partial class SemanticQueryEncoder : IDisposable
     }
 
     /// <summary>
-    /// Encodes a text query.
+    /// Finds the text embedder that encodes queries for the open library: the active search model's while it's
+    /// installed, else the current embedding model's (E06-S07-T05).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The provider, or <see langword="null"/> when no library is open or no text embedding provider is registered.</returns>
+    public Task<ITextEmbeddingProvider?> FindTextProviderAsync(CancellationToken cancellationToken) =>
+        session.Current is { } library
+            ? SearchModels.FindSearchProviderAsync<ITextEmbeddingProvider>(registry, library, cancellationToken)
+            : Task.FromResult<ITextEmbeddingProvider?>(null);
+
+    /// <summary>
+    /// Encodes a text query, with the active search model (E06-S07-T05).
     /// </summary>
     /// <param name="text">The query. Case doesn't matter, because the model's tokenizer lower-cases it.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -84,7 +95,7 @@ public sealed partial class SemanticQueryEncoder : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
         var library = session.Current;
-        var provider = registry.GetProviders<ITextEmbeddingProvider>().FirstOrDefault();
+        var provider = library is null ? null : await SearchModels.FindSearchProviderAsync<ITextEmbeddingProvider>(registry, library, cancellationToken).ConfigureAwait(false);
         if (library is null || provider is null)
         {
             return null;
@@ -123,7 +134,7 @@ public sealed partial class SemanticQueryEncoder : IDisposable
         ArgumentNullException.ThrowIfNull(image);
 
         var library = session.Current;
-        var provider = registry.GetProviders<IImageEmbeddingProvider>().FirstOrDefault();
+        var provider = library is null ? null : await SearchModels.FindSearchProviderAsync<IImageEmbeddingProvider>(registry, library, cancellationToken).ConfigureAwait(false);
         if (library is null || provider is null)
         {
             return null;
@@ -132,7 +143,7 @@ public sealed partial class SemanticQueryEncoder : IDisposable
         var startedIn = Volatile.Read(ref generation);
         lock (gate)
         {
-            if (lastImage is { } last && ReferenceEquals(last.Image, image) && last.Generation == startedIn)
+            if (lastImage is { } last && ReferenceEquals(last.Image, image) && last.Model == provider.Model && last.Generation == startedIn)
             {
                 return last.Vector;
             }
@@ -143,7 +154,7 @@ public sealed partial class SemanticQueryEncoder : IDisposable
         var vector = SearchVector.FromVector(model.Id, output.Value[0].Span);
         lock (gate)
         {
-            lastImage = (image, vector, startedIn);
+            lastImage = (image, provider.Model, vector, startedIn);
         }
 
         return vector;

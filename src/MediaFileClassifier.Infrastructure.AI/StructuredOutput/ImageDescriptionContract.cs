@@ -10,12 +10,18 @@ namespace MediaFileClassifier.Infrastructure.AI.StructuredOutput;
 
 /// <summary>
 /// The structured output contract of LLM image describers (E01-S05-T05): the JSON schema sent to the model as the
-/// response format, and the validation and repair of what comes back.
+/// response format, and the validation and repair of what comes back. Each prompt template names the schema version
+/// it asks for (E06-S04-T02).
 /// </summary>
 /// <remarks>
 /// <para>
-/// The schema is generated from <see cref="Dto"/>, so the two can't drift apart. Every property is required, and no
-/// other properties are allowed.
+/// Schema 1 (describe-1) is generated from <see cref="Dto"/>, so the two can't drift apart. Schema 2 (describe-2) adds
+/// <c>title_ru</c> and writes each tag as an <c>{en, ru}</c> pair (D035), as the describer spike scored it (MFC-105);
+/// objects and scenes need at least one entry. Every property is required, and no other properties are allowed.
+/// </para>
+/// <para>
+/// In schema 2 a blank Russian title or tag form is accepted and gives no form (a missing form isn't worth a retry),
+/// and a tag written as a plain string is the English form only.
 /// </para>
 /// <para>
 /// Parsing is forgiving where the meaning is clear and strict where it isn't. It repairs: Markdown code fences and text
@@ -26,11 +32,6 @@ namespace MediaFileClassifier.Infrastructure.AI.StructuredOutput;
 /// </remarks>
 public static class ImageDescriptionContract
 {
-    /// <summary>
-    /// Version of the contract and its prompt, stored with each analysis run as its prompt version.
-    /// </summary>
-    public const string Version = "describe-1";
-
     public const string SchemaName = "image_description";
 
     public const int MaxTitleLength = 120;
@@ -40,6 +41,11 @@ public static class ImageDescriptionContract
     public const int MaxDescriptionLength = 2000;
 
     public const int MaxListItems = 30;
+
+    /// <summary>
+    /// The most tags (D350), as the description tells the model. The other lists keep <see cref="MaxListItems"/>.
+    /// </summary>
+    public const int MaxTagItems = 15;
 
     public const int MaxListItemLength = 60;
 
@@ -63,18 +69,31 @@ public static class ImageDescriptionContract
         TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
     };
 
+    private static readonly JsonElement Schema1 = CreateSchema();
+
+    private static readonly JsonElement Schema2 = CreateSchema2();
+
     /// <summary>
     /// Gets the JSON schema of the result.
     /// </summary>
-    public static JsonElement Schema { get; } = CreateSchema();
+    /// <param name="schema">The schema version, 1 or 2.</param>
+    /// <returns>The schema.</returns>
+    public static JsonElement GetSchema(int schema) => schema switch
+    {
+        1 => Schema1,
+        2 => Schema2,
+        _ => throw new ArgumentOutOfRangeException(nameof(schema), schema, "The schema version is 1 or 2."),
+    };
 
     /// <summary>
     /// Parses a model's answer, repairing what can be repaired.
     /// </summary>
     /// <param name="raw">The model's answer.</param>
-    /// <returns>The description, or why the answer can't be used. Never throws.</returns>
-    public static StructuredOutputResult<ImageDescription> Parse(string? raw)
+    /// <param name="schema">The schema version the prompt asked for, 1 or 2.</param>
+    /// <returns>The description, or why the answer can't be used. Never throws for an answer.</returns>
+    public static StructuredOutputResult<ImageDescription> Parse(string? raw, int schema = 1)
     {
+        var schemaElement = GetSchema(schema);
         if (string.IsNullOrWhiteSpace(raw))
         {
             return StructuredOutputResult<ImageDescription>.Failure("The answer is empty.");
@@ -87,6 +106,8 @@ public static class ImageDescriptionContract
         }
 
         Dto? dto;
+        List<(string En, string? Ru)>? pairs = null;
+        string? titleRu = null;
         try
         {
             var node = JsonNode.Parse(json, documentOptions: DocumentOptions) as JsonObject;
@@ -95,7 +116,25 @@ public static class ImageDescriptionContract
                 return StructuredOutputResult<ImageDescription>.Failure("The answer has no JSON object.");
             }
 
-            dto = Repair(node).Deserialize<Dto>(SerializerOptions);
+            var repaired = Repair(node, schemaElement);
+            if (schema == 2)
+            {
+                pairs = ReadTagPairs(repaired["tags"]);
+                if (pairs is null)
+                {
+                    return StructuredOutputResult<ImageDescription>.Failure("The JSON doesn't match the schema: tags aren't a list of en/ru pairs.");
+                }
+
+                if (!TryGetText(repaired["title_ru"], out titleRu))
+                {
+                    return StructuredOutputResult<ImageDescription>.Failure("The JSON doesn't match the schema: title_ru isn't text.");
+                }
+
+                repaired.Remove("title_ru");
+                repaired["tags"] = new JsonArray([.. pairs.Select(pair => (JsonNode)JsonValue.Create(pair.En))]);
+            }
+
+            dto = repaired.Deserialize<Dto>(SerializerOptions);
         }
         catch (JsonException ex)
         {
@@ -116,15 +155,25 @@ public static class ImageDescriptionContract
             return StructuredOutputResult<ImageDescription>.Failure($"These fields are empty: {string.Join(", ", missing)}.");
         }
 
-        return StructuredOutputResult<ImageDescription>.Success(new ImageDescription(
+        var description = new ImageDescription(
             Cut(dto.Title, MaxTitleLength),
             Cut(dto.Description, MaxDescriptionLength),
             Cut(dto.Summary, MaxSummaryLength),
-            CleanList(dto.Tags),
+            CleanList(dto.Tags, MaxTagItems),
             CleanList(dto.Objects),
             CleanList(dto.Scenes),
             CleanList(dto.Actions),
-            CleanList(dto.Emotions)));
+            CleanList(dto.Emotions));
+        if (pairs is not null)
+        {
+            description = description with
+            {
+                TitleRu = string.IsNullOrWhiteSpace(titleRu) ? null : Cut(titleRu, MaxTitleLength),
+                TagsRu = CleanTagForms(pairs, description.Tags),
+            };
+        }
+
+        return StructuredOutputResult<ImageDescription>.Success(description);
     }
 
     /// <summary>
@@ -144,10 +193,10 @@ public static class ImageDescriptionContract
     /// becomes empty (and is rejected later if it's required), a missing or null list becomes empty, and null list
     /// entries are dropped. Values of the wrong type are kept, so deserialization rejects them.
     /// </summary>
-    private static JsonObject Repair(JsonObject answer)
+    private static JsonObject Repair(JsonObject answer, JsonElement schema)
     {
         var repaired = new JsonObject();
-        foreach (var property in Schema.GetProperty("properties").EnumerateObject())
+        foreach (var property in schema.GetProperty("properties").EnumerateObject())
         {
             var isList = property.Value.GetProperty("type").GetString() == "array";
             var value = answer.FirstOrDefault(pair => string.Equals(pair.Key, property.Name, StringComparison.OrdinalIgnoreCase)).Value;
@@ -163,18 +212,80 @@ public static class ImageDescriptionContract
         return repaired;
     }
 
+    /// <summary>
+    /// Reads schema 2's tags: <c>{en, ru}</c> objects (property names in any case), or plain strings for English only.
+    /// </summary>
+    /// <returns>The pairs as written, or <c>null</c> if the tags aren't a list of those.</returns>
+    private static List<(string En, string? Ru)>? ReadTagPairs(JsonNode? tags)
+    {
+        if (tags is not JsonArray list)
+        {
+            return null;
+        }
+
+        var pairs = new List<(string En, string? Ru)>();
+        foreach (var item in list)
+        {
+            switch (item)
+            {
+                case JsonValue when TryGetText(item, out var text):
+                    pairs.Add((text ?? string.Empty, null));
+                    break;
+                case JsonObject pair when TryGetText(Find(pair, "en"), out var en) && TryGetText(Find(pair, "ru"), out var ru):
+                    pairs.Add((en ?? string.Empty, ru));
+                    break;
+                default:
+                    return null;
+            }
+        }
+
+        return pairs;
+    }
+
+    private static JsonNode? Find(JsonObject node, string name) =>
+        node.FirstOrDefault(pair => string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+
+    private static bool TryGetText(JsonNode? node, out string? text)
+    {
+        text = null;
+        return node is null || (node is JsonValue value && value.TryGetValue(out text));
+    }
+
+    /// <summary>
+    /// The Russian forms of the kept tags: the first non-blank form written for each, cut like a tag.
+    /// </summary>
+    private static Dictionary<string, string>? CleanTagForms(List<(string En, string? Ru)> pairs, IReadOnlyList<string> tags)
+    {
+        var forms = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (en, ru) in pairs)
+        {
+            if (string.IsNullOrWhiteSpace(en) || string.IsNullOrWhiteSpace(ru))
+            {
+                continue;
+            }
+
+            var tag = Cut(en, MaxListItemLength);
+            if (tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+            {
+                forms.TryAdd(tag, Cut(ru, MaxListItemLength));
+            }
+        }
+
+        return forms.Count == 0 ? null : forms;
+    }
+
     private static string Cut(string text, int maxLength)
     {
         var trimmed = text.Trim();
         return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength].TrimEnd();
     }
 
-    private static IReadOnlyList<string> CleanList(IReadOnlyList<string> values) =>
+    private static IReadOnlyList<string> CleanList(IReadOnlyList<string> values, int maxItems = MaxListItems) =>
         values
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => Cut(value, MaxListItemLength))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(MaxListItems)
+            .Take(maxItems)
             .ToList();
 
     private static JsonElement CreateSchema()
@@ -219,7 +330,7 @@ public static class ImageDescriptionContract
                     }
                     else if (property.PropertyType.IsAssignableTo(typeof(IEnumerable<string>)))
                     {
-                        schema["maxItems"] = MaxListItems;
+                        schema["maxItems"] = property.Name.Equals("Tags", StringComparison.OrdinalIgnoreCase) ? MaxTagItems : MaxListItems;
                         if (schema["items"] is JsonObject items)
                         {
                             items["maxLength"] = MaxListItemLength;
@@ -232,6 +343,53 @@ public static class ImageDescriptionContract
         };
         var node = SerializerOptions.GetJsonSchemaAsNode(typeof(Dto), exporterOptions);
         return JsonSerializer.SerializeToElement(node);
+    }
+
+    /// <summary>
+    /// Schema 2, as the describer spike scored prompt C with it (MFC-105, <c>prompt.py</c> <c>schema("c")</c>).
+    /// </summary>
+    private static JsonElement CreateSchema2()
+    {
+        static JsonObject Text(int maxLength) => new() { ["type"] = "string", ["maxLength"] = maxLength };
+
+        static JsonObject List(int minItems = 0)
+        {
+            var list = new JsonObject { ["type"] = "array", ["items"] = Text(MaxListItemLength), ["maxItems"] = MaxListItems };
+            if (minItems > 0)
+            {
+                list["minItems"] = minItems;
+            }
+
+            return list;
+        }
+
+        var tag = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = new JsonObject { ["en"] = Text(MaxListItemLength), ["ru"] = Text(MaxListItemLength) },
+            ["required"] = new JsonArray("en", "ru"),
+            ["additionalProperties"] = false,
+        };
+        var properties = new JsonObject
+        {
+            ["title"] = Text(MaxTitleLength),
+            ["title_ru"] = Text(MaxTitleLength),
+            ["description"] = Text(MaxDescriptionLength),
+            ["summary"] = Text(MaxSummaryLength),
+            ["tags"] = new JsonObject { ["type"] = "array", ["items"] = tag, ["maxItems"] = MaxTagItems },
+            ["objects"] = List(minItems: 1),
+            ["scenes"] = List(minItems: 1),
+            ["actions"] = List(),
+            ["emotions"] = List(),
+        };
+        var schema = new JsonObject
+        {
+            ["type"] = "object",
+            ["properties"] = properties,
+            ["required"] = new JsonArray([.. properties.Select(property => (JsonNode)JsonValue.Create(property.Key))]),
+            ["additionalProperties"] = false,
+        };
+        return JsonSerializer.SerializeToElement(schema);
     }
 
     /// <summary>

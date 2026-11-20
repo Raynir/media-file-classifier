@@ -1,0 +1,302 @@
+[
+  {
+    "id": "photo-005",
+    "kind": "photo",
+    "file": "photos/photo-005.jpg",
+    "truth": "cat lying on a red carpet"
+  },
+  {
+    "id": "photo-015",
+    "kind": "photo",
+    "file": "photos/photo-015.jpg",
+    "truth": "three lynxes on tree branches"
+  },
+  {
+    "id": "photo-025",
+    "kind": "photo",
+    "file": "photos/photo-025.jpg",
+    "truth": "two brown bears playing in snow"
+  },
+  {
+    "id": "photo-034",
+    "kind": "photo",
+    "file": "photos/photo-034.jpg",
+    "truth": "pink cold beet soup (kholodnik), look-alike of borscht"
+  },
+  {
+    "id": "photo-044",
+    "kind": "photo",
+    "file": "photos/photo-044.jpg",
+    "truth": "St Basil's Cathedral on Red Square under clouds, crowds"
+  },
+  {
+    "id": "photo-054",
+    "kind": "photo",
+    "file": "photos/photo-054.jpg",
+    "truth": "Paris riverside towers at night with the Eiffel Tower in the distance"
+  },
+  {
+    "id": "photo-063",
+    "kind": "photo",
+    "file": "photos/photo-063.jpg",
+    "truth": "empty white-sand beach with clear water"
+  },
+  {
+    "id": "photo-073",
+    "kind": "photo",
+    "file": "photos/photo-073.jpg",
+    "truth": "modern white-green tram at a stop"
+  },
+  {
+    "id": "photo-082",
+    "kind": "photo",
+    "file": "photos/photo-082.jpg",
+    "truth": "modern glass Moscow Metro entrance"
+  },
+  {
+    "id": "photo-092",
+    "kind": "photo",
+    "file": "photos/photo-092.jpg",
+    "truth": "cargo barge on a river from above"
+  },
+  {
+    "id": "photo-102",
+    "kind": "photo",
+    "file": "photos/photo-102.jpg",
+    "truth": "women's football match, tackle with the ball"
+  },
+  {
+    "id": "photo-111",
+    "kind": "photo",
+    "file": "photos/photo-111.jpg",
+    "truth": "chess pieces on a board, shallow focus"
+  },
+  {
+    "id": "photo-121",
+    "kind": "photo",
+    "file": "photos/photo-121.jpg",
+    "truth": "mechanical watch movement close-up"
+  },
+  {
+    "id": "photo-131",
+    "kind": "photo",
+    "file": "photos/photo-131.jpg",
+    "truth": "crowded street with neon signs at night"
+  },
+  {
+    "id": "photo-140",
+    "kind": "photo",
+    "file": "photos/photo-140.jpg",
+    "truth": "old wooden house with shop signs \"ПОДАРКИ\" and \"СУВЕНИРЫ\""
+  },
+  {
+    "id": "photo-150",
+    "kind": "photo",
+    "file": "photos/photo-150.jpg",
+    "truth": "glass plaque \"Data is collected on everything we do.\""
+  },
+  {
+    "id": "photo-160",
+    "kind": "photo",
+    "file": "photos/photo-160.jpg",
+    "truth": "green aurora over water at night"
+  },
+  {
+    "id": "photo-169",
+    "kind": "photo",
+    "file": "photos/photo-169.jpg",
+    "truth": "Moscow City skyscrapers lit at night over the river"
+  },
+  {
+    "id": "photo-179",
+    "kind": "photo",
+    "file": "photos/photo-179.jpg",
+    "truth": "vegetable pizza with green peppers"
+  },
+  {
+    "id": "photo-188",
+    "kind": "photo",
+    "file": "photos/photo-188.jpg",
+    "truth": "cup of black coffee next to a slice of layered cake"
+  },
+  {
+    "id": "photo-198",
+    "kind": "photo",
+    "file": "photos/photo-198.jpg",
+    "truth": "classical guitar leaning on a grey sofa"
+  },
+  {
+    "id": "photo-208",
+    "kind": "photo",
+    "file": "photos/photo-208.jpg",
+    "truth": "tall \"METRO\" store sign next to a white church (not a subway)"
+  },
+  {
+    "id": "synth-003",
+    "kind": "screenshot",
+    "file": "synthetic/synth-003.png",
+    "truth": "email in English saying an order has shipped"
+  },
+  {
+    "id": "synth-008",
+    "kind": "screenshot",
+    "file": "synthetic/synth-008.png",
+    "truth": "settings screen in Russian with toggles"
+  },
+  {
+    "id": "synth-014",
+    "kind": "screenshot",
+    "file": "synthetic/synth-014.png",
+    "truth": "sign-in form in English with email and password fields"
+  },
+  {
+    "id": "synth-019",
+    "kind": "screenshot",
+    "file": "synthetic/synth-019.png",
+    "truth": "code editor with a short C# program that prints cat names"
+  },
+  {
+    "id": "synth-024",
+    "kind": "screenshot",
+    "file": "synthetic/synth-024.png",
+    "truth": "laptop notification in English: battery low, 5 percent"
+  },
+  {
+    "id": "synth-028",
+    "kind": "document",
+    "file": "synthetic/synth-028.png",
+    "truth": "English coffee shop receipt for coffees, a croissant and carrot cake"
+  },
+  {
+    "id": "synth-035",
+    "kind": "document",
+    "file": "synthetic/synth-035.png",
+    "truth": "bilingual English-Russian business card of a wedding photographer"
+  },
+  {
+    "id": "synth-042",
+    "kind": "document",
+    "file": "synthetic/synth-042.png",
+    "truth": "yellow 'Caution, wet floor' sign in English"
+  },
+  {
+    "id": "synth-048",
+    "kind": "document",
+    "file": "synthetic/synth-048.jpg",
+    "truth": "handwritten-style note in Russian: buy milk and bread, call grandma"
+  },
+  {
+    "id": "synth-055",
+    "kind": "document",
+    "file": "synthetic/synth-055.jpg",
+    "truth": "photocopied English tenancy agreement clause about pets"
+  },
+  {
+    "id": "gif-003",
+    "kind": "gif",
+    "file": "gifs/gif-003.gif",
+    "truth": "toad swimming in murky water"
+  },
+  {
+    "id": "gif-007",
+    "kind": "gif",
+    "file": "gifs/gif-007.gif",
+    "truth": "red adder snake moving among rocks"
+  },
+  {
+    "id": "gif-011",
+    "kind": "gif",
+    "file": "gifs/gif-011.gif",
+    "truth": "Muybridge drawings of an elk galloping in a circle"
+  },
+  {
+    "id": "gif-015",
+    "kind": "gif",
+    "file": "gifs/gif-015.gif",
+    "truth": "red dragonfly eating prey, macro"
+  },
+  {
+    "id": "gif-020",
+    "kind": "gif",
+    "file": "gifs/gif-020.gif",
+    "truth": "waving flag of Ukraine"
+  },
+  {
+    "id": "gif-024",
+    "kind": "gif",
+    "file": "gifs/gif-024.gif",
+    "truth": "glowing green bottle with bubbles"
+  },
+  {
+    "id": "gif-028",
+    "kind": "gif",
+    "file": "gifs/gif-028.gif",
+    "truth": "Windows command prompt typing animation"
+  },
+  {
+    "id": "gif-032",
+    "kind": "gif",
+    "file": "gifs/gif-032.gif",
+    "truth": "letter A being drawn stroke by stroke"
+  },
+  {
+    "id": "video-003",
+    "kind": "video",
+    "file": "videos/video-003.mp4",
+    "truth": "black-and-white cat playing"
+  },
+  {
+    "id": "video-007",
+    "kind": "video",
+    "file": "videos/video-007.mp4",
+    "truth": "passenger train speeding past a station platform"
+  },
+  {
+    "id": "video-012",
+    "kind": "video",
+    "file": "videos/video-012.mp4",
+    "truth": "light snow falling past a Paris building"
+  },
+  {
+    "id": "video-016",
+    "kind": "video",
+    "file": "videos/video-016.mp4",
+    "truth": "New Year fireworks over a town"
+  },
+  {
+    "id": "video-021",
+    "kind": "video",
+    "file": "videos/video-021.mp4",
+    "truth": "raindrops running down a window"
+  },
+  {
+    "id": "video-025",
+    "kind": "video",
+    "file": "videos/video-025.mp4",
+    "truth": "little grebe swimming"
+  },
+  {
+    "id": "video-030",
+    "kind": "video",
+    "file": "videos/video-030.mp4",
+    "truth": "man walking along the waterline of a sandy beach"
+  },
+  {
+    "id": "video-034",
+    "kind": "video",
+    "file": "videos/video-034.mp4",
+    "truth": "storm cloud with lightning in the distance"
+  },
+  {
+    "id": "video-039",
+    "kind": "video",
+    "file": "videos/video-039.mp4",
+    "truth": "night view of Chicago skyscrapers"
+  },
+  {
+    "id": "video-043",
+    "kind": "video",
+    "file": "videos/video-043.mp4",
+    "truth": "jet aircraft flying overhead"
+  }
+]

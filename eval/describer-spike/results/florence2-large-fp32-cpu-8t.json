@@ -1,0 +1,346 @@
+{
+  "system": "florence2-large-fp32-cpu-8t",
+  "route": "in-process",
+  "model": "Florence-2-large-ft",
+  "precision": "fp32",
+  "device": "cpu",
+  "threads": 8,
+  "promptVersion": "florence-tasks-1",
+  "items": {
+    "photo-005": {
+      "seconds": 14.94,
+      "timings": {
+        "vision": 7.744,
+        "description": 2.949,
+        "summary": 2.282,
+        "objects": 1.966
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A cat is laying on a red carpet. The cat is white and has brown spots on it. There is a black curtain behind the cat.",
+        "summary": "A cat is laying down on a red carpet.",
+        "tags": [
+          {
+            "en": "cat",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "cat"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-054": {
+      "seconds": 19.74,
+      "timings": {
+        "vision": 7.679,
+        "description": 5.062,
+        "summary": 2.37,
+        "objects": 4.631
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "The image is of a city at night. The sky is dark blue and the buildings are lit up. The Eiffel tower is on the left side of the image. The water is reflecting the lights of the buildings. There are trees in front of the water and they are lit with yellow lights. There is a bridge across the water with boats on it.",
+        "summary": "A city skyline with the Eiffel tower in the background.",
+        "tags": [
+          {
+            "en": "boat",
+            "ru": null
+          },
+          {
+            "en": "skyscraper",
+            "ru": null
+          },
+          {
+            "en": "street light",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "boat",
+          "skyscraper",
+          "street light"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-102": {
+      "seconds": 17.82,
+      "timings": {
+        "vision": 7.853,
+        "description": 3.706,
+        "summary": 2.34,
+        "objects": 3.92
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "Two women are playing soccer on a field. They are wearing blue and white uniforms. There is a white and red soccer ball on the ground in front of them. There are bleachers behind them.",
+        "summary": "Two women playing soccer on a field with a soccer ball.",
+        "tags": [
+          {
+            "en": "bracelet",
+            "ru": null
+          },
+          {
+            "en": "football",
+            "ru": null
+          },
+          {
+            "en": "footwear",
+            "ru": null
+          },
+          {
+            "en": "human face",
+            "ru": null
+          },
+          {
+            "en": "person",
+            "ru": null
+          },
+          {
+            "en": "sneakers",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "bracelet",
+          "football",
+          "footwear",
+          "human face",
+          "person",
+          "sneakers"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-150": {
+      "seconds": 16.59,
+      "timings": {
+        "vision": 7.825,
+        "description": 4.418,
+        "summary": 2.32,
+        "objects": 2.023
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A clear glass plaque is mounted on a wall. The plaque is rectangular in shape and has four screws on either side of it. On the plaque is a text that says \"Data is collected on everything we do\". Below the text is a question that asks \"Do you know how yours is being used?\".",
+        "summary": "A sign that says \"Data is collected on everything we do\"",
+        "tags": [
+          {
+            "en": "picture frame",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "picture frame"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "photo-198": {
+      "seconds": 16.22,
+      "timings": {
+        "vision": 7.774,
+        "description": 3.395,
+        "summary": 2.291,
+        "objects": 2.758
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A brown guitar is sitting on a gray couch. There are two gray pillows on the couch. The guitar has a black neck and strings. There is a white wall behind the guitar.",
+        "summary": "A guitar sitting on a couch in a room.",
+        "tags": [
+          {
+            "en": "guitar",
+            "ru": null
+          },
+          {
+            "en": "pillow",
+            "ru": null
+          },
+          {
+            "en": "studio couch",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "guitar",
+          "pillow",
+          "studio couch"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-019": {
+      "seconds": 17.69,
+      "timings": {
+        "vision": 7.753,
+        "description": 5.541,
+        "summary": 2.266,
+        "objects": 2.128
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A black screen with white text on it. The text is written in a programming language. The first line of text reads \"var cats = new[] { \"Barsik\", \"Murka\", \"foreach (var cat in cats) { console.WriteLine(s\"Feed {cat});\". The second line of code is written as \"console.WriteLINE(s*Feed {cats}\".",
+        "summary": "A computer screen with a code for a program.",
+        "tags": [
+          {
+            "en": "computer monitor",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "computer monitor"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "synth-048": {
+      "seconds": 15.9,
+      "timings": {
+        "vision": 7.779,
+        "description": 3.571,
+        "summary": 2.486,
+        "objects": 2.068
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A square piece of paper is light green in color. The paper has black writing on it. The writing is in a foreign language. The border of the paper is dark gray.",
+        "summary": "A white sheet of paper with writing in a foreign language.",
+        "tags": [
+          {
+            "en": "picture frame",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "picture frame"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "gif-015": {
+      "seconds": 16.9,
+      "timings": {
+        "vision": 7.871,
+        "description": 4.394,
+        "summary": 2.567,
+        "objects": 2.063
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A close up of a fly is shown. The fly has long wings that are black and red. The eyes of the fly are black. The legs of the insect are black as well. There are two small yellow bugs under the fly. The insect has a red mouth.",
+        "summary": "A close up of a bug with a bug bug on it's face.",
+        "tags": [
+          {
+            "en": "insect",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "insect"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-003": {
+      "seconds": 15.52,
+      "timings": {
+        "vision": 7.82,
+        "description": 3.181,
+        "summary": 2.509,
+        "objects": 2.012
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A black circle is on the ground. There are small rocks around the circle. There is dirt on the floor around the black circle.",
+        "summary": "A black and white image of a crescent shaped object on the ground.",
+        "tags": [
+          {
+            "en": "animal",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "animal"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    },
+    "video-025": {
+      "seconds": 15.96,
+      "timings": {
+        "vision": 7.892,
+        "description": 3.267,
+        "summary": 2.415,
+        "objects": 2.391
+      },
+      "firstTryValid": true,
+      "output": {
+        "title": null,
+        "title_ru": null,
+        "description": "A bird is swimming in the water. There are small ripples in the front of the bird. There is a tree trunk behind the bird in the distance.",
+        "summary": "A duck swimming in a pond with trees in the background.",
+        "tags": [
+          {
+            "en": "bird",
+            "ru": null
+          },
+          {
+            "en": "duck",
+            "ru": null
+          }
+        ],
+        "objects": [
+          "bird",
+          "duck"
+        ],
+        "scenes": [],
+        "actions": [],
+        "emotions": []
+      }
+    }
+  },
+  "load": {
+    "loadSeconds": 12.2,
+    "peakWorkingSetMiB": 5342,
+    "gpuModelMiB": null
+  }
+}

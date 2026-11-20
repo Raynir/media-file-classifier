@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Logging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Domain.Libraries;
@@ -294,6 +295,59 @@ public sealed class ThumbnailGridTests
         Assert.Equal((0, -1), (grid.Selection.Count, grid.Selection.FocusIndex));
         window.Close();
     });
+
+    [Fact]
+    public Task Grid_ShowingScrollingAndResizing_LogsNoBindingCastWarnings() => TestApp.RunAsync(() =>
+    {
+        var sink = new BindingWarningSink();
+        var previous = Logger.Sink;
+        Logger.Sink = sink;
+        try
+        {
+            var (grid, _, _, _) = Create(Count);
+            var (window, view) = Show(grid);
+            var scroller = Scroller(view);
+            scroller.Offset = new Vector(0, scroller.Extent.Height / 2);
+            Settle();
+            scroller.Offset = new Vector(0, 0);
+            Settle();
+            window.Width = 700;
+            Settle();
+            window.Close();
+        }
+        finally
+        {
+            Logger.Sink = previous;
+        }
+
+        // A tile view used to join its row panel before getting its data context, and bound to the row (MFC-1003).
+        Assert.True(sink.Messages.Count == 0, string.Join(Environment.NewLine, sink.Messages));
+    });
+
+    private sealed class BindingWarningSink : ILogSink
+    {
+        public List<string> Messages { get; } = [];
+
+        public bool IsEnabled(LogEventLevel level, string area) => level >= LogEventLevel.Warning && area == LogArea.Binding;
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate)
+        {
+            if (IsEnabled(level, area))
+            {
+                Messages.Add(messageTemplate);
+            }
+        }
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues)
+        {
+            // Only casts to the wrong view model: a test grid has no filter or notice view models, and those bindings log too.
+            var message = string.Join(" | ", [messageTemplate, .. propertyValues.Select(value => value?.ToString())]);
+            if (IsEnabled(level, area) && message.Contains("Unable to cast", StringComparison.Ordinal))
+            {
+                Messages.Add(message);
+            }
+        }
+    }
 
     private static (ThumbnailGridViewModel Grid, FakeTileSizeSender Sender, FakeResultSource Source, FakeJobSystem Jobs) Create(
         int count, int storedSize = LibrarySettings.DefaultThumbnailTileSize, FakeItemOpener? opener = null)

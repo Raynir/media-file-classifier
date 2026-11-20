@@ -38,6 +38,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- The thumbnail grid no longer logs a binding cast warning per tile binding (MFC-1003): a tile view is given its tile view model before it joins its row, instead of first binding to the row view model it inherited.
 - A listener of the media item changes that fails no longer fails the import or rescan that wrote the items (MFC-1002): the library logs it and the other listeners still hear the change.
 - Importing and rescanning no longer fail with "search.lastFilters isn't a library setting" (MFC-1001): the last filters (D314) are now a real library setting, stored in the library's settings, and a filter state that can't be saved is logged instead of failing what changed the results.
 

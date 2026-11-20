@@ -742,7 +742,18 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
 
     private async Task<bool> TryPlayAnimationAsync(ItemDetails item, int load, CancellationToken token)
     {
-        var loaded = await previews.LoadAnimationAsync(item, token);
+        AnimatedImageLoad? loaded;
+        try
+        {
+            loaded = await previews.LoadAnimationAsync(item, token);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not IOException and not UnauthorizedAccessException)
+        {
+            // A file the animation decoder can't read: the usual original decides what shows.
+            LogOriginalFailed(logger, item.FileName, ex);
+            return false;
+        }
+
         if (load != previewLoads)
         {
             (loaded?.Animation as IDisposable)?.Dispose();
@@ -761,7 +772,14 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             return false;
         }
 
-        SetAnimation(new AnimatedPreviewViewModel(animation, clock, localizer));
+        var player = new AnimatedPreviewViewModel(animation, clock, localizer);
+        if (!IsPreviewExpanded || !layout.Details.IsExpanded)
+        {
+            // Nothing shows it, so it must not run.
+            player.Pause();
+        }
+
+        SetAnimation(player);
         return true;
     }
 

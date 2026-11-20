@@ -134,7 +134,7 @@
                       Command="{Binding StepForwardCommand}"
                       Content="{l:Loc Details_Preview_StepForward}"
                       ToolTip.Tip="{l:Loc Details_Preview_StepForward_ToolTip}" />
-              <TextBlock Classes="Small" Text="{Binding FrameText}" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
+              <TextBlock Classes="Small" Text="{Binding FrameText}" IsVisible="{Binding IsPaused}" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
             </StackPanel>
           </Border>
           <!-- Too large to play: the first frame shows, and the file opens in the default app (D070, D026). -->

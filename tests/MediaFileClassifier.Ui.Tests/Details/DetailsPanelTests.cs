@@ -168,6 +168,19 @@ public sealed class DetailsPanelTests : IDisposable
     });
 
     [Fact]
+    public Task AnimatedItem_SelectedWhileThePreviewIsCollapsed_DoesNotPlay() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 1);
+        bed.Panel.IsPreviewExpanded = false;
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+
+        bed.Select(0, SelectionGesture.Replace);
+
+        Assert.NotNull(bed.Panel.Animation);
+        Assert.False(bed.Panel.Animation.IsPlaying);
+    });
+
+    [Fact]
     public Task AnimatedItem_OneFrameOnly_ShowsTheUsualOriginal() => TestApp.RunAsync(() =>
     {
         var bed = new Bed(this, 1);

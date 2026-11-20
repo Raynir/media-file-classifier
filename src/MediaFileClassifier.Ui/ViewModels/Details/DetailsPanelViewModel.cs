@@ -58,6 +58,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private readonly IDisposable? guardRegistration;
     private readonly IDisposable? bulkGuardRegistration;
     private bool wasExpanded;
+    private readonly TimeProvider clock;
     private bool restoringPanel;
 
     /// <summary>
@@ -74,6 +75,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <param name="logger">Logs previews that couldn't be loaded.</param>
     /// <param name="guard">Asks about staged changes before the panel closes (E07-S12-T01).</param>
     /// <param name="undoStore">Holds what the last bulk edit changed, for Undo (E07-S03-T03).</param>
+    /// <param name="clock">Times the frames of an animated image; the system clock by default.</param>
     public DetailsPanelViewModel(
         SelectionModel selection,
         ISender sender,
@@ -85,8 +87,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         Func<ThumbnailGridViewModel> grid,
         ILogger<DetailsPanelViewModel>? logger = null,
         UnsavedChangesGuard? guard = null,
-        BulkUndoStore? undoStore = null)
+        BulkUndoStore? undoStore = null,
+        TimeProvider? clock = null)
     {
+        this.clock = clock ?? TimeProvider.System;
+        layout.Details.PropertyChanged += OnDetailsVisibilityChanged;
         this.selection = selection;
         this.sender = sender;
         this.regions = regions;
@@ -214,6 +219,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// Gets the preview bitmap, or <see langword="null"/> while there's none.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsZoomAvailable))]
     public partial Bitmap? PreviewBitmap { get; private set; }
 
     /// <summary>
@@ -239,6 +245,25 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// </summary>
     [ObservableProperty]
     public partial PreviewSource? PreviewKind { get; private set; }
+
+    /// <summary>
+    /// Gets the animated GIF or WebP playing in the preview (E14-S12), or <see langword="null"/> for any other item.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsZoomAvailable))]
+    public partial AnimatedPreviewViewModel? Animation { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the shown animated image is too large to play, so the preview shows its first
+    /// frame and offers Open in default app (D070, D026).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsAnimationTooLarge { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the preview can be zoomed: there is a bitmap and no animation playing.
+    /// </summary>
+    public bool IsZoomAvailable => PreviewBitmap is not null && Animation is null;
 
     /// <summary>
     /// Gets a note under the preview, e.g. that it shows the thumbnail because the folder is offline.
@@ -393,11 +418,13 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         BulkEditor.Dispose();
         layout.PropertyChanged -= OnLayoutChanged;
         layout.Details.PropertyChanged -= OnPanelChanged;
+        layout.Details.PropertyChanged -= OnDetailsVisibilityChanged;
         guardRegistration?.Dispose();
         bulkGuardRegistration?.Dispose();
         loading?.Cancel();
         loading?.Dispose();
         CancelPreview();
+        SetAnimation(null);
         SetPreview(null);
     }
 
@@ -480,6 +507,22 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         }
     }
 
+    private void OnDetailsVisibilityChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SidePanel.IsExpanded) && !layout.Details.IsExpanded)
+        {
+            Animation?.Pause();
+        }
+    }
+
+    private void SetAnimation(AnimatedPreviewViewModel? animation)
+    {
+        var old = Animation;
+        Animation = animation;
+        IsAnimationTooLarge = false;
+        old?.Dispose();
+    }
+
     [RelayCommand]
     private void TogglePreview() => IsPreviewExpanded = !IsPreviewExpanded;
 
@@ -491,6 +534,12 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         {
             case nameof(ShellLayout.IsDetailsPreviewCollapsed):
                 OnPropertyChanged(nameof(IsPreviewExpanded));
+                if (!IsPreviewExpanded)
+                {
+                    // A hidden animation must not keep running.
+                    Animation?.Pause();
+                }
+
                 break;
             case nameof(ShellLayout.DetailsPreviewHeight):
                 OnPropertyChanged(nameof(PreviewHeight));
@@ -634,6 +683,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         var token = previewLoading.Token;
         try
         {
+            SetAnimation(null);
             SetPreview(null);
             var canShowOriginal = PreviewLoader.CanShowOriginal(item);
             if (!canShowOriginal)
@@ -662,6 +712,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             }
 
             await Task.Delay(OriginalDelay, token);
+            if (item.MediaType == MediaType.AnimatedImage && await TryPlayAnimationAsync(item, load, token))
+            {
+                return;
+            }
+
             var original = await previews.LoadOriginalAsync(item, ScreenPixels, token);
             if (load != previewLoads)
             {
@@ -683,6 +738,49 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
                 PreviewNote = localizer.Get("Details_Preview_Thumbnail_Failed");
             }
         }
+    }
+
+    private async Task<bool> TryPlayAnimationAsync(ItemDetails item, int load, CancellationToken token)
+    {
+        AnimatedImageLoad? loaded;
+        try
+        {
+            loaded = await previews.LoadAnimationAsync(item, token);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not IOException and not UnauthorizedAccessException)
+        {
+            // A file the animation decoder can't read: the usual original decides what shows.
+            LogOriginalFailed(logger, item.FileName, ex);
+            return false;
+        }
+
+        if (load != previewLoads)
+        {
+            (loaded?.Animation as IDisposable)?.Dispose();
+            return true;
+        }
+
+        if (loaded?.Animation is not { } animation)
+        {
+            // One frame, or too large to play: the usual original shows, the first frame of the latter.
+            if (loaded is { IsTooLarge: true })
+            {
+                IsAnimationTooLarge = true;
+                PreviewNote = localizer.Format("Details_Preview_Animation_TooLarge", Format.Number(loaded.DecodedBytes / (1024 * 1024)), Format.Number(PreviewLoader.MaxAnimationBytes / (1024 * 1024)));
+            }
+
+            return false;
+        }
+
+        var player = new AnimatedPreviewViewModel(animation, clock, localizer);
+        if (!IsPreviewExpanded || !layout.Details.IsExpanded)
+        {
+            // Nothing shows it, so it must not run.
+            player.Pause();
+        }
+
+        SetAnimation(player);
+        return true;
     }
 
     private async Task LoadFullResolutionAsync(ItemDetails item)
@@ -732,6 +830,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             CancelPreview();
             ++previewLoads;
             previewFor = null;
+            SetAnimation(null);
             SetPreview(null);
             PreviewNote = null;
         }

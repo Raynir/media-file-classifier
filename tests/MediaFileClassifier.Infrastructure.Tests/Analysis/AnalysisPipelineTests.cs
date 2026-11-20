@@ -2,6 +2,7 @@ using System.Diagnostics;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
@@ -20,6 +21,7 @@ using MediaFileClassifier.UseCases.Analysis.GetDescriberFields;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Analysis.UpdateAnalysisProfile;
 using MediaFileClassifier.UseCases.Import.RetryFailedItems;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Analysis;
@@ -418,6 +420,62 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         Assert.All(work, workItem => Assert.Equal(AnalysisStages.Item, workItem.Stage));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ItemInAFolderGoneSinceImport_IsParkedUntouched_AndAnalyzedOnceTheFolderIsBack(bool markedOffline)
+    {
+        // MFC-1004: the folder was deleted or unplugged after the import. Marked Offline when the library opened, or
+        // found gone by the work itself.
+        var items = await ImportAsync([new FakeEmbeddingProvider(), new FakeImageDescriber(), new FakeOcrProvider()], SampleMedia.JpegWithExif);
+        var away = bed!.Root + "-away";
+        Directory.Move(bed.Root, away);
+        if (markedOffline)
+        {
+            await bed.Sender.Send(new CheckFolderAvailabilityCommand(), Token);
+        }
+
+        var jobId = (await bed.Sender.Send(new AnalyzeItemsCommand([.. items.Select(item => item.Id)]), Token))!.Value;
+        var parked = await WaitForParkedAsync(jobId);
+
+        Assert.Equal(0, parked.RetryCount);
+        Assert.Equal(1, parked.AttemptCount);
+        Assert.Contains("offline", parked.LastError, StringComparison.Ordinal);
+        Assert.Equal(MediaItemStatus.Pending, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+        Assert.Empty(await bed.Library.AnalyzerStates.GetForItemAsync(items[0].Id, Token));
+        Assert.Equal(FolderStatus.Offline, (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.Status);
+
+        Directory.Move(away, bed.Root);
+        await bed.Sender.Send(new CheckFolderAvailabilityCommand(), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(MediaItemStatus.Indexed, (await bed.Library.Items.GetAsync(items[0].Id, Token))!.Status);
+        Assert.Equal(WorkItemState.Completed, Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token)).State);
+    }
+
+    [Fact]
+    public async Task ItemWhoseSubfolderWasDeleted_FailsAtOnce_AsAPermanentFailure()
+    {
+        // The folder is still there, only the file's directory is gone: retrying won't bring the file back.
+        bed = await ImportTestBed.CreateAsync(configure: services =>
+            services.AddSingleton<IAiProviderRegistry>(new AiProviderRegistry([new FakeEmbeddingProvider(), new FakeImageDescriber(), new FakeOcrProvider()], TimeProvider.System)));
+        bed.Copy(SampleMedia.JpegWithExif, Path.Combine("trip", "photo.jpg"));
+        await bed.ImportAsync();
+        await bed.WaitUntilIdleAsync();
+        var item = Assert.Single(await bed.ItemsAsync());
+        Directory.Delete(Path.Combine(bed.Root, "trip"), recursive: true);
+
+        var jobId = await AnalyzeAsync([item]);
+
+        var workItem = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token));
+        Assert.Equal(WorkItemState.Failed, workItem.State);
+        Assert.Equal(ErrorCategory.Permanent, workItem.ErrorCategory);
+        Assert.Equal(1, workItem.AttemptCount);
+        var failed = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        Assert.Equal(MediaItemStatus.Error, failed.Status);
+        Assert.Equal(FolderStatus.Online, (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.Status);
+    }
+
     [Fact]
     public async Task ProviderPausedByItsBreaker_IsNotCalled_AndTheWorkItemIsParked()
     {
@@ -755,6 +813,21 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         var jobId = await bed!.Sender.Send(new AnalyzeItemsCommand([.. items.Select(item => item.Id)], analyzers), Token);
         await bed.WaitUntilIdleAsync();
         return Assert.NotNull(jobId);
+    }
+
+    private async Task<WorkItem> WaitForParkedAsync(Id<ProcessingJob> jobId)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        while (true)
+        {
+            if ((await bed!.Library.Jobs.GetWorkItemsAsync(jobId, Token)).SingleOrDefault() is { IsParked: true } parked)
+            {
+                return parked;
+            }
+
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), "The work item wasn't parked.");
+            await Task.Delay(20, Token);
+        }
     }
 
     private async Task<AnalyzerState> StateAsync(MediaItem item, string analyzer) =>

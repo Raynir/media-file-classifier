@@ -1,0 +1,48 @@
+# UI smoke script for the keyframe strip and the default-app fallback (MFC-119). Steps: docs/testing.md.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/keyframe-strip.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+command view.details-expanded
+
+# Keyframes exist only after AI analysis, so the script samples the video itself, as the analysis does.
+select video-short.mp4
+wait-for visible VideoPlayerView
+seed-keyframes video-short.mp4
+select jpeg-exif.jpg
+select video-short.mp4
+wait-for visible KeyframeStrip
+wait 1500ms
+shot 01-strip-playback
+
+# In-app playback: a chosen keyframe seeks the player and outlines the frame; there is no fallback text.
+choose-keyframe 2
+wait 800ms
+shot 02-strip-seek
+
+# An animated image has a strip too.
+select gif-animated.gif
+wait-for visible AnimationPlayer
+seed-keyframes gif-animated.gif
+select jpeg-exif.jpg
+select gif-animated.gif
+wait-for visible KeyframeStrip
+wait 1000ms
+choose-keyframe 2
+shot 03-strip-animation
+
+# Fallback (D026): in-app playback is off, so the frame and strip show with Open in player. Choosing a keyframe
+# selects the moment; Open in player opens the default app and copies the time.
+capability video-playback off
+select jpeg-exif.jpg
+select video-short.mp4
+wait-for visible OpenInPlayerButton
+wait 1000ms
+choose-keyframe 2
+wait 300ms
+shot 04-fallback-selected
+focus OpenInPlayerButton
+key Space
+wait 1500ms
+shot 05-fallback-copied

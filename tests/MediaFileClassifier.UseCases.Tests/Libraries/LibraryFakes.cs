@@ -98,7 +98,9 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IJobRepository Jobs => JobList;
 
-    public IKeyframeRepository Keyframes => throw new NotSupportedException();
+    public IKeyframeRepository Keyframes => KeyframeList;
+
+    public FakeKeyframeRepository KeyframeList { get; } = new();
 
     public IAnalyzerStateRepository? AnalyzerStateList { get; set; }
 
@@ -309,5 +311,22 @@ internal sealed class FakeFolderSource : IMediaFileSource
 
         var prefix = parent.Id.TrimEnd('\\') + "\\";
         return folder.Id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? folder.Id[prefix.Length..].Replace('\\', '/') : null;
+    }
+}
+
+/// <summary>
+/// Keeps keyframes per item in memory.
+/// </summary>
+internal sealed class FakeKeyframeRepository : IKeyframeRepository
+{
+    public Dictionary<Id<MediaItem>, IReadOnlyList<Keyframe>> Keyframes { get; } = [];
+
+    public Task<IReadOnlyList<Keyframe>> GetForItemAsync(Id<MediaItem> itemId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Keyframes.TryGetValue(itemId, out var keyframes) ? keyframes : (IReadOnlyList<Keyframe>)[]);
+
+    public Task ReplaceAsync(Id<MediaItem> itemId, IReadOnlyList<Keyframe> keyframes, CancellationToken cancellationToken = default)
+    {
+        Keyframes[itemId] = keyframes;
+        return Task.CompletedTask;
     }
 }

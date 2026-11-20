@@ -101,6 +101,41 @@ A view model that calls `Dispatcher.UIThread.Post(...)` in its constructor is ha
 - Use `TemporaryFolder` (an `IDisposable`, deletes with retries for about a second because SQLite and the OS release files late) or `TemporaryLibrary`. Never write under the repository, and never hand-roll `Directory.Delete` loops.
 - Each test creates its own folder; tests never share one.
 
+## Real-app checks (UI smoke tool)
+
+Headless tests keep no real pixels and skip native parts (LibVLC, the GPU renderer). For UI work, also run the real app from a script and look at its screenshots (MFC-1006). The tool is part of the Desktop app in **Debug builds only**:
+
+```powershell
+dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/sample.smoke --out artifacts/ui-smoke
+```
+
+- **Isolation.** Each run uses a new app-data folder, `%TEMP%\MediaFileClassifier-smoke\<script>-<time>` (or `--data-dir <empty folder>`), never `%LOCALAPPDATA%\MediaFileClassifier`. Runs leave it there; nothing is deleted.
+- **Output.** PNGs and `smoke-report.txt` go to `--out` (default: `<data folder>\shots`). The report lists every step with its time, then the result, the screenshot folder and the log folder (`<data folder>\logs`).
+- **Exit code.** 0 when every step passed and nothing failing was logged; 1 when a step failed, or when an error or any Avalonia warning (binding warnings included) was logged, also while the app shut down; 2 for a bad script or option. The app's own warnings don't fail a run.
+- **Capture.** `PrintWindow` with full content gives the composed pixels of the window's client area, so natively drawn content shows. If it fails or comes back black, the tool falls back to Avalonia's `RenderTargetBitmap`, which only has what Avalonia draws; the report says which one (`window` or `render`). Popups and dialogs are separate windows and don't show. It needs a signed-in desktop session, so it doesn't run in CI.
+
+A script has one step per line; `#` starts a comment line. Paths are relative to the script's folder.
+
+| Step | What it does |
+|---|---|
+| `library sample [timeout]` | Copies a few files from `tests/SampleMedia` (still images, `gif-animated.gif`, `webp-animated.webp`, two videos) into the data folder, creates a library and adds the folder through the app's own commands, then waits until all items are in and no jobs are pending (default 2 min). |
+| `library open <folder>` | Opens an existing library folder. |
+| `window <w>x<h>` | Sizes the main window, e.g. `window 1400x900`. |
+| `select <file name>` | Selects the item with that file name, as a click does. |
+| `command <id>` | Runs an app command by ID, e.g. `view.details-expanded`, `view.theme-dark`, `item.open` (see `CommandRegistry` and the `*Commands` classes). Fails if it's disabled. |
+| `focus <control>` | Focuses a control by `x:Name` or type name, e.g. `focus SearchBox`. |
+| `key <gesture>` | Presses a key on the focused control, e.g. `key Space`, `key Ctrl+2`, `key Ctrl+Shift+F`. |
+| `type <text>` | Types text into the focused control. |
+| `wait <duration>` | Waits, e.g. `wait 500ms`, `wait 2s`. |
+| `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name); default 30 s. |
+| `shot <name>` | Saves `<name>.png`. |
+| `seed-keyframes <file name>` | Samples the item's video or animation and stores its keyframes and their pictures, as the analysis does (keyframes otherwise need the AI model). The item's details must be reloaded to show them: select another item, then this one. |
+| `choose-keyframe <n>` | Chooses the n-th keyframe in the preview's strip (from 1), as a click does. |
+| `capability video-playback on\|off` | Turns the VideoPlayback capability on or off, to see the default-app fallback (D026). |
+
+`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app). Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
+
 ## Pull requests
 
 The PR body has a concise **Tests added** table: *Test class / test*, *What it covers*, *Case* (happy path, edge, failure). Group parameterised cases in one row. A refactor with no new tests says "none; refactor only" and lists what moved in a *Moved helpers* table.
+UI changes also attach the key screenshots from a real-app check (above).

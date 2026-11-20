@@ -4,6 +4,7 @@ using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.UseCases.Embeddings;
@@ -21,6 +22,7 @@ public sealed class AnalysisInputs
     private readonly IAnalysisImageDecoder decoder;
     private readonly IFrameSampler frameSampler;
     private readonly IOpenLibrary library;
+    private readonly IKeyframeThumbnails? keyframeThumbnails;
     private readonly InputSize decodeSize;
     private readonly Dictionary<int, DecodedImage> shrunk = [];
     private DecodedImage? still;
@@ -37,6 +39,7 @@ public sealed class AnalysisInputs
     /// <param name="format">The detected format.</param>
     /// <param name="metadata">The item's technical metadata (duration, orientation).</param>
     /// <param name="decodeSize">The size a still image is decoded at: what the enabled analyzers need together.</param>
+    /// <param name="keyframeThumbnails">Stores the keyframes' pictures for the preview's strip, or <see langword="null"/> for none.</param>
     public AnalysisInputs(
         IAnalysisImageDecoder decoder,
         IFrameSampler frameSampler,
@@ -44,7 +47,8 @@ public sealed class AnalysisInputs
         MediaContent content,
         MediaFormatDetection format,
         TechnicalMetadata metadata,
-        InputSize decodeSize)
+        InputSize decodeSize,
+        IKeyframeThumbnails? keyframeThumbnails = null)
     {
         ArgumentNullException.ThrowIfNull(decoder);
         ArgumentNullException.ThrowIfNull(frameSampler);
@@ -57,6 +61,7 @@ public sealed class AnalysisInputs
         this.decoder = decoder;
         this.frameSampler = frameSampler;
         this.library = library;
+        this.keyframeThumbnails = keyframeThumbnails;
         this.decodeSize = decodeSize;
         Content = content;
         Format = format;
@@ -171,6 +176,11 @@ public sealed class AnalysisInputs
 
         var keyframes = sample.Frames.Select(frame => frame.ToKeyframe(Content.ItemId)).ToList();
         await library.Keyframes.ReplaceAsync(Content.ItemId, keyframes, cancellationToken).ConfigureAwait(false);
+        if (keyframeThumbnails is not null)
+        {
+            await keyframeThumbnails.StoreAsync(library.Layout, Content.ItemId, sample.Frames, cancellationToken).ConfigureAwait(false);
+        }
+
         frames = new FrameInputs(
             [.. keyframes.Zip(sample.Frames, (keyframe, frame) => new KeyframeImage(keyframe, AiImage.FromRgba(frame.Pixels, frame.Width, frame.Height, $"frame {frame.Index}")))],
             sample.Warnings);

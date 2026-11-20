@@ -5,6 +5,7 @@
              xmlns:v="using:MediaFileClassifier.Ui.Views.Details"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              xmlns:sc="using:MediaFileClassifier.Ui.Shortcuts"
+             xmlns:al="using:Avalonia.Labs.AnimatedImage"
              x:Class="MediaFileClassifier.Ui.Views.Details.DetailsPanelView"
              x:DataType="vm:DetailsPanelViewModel">
   <!--
@@ -66,17 +67,37 @@
                        RenderOptions.BitmapInterpolationMode="HighQuality"
                        sc:Shortcuts.Scope="viewer"
                        AutomationProperties.Name="{l:Loc Details_Preview}" />
+          <!-- Animated GIF and WebP (E14-S12): the control plays; paused or stepped, the frame shows as a plain image. -->
+          <Panel x:Name="AnimationHost"
+                 IsVisible="{Binding Animation, Converter={x:Static ObjectConverters.IsNotNull}}"
+                 Background="{DynamicResource Brush.Surface.Tile}">
+            <Panel DataContext="{Binding Animation}" x:DataType="vm:AnimatedPreviewViewModel">
+              <al:AnimatedImage x:Name="AnimationPlayer"
+                                Source="{Binding PlaybackSource}"
+                                IsPlaying="{Binding IsPlaying}"
+                                IsVisible="{Binding IsPlaying}"
+                                Stretch="Uniform"
+                                StretchDirection="DownOnly" />
+              <Image Source="{Binding CurrentFrame}"
+                     IsVisible="{Binding IsPaused}"
+                     Stretch="Uniform"
+                     StretchDirection="DownOnly"
+                     RenderOptions.BitmapInterpolationMode="HighQuality" />
+            </Panel>
+          </Panel>
           <TextBlock Classes="Tertiary"
                      Text="{l:Loc Details_Preview_None}"
                      IsVisible="{Binding PreviewBitmap, Converter={x:Static ObjectConverters.IsNull}}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center" />
-          <!-- Zoom: the level, then Fit and 100%. -->
+          <!-- Video (E14-S06): over the thumbnail, which shows until the first frame. -->
+          <v:VideoPlayerView DataContext="{Binding Video}" IsVisible="{Binding IsActive, FallbackValue=False}" />
+          <!-- Zoom: the level, then Fit and 100%. Hidden while a video plays here. -->
           <Border Classes="PreviewOverlay"
                   HorizontalAlignment="Right"
                   VerticalAlignment="Bottom"
                   Margin="{DynamicResource Padding.Compact}"
-                  IsVisible="{Binding PreviewBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
+                  IsVisible="{Binding IsZoomAvailable}">
             <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
               <TextBlock x:Name="ZoomText" Classes="Small" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
               <Button x:Name="FitButton"
@@ -89,12 +110,108 @@
                       ToolTip.Tip="{l:Loc Details_Preview_ActualSize_ToolTip}" />
             </StackPanel>
           </Border>
+          <!-- Animation: step back, play or pause, step forward, and the frame. -->
+          <Border Classes="PreviewOverlay"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  Margin="{DynamicResource Padding.Compact}"
+                  IsVisible="{Binding Animation, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" DataContext="{Binding Animation}" x:DataType="vm:AnimatedPreviewViewModel">
+              <Button x:Name="StepBackButton"
+                      Classes="Small"
+                      Command="{Binding StepBackCommand}"
+                      Content="{l:Loc Details_Preview_StepBack}"
+                      ToolTip.Tip="{l:Loc Details_Preview_StepBack_ToolTip}" />
+              <Button x:Name="PlayPauseButton"
+                      Classes="Small"
+                      Command="{Binding TogglePlayCommand}"
+                      ToolTip.Tip="{l:Loc Details_Preview_PlayPause_ToolTip}">
+                <Panel>
+                  <TextBlock Text="{l:Loc Details_Preview_Pause}" IsVisible="{Binding IsPlaying}" />
+                  <TextBlock Text="{l:Loc Details_Preview_Play}" IsVisible="{Binding IsPaused}" />
+                </Panel>
+              </Button>
+              <Button x:Name="StepForwardButton"
+                      Classes="Small"
+                      Command="{Binding StepForwardCommand}"
+                      Content="{l:Loc Details_Preview_StepForward}"
+                      ToolTip.Tip="{l:Loc Details_Preview_StepForward_ToolTip}" />
+              <TextBlock Classes="Small" Text="{Binding FrameText}" IsVisible="{Binding IsPaused}" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
+            </StackPanel>
+          </Border>
         </Panel>
         <Thumb x:Name="PreviewResizer"
                Height="{DynamicResource Size.Splitter}"
                Cursor="SizeNorthSouth"
                Background="Transparent"
                AutomationProperties.Name="{l:Loc Details_Preview_Resize}" />
+        <!--
+          Keyframe strip (E14-S13): a row of the video's or animation's keyframes under the preview, whether it plays here
+          or not. A click seeks the player; without in-app playback it selects the moment, and Open in player opens the
+          file and copies the time (D026). No T00 mockups: the sizes follow the design tokens.
+        -->
+        <StackPanel x:Name="KeyframeStrip"
+                    DataContext="{Binding Strip}"
+                    x:DataType="vm:KeyframeStripViewModel"
+                    IsVisible="{Binding IsVisible, FallbackValue=False}"
+                    Margin="{DynamicResource Padding.Panel}"
+                    Spacing="{DynamicResource Space.XS}">
+          <StackPanel.Styles>
+            <Style Selector="Button.KeyframeButton">
+              <Setter Property="Padding" Value="2" />
+              <Setter Property="BorderThickness" Value="2" />
+              <Setter Property="BorderBrush" Value="Transparent" />
+              <Setter Property="Background" Value="Transparent" />
+            </Style>
+            <Style Selector="Button.KeyframeButton.Selected">
+              <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Focus}" />
+            </Style>
+          </StackPanel.Styles>
+          <TextBlock Classes="Tertiary Caption"
+                     Text="{l:Loc Keyframes_Empty}"
+                     IsVisible="{Binding IsEmpty}"
+                     TextWrapping="Wrap" />
+          <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Disabled"
+                        IsVisible="{Binding HasKeyframes}"
+                        AutomationProperties.Name="{l:Loc Keyframes_Strip}">
+            <ItemsControl ItemsSource="{Binding Keyframes}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:KeyframeViewModel">
+                  <Button Classes="KeyframeButton"
+                          Classes.Selected="{Binding IsSelected}"
+                          Command="{Binding #KeyframeStrip.((vm:KeyframeStripViewModel)DataContext).ChooseCommand}"
+                          CommandParameter="{Binding}"
+                          ToolTip.Tip="{Binding Name}"
+                          AutomationProperties.Name="{Binding Name}">
+                    <StackPanel Spacing="{DynamicResource Space.XS}">
+                      <Border Width="96" Height="54" Background="{DynamicResource Brush.Surface.Tile}" ClipToBounds="True">
+                        <Image Source="{Binding Picture}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                      </Border>
+                      <TextBlock Classes="Small" Text="{Binding TimeText}" HorizontalAlignment="Center" />
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding CanOpenPlayer}">
+            <Button x:Name="OpenInPlayerButton"
+                    Classes="Small"
+                    HorizontalAlignment="Left"
+                    Command="{Binding OpenInPlayerCommand}"
+                    Content="{l:Loc Keyframes_OpenInPlayer}" />
+            <TextBlock x:Name="MomentText"
+                       Text="{Binding MomentText}"
+                       IsVisible="{Binding MomentText, Converter={x:Static ObjectConverters.IsNotNull}}"
+                       TextWrapping="Wrap" />
+          </StackPanel>
+        </StackPanel>
         <TextBlock Classes="Tertiary Caption"
                    Text="{Binding PreviewNote}"
                    IsVisible="{Binding PreviewNote, Converter={x:Static ObjectConverters.IsNotNull}}"

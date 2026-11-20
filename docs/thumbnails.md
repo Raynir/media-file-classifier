@@ -41,6 +41,10 @@ Video time is mostly starting FFmpeg, once per position tried.
 - **Failure:** a file that can't be decoded gives no thumbnail and the warning `ThumbnailFailed` with the error. The old thumbnails are deleted. The import pipeline (E03-S07) stores the warnings with the item's technical metadata warnings.
 - **Invalidation:** `Invalidate` deletes an item's thumbnails, when its file changes (E02-S04-T03) or the item is removed. Regenerating (E02-S06-T02) is another `GenerateAsync`.
 
+## Keyframe pictures
+
+The preview's keyframe strip (E14-S13, D227) shows a picture for each keyframe of a video or animated image. Analysis writes them from the frames it has already decoded (`IKeyframeThumbnails.StoreAsync`, in `AnalysisInputs` and `ItemEmbeddingAnalyzer`), as WebP at quality 80 with a longest edge of 192 pixels, next to the item's thumbnails: `thumbnails/<xx>/<item-id>-frame-<index>.webp` (`LibraryLayout.GetKeyframeThumbnailPath`). There is no database column. Keyframe IDs change each time an item is sampled again, so the file is named by item and index; a new analysis deletes the item's old pictures first. `IThumbnailCache.Invalidate` deletes them with the thumbnails. A file-system failure is logged and leaves the strip without pictures. Items analysed before this show the keyframes' times only until they're analysed again.
+
 ## Placeholders
 
 `MediaThumbnail` in `Ui/Controls` is the thumbnail cell. It shows the thumbnail when there is one. Otherwise it shows a placeholder: the media type's icon (image, animated image or video) on a tile, with an error badge when generation failed. The placeholder is drawn rather than stored, so it follows the theme and stays sharp at any grid size, and the media browser never shows an empty cell. The look is provisional until the media browser design (E14).

@@ -1,0 +1,94 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Details"
+             xmlns:c="using:MediaFileClassifier.Ui.Controls"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Details.VideoPlayerView"
+             x:DataType="vm:VideoPlayerViewModel">
+  <!--
+    The video player in the preview (E14-S06). No T00 mockups: the controls follow the preview's existing overlay
+    style. The frames are an ordinary control (D070), so the controls sit over the video. Until the first frame, the
+    thumbnail under this view shows through. Focus order: play, timeline, mute, volume. The timeline marks the
+    keyframes; clicking one seeks to it, and Ctrl+Left and Ctrl+Right go to the previous and next.
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.PlayerBar">
+      <Setter Property="Background" Value="{DynamicResource Brush.Overlay.Background}" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Compact}" />
+    </Style>
+    <Style Selector="Border.PlayerBar PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Overlay.Foreground}" />
+    </Style>
+    <Style Selector="Border.PlayerBar TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Overlay.Foreground}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <c:VideoSurface Source="{Binding Frames}" />
+
+    <Border Classes="PreviewOverlay"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Padding="{DynamicResource Padding.Panel}"
+            IsVisible="{Binding FailureText, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <TextBlock Text="{Binding FailureText}" TextWrapping="Wrap" TextAlignment="Center" />
+    </Border>
+
+    <Border Classes="PlayerBar" VerticalAlignment="Bottom" IsVisible="{Binding FailureText, Converter={x:Static ObjectConverters.IsNull}}">
+      <DockPanel>
+        <Button x:Name="PlayButton"
+                DockPanel.Dock="Left"
+                Classes="Icon"
+                Command="{Binding TogglePlayCommand}"
+                ToolTip.Tip="{Binding PlayText}"
+                AutomationProperties.Name="{Binding PlayText}">
+          <Panel>
+            <PathIcon Data="{StaticResource Icon.Play}" IsVisible="{Binding !IsPlaying}" />
+            <PathIcon Data="{StaticResource Icon.Pause}" IsVisible="{Binding IsPlaying}" />
+          </Panel>
+        </Button>
+        <Slider x:Name="VolumeSlider"
+                DockPanel.Dock="Right"
+                Width="72"
+                Minimum="0"
+                Maximum="100"
+                SmallChange="5"
+                LargeChange="20"
+                Value="{Binding Volume}"
+                VerticalAlignment="Center"
+                ToolTip.Tip="{l:Loc Video_Volume}"
+                AutomationProperties.Name="{l:Loc Video_Volume}" />
+        <Button x:Name="MuteButton"
+                DockPanel.Dock="Right"
+                Classes="Icon"
+                Command="{Binding ToggleMuteCommand}"
+                ToolTip.Tip="{Binding MuteText}"
+                AutomationProperties.Name="{Binding MuteText}">
+          <Panel>
+            <PathIcon Data="{StaticResource Icon.VolumeUp}" IsVisible="{Binding !IsMuted}" />
+            <PathIcon Data="{StaticResource Icon.VolumeOff}" IsVisible="{Binding IsMuted}" />
+          </Panel>
+        </Button>
+        <TextBlock DockPanel.Dock="Right"
+                   Classes="Small"
+                   Text="{Binding TimeText}"
+                   VerticalAlignment="Center"
+                   Margin="{DynamicResource Padding.Compact}" />
+        <c:VideoTimeline x:Name="Timeline"
+                         Duration="{Binding Duration}"
+                         Position="{Binding Position}"
+                         SeekCommand="{Binding SeekCommand}"
+                         Markers="{Binding Markers}"
+                         MarkerBrush="{DynamicResource Brush.State.Focus}"
+                         IsEnabled="{Binding IsReady}"
+                         VerticalAlignment="Center"
+                         Margin="{DynamicResource Padding.Compact}"
+                         TrackBrush="{DynamicResource Brush.Border.Control}"
+                         PlayedBrush="{DynamicResource Brush.Overlay.Foreground}"
+                         FocusBrush="{DynamicResource Brush.State.Focus}"
+                         AutomationProperties.Name="{l:Loc Video_Timeline}" />
+      </DockPanel>
+    </Border>
+  </Panel>
+</UserControl>

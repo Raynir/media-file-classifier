@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Labs.AnimatedImage;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -12,6 +14,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Previews;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Media.Thumbnails;
 using MediaFileClassifier.Testing.Files;
+using MediaFileClassifier.Testing.Media;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
@@ -49,6 +52,17 @@ public sealed class DetailsPanelTests : IDisposable
     }
 
     [Fact]
+    public Task Panel_DisposedTwice_DoesNotThrow() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.Select(1, SelectionGesture.Replace);
+
+        // The container disposes it as itself and as IItemOpener; the second time used to cancel a disposed token (MFC-1006).
+        bed.Panel.Dispose();
+        bed.Panel.Dispose();
+    });
+
+    [Fact]
     public Task Panel_FollowsTheFocusedItem_ShowsTheCount_AndLeavesTheRegionWhenNothingIsSelected() => TestApp.RunAsync(() =>
     {
         var bed = new Bed(this, 10);
@@ -67,6 +81,144 @@ public sealed class DetailsPanelTests : IDisposable
         bed.Settle();
         Assert.Null(bed.Panel.Item);
         Assert.Null(bed.Regions.Details);
+    });
+
+    [Fact]
+    public Task AnimatedItem_Plays_AndStopsWhenTheSelectionChanges_OrTheSelectionIsCleared() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+
+        bed.Select(0, SelectionGesture.Replace);
+        var animation = bed.Panel.Animation;
+        Assert.NotNull(animation);
+        Assert.True(animation.IsPlaying);
+        Assert.Equal(13, animation.FrameCount);
+        Assert.False(bed.Panel.IsAnimationTooLarge);
+        Assert.False(bed.Panel.IsZoomAvailable);
+
+        // Another item: the animation stops and lets its frames go.
+        bed.AnimatedFile = null;
+        bed.Select(1, SelectionGesture.Replace);
+        Assert.Null(bed.Panel.Animation);
+        Assert.False(animation.IsPlaying);
+        Assert.Null(animation.PlaybackSource);
+        Assert.True(bed.Panel.IsZoomAvailable);
+
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+        bed.Select(2, SelectionGesture.Replace);
+        Assert.NotNull(bed.Panel.Animation);
+        bed.Selection.Clear();
+        bed.Settle();
+        Assert.Null(bed.Panel.Animation);
+    });
+
+    [Fact]
+    public Task AnimatedItem_Pauses_WhenThePreviewOrThePanelCollapses() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 2);
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+        bed.Select(0, SelectionGesture.Replace);
+        var animation = bed.Panel.Animation!;
+        Assert.True(animation.IsPlaying);
+
+        bed.Panel.IsPreviewExpanded = false;
+        Assert.False(animation.IsPlaying);
+
+        bed.Panel.IsPreviewExpanded = true;
+        animation.Play();
+        Assert.True(animation.IsPlaying);
+        bed.Layout.Details.Collapse();
+        Assert.False(animation.IsPlaying);
+    });
+
+    [Fact]
+    public Task AnimatedItem_InTheView_ShowsThePlayerAndControls_AndSpaceCommaPeriodPlayAndStep() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 2);
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+        bed.Select(0, SelectionGesture.Replace);
+        var view = new DetailsPanelView { DataContext = bed.Panel };
+        var window = new Window { Width = 400, Height = 800, Content = view };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var animation = bed.Panel.Animation!;
+
+        var player = view.FindControl<AnimatedImage>("AnimationPlayer")!;
+        Assert.True(player.IsEffectivelyVisible);
+        Assert.True(player.IsPlaying);
+        Assert.False(view.FindControl<TextBlock>("ZoomText")!.IsEffectivelyVisible);
+        Assert.True(view.FindControl<Button>("PlayPauseButton")!.IsEffectivelyVisible);
+
+        // Keys on the preview: Space pauses, . steps forward, , steps back, Space plays again.
+        var preview = view.GetVisualDescendants().OfType<ZoomImage>().Single();
+        void Press(Key key) => preview.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key });
+        Press(Key.Space);
+        Assert.False(animation.IsPlaying);
+        Assert.False(player.IsEffectivelyVisible);
+
+        // Paused wherever the system clock got to: on a loaded machine that may be past the first frame.
+        var paused = animation.FrameIndex;
+        Press(Key.OemPeriod);
+        Press(Key.OemPeriod);
+        Assert.Equal((paused + 2) % animation.FrameCount, animation.FrameIndex);
+        Press(Key.OemComma);
+        Assert.Equal((paused + 1) % animation.FrameCount, animation.FrameIndex);
+        Press(Key.Space);
+        Assert.True(animation.IsPlaying);
+
+        // The control swapped its source twice by now: the frames it played from must still be ours to show.
+        Press(Key.Space);
+        for (var i = 0; i < animation.FrameCount; i++)
+        {
+            Press(Key.OemPeriod);
+            Assert.True(animation.CurrentFrame!.PixelSize.Width > 0);
+        }
+
+        // Buttons do the same.
+        view.FindControl<Button>("StepForwardButton")!.Command!.Execute(null);
+        Assert.False(animation.IsPlaying);
+        window.Close();
+    });
+
+    [Fact]
+    public Task AnimatedItem_SelectedWhileThePreviewIsCollapsed_DoesNotPlay() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 1);
+        bed.Panel.IsPreviewExpanded = false;
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+
+        bed.Select(0, SelectionGesture.Replace);
+
+        Assert.NotNull(bed.Panel.Animation);
+        Assert.False(bed.Panel.Animation.IsPlaying);
+    });
+
+    [Fact]
+    public Task AnimatedItem_OneFrameOnly_ShowsTheUsualOriginal() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 1);
+        bed.AnimatedFile = CopySample("gif-static.gif");
+
+        bed.Select(0, SelectionGesture.Replace);
+
+        Assert.Null(bed.Panel.Animation);
+        Assert.NotEqual(PreviewKind.Thumbnail, bed.Panel.PreviewKind);
+    });
+
+    [Fact]
+    public Task AnimatedItem_TooLarge_ShowsTheFirstFrameWithANote() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 1);
+        var path = temp.Combine("huge.gif");
+        File.WriteAllBytes(path, AnimatedPreviewTests.HugeGif(16000, 16000));
+        bed.AnimatedFile = path;
+
+        bed.Select(0, SelectionGesture.Replace);
+
+        Assert.Null(bed.Panel.Animation);
+        Assert.True(bed.Panel.IsAnimationTooLarge);
+        Assert.Contains("over the 256 MB limit", bed.Panel.PreviewNote);
     });
 
     [Fact]
@@ -466,6 +618,13 @@ public sealed class DetailsPanelTests : IDisposable
         Assert.Contains("changed elsewhere", bed.Panel.Editor.Notice);
     });
 
+    private string CopySample(string name)
+    {
+        var path = temp.Combine(name);
+        File.Copy(Path.Combine(SampleMedia.Directory, name), path, overwrite: true);
+        return path;
+    }
+
     private string WriteImage(string name, int width, int height)
     {
         var path = temp.Combine(name);
@@ -604,6 +763,8 @@ public sealed class DetailsPanelTests : IDisposable
 
         public bool Corrupt { get; set; }
 
+        public string? AnimatedFile { get; set; }
+
         public bool WithoutTechnical { get; set; }
 
         public string? ItemTitle { get; set; }
@@ -644,7 +805,7 @@ public sealed class DetailsPanelTests : IDisposable
 
             var query = Assert.IsType<GetItemDetailsQuery>(request);
             var index = Source.Ids.ToList().IndexOf(query.ItemId);
-            var path = Corrupt ? corrupt : original;
+            var path = AnimatedFile ?? (Corrupt ? corrupt : original);
             var location = new ItemLocation(
                 query.ItemId, new FileLocation(new FolderHandle(test.temp.Path, "Photos"), Path.GetFileName(path)), path, "Photos", Availability);
             var technical = new TechnicalMetadata
@@ -656,7 +817,7 @@ public sealed class DetailsPanelTests : IDisposable
                 ExtractedAt = DateTimeOffset.UnixEpoch,
             };
             var details = new ItemDetails(
-                query.ItemId, $"IMG_{index}.png", "png", MediaType.Image, 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, WithoutTechnical ? null : technical, ItemTitle, null, []);
+                query.ItemId, $"IMG_{index}.png", "png", AnimatedFile is null ? MediaType.Image : MediaType.AnimatedImage, 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, WithoutTechnical ? null : technical, ItemTitle, null, []);
             return Task.FromResult((TResponse)(object)details);
         }
 
@@ -695,7 +856,8 @@ public sealed class DetailsPanelTests : IDisposable
     /// </summary>
     private sealed class FakeFiles : IMediaFileSource
     {
-        public Task<Stream> OpenReadAsync(FileLocation file, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<Stream> OpenReadAsync(FileLocation file, CancellationToken cancellationToken = default) =>
+            Task.FromResult<Stream>(File.OpenRead(Path.Combine(file.Folder.Id, file.RelativePath)));
 
         public IAsyncEnumerable<MediaFileStat> EnumerateFilesAsync(FolderHandle folder, string relativeDirectory = "", CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

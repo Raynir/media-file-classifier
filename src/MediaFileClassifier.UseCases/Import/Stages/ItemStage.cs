@@ -13,7 +13,7 @@ namespace MediaFileClassifier.UseCases.Import.Stages;
 /// <summary>
 /// An import stage for one media item. It loads the item and its folder, and when the stage throws, it marks the item
 /// Error with the stage, the exception's type and whether the file itself is the problem (E03-S07-T02), then rethrows
-/// so the work item fails too.
+/// so the work item fails too. Work for an item in an Offline folder waits for the folder instead (D188, D025).
 /// </summary>
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
@@ -29,6 +29,11 @@ public abstract partial class ItemStage(TimeProvider clock, ILogger logger) : IF
     /// Gets the clock.
     /// </summary>
     protected TimeProvider Clock => clock;
+
+    /// <summary>
+    /// Gets the file source, which checks the folder's root when a file's directory is gone.
+    /// </summary>
+    protected abstract IMediaFileSource Files { get; }
 
     /// <summary>
     /// Decides whether a failure is the file's fault, so retrying won't help until the file changes.
@@ -98,7 +103,16 @@ public abstract partial class ItemStage(TimeProvider clock, ILogger logger) : IF
             return;
         }
 
-        await ProcessAsync(context, item, folder, cancellationToken).ConfigureAwait(false);
+        OfflineFolders.ThrowIfOffline(folder);
+        try
+        {
+            await ProcessAsync(context, item, folder, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (OfflineFolders.IsMissingDirectory(exception))
+        {
+            await OfflineFolders.ThrowForMissingDirectoryAsync(library, folder, Files, clock, exception, cancellationToken).ConfigureAwait(false);
+            throw;
+        }
     }
 
     /// <summary>

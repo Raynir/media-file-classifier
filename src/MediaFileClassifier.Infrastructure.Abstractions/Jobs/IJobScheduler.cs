@@ -78,4 +78,10 @@ public interface IJobScheduler
     /// Starts processing after the scheduler was started paused.
     /// </summary>
     void Resume();
+
+    /// <summary>
+    /// Queues the parked work again, e.g. after a folder came back Online (D188). Work whose folder or AI provider is
+    /// still unavailable is parked again when it runs.
+    /// </summary>
+    void ReleaseParked();
 }

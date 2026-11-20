@@ -217,6 +217,10 @@ internal sealed class FakeJobSystem : IJobSystem
         public void Resume()
         {
         }
+
+        public void ReleaseParked()
+        {
+        }
     }
 }
 

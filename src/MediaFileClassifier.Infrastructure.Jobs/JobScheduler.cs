@@ -21,6 +21,7 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// Work of a stage whose model isn't installed isn't dispatched, and jobs left with only such work wait in
 /// <see cref="ProcessingJobState.WaitingForModel"/> (D037). When a model is installed, they're queued again.
 /// Work that failed because an AI provider is unavailable is parked until the provider's circuit closes (E05-S04-T03).
+/// Work for an item whose folder is Offline is parked until the folder is Online again (D188, D025).
 /// </remarks>
 internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 {
@@ -107,10 +108,12 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         Library = library;
         this.retention = retention ?? JobRetention.Default;
         this.breaker = breaker;
+
+        // Work parked in an earlier session runs again: its provider or folder may be back.
+        releaseParked = true;
         if (breaker is not null)
         {
             openCircuits = [.. breaker.OpenCircuits.Select(circuit => circuit.ProviderId)];
-            releaseParked = true;
             breaker.Changed += OnCircuitsChanged;
         }
 
@@ -316,6 +319,17 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     public void Resume()
     {
         paused = false;
+        Wake();
+    }
+
+    /// <inheritdoc />
+    public void ReleaseParked()
+    {
+        lock (gate)
+        {
+            releaseParked = true;
+        }
+
         Wake();
     }
 
@@ -541,8 +555,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     }
 
     /// <summary>
-    /// Releases the parked work after a circuit closed (and when the scheduler starts), so it runs again. Work for a
-    /// provider that's still unavailable is parked again when it fails.
+    /// Releases the parked work after a circuit closed, a folder came back Online (and when the scheduler starts), so it
+    /// runs again. Work for a provider or folder that's still unavailable is parked again when it fails.
     /// </summary>
     private async Task ReleaseParkedAsync(CancellationToken token)
     {
@@ -777,7 +791,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                     }
                 }
             }
-            else if (finished.RetryAt is { } retryAt)
+            else if (finished.RetryAt is { } retryAt && !finished.IsParked)
             {
                 lock (gate)
                 {
@@ -874,6 +888,13 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     {
         var error = classifier.Classify(exception);
         var now = clock.GetUtcNow();
+        if (error.IsFolderOffline)
+        {
+            // D188, D025: nothing to retry until the folder is back, and the item keeps its status.
+            LogWorkItemWaitsForFolder(workItem.Id.ToString(), workItem.Stage, error.Message);
+            return (workItem.Park(error.Category, error.Message, now), null);
+        }
+
         if (error.IsModelMissing)
         {
             // D037: the dispatcher checks the models again, and holds the stage back while the model is missing.
@@ -1021,7 +1042,10 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     [LoggerMessage(Level = LogLevel.Information, Message = "Work item {WorkItemId} ({Stage}) waits until AI provider {ProviderId} is available")]
     private partial void LogWorkItemParked(string workItemId, string stage, string providerId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} work items that waited for an AI provider are queued again")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Work item {WorkItemId} ({Stage}) waits until its folder is online: {Reason}")]
+    private partial void LogWorkItemWaitsForFolder(string workItemId, string stage, string reason);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} parked work items are queued again")]
     private partial void LogParkedReleased(int count);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The stage {Stage} couldn't record the failure of work item {WorkItemId}")]

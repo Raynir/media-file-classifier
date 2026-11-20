@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using Microsoft.Extensions.Logging;
@@ -13,10 +14,14 @@ namespace MediaFileClassifier.UseCases.Import.Stages;
 /// <c>IMediaItemRepository.GetExactDuplicatesAsync</c> lists them for E12.
 /// </summary>
 /// <param name="hasher">Computes the hashes.</param>
+/// <param name="files">Checks the folder's root when a file's directory is gone.</param>
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
-public sealed class ContentHashStage(IMediaHasher hasher, TimeProvider clock, ILogger<ContentHashStage> logger) : ItemStage(clock, logger)
+public sealed class ContentHashStage(IMediaHasher hasher, IMediaFileSource files, TimeProvider clock, ILogger<ContentHashStage> logger) : ItemStage(clock, logger)
 {
+    /// <inheritdoc />
+    protected override IMediaFileSource Files => files;
+
     /// <inheritdoc />
     public override string Stage => ImportStages.ContentHash;
 

@@ -39,6 +39,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Items in an Offline folder (MFC-1004, D188, D025): work queued for them is no longer tried, retried five times and turned into Error. It waits, parked, without touching the item or using a retry, and runs once the folder is Online again (the library opens, the folders dialog checks it, an import or a rescan finds it). A file whose directory vanished but whose folder is still there now fails at once as a permanent failure instead of being retried.
 - The thumbnail grid no longer logs a binding cast warning per tile binding (MFC-1003): a tile view is given its tile view model before it joins its row, instead of first binding to the row view model it inherited.
 - A listener of the media item changes that fails no longer fails the import or rescan that wrote the items (MFC-1002): the library logs it and the other listeners still hear the change.
 - Importing and rescanning no longer fail with "search.lastFilters isn't a library setting" (MFC-1001): the last filters (D314) are now a real library setting, stored in the library's settings, and a filter state that can't be saved is logged instead of failing what changed the results.

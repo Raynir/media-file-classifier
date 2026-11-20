@@ -660,6 +660,48 @@ public sealed class ItemMetadata
         }
     }
 
+    /// <summary>
+    /// Takes a snapshot of what the user owns: field values, user tags, tombstones and tag suggestions.
+    /// </summary>
+    /// <returns>The snapshot, which later changes of this metadata don't affect.</returns>
+    public UserLayerSnapshot CaptureUserLayer() => new(
+        [.. userValues.Values],
+        [.. tags.Where(tag => tag.Source == MetadataSource.User)],
+        [.. rejections.Values],
+        [.. tagSuggestions.Values]);
+
+    /// <summary>
+    /// Puts the user's layer back as a snapshot had it. AI runs and file values are not touched. A suggestion of a run
+    /// that isn't retained any more is dropped, since there is nothing left to accept.
+    /// </summary>
+    /// <param name="snapshot">The snapshot.</param>
+    public void RestoreUserLayer(UserLayerSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+
+        userValues.Clear();
+        foreach (var value in snapshot.UserValues)
+        {
+            userValues[value.Field] = value.SuggestionRunId is { } runId && !runs.Any(run => run.Id == runId)
+                ? value.WithSuggestion(null)
+                : value;
+        }
+
+        tags.RemoveAll(tag => tag.Source == MetadataSource.User);
+        tags.AddRange(snapshot.UserTags);
+        rejections.Clear();
+        foreach (var rejection in snapshot.Rejections)
+        {
+            rejections[rejection.Tag] = rejection;
+        }
+
+        tagSuggestions.Clear();
+        foreach (var suggestion in snapshot.TagSuggestions.Where(suggestion => runs.Any(run => run.Id == suggestion.RunId)))
+        {
+            tagSuggestions[suggestion.Tag] = suggestion;
+        }
+    }
+
     private void EnsureRetained(Id<AnalysisRun> runId)
     {
         if (!runs.Any(run => run.Id == runId))

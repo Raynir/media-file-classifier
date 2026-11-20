@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediatR;
 
 namespace MediaFileClassifier.UseCases.Metadata.EditMetadata;
@@ -15,7 +16,14 @@ namespace MediaFileClassifier.UseCases.Metadata.EditMetadata;
 /// </summary>
 /// <param name="ItemIds">The items. Items that don't exist are skipped.</param>
 /// <param name="Edits">The edits, applied in order.</param>
-public sealed record EditMetadataCommand(IReadOnlyCollection<Id<MediaItem>> ItemIds, IReadOnlyList<MetadataEdit> Edits)
+/// <param name="CaptureUndo">Whether to keep what each changed item looked like before, for <see cref="UndoBulkEditCommand"/>
+/// (E07-S03-T03). It replaces the earlier undo; a cancelled or failed edit keeps what it wrote.</param>
+/// <param name="Progress">Receives the number of items handled so far, after each item. Called on the writer's thread.</param>
+public sealed record EditMetadataCommand(
+    IReadOnlyCollection<Id<MediaItem>> ItemIds,
+    IReadOnlyList<MetadataEdit> Edits,
+    bool CaptureUndo = false,
+    IProgress<int>? Progress = null)
     : IRequest<EditMetadataResult>;
 
 /// <summary>
@@ -32,7 +40,8 @@ public sealed record EditMetadataResult(IReadOnlyList<Id<MediaItem>> ChangedItem
 /// <param name="session">Holds the open library.</param>
 /// <param name="clock">The clock, for the change time.</param>
 /// <param name="publisher">Publishes the change.</param>
-public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProvider clock, IPublisher publisher)
+/// <param name="undoStore">Keeps what a bulk edit changed, for Undo.</param>
+public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProvider clock, IPublisher publisher, BulkUndoStore? undoStore = null)
     : IRequestHandler<EditMetadataCommand, EditMetadataResult>
 {
     private const int TagCheckBatchSize = 100;
@@ -60,6 +69,8 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
         // changed is kept per item, so the notification names only fields and tags that really changed.
         var written = new List<Id<MediaItem>>();
         var changes = new Dictionary<Id<MediaItem>, (HashSet<DescriptiveField> Fields, bool Tags)>();
+        var before = new Dictionary<Id<MediaItem>, UserLayerSnapshot>();
+        var handled = 0;
         var completed = false;
         try
         {
@@ -70,6 +81,7 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
                     var now = clock.GetUtcNow();
                     var fields = new HashSet<DescriptiveField>();
                     var tags = false;
+                    var snapshot = request.CaptureUndo ? metadata.CaptureUserLayer() : null;
                     foreach (var edit in edits)
                     {
                         if (edit.ApplyTo(metadata, now))
@@ -86,7 +98,14 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
                     }
 
                     changes[metadata.ItemId] = (fields, tags);
-                    return fields.Count > 0 || tags;
+                    var changed = fields.Count > 0 || tags;
+                    if (snapshot is not null && changed)
+                    {
+                        before[metadata.ItemId] = snapshot;
+                    }
+
+                    request.Progress?.Report(++handled);
+                    return changed;
                 },
                 written.AddRange,
                 cancellationToken).ConfigureAwait(false);
@@ -94,6 +113,12 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
         }
         finally
         {
+            if (request.CaptureUndo && undoStore is not null)
+            {
+                // Only what really got written can be put back; a batch that failed rolled back.
+                undoStore.Set(written.Where(before.ContainsKey).ToDictionary(id => id, id => before[id]));
+            }
+
             if (written.Count > 0)
             {
                 try

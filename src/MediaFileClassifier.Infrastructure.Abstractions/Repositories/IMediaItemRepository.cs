@@ -99,6 +99,14 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Counts the items by media type and status, with their summed file sizes, in one aggregate query
+    /// (E02-S05-T01). Combinations without items aren't listed.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>One count per media type and status.</returns>
+    Task<IReadOnlyList<ItemStatisticsCount>> CountByTypeAndStatusAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the exact duplicate candidates: groups of items that share a full content hash (E03-S07-T06). Duplicate
     /// review and resolution build on them (E12).
     /// </summary>

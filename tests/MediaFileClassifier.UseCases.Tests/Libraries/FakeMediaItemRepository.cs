@@ -119,6 +119,13 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
 
     public Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+    public Task<IReadOnlyList<ItemStatisticsCount>> CountByTypeAndStatusAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<ItemStatisticsCount>>(
+        [
+            .. Items.GroupBy(item => (item.MediaType, item.Status))
+                .Select(group => new ItemStatisticsCount(group.Key.MediaType, group.Key.Status, group.Count(), group.Sum(item => item.SizeBytes))),
+        ]);
+
     public List<MediaItem[]> UpdatedRanges { get; } = [];
 
     public int FavoriteWrites { get; private set; }

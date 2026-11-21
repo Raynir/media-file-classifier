@@ -127,6 +127,8 @@
   <!-- A collapsed panel's strip: Padding.Compact across, level with Padding.Header vertically. -->
   <Thickness x:Key="Padding.Strip">4,16</Thickness>
   <Thickness x:Key="Padding.Badge">6,1</Thickness>
+  <Thickness x:Key="Padding.DropCard">56,40</Thickness>
+  <Thickness x:Key="Margin.DropFrame">8</Thickness>
   <!-- A status bar segment: Space.S across, the bar's full height. -->
   <Thickness x:Key="Padding.StatusSegment">8,0</Thickness>
   <!-- The toolbar row (E13-S03), after Figma (25:378): 30 from the sides, controls centred in Size.Toolbar. -->

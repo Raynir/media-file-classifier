@@ -218,14 +218,14 @@
     <Panel HorizontalAlignment="Center"
            VerticalAlignment="Center"
            AutomationProperties.Name="{l:Loc DropImport_Title}">
-      <Border Classes="Panel" CornerRadius="8" />
-      <Rectangle Margin="8"
+      <Border Classes="Panel" CornerRadius="{DynamicResource Radius.Control}" />
+      <Rectangle Margin="{DynamicResource Margin.DropFrame}"
                  RadiusX="8"
                  RadiusY="8"
                  Stroke="{DynamicResource Brush.Border.Selected}"
                  StrokeThickness="2"
                  StrokeDashArray="4,3" />
-      <StackPanel Margin="56,40" Spacing="{DynamicResource Space.S}" HorizontalAlignment="Center">
+      <StackPanel Margin="{DynamicResource Padding.DropCard}" Spacing="{DynamicResource Space.S}" HorizontalAlignment="Center">
         <PathIcon Classes="Large" Data="{StaticResource Icon.FolderAdd}" HorizontalAlignment="Center" />
         <TextBlock Classes="Title" Text="{l:Loc DropImport_Title}" TextAlignment="Center" />
         <TextBlock Classes="Secondary" Text="{l:Loc DropImport_Hint}" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="360" />

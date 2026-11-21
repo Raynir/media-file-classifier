@@ -108,7 +108,7 @@ public sealed class ImportPipelineTests : IAsyncLifetime
         await bed.ImportAsync();
 
         // Reopened with processing paused, so the first import is certainly still unfinished.
-        bed.Settings.Current = bed.Settings.Current with { Processing = bed.Settings.Current.Processing with { ResumeOnOpen = ResumeMode.Ask } };
+        bed.Store.SetValue(bed.Processing.ResumeOnOpen, ResumeMode.Ask);
         await bed.RestartAsync();
         var started = await bed.Sender.Send(new UseCases.Import.ImportFolders.ImportFoldersCommand([bed.Folder.Id]), Token);
 

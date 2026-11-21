@@ -87,6 +87,39 @@ public sealed class JsonSettingsService : ISettingsService
 
             root.Remove("providers");
         }
+
+        MoveProcessingIntoValues(root);
+    }
+
+    // The typed "processing" section (before the processing settings were registered) moves into the registered values,
+    // under their keys. It runs on every load, so no schema bump is needed; a value the setting rejects falls back to its default.
+    private static void MoveProcessingIntoValues(JsonObject root)
+    {
+        if (!root.Remove("processing", out var node) || node is not JsonObject processing)
+        {
+            return;
+        }
+
+        if (root["values"] is not JsonObject values)
+        {
+            values = [];
+            root["values"] = values;
+        }
+
+        foreach (var (property, key) in new (string, string)[]
+        {
+            ("ioConcurrency", "processing.ioConcurrency"),
+            ("cpuConcurrency", "processing.cpuConcurrency"),
+            ("aiConcurrency", "processing.aiConcurrency"),
+            ("resumeOnOpen", "processing.resumeOnOpen"),
+            ("confirmQuitWhileProcessing", "processing.confirmQuitWhileProcessing"),
+        })
+        {
+            if (processing[property] is { } value && values[key] is null)
+            {
+                values[key] = value.DeepClone();
+            }
+        }
     }
 
     private void Write(AppSettings settings)

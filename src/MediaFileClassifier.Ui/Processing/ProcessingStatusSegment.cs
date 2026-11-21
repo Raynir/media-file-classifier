@@ -12,7 +12,8 @@ namespace MediaFileClassifier.Ui.Processing;
 /// <param name="feed">The throttled job progress.</param>
 /// <param name="localizer">UI strings.</param>
 /// <param name="panel">Opens the processing panel, or <see langword="null"/> where there's no window for it.</param>
-public sealed class ProcessingStatusSegment(ProgressFeed feed, Localizer localizer, ProcessingPanelPresenter? panel = null) : IStatusBarContributor
+/// <param name="jobs">The job system, to show when processing waits for Resume, or <see langword="null"/> for none.</param>
+public sealed class ProcessingStatusSegment(ProgressFeed feed, Localizer localizer, ProcessingPanelPresenter? panel = null, IJobSystem? jobs = null) : IStatusBarContributor
 {
     /// <summary>
     /// The segment ID.
@@ -37,6 +38,15 @@ public sealed class ProcessingStatusSegment(ProgressFeed feed, Localizer localiz
     {
         if (segment is null)
         {
+            return;
+        }
+
+        // Processing that waits for Resume counts its unfinished jobs, but nothing runs: say why it's idle.
+        if (jobs?.Current?.IsPaused == true)
+        {
+            segment.IsVisible = true;
+            segment.Text = localizer.Get("Processing_PausedStatus");
+            segment.ToolTip = localizer.Get("Processing_Paused");
             return;
         }
 

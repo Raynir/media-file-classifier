@@ -69,6 +69,16 @@ internal sealed class ImportTestBed : IAsyncDisposable
 
     public ImportTestSettings Settings { get; }
 
+    /// <summary>
+    /// Gets the setting values.
+    /// </summary>
+    public InMemorySettingsStore Store { get; private init; } = null!;
+
+    /// <summary>
+    /// Gets the processing setting definitions.
+    /// </summary>
+    public ProcessingSettings Processing { get; private init; } = null!;
+
     public IJobSystem Jobs => services.GetRequiredService<IJobSystem>();
 
     public ISender Sender => services.GetRequiredService<ISender>();
@@ -92,7 +102,8 @@ internal sealed class ImportTestBed : IAsyncDisposable
         var folder = IndexedFolder.Create(library.Library.Library.Id, root, root, LibraryTestBed.Start);
         await library.Library.Folders.AddAsync(folder, Token);
 
-        var settings = new ImportTestSettings { Current = new AppSettings { Processing = new ProcessingSettings { CpuConcurrency = cpu } } };
+        var settings = new ImportTestSettings();
+        var processing = new ProcessingSettings(cpu);
         var capabilities = new CapabilityService([], NullLogger<CapabilityService>.Instance);
         if (ThumbnailTestSupport.HasFfmpeg)
         {
@@ -110,6 +121,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
         var analysisSettings = new InMemorySettingsStore { IsLibraryOpen = true };
         analysisSettings.SetValue(KnownSettings.AnalyzeAutomatically, false);
         collection.TryAddSingleton<ISettingsStore>(analysisSettings);
+        collection.TryAddSingleton(processing);
         collection.TryAddSingleton(TimeProvider.System);
         collection.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, AiExceptionClassifier>());
         var services = collection
@@ -132,7 +144,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
             .AddMedia()
             .AddUseCases()
             .BuildServiceProvider();
-        var bed = new ImportTestBed(library, root, folder, services, settings) { ownedRoot = ownedRoot };
+        var bed = new ImportTestBed(library, root, folder, services, settings) { ownedRoot = ownedRoot, Store = analysisSettings, Processing = processing };
         await bed.Jobs.StartAsync(library.Library, Token);
         return bed;
     }

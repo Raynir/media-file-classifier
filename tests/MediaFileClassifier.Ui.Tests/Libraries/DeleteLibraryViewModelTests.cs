@@ -92,6 +92,36 @@ public sealed class DeleteLibraryViewModelTests
     }
 
     [Fact]
+    public async Task Delete_AfterAFailure_CanBeTriedAgain_OnceTheNameIsTypedAgain()
+    {
+        var bed = new Bed(new LibraryDeletionInfo(Family, "Family", 3, IsOpen: false, Error: null))
+        {
+            DeleteResult = new DeleteLibraryResult(LibraryOpenError.NotWritable, FolderRemoved: false, KeptEntries: []),
+        };
+        await bed.ViewModel.LoadAsync(Family, "Family");
+        bed.ViewModel.TypedName = "Family";
+        await bed.ViewModel.DeleteCommand.ExecuteAsync(null);
+        Assert.False(bed.ViewModel.DeleteCommand.CanExecute(null));
+
+        bed.ViewModel.TypedName = "Family ";
+
+        Assert.Null(bed.ViewModel.Error);
+        Assert.True(bed.ViewModel.DeleteCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Load_LibraryOpenElsewhere_DisablesTheNameBox()
+    {
+        var bed = new Bed(new LibraryDeletionInfo(Family, null, 0, IsOpen: false, LibraryOpenError.InUse));
+
+        await bed.ViewModel.LoadAsync(Family, "Family");
+        bed.ViewModel.TypedName = "Family";
+
+        Assert.False(bed.ViewModel.CanConfirm);
+        Assert.NotNull(bed.ViewModel.Error);
+    }
+
+    [Fact]
     public async Task Load_ADeleteCutShort_SaysDeletingFinishesIt()
     {
         var bed = new Bed(new LibraryDeletionInfo(Family, "Family", 0, IsOpen: false, Error: null) { IsPartial = true });

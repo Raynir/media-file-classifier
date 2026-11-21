@@ -15,6 +15,7 @@ namespace MediaFileClassifier.Ui.ViewModels.Libraries;
 public sealed partial class DeleteLibraryViewModel(ISender sender, Localizer localizer) : ViewModelBase
 {
     private string? directory;
+    private bool loadFailed;
 
     /// <summary>
     /// Raised when the dialog should close, after deleting or on Cancel.
@@ -56,10 +57,12 @@ public sealed partial class DeleteLibraryViewModel(ISender sender, Localizer loc
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanConfirm))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CancelCommand))]
     public partial bool IsBusy { get; private set; }
 
-    /// <summary>Gets a value indicating whether the name can be typed: the library was read and isn't being deleted.</summary>
-    public bool CanConfirm => !IsBusy && directory is not null && Name.Length > 0;
+    /// <summary>Gets a value indicating whether the name can be typed: the library was read, can be deleted, and isn't
+    /// being deleted.</summary>
+    public bool CanConfirm => !IsBusy && !loadFailed && directory is not null && Name.Length > 0;
 
     /// <summary>Gets what deleting did, or <c>null</c> if the library wasn't deleted.</summary>
     public DeleteLibraryResult? Result { get; private set; }
@@ -84,8 +87,18 @@ public sealed partial class DeleteLibraryViewModel(ISender sender, Localizer loc
             ? localizer.Get("DeleteLibrary_Partial")
             : localizer.Format(info.ItemCount == 1 ? "DeleteLibrary_Summary_One" : "DeleteLibrary_Summary_Other", Format.Number(info.ItemCount));
         Prompt = localizer.Format("DeleteLibrary_Prompt", Name);
+        loadFailed = info.Error is not null;
         Error = info.Error is { } error ? localizer.Get("LibraryOpenError_" + error) : null;
         OnPropertyChanged(nameof(CanConfirm));
+    }
+
+    // A failed delete can be tried again: typing clears its message. Why the library can't be deleted at all stays.
+    partial void OnTypedNameChanged(string? value)
+    {
+        if (!loadFailed)
+        {
+            Error = null;
+        }
     }
 
     private bool CanDelete() => CanConfirm && Error is null && string.Equals(TypedName?.Trim(), Name, StringComparison.Ordinal);
@@ -116,6 +129,9 @@ public sealed partial class DeleteLibraryViewModel(ISender sender, Localizer loc
         }
     }
 
-    [RelayCommand]
+    // Not while deleting: closing then would hide what the delete did.
+    [RelayCommand(CanExecute = nameof(IsIdle))]
     private void Cancel() => CloseRequested?.Invoke(this, EventArgs.Empty);
+
+    private bool IsIdle() => !IsBusy;
 }

@@ -16,6 +16,18 @@ public partial class DeleteLibraryWindow : Window
     }
 
     /// <inheritdoc />
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        // The title bar's close button too waits for a delete in progress.
+        if (DataContext is ViewModels.Libraries.DeleteLibraryViewModel { IsBusy: true })
+        {
+            e.Cancel = true;
+        }
+
+        base.OnClosing(e);
+    }
+
+    /// <inheritdoc />
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);

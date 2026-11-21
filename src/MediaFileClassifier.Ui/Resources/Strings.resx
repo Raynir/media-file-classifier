@@ -2657,4 +2657,19 @@
   <data name="LibraryInfo_MediaFiles" xml:space="preserve">
     <value>Media files</value>
   </data>
+  <data name="LibraryInfo_Database" xml:space="preserve">
+    <value>Database</value>
+  </data>
+  <data name="LibraryInfo_Thumbnails" xml:space="preserve">
+    <value>Thumbnails</value>
+  </data>
+  <data name="LibraryInfo_Backups" xml:space="preserve">
+    <value>Backups</value>
+  </data>
+  <data name="LibraryInfo_LibraryTotal" xml:space="preserve">
+    <value>Library total</value>
+  </data>
+  <data name="LibraryInfo_Calculating" xml:space="preserve">
+    <value>Calculating…</value>
+  </data>
 </root>

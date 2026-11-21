@@ -1,8 +1,11 @@
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.Libraries.Statistics;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.UseCases.Libraries.GetLibraryDiskUsage;
 using MediaFileClassifier.UseCases.Libraries.GetLibraryStatistics;
+using MediatR;
 
 namespace MediaFileClassifier.Ui.ViewModels.Libraries;
 
@@ -12,8 +15,16 @@ namespace MediaFileClassifier.Ui.ViewModels.Libraries;
 /// window and the Settings "Library" page (E02-S07) can both show it. Call <see cref="Attach"/> when it's shown and
 /// <see cref="Detach"/> when it's hidden, so it follows the statistics only while someone looks.
 /// </summary>
-public sealed partial class LibraryInfoViewModel : ViewModelBase
+public sealed partial class LibraryInfoViewModel : ViewModelBase, IDisposable
 {
+    /// <summary>
+    /// How often the disk usage is measured again while the view is shown.
+    /// </summary>
+    public static readonly TimeSpan DiskUsageInterval = TimeSpan.FromSeconds(30);
+
+    private readonly ISender sender;
+    private readonly Action<Action> post;
+    private readonly ITimer diskTimer;
     private readonly LibraryStatisticsMonitor monitor;
     private readonly ILibrarySession session;
     private readonly Localizer localizer;
@@ -26,7 +37,15 @@ public sealed partial class LibraryInfoViewModel : ViewModelBase
     private readonly LibraryInfoRow errors = new("LibraryInfo_Errors");
     private readonly LibraryInfoRow missing = new("LibraryInfo_Missing");
     private readonly LibraryInfoRow mediaSize = new("LibraryInfo_MediaFiles");
+    private readonly LibraryInfoRow database = new("LibraryInfo_Database");
+    private readonly LibraryInfoRow thumbnails = new("LibraryInfo_Thumbnails");
+    private readonly LibraryInfoRow backups = new("LibraryInfo_Backups");
+    private readonly LibraryInfoRow libraryTotal = new("LibraryInfo_LibraryTotal");
+    private LibraryDiskUsage? diskUsage;
+    private IOpenLibrary? measuredLibrary;
+    private IOpenLibrary? measuringLibrary;
     private int attached;
+    private int diskVersion;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LibraryInfoViewModel"/> class.
@@ -34,16 +53,30 @@ public sealed partial class LibraryInfoViewModel : ViewModelBase
     /// <param name="monitor">Keeps the statistics up to date.</param>
     /// <param name="session">Holds the open library.</param>
     /// <param name="localizer">UI strings.</param>
-    public LibraryInfoViewModel(LibraryStatisticsMonitor monitor, ILibrarySession session, Localizer localizer)
+    /// <param name="sender">Measures the disk usage.</param>
+    /// <param name="clock">Times the disk usage measurements.</param>
+    /// <param name="post">Runs an action on the UI thread, or <see langword="null"/> for the Avalonia dispatcher.</param>
+    public LibraryInfoViewModel(
+        LibraryStatisticsMonitor monitor,
+        ILibrarySession session,
+        Localizer localizer,
+        ISender sender,
+        TimeProvider clock,
+        Action<Action>? post = null)
     {
+        ArgumentNullException.ThrowIfNull(clock);
+
         this.monitor = monitor;
         this.session = session;
         this.localizer = localizer;
+        this.sender = sender;
+        this.post = post ?? (action => Dispatcher.UIThread.Post(action));
+        diskTimer = clock.CreateTimer(_ => this.post(() => _ = MeasureDiskUsageAsync()), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         Groups =
         [
             new LibraryInfoGroup("LibraryInfo_Items", [total, images, animatedImages, videos]),
             new LibraryInfoGroup("LibraryInfo_Status", [indexed, pending, errors, missing]),
-            new LibraryInfoGroup("LibraryInfo_DiskUsage", [mediaSize]),
+            new LibraryInfoGroup("LibraryInfo_DiskUsage", [mediaSize, database, thumbnails, backups, libraryTotal]),
         ];
         Show();
     }
@@ -77,6 +110,8 @@ public sealed partial class LibraryInfoViewModel : ViewModelBase
 
         monitor.Changed += OnStatisticsChanged;
         localizer.Changed += OnLocalizerChanged;
+        diskTimer.Change(DiskUsageInterval, DiskUsageInterval);
+        _ = MeasureDiskUsageAsync();
         monitor.Start();
         Show();
     }
@@ -93,9 +128,55 @@ public sealed partial class LibraryInfoViewModel : ViewModelBase
 
         monitor.Changed -= OnStatisticsChanged;
         localizer.Changed -= OnLocalizerChanged;
+        diskTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
-    private void OnStatisticsChanged(object? sender, EventArgs e) => Show();
+    /// <summary>
+    /// Measures the disk usage now, or takes it from the cache when it's younger than <see cref="DiskUsageInterval"/>.
+    /// Call it on the UI thread.
+    /// </summary>
+    /// <returns>A task that completes when the disk rows are up to date.</returns>
+    public async Task MeasureDiskUsageAsync()
+    {
+        var current = ++diskVersion;
+        var library = session.Current;
+        measuringLibrary = library;
+        LibraryDiskUsage? measured;
+        try
+        {
+            measured = await sender.Send(new GetLibraryDiskUsageQuery(DiskUsageInterval));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // E.g. the library closed meanwhile: keep "Calculating…" or the last sizes, the next measurement retries.
+            return;
+        }
+
+        if (current != diskVersion || !ReferenceEquals(library, session.Current))
+        {
+            return;
+        }
+
+        measuredLibrary = library;
+        diskUsage = measured;
+        Show();
+    }
+
+    /// <inheritdoc />
+    public void Dispose() => diskTimer.Dispose();
+
+    private void OnStatisticsChanged(object? sender, EventArgs e)
+    {
+        // Another library opened: its sizes are measured from scratch.
+        if (!ReferenceEquals(measuringLibrary, session.Current))
+        {
+            measuredLibrary = null;
+            diskUsage = null;
+            _ = MeasureDiskUsageAsync();
+        }
+
+        Show();
+    }
 
     private void OnLocalizerChanged(object? sender, EventArgs e) => Show();
 
@@ -123,5 +204,11 @@ public sealed partial class LibraryInfoViewModel : ViewModelBase
         errors.Value = Format.Number(statistics.Errors);
         missing.Value = Format.Number(statistics.Missing);
         mediaSize.Value = Format.FileSize(statistics.MediaSizeBytes);
+        var calculating = localizer.Get("LibraryInfo_Calculating");
+        var usage = ReferenceEquals(measuredLibrary, session.Current) ? diskUsage : null;
+        database.Value = usage is null ? calculating : Format.FileSize(usage.DatabaseBytes);
+        thumbnails.Value = usage is null ? calculating : Format.FileSize(usage.ThumbnailsBytes);
+        backups.Value = usage is null ? calculating : Format.FileSize(usage.BackupsBytes);
+        libraryTotal.Value = usage is null ? calculating : Format.FileSize(usage.TotalBytes);
     }
 }

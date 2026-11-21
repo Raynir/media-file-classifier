@@ -5,6 +5,7 @@ using Avalonia.VisualTree;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Libraries;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Libraries.Statistics;
 using MediaFileClassifier.Ui.Localization;
@@ -13,6 +14,7 @@ using MediaFileClassifier.Ui.Tests.Shell;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
+using MediaFileClassifier.UseCases.Libraries.GetLibraryDiskUsage;
 using MediaFileClassifier.UseCases.Libraries.GetLibraryStatistics;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,7 +75,7 @@ public sealed class LibraryInfoTests : IAsyncDisposable
     {
         var folder = await CreateLibraryAsync();
         using var monitor = NewMonitor(out _);
-        var viewModel = new LibraryInfoViewModel(monitor, app.Services.GetRequiredService<ILibrarySession>(), TestLocalizer.EnUs());
+        using var viewModel = new LibraryInfoViewModel(monitor, app.Services.GetRequiredService<ILibrarySession>(), TestLocalizer.EnUs(), app.Services.GetRequiredService<ISender>(), clock, action => action());
         Assert.False(viewModel.HasLibrary);
 
         viewModel.Attach();
@@ -83,7 +85,16 @@ public sealed class LibraryInfoTests : IAsyncDisposable
         Assert.Equal(["Items", "Status", "Disk usage"], viewModel.Groups.Select(group => group.Header));
         Assert.Equal(
             ["Total: 3", "Images: 2", "Animated images: 0", "Videos: 1", "Indexed: 1", "Pending: 2", "Errors: 0", "Missing: 0", $"Media files: {Format.FileSize(300)}"],
-            viewModel.Groups.SelectMany(group => group.Rows).Select(row => row.AccessibleName));
+            viewModel.Groups.SelectMany(group => group.Rows).Take(9).Select(row => row.AccessibleName));
+
+        // The disk usage is measured in the background, and matches the library's files.
+        var disk = viewModel.Groups[2].Rows;
+        await WaitUntilAsync(() => disk[1].Value != "Calculating…");
+        var actual = LibraryDiskUsageMeter.Measure(Library.Layout);
+        Assert.True(actual.DatabaseBytes > 0);
+        Assert.Equal(
+            [Format.FileSize(actual.DatabaseBytes), Format.FileSize(actual.ThumbnailsBytes), Format.FileSize(actual.BackupsBytes), Format.FileSize(actual.TotalBytes)],
+            disk.Skip(1).Select(row => row.Value));
 
         await Library.Items.AddAsync(Item(folder, "e.jpg", MediaType.Image), Token);
         clock.Advance(LibraryStatisticsMonitor.RefreshInterval);
@@ -100,10 +111,23 @@ public sealed class LibraryInfoTests : IAsyncDisposable
     [Fact]
     public Task Window_ShowsTheRows_AndCloseClosesIt() => TestApp.RunAsync(() =>
     {
-        var monitor = new LibraryStatisticsMonitor(new StatisticsSender(), new FakeBrowserSession(), clock, action => action());
-        var viewModel = new LibraryInfoViewModel(monitor, new FakeBrowserSession(), Localizer.Current);
+        var sender = new StatisticsSender();
+        var session = new FakeBrowserSession();
+        var monitor = new LibraryStatisticsMonitor(sender, session, clock, action => action());
+        using var viewModel = new LibraryInfoViewModel(monitor, session, Localizer.Current, sender, clock, action => action());
         viewModel.Attach();
         Dispatcher.UIThread.RunJobs();
+
+        // Disk usage loading: the item rows show at once, the disk rows say so until the sizes are in.
+        var disk = viewModel.Groups[2].Rows;
+        Assert.All(disk.Skip(1), row => Assert.Equal(Localizer.Current.Get("LibraryInfo_Calculating"), row.Value));
+        sender.Disk.SetResult(new LibraryDiskUsage(1024, 2048, 0));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(Format.FileSize(3072), disk[^1].Value);
+
+        // Every 30 seconds while shown, it's measured again (the cache answers when it's younger).
+        clock.Advance(LibraryInfoViewModel.DiskUsageInterval);
+        Assert.Equal(2, sender.DiskQueries);
         var window = new LibraryInfoWindow { DataContext = viewModel };
         var closed = false;
         window.Closed += (_, _) => closed = true;
@@ -185,6 +209,21 @@ public sealed class LibraryInfoTests : IAsyncDisposable
     /// </summary>
     private sealed class StatisticsSender : FakeSender
     {
+        public TaskCompletionSource<LibraryDiskUsage?> Disk { get; } = new();
+
+        public int DiskQueries { get; private set; }
+
+        public override Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        {
+            if (request is GetLibraryDiskUsageQuery)
+            {
+                DiskQueries++;
+                return (Task<TResponse>)(object)Disk.Task;
+            }
+
+            return base.Send(request, cancellationToken);
+        }
+
         protected override object? Handle(object request) => request switch
         {
             GetLibraryStatisticsQuery => new LibraryStatistics(12_000, 345, 0, 12_345, 0, 0, 0, 1_000_000),

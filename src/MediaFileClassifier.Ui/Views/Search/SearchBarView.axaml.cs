@@ -16,6 +16,8 @@ namespace MediaFileClassifier.Ui.Views.Search;
 /// </summary>
 public partial class SearchBarView : UserControl
 {
+    private SearchBarViewModel? viewModel;
+
     /// <summary>
     /// Gets the name a pasted or dropped bitmap shows on the chip, in the UI language.
     /// </summary>
@@ -30,6 +32,22 @@ public partial class SearchBarView : UserControl
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
         SearchBox.PastingFromClipboard += OnPasting;
+    }
+
+    /// <inheritdoc />
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (viewModel is not null)
+        {
+            viewModel.FocusRequested -= OnFocusRequested;
+        }
+
+        viewModel = DataContext as SearchBarViewModel;
+        if (viewModel is not null)
+        {
+            viewModel.FocusRequested += OnFocusRequested;
+        }
     }
 
     private static bool HasPicture(IDataTransfer data) =>
@@ -91,6 +109,12 @@ public partial class SearchBarView : UserControl
 
         e.Handled = true;
         _ = PasteAsync(viewModel, clipboard);
+    }
+
+    private void OnFocusRequested(object? sender, EventArgs e)
+    {
+        SearchBox.Focus(NavigationMethod.Tab);
+        SearchBox.SelectAll();
     }
 
     private async Task PasteAsync(SearchBarViewModel viewModel, IClipboard clipboard)

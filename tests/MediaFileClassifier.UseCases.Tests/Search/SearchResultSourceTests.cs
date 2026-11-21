@@ -337,6 +337,27 @@ public sealed class SearchResultSourceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Refresh_RunsTheCurrentSearchAgain_WithTheSameTextAndOption()
+    {
+        await OpenLibraryAsync(2);
+        sender.Hits = [];
+        source.SetText("sign");
+        source.SetShowLessRelevant(true);
+        await source.CountAsync(Token);
+        var changes = 0;
+        source.Changed += (_, _) => changes++;
+        var calls = sender.SearchCalls;
+
+        source.Refresh();
+        await source.CountAsync(Token);
+
+        Assert.Equal(1, changes);
+        Assert.True(sender.SearchCalls > calls);
+        Assert.Equal("sign", source.Text);
+        Assert.True(sender.LastQuery!.ShowLessRelevant);
+    }
+
+    [Fact]
     public async Task Search_StaysInsideTheSelectedScope_AndRestartsWhenTheScopeChanges()
     {
         await OpenLibraryAsync(2);

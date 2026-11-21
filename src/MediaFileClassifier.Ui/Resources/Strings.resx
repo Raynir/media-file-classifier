@@ -2496,6 +2496,42 @@
   <data name="Maintenance_CheckingIntegrity" xml:space="preserve">
     <value>Checking the library…</value>
   </data>
+  <data name="Notification_ShowImported" xml:space="preserve">
+    <value>Show imported items</value>
+  </data>
+  <data name="Notification_ViewFailed" xml:space="preserve">
+    <value>View failed items</value>
+  </data>
+  <data name="Notification_ImportDone_One" xml:space="preserve">
+    <value>Imported {0} item</value>
+  </data>
+  <data name="Notification_ImportDone_Other" xml:space="preserve">
+    <value>Imported {0} items</value>
+  </data>
+  <data name="Notification_ImportPartial" xml:space="preserve">
+    <value>Import finished: {0} imported, {1} failed</value>
+  </data>
+  <data name="Notification_ImportFailed" xml:space="preserve">
+    <value>Import failed: no item could be imported ({0} failed)</value>
+  </data>
+  <data name="Notification_AnalysisDone_One" xml:space="preserve">
+    <value>Analysis finished: {0} item</value>
+  </data>
+  <data name="Notification_AnalysisDone_Other" xml:space="preserve">
+    <value>Analysis finished: {0} items</value>
+  </data>
+  <data name="Notification_AnalysisPartial" xml:space="preserve">
+    <value>Analysis finished: {0} analysed, {1} failed</value>
+  </data>
+  <data name="Notification_AnalysisFailed" xml:space="preserve">
+    <value>Analysis failed: no item could be analysed ({0} failed)</value>
+  </data>
+  <data name="Toast_Region" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="Toast_Dismiss" xml:space="preserve">
+    <value>Dismiss notification</value>
+  </data>
   <data name="Maintenance_Progress" xml:space="preserve">
     <value>{0} {1}%</value>
   </data>
@@ -2630,6 +2666,9 @@
   </data>
   <data name="Stage_exclusion.cleanup" xml:space="preserve">
     <value>Removing AI results</value>
+  </data>
+  <data name="Command_ShowRecentlyImported" xml:space="preserve">
+    <value>Recently imported</value>
   </data>
   <data name="Command_ExcludedItems" xml:space="preserve">
     <value>E_xcluded items…</value>

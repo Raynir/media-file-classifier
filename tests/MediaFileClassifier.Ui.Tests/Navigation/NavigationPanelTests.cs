@@ -1,7 +1,11 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Navigation;
+using MediaFileClassifier.Ui.Notifications;
+using MediaFileClassifier.Ui.Processing;
+using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.UseCases.Browsing;
@@ -18,7 +22,7 @@ namespace MediaFileClassifier.Ui.Tests.Navigation;
 /// </summary>
 public sealed class NavigationPanelTests : IAsyncDisposable
 {
-    private readonly TestServices app = TestServices.Build();
+    private readonly TestServices app = TestServices.Build(configure: services => services.AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress()));
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -64,6 +68,45 @@ public sealed class NavigationPanelTests : IAsyncDisposable
         Assert.Equal(2, await Source.CountAsync(Token));
         Assert.True(year.Children[0].IsSelected);
         Assert.False(photosEntry.IsSelected);
+    }
+
+    [Fact]
+    public async Task ShowRecentlyImportedCommand_SelectsTheRecentlyImportedEntry_AndIsDisabledWithoutALibrary()
+    {
+        var registry = app.Services.GetRequiredService<CommandRegistry>();
+        var command = registry[NavigationCommands.ShowRecentlyImported];
+        Assert.False(command.IsEnabled);
+
+        await CreateLibraryAsync();
+        var panel = app.Services.GetRequiredService<NavigationPanelViewModel>();
+        await panel.ActivateAsync();
+        command.Refresh();
+        Assert.True(command.IsEnabled);
+        Assert.Equal(BrowseScope.All, Source.Scope);
+
+        await command.ExecuteAsync();
+
+        Assert.Equal(BrowseScope.RecentlyImported, Source.Scope);
+        Assert.Equal(LibraryNavigation.RecentlyImportedKey, panel.SelectedEntry?.Key);
+        Assert.True(panel.Sections[0].Entries[1].IsSelected);
+        Assert.Equal(5, await Source.CountAsync(Token));
+    }
+
+    [Fact]
+    public async Task EveryNotificationAction_NamesARegisteredCommand_ThatIsEnabledWithALibrary()
+    {
+        await using var withJobs = TestServices.Build(fullStack: true);
+        await withJobs.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", withJobs.Root), Token);
+        var registry = withJobs.Services.GetRequiredService<CommandRegistry>();
+        registry.Refresh();
+
+        // Show imported items (import), View failed items (jobs that had failures), Open settings (e.g. a provider error).
+        Assert.Equal("library.show-recently-imported", JobNotifications.ImportedItemsCommand);
+        foreach (var id in new[] { JobNotifications.ImportedItemsCommand, ProcessingCommands.OpenQueue, SettingsCommands.OpenSettings })
+        {
+            Assert.True(registry.TryGet(id, out var command), id);
+            Assert.True(command.IsEnabled, id);
+        }
     }
 
     [Fact]

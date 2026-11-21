@@ -1,0 +1,18 @@
+# UI smoke script for the in-app notifications (MFC-129). Steps are described in docs/testing.md.
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/notifications.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+
+# Importing the sample library ends in one "Imported N items" toast, bottom right above the status bar.
+library sample
+shot 01-toast-light
+
+# The same toast in the dark theme.
+command view.theme-dark
+shot 02-toast-dark
+
+# Its action selects Recently imported.
+command library.show-recently-imported
+shot 03-recently-imported

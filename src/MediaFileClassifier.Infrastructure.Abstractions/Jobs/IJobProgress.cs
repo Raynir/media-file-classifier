@@ -16,6 +16,12 @@ public interface IJobProgress
     event EventHandler? Changed;
 
     /// <summary>
+    /// Raised on a background thread once per job when it has run to its end and none of its work is pending (not when
+    /// it's cancelled, or when the library closes). Work added to the job later makes it finish, and raise this, again.
+    /// </summary>
+    event EventHandler<JobFinishedEventArgs>? JobFinished;
+
+    /// <summary>
     /// Gets a snapshot of the progress now; <see cref="ProgressSummary.Empty"/> when no library is open.
     /// </summary>
     ProgressSummary Current { get; }

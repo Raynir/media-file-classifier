@@ -122,6 +122,14 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
             moved.Add(item);
         }
 
+        // A user-removed item follows its file without a status change, so it stays out of sight (E02-S10-T02).
+        foreach (var (item, folder, found) in result.MovedExcluded)
+        {
+            item.Relocate(folder.Id, found.Path);
+            item.UpdateFile(found.SizeBytes, found.FileCreatedAt, found.FileModifiedAt, item.Hashes);
+            moved.Add(item);
+        }
+
         foreach (var batch in moved.Chunk(BatchSize))
         {
             await library.Items.UpdateRangeAsync(batch, cancellationToken).ConfigureAwait(false);

@@ -99,4 +99,26 @@ public sealed class DefaultKeymapTests
     [InlineData(PhysicalKey.F5, KeyModifiers.Control, false)]
     public void SingleKeyShortcuts_AreLeftToATextField_ButFunctionKeysAndCtrlChordsStillRun(PhysicalKey key, KeyModifiers modifiers, bool reserved)
         => Assert.Equal(reserved, TextInputRules.IsReservedForText(new KeyChord(key, modifiers)));
+
+    [Fact]
+    public void NoDefault_UsesAWindowsSystemShortcut()
+    {
+        // Chords that Windows or the input method takes before the app: no default may use them (MFC-794).
+        KeyChord[] reserved =
+        [
+            new(PhysicalKey.F4, KeyModifiers.Alt),
+            new(PhysicalKey.Tab, KeyModifiers.Alt),
+            new(PhysicalKey.Escape, KeyModifiers.Alt),
+            new(PhysicalKey.Space, KeyModifiers.Alt),
+            new(PhysicalKey.Escape, KeyModifiers.Control),
+            new(PhysicalKey.Escape, CtrlShift),
+            new(PhysicalKey.Space, Ctrl),
+            new(PhysicalKey.F10, KeyModifiers.None),
+            new(PhysicalKey.F10, KeyModifiers.Shift),
+            new(PhysicalKey.Tab, Ctrl),
+            new(PhysicalKey.Delete, Ctrl | KeyModifiers.Alt),
+        ];
+
+        Assert.DoesNotContain(DefaultKeymap.Bindings, binding => reserved.Contains(binding.Chord) || (binding.Chord.Modifiers & KeyModifiers.Meta) != 0);
+    }
 }

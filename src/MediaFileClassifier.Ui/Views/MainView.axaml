@@ -15,17 +15,38 @@
     The side panels resize with their splitters, collapse to a rail or strip, and hide.
   -->
   <UserControl.Styles>
+    <!-- Docked, a panel is in its column. As a drawer (E13-S07) it lies over the whole shell grid, on one side. -->
     <Style Selector="Panel#NavigationHost" x:DataType="vm:MainWindowViewModel">
       <Setter Property="Width" Value="{Binding Layout.Navigation.Width}" />
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="1" />
+      <Setter Property="Grid.RowSpan" Value="2" />
     </Style>
     <Style Selector="Panel#NavigationHost.Collapsed">
       <Setter Property="Width" Value="{DynamicResource Size.Navigation.Collapsed}" />
     </Style>
+    <Style Selector="Panel#NavigationHost.Drawer">
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="ZIndex" Value="2" />
+    </Style>
     <Style Selector="Panel#DetailsHost" x:DataType="vm:MainWindowViewModel">
       <Setter Property="Width" Value="{Binding Layout.Details.Width}" />
+      <Setter Property="Grid.Column" Value="2" />
+      <Setter Property="Grid.ColumnSpan" Value="1" />
+      <Setter Property="Grid.Row" Value="1" />
+      <Setter Property="Grid.RowSpan" Value="1" />
     </Style>
     <Style Selector="Panel#DetailsHost.Collapsed">
       <Setter Property="Width" Value="{DynamicResource Size.DetailsPanel.Collapsed}" />
+    </Style>
+    <Style Selector="Panel#DetailsHost.Drawer">
+      <Setter Property="Grid.Column" Value="0" />
+      <Setter Property="Grid.ColumnSpan" Value="3" />
+      <Setter Property="Grid.Row" Value="0" />
+      <Setter Property="Grid.RowSpan" Value="2" />
+      <Setter Property="HorizontalAlignment" Value="Right" />
+      <Setter Property="ZIndex" Value="2" />
     </Style>
   </UserControl.Styles>
 
@@ -45,11 +66,18 @@
 
     <Grid x:Name="ShellGrid" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,*">
       <!-- Navigation -->
+      <!-- While the navigation drawer is open over the rail, the rail's column stays as wide as the rail. -->
+      <Border Grid.Row="0"
+              Grid.RowSpan="2"
+              Grid.Column="0"
+              Classes="Panel"
+              BorderThickness="0,0,1,0"
+              Width="{DynamicResource Size.Navigation.Collapsed}"
+              IsVisible="{Binding Layout.Navigation.KeepsRailColumn}" />
       <Panel x:Name="NavigationHost"
-             Grid.RowSpan="2"
-             Grid.Column="0"
-             IsVisible="{Binding Layout.Navigation.IsVisible}"
-             Classes.Collapsed="{Binding Layout.Navigation.IsCollapsed}">
+             IsVisible="{Binding Layout.Navigation.IsShown}"
+             Classes.Collapsed="{Binding Layout.Navigation.IsRail}"
+             Classes.Drawer="{Binding Layout.Navigation.IsDrawer}">
         <Border x:Name="NavigationPanel" Classes="Panel" BorderThickness="0,0,1,0">
           <Border.ContextMenu>
             <ContextMenu Classes="Commands" ItemsSource="{Binding NavigationContextMenu}" />
@@ -84,6 +112,7 @@
           </DockPanel>
         </Border>
         <sh:PanelSplitter x:Name="NavigationSplitter"
+                          IsVisible="{Binding Layout.Navigation.IsResizable}"
                           HorizontalAlignment="Right"
                           PanelSide="Left"
                           Target="{Binding Layout.Navigation}"
@@ -109,7 +138,7 @@
           <DockPanel DockPanel.Dock="Top" Height="{DynamicResource Size.ContentHeader}" Margin="{DynamicResource Padding.Header}">
             <Button DockPanel.Dock="Left"
                     Classes="Icon"
-                    IsVisible="{Binding !Layout.Navigation.IsVisible}"
+                    IsVisible="{Binding Layout.Navigation.NeedsOpenButton}"
                     Command="{Binding Commands[view.toggle-navigation]}"
                     ToolTip.Tip="{Binding Commands[view.toggle-navigation].ToolTip}"
                     AutomationProperties.Name="{Binding Commands[view.toggle-navigation].PlainLabel}">
@@ -117,7 +146,7 @@
             </Button>
             <Button DockPanel.Dock="Right"
                     Classes="Icon"
-                    IsVisible="{Binding !Layout.Details.IsVisible}"
+                    IsVisible="{Binding Layout.Details.NeedsOpenButton}"
                     Command="{Binding Commands[view.toggle-details]}"
                     ToolTip.Tip="{Binding Commands[view.toggle-details].ToolTip}"
                     AutomationProperties.Name="{Binding Commands[view.toggle-details].PlainLabel}">
@@ -151,10 +180,9 @@
 
       <!-- Preview and details -->
       <Panel x:Name="DetailsHost"
-             Grid.Row="1"
-             Grid.Column="2"
-             IsVisible="{Binding Layout.Details.IsVisible}"
-             Classes.Collapsed="{Binding Layout.Details.IsCollapsed}">
+             IsVisible="{Binding Layout.Details.IsShown}"
+             Classes.Collapsed="{Binding Layout.Details.IsRail}"
+             Classes.Drawer="{Binding Layout.Details.IsDrawer}">
         <Border x:Name="DetailsPanel" Classes="Panel" BorderThickness="1,0,0,0">
           <Border.ContextMenu>
             <ContextMenu Classes="Commands" ItemsSource="{Binding DetailsContextMenu}" />
@@ -186,7 +214,7 @@
             <!-- Collapsed: a strip with the expand button. -->
             <Button x:Name="DetailsExpandButton"
                     Classes="Icon"
-                    IsVisible="{Binding Layout.Details.IsCollapsed}"
+                    IsVisible="{Binding Layout.Details.IsRail}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
                     Margin="{DynamicResource Padding.Strip}"
@@ -198,12 +226,22 @@
           </Panel>
         </Border>
         <sh:PanelSplitter x:Name="DetailsSplitter"
+                          IsVisible="{Binding Layout.Details.IsResizable}"
                           HorizontalAlignment="Left"
                           PanelSide="Right"
                           Target="{Binding Layout.Details}"
                           Browser="{Binding #BrowserArea}"
                           AutomationProperties.Name="{l:Loc Splitter_Details}" />
       </Panel>
+
+      <!-- Behind an open drawer (E13-S07): dims the browser, and a click on it closes the drawer. -->
+      <Border x:Name="DrawerScrim"
+              Grid.RowSpan="2"
+              Grid.ColumnSpan="3"
+              ZIndex="1"
+              Background="{DynamicResource Brush.Scrim}"
+              IsVisible="{Binding Layout.IsAnyDrawerOpen}"
+              PointerPressed="OnScrimPressed" />
     </Grid>
   </DockPanel>
 

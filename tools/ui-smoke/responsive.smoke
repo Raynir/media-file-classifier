@@ -1,0 +1,60 @@
+# Responsive layout smoke script (MFC-128). Steps are described in docs/testing.md.
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/responsive.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-dark
+library sample
+select jpeg-exif.jpg
+command view.details-expanded
+wait-for visible DetailsHost
+
+# Wide (1100 and up): both panels docked.
+shot 01-wide
+
+# Medium (800 to 1099): the navigation is an icon rail and the details panel is a drawer.
+window 1000x800
+wait-for hidden DetailsHost
+shot 02-medium
+
+# The details drawer opens over the browser, and closes with its collapse button.
+command view.toggle-details
+wait-for visible DetailsHost
+wait-for visible DrawerScrim
+shot 03-medium-details-drawer
+command view.collapse-details
+wait-for hidden DetailsHost
+wait-for hidden DrawerScrim
+
+# The rail's expand button opens the navigation as a drawer over the rail.
+command view.collapse-navigation
+wait-for visible DrawerScrim
+shot 04-medium-navigation-drawer
+command view.collapse-navigation
+wait-for hidden DrawerScrim
+
+# Narrow (under 800): both panels are drawers.
+window 720x600
+wait-for hidden NavigationHost
+wait-for hidden DetailsHost
+shot 05-narrow
+
+command view.toggle-navigation
+wait-for visible NavigationHost
+shot 06-narrow-navigation-drawer
+key Escape
+wait-for hidden NavigationHost
+
+command view.toggle-details
+wait-for visible DetailsHost
+shot 07-narrow-details-drawer
+command view.toggle-navigation
+wait-for visible NavigationHost
+wait-for hidden DetailsHost
+
+# Back to wide: the saved docked layout is as it was.
+window 1400x900
+wait-for visible DetailsHost
+wait-for visible NavigationHost
+wait-for hidden DrawerScrim
+shot 08-wide-again

@@ -66,7 +66,7 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
 
         layout.Navigation.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SidePanel.IsCollapsed))
+            if (e.PropertyName == nameof(SidePanel.IsRail))
             {
                 OnPropertyChanged(nameof(IsCollapsed));
             }
@@ -79,6 +79,16 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
                 {
                     section.IsExpanded = !layout.CollapsedNavigationSections.Contains(section.Key);
                 }
+            }
+        };
+        // Picking an entry closes the navigation drawer (E13-S07), so the results show.
+        var shownScope = source.Scope;
+        source.Changed += (_, _) =>
+        {
+            if (source.Scope != shownScope)
+            {
+                shownScope = source.Scope;
+                layout.Navigation.IsDrawerOpen = false;
             }
         };
         session.CurrentChanged += (_, _) =>
@@ -98,7 +108,7 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
     /// <summary>
     /// Gets a value indicating whether the panel is collapsed to its icon rail.
     /// </summary>
-    public bool IsCollapsed => layout.Navigation.IsCollapsed;
+    public bool IsCollapsed => layout.Navigation.IsRail;
 
     /// <summary>
     /// Gets or sets the item selected in the tree: an entry, or a section header, which doesn't change the scope.

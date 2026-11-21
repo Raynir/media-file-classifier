@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Domain.Identity;
@@ -16,6 +17,7 @@ using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -47,6 +49,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private readonly Localizer localizer;
     private readonly Func<ThumbnailGridViewModel> grid;
     private readonly ILogger logger;
+    private readonly FolderStatusChanges? folderStatus;
     private CancellationTokenSource? loading;
     private CancellationTokenSource? previewLoading;
     private bool disposed;
@@ -79,6 +82,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <param name="video">Plays videos in the preview (E14-S06), or <see langword="null"/> to show only their thumbnail.</param>
     /// <param name="clock">Times the frames of an animated image; the system clock by default.</param>
     /// <param name="strip">The keyframe strip under the preview (E14-S13), or <see langword="null"/> for none.</param>
+    /// <param name="folderStatus">Tells when a folder went Offline or came back, so the shown item reloads
+    /// (E14-S07-T04), or <see langword="null"/>.</param>
     public DetailsPanelViewModel(
         SelectionModel selection,
         ISender sender,
@@ -93,7 +98,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         BulkUndoStore? undoStore = null,
         VideoPlayerViewModel? video = null,
         TimeProvider? clock = null,
-        KeyframeStripViewModel? strip = null)
+        KeyframeStripViewModel? strip = null,
+        FolderStatusChanges? folderStatus = null)
     {
         this.clock = clock ?? TimeProvider.System;
         layout.Details.PropertyChanged += OnDetailsVisibilityChanged;
@@ -123,6 +129,12 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         BulkEditor = new BulkEditorViewModel(sender, localizer, logger, undoStore);
         BulkEditor.PropertyChanged += OnBulkEditorChanged;
         selection.Changed += OnSelectionChanged;
+        this.folderStatus = folderStatus;
+        if (folderStatus is not null)
+        {
+            folderStatus.Changed += OnFolderStatusChanged;
+        }
+
         layout.PropertyChanged += OnLayoutChanged;
         if (guard is not null)
         {
@@ -451,6 +463,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
 
         disposed = true;
         selection.Changed -= OnSelectionChanged;
+        if (folderStatus is not null)
+        {
+            folderStatus.Changed -= OnFolderStatusChanged;
+        }
+
         BulkEditor.PropertyChanged -= OnBulkEditorChanged;
         BulkEditor.Dispose();
         layout.PropertyChanged -= OnLayoutChanged;
@@ -547,6 +564,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             {
                 layout.Details.IsVisible = visible;
                 layout.Details.IsCollapsed = collapsed;
+                layout.Details.IsDrawerOpen = false;
             }
         }
         finally
@@ -569,7 +587,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     }
 
     // D026: a video that can't play in the app, or an animation too large to, shows its frame and the strip, and the
-    // strip offers Open in player. Anything that plays here jumps to a chosen keyframe instead.
+    // strip offers Open in player. Anything that plays here jumps to a chosen keyframe instead. An offline or missing
+    // file plays nowhere: the strip selects the moment and says why it can't open it (MFC-1007, DNEW-6).
     private void UpdateFallback()
     {
         if (Strip is null)
@@ -579,13 +598,24 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
 
         var item = Item;
         Strip.IsFileAvailable = item is { Location.Availability: ItemAvailability.Available };
+        Strip.UnavailableReason = item?.Location is { } location ? WhyMomentsUnavailable(location) : null;
         Strip.IsFallback = item?.MediaType switch
         {
+            MediaType.Video or MediaType.AnimatedImage when !Strip.IsFileAvailable => true,
             MediaType.Video => Video is null || Video.FailureText is not null,
             MediaType.AnimatedImage => IsAnimationTooLarge,
             _ => false,
         };
     }
+
+    private string? WhyMomentsUnavailable(ItemLocation location) => location.Availability switch
+    {
+        ItemAvailability.Missing => localizer.Get("Keyframes_Unavailable_Missing"),
+        ItemAvailability.Offline => OfflineSource.Describe(location.FolderName, location.VolumeLabel, localizer) is { } source
+            ? localizer.Format("Keyframes_Unavailable_Offline", location.FolderName, source)
+            : localizer.Format("Keyframes_Unavailable_OfflineFolder", location.FolderName),
+        _ => null,
+    };
 
     private void OnKeyframeChosen(object? sender, TimeSpan time)
     {
@@ -627,6 +657,15 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private void TogglePreview() => IsPreviewExpanded = !IsPreviewExpanded;
 
     private void OnSelectionChanged(object? sender, EventArgs e) => Loading = LoadAsync();
+
+    // A folder went Offline or came back (E14-S07-T04): the shown item's preview, strip and Status row follow it.
+    private void OnFolderStatusChanged(object? sender, EventArgs e) => Dispatcher.UIThread.Post(() =>
+    {
+        if (!disposed && Item is { } item)
+        {
+            Reload([item.Id]);
+        }
+    });
 
     private void OnLayoutChanged(object? sender, PropertyChangedEventArgs e)
     {

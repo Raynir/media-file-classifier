@@ -44,6 +44,45 @@ public interface ILibraryStore
     /// <returns>A task that completes when the backup is restored.</returns>
     /// <exception cref="LibraryOpenException">The library is in use.</exception>
     Task RestoreBackupAsync(string libraryDirectory, string backupPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists the schema-migration backups of a library, newest first (E02-S06-T03). The damaged databases kept by
+    /// <see cref="ReplaceDamagedDatabaseAsync"/> aren't listed.
+    /// </summary>
+    /// <param name="libraryDirectory">The <c>&lt;name&gt;.mfc</c> folder.</param>
+    /// <returns>The backups; empty when there are none.</returns>
+    IReadOnlyList<LibraryBackup> GetBackups(string libraryDirectory);
+
+    /// <summary>
+    /// Runs the integrity check on a backup, read-only, without opening it as a library.
+    /// </summary>
+    /// <param name="backupPath">The backup.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The result; a file SQLite can't read is a problem, not an exception.</returns>
+    Task<IntegrityCheckResult> CheckBackupAsync(string backupPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Puts a backup in place of a damaged database and keeps the damaged one (with its WAL file) in
+    /// <c>backups/library-damaged-&lt;time&gt;.db</c> (E02-S06-T03). The library must be closed. When a step fails,
+    /// the files are put back as they were.
+    /// </summary>
+    /// <param name="libraryDirectory">The <c>&lt;name&gt;.mfc</c> folder.</param>
+    /// <param name="backupPath">The backup, from <see cref="GetBackups"/>.</param>
+    /// <param name="cancellationToken">Cancellation token; it's only checked before any file is touched.</param>
+    /// <returns>The path the damaged database was moved to.</returns>
+    /// <exception cref="LibraryOpenException">The library is in use.</exception>
+    Task<string> ReplaceDamagedDatabaseAsync(string libraryDirectory, string backupPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Undoes <see cref="ReplaceDamagedDatabaseAsync"/> when the restored library couldn't be opened: the kept database
+    /// (and its WAL file) goes back in place. The library must be closed.
+    /// </summary>
+    /// <param name="libraryDirectory">The <c>&lt;name&gt;.mfc</c> folder.</param>
+    /// <param name="damagedPath">The path <see cref="ReplaceDamagedDatabaseAsync"/> returned.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the database is back.</returns>
+    /// <exception cref="LibraryOpenException">The library is in use.</exception>
+    Task PutBackDamagedDatabaseAsync(string libraryDirectory, string damagedPath, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

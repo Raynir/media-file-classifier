@@ -27,6 +27,18 @@ The create-library dialog adds folders with the same rules, without asking: the 
 
 Folders being removed don't count as overlaps. "Selected files only" folders (D012) don't exist yet; absorbing them comes with E03-S05, and the merge already moves any folder's items.
 
+## Partial folders
+
+A partial folder (`IndexedFolder.SelectedFilesOnly`, "selected files only", D012, library schema 15) tracks only the files the user imported from it by selecting them (E03-S05, `docs/import-pipeline.md`): its items. Its import and its rescans look up those files alone, so other files in the folder are ignored (`docs/file-discovery.md`, "Partial folders"). It has no rules. A picked file in one of its subfolders joins it, with a path such as `2024/b.jpg`.
+
+**Index whole folder** (`IndexWholeFolderCommand`, E03-S05-T03) makes it a full folder: it cancels the folder's running import, clears `SelectedFilesOnly` and imports the folder. Full discovery knows the existing items by their paths, so they keep their IDs and metadata, and the other files are imported under the folder's rules. The folders dialog tags a partial folder "Selected files only" and shows the note and the button in place of its rules; the button asks in the dialog's confirmation bar first.
+
+Add folder and partial folders (`IndexedFolders.FindOverlap`):
+
+- Adding the partial folder itself (`FolderOverlapKind.PartialFolder`) indexes it whole; the dialog asks the same question as the button.
+- Adding a folder inside it (`InsidePartial`, when no full folder covers it) is allowed: the new folder is added, and the partial folder's items under it move to it with the prefix stripped from their paths, keeping IDs and metadata (`IFolderRepository.SplitIntoAsync`). The partial folder is deleted if it has no items left, otherwise its import is started again. Paths compare without case, like Windows handles.
+- A full folder that contains a partial folder merges it, as with any folder it contains.
+
 ## Exclusions
 
 Each folder's rules are its `FolderRules` (D142):
@@ -49,8 +61,12 @@ Turning the hidden toggle off doesn't mark hidden items Excluded yet, because th
 
 ## Offline folders
 
-A folder is **Offline** when its root can't be listed: the drive or share is gone, the folder was deleted or moved, or access is denied (`IMediaFileSource.IsAvailableAsync`). `CheckFolderAvailabilityCommand` checks the folders and updates their status; it runs when a library opens, when the folders dialog opens, and for each folder before it's imported, where an Offline folder isn't queued. A folder goes back Online as soon as a check succeeds. There's no polling: live monitoring is E04.
+A folder is **Offline** when its root can't be listed: the drive or share is gone, the folder was deleted or moved, or access is denied (`IMediaFileSource.IsAvailableAsync`). `CheckFolderAvailabilityCommand` checks the folders and updates their status; it runs when a library opens, when the folders dialog opens, and for each folder before it's imported, where an Offline folder isn't queued. A folder goes back Online as soon as a check succeeds.
 
-Offline items stay as they are, with their metadata, and are never marked Missing because their root can't be reached (D025). Showing them greyed out is E14-S07.
+Statuses follow drives and shares live (E14-S07-T04, amends D188). `FolderAvailabilityMonitor`, started by the composition root, checks every folder 1 s after volume events go quiet (`IVolumeWatcher`: on Windows `WindowsVolumeWatcher` hooks the main window for `WM_DEVICECHANGE` volume arrival and removal, so USB drives, memory cards and mapped network drives count; other platforms get the no-op `NoVolumeWatcher`). Every 30 s it also checks the Offline folders alone (`CheckFolderAvailabilityCommand.OfflineOnly`), because a share opened by UNC path raises no event; Online folders aren't polled. Checks don't overlap: a poll that finds one running is skipped. When a check changes a status, `FolderStatusChanges` refreshes the results (and through them the details panel) and the status bar's offline notice, so a reconnected drive's items stop being dimmed on their own.
+
+Offline items stay as they are, with their metadata, and are never marked Missing because their root can't be reached (D025). The browser shows them dimmed with an Offline badge (E14-S07). The filter panel's "Hide offline items" check box (`HideOfflineFilter`, id `hide-offline`, off by default) leaves them out in every search mode, and is saved with the filter state and saved searches like any filter.
+
+Each folder stores the label of the volume it's on (`IndexedFolder.VolumeLabel`, library schema 16, `IMediaFileSource.GetVolumeLabelAsync`). It's read when the folder is added and again on every availability check that finds it Online, and kept while it's Offline, so the badge, tooltip and details panel can name the drive to connect: "Offline: drive 'Backup-2TB' (E:\Photos)". An unlabelled drive is named by its letter and a network share by `\\server\share`; on Android, which has no labels, only the folder is named.
 
 Work queued for an item in an Offline folder (import stages, rescan checks, analysis) doesn't run against the missing file (MFC-1004). The stage throws `FolderOfflineException` before it touches the file, and the scheduler parks the work item without using a retry or marking the item failed. When a stage finds a file's directory gone, it checks the folder's root: if the root can't be listed, the folder is marked Offline and the work is parked the same way; if it can, the file is gone and the work fails at once as a permanent failure. Parked work is released when a check or a rescan finds a folder Online again, and when the library opens; work whose folder is still Offline parks again.

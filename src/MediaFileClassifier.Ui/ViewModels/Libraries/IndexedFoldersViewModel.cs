@@ -14,6 +14,7 @@ using MediaFileClassifier.UseCases.Libraries.ChangeFolderRules;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderOverlap;
 using MediaFileClassifier.UseCases.Libraries.GetIndexedFolders;
+using MediaFileClassifier.UseCases.Libraries.IndexWholeFolder;
 using MediaFileClassifier.UseCases.Libraries.RemoveFolder;
 using MediatR;
 
@@ -54,6 +55,13 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the view is hosted in the Settings "Library" page, which has its own
+    /// heading and no Close button.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsEmbedded { get; set; }
+
+    /// <summary>
     /// Raised when the dialog should close.
     /// </summary>
     public event EventHandler? CloseRequested;
@@ -73,7 +81,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection), nameof(RulesTitle))]
-    [NotifyCanExecuteChangedFor(nameof(RemoveCommand), nameof(RescanCommand), nameof(AnalyzeCommand), nameof(ExcludeSubfolderCommand), nameof(ApplyRulesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveCommand), nameof(RescanCommand), nameof(AnalyzeCommand), nameof(ExcludeSubfolderCommand), nameof(ApplyRulesCommand), nameof(IndexWholeFolderCommand))]
     public partial IndexedFolderViewModel? SelectedFolder { get; set; }
 
     /// <summary>
@@ -175,6 +183,11 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets how many folders this window has added so far, for the summary after a drop (E03-S06).
+    /// </summary>
+    public int AddedCount { get; private set; }
+
+    /// <summary>
     /// Adds folders with the overlap rules (E02-S03-T02): folders that are covered already are refused with a message,
     /// and when one contains indexed folders the dialog asks before merging them. Dropping folders on the navigation
     /// panel comes here too (E13-S02).
@@ -198,6 +211,17 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
                     break;
                 case FolderOverlapKind.InsideIndexed:
                     messages.Add(localizer.Format("Folders_InsideIndexed", folder.Id, overlap.Folders[0].DisplayPath));
+                    break;
+                case FolderOverlapKind.PartialFolder:
+                    // Adding a partial folder indexes it whole (E03-S05): on its own, after the same question as its button.
+                    if (folders.Count == 1 && Folders.FirstOrDefault(row => row.Folder.Id == overlap.Folders[0].Id) is { } partial)
+                    {
+                        SelectedFolder = partial;
+                        AskIndexWhole(partial);
+                        return;
+                    }
+
+                    toAdd.Add(folder);
                     break;
                 case FolderOverlapKind.ContainsIndexed:
                     merges.Add(localizer.Format("Folders_MergeConfirm", folder.Id, string.Join(", ", overlap.Folders.Select(child => child.DisplayPath))));
@@ -243,6 +267,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
             Message = string.Join(Environment.NewLine, result.Refused.Select(refused => localizer.Format("Folders_InsideIndexed", refused.Folder.Id, refused.CoveredBy.DisplayPath)));
         }
 
+        AddedCount += result.Added.Count;
         await RefreshAsync();
         SelectedFolder = result.Added.Count > 0 ? Folders.FirstOrDefault(row => row.Folder.Id == result.Added[^1].Id) : SelectedFolder;
     }
@@ -330,6 +355,25 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         var result = await sender.Send(new ChangeFolderRulesCommand(row.Folder.Id, row.EditedRules()));
         Message = localizer.Format("Folders_RulesApplied", Format.Number(result.Excluded), Format.Number(result.Restored));
         await RefreshAsync();
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void IndexWholeFolder()
+    {
+        if (SelectedFolder is { IsPartial: true } row)
+        {
+            AskIndexWhole(row);
+        }
+    }
+
+    private void AskIndexWhole(IndexedFolderViewModel row)
+    {
+        var count = IndexedFolderViewModel.ItemCountText(localizer, row.Summary.ItemCount + row.Summary.ExcludedCount);
+        Ask(localizer.Format("Folders_IndexWholeConfirm", row.Path, count), localizer.Get("Folders_IndexWhole"), async () =>
+        {
+            await sender.Send(new IndexWholeFolderCommand(row.Folder.Id));
+            await RefreshAsync();
+        });
     }
 
     [RelayCommand]

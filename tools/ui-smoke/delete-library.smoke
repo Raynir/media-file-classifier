@@ -1,0 +1,14 @@
+# The delete-library confirmation (MFC-122): opened for the open library, Delete enabled only after the name is typed,
+# then the welcome screen once the library is deleted.
+library sample
+window 1400x900
+start library.delete
+wait-for dialog
+dialog-shot 01-confirm-empty
+dialog-type Smoke sample
+wait 300ms
+dialog-shot 02-confirm-typed
+dialog-click DeleteButton
+wait-for no-dialog
+wait 500ms
+shot 03-welcome-after-delete

@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediatR;
 
 namespace MediaFileClassifier.UseCases.Browsing.LibraryItems;
@@ -9,7 +10,8 @@ namespace MediaFileClassifier.UseCases.Browsing.LibraryItems;
 /// <summary>
 /// The M1 result source (E14-S01-T02): the open library's items in the selected <see cref="Scope"/> (E13-S02), newest
 /// first. It follows the session, so it reports a change when a library opens or closes, when the scope changes, and
-/// whenever the open library's items change. Excluded items aren't shown (D048).
+/// whenever the open library's items change or a folder goes Offline or comes back (E14-S07-T04). Excluded items
+/// aren't shown (D048).
 /// </summary>
 public sealed class LibraryItemsSource : IMediaResultSource
 {
@@ -25,12 +27,18 @@ public sealed class LibraryItemsSource : IMediaResultSource
     /// <param name="sender">Sends the queries.</param>
     /// <param name="session">Holds the open library.</param>
     /// <param name="clock">The clock, for Recently imported.</param>
-    public LibraryItemsSource(ISender sender, ILibrarySession session, TimeProvider clock)
+    /// <param name="folderStatus">Tells when a folder went Offline or came back, or <see langword="null"/>.</param>
+    public LibraryItemsSource(ISender sender, ILibrarySession session, TimeProvider clock, FolderStatusChanges? folderStatus = null)
     {
         this.sender = sender;
         this.session = session;
         this.clock = clock;
         session.CurrentChanged += (_, _) => Watch();
+        if (folderStatus is not null)
+        {
+            folderStatus.Changed += OnItemsChanged;
+        }
+
         Watch();
     }
 

@@ -38,7 +38,8 @@ internal static class SmokeScript
 
     private static readonly HashSet<string> Verbs = new(StringComparer.Ordinal)
     {
-        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability",
+        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-type", "dialog-key", "dialog-shot", "dialog-size",
+        "damage-library", "unplug-folder", "plug-folder", "allow-error", "import-files", "dialog-select", "drag-over", "drop",
     };
 
     /// <summary>
@@ -127,6 +128,7 @@ internal static class SmokeScript
                     : "expected 'library sample' or 'library open <folder>'";
                 break;
             case "window":
+            case "dialog-size":
                 error = TryParseSize(step.Argument, out _, out _) ? null : "expected a size such as 1400x900";
                 break;
             case "wait":
@@ -140,7 +142,8 @@ internal static class SmokeScript
                     ["idle"] => null,
                     ["items", var count] when int.TryParse(count, CultureInfo.InvariantCulture, out _) => null,
                     ["visible" or "hidden", _] => null,
-                    _ => "expected 'idle', 'items <count>', 'visible <control>' or 'hidden <control>', then an optional timeout",
+                    ["dialog" or "no-dialog"] => null,
+                    _ => "expected 'idle', 'items <count>', 'visible <control>', 'hidden <control>', 'dialog' or 'no-dialog', then an optional timeout",
                 };
                 break;
             case "choose-keyframe":
@@ -153,10 +156,16 @@ internal static class SmokeScript
                     ? null
                     : "expected 'video-playback on' or 'video-playback off'";
                 break;
-            case "key":
+            case "setting":
+                error = step.Argument.Contains(' ', StringComparison.Ordinal) ? null : "expected a setting key and a value, e.g. 'appearance.showFileNames false'";
+                break;
+            case "key" or "dialog-key":
                 error = TryParseKey(step.Argument, out _) ? null : "expected a key such as Space, Right, Ctrl+2 or Ctrl+Shift+F";
                 break;
-            case "shot":
+            case "damage-library" or "unplug-folder" or "plug-folder":
+                error = step.Argument.Length == 0 ? null : "expected no argument";
+                break;
+            case "shot" or "dialog-shot":
                 error = step.Argument.Length == 0 || step.Argument.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
                     ? "expected a file name without an extension"
                     : null;

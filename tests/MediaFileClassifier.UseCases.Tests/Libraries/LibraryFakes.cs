@@ -69,6 +69,22 @@ internal sealed class FakeLibraryStore : ILibraryStore
         Restored.Add((libraryDirectory, backupPath));
         return Task.CompletedTask;
     }
+
+    public List<LibraryBackup> Backups { get; } = [];
+
+    public IReadOnlyList<LibraryBackup> GetBackups(string libraryDirectory) => Backups;
+
+    public Task<IntegrityCheckResult> CheckBackupAsync(string backupPath, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new IntegrityCheckResult([]));
+
+    public Task<string> ReplaceDamagedDatabaseAsync(string libraryDirectory, string backupPath, CancellationToken cancellationToken = default)
+    {
+        Restored.Add((libraryDirectory, backupPath));
+        return Task.FromResult(Path.Combine(libraryDirectory, LibraryLayout.BackupsFolderName, "library-damaged.db"));
+    }
+
+    public Task PutBackDamagedDatabaseAsync(string libraryDirectory, string damagedPath, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
 }
 
 /// <summary>
@@ -142,6 +158,11 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 /// </summary>
 internal sealed class FakeFolderRepository : IFolderRepository
 {
+    // The status each folder was last stored with, so StatusChanged is raised like the real repository's.
+    private readonly Dictionary<Id<IndexedFolder>, FolderStatus> stored = [];
+
+    public event EventHandler? StatusChanged;
+
     public List<IndexedFolder> Folders { get; } = [];
 
     public Task<IndexedFolder?> GetAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
@@ -153,10 +174,28 @@ internal sealed class FakeFolderRepository : IFolderRepository
     public Task AddAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
     {
         Folders.Add(folder);
+        stored[folder.Id] = folder.Status;
         return Task.CompletedTask;
     }
 
-    public Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public int Updates { get; private set; }
+
+    public int AvailabilityUpdates { get; private set; }
+
+    public Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
+    {
+        Updates++;
+        Store(folder);
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAvailabilityAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
+    {
+        Updates++;
+        AvailabilityUpdates++;
+        Store(folder);
+        return Task.CompletedTask;
+    }
 
     public Task<int> MergeIntoAsync(IndexedFolder parent, Id<IndexedFolder> childId, string relativePath, CancellationToken cancellationToken = default)
     {
@@ -164,8 +203,21 @@ internal sealed class FakeFolderRepository : IFolderRepository
         return Task.FromResult(0);
     }
 
+    public Task<(int Moved, bool PartialDeleted)> SplitIntoAsync(IndexedFolder folder, Id<IndexedFolder> partialId, string relativePath, CancellationToken cancellationToken = default) =>
+        Task.FromResult((0, false));
+
     public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
         => Task.FromResult(Folders.RemoveAll(folder => folder.Id == id) > 0);
+
+    private void Store(IndexedFolder folder)
+    {
+        var changed = stored.TryGetValue(folder.Id, out var old) && old != folder.Status;
+        stored[folder.Id] = folder.Status;
+        if (changed)
+        {
+            StatusChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
 }
 
 /// <summary>
@@ -292,6 +344,11 @@ internal sealed class FakeFolderSource : IMediaFileSource
 {
     public HashSet<string> Unavailable { get; } = [];
 
+    /// <summary>
+    /// Gets the volume label of each folder, by its handle.
+    /// </summary>
+    public Dictionary<string, string?> Labels { get; } = [];
+
     public IAsyncEnumerable<MediaFileStat> EnumerateFilesAsync(FolderHandle folder, string relativeDirectory = "", CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public IAsyncEnumerable<FolderScanEntry> ScanAsync(FolderHandle folder, FolderScanOptions options, CancellationToken cancellationToken = default) => throw new NotSupportedException();
@@ -300,7 +357,24 @@ internal sealed class FakeFolderSource : IMediaFileSource
 
     public Task<MediaFileStat?> GetStatAsync(FileLocation file, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) => Task.FromResult(!Unavailable.Contains(folder.Id));
+    /// <summary>
+    /// Gets the folders whose check never ends and ignores its token, like an unreachable network share before the SMB
+    /// timeout.
+    /// </summary>
+    public HashSet<string> Hanging { get; } = [];
+
+    public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) =>
+        Hanging.Contains(folder.Id) ? new TaskCompletionSource<bool>().Task : Task.FromResult(!Unavailable.Contains(folder.Id));
+
+    /// <summary>
+    /// Gets the folders whose volume can't be asked for its label.
+    /// </summary>
+    public HashSet<string> UnreadableLabels { get; } = [];
+
+    public Task<string?> GetVolumeLabelAsync(FolderHandle folder, CancellationToken cancellationToken = default) =>
+        UnreadableLabels.Contains(folder.Id)
+            ? Task.FromException<string?>(new IOException("The device is not ready."))
+            : Task.FromResult(Labels.GetValueOrDefault(folder.Id));
 
     public string? GetPathInside(FolderHandle folder, FolderHandle parent)
     {

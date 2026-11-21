@@ -112,6 +112,12 @@
   <x:Double x:Key="Space.L">16</x:Double>
   <x:Double x:Key="Space.XL">20</x:Double>
   <x:Double x:Key="Space.XXL">24</x:Double>
+  <!-- Toasts (E15-S01): the corner offset keeps them above the status bar. -->
+  <Thickness x:Key="Margin.ToastHost">0,0,16,44</Thickness>
+  <Thickness x:Key="Margin.ToastIcon">0,2,10,0</Thickness>
+  <Thickness x:Key="Margin.ToastAction">0,8,0,0</Thickness>
+  <Thickness x:Key="Margin.InfoLabel">0,0,24,0</Thickness>
+  <Thickness x:Key="Margin.InfoClose">0,16,0,0</Thickness>
   <Thickness x:Key="Padding.Panel">20,16</Thickness>
   <Thickness x:Key="Padding.Header">16</Thickness>
   <Thickness x:Key="Padding.Control">12,6</Thickness>
@@ -121,6 +127,8 @@
   <!-- A collapsed panel's strip: Padding.Compact across, level with Padding.Header vertically. -->
   <Thickness x:Key="Padding.Strip">4,16</Thickness>
   <Thickness x:Key="Padding.Badge">6,1</Thickness>
+  <Thickness x:Key="Padding.DropCard">56,40</Thickness>
+  <Thickness x:Key="Margin.DropFrame">8</Thickness>
   <!-- A status bar segment: Space.S across, the bar's full height. -->
   <Thickness x:Key="Padding.StatusSegment">8,0</Thickness>
   <!-- The toolbar row (E13-S03), after Figma (25:378): 30 from the sides, controls centred in Size.Toolbar. -->
@@ -145,6 +153,8 @@
   <CornerRadius x:Key="Radius.Tooltip">12</CornerRadius>
   <CornerRadius x:Key="Radius.Pill">999</CornerRadius>
   <Thickness x:Key="Border.Thin">1</Thickness>
+  <!-- The keyboard focus ring (E16-S03), drawn in Brush.State.Focus around the focused control. -->
+  <Thickness x:Key="Border.FocusRing">2</Thickness>
 
   <!-- Typography. Figma uses Roboto; the app bundles Inter (Avalonia.Fonts.Inter) until the font is decided. -->
   <FontFamily x:Key="Font.Family">fonts:Inter#Inter, $Default</FontFamily>
@@ -160,6 +170,8 @@
   <!-- Opacity states (Figma: inactive chips 0.4, inactive nav items 0.6). -->
   <x:Double x:Key="Opacity.Disabled">0.4</x:Double>
   <x:Double x:Key="Opacity.Inactive">0.6</x:Double>
+  <!-- An item whose file can't be used now: Offline folder or Missing file (E14-S07). -->
+  <x:Double x:Key="Opacity.Unavailable">0.5</x:Double>
 
   <!-- Layout sizes -->
   <x:Double x:Key="Size.Navigation.Expanded">240</x:Double>

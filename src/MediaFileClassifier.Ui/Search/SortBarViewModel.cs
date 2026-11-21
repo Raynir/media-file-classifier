@@ -92,6 +92,17 @@ public sealed partial class SortBarViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Sorts by a mode, as a click on a list column header does: the mode in force flips its direction, any other one
+    /// sorts in its usual direction.
+    /// </summary>
+    /// <param name="mode">The mode.</param>
+    public void SortBy(SortMode mode)
+    {
+        var sort = source.Sort;
+        source.SetSort(sort.Mode == mode && mode != SortMode.Relevance ? sort with { Descending = !sort.Descending } : SortChoice.Natural(mode));
+    }
+
     partial void OnSelectedModeChanged(SortOptionViewModel? value)
     {
         if (!isSyncing && value is not null && value.Mode != source.Sort.Mode)

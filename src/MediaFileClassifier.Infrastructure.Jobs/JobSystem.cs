@@ -3,7 +3,6 @@ using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Infrastructure.Abstractions.Errors;
-using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
@@ -17,8 +16,8 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// (E05-S01-T05).
 /// </summary>
 /// <param name="handlers">The registered stage handlers.</param>
-/// <param name="settings">App settings, for the pool limits and the resume mode.</param>
-/// <param name="hardware">Hardware facts, for the default CPU pool limit.</param>
+/// <param name="settingsStore">Gets the setting values, for the pool limits and the resume mode. It's a function because the store reads the open library, which depends on this job system.</param>
+/// <param name="processing">The processing setting definitions.</param>
 /// <param name="progress">The progress counters of the open library (E05-S02).</param>
 /// <param name="clock">Clock.</param>
 /// <param name="logger">Logger.</param>
@@ -29,8 +28,8 @@ namespace MediaFileClassifier.Infrastructure.Jobs;
 /// <param name="retention">How long finished jobs are kept, or <see langword="null"/> for the default (E05-S03-T04).</param>
 public sealed partial class JobSystem(
     IEnumerable<IStageHandler> handlers,
-    ISettingsService settings,
-    IHardwareInfo hardware,
+    Func<ISettingsStore> settingsStore,
+    ProcessingSettings processing,
     JobProgressTracker progress,
     TimeProvider clock,
     ILogger<JobSystem> logger,
@@ -43,14 +42,15 @@ public sealed partial class JobSystem(
     /// <summary>
     /// Default concurrency limit of the I/O pool.
     /// </summary>
-    public const int DefaultIoConcurrency = 4;
+    public const int DefaultIoConcurrency = ProcessingSettings.DefaultIoConcurrency;
 
     /// <summary>
     /// Default concurrency limit of the AI pool.
     /// </summary>
-    public const int DefaultAiConcurrency = 1;
+    public const int DefaultAiConcurrency = ProcessingSettings.DefaultAiConcurrency;
 
     private readonly SemaphoreSlim lifecycle = new(1, 1);
+    private ISettingsStore? subscribedTo;
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Stopped by StopAsync, before the library closes; Dispose can't wait for it.")]
     private volatile JobScheduler? current;
 
@@ -58,23 +58,15 @@ public sealed partial class JobSystem(
     public IJobScheduler? Current => current;
 
     /// <summary>
-    /// Gets the concurrency limit of each pool: the setting if there is one, otherwise the default.
+    /// Gets the concurrency limit of each pool from the settings.
     /// </summary>
-    /// <param name="processing">Processing settings.</param>
-    /// <param name="hardware">Hardware facts.</param>
     /// <returns>The limit of each pool.</returns>
-    public static IReadOnlyDictionary<ResourcePool, int> GetPoolLimits(ProcessingSettings processing, IHardwareInfo hardware)
+    public IReadOnlyDictionary<ResourcePool, int> GetPoolLimits() => new Dictionary<ResourcePool, int>
     {
-        ArgumentNullException.ThrowIfNull(processing);
-        ArgumentNullException.ThrowIfNull(hardware);
-
-        return new Dictionary<ResourcePool, int>
-        {
-            [ResourcePool.Io] = Math.Max(1, processing.IoConcurrency ?? DefaultIoConcurrency),
-            [ResourcePool.Cpu] = Math.Max(1, processing.CpuConcurrency ?? hardware.DefaultParallelism),
-            [ResourcePool.Ai] = Math.Max(1, processing.AiConcurrency ?? DefaultAiConcurrency),
-        };
-    }
+        [ResourcePool.Io] = settingsStore().Get(processing.IoConcurrency),
+        [ResourcePool.Cpu] = settingsStore().Get(processing.CpuConcurrency),
+        [ResourcePool.Ai] = settingsStore().Get(processing.AiConcurrency),
+    };
 
     /// <inheritdoc />
     public async Task<IJobScheduler> StartAsync(IOpenLibrary library, CancellationToken cancellationToken = default)
@@ -85,6 +77,12 @@ public sealed partial class JobSystem(
         try
         {
             await StopCurrentAsync().ConfigureAwait(false);
+
+            if (subscribedTo is null)
+            {
+                subscribedTo = settingsStore();
+                subscribedTo.Changed += OnSettingChanged;
+            }
 
             var requeued = await library.Jobs.RequeueRunningAsync(clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
             try
@@ -98,14 +96,25 @@ public sealed partial class JobSystem(
             }
 
             var pending = await library.Jobs.CountPendingAsync(cancellationToken).ConfigureAwait(false);
-            var processing = settings.Current.Processing;
-            var startPaused = pending > 0 && processing.ResumeOnOpen == ResumeMode.Ask;
-            progress.Reset(
-                await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false),
-                await library.Jobs.CountUnfinishedWorkAsync(cancellationToken).ConfigureAwait(false));
-            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(processing, hardware), progress, clock, logger, models, classifier, retryPolicy, breaker, retention);
+            var startPaused = pending > 0 && settingsStore().Get(processing.ResumeOnOpen) == ResumeMode.Ask;
+            var unfinished = await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false);
+            var counts = await library.Jobs.CountUnfinishedWorkAsync(cancellationToken).ConfigureAwait(false);
+            if (!startPaused)
+            {
+                progress.Reset(unfinished, counts);
+            }
+
+            var scheduler = new JobScheduler(library, handlers, GetPoolLimits(), progress, clock, logger, models, classifier, retryPolicy, breaker, retention);
             scheduler.Start(startPaused);
             current = scheduler;
+            if (startPaused)
+            {
+                // Told after the scheduler is current, so the status bar sees that processing waits for Resume.
+                progress.Reset(unfinished, counts);
+            }
+
+            // A limit changed after it was read above and before the scheduler was current is applied now.
+            ApplyPoolLimits();
             LogStarted(library.Layout.RootDirectory, pending, requeued, startPaused);
             return scheduler;
         }
@@ -136,7 +145,37 @@ public sealed partial class JobSystem(
     /// <summary>
     /// Releases the lifecycle lock. Call <see cref="StopAsync"/> first: disposing doesn't stop running work.
     /// </summary>
-    public void Dispose() => lifecycle.Dispose();
+    public void Dispose()
+    {
+        if (subscribedTo is not null)
+        {
+            subscribedTo.Changed -= OnSettingChanged;
+        }
+
+        lifecycle.Dispose();
+    }
+
+    // A pool limit that changes takes effect at once: more work starts now, and a lower limit applies as work finishes.
+    private void OnSettingChanged(object? sender, SettingChangedEventArgs e)
+    {
+        if (e.Setting == processing.IoConcurrency || e.Setting == processing.CpuConcurrency || e.Setting == processing.AiConcurrency)
+        {
+            ApplyPoolLimits();
+        }
+    }
+
+    private void ApplyPoolLimits()
+    {
+        if (current is not { } scheduler)
+        {
+            return;
+        }
+
+        foreach (var (pool, limit) in GetPoolLimits())
+        {
+            scheduler.SetPoolLimit(pool, limit);
+        }
+    }
 
     private async Task StopCurrentAsync()
     {

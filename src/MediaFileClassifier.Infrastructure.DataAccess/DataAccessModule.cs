@@ -22,6 +22,7 @@ public static class DataAccessModule
     {
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<ILibraryStore, LibraryStore>();
+        services.TryAddSingleton<ILibraryDeleter, LibraryDeleter>();
 
         // Library settings live in the open library (E02-S02); this replaces the "no library" storage of AddInfrastructure.
         services.Replace(ServiceDescriptor.Singleton<ILibrarySettingValues, OpenLibrarySettingValues>());
@@ -39,6 +40,7 @@ public static class DataAccessModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.TagsFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.OutdatedAnalysisFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.NewSuggestionsFilter>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.HideOfflineFilter>());
         return services;
     }
 }

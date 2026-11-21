@@ -30,7 +30,9 @@ public enum ItemAvailability
 /// <param name="FullPath">The file's full path, or <see langword="null"/> where folders aren't paths (Android).</param>
 /// <param name="FolderName">The folder's name as shown to the user.</param>
 /// <param name="Availability">Whether the file can be used.</param>
-public sealed record ItemLocation(Id<MediaItem> ItemId, FileLocation Location, string? FullPath, string FolderName, ItemAvailability Availability);
+/// <param name="VolumeLabel">The label of the drive the folder is on, if known (E14-S07-T02).</param>
+public sealed record ItemLocation(
+    Id<MediaItem> ItemId, FileLocation Location, string? FullPath, string FolderName, ItemAvailability Availability, string? VolumeLabel = null);
 
 /// <summary>
 /// Gets where items' files are (E14-S04), in the order asked. Items that no longer exist are left out.
@@ -86,6 +88,6 @@ public sealed class GetItemLocationsQueryHandler(ILibrarySession session) : IReq
             : status == MediaItemStatus.Missing ? ItemAvailability.Missing
             : ItemAvailability.Available;
         return new ItemLocation(
-            id, new FileLocation(new FolderHandle(folder.PlatformHandle, folder.DisplayPath), relative), fullPath, folder.DisplayPath, availability);
+            id, new FileLocation(new FolderHandle(folder.PlatformHandle, folder.DisplayPath), relative), fullPath, folder.DisplayPath, availability, folder.VolumeLabel);
     }
 }

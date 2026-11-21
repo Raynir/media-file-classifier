@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MediaFileClassifier.Domain.Media;
@@ -64,7 +65,15 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
         nameof(IsFavorite),
         nameof(Badges),
         nameof(DurationText),
-        nameof(IsAnimated))]
+        nameof(IsAnimated),
+        nameof(TypeText),
+        nameof(DateTakenText),
+        nameof(SizeText),
+        nameof(ResolutionText),
+        nameof(LengthText),
+        nameof(StatusText),
+        nameof(Folder),
+        nameof(IsUnavailable))]
     public partial MediaItemSummary? Item { get; private set; }
 
     /// <summary>
@@ -107,6 +116,12 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     public partial bool IsFocused { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the file name shows under the thumbnail (the Show file names setting).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool ShowFileName { get; set; } = true;
 
     /// <summary>
     /// Gets a value indicating whether the item's page is still loading.
@@ -152,6 +167,54 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
     /// Gets a value indicating whether the item is an animated image, which shows the animated marker.
     /// </summary>
     public bool IsAnimated => Item?.MediaType is MediaType.AnimatedImage;
+
+    /// <summary>
+    /// Gets the list view's Type cell: the file format, e.g. <c>JPG</c> (E14-S02).
+    /// </summary>
+    public string TypeText => Item?.FileFormat.ToUpperInvariant() ?? string.Empty;
+
+    /// <summary>
+    /// Gets the list view's Date taken cell, as the camera recorded it, or an empty text before it's known.
+    /// </summary>
+    public string DateTakenText => Item?.DateTaken is { } taken ? taken.ToString("g", CultureInfo.CurrentCulture) : string.Empty;
+
+    /// <summary>
+    /// Gets the list view's Size cell, e.g. <c>2.1 MB</c>.
+    /// </summary>
+    public string SizeText => Item is { } item ? Format.FileSize(item.SizeBytes) : string.Empty;
+
+    /// <summary>
+    /// Gets the list view's Resolution cell, e.g. <c>1920 × 1080</c>, or an empty text before it's known.
+    /// </summary>
+    public string ResolutionText => Item is { Width: { } width, Height: { } height }
+        ? $"{width} × {height}"
+        : string.Empty;
+
+    /// <summary>
+    /// Gets the list view's Duration cell: a video's or animation's length, or an empty text.
+    /// </summary>
+    public string LengthText => Item is { MediaType: not MediaType.Image, Duration: { } duration } ? Format.Duration(duration) : string.Empty;
+
+    /// <summary>
+    /// Gets the list view's Status cell, e.g. <c>Indexed</c>.
+    /// </summary>
+    public string StatusText => Item switch
+    {
+        null => string.Empty,
+        { IsFolderOffline: true } => Localizer.Current["Tile_Badge_Offline"],
+        { } item => Localizer.Current[$"Details_Status_{item.Status}"],
+    };
+
+    /// <summary>
+    /// Gets a value indicating whether the item's file can't be used now, because its folder is Offline or the file is
+    /// Missing, so the tile shows dimmed with its badge (E14-S07, D025).
+    /// </summary>
+    public bool IsUnavailable => Item is { IsFolderOffline: true } or { Status: MediaItemStatus.Missing };
+
+    /// <summary>
+    /// Gets the list view's Folder cell: the folder the file is in.
+    /// </summary>
+    public string Folder => Item?.Folder ?? string.Empty;
 
     /// <summary>
     /// Gets a value indicating whether the item still has no thumbnail to show, so it's worth boosting (D150).

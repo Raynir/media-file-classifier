@@ -436,6 +436,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("rules");
 
+                    b.Property<bool>("SelectedFilesOnly")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("selected_files_only");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER")
                         .HasColumnName("status");
@@ -443,6 +447,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.Property<long>("StatusChangedAt")
                         .HasColumnType("INTEGER")
                         .HasColumnName("status_changed_at");
+
+                    b.Property<string>("VolumeLabel")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("volume_label");
 
                     b.HasKey("Id");
 

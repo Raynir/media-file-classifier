@@ -1,3 +1,4 @@
+using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
@@ -66,6 +67,45 @@ public sealed class IndexedFoldersFlowTests : IAsyncDisposable
         await viewModel.ConfirmCommand.ExecuteAsync(null);
         Assert.True(viewModel.IsEmpty);
         Assert.True(Directory.Exists(photos));
+    }
+
+    [Fact]
+    public async Task Dialog_PartialFolder_IsTaggedAndAsksBeforeIndexingItWhole()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var downloads = Directory.CreateDirectory(Path.Combine(app.Root, "downloads")).FullName;
+        var library = app.Services.GetRequiredService<ILibrarySession>().Current!;
+        var partial = IndexedFolder.CreateForSelectedFiles(library.Library.Id, downloads, downloads, DateTimeOffset.UtcNow);
+        await library.Folders.AddAsync(partial, Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.OpenAsync();
+
+        viewModel.SelectedFolder = Assert.Single(viewModel.Folders);
+        Assert.True(viewModel.SelectedFolder.IsPartial);
+        viewModel.IndexWholeFolderCommand.Execute(null);
+        Assert.Equal($"Index everything in {downloads}? The 0 items already in the library keep their metadata.", viewModel.Confirmation);
+        Assert.Equal("Index whole folder", viewModel.ConfirmLabel);
+        await viewModel.ConfirmCommand.ExecuteAsync(null);
+
+        Assert.False(Assert.Single(viewModel.Folders).IsPartial);
+        Assert.False((await library.Folders.GetAsync(partial.Id, Token))!.SelectedFilesOnly);
+    }
+
+    [Fact]
+    public async Task Dialog_AddingAPartialFolder_AsksToIndexItWhole()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var downloads = Directory.CreateDirectory(Path.Combine(app.Root, "downloads")).FullName;
+        var library = app.Services.GetRequiredService<ILibrarySession>().Current!;
+        await library.Folders.AddAsync(IndexedFolder.CreateForSelectedFiles(library.Library.Id, downloads, downloads, DateTimeOffset.UtcNow), Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.OpenAsync();
+
+        app.Platform.Folders.Enqueue(new FolderHandle(downloads, "downloads"));
+        await viewModel.AddFolderCommand.ExecuteAsync(null);
+
+        Assert.Equal("Index whole folder", viewModel.ConfirmLabel);
+        Assert.Same(viewModel.Folders[0], viewModel.SelectedFolder);
     }
 
     public ValueTask DisposeAsync() => app.DisposeAsync();

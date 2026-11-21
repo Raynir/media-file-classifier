@@ -98,6 +98,11 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Raised when the search box should take the keyboard focus (Ctrl+F, E16-S02).
+    /// </summary>
+    public event EventHandler? FocusRequested;
+
+    /// <summary>
     /// Gets or sets what the user typed.
     /// </summary>
     [ObservableProperty]
@@ -191,6 +196,11 @@ public sealed partial class SearchBarViewModel : ViewModelBase
     /// Gets a value indicating whether the picture error shows.
     /// </summary>
     public bool HasImageError => ImageError is not null;
+
+    /// <summary>
+    /// Asks the view to put the keyboard focus in the search box and select its text.
+    /// </summary>
+    public void RequestFocus() => FocusRequested?.Invoke(this, EventArgs.Empty);
 
     /// <summary>
     /// Searches for the text now, without waiting for the pause. Text replaces a picture or a "find similar" search.

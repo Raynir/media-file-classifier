@@ -27,17 +27,21 @@ public static class IndexedFolders
     public const string ExcludedByRules = "Excluded by the folder's rules.";
 
     /// <summary>
-    /// Checks whether an item its folder's rules excluded is included by them again, so it's imported again.
+    /// Checks whether an item its folder's rules excluded is included by them again, so it's imported again. An item the
+    /// user restored after removing it (<see cref="Exclusions.LibraryExclusions.RestoreRequested"/>) is imported again
+    /// the same way (E02-S10-T04).
     /// </summary>
     /// <param name="item">The item.</param>
     /// <param name="rules">Its folder's rules.</param>
-    /// <returns><see langword="true"/> for an item Excluded by the rules that they now include.</returns>
+    /// <returns><see langword="true"/> for an item Excluded by the rules, or restored, that the rules include.</returns>
     public static bool IsBackInRules(MediaItem item, FolderRuleMatcher rules)
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(rules);
 
-        return item.Status == MediaItemStatus.Excluded && item.StatusReason == ExcludedByRules && rules.IsIncluded(item.Path.Value);
+        return item.Status == MediaItemStatus.Excluded
+            && item.StatusReason is ExcludedByRules or Exclusions.LibraryExclusions.RestoreRequested
+            && rules.IsIncluded(item.Path.Value);
     }
 
     /// <summary>
@@ -88,12 +92,18 @@ public static class IndexedFolders
             .ToList();
         if (covering.Find(match => match.Path!.Length == 0).Folder is { } same)
         {
-            return new FolderOverlap(FolderOverlapKind.AlreadyIndexed, [same]);
+            return new FolderOverlap(same.SelectedFilesOnly ? FolderOverlapKind.PartialFolder : FolderOverlapKind.AlreadyIndexed, [same]);
+        }
+
+        // Only a full folder covers its subfolders; a partial folder covers just the files picked from it.
+        if (covering.Find(match => !match.Folder.SelectedFilesOnly).Folder is { } full)
+        {
+            return new FolderOverlap(FolderOverlapKind.InsideIndexed, [full]);
         }
 
         if (covering.Count > 0)
         {
-            return new FolderOverlap(FolderOverlapKind.InsideIndexed, [covering[0].Folder]);
+            return new FolderOverlap(FolderOverlapKind.InsidePartial, [covering[0].Folder]);
         }
 
         List<IndexedFolder> inside = [.. indexed.Where(existing => files.GetPathInside(existing.ToHandle(), folder) is { Length: > 0 })];

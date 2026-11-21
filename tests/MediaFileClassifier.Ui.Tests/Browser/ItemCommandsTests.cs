@@ -49,9 +49,10 @@ public sealed class ItemCommandsTests
     [Theory]
     [InlineData(ItemAvailability.Missing, "The file is missing from its folder.")]
     [InlineData(ItemAvailability.Offline, "The folder Photos is offline. Connect the drive to use the file.")]
-    public async Task Menu_ForAnUnavailableFile_DisablesOpenAndReveal_WithTheReason(ItemAvailability availability, string reason)
+    [InlineData(ItemAvailability.Offline, "The folder Photos is offline. Connect drive 'Backup-2TB' to use the file.", "Backup-2TB")]
+    public async Task Menu_ForAnUnavailableFile_DisablesOpenAndReveal_WithTheReason(ItemAvailability availability, string reason, string? label = null)
     {
-        var bed = new Bed(10);
+        var bed = new Bed(10) { Label = label };
         bed.Availability[bed.Source.Ids[3]] = availability;
 
         await bed.SelectAsync(3);
@@ -60,6 +61,39 @@ public sealed class ItemCommandsTests
         Assert.Equal((false, reason), (commands[ItemCommands.OpenInDefaultApp].IsEnabled, commands[ItemCommands.OpenInDefaultApp].DisabledReason));
         Assert.Equal((false, reason), (commands[ItemCommands.Reveal].IsEnabled, commands[ItemCommands.Reveal].ToolTip));
         Assert.True(commands[ItemCommands.CopyPath].IsEnabled);
+    }
+
+    [Theory]
+    [InlineData(ItemAvailability.Missing, true)]
+    [InlineData(ItemAvailability.Offline, false)]
+    [InlineData(ItemAvailability.Available, false)]
+    public async Task Menu_ForAMissingItem_OffersRemoveMissingItems_WhichRunsTheLibraryCommand(ItemAvailability availability, bool offered)
+    {
+        var ran = 0;
+        var bed = new Bed(10, extra: new LibraryRemoveMissing(() => ran++));
+        bed.Availability[bed.Source.Ids[3]] = availability;
+
+        await bed.SelectAsync(3);
+
+        var entry = bed.Menu.Build().OfType<AppCommand>().SingleOrDefault(command => command.Id == ItemCommands.RemoveMissing);
+        Assert.Equal(offered, entry is not null);
+        if (entry is not null)
+        {
+            Assert.Equal("Remove missing items…", entry.PlainLabel);
+            await entry.ExecuteAsync();
+            Assert.Equal(1, ran);
+        }
+    }
+
+    [Fact]
+    public async Task Menu_WithoutTheLibraryCommand_LeavesRemoveMissingOut()
+    {
+        var bed = new Bed(10);
+        bed.Availability[bed.Source.Ids[3]] = ItemAvailability.Missing;
+
+        await bed.SelectAsync(3);
+
+        Assert.DoesNotContain(bed.Menu.Build().OfType<AppCommand>(), command => command.Id == ItemCommands.RemoveMissing);
     }
 
     [Fact]
@@ -192,6 +226,15 @@ public sealed class ItemCommandsTests
     /// <summary>
     /// A selection over fake results, with the item commands and the context menu around it.
     /// </summary>
+    /// <summary>
+    /// Stands in for the Library menu's "Remove missing items…" (D240).
+    /// </summary>
+    private sealed class LibraryRemoveMissing(Action run) : ICommandContributor
+    {
+        public void Register(CommandRegistry registry) =>
+            registry.Add(new AppCommand(Ui.Rescan.RescanCommands.RemoveMissing, CommandGroups.Library, 130, "Command_RemoveMissing", run));
+    }
+
     private sealed class Bed
     {
         public Bed(int count, bool canReveal = true, ICommandContributor? extra = null, Func<Bed, ICommandContributor>? extraFor = null)
@@ -223,6 +266,8 @@ public sealed class ItemCommandsTests
 
         public Dictionary<Id<MediaItem>, ItemAvailability> Availability { get; } = [];
 
+        public string? Label { get; init; }
+
         public async Task SelectAsync(int index)
         {
             await Selection.ApplyAsync(index, SelectionGesture.Replace);
@@ -237,7 +282,8 @@ public sealed class ItemCommandsTests
                 new FileLocation(new FolderHandle(@"D:\Photos", "Photos"), $"IMG_{index}.jpg"),
                 Path.Combine(@"D:\Photos", $"IMG_{index}.jpg"),
                 "Photos",
-                Availability.GetValueOrDefault(id));
+                Availability.GetValueOrDefault(id),
+                Label);
         }
 
         public IReadOnlyList<Id<MediaItem>> Resolve(ItemSelection selection) => [.. Source.Ids.Where(selection.Contains)];

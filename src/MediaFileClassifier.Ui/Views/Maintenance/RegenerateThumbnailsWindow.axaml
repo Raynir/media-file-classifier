@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Maintenance.RegenerateThumbnailsWindow"
+        Title="{l:Loc Thumbnails_Title}"
+        Width="460"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- Which thumbnails to regenerate (E02-S06-T02, layout approved in MFC-313). Focus order: the options, Cancel, Regenerate. -->
+  <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.L}">
+    <TextBlock Classes="Subtitle" Text="{l:Loc Thumbnails_Title}" />
+    <StackPanel Spacing="{DynamicResource Space.M}">
+      <RadioButton x:Name="MissingOption" GroupName="Scope" IsChecked="True"
+                   AutomationProperties.Name="{l:Loc Thumbnails_Missing}">
+        <StackPanel>
+          <TextBlock Text="{l:Loc Thumbnails_Missing}" />
+          <TextBlock Classes="Secondary" Text="{l:Loc Thumbnails_MissingHelp}" TextWrapping="Wrap" />
+        </StackPanel>
+      </RadioButton>
+      <RadioButton x:Name="AllOption" GroupName="Scope"
+                   AutomationProperties.Name="{l:Loc Thumbnails_All}">
+        <StackPanel>
+          <TextBlock Text="{l:Loc Thumbnails_All}" />
+          <TextBlock Classes="Secondary" Text="{l:Loc Thumbnails_AllHelp}" TextWrapping="Wrap" />
+        </StackPanel>
+      </RadioButton>
+    </StackPanel>
+    <TextBlock Classes="Tertiary" Text="{l:Loc Thumbnails_Note}" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+      <Button x:Name="CancelButton" Content="{l:Loc Thumbnails_Cancel}" IsCancel="True" Click="OnCancel" />
+      <Button x:Name="RegenerateButton" Content="{l:Loc Thumbnails_Regenerate}" Classes="accent" IsDefault="True" Click="OnRegenerate" />
+    </StackPanel>
+  </StackPanel>
+</Window>

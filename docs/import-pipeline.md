@@ -47,6 +47,10 @@ What happens to each problem file in the sample corpus:
 | A file locked later | Error in its stage, transient; a retry succeeds once it's unlocked |
 | A missing folder | Not queued: the folder is marked Offline (a folder that goes missing during its import fails the job and is marked Offline too) |
 
+## Importing selected files
+
+**Import files…** (Library menu, toolbar, Ctrl+Shift+I) opens a multi-select picker filtered to the supported formats and sends `ImportFilesCommand`, which dropped files (E03-S06) send too (`DropImportViewModel`, `docs/drag-and-drop-import.md`). Each file goes into the indexed folder that covers it, a full folder before a partial one and then the deepest; a file outside every folder gets a partial folder for its parent folder (D012, `docs/indexed-folders.md`). The files are registered without scanning their folder (`IFolderDiscovery.RegisterFilesAsync`): a full folder's rules still apply, and the content decides the format as in a scan. Each folder's new items are queued as one `import` job that starts at `import.fingerprint`. In a full folder whose import is running, the files are left to that import, so two writers don't register the same path. A file the user had removed is restored (`RestoreExcludedItemsCommand`, E02-S10-T04). A message then says how many files are being imported, are already in the library, are left out by their folder's rules, aren't a supported format or can't be read.
+
 ## Resume, cancel and re-import
 
 - **No duplicates:** discovery never registers a path the folder already has, and each stage skips work that's done: a fingerprint or content hash that's there, an item that's already registered.

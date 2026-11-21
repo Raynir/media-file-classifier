@@ -23,9 +23,10 @@ After the slots come the action buttons. Each runs an application command (E13-S
 | Action | Command | Order | Priority | Added by |
 |--------|---------|-------|----------|----------|
 | Add folder… | `library.add-folder` (Ctrl+Shift+O): pick a folder, then the Indexed folders dialog opens with it added, as when a folder is dropped on the navigation panel | 100 | 100 | `LibraryToolbar` |
+| Import files… | `library.import-files` (Ctrl+Shift+I): pick media files and import them, then a message says what happened (E03-S05) | 105 | 95 | `LibraryToolbar` |
 | Rescan library | `library.rescan`: rescan every folder, then show a summary message (E02-S04) | 110 | 90 | `LibraryToolbar` |
 
-- **Adding an action:** in an `IToolbarContributor`, call `toolbar.AddAction(commands[id], order, priority)`. Order places it left to right. Priority decides which actions move into the overflow menu first as the window narrows: the lowest. Analyze pending (E06-S06) and Import files (E03-S05) come this way.
+- **Adding an action:** in an `IToolbarContributor`, call `toolbar.AddAction(commands[id], order, priority)`. Order places it left to right. Priority decides which actions move into the overflow menu first as the window narrows: the lowest. Analyze pending (E06-S06) comes this way.
 
 ## Overflow menu
 

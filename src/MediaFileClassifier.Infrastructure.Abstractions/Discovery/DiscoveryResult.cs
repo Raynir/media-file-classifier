@@ -58,4 +58,10 @@ public sealed record DiscoveryResult
     /// Gets the links to folders that were skipped, with paths relative to the folder root.
     /// </summary>
     public IReadOnlyList<string> SkippedLinks { get; init; } = [];
+
+    /// <summary>
+    /// Gets the tracked files of a partial folder (D012) that couldn't be looked up, with paths relative to the folder
+    /// root. Like the files in an unreadable folder, they can't be checked, so they aren't missing.
+    /// </summary>
+    public IReadOnlyList<string> UncheckedFiles { get; init; } = [];
 }

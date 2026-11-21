@@ -62,17 +62,6 @@ public sealed record AppSettings
     public IReadOnlyList<AiEndpointSettings>? AiEndpoints { get; init; }
 
     /// <summary>
-    /// Background processing: pool sizes, resuming, and the quit confirmation (E05-S01).
-    /// </summary>
-    public ProcessingSettings Processing
-    {
-        get;
-        init => field = value ?? new();
-    }
-
-    = new();
-
-    /// <summary>
     /// Gets the AI tag normalisation overrides (E06-S04-T05). Added without a schema bump: a file without it reads as
     /// the defaults.
     /// </summary>

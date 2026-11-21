@@ -87,7 +87,7 @@ public sealed class TechnicalRowsTests
     }
 
     [Theory]
-    [InlineData(ItemAvailability.Offline, MediaItemStatus.Indexed, "Offline: Photos")]
+    [InlineData(ItemAvailability.Offline, MediaItemStatus.Indexed, "Offline: folder Photos")]
     [InlineData(ItemAvailability.Missing, MediaItemStatus.Missing, "Missing")]
     [InlineData(ItemAvailability.Available, MediaItemStatus.Error, "Error")]
     public void Status_SaysWhyTheFileCantBeUsed(ItemAvailability availability, MediaItemStatus status, string text)

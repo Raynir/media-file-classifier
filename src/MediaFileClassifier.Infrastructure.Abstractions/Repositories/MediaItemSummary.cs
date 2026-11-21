@@ -17,6 +17,12 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 /// <param name="Duration">Playback length of a video or animated image, once its metadata is read.</param>
 /// <param name="ThumbnailFailed">Whether making the thumbnail failed (D128), so the cell shows the failed placeholder.</param>
 /// <param name="IsFavorite">Whether the user marked the item as a favorite (E11-S01).</param>
+/// <param name="DateTaken">When the photo or video was taken, as local wall-clock time, once its metadata is read.</param>
+/// <param name="Width">Width as displayed (orientation applied), once its metadata is read.</param>
+/// <param name="Height">Height as displayed (orientation applied), once its metadata is read.</param>
+/// <param name="Folder">The folder the file is in: the indexed folder's path and the file's subfolders.</param>
+/// <param name="IsFolderOffline">Whether the item's indexed folder is Offline (D025), e.g. on an unplugged drive.</param>
+/// <param name="VolumeLabel">The label of the drive the item's indexed folder is on, if known (E14-S07-T02).</param>
 public sealed record MediaItemSummary(
     Id<MediaItem> Id,
     string FileName,
@@ -28,4 +34,10 @@ public sealed record MediaItemSummary(
     string? StatusReason,
     TimeSpan? Duration,
     bool ThumbnailFailed,
-    bool IsFavorite = false);
+    bool IsFavorite = false,
+    DateTime? DateTaken = null,
+    int? Width = null,
+    int? Height = null,
+    string? Folder = null,
+    bool IsFolderOffline = false,
+    string? VolumeLabel = null);

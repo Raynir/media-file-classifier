@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Libraries"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        xmlns:local="using:MediaFileClassifier.Ui.Views.Libraries"
+        x:Class="MediaFileClassifier.Ui.Views.Libraries.LibraryInfoWindow"
+        x:DataType="vm:LibraryInfoViewModel"
+        Title="{l:Loc LibraryInfo_Title}"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- Hosts the shared view on the desktop (E02-S05-T02); it isn't modal, so it refreshes beside the work. -->
+  <DockPanel Margin="{DynamicResource Padding.Panel}">
+    <Button x:Name="CloseButton"
+            DockPanel.Dock="Bottom"
+            HorizontalAlignment="Right"
+            Margin="{DynamicResource Margin.InfoClose}"
+            Content="{l:Loc LibraryInfo_Close}"
+            IsDefault="True"
+            IsCancel="True"
+            Click="OnClose" />
+    <local:LibraryInfoView />
+  </DockPanel>
+</Window>

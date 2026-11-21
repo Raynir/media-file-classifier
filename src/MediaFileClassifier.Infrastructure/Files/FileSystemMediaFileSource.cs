@@ -173,6 +173,35 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
     }
 
     /// <inheritdoc />
+    public Task<string?> GetVolumeLabelAsync(FolderHandle folder, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+
+        // Network shares have no drive to ask (DriveInfo takes only drive letters); the UI names the share instead.
+        return Task.Run(
+            () =>
+            {
+                try
+                {
+                    var root = Path.GetPathRoot(LocalFolder.GetFullPath(folder, string.Empty));
+                    if (string.IsNullOrEmpty(root) || root.StartsWith(@"\\", StringComparison.Ordinal))
+                    {
+                        return null;
+                    }
+
+                    var label = new DriveInfo(root).VolumeLabel;
+                    return string.IsNullOrWhiteSpace(label) ? null : label;
+                }
+                catch (Exception exception) when (exception is ArgumentException or System.Security.SecurityException)
+                {
+                    // IOException and UnauthorizedAccessException pass as they are: the label is unknown, not absent.
+                    throw new IOException($"Couldn't read the volume label of {folder.DisplayName}", exception);
+                }
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public string? GetPathInside(FolderHandle folder, FolderHandle parent)
     {
         ArgumentNullException.ThrowIfNull(folder);
@@ -201,6 +230,7 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
         {
             CreatedUtc = new DateTimeOffset(file.CreationTimeUtc, TimeSpan.Zero),
             IsCloudPlaceholder = (file.Attributes & CloudPlaceholderAttributes) != 0,
+            IsHidden = (file.Attributes & (FileAttributes.Hidden | FileAttributes.System)) != 0,
         };
 
     // Lists one folder completely, so a listing error is caught here rather than in the middle of yielding entries.

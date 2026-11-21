@@ -127,13 +127,28 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `key <gesture>` | Presses a key on the focused control, e.g. `key Space`, `key Ctrl+2`, `key Ctrl+Shift+F`. |
 | `type <text>` | Types text into the focused control. |
 | `wait <duration>` | Waits, e.g. `wait 500ms`, `wait 2s`. |
-| `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name); default 30 s. |
+| `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name), `dialog` or `no-dialog`; default 30 s. |
 | `shot <name>` | Saves `<name>.png`. |
 | `seed-keyframes <file name>` | Samples the item's video or animation and stores its keyframes and their pictures, as the analysis does (keyframes otherwise need the AI model). The item's details must be reloaded to show them: select another item, then this one. |
 | `choose-keyframe <n>` | Chooses the n-th keyframe in the preview's strip (from 1), as a click does. |
+| `setting <key> <value>` | Sets a registered setting through the settings store, e.g. `setting appearance.showFileNames false`; the value is JSON (`true`, `3`) or plain text for a choice or text setting. Fails for an unknown key or an invalid value. |
+| `start <id>` | Runs an app command without waiting for it, for a command that opens a modal dialog, e.g. `start item.remove`. |
+| `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`. Fails if it's disabled. |
+| `dialog-key <gesture>` | Presses a key on the open dialog's focused control, e.g. `dialog-key Tab`; the report names the control that had the focus (MFC-131). |
+| `dialog-type <text>` | Types text into the open dialog's focused text box, e.g. a typed confirmation (MFC-122). |
+| `dialog-size <w>x<h>` | Sizes the open dialog or settings window, e.g. to show a long page whole (MFC-133). |
+| `dialog-shot <name>` | Saves `<name>.png` of the open dialog. |
+| `dialog-select <folder>` | Selects the folder with that name in the open folders dialog's list, as a click does (MFC-124). In the settings window it selects a sidebar category by its ID, e.g. `dialog-select Library` (MFC-133). |
+| `drag-over on|off` | Shows or hides the drop overlay as dragging over the window does (MFC-125). |
+| `drop <items>` | Copies those sample files, and a folder with two files for `folder:<name>`, to `<data folder>\dropped` and runs the drop path with them, as dropping from File Explorer does; not awaited, since a folder opens the folders dialog (MFC-125). |
+| `import-files <files>` | Copies those files from `tests/SampleMedia` to `<data folder>\picked` and imports them as picked files, without waiting for the result message (MFC-124). |
 | `capability video-playback on\|off` | Turns the VideoPlayback capability on or off, to see the default-app fallback (D026). |
+| `damage-library` | Backs up the open library's database as a migration backup, then writes garbage over an index page and opens the library again, so the integrity check finds damage (MFC-121). |
+| `unplug-folder` | Moves the sample library's folder (`<data folder>\media`) away, as unplugging its drive does, and checks the folders, so its items show Offline (E14-S07). |
+| `plug-folder` | Moves it back and raises a volume event, as plugging the drive in does; the live check brings the items back about 1 s later (E14-S07-T04). |
+| `allow-error <logger>` | Errors logged by that logger (its full type name) no longer fail the run, e.g. the integrity check's report of the damage. |
 
-`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app). Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
+`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app); `tools/ui-smoke/library-maintenance.smoke` the regenerate thumbnails dialog, the integrity report and a backup restore; `tools/ui-smoke/offline-items.smoke` offline items in the grid, the list and the details panel, and a reconnected drive. Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
 
 ## Pull requests
 

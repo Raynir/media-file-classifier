@@ -4,9 +4,12 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Libraries;
+using MediaFileClassifier.Ui.Libraries.Statistics;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Maintenance;
 using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.Navigation;
+using MediaFileClassifier.Ui.Notifications;
 using MediaFileClassifier.Ui.Rescan;
 using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Search.Filters;
@@ -41,6 +44,7 @@ using MediaFileClassifier.Ui.Views.Search;
 using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.Ui.Views.Toolbar;
 using MediaFileClassifier.UseCases.Browsing;
+using MediaFileClassifier.UseCases.Common.Notifications;
 using MediaFileClassifier.UseCases.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Playback;
@@ -70,11 +74,14 @@ public static class UiModule
         services.AddSingleton(new ViewLocator()
             .Register<SettingsViewModel, SettingsView>()
             .Register<QuitConfirmationViewModel, QuitConfirmationView>()
+            .Register<RemoveItemsConfirmationViewModel, RemoveItemsConfirmationView>()
             .Register<UnsavedChangesViewModel, UnsavedChangesView>()
             .Register<WelcomeViewModel, WelcomeView>()
             .Register<CreateLibraryViewModel, CreateLibraryView>()
             .Register<ThumbnailGridViewModel, ThumbnailGridView>()
             .Register<IndexedFoldersViewModel, IndexedFoldersView>()
+            .Register<ExcludedItemsViewModel, ExcludedItemsView>()
+            .Register<LibraryInfoViewModel, LibraryInfoView>()
             .Register<ProcessingPanelViewModel, ProcessingPanelView>()
             .Register<NavigationPanelViewModel, NavigationPanelView>()
             .Register<DetailsPanelViewModel, DetailsPanelView>()
@@ -84,10 +91,20 @@ public static class UiModule
             .Register<ModelManagementViewModel, ModelManagementView>()
             .Register<HardwareSettingsViewModel, HardwareSettingsView>()
             .Register<AnalysisProfileViewModel, AnalysisProfileView>()
-            .Register<EndpointsViewModel, EndpointsView>());
+            .Register<EndpointsViewModel, EndpointsView>()
+            .Register<LibraryInformationSectionViewModel, LibraryInformationSectionView>()
+            .Register<LibraryMaintenanceSectionViewModel, LibraryMaintenanceSectionView>()
+            .Register<LibraryFoldersSectionViewModel, LibraryEmbeddedSectionView>()
+            .Register<LibraryExcludedItemsSectionViewModel, LibraryEmbeddedSectionView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
+        services.AddSetting(BrowserSettings.ShowFileNames);
+        // Notifications (E15-S01): anything can raise a toast through INotificationService.
+        services.AddSingleton<NotificationService>();
+        services.AddSingleton<INotificationService>(provider => provider.GetRequiredService<NotificationService>());
+        services.AddSingleton<JobNotifications>();
+        services.AddSingleton<ToastHostViewModel>();
         services.AddSingleton<ShellLayout>();
         services.AddSingleton<ShellRegions>();
         services.TryAddSingleton(TimeProvider.System);
@@ -111,6 +128,10 @@ public static class UiModule
         services.AddSingleton<Func<CreateLibraryViewModel>>(provider => provider.GetRequiredService<CreateLibraryViewModel>);
         services.AddTransient<IndexedFoldersViewModel>();
         services.AddSingleton<Func<IndexedFoldersViewModel>>(provider => provider.GetRequiredService<IndexedFoldersViewModel>);
+        services.AddTransient<ExcludedItemsViewModel>();
+        services.AddSingleton<Func<ExcludedItemsViewModel>>(provider => provider.GetRequiredService<ExcludedItemsViewModel>);
+        services.AddTransient<DeleteLibraryViewModel>();
+        services.AddSingleton<Func<DeleteLibraryViewModel>>(provider => provider.GetRequiredService<DeleteLibraryViewModel>);
         services.AddSingleton<LibraryDialogs>();
         services.TryAddSingleton<IModelDialogs, ModelDialogs>();
         services.AddSingleton<ModelBannerViewModel>();
@@ -131,6 +152,20 @@ public static class UiModule
         services.AddSingleton(provider => new CustomSettingsSection(
             SettingCategories.AiModels, "Endpoints_Heading", provider.GetRequiredService<EndpointsViewModel>) { Order = 1300 });
 
+        // The Library category (E17-S04): sections that host the library views and commands.
+        services.AddSingleton<LibraryInformationSectionViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.Library, "LibrarySection_InformationHeading", provider.GetRequiredService<LibraryInformationSectionViewModel>) { Order = 10 });
+        services.AddSingleton<LibraryFoldersSectionViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.Library, "LibrarySection_FoldersHeading", provider.GetRequiredService<LibraryFoldersSectionViewModel>) { Order = 20 });
+        services.AddSingleton<LibraryMaintenanceSectionViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.Library, "LibrarySection_MaintenanceHeading", provider.GetRequiredService<LibraryMaintenanceSectionViewModel>) { Order = 300 });
+        services.AddSingleton<LibraryExcludedItemsSectionViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.Library, "LibrarySection_ExcludedHeading", provider.GetRequiredService<LibraryExcludedItemsSectionViewModel>) { Order = 400 });
+
         // Navigation panel (E13-S02). Features add sections through INavigationContributor.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INavigationContributor, LibraryNavigation>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INavigationContributor, FolderNavigation>());
@@ -139,8 +174,22 @@ public static class UiModule
         services.AddSingleton<WelcomeViewModel>();
         services.AddSingleton<LibraryShell>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
+        services.TryAddSingleton<FileImporter>();
+        services.TryAddSingleton(provider => new DropImportViewModel(
+            provider.GetRequiredService<FileImporter>().ImportQuietlyAsync,
+            provider.GetRequiredService<LibraryDialogs>().AddDroppedFoldersAsync,
+            provider.GetRequiredService<INotificationService>(),
+            provider.GetRequiredService<Localizer>(),
+            provider.GetService<ILibrarySession>()));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ExcludedItemsCommands>());
         services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());
+
+        // Library maintenance (E02-S06).
+        services.AddSingleton<MaintenanceRunner>();
+        services.TryAddSingleton<MaintenanceDialogs>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, MaintenanceCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, MaintenanceStatusSegment>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RetryCommands>());
         services.TryAddSingleton<IAnalysisDialogs, AnalysisDialogs>();
         services.TryAddSingleton<AnalysisRunner>();
@@ -163,6 +212,11 @@ public static class UiModule
         services.AddSingleton<ICommandContributor, MetadataEditorCommands>();
         services.TryAddSingleton<FavoriteCommands>();
         services.AddSingleton<ICommandContributor>(provider => provider.GetRequiredService<FavoriteCommands>());
+
+        // Remove from library (E02-S10-T03).
+        services.TryAddSingleton<IRemoveItemsDialog, RemoveItemsDialog>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RemoveItemsCommands>());
+        services.AddSetting(RemoveItemsCommands.AskBeforeRemoving);
         services.AddSingleton<Func<DetailsPanelViewModel>>(provider => provider.GetRequiredService<DetailsPanelViewModel>);
         services.AddSingleton<MediatR.INotificationHandler<UseCases.Metadata.ItemsMetadataChanged>, MetadataChangeHandler>();
         services.TryAddSingleton<ITextClipboard, AvaloniaTextClipboard>();
@@ -212,6 +266,7 @@ public static class UiModule
         services.AddSingleton<SortBarViewModel>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, SearchToolbar>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, FindSimilarCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, SearchCommands>());
 
         // Toolbar (E13-S03). Features fill its slots and add actions through IToolbarContributor.
         services.AddSingleton<ToolbarViewModel>();
@@ -223,8 +278,16 @@ public static class UiModule
         services.AddSingleton<ProcessingPanelViewModel>();
         services.AddSingleton<ProcessingPanelPresenter>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ProcessingCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, NavigationCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingStatusSegment>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, SelectionStatusSegment>());
+
+        // Library statistics (E02-S05).
+        services.AddSingleton<LibraryStatisticsMonitor>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, LibrarySummaryStatusSegment>());
+        services.AddSingleton<LibraryInfoViewModel>();
+        services.AddSingleton<LibraryInfoPresenter>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryInfoCommands>());
 
         // M1 segments (E13-S04-T02).
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ResultCountStatusSegment>());

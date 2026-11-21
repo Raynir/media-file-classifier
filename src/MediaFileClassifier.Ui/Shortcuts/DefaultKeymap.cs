@@ -2,6 +2,7 @@ using Avalonia.Input;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Libraries;
+using MediaFileClassifier.Ui.Rescan;
 using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
@@ -23,6 +24,9 @@ public static class DefaultKeymap
         // Library (E02-S03): Add folder, also on the toolbar (E13-S03).
         Bind(LibraryCommands.AddFolder, PhysicalKey.O, KeyModifiers.Control | KeyModifiers.Shift),
 
+        // Library (E03-S05): Import files, also on the toolbar.
+        Bind(LibraryCommands.ImportFiles, PhysicalKey.I, KeyModifiers.Control | KeyModifiers.Shift),
+
         // View (E13-S01)
         Bind(ShellCommands.ToggleNavigation, PhysicalKey.Digit1, KeyModifiers.Control),
         Bind(ShellCommands.ToggleDetails, PhysicalKey.Digit2, KeyModifiers.Control),
@@ -42,6 +46,7 @@ public static class DefaultKeymap
         Bind(ItemCommands.CopyPath, PhysicalKey.C, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
         Bind(FavoriteCommands.Favorite, PhysicalKey.D, KeyModifiers.Control, ShortcutScopes.Browser),
         Bind(FavoriteCommands.Favorite, PhysicalKey.D, KeyModifiers.Control, ShortcutScopes.Viewer),
+        Bind(RemoveItemsCommands.Remove, PhysicalKey.Delete, scope: ShortcutScopes.Browser),
         Bind(FindSimilarCommands.FindSimilar, PhysicalKey.F, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
 
         // Metadata editor (E07-S02): F2 anywhere, E where an item has the focus; Ctrl+S and Esc while the editor has it.
@@ -59,6 +64,15 @@ public static class DefaultKeymap
         Bind(BrowserCommands.PreviousItem, PhysicalKey.ArrowLeft, scope: ShortcutScopes.Viewer),
         Bind(BrowserCommands.NextItem, PhysicalKey.ArrowRight, scope: ShortcutScopes.Viewer),
         Bind(ItemCommands.OpenInDefaultApp, PhysicalKey.Enter, scope: ShortcutScopes.Viewer),
+
+        // Search and refresh (E16-S02): Ctrl+F or / focuses the search box (/ only outside text fields); F5 runs the
+        // current search or browse again, Ctrl+F5 rescans the library. F also toggles favorite where an item has focus.
+        Bind(SearchCommands.FocusSearch, PhysicalKey.F, KeyModifiers.Control),
+        Bind(SearchCommands.FocusSearch, PhysicalKey.Slash),
+        Bind(SearchCommands.RefreshResults, PhysicalKey.F5),
+        Bind(RescanCommands.Rescan, PhysicalKey.F5, KeyModifiers.Control),
+        Bind(FavoriteCommands.Favorite, PhysicalKey.F, scope: ShortcutScopes.Browser),
+        Bind(FavoriteCommands.Favorite, PhysicalKey.F, scope: ShortcutScopes.Viewer),
 
         // Tools (E17-S01)
         Bind(SettingsCommands.OpenSettings, PhysicalKey.Comma, KeyModifiers.Control),

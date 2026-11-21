@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
@@ -129,6 +130,270 @@ public sealed class ShellViewTests
         Assert.True(viewModel.Layout.Details.IsVisible);
     });
 
+    [Fact]
+    public Task ResizingTheWindow_MovesBetweenTheThreeLayouts() => RunInWindowAsync((window, viewModel) =>
+    {
+        Assert.Equal(LayoutBreakpoint.Wide, viewModel.Layout.Breakpoint);
+        Assert.Equal(240, Find<Panel>(window, "NavigationHost").Bounds.Width);
+        Assert.True(Find<Panel>(window, "DetailsHost").IsEffectivelyVisible);
+
+        window.Width = 1000;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(LayoutBreakpoint.Medium, viewModel.Layout.Breakpoint);
+        Assert.Equal(66, Find<Panel>(window, "NavigationHost").Bounds.Width);
+        Assert.False(Find<Panel>(window, "DetailsHost").IsVisible);
+
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(LayoutBreakpoint.Narrow, viewModel.Layout.Breakpoint);
+        Assert.False(Find<Panel>(window, "NavigationHost").IsVisible);
+
+        window.Width = 1280;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(240, Find<Panel>(window, "NavigationHost").Bounds.Width);
+        Assert.True(Find<Panel>(window, "DetailsHost").IsEffectivelyVisible);
+    });
+
+    [Fact]
+    public Task Drawer_OpensOverTheBrowser_WithoutResizingIt() => RunInWindowAsync((window, viewModel) =>
+    {
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+        var browserWidth = Find<Border>(window, "BrowserArea").Bounds.Width;
+        Assert.False(Find<Border>(window, "DrawerScrim").IsEffectivelyVisible);
+
+        viewModel.Layout.Details.ToggleVisible();
+        Dispatcher.UIThread.RunJobs();
+
+        var drawer = Find<Panel>(window, "DetailsHost");
+        Assert.True(drawer.IsEffectivelyVisible);
+        Assert.Equal(viewModel.Layout.Details.Width, drawer.Bounds.Width);
+        Assert.True(Find<Border>(window, "DrawerScrim").IsEffectivelyVisible);
+        Assert.Equal(browserWidth, Find<Border>(window, "BrowserArea").Bounds.Width);
+        Assert.Equal(window.Bounds.Width, drawer.TranslatePoint(new Point(drawer.Bounds.Width, 0), window)!.Value.X);
+    });
+
+    [Fact]
+    public Task Drawer_ClosesOnAScrimClick_AndOnEscape() => RunInWindowAsync((window, viewModel) =>
+    {
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+        viewModel.Layout.Navigation.Expand();
+        Dispatcher.UIThread.RunJobs();
+        var scrim = Find<Border>(window, "DrawerScrim");
+
+        var point = scrim.TranslatePoint(new Point(scrim.Bounds.Width - 5, scrim.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(viewModel.Layout.IsAnyDrawerOpen);
+
+        viewModel.Layout.Details.Expand();
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(viewModel.Layout.IsAnyDrawerOpen);
+        Assert.False(Find<Panel>(window, "DetailsHost").IsVisible);
+    });
+
+    [Fact]
+    public Task OpenButtons_ShowForClosedDrawers() => RunInWindowAsync((window, viewModel) =>
+    {
+        var buttons = window.GetVisualDescendants().OfType<Button>()
+            .Where(button => button.Command == viewModel.Commands[ShellCommands.ToggleNavigation]
+                || button.Command == viewModel.Commands[ShellCommands.ToggleDetails])
+            .ToList();
+        Assert.All(buttons, button => Assert.False(button.IsEffectivelyVisible));
+
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(2, buttons.Count(button => button.IsEffectivelyVisible));
+    });
+
+    [Fact]
+    public Task AtTheMinimumWidth_TheMenuFitsAndBothPanelsCanBeOpened() => RunInWindowAsync((window, viewModel) =>
+    {
+        window.Width = window.MinWidth;
+        Dispatcher.UIThread.RunJobs();
+
+        var menu = Find<Menu>(window, "MainMenu");
+        Assert.True(menu.IsEffectivelyVisible);
+        Assert.True(menu.Bounds.Width <= window.Bounds.Width);
+        Assert.All(menu.GetVisualChildren().OfType<MenuItem>().Concat(menu.GetVisualDescendants().OfType<MenuItem>().Where(item => item.Parent == menu)),
+            item => Assert.True(item.Bounds.Right <= window.Bounds.Width));
+
+        // The commands in the menu open both drawers, and the panels' own buttons close them again.
+        foreach (var (id, panel) in new[] { (ShellCommands.ToggleNavigation, viewModel.Layout.Navigation), (ShellCommands.ToggleDetails, viewModel.Layout.Details) })
+        {
+            ((System.Windows.Input.ICommand)viewModel.Commands[id]).Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(panel.IsExpanded);
+
+            ((System.Windows.Input.ICommand)viewModel.Commands[id]).Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(panel.IsShown);
+        }
+    });
+
+    [Fact]
+    public Task F6_MovesTheFocusThroughTheAreasInOrder_AndWrapsAround() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        var visited = new List<string?>();
+
+        for (var i = 0; i < 5; i++)
+        {
+            PressF6(window, RawInputModifiers.None);
+            visited.Add(FocusedArea(window));
+        }
+
+        Assert.Equal(["NavigationHost", "ToolbarArea", "BrowserArea", "DetailsHost", "NavigationHost"], visited);
+    });
+
+    [Fact]
+    public Task ShiftF6_MovesTheFocusBackwards_StartingAtTheLastArea() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        var visited = new List<string?>();
+
+        for (var i = 0; i < 3; i++)
+        {
+            PressF6(window, RawInputModifiers.Shift);
+            visited.Add(FocusedArea(window));
+        }
+
+        Assert.Equal(["DetailsHost", "BrowserArea", "ToolbarArea"], visited);
+    });
+
+    [Fact]
+    public Task F6_SkipsAHiddenPanel() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        viewModel.Layout.Details.IsVisible = false;
+        Dispatcher.UIThread.RunJobs();
+        var visited = new List<string?>();
+
+        for (var i = 0; i < 4; i++)
+        {
+            PressF6(window, RawInputModifiers.None);
+            visited.Add(FocusedArea(window));
+        }
+
+        Assert.Equal(["NavigationHost", "ToolbarArea", "BrowserArea", "NavigationHost"], visited);
+    });
+
+    [Fact]
+    public Task F6_IncludesTheStatusBar_WhenItHasSomethingToFocus_AndSkipsItOtherwise() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        PressF6(window, RawInputModifiers.Shift);
+        Assert.Equal("DetailsHost", FocusedArea(window));
+
+        Find<Panel>(window, "StatusBarHost").Children.Add(new Button());
+        Dispatcher.UIThread.RunJobs();
+        PressF6(window, RawInputModifiers.None);
+        var afterDetails = FocusedArea(window);
+        PressF6(window, RawInputModifiers.None);
+
+        Assert.Equal("StatusBarHost", afterDetails);
+        Assert.Equal("NavigationHost", FocusedArea(window));
+    });
+
+    [Fact]
+    public Task F6_ReturnsToTheControlThatHadTheFocusInThatArea() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        var browser = Find<Border>(window, "BrowserArea").GetVisualDescendants().OfType<PlaceholderView>().Single();
+        browser.Focus(NavigationMethod.Tab);
+        PressF6(window, RawInputModifiers.None);
+        Assert.Equal("DetailsHost", FocusedArea(window));
+
+        PressF6(window, RawInputModifiers.Shift);
+
+        Assert.Same(browser, window.FocusManager!.GetFocusedElement());
+    });
+
+    [Fact]
+    public Task Drawer_TakesTheFocusWhenItOpens_KeepsTabInside_AndGivesTheFocusBackOnEscape() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+        var opener = Find<Border>(window, "BrowserArea").GetVisualDescendants().OfType<Button>().First(button => button.IsEffectivelyVisible);
+        opener.Focus(NavigationMethod.Tab);
+
+        viewModel.Layout.Details.ToggleVisible();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("DetailsHost", FocusedArea(window));
+        for (var i = 0; i < 6; i++)
+        {
+            window.KeyPressQwerty(PhysicalKey.Tab, RawInputModifiers.None);
+            Assert.Equal("DetailsHost", FocusedArea(window));
+        }
+
+        PressF6(window, RawInputModifiers.None);
+        Assert.Equal("DetailsHost", FocusedArea(window));
+
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(viewModel.Layout.IsAnyDrawerOpen);
+        Assert.Equal("BrowserArea", FocusedArea(window));
+    });
+
+    [Fact]
+    public Task FocusRing_ComesFromTheFocusTokenInBothThemes() => RunInWindowAsync((window, viewModel) =>
+    {
+        var button = Find<Border>(window, "NavigationPanel").GetVisualDescendants().OfType<Button>().First();
+
+        foreach (var (variant, expected) in new[] { (Avalonia.Styling.ThemeVariant.Dark, Colors.White), (Avalonia.Styling.ThemeVariant.Light, Color.Parse("#1A1A1A")) })
+        {
+            var ring = Assert.IsType<Border>(button.FocusAdorner!.Build());
+            var host = new Window { Content = ring, RequestedThemeVariant = variant };
+            host.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(expected, Assert.IsAssignableFrom<ISolidColorBrush>(ring.BorderBrush).Color);
+            Assert.Equal(2, ring.BorderThickness.Left);
+            host.Close();
+        }
+    });
+
+    private static void FillRegions(MainWindowViewModel viewModel)
+    {
+        viewModel.Regions.Navigation = new PlaceholderViewModel();
+        viewModel.Regions.Toolbar = new PlaceholderViewModel();
+        viewModel.Regions.Browser = new PlaceholderViewModel();
+        viewModel.Regions.Details = new PlaceholderViewModel();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void PressF6(Window window, RawInputModifiers modifiers)
+    {
+        window.KeyPressQwerty(PhysicalKey.F6, modifiers);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static string? FocusedArea(Window window)
+    {
+        string[] areas = ["NavigationHost", "ToolbarArea", "BrowserArea", "DetailsHost", "StatusBarHost"];
+        for (var node = window.FocusManager!.GetFocusedElement() as Visual; node is not null; node = node.GetVisualParent())
+        {
+            if ((node as Control)?.Name is { } name && areas.Contains(name))
+            {
+                return name;
+            }
+        }
+
+        return null;
+    }
+
     private static Task RunInWindowAsync(Action<Window, MainWindowViewModel> test) => TestApp.RunAsync(() =>
     {
         using var services = new ServiceCollection()
@@ -178,5 +443,6 @@ public sealed class ShellViewTests
 
     private sealed class PlaceholderView : Border
     {
+        public PlaceholderView() => Focusable = true;
     }
 }

@@ -91,6 +91,12 @@ public sealed class RescanCheckStage(
             {
                 item.ChangeStatus(MediaItemStatus.Indexed, Clock.GetUtcNow());
             }
+            else if (thumbnails.Find(library.Layout, item.Id, ThumbnailSize.Small, DateTimeOffset.MinValue) is null)
+            {
+                // Restored after the user removed it, which deleted its thumbnails and AI results (E02-S10): the media
+                // stage makes the thumbnails again and announces it for analysis.
+                refresh = true;
+            }
         }
 
         await library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);

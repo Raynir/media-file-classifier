@@ -294,6 +294,8 @@ public sealed class AnalyzeNowTests : IAsyncDisposable
 
         public Task ReplaceRangeAsync(IReadOnlyList<ItemEmbeddings> changes, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<int> RemoveForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default) => Task.FromResult(0);
+
         public Task<IReadOnlyList<Id<ModelRegistration>>> GetModelsInUseAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<EmbeddingMigrationProgress> GetMigrationProgressAsync(

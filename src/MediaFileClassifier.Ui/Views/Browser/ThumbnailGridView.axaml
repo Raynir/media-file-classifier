@@ -84,11 +84,82 @@
       <Setter Property="Opacity" Value="1" />
       <Setter Property="IsHitTestVisible" Value="True" />
     </Style>
+    <!-- The list view (E14-S02): one item per row, cells laid out by the list's columns. -->
+    <Style Selector="Border.ListRow">
+      <Setter Property="Height" Value="{x:Static vm:ThumbnailGridViewModel.ListRowHeight}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Divider}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Border.ListRow.LessRelevant">
+      <Setter Property="Opacity" Value="0.55" />
+    </Style>
+    <Style Selector="Border.ListRow:pointerover">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Hover}" />
+    </Style>
+    <Style Selector="Border.ListRow.Selected">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
+    </Style>
+    <Style Selector="Border.ListFocus">
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style Selector="ScrollViewer#Scroller:focus-within Border.ListRow.Focused Border.ListFocus">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Focus}" />
+    </Style>
+    <Style Selector="views|ListCellsPanel > TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="Margin" Value="{DynamicResource Padding.Badge}" />
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}" />
+    </Style>
+    <Style Selector="Border.ListFavorite">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="{DynamicResource Padding.Badge}" />
+    </Style>
+    <Style Selector="Border.ListFavorite Path">
+      <Setter Property="Width" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Height" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="Fill" Value="{DynamicResource Brush.Text.Primary}" />
+    </Style>
+    <Style Selector="Border.ListRow:pointerover Border.TileFavorite">
+      <Setter Property="Opacity" Value="0.75" />
+      <Setter Property="IsHitTestVisible" Value="True" />
+    </Style>
+    <Style Selector="Border.ListRow views|TileBadgeStrip Path">
+      <Setter Property="Width" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Height" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Stretch" Value="Uniform" />
+    </Style>
+    <Style Selector="Button.ViewToggle Path">
+      <Setter Property="Width" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Height" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="Fill" Value="{DynamicResource Brush.Icon}" />
+    </Style>
     <Style Selector="Border.StatusBadge.Pending Path">
       <Setter Property="Fill" Value="{DynamicResource Brush.Status.Pending.Foreground}" />
     </Style>
     <Style Selector="Border.StatusBadge.Error Path">
       <Setter Property="Fill" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+    </Style>
+    <Style Selector="Border.StatusBadge.Offline Path">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Status.Offline.Foreground}" />
+    </Style>
+    <Style Selector="Border.StatusBadge.Missing Path">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Status.Missing.Foreground}" />
+    </Style>
+    <!--
+      An item whose folder is Offline or whose file is Missing (E14-S07, D025): the thumbnail and text are dimmed, the
+      badges stay at full strength so the two states stay apart.
+    -->
+    <Style Selector="Border.ThumbnailTile.Unavailable controls|MediaThumbnail, Border.ThumbnailTile.Unavailable StackPanel.TileInfo, Border.ListRow.Unavailable controls|MediaThumbnail, Border.ListRow.Unavailable StackPanel.ListName, Border.ListRow.Unavailable views|ListCellsPanel > TextBlock">
+      <Setter Property="Opacity" Value="{DynamicResource Opacity.Unavailable}" />
     </Style>
   </UserControl.Styles>
 
@@ -98,16 +169,19 @@
               Classes.Selected="{Binding IsSelected}"
               Classes.Focused="{Binding IsFocused}"
               Classes.LessRelevant="{Binding IsLessRelevant}"
+              Classes.Unavailable="{Binding IsUnavailable}"
               ToolTip.Tip="{Binding MatchReason}"
               Width="{Binding Width}"
               AutomationProperties.Name="{Binding FileName}">
         <Panel>
           <DockPanel>
-            <StackPanel DockPanel.Dock="Bottom"
+            <StackPanel Classes="TileInfo"
+                        DockPanel.Dock="Bottom"
                         Height="32"
                         Margin="{DynamicResource Padding.TileInfo}"
                         VerticalAlignment="Center">
               <TextBlock Text="{Binding FileName}"
+                         IsVisible="{Binding ShowFileName}"
                          FontSize="{DynamicResource FontSize.Body}"
                          FontWeight="{DynamicResource FontWeight.Title}"
                          TextTrimming="CharacterEllipsis" />
@@ -121,7 +195,7 @@
                                        MediaType="{Binding MediaType}"
                                        IsFailed="{Binding IsThumbnailFailed}"
                                        CornerRadius="{DynamicResource Radius.None}" />
-              <!-- Badge slot: status badges now, Favorite (E11-S01) and Offline/Missing (E14-S07) later. -->
+              <!-- Badge slot: Offline or Missing (E14-S07), then the status badge. -->
               <views:TileBadgeStrip Badges="{Binding Badges}"
                                     Orientation="Horizontal"
                                     Spacing="{DynamicResource Space.XS}"
@@ -156,11 +230,116 @@
         </Panel>
       </Border>
     </DataTemplate>
+    <!--
+      A list view row (E14-S02). Each cell names its column; ListCellsPanel places the cells in the columns' order and
+      widths. Status has the badge slot: Offline or Missing (E14-S07), then the status badge.
+    -->
+    <DataTemplate x:Key="ListRowTemplate" x:DataType="vm:ThumbnailTileViewModel">
+      <Border Classes="ListRow"
+              Classes.Selected="{Binding IsSelected}"
+              Classes.Focused="{Binding IsFocused}"
+              Classes.LessRelevant="{Binding IsLessRelevant}"
+              Classes.Unavailable="{Binding IsUnavailable}"
+              ToolTip.Tip="{Binding MatchReason}"
+              AutomationProperties.Name="{Binding FileName}">
+        <Panel>
+          <views:ListCellsPanel>
+            <Panel views:ListCellsPanel.Column="Thumbnail"
+                   Width="{x:Static vm:ThumbnailGridViewModel.ListThumbnailSize}"
+                   Height="{x:Static vm:ThumbnailGridViewModel.ListThumbnailSize}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center">
+              <controls:MediaThumbnail Source="{Binding Thumbnail}"
+                                       MediaType="{Binding MediaType}"
+                                       IsFailed="{Binding IsThumbnailFailed}"
+                                       CornerRadius="{DynamicResource Radius.None}" />
+            </Panel>
+            <StackPanel views:ListCellsPanel.Column="Name"
+                        Classes="ListName"
+                        Orientation="Horizontal"
+                        Spacing="{DynamicResource Space.XS}"
+                        VerticalAlignment="Center">
+              <!-- The source of a "find similar" search (E09-S03, D053). -->
+              <Border Classes="TileMarker"
+                      IsVisible="{Binding IsSource}"
+                      VerticalAlignment="Center"
+                      AutomationProperties.Name="{l:Loc Search_SourceBadge}">
+                <TextBlock Text="{l:Loc Search_SourceBadge}" FontSize="{DynamicResource FontSize.Caption}" />
+              </Border>
+              <TextBlock Text="{Binding FileName}"
+                         FontSize="{DynamicResource FontSize.Body}"
+                         FontWeight="{DynamicResource FontWeight.Title}"
+                         TextTrimming="CharacterEllipsis"
+                         Margin="{DynamicResource Padding.Badge}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock views:ListCellsPanel.Column="Type" Classes="Secondary" Text="{Binding TypeText}" />
+            <TextBlock views:ListCellsPanel.Column="DateTaken" Classes="Secondary" Text="{Binding DateTakenText}" />
+            <TextBlock views:ListCellsPanel.Column="Size" Classes="Secondary" Text="{Binding SizeText}" />
+            <TextBlock views:ListCellsPanel.Column="Resolution" Classes="Secondary" Text="{Binding ResolutionText}" />
+            <TextBlock views:ListCellsPanel.Column="Duration" Classes="Secondary" Text="{Binding LengthText}" />
+            <StackPanel views:ListCellsPanel.Column="Status"
+                        Orientation="Horizontal"
+                        Spacing="{DynamicResource Space.XS}"
+                        Margin="{DynamicResource Padding.Badge}"
+                        VerticalAlignment="Center">
+              <views:TileBadgeStrip Badges="{Binding Badges}"
+                                    Orientation="Horizontal"
+                                    Spacing="{DynamicResource Space.XS}"
+                                    VerticalAlignment="Center" />
+              <TextBlock Classes="Secondary"
+                         Text="{Binding StatusText}"
+                         VerticalAlignment="Center"
+                         TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <TextBlock views:ListCellsPanel.Column="Folder"
+                       Classes="Secondary"
+                       Text="{Binding Folder}"
+                       TextTrimming="PrefixCharacterEllipsis"
+                       ToolTip.Tip="{Binding Folder}" />
+            <Border views:ListCellsPanel.Column="Favorite"
+                    Classes="TileFavorite ListFavorite"
+                    Classes.IsFavorite="{Binding IsFavorite}"
+                    ToolTip.Tip="{l:Loc Tile_Favorite}"
+                    AutomationProperties.Name="{l:Loc Tile_Favorite}">
+              <Path Data="{StaticResource Icon.Favorite}" />
+            </Border>
+          </views:ListCellsPanel>
+          <Border Classes="ListFocus" />
+        </Panel>
+      </Border>
+    </DataTemplate>
   </UserControl.Resources>
 
-  <DockPanel>
+  <DockPanel views:ListCellsPanel.Layout="{Binding ListColumns}">
     <!-- The results header: quick filters and the Filters flyout (E10-S02), and the sort control at its end (E10-S04). -->
     <DockPanel DockPanel.Dock="Top">
+      <!-- The grid / list toggle (E14-S02), after the sort control as in the design. -->
+      <StackPanel DockPanel.Dock="Right"
+                  Orientation="Horizontal"
+                  Spacing="{DynamicResource Space.XS}"
+                  Margin="{DynamicResource Padding.Compact}"
+                  VerticalAlignment="Top"
+                  AutomationProperties.Name="{l:Loc Browser_ViewToggle}">
+        <Button x:Name="GridViewButton"
+                Classes="FilterChip ViewToggle"
+                Classes.Selected="{Binding IsGridView}"
+                Command="{Binding ShowGridCommand}"
+                VerticalAlignment="Center"
+                AutomationProperties.Name="{l:Loc Browser_GridView}"
+                ToolTip.Tip="{l:Loc Browser_GridView}">
+          <Path Data="{StaticResource Icon.View.Grid}" />
+        </Button>
+        <Button x:Name="ListViewButton"
+                Classes="FilterChip ViewToggle"
+                Classes.Selected="{Binding IsListView}"
+                Command="{Binding ShowListCommand}"
+                VerticalAlignment="Center"
+                AutomationProperties.Name="{l:Loc Browser_ListView}"
+                ToolTip.Tip="{l:Loc Browser_ListView}">
+          <Path Data="{StaticResource Icon.View.List}" />
+        </Button>
+      </StackPanel>
       <Panel DockPanel.Dock="Right" IsVisible="{Binding Sort, Converter={x:Static ObjectConverters.IsNotNull}}">
         <searchViews:SortBarView DataContext="{Binding Sort}" />
       </Panel>
@@ -186,6 +365,14 @@
                 Command="{Binding ToggleLessRelevantCommand}"
                 IsVisible="{Binding LessRelevantText, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
+    </Border>
+    <!-- The list view's column header (E14-S02); it follows the list's horizontal scrolling. -->
+    <Border DockPanel.Dock="Top"
+            IsVisible="{Binding IsListView}"
+            ClipToBounds="True"
+            BorderThickness="0,0,0,1"
+            BorderBrush="{DynamicResource Brush.Border.Divider}">
+      <views:ListHeaderView x:Name="ListHeader" DataContext="{Binding ListColumns}" HorizontalAlignment="Left" />
     </Border>
     <Panel>
       <ScrollViewer x:Name="Scroller"

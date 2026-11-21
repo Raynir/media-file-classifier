@@ -7,7 +7,7 @@
   <!-- Provisional folders dialog (D095): Figma has no screen for it yet. E02-S03-T00 designs the real one. -->
   <Grid Margin="{DynamicResource Padding.Panel}" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="{DynamicResource Space.S}">
     <StackPanel Grid.Row="0" Spacing="{DynamicResource Space.S}">
-      <TextBlock Classes="Title" Text="{l:Loc Folders_Title}" />
+      <TextBlock Classes="Title" Text="{l:Loc Folders_Title}" IsVisible="{Binding !IsEmbedded}" />
       <TextBlock Classes="Secondary" Text="{l:Loc Folders_Hint}" TextWrapping="Wrap" />
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
         <Button x:Name="AddButton" Content="{l:Loc Folders_Add}" Command="{Binding AddFolderCommand}" />
@@ -42,6 +42,9 @@
             <DockPanel>
               <PathIcon DockPanel.Dock="Left" Classes="Small" Data="{StaticResource Icon.FolderOpen}" Margin="{DynamicResource Padding.Compact}" />
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
+                <Border Classes="StatusBadge Excluded" IsVisible="{Binding IsPartial}">
+                  <TextBlock Text="{l:Loc Folders_SelectedFilesOnly}" />
+                </Border>
                 <Border Classes="StatusBadge Offline" IsVisible="{Binding IsOffline}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
                     <PathIcon Data="{StaticResource Icon.Status.Offline}" />
@@ -73,41 +76,51 @@
         <Panel IsVisible="{Binding HasSelection}">
           <StackPanel Spacing="{DynamicResource Space.S}" DataContext="{Binding SelectedFolder}" x:DataType="vm:IndexedFolderViewModel">
             <TextBlock Classes="Subtitle" Text="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).RulesTitle}" TextTrimming="CharacterEllipsis" />
-            <CheckBox Content="{l:Loc Folders_IncludeHidden}" IsChecked="{Binding IncludeHidden}" />
-            <CheckBox Content="{l:Loc Folders_IncludeCloud}" IsChecked="{Binding IncludeCloudPlaceholders}" />
-            <TextBlock Classes="Label" Text="{l:Loc Folders_ExcludedSubfolders}" />
-            <TextBlock Classes="Secondary" Text="{l:Loc Folders_NoExclusions}" IsVisible="{Binding !ExcludedSubfolders.Count}" />
-            <ItemsControl ItemsSource="{Binding ExcludedSubfolders}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ExcludedSubfolderViewModel">
-                  <DockPanel>
-                    <Button DockPanel.Dock="Right"
-                            Classes="Icon"
-                            Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).RemoveExclusionCommand}"
-                            CommandParameter="{Binding}"
-                            AutomationProperties.Name="{Binding RemoveName}"
-                            ToolTip.Tip="{Binding RemoveName}">
-                      <PathIcon Classes="Small" Data="{StaticResource Icon.Close}" />
-                    </Button>
-                    <TextBlock Text="{Binding Text}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                  </DockPanel>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
-              <Button Content="{l:Loc Folders_ExcludeSubfolder}" Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).ExcludeSubfolderCommand}" />
-              <Button Classes="accent"
-                      Content="{l:Loc Folders_Apply}"
-                      Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).ApplyRulesCommand}"
-                      IsEnabled="{Binding HasRuleChanges}" />
+            <!-- A partial folder has no rules until it's indexed whole (E03-S05). -->
+            <StackPanel Spacing="{DynamicResource Space.S}" IsVisible="{Binding IsPartial}">
+              <TextBlock Classes="Secondary" Text="{l:Loc Folders_PartialNote}" TextWrapping="Wrap" />
+              <Button x:Name="IndexWholeButton"
+                      Classes="accent"
+                      Content="{l:Loc Folders_IndexWhole}"
+                      Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).IndexWholeFolderCommand}" />
+            </StackPanel>
+            <StackPanel Spacing="{DynamicResource Space.S}" IsVisible="{Binding !IsPartial}">
+              <CheckBox Content="{l:Loc Folders_IncludeHidden}" IsChecked="{Binding IncludeHidden}" />
+              <CheckBox Content="{l:Loc Folders_IncludeCloud}" IsChecked="{Binding IncludeCloudPlaceholders}" />
+              <TextBlock Classes="Label" Text="{l:Loc Folders_ExcludedSubfolders}" />
+              <TextBlock Classes="Secondary" Text="{l:Loc Folders_NoExclusions}" IsVisible="{Binding !ExcludedSubfolders.Count}" />
+              <ItemsControl ItemsSource="{Binding ExcludedSubfolders}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ExcludedSubfolderViewModel">
+                    <DockPanel>
+                      <Button DockPanel.Dock="Right"
+                              Classes="Icon"
+                              Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).RemoveExclusionCommand}"
+                              CommandParameter="{Binding}"
+                              AutomationProperties.Name="{Binding RemoveName}"
+                              ToolTip.Tip="{Binding RemoveName}">
+                        <PathIcon Classes="Small" Data="{StaticResource Icon.Close}" />
+                      </Button>
+                      <TextBlock Text="{Binding Text}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+                <Button Content="{l:Loc Folders_ExcludeSubfolder}" Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).ExcludeSubfolderCommand}" />
+                <Button Classes="accent"
+                        Content="{l:Loc Folders_Apply}"
+                        Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).ApplyRulesCommand}"
+                        IsEnabled="{Binding HasRuleChanges}" />
+              </StackPanel>
             </StackPanel>
           </StackPanel>
         </Panel>
       </Panel>
     </Border>
 
-    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
-      <Button Content="{l:Loc Folders_Close}" Command="{Binding CloseCommand}" IsCancel="True" />
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}" IsVisible="{Binding !IsEmbedded}">
+      <Button Content="{l:Loc Folders_Close}" Command="{Binding CloseCommand}" IsCancel="{Binding !IsEmbedded}" />
     </StackPanel>
   </Grid>
 </UserControl>

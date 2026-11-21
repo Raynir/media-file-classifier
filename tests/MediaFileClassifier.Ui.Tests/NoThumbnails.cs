@@ -21,4 +21,6 @@ internal sealed class NoThumbnails : IThumbnailCache
     public void Invalidate(LibraryLayout library, Id<MediaItem> itemId)
     {
     }
+
+    public int Clear(LibraryLayout library, CancellationToken cancellationToken = default) => 0;
 }

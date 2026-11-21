@@ -22,7 +22,7 @@ The UI takes every colour, size and font setting from design tokens (E13-S06). T
 | Group | Keys | Notes |
 |-------|------|-------|
 | Surfaces | `Brush.Surface.Window`, `.Panel`, `.Content`, `.Tile`, `.Control`, `.Input`, `.Tooltip`; `Brush.Scrim`; `Brush.Overlay.Background`, `.Foreground` | `Brush.Scrim` dims the window behind an overlay; it isn't in Figma. `Brush.Overlay.*` draw markers over a thumbnail, such as a video's duration (E14-S01). |
-| Borders | `Brush.Border.Divider`, `.Control`, `.Selected`; `Border.Thin` | |
+| Borders | `Brush.Border.Divider`, `.Control`, `.Selected`; `Border.Thin`, `Border.FocusRing` (the keyboard focus ring, drawn in `Brush.State.Focus`) | |
 | Text and icons | `Brush.Text.Primary`, `.Secondary`, `.Tertiary`, `.Placeholder`; `Brush.Icon` | |
 | States | `Brush.State.Hover`, `.Pressed`, `.Selected`, `.Focus`; `Opacity.Disabled`, `Opacity.Inactive` | |
 | Item status | `Brush.Status.<Status>.Foreground` and `.Background`; `Icon.Status.<Status>` | `<Status>` is `Pending`, `Error`, `Missing`, `Offline` or `Excluded`. |

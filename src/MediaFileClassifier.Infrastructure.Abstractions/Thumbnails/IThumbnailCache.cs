@@ -48,4 +48,14 @@ public interface IThumbnailCache
     /// <param name="library">The library.</param>
     /// <param name="itemId">The item.</param>
     void Invalidate(LibraryLayout library, Id<MediaItem> itemId);
+
+    /// <summary>
+    /// Deletes every item thumbnail of the library, including those of items no longer in it, for "Regenerate all
+    /// thumbnails" (E02-S06-T02). The keyframe pictures stay, since only the analysis makes them. A file that can't be
+    /// deleted, e.g. one open elsewhere, is logged and left; regenerating replaces it.
+    /// </summary>
+    /// <param name="library">The library.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of files deleted.</returns>
+    int Clear(LibraryLayout library, CancellationToken cancellationToken = default);
 }

@@ -156,6 +156,17 @@
     <value>Copied {0}. Seek to it in your player.</value>
     <comment>{0}: the time in the video, e.g. 02:37.</comment>
   </data>
+  <data name="Keyframes_Unavailable_Offline" xml:space="preserve">
+    <value>The folder {0} is offline. Connect {1} to open these moments in a player.</value>
+    <comment>{0} is a folder path; {1} names what to connect, e.g. "drive 'Backup-2TB'".</comment>
+  </data>
+  <data name="Keyframes_Unavailable_OfflineFolder" xml:space="preserve">
+    <value>The folder {0} is offline, so these moments can't be opened in a player until it's back.</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Keyframes_Unavailable_Missing" xml:space="preserve">
+    <value>The file is missing, so these moments can't be opened in a player.</value>
+  </data>
   <data name="Keyframes_OpenInPlayer" xml:space="preserve">
     <value>Open in player</value>
   </data>
@@ -793,6 +804,53 @@
   <data name="Command_AddFolder" xml:space="preserve">
     <value>_Add folder…</value>
   </data>
+  <data name="Command_ImportFiles" xml:space="preserve">
+    <value>_Import files…</value>
+  </data>
+  <data name="ImportFiles_PickTitle" xml:space="preserve">
+    <value>Import files</value>
+  </data>
+  <data name="ImportFiles_FilterMedia" xml:space="preserve">
+    <value>Media files</value>
+  </data>
+  <data name="ImportFiles_FilterAll" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="ImportFiles_Imported" xml:space="preserve">
+    <value>{0} files are being imported.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_ImportedOne" xml:space="preserve">
+    <value>1 file is being imported.</value>
+  </data>
+  <data name="ImportFiles_Already" xml:space="preserve">
+    <value>{0} files are already in the library.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_AlreadyOne" xml:space="preserve">
+    <value>1 file is already in the library.</value>
+  </data>
+  <data name="ImportFiles_Excluded" xml:space="preserve">
+    <value>{0} files are left out by their folder's rules.</value>
+    <comment>{0} is a number of files, more than one. The rules are the indexed folder's excluded subfolders, hidden files and cloud placeholders.</comment>
+  </data>
+  <data name="ImportFiles_ExcludedOne" xml:space="preserve">
+    <value>1 file is left out by its folder's rules.</value>
+  </data>
+  <data name="ImportFiles_Unsupported" xml:space="preserve">
+    <value>{0} files aren't a supported format.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_UnsupportedOne" xml:space="preserve">
+    <value>1 file isn't a supported format.</value>
+  </data>
+  <data name="ImportFiles_Unreadable" xml:space="preserve">
+    <value>{0} files can't be read.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_UnreadableOne" xml:space="preserve">
+    <value>1 file can't be read.</value>
+  </data>
   <data name="Command_ManageFolders" xml:space="preserve">
     <value>Manage _folders…</value>
   </data>
@@ -919,6 +977,20 @@
   </data>
   <data name="Folders_Merge" xml:space="preserve">
     <value>Merge</value>
+  </data>
+  <data name="Folders_SelectedFilesOnly" xml:space="preserve">
+    <value>Selected files only</value>
+    <comment>Tag on a partial folder (E03-S05): only the files the user imported from it are in the library.</comment>
+  </data>
+  <data name="Folders_PartialNote" xml:space="preserve">
+    <value>Only the files you imported from this folder are in the library. Index the whole folder to import everything in it and apply rules.</value>
+  </data>
+  <data name="Folders_IndexWhole" xml:space="preserve">
+    <value>Index whole folder</value>
+  </data>
+  <data name="Folders_IndexWholeConfirm" xml:space="preserve">
+    <value>Index everything in {0}? The {1} already in the library keep their metadata.</value>
+    <comment>{0} = folder path, {1} = item count, e.g. "4 items".</comment>
   </data>
   <data name="Folders_AlreadyIndexed" xml:space="preserve">
     <value>{0} is indexed already.</value>
@@ -1278,6 +1350,12 @@
   <data name="Search_Field_FileName" xml:space="preserve">
     <value>File name</value>
   </data>
+  <data name="Command_FocusSearch" xml:space="preserve">
+    <value>Focus search</value>
+  </data>
+  <data name="Command_RefreshResults" xml:space="preserve">
+    <value>Refresh results</value>
+  </data>
   <data name="Command_FindSimilar" xml:space="preserve">
     <value>Find _similar</value>
   </data>
@@ -1632,6 +1710,54 @@
   <data name="Setting_RestoreFilters_Help" xml:space="preserve">
     <value>When on, the filters you had set when you last used a library come back when it opens.</value>
   </data>
+  <data name="Setting_IoConcurrency" xml:space="preserve">
+    <value>File reading jobs at once</value>
+  </data>
+  <data name="Setting_IoConcurrency_Help" xml:space="preserve">
+    <value>How many jobs that read files (scanning, fingerprints) run at the same time. Takes effect at once.</value>
+  </data>
+  <data name="Setting_CpuConcurrency" xml:space="preserve">
+    <value>Thumbnail and image jobs at once</value>
+  </data>
+  <data name="Setting_CpuConcurrency_Help" xml:space="preserve">
+    <value>How many processor-heavy jobs (thumbnails, decoding) run at the same time. The default fits this computer. Takes effect at once.</value>
+  </data>
+  <data name="Setting_AiConcurrency" xml:space="preserve">
+    <value>AI analysis jobs at once</value>
+  </data>
+  <data name="Setting_AiConcurrency_Help" xml:space="preserve">
+    <value>How many AI analysis jobs run at the same time. More needs more memory. Takes effect at once.</value>
+  </data>
+  <data name="Setting_ResumeOnOpen" xml:space="preserve">
+    <value>When a library opens with unfinished work</value>
+  </data>
+  <data name="Setting_ResumeOnOpen_Help" xml:space="preserve">
+    <value>Continue the work at once, or wait until you start it with Resume processing. While it waits, new work waits too. Applies the next time a library opens.</value>
+  </data>
+  <data name="Setting_ResumeOnOpen_Automatic" xml:space="preserve">
+    <value>Continue automatically</value>
+  </data>
+  <data name="Setting_ResumeOnOpen_Ask" xml:space="preserve">
+    <value>Wait until I start it</value>
+  </data>
+  <data name="Setting_ConfirmQuit" xml:space="preserve">
+    <value>Ask before quitting while processing</value>
+  </data>
+  <data name="Setting_ConfirmQuit_Help" xml:space="preserve">
+    <value>When on, closing the app while work is pending asks first. The work continues the next time the library opens.</value>
+  </data>
+  <data name="Setting_ShowFileNames" xml:space="preserve">
+    <value>Show file names under tiles</value>
+  </data>
+  <data name="Setting_ShowFileNames_Help" xml:space="preserve">
+    <value>When off, tiles show only the type and size under the thumbnail.</value>
+  </data>
+  <data name="Setting_InformationalNotifications" xml:space="preserve">
+    <value>Show informational notifications</value>
+  </data>
+  <data name="Setting_InformationalNotifications_Help" xml:space="preserve">
+    <value>Short messages such as "Analysis finished". Errors and warnings always show.</value>
+  </data>
   <data name="Setting_LastFilters" xml:space="preserve">
     <value>Last filters</value>
   </data>
@@ -1691,6 +1817,9 @@
   </data>
   <data name="Filter_NewSuggestions" xml:space="preserve">
     <value>Has new AI suggestions</value>
+  </data>
+  <data name="Filter_HideOffline" xml:space="preserve">
+    <value>Hide offline items</value>
   </data>
   <data name="Filter_Status" xml:space="preserve">
     <value>Processing status</value>
@@ -1916,6 +2045,15 @@
   <data name="Command_ProcessingQueue" xml:space="preserve">
     <value>_Processing queue</value>
     <comment>View menu: opens the window with the running, queued and finished background jobs.</comment>
+  </data>
+  <data name="Processing_Paused" xml:space="preserve">
+    <value>Processing is paused until you start it.</value>
+  </data>
+  <data name="Processing_PausedStatus" xml:space="preserve">
+    <value>Processing paused</value>
+  </data>
+  <data name="Processing_Resume" xml:space="preserve">
+    <value>Resume processing</value>
   </data>
   <data name="Processing_Title" xml:space="preserve">
     <value>Processing queue</value>
@@ -2362,5 +2500,493 @@
   </data>
   <data name="Editor_Tag_Suggestion_Dismiss" xml:space="preserve">
     <value>Dismiss suggestion</value>
+  </data>
+  <data name="Command_RefreshIndex" xml:space="preserve">
+    <value>Refresh search _index</value>
+  </data>
+  <data name="Command_RegenerateThumbnails" xml:space="preserve">
+    <value>Regenerate _thumbnails…</value>
+  </data>
+  <data name="Command_CheckIntegrity" xml:space="preserve">
+    <value>Check library _integrity</value>
+  </data>
+  <data name="Maintenance_RefreshingIndex" xml:space="preserve">
+    <value>Refreshing the search index…</value>
+  </data>
+  <data name="Maintenance_CheckingIntegrity" xml:space="preserve">
+    <value>Checking the library…</value>
+  </data>
+  <data name="Notification_ShowImported" xml:space="preserve">
+    <value>Show imported items</value>
+  </data>
+  <data name="Notification_ViewFailed" xml:space="preserve">
+    <value>View failed items</value>
+  </data>
+  <data name="Notification_ImportDone_One" xml:space="preserve">
+    <value>Imported {0} item</value>
+  </data>
+  <data name="Notification_ImportDone_Other" xml:space="preserve">
+    <value>Imported {0} items</value>
+  </data>
+  <data name="Notification_ImportPartial" xml:space="preserve">
+    <value>Import finished: {0} imported, {1} failed</value>
+  </data>
+  <data name="Notification_ImportFailed" xml:space="preserve">
+    <value>Import failed: no item could be imported ({0} failed)</value>
+  </data>
+  <data name="Notification_AnalysisDone_One" xml:space="preserve">
+    <value>Analysis finished: {0} item</value>
+  </data>
+  <data name="Notification_AnalysisDone_Other" xml:space="preserve">
+    <value>Analysis finished: {0} items</value>
+  </data>
+  <data name="Notification_AnalysisPartial" xml:space="preserve">
+    <value>Analysis finished: {0} analysed, {1} failed</value>
+  </data>
+  <data name="Notification_AnalysisFailed" xml:space="preserve">
+    <value>Analysis failed: no item could be analysed ({0} failed)</value>
+  </data>
+  <data name="Toast_Region" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="Toast_Dismiss" xml:space="preserve">
+    <value>Dismiss notification</value>
+  </data>
+  <data name="Maintenance_Progress" xml:space="preserve">
+    <value>{0} {1}%</value>
+  </data>
+  <data name="Maintenance_StopToolTip" xml:space="preserve">
+    <value>Click to stop</value>
+  </data>
+  <data name="Maintenance_StopRefresh" xml:space="preserve">
+    <value>Stop refreshing the search index?</value>
+  </data>
+  <data name="Maintenance_StopCheck" xml:space="preserve">
+    <value>Stop checking the library?</value>
+  </data>
+  <data name="Maintenance_Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Maintenance_KeepGoing" xml:space="preserve">
+    <value>Keep going</value>
+  </data>
+  <data name="Maintenance_Busy" xml:space="preserve">
+    <value>Another library task is running. Try again when it has finished.</value>
+  </data>
+  <data name="Maintenance_IndexRefreshed" xml:space="preserve">
+    <value>The search index was refreshed.</value>
+  </data>
+  <data name="Maintenance_ThumbnailsComplete" xml:space="preserve">
+    <value>Every item already has its thumbnails.</value>
+  </data>
+  <data name="Maintenance_ThumbnailsBusy" xml:space="preserve">
+    <value>Thumbnails are already being regenerated. You can follow them in the processing queue.</value>
+  </data>
+  <data name="Maintenance_ThumbnailsImportRunning" xml:space="preserve">
+    <value>Thumbnails can be regenerated when the import has finished.</value>
+  </data>
+  <data name="Stage_thumbnails.regenerate" xml:space="preserve">
+    <value>Regenerating thumbnails</value>
+  </data>
+  <data name="Integrity_Healthy" xml:space="preserve">
+    <value>The library is in good health. No problems were found.</value>
+  </data>
+  <data name="Integrity_Damaged" xml:space="preserve">
+    <value>The library database is damaged. Search, browsing and saving changes may fail.</value>
+  </data>
+  <data name="Integrity_BackupAvailable" xml:space="preserve">
+    <value>A backup from {0:g} is available. Restoring it brings back the library as it was then: changes made after that date are lost. The damaged database is kept in the backups folder.</value>
+  </data>
+  <data name="Integrity_NoBackup" xml:space="preserve">
+    <value>There's no backup to restore.</value>
+  </data>
+  <data name="Integrity_RestoreBackup" xml:space="preserve">
+    <value>Restore backup</value>
+  </data>
+  <data name="Integrity_NotNow" xml:space="preserve">
+    <value>Not now</value>
+  </data>
+  <data name="Integrity_Restored" xml:space="preserve">
+    <value>The backup from {0:g} was restored and passed the integrity check. Changes made after that date are lost.</value>
+  </data>
+  <data name="Integrity_RestoredDamaged" xml:space="preserve">
+    <value>The backup from {0:g} was restored, but the integrity check still found problems. The damaged database is kept in the backups folder.</value>
+  </data>
+  <data name="Integrity_RestoreFailed" xml:space="preserve">
+    <value>The backup couldn't be restored: {0}. The library wasn't changed.</value>
+  </data>
+  <data name="Integrity_NotPutBack" xml:space="preserve">
+    <value>The backup couldn't be restored, and the damaged database couldn't be put back. It's kept as {0}.</value>
+  </data>
+  <data name="Integrity_Reason_NoLibrary" xml:space="preserve">
+    <value>no library is open</value>
+  </data>
+  <data name="Integrity_Reason_BackupDamaged" xml:space="preserve">
+    <value>the backup is damaged too</value>
+  </data>
+  <data name="Integrity_Reason_NotReplaced" xml:space="preserve">
+    <value>the library files couldn't be replaced</value>
+  </data>
+  <data name="Integrity_Reason_OpenFailed" xml:space="preserve">
+    <value>the restored library couldn't be opened</value>
+  </data>
+  <data name="Thumbnails_Title" xml:space="preserve">
+    <value>Regenerate thumbnails</value>
+  </data>
+  <data name="Thumbnails_Missing" xml:space="preserve">
+    <value>Only missing or outdated</value>
+  </data>
+  <data name="Thumbnails_MissingHelp" xml:space="preserve">
+    <value>Makes the thumbnails that are missing or older than their file. Fast.</value>
+  </data>
+  <data name="Thumbnails_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Thumbnails_AllHelp" xml:space="preserve">
+    <value>Deletes every thumbnail and makes it again. Takes longer.</value>
+  </data>
+  <data name="Thumbnails_Note" xml:space="preserve">
+    <value>Items on screen go first. Descriptions, tags and AI results aren't changed.</value>
+  </data>
+  <data name="Thumbnails_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Thumbnails_Regenerate" xml:space="preserve">
+    <value>Regenerate</value>
+  </data>
+  <data name="Command_RemoveFromLibrary" xml:space="preserve">
+    <value>_Remove from library</value>
+  </data>
+  <data name="RemoveItems_Title" xml:space="preserve">
+    <value>Remove from library</value>
+  </data>
+  <data name="RemoveItems_QuestionOne" xml:space="preserve">
+    <value>Remove 1 item from the library?</value>
+  </data>
+  <data name="RemoveItems_Question" xml:space="preserve">
+    <value>Remove {0} items from the library?</value>
+  </data>
+  <data name="RemoveItems_Explanation" xml:space="preserve">
+    <value>The files stay on disk. The items stop appearing in search, browsing and collections. You can restore them from Excluded items.</value>
+  </data>
+  <data name="RemoveItems_DontAskAgain" xml:space="preserve">
+    <value>Don't ask again</value>
+  </data>
+  <data name="RemoveItems_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="RemoveItems_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Setting_AskBeforeRemoving" xml:space="preserve">
+    <value>Ask before removing items from the library</value>
+  </data>
+  <data name="Setting_AskBeforeRemoving_Help" xml:space="preserve">
+    <value>Shows a confirmation before items are removed from the library. Their files always stay on disk.</value>
+  </data>
+  <data name="Stage_exclusion.cleanup" xml:space="preserve">
+    <value>Removing AI results</value>
+  </data>
+  <data name="Command_ShowRecentlyImported" xml:space="preserve">
+    <value>Recently imported</value>
+  </data>
+  <data name="Command_ExcludedItems" xml:space="preserve">
+    <value>E_xcluded items…</value>
+  </data>
+  <data name="ExcludedItems_Title" xml:space="preserve">
+    <value>Excluded items</value>
+  </data>
+  <data name="ExcludedItems_HeaderOne" xml:space="preserve">
+    <value>1 item removed from the library. Its file is still on disk.</value>
+  </data>
+  <data name="ExcludedItems_Header" xml:space="preserve">
+    <value>{0} items removed from the library. Their files are still on disk.</value>
+  </data>
+  <data name="ExcludedItems_Empty" xml:space="preserve">
+    <value>No items have been removed from this library.</value>
+  </data>
+  <data name="ExcludedItems_Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="ExcludedItems_Forget" xml:space="preserve">
+    <value>Forget</value>
+  </data>
+  <data name="ExcludedItems_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="ExcludedItems_ForgetWarningOne" xml:space="preserve">
+    <value>Forget 1 item? Its tags, descriptions, ratings and collection memberships are deleted. If its file is still in an indexed folder, the next scan adds it as a new item.</value>
+  </data>
+  <data name="ExcludedItems_ForgetWarning" xml:space="preserve">
+    <value>Forget {0} items? Their tags, descriptions, ratings and collection memberships are deleted. Files still in an indexed folder are added as new items by the next scan.</value>
+  </data>
+  <data name="ExcludedItems_ForgetConfirm" xml:space="preserve">
+    <value>Forget</value>
+  </data>
+  <data name="ExcludedItems_ForgetCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ExcludedItems_Failed" xml:space="preserve">
+    <value>The items couldn't be changed. See the log for details.</value>
+  </data>
+  <data name="Command_LibraryInfo" xml:space="preserve">
+    <value>Library information</value>
+  </data>
+  <data name="LibraryInfo_Title" xml:space="preserve">
+    <value>Library information</value>
+  </data>
+  <data name="LibraryInfo_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="LibraryInfo_NoLibrary" xml:space="preserve">
+    <value>Open a library to see its statistics.</value>
+  </data>
+  <data name="LibraryInfo_Items" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="LibraryInfo_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="LibraryInfo_DiskUsage" xml:space="preserve">
+    <value>Disk usage</value>
+  </data>
+  <data name="LibraryInfo_Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="LibraryInfo_Images" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="LibraryInfo_AnimatedImages" xml:space="preserve">
+    <value>Animated images</value>
+  </data>
+  <data name="LibraryInfo_Videos" xml:space="preserve">
+    <value>Videos</value>
+  </data>
+  <data name="LibraryInfo_Indexed" xml:space="preserve">
+    <value>Indexed</value>
+  </data>
+  <data name="LibraryInfo_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="LibraryInfo_Errors" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="LibraryInfo_Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="LibraryInfo_MediaFiles" xml:space="preserve">
+    <value>Media files</value>
+  </data>
+  <data name="LibraryInfo_Database" xml:space="preserve">
+    <value>Database</value>
+  </data>
+  <data name="LibraryInfo_Thumbnails" xml:space="preserve">
+    <value>Thumbnails</value>
+  </data>
+  <data name="LibraryInfo_Backups" xml:space="preserve">
+    <value>Backups</value>
+  </data>
+  <data name="LibraryInfo_LibraryTotal" xml:space="preserve">
+    <value>Library total</value>
+  </data>
+  <data name="LibraryInfo_Calculating" xml:space="preserve">
+    <value>Calculating…</value>
+  </data>
+  <data name="StatusBar_LibrarySummary" xml:space="preserve">
+    <value>{0} in library</value>
+  </data>
+  <data name="StatusBar_LibrarySummaryPending" xml:space="preserve">
+    <value>{0} in library · {1} pending</value>
+  </data>
+  <data name="StatusBar_LibrarySummary_ToolTip" xml:space="preserve">
+    <value>{0} indexed, {1} pending, {2} with errors, {3} missing. Click for library information.</value>
+  </data>
+  <data name="List_Column_Thumbnail" xml:space="preserve">
+    <value>Thumbnail</value>
+  </data>
+  <data name="List_Column_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="List_Column_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="List_Column_DateTaken" xml:space="preserve">
+    <value>Date taken</value>
+  </data>
+  <data name="List_Column_Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="List_Column_Resolution" xml:space="preserve">
+    <value>Resolution</value>
+  </data>
+  <data name="List_Column_Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="List_Column_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="List_Column_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="List_Column_Favorite" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="Browser_List" xml:space="preserve">
+    <value>Results list</value>
+  </data>
+  <data name="Browser_GridView" xml:space="preserve">
+    <value>Grid view</value>
+  </data>
+  <data name="Browser_ListView" xml:space="preserve">
+    <value>List view</value>
+  </data>
+  <data name="Browser_ViewToggle" xml:space="preserve">
+    <value>Results view</value>
+  </data>
+  <data name="Setting_ListView" xml:space="preserve">
+    <value>Show results as a list</value>
+  </data>
+  <data name="Setting_ListColumns" xml:space="preserve">
+    <value>List columns</value>
+  </data>
+  <data name="List_Columns_Reset" xml:space="preserve">
+    <value>Reset columns</value>
+  </data>
+  <data name="List_Header" xml:space="preserve">
+    <value>Column header</value>
+  </data>
+  <data name="List_Column_Resize" xml:space="preserve">
+    <value>Resize column</value>
+  </data>
+  <data name="LibrarySection_InformationHeading" xml:space="preserve">
+    <value>Library information</value>
+  </data>
+  <data name="LibrarySection_FoldersHeading" xml:space="preserve">
+    <value>Indexed folders</value>
+  </data>
+  <data name="LibrarySection_MaintenanceHeading" xml:space="preserve">
+    <value>Maintenance</value>
+  </data>
+  <data name="LibrarySection_ExcludedHeading" xml:space="preserve">
+    <value>Excluded items</value>
+  </data>
+  <data name="LibrarySection_NoLibrary" xml:space="preserve">
+    <value>Open a library to see this.</value>
+  </data>
+  <data name="LibrarySection_Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="LibrarySection_Reveal" xml:space="preserve">
+    <value>Reveal</value>
+  </data>
+  <data name="LibrarySection_CopyPath" xml:space="preserve">
+    <value>Copy path</value>
+  </data>
+  <data name="LibrarySection_RefreshIndexHint" xml:space="preserve">
+    <value>Rebuilds the keyword and vector indexes from the stored data.</value>
+  </data>
+  <data name="LibrarySection_RegenerateThumbnailsHint" xml:space="preserve">
+    <value>Makes the thumbnails again, either only the missing ones or all.</value>
+  </data>
+  <data name="LibrarySection_CheckIntegrityHint" xml:space="preserve">
+    <value>Checks the library database for damage.</value>
+  </data>
+  <data name="DropImport_Title" xml:space="preserve">
+    <value>Drop to import</value>
+  </data>
+  <data name="DropImport_Hint" xml:space="preserve">
+    <value>Files are imported. Folders are added to the library.</value>
+  </data>
+  <data name="DropImport_Folders" xml:space="preserve">
+    <value>{0} folders added.</value>
+    <comment>{0} is a number of folders, more than one.</comment>
+  </data>
+  <data name="DropImport_FoldersOne" xml:space="preserve">
+    <value>1 folder added.</value>
+  </data>
+  <data name="DropImport_Failed" xml:space="preserve">
+    <value>The dropped files couldn't be imported.</value>
+  </data>
+  <data name="Tile_Badge_Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Tile_Badge_OfflineFolder" xml:space="preserve">
+    <value>folder {0}</value>
+  </data>
+  <data name="Tile_Badge_Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="Offline_Drive_Label" xml:space="preserve">
+    <value>drive '{0}'</value>
+  </data>
+  <data name="Offline_Drive_Letter" xml:space="preserve">
+    <value>drive {0}</value>
+  </data>
+  <data name="Offline_Share" xml:space="preserve">
+    <value>share {0}</value>
+  </data>
+  <data name="Offline_SourceAndFolder" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Item_Unavailable_OfflineSource" xml:space="preserve">
+    <value>The folder {0} is offline. Connect {1} to use the file.</value>
+  </data>
+  <data name="Tile_Badge_MissingDetail" xml:space="preserve">
+    <value>the file wasn't found at the last scan. Right-click › Remove missing items… cleans up the library.</value>
+  </data>
+  <data name="Command_DeleteLibrary" xml:space="preserve">
+    <value>_Delete library…</value>
+  </data>
+  <data name="DeleteLibrary_Title" xml:space="preserve">
+    <value>Delete library</value>
+  </data>
+  <data name="DeleteLibrary_Heading" xml:space="preserve">
+    <value>Delete the library “{0}”?</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="DeleteLibrary_Summary_One" xml:space="preserve">
+    <value>This deletes the library’s index of {0} item: its database, thumbnails and backups.</value>
+    <comment>{0} is the number 1.</comment>
+  </data>
+  <data name="DeleteLibrary_Summary_Other" xml:space="preserve">
+    <value>This deletes the library’s index of {0} items: its database, thumbnails and backups.</value>
+    <comment>{0} is a number of items.</comment>
+  </data>
+  <data name="DeleteLibrary_MediaSafe" xml:space="preserve">
+    <value>Your media files are not touched. They stay where they are, and so does anything else you keep in the library folder.</value>
+  </data>
+  <data name="DeleteLibrary_ClosesFirst" xml:space="preserve">
+    <value>The library is open, so it will be closed first.</value>
+  </data>
+  <data name="DeleteLibrary_Permanent" xml:space="preserve">
+    <value>This can’t be undone.</value>
+  </data>
+  <data name="DeleteLibrary_Prompt" xml:space="preserve">
+    <value>Type {0} to confirm.</value>
+    <comment>{0} is the library name the user must type.</comment>
+  </data>
+  <data name="DeleteLibrary_Delete" xml:space="preserve">
+    <value>Delete library</value>
+  </data>
+  <data name="DeleteLibrary_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="DeleteLibrary_KeptFiles" xml:space="preserve">
+    <value>The library was deleted. Its folder was kept because it still holds other files: {0}</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="DeleteLibrary_KeptFilesOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Welcome_DeleteLibrary" xml:space="preserve">
+    <value>Delete {0}…</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="DeleteLibrary_Partial" xml:space="preserve">
+    <value>An earlier delete of this library was cut short: its database is gone. Deleting finishes the job by removing its remaining thumbnails, backups and lock file.</value>
+  </data>
+  <data name="DeleteLibrary_ClosedNotDeleted" xml:space="preserve">
+    <value>The library was closed, but it couldn't be deleted. {0}</value>
+    <comment>{0} is the reason, a full sentence.</comment>
   </data>
 </root>

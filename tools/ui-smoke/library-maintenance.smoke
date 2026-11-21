@@ -1,0 +1,37 @@
+# Library maintenance (MFC-121): the regenerate thumbnails dialog, the integrity report, and restoring a backup
+# after the library is damaged on purpose. Steps are described in docs/testing.md.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/library-maintenance.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+# Regenerate thumbnails asks which ones.
+start library.regenerate-thumbnails
+wait-for dialog
+dialog-shot 01-regenerate-dialog
+dialog-click Cancel
+wait-for no-dialog
+
+# A healthy library.
+start library.check-integrity
+wait-for dialog
+dialog-shot 02-integrity-healthy
+dialog-click Close
+wait-for no-dialog
+
+# A damaged library with a backup: the report offers to restore it.
+allow-error MediaFileClassifier.UseCases.Maintenance.CheckIntegrity.CheckLibraryIntegrityQueryHandler
+damage-library
+start library.check-integrity
+wait-for dialog
+dialog-shot 03-integrity-damaged
+dialog-click Restore backup
+# The restore closes the report and opens its result straight away.
+wait 2s
+wait-for dialog
+dialog-shot 04-restore-done
+dialog-click Close
+wait-for no-dialog
+wait-for idle
+shot 05-after-restore

@@ -42,6 +42,14 @@
                       AutomationProperties.Name="{Binding RemoveLabel}">
                 <PathIcon Classes="Small" Data="{StaticResource Icon.Close}" />
               </Button>
+              <Button DockPanel.Dock="Right"
+                      Classes="Icon"
+                      Command="{Binding DeleteCommand}"
+                      IsVisible="{Binding CanDelete}"
+                      ToolTip.Tip="{Binding DeleteLabel}"
+                      AutomationProperties.Name="{Binding DeleteLabel}">
+                <PathIcon Classes="Small" Data="{StaticResource Icon.Delete}" />
+              </Button>
               <Button HorizontalAlignment="Stretch"
                       HorizontalContentAlignment="Left"
                       Background="Transparent"

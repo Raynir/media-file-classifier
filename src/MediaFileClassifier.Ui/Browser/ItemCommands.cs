@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Avalonia.Threading;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
@@ -6,8 +7,10 @@ using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Rescan;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Browsing.Selection;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -18,7 +21,8 @@ namespace MediaFileClassifier.Ui.Browser;
 /// The media browser's item commands for the context menu and the Item menu (E14-S04-T02): open in the default app,
 /// reveal in File Explorer and copy file path, through the platform services. Open and Reveal act on the focused
 /// item and are disabled, with the reason, while its file is missing or its folder offline (D025). Copy file path
-/// copies the paths of all selected items, one per line.
+/// copies the paths of all selected items, one per line. A Missing item also offers the Library menu's "Remove missing
+/// items…" (E14-S07).
 /// </summary>
 public sealed partial class ItemCommands : ICommandContributor
 {
@@ -31,12 +35,18 @@ public sealed partial class ItemCommands : ICommandContributor
     /// <summary>Command ID: copy the selected items' file paths.</summary>
     public const string CopyPath = "item.copy-path";
 
+    /// <summary>
+    /// Command ID: the Library menu's "Remove missing items…" (D240), offered on a Missing item (E14-S07).
+    /// </summary>
+    public const string RemoveMissing = "item.remove-missing";
+
     private readonly SelectionModel selection;
     private readonly ISender sender;
     private readonly IPlatformServices platform;
     private readonly ITextClipboard clipboard;
     private readonly Localizer localizer;
     private readonly ILogger logger;
+    private readonly FolderStatusChanges? folderStatus;
     private readonly List<AppCommand> commands = [];
     private int loads;
     private ItemLocation? focused;
@@ -50,13 +60,16 @@ public sealed partial class ItemCommands : ICommandContributor
     /// <param name="clipboard">Takes the copied paths.</param>
     /// <param name="localizer">UI strings, for the reasons a command is disabled.</param>
     /// <param name="logger">Logs files that couldn't be opened or revealed.</param>
+    /// <param name="folderStatus">Tells when a folder went Offline or came back, so the focused item's availability is
+    /// read again (E14-S07-T04), or <see langword="null"/>.</param>
     public ItemCommands(
         SelectionModel selection,
         ISender sender,
         IPlatformServices platform,
         ITextClipboard clipboard,
         Localizer localizer,
-        ILogger<ItemCommands>? logger = null)
+        ILogger<ItemCommands>? logger = null,
+        FolderStatusChanges? folderStatus = null)
     {
         this.selection = selection;
         this.sender = sender;
@@ -64,6 +77,7 @@ public sealed partial class ItemCommands : ICommandContributor
         this.clipboard = clipboard;
         this.localizer = localizer;
         this.logger = logger ?? NullLogger<ItemCommands>.Instance;
+        this.folderStatus = folderStatus;
     }
 
     /// <summary>
@@ -90,7 +104,24 @@ public sealed partial class ItemCommands : ICommandContributor
         {
             AppliesTo = () => selection.Count > 0,
         }));
+
+        // The library-wide cleanup, with its own confirmation and count; only where the Library menu has it.
+        commands.Add(registry.Add(new AppCommand(
+            RemoveMissing,
+            CommandGroups.Item,
+            960,
+            "Command_RemoveMissing",
+            () => registry.TryGet(RescanCommands.RemoveMissing, out var command) ? command.ExecuteAsync() : Task.CompletedTask)
+        {
+            IconKey = "Icon.Delete",
+            AppliesTo = () => HasFocusedSelection() && focused?.Availability == ItemAvailability.Missing
+                && registry.TryGet(RescanCommands.RemoveMissing, out var command) && command.IsVisible,
+        }));
         selection.Changed += (_, _) => Loading = LoadFocusedAsync();
+        if (folderStatus is not null)
+        {
+            folderStatus.Changed += (_, _) => Dispatcher.UIThread.Post(() => Loading = LoadFocusedAsync());
+        }
     }
 
     private bool HasFocusedSelection() => selection.Count > 0 && selection.FocusedId is not null;
@@ -98,7 +129,9 @@ public sealed partial class ItemCommands : ICommandContributor
     private string? WhyUnavailable() => focused?.Availability switch
     {
         ItemAvailability.Missing => localizer.Get("Item_Unavailable_Missing"),
-        ItemAvailability.Offline => localizer.Format("Item_Unavailable_Offline", focused.FolderName),
+        ItemAvailability.Offline => OfflineSource.Describe(focused.FolderName, focused.VolumeLabel, localizer) is { } source
+            ? localizer.Format("Item_Unavailable_OfflineSource", focused.FolderName, source)
+            : localizer.Format("Item_Unavailable_Offline", focused.FolderName),
         _ => null,
     };
 

@@ -1,0 +1,42 @@
+# Offline items (E14-S07, MFC-1007). Steps are described in docs/testing.md.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/offline-items.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+command view.details-expanded
+
+# Keyframes for the video, while its file is there.
+select video-short.mp4
+wait-for visible VideoPlayerView
+seed-keyframes video-short.mp4
+
+# The drive goes away: the items dim with an Offline badge, in the grid and the list. The video is closed first.
+select jpeg-exif.jpg
+wait 600ms
+unplug-folder
+wait 600ms
+shot 01-offline-grid
+command view.list
+wait-for visible ListHeader
+wait 400ms
+shot 02-offline-list
+command view.grid
+wait 400ms
+
+# An offline video: the preview says so, and the strip says why its moments can't be opened; they stay selectable.
+select video-short.mp4
+wait-for visible KeyframesUnavailableText
+choose-keyframe 1
+wait 400ms
+shot 03-offline-video
+command view.theme-dark
+wait 400ms
+shot 04-offline-video-dark
+command view.theme-light
+
+# The drive comes back: the live check restores the items with no other step.
+plug-folder
+wait 2500ms
+wait-for hidden KeyframesUnavailableText
+shot 05-reconnected

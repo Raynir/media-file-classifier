@@ -137,6 +137,16 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
                 .ConvertAll(row => new FolderItemCount(row.FolderId, row.Status, row.Count)),
             cancellationToken);
 
+    public Task<IReadOnlyList<ItemStatisticsCount>> CountByTypeAndStatusAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<ItemStatisticsCount>>(
+            async (db, token) => (await db.MediaItems
+                    .GroupBy(item => new { item.MediaType, item.Status })
+                    .Select(group => new { group.Key.MediaType, group.Key.Status, Count = group.Count(), SizeBytes = group.Sum(item => item.SizeBytes) })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false))
+                .ConvertAll(row => new ItemStatisticsCount(row.MediaType, row.Status, row.Count, row.SizeBytes)),
+            cancellationToken);
+
     public Task<IReadOnlyList<ExactDuplicateGroup>> GetExactDuplicatesAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync<IReadOnlyList<ExactDuplicateGroup>>(
             async (db, token) =>
@@ -241,11 +251,16 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             from item in items
             join metadata in db.TechnicalMetadata on item.Id equals metadata.ItemId into found
             from metadata in found.DefaultIfEmpty()
+            join folder in db.Folders on item.FolderId equals folder.Id into folders
+            from folder in folders.DefaultIfEmpty()
             orderby item.Id descending
             select new
             {
                 item.Id,
                 item.Path,
+                FolderPath = folder == null ? null : folder.DisplayPath,
+                FolderOffline = folder != null && folder.Status == FolderStatus.Offline,
+                VolumeLabel = folder == null ? null : folder.VolumeLabel,
                 item.MediaType,
                 item.SizeBytes,
                 item.FileModifiedAt,
@@ -254,6 +269,10 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
                 item.IsFavorite,
                 Duration = metadata == null ? null : metadata.Duration,
                 Warnings = metadata == null ? null : metadata.Warnings,
+                DateTaken = metadata == null ? null : metadata.DateTaken,
+                Width = metadata == null ? null : metadata.Width,
+                Height = metadata == null ? null : metadata.Height,
+                Orientation = metadata == null ? ImageOrientation.Normal : metadata.Orientation,
             }).ToListAsync(token).ConfigureAwait(false);
         return [.. rows.Select(row => new MediaItemSummary(
             row.Id,
@@ -266,7 +285,25 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             row.StatusReason,
             row.Duration,
             row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false,
-            row.IsFavorite))];
+            row.IsFavorite,
+            row.DateTaken,
+            row.Orientation >= ImageOrientation.Transpose ? row.Height : row.Width,
+            row.Orientation >= ImageOrientation.Transpose ? row.Width : row.Height,
+            FolderOf(row.FolderPath, row.Path),
+            row.FolderOffline,
+            row.VolumeLabel))];
+    }
+
+    private static string? FolderOf(string? folderPath, RelativePath path)
+    {
+        var slash = path.Value.LastIndexOf('/');
+        var subfolders = slash < 0 ? string.Empty : path.Value[..slash].Replace('/', System.IO.Path.DirectorySeparatorChar);
+        if (folderPath is null)
+        {
+            return subfolders.Length == 0 ? null : subfolders;
+        }
+
+        return subfolders.Length == 0 ? folderPath : System.IO.Path.Join(folderPath, subfolders);
     }
 
     /// <inheritdoc />
@@ -319,6 +356,29 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
                 }
 
                 return existing;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> GetByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyList<MediaItem>>([]);
+        }
+
+        return connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) =>
+            {
+                var items = new List<MediaItem>(ids.Count);
+                foreach (var batch in ids.Distinct().Chunk(5000))
+                {
+                    items.AddRange(await db.MediaItems.Where(item => batch.Contains(item.Id)).ToListAsync(token).ConfigureAwait(false));
+                }
+
+                return items;
             },
             cancellationToken);
     }
@@ -639,6 +699,76 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
         if (deleted.Count > 0)
         {
             RaiseChanged();
+        }
+
+        return deleted;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> ExcludeAsync(IReadOnlyCollection<Id<MediaItem>> ids, string reason, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        ArgumentNullException.ThrowIfNull(reason);
+
+        var changed = new List<Id<MediaItem>>();
+        foreach (var batch in ids.Distinct().Chunk(BatchSize))
+        {
+            var done = await writer.ExecuteAsync<IReadOnlyList<Id<MediaItem>>>(
+                async (db, token) =>
+                {
+                    // Tracked, so only the status columns are written.
+                    var due = await db.MediaItems.AsTracking()
+                        .Where(item => batch.Contains(item.Id) && item.Status != MediaItemStatus.Excluded)
+                        .ToListAsync(token).ConfigureAwait(false);
+                    foreach (var item in due)
+                    {
+                        item.ChangeStatus(MediaItemStatus.Excluded, now, reason);
+                    }
+
+                    await db.SaveChangesAsync(token).ConfigureAwait(false);
+                    db.ChangeTracker.Clear();
+                    return [.. due.Select(item => item.Id)];
+                },
+                cancellationToken).ConfigureAwait(false);
+            if (done.Count > 0)
+            {
+                changed.AddRange(done);
+                RaiseChanged();
+            }
+        }
+
+        return changed;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> DeleteExcludedAsync(IReadOnlyCollection<Id<MediaItem>> ids, string reason, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        ArgumentNullException.ThrowIfNull(reason);
+
+        var deleted = new List<Id<MediaItem>>();
+        foreach (var batch in ids.Distinct().Chunk(BatchSize))
+        {
+            var done = await writer.ExecuteAsync<IReadOnlyList<Id<MediaItem>>>(
+                async (db, token) =>
+                {
+                    var due = await db.MediaItems
+                        .Where(item => batch.Contains(item.Id) && item.Status == MediaItemStatus.Excluded && item.StatusReason == reason)
+                        .Select(item => item.Id)
+                        .ToListAsync(token).ConfigureAwait(false);
+                    if (due.Count > 0)
+                    {
+                        await db.MediaItems.Where(item => due.Contains(item.Id)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                    }
+
+                    return due;
+                },
+                cancellationToken).ConfigureAwait(false);
+            if (done.Count > 0)
+            {
+                deleted.AddRange(done);
+                RaiseChanged();
+            }
         }
 
         return deleted;

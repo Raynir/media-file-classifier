@@ -1,6 +1,7 @@
 #if DEBUG
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -14,14 +15,18 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.UseCases.Browsing;
+using MediaFileClassifier.Desktop.Platform;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
+using MediaFileClassifier.UseCases.Settings;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -105,6 +110,13 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 window.Width = width;
                 window.Height = height;
                 return null;
+            case "dialog-size":
+                // Sizes the open dialog or settings window, e.g. to show a long page whole (MFC-133).
+                SmokeScript.TryParseSize(step.Argument, out var dialogWidth, out var dialogHeight);
+                var sized = Dialog() ?? throw new SmokeStepException("no dialog is open");
+                sized.Width = dialogWidth;
+                sized.Height = dialogHeight;
+                return null;
             case "select":
                 return await SelectAsync(step.Argument);
             case "seed-keyframes":
@@ -131,6 +143,9 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 }
 
                 return null;
+            case "setting":
+                SetSetting(step.Argument);
+                return null;
             case "command":
                 var command = services.GetRequiredService<CommandRegistry>()[step.Argument];
                 command.Refresh();
@@ -141,6 +156,72 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
                 await command.ExecuteAsync();
                 return null;
+            case "start":
+                // Not awaited: the command shows a modal dialog, which the dialog-* steps drive (MFC-123).
+                var started = services.GetRequiredService<CommandRegistry>()[step.Argument];
+                started.Refresh();
+                if (!started.IsEnabled || !started.IsApplicable)
+                {
+                    throw new SmokeStepException($"the command is disabled: {started.DisabledReason ?? "it doesn't apply here"}");
+                }
+
+                _ = started.ExecuteAsync();
+                return null;
+            case "dialog-click":
+                var button = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants()
+                    .OfType<Button>()
+                    .FirstOrDefault(candidate => candidate.IsEffectivelyVisible && (candidate.Name == step.Argument || candidate.Content as string == step.Argument))
+                    ?? throw new SmokeStepException($"the dialog has no visible button '{step.Argument}'");
+                if (button.Command is { } buttonCommand)
+                {
+                    if (!buttonCommand.CanExecute(button.CommandParameter))
+                    {
+                        throw new SmokeStepException($"the button '{step.Argument}' is disabled");
+                    }
+
+                    buttonCommand.Execute(button.CommandParameter);
+                    return null;
+                }
+
+                // A dialog that handles Click itself, such as LibraryMessageWindow (MFC-121).
+                if (!button.IsEffectivelyEnabled)
+                {
+                    throw new SmokeStepException($"the button '{step.Argument}' is disabled");
+                }
+
+                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                return null;
+            case "dialog-select":
+                // Selects a folder in the folders dialog's list by its name, or a category in the settings window's sidebar by its ID, as a click does (MFC-124, MFC-133).
+                var list = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants().OfType<ListBox>().FirstOrDefault()
+                    ?? throw new SmokeStepException("the dialog has no list");
+                list.SelectedItem = list.Items.OfType<object>().FirstOrDefault(row => row switch
+                    {
+                        Ui.ViewModels.Libraries.IndexedFolderViewModel folder => folder.Name == step.Argument,
+                        Ui.ViewModels.Settings.SettingsCategoryViewModel category => category.Category == step.Argument,
+                        _ => false,
+                    })
+                    ?? throw new SmokeStepException($"the list has no folder or settings category '{step.Argument}'");
+                return null;
+            case "import-files":
+                return ImportFiles(step.Argument);
+            case "drag-over":
+                // What dragging over the window does to the drop overlay (E03-S06); a real OS drag can't be scripted.
+                services.GetRequiredService<Ui.ViewModels.Libraries.DropImportViewModel>().IsDragActive = step.Argument != "off";
+                return null;
+            case "drop":
+                return Drop(step.Argument);
+            case "dialog-shot":
+                var dialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
+                Directory.CreateDirectory(options.OutputDirectory);
+                var dialogPath = Path.Combine(options.OutputDirectory, step.Argument + ".png");
+                return $"{dialogPath} ({WindowCapture.Save(dialog, dialogPath)})";
+            case "dialog-type":
+                // Types into the open dialog's focused text box, e.g. a typed confirmation (MFC-122).
+                var dialogBox = (Dialog() ?? throw new SmokeStepException("no dialog is open")).FocusManager?.GetFocusedElement() as TextBox
+                    ?? throw new SmokeStepException("no text box has the focus in the dialog");
+                dialogBox.RaiseEvent(new TextInputEventArgs { RoutedEvent = InputElement.TextInputEvent, Text = step.Argument, Source = dialogBox });
+                return null;
             case "focus":
                 var control = FindVisible(step.Argument) ?? throw new SmokeStepException($"no visible control '{step.Argument}'");
                 if (!control.Focus())
@@ -150,7 +231,11 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
                 return null;
             case "key":
-                return PressKey(step.Argument);
+                return PressKey(step.Argument, FocusedOrWindow());
+            case "dialog-key":
+                // Presses a key in the open dialog, on its focused control (E16-S03), e.g. Tab to see where the focus goes.
+                var keyDialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
+                return PressKey(step.Argument, keyDialog.FocusManager?.GetFocusedElement() as Interactive ?? keyDialog);
             case "type":
                 var target = FocusedOrWindow();
                 target.RaiseEvent(new TextInputEventArgs { RoutedEvent = InputElement.TextInputEvent, Text = step.Argument, Source = target });
@@ -162,6 +247,15 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             case "wait-for":
                 await WaitForAsync(step);
                 return null;
+            case "damage-library":
+                return await DamageLibraryAsync();
+            case "unplug-folder":
+                return await UnplugFolderAsync();
+            case "plug-folder":
+                return PlugFolder();
+            case "allow-error":
+                log.AllowErrors(step.Argument);
+                return null;
             case "shot":
                 Directory.CreateDirectory(options.OutputDirectory);
                 var path = Path.Combine(options.OutputDirectory, step.Argument + ".png");
@@ -170,6 +264,82 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             default:
                 throw new SmokeStepException("unknown step");
         }
+    }
+
+    /// <summary>
+    /// Damages the open library on purpose, to show the integrity report (E02-S06-T03): backs the database up as a
+    /// migration backup, closes the library, writes garbage over the root page of an index of the items, and opens
+    /// it again. Page 1 stays intact, so the library still opens; the integrity check finds the damage.
+    /// </summary>
+    private async Task<string> DamageLibraryAsync()
+    {
+        var session = services.GetRequiredService<ILibrarySession>();
+        var library = session.Current ?? throw new SmokeStepException("no library is open");
+        var layout = library.Layout;
+        var backup = Path.Combine(
+            layout.BackupsDirectory,
+            string.Create(CultureInfo.InvariantCulture, $"library-v0-{DateTimeOffset.UtcNow.AddHours(-1):yyyyMMdd-HHmmss-fff}.db"));
+        await library.Maintenance.BackupAsync(backup);
+        await session.SetCurrentAsync(null);
+        await Task.Run(() => CorruptIndexPage(layout.DatabasePath));
+        await services.GetRequiredService<LibraryOpener>().OpenAsync(layout.RootDirectory);
+        return backup;
+    }
+
+    /// <summary>
+    /// Takes the sample library's folder away, as unplugging its drive does (E14-S07), and checks the folders, as the
+    /// next poll would, so it shows Offline at once.
+    /// </summary>
+    private async Task<string> UnplugFolderAsync()
+    {
+        var media = Path.Combine(options.DataDirectory, "media");
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                Directory.Move(media, media + "-unplugged");
+                break;
+            }
+            catch (IOException) when (attempt < 20)
+            {
+                // A file in it may still be open for a moment, e.g. a video the player just closed.
+                await Task.Delay(250);
+            }
+        }
+
+        var changed = await services.GetRequiredService<ISender>().Send(new CheckFolderAvailabilityCommand());
+        return $"{changed.Count} folder(s) offline";
+    }
+
+    /// <summary>
+    /// Puts the sample library's folder back and raises a volume event, as plugging the drive in does, so the live
+    /// check (E14-S07-T04) brings it back after its debounce, with no other step.
+    /// </summary>
+    private string PlugFolder()
+    {
+        var media = Path.Combine(options.DataDirectory, "media");
+        Directory.Move(media + "-unplugged", media);
+        services.GetRequiredService<WindowsVolumeWatcher>().SimulateVolumeChange();
+        return media;
+    }
+
+    private static void CorruptIndexPage(string databasePath)
+    {
+        long pageSize;
+        long rootPage;
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={databasePath};Mode=ReadOnly;Pooling=False"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA page_size";
+            pageSize = (long)command.ExecuteScalar()!;
+            command.CommandText = "SELECT rootpage FROM sqlite_master WHERE name = 'IX_media_item_hashes_content_hash'";
+            rootPage = (long)command.ExecuteScalar()!;
+        }
+
+        using var file = new FileStream(databasePath, FileMode.Open, FileAccess.Write);
+        file.Position = (rootPage - 1) * pageSize;
+        file.Write(Enumerable.Repeat((byte)0xFF, (int)pageSize).ToArray());
     }
 
     private async Task<string?> LibraryAsync(SmokeStep step)
@@ -201,6 +371,55 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         var grid = services.GetRequiredService<ThumbnailGridViewModel>();
         await PollAsync(async () => grid.Count >= SampleFiles.Count && await IsIdleAsync(), step.Timeout, $"{SampleFiles.Count} items, scanned and idle");
         return $"{grid.Count} items";
+    }
+
+    // The file picker is a native dialog, so this copies sample files to a folder of their own and imports them as
+    // picked files (E03-S05). Not awaited: the result message is a modal dialog, which the dialog-* steps drive.
+    private string ImportFiles(string argument)
+    {
+        var samples = options.SampleMediaDirectory ?? throw new SmokeStepException("tests/SampleMedia wasn't found");
+        var picked = Path.Combine(options.DataDirectory, "picked");
+        Directory.CreateDirectory(picked);
+        var files = new List<FileLocation>();
+        foreach (var name in argument.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var target = Path.Combine(picked, name);
+            File.Copy(Path.Combine(samples, name), target, overwrite: true);
+            files.Add(Infrastructure.Files.LocalFolder.ToLocation(target));
+        }
+
+        _ = services.GetRequiredService<FileImporter>().ImportAsync(files);
+        return picked;
+    }
+
+    // A real drag from File Explorer can't be scripted, so this copies sample files (and a folder for "folder:<name>") to
+    // a folder of their own and runs the drop path with them (E03-S06). Not awaited: a dropped folder opens the folders
+    // dialog, which the dialog-* steps drive, and the summary comes after it closes.
+    private string Drop(string argument)
+    {
+        var samples = options.SampleMediaDirectory ?? throw new SmokeStepException("tests/SampleMedia wasn't found");
+        var dropped = Path.Combine(options.DataDirectory, "dropped");
+        Directory.CreateDirectory(dropped);
+        var paths = new List<Ui.ViewModels.Libraries.DroppedPath>();
+        foreach (var name in argument.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (name.StartsWith("folder:", StringComparison.Ordinal))
+            {
+                var folder = Path.Combine(dropped, name["folder:".Length..]);
+                Directory.CreateDirectory(folder);
+                File.Copy(Path.Combine(samples, "gif-static.gif"), Path.Combine(folder, "gif-static.gif"), overwrite: true);
+                File.Copy(Path.Combine(samples, "jpeg-icc-offset.jpg"), Path.Combine(folder, "jpeg-icc-offset.jpg"), overwrite: true);
+                paths.Add(new Ui.ViewModels.Libraries.DroppedPath(folder, IsFolder: true));
+                continue;
+            }
+
+            var target = Path.Combine(dropped, name);
+            File.Copy(Path.Combine(samples, name), target, overwrite: true);
+            paths.Add(new Ui.ViewModels.Libraries.DroppedPath(target, IsFolder: false));
+        }
+
+        _ = services.GetRequiredService<Ui.ViewModels.Libraries.DropImportViewModel>().DropAsync(paths);
+        return dropped;
     }
 
     // Keyframes exist only after AI analysis, which needs the model. This does what the analysis does for them: it
@@ -253,11 +472,41 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         throw new SmokeStepException($"no item named '{fileName}' among the {count} results");
     }
 
-    private string? PressKey(string gestureText)
+    private void SetSetting(string argument)
+    {
+        var space = argument.IndexOf(' ', StringComparison.Ordinal);
+        if (space < 0)
+        {
+            throw new SmokeStepException("expected a setting key and a value");
+        }
+
+        var key = argument[..space];
+        var text = argument[(space + 1)..].Trim();
+        var definition = services.GetRequiredService<SettingRegistry>().Find(key)
+            ?? throw new SmokeStepException($"no setting '{key}'");
+        JsonElement json;
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            json = document.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            json = JsonSerializer.SerializeToElement(text);
+        }
+
+        if (!definition.TryDeserialize(json, out var value))
+        {
+            throw new SmokeStepException($"'{text}' isn't a valid value for {key}");
+        }
+
+        services.GetRequiredService<ISettingsStore>().SetValue(definition, value);
+    }
+
+    private string? PressKey(string gestureText, Interactive target)
     {
         SmokeScript.TryParseKey(gestureText, out var parsed);
         var gesture = parsed!;
-        var target = FocusedOrWindow();
         foreach (var routedEvent in new[] { InputElement.KeyDownEvent, InputElement.KeyUpEvent })
         {
             target.RaiseEvent(new KeyEventArgs
@@ -294,8 +543,19 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             case ["hidden", var name]:
                 await PollAsync(() => Task.FromResult(FindVisible(name) is null), step.Timeout, $"no visible control '{name}'");
                 break;
+            case ["dialog"]:
+                await PollAsync(() => Task.FromResult(Dialog() is { IsVisible: true }), step.Timeout, "a dialog");
+                break;
+            case ["no-dialog"]:
+                await PollAsync(() => Task.FromResult(Dialog() is null), step.Timeout, "no dialog");
+                break;
         }
     }
+
+    /// <summary>
+    /// Gets the newest window the main window owns, e.g. a modal dialog, or <see langword="null"/>.
+    /// </summary>
+    private Window? Dialog() => window.OwnedWindows.LastOrDefault();
 
     /// <summary>
     /// Finds a shown control by its <c>x:Name</c> or its type name.

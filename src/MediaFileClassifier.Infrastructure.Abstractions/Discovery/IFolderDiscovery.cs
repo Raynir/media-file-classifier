@@ -32,6 +32,22 @@ public interface IFolderDiscovery
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Registers files the user selected in a folder, without scanning it (E03-S05): each file is looked up and its
+    /// content decides its format, as in <see cref="DiscoverAsync"/>. A full folder's rules still apply; a partial
+    /// folder (D012) has none. New items are written in batches and returned as Discovered; queuing them is the caller's.
+    /// </summary>
+    /// <param name="library">The open library the folder belongs to.</param>
+    /// <param name="folder">The folder the files are in.</param>
+    /// <param name="relativePaths">The files' paths relative to the folder root, with <c>/</c> separators.</param>
+    /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>
+    /// <returns>What happened to each distinct path, in the order given.</returns>
+    Task<IReadOnlyList<FileRegistration>> RegisterFilesAsync(
+        IOpenLibrary library,
+        IndexedFolder folder,
+        IReadOnlyList<string> relativePaths,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Scans a folder with its rules like <see cref="DiscoverAsync"/>, but registers nothing: it returns the files at
     /// known paths and the new media files, for a rescan to reconcile (E02-S04-T01).
     /// </summary>

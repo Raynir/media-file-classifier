@@ -39,9 +39,18 @@ public static class InfrastructureModule
         services.TryAddSingleton<ISettingsStore, SettingsStore>();
         services.TryAddSingleton<IHardwareOverrides>(provider => new SettingsHardwareOverrides(provider));
         services.TryAddSingleton<ILibrarySession, LibrarySession>();
+        services.TryAddSingleton<Abstractions.Platform.IVolumeWatcher, Files.NoVolumeWatcher>();
         services.TryAddSingleton<ILibraryLocations, LibraryLocations>();
+        services.TryAddSingleton<ILibraryDiskUsage, LibraryDiskUsageMeter>();
         services.TryAddSingleton<IHardwareDetector, PortableHardwareDetector>();
         services.TryAddSingleton<IHardwareInfo, HardwareInfo>();
+        services.TryAddSingleton(provider => new ProcessingSettings(provider.GetRequiredService<IHardwareInfo>().DefaultParallelism));
+        for (var index = 0; index < ProcessingSettings.SettingCount; index++)
+        {
+            // The five processing settings (E17-S03); the CPU default depends on the hardware, so they're made from it.
+            var position = index;
+            services.AddSingleton<SettingDefinition>(provider => provider.GetRequiredService<ProcessingSettings>().All[position]);
+        }
         services.TryAddSingleton<ICapabilityService, CapabilityService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICapabilityContributor, PlatformCapabilityContributor>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICapabilityContributor, NativeDependencyCapabilityContributor>());

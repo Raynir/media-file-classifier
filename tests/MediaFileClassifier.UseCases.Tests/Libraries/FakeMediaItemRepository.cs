@@ -53,6 +53,27 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
 
     public Task<int> CountAsync(CancellationToken cancellationToken = default) => Task.FromResult(Items.Count);
 
+    public Task<IReadOnlyList<MediaItem>> GetByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MediaItem>>([.. Items.Where(item => ids.Contains(item.Id))]);
+
+    public Task<IReadOnlyList<Id<MediaItem>>> ExcludeAsync(IReadOnlyCollection<Id<MediaItem>> ids, string reason, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        List<MediaItem> due = [.. Items.Where(item => ids.Contains(item.Id) && item.Status != MediaItemStatus.Excluded)];
+        foreach (var item in due)
+        {
+            item.ChangeStatus(MediaItemStatus.Excluded, now, reason);
+        }
+
+        return Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. due.Select(item => item.Id)]);
+    }
+
+    public Task<IReadOnlyList<Id<MediaItem>>> DeleteExcludedAsync(IReadOnlyCollection<Id<MediaItem>> ids, string reason, CancellationToken cancellationToken = default)
+    {
+        List<MediaItem> due = [.. Items.Where(item => ids.Contains(item.Id) && item.Status == MediaItemStatus.Excluded && item.StatusReason == reason)];
+        Items.RemoveAll(due.Contains);
+        return Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. due.Select(item => item.Id)]);
+    }
+
     public Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<MediaItemFileState>> GetFileStatesAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
@@ -97,6 +118,13 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
     public Task<IReadOnlyList<(string Name, int Count)>> GetSubfoldersAsync(Id<IndexedFolder> folderId, string subfolder, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<IReadOnlyList<ItemStatisticsCount>> CountByTypeAndStatusAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<ItemStatisticsCount>>(
+        [
+            .. Items.GroupBy(item => (item.MediaType, item.Status))
+                .Select(group => new ItemStatisticsCount(group.Key.MediaType, group.Key.Status, group.Count(), group.Sum(item => item.SizeBytes))),
+        ]);
 
     public List<MediaItem[]> UpdatedRanges { get; } = [];
 

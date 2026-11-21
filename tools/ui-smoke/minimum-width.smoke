@@ -1,0 +1,41 @@
+# Reachability at the minimum window width, 720 x 480 (MFC-743). Steps are described in docs/testing.md.
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/minimum-width.smoke --out artifacts/ui-smoke
+
+window 720x480
+command view.theme-dark
+library sample
+
+# The browser, the toolbar with its overflow button, and the menu bar fit.
+shot 01-minimum-browser
+
+# Navigation: its drawer opens from the button in the browser header, and picking an entry closes it.
+command view.toggle-navigation
+wait-for visible NavigationHost
+shot 02-minimum-navigation
+command library.show-recently-imported
+wait-for hidden NavigationHost
+wait-for hidden DrawerScrim
+
+# Details: select an item, open the drawer (the selection's commands stay in the menu), close it with Escape.
+select jpeg-exif.jpg
+command view.details-expanded
+wait-for visible DetailsHost
+wait-for visible Preview
+shot 03-minimum-details
+key Escape
+wait-for hidden DetailsHost
+
+# Browser commands that live in the toolbar overflow and the menu.
+command view.list
+shot 04-minimum-list
+command view.grid
+command item.favorite
+command edit.select-none
+
+# Dialogs and windows opened from the menu.
+start library.folders
+wait-for dialog
+dialog-shot 05-minimum-folders-dialog
+dialog-click Close
+wait-for no-dialog

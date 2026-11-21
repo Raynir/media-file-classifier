@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Libraries"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Libraries.LibraryInfoView"
+             x:DataType="vm:LibraryInfoViewModel">
+  <!-- The library statistics (E02-S05-T02): label/value rows in three groups. Self-contained, so a window and the
+       Settings "Library" page can both host it. -->
+  <StackPanel Spacing="{DynamicResource Space.M}" MinWidth="300">
+    <TextBlock Classes="Secondary" Text="{l:Loc LibraryInfo_NoLibrary}" IsVisible="{Binding !HasLibrary}" TextWrapping="Wrap" />
+    <StackPanel Spacing="{DynamicResource Space.M}" IsVisible="{Binding HasLibrary}">
+      <TextBlock Classes="Subtitle" Text="{Binding LibraryName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding LibraryName}" />
+      <ItemsControl ItemsSource="{Binding Groups}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="{DynamicResource Space.M}" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:LibraryInfoGroup">
+            <StackPanel Spacing="{DynamicResource Space.XS}">
+              <TextBlock Classes="Caption" Text="{Binding Header}" />
+              <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:LibraryInfoRow">
+                    <Grid ColumnDefinitions="*,Auto" AutomationProperties.Name="{Binding AccessibleName}">
+                      <TextBlock Grid.Column="0" Text="{Binding Label}" Margin="{DynamicResource Margin.InfoLabel}" />
+                      <TextBlock Grid.Column="1" Text="{Binding Value}" HorizontalAlignment="Right" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

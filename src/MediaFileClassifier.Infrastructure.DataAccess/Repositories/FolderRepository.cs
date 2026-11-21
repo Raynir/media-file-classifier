@@ -40,17 +40,52 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
     }
 
     /// <inheritdoc />
-    public Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
+    public event EventHandler? StatusChanged;
+
+    /// <inheritdoc />
+    public async Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(folder);
 
-        return writer.ExecuteAsync(
-            (db, token) =>
+        var statusChanged = await writer.ExecuteAsync(
+            async (db, token) =>
             {
+                var stored = await StoredStatusAsync(db, folder.Id, token).ConfigureAwait(false);
                 db.Folders.Update(folder);
-                return db.SaveChangesAsync(token);
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return stored is { } status && status != folder.Status;
             },
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        RaiseIf(statusChanged);
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateAvailabilityAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+
+        var statusChanged = await writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var stored = await StoredStatusAsync(db, folder.Id, token).ConfigureAwait(false);
+                var status = folder.Status;
+                var changedAt = folder.StatusChangedAt;
+                var label = folder.VolumeLabel;
+                var handle = folder.PlatformHandle;
+
+                // Matched on the root too: a folder relinked while the check probed its old root keeps what the relink stored.
+                var updated = await db.Folders.Where(row => row.Id == folder.Id && row.PlatformHandle == handle)
+                    .ExecuteUpdateAsync(
+                        setters => setters
+                            .SetProperty(row => row.Status, status)
+                            .SetProperty(row => row.StatusChangedAt, changedAt)
+                            .SetProperty(row => row.VolumeLabel, label),
+                        token)
+                    .ConfigureAwait(false);
+                return updated > 0 && stored is { } old && old != status;
+            },
+            cancellationToken).ConfigureAwait(false);
+        RaiseIf(statusChanged);
     }
 
     /// <inheritdoc />
@@ -77,8 +112,47 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
     }
 
     /// <inheritdoc />
+    public Task<(int Moved, bool PartialDeleted)> SplitIntoAsync(IndexedFolder folder, Id<IndexedFolder> partialId, string relativePath, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+
+        var prefix = relativePath.Trim('/') + "/";
+        return writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var items = await db.MediaItems.Where(item => item.FolderId == partialId).ToListAsync(token).ConfigureAwait(false);
+
+                // Paths compare like the platform's folder handles, which ignore case on Windows.
+                var moved = items.Where(item => item.Path.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
+                foreach (var item in moved)
+                {
+                    item.Relocate(folder.Id, RelativePath.From(item.Path.Value[prefix.Length..]));
+                }
+
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                var deleted = moved.Count == items.Count
+                    && await db.Folders.Where(partial => partial.Id == partialId).ExecuteDeleteAsync(token).ConfigureAwait(false) > 0;
+                return (moved.Count, deleted);
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default) =>
         writer.ExecuteAsync(
             async (db, token) => await db.Folders.Where(folder => folder.Id == id).ExecuteDeleteAsync(token).ConfigureAwait(false) > 0,
             cancellationToken);
+
+    private static async Task<FolderStatus?> StoredStatusAsync(LibraryDbContext db, Id<IndexedFolder> id, CancellationToken cancellationToken) =>
+        (await db.Folders.AsNoTracking().Where(row => row.Id == id).Select(row => new { row.Status })
+            .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false))?.Status;
+
+    private void RaiseIf(bool statusChanged)
+    {
+        if (statusChanged)
+        {
+            StatusChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
 }

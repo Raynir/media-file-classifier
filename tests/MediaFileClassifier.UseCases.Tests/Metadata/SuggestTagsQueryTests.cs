@@ -88,5 +88,7 @@ public sealed class SuggestTagsQueryTests : IDisposable
         public Task RemoveTagAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, TagName tag, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<IReadOnlyList<(TagName Tag, int ItemCount)>> GetUserTagsAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task RemoveAiResultsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

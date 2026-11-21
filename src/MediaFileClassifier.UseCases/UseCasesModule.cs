@@ -36,6 +36,8 @@ public static class UseCasesModule
         services.TryAddSingleton<Search.Filters.FilterStatePersistence>();
         services.TryAddSingleton<Search.SearchResults.SortStatePersistence>();
         services.AddSetting(Search.Filters.FilterSettings.RestoreOnStart);
+        services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderStatusChanges>();
+        services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderAvailabilityMonitor>();
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
@@ -44,6 +46,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Search.SearchResults.SearchResultSource>();
         services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<Search.SearchResults.SearchResultSource>());
         services.TryAddSingleton<Search.FindSimilar.AnalyzeNow>();
+        services.AddSetting(KnownSettings.InformationalNotifications);
         services.AddSetting(KnownSettings.OpenAiCompatibleEndpoint);
         services.AddSetting(KnownSettings.AnalyzeAutomatically);
         services.TryAddSingleton<Analysis.AutoAnalyze.AutoAnalyzeBatcher>();
@@ -56,11 +59,13 @@ public static class UseCasesModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, MediaStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ContentHashStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RemoveFolderStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Exclusions.ExclusionCleanupStage>());
         services.TryAddSingleton<MoveDetector>();
         services.TryAddSingleton<Reconciler>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RescanCheckStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RefreshMediaStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Maintenance.RegenerateThumbnails.RegenerateThumbnailStage>());
         services.TryAddSingleton<Tags.TagNormalizer>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Analysis.Pipeline.AnalysisStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, ImportExceptionClassifier>());

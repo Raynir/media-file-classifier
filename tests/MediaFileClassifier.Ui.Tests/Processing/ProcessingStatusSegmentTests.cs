@@ -49,8 +49,8 @@ public sealed class ProcessingStatusSegmentTests
         Assert.Equal("Processing paused", segment.Text);
 
         jobs.Resume();
-        clock.Advance(ProgressFeed.Interval);
         progress.Set(ProgressSummary.Empty);
+        clock.Advance(ProgressFeed.Interval);
         Assert.False(segment.IsVisible);
     }
 

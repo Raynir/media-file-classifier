@@ -31,6 +31,7 @@ public sealed partial class ShellLayout : ObservableObject
     /// </summary>
     public ShellLayout()
     {
+        Changed += (_, _) => StateChanged?.Invoke(this, EventArgs.Empty);
         Navigation.PropertyChanged += OnPanelChanged;
         Details.PropertyChanged += OnPanelChanged;
     }
@@ -39,6 +40,11 @@ public sealed partial class ShellLayout : ObservableObject
     /// Raised when anything in the layout changes.
     /// </summary>
     public event EventHandler? Changed;
+
+    /// <summary>
+    /// Raised when anything in the layout changes, also the parts that aren't saved: the breakpoint and the open drawers.
+    /// </summary>
+    public event EventHandler? StateChanged;
 
     /// <summary>
     /// Gets the navigation panel on the left. Collapsed, it's an icon rail.
@@ -208,7 +214,13 @@ public sealed partial class ShellLayout : ObservableObject
             OnPropertyChanged(nameof(IsAnyDrawerOpen));
         }
 
-        Changed?.Invoke(this, EventArgs.Empty);
+        StateChanged?.Invoke(this, EventArgs.Empty);
+
+        // Only the saved parts of a panel are a change to save.
+        if (e.PropertyName is nameof(SidePanel.IsVisible) or nameof(SidePanel.IsCollapsed) or nameof(SidePanel.Width))
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
     }
 }
 

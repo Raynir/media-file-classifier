@@ -112,7 +112,7 @@ public sealed class ShellCommands : ICommandContributor
             }),
         ];
         registry.Add(new AppCommand(ResetLayout, CommandGroups.View, 150, "Command_ResetLayout", layout.Reset));
-        layout.Changed += (_, _) =>
+        layout.StateChanged += (_, _) =>
         {
             foreach (var command in layoutCommands)
             {

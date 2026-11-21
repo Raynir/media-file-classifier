@@ -28,6 +28,11 @@ public partial class MainView : UserControl
         AddHandler(DragDrop.DropEvent, OnDrop, handledEventsToo: true);
     }
 
+    // The drawer takes at most the window's width less this, so the scrim stays there to click.
+    private const double DrawerGutter = 48;
+
+    private TopLevel? windowWithHandler;
+
     private DropImportViewModel? Drops => (DataContext as MainWindowViewModel)?.Drops;
 
     private ShellLayout? Layout => (DataContext as MainWindowViewModel)?.Layout;
@@ -37,6 +42,13 @@ public partial class MainView : UserControl
     {
         base.OnSizeChanged(e);
         Layout?.UpdateWidth(e.NewSize.Width);
+        foreach (var host in new[] { this.FindControl<Panel>("NavigationHost"), this.FindControl<Panel>("DetailsHost") })
+        {
+            if (host is not null)
+            {
+                host.MaxWidth = Math.Max(0, e.NewSize.Width - DrawerGutter);
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -52,13 +64,15 @@ public partial class MainView : UserControl
         base.OnAttachedToVisualTree(e);
 
         // On the window, so Escape works wherever the focus is, also when it's on the window itself.
-        TopLevel.GetTopLevel(this)?.AddHandler(KeyDownEvent, OnWindowKeyDown);
+        windowWithHandler = TopLevel.GetTopLevel(this);
+        windowWithHandler?.AddHandler(KeyDownEvent, OnWindowKeyDown);
     }
 
     /// <inheritdoc />
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        TopLevel.GetTopLevel(this)?.RemoveHandler(KeyDownEvent, OnWindowKeyDown);
+        windowWithHandler?.RemoveHandler(KeyDownEvent, OnWindowKeyDown);
+        windowWithHandler = null;
         base.OnDetachedFromVisualTree(e);
     }
 

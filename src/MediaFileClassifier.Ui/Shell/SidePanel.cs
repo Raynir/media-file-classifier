@@ -43,14 +43,12 @@ public sealed partial class SidePanel : ObservableObject
     /// Gets or sets a value indicating whether the panel is shown.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExpanded))]
     public partial bool IsVisible { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a value indicating whether the panel is collapsed to its icon rail or strip.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExpanded))]
     public partial bool IsCollapsed { get; set; }
 
     /// <summary>
@@ -153,11 +151,8 @@ public sealed partial class SidePanel : ObservableObject
     /// </summary>
     public void Hide()
     {
-        if (IsDrawer)
-        {
-            IsDrawerOpen = false;
-        }
-        else
+        IsDrawerOpen = false;
+        if (Mode != PanelMode.Drawer)
         {
             IsVisible = false;
         }

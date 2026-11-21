@@ -174,4 +174,36 @@ public sealed class BreakpointTests
 
         Assert.True(layout.Details is { IsShown: false, NeedsOpenButton: true });
     }
+
+    [Fact]
+    public void Hide_OnARailWithItsDrawerOpen_ClosesTheDrawerAndHidesTheRail()
+    {
+        layout.UpdateWidth(900);
+        layout.Navigation.Expand();
+
+        layout.Navigation.Hide();
+
+        Assert.True(layout.Navigation is { IsShown: false, IsVisible: false, NeedsOpenButton: true });
+    }
+
+    [Fact]
+    public void OpeningADrawer_RaisesTheStateChange_ButIsNotAChangeToSave()
+    {
+        layout.UpdateWidth(720);
+        var saved = 0;
+        var state = 0;
+        layout.Changed += (_, _) => saved++;
+        layout.StateChanged += (_, _) => state++;
+
+        layout.Details.Expand();
+        layout.Details.Hide();
+
+        Assert.Equal(0, saved);
+        Assert.True(state > 0);
+
+        layout.UpdateWidth(1280);
+        layout.Details.ResizeTo(400, double.PositiveInfinity);
+
+        Assert.True(saved > 0);
+    }
 }

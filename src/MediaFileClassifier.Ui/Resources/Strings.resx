@@ -2363,4 +2363,58 @@
   <data name="Editor_Tag_Suggestion_Dismiss" xml:space="preserve">
     <value>Dismiss suggestion</value>
   </data>
+  <data name="Command_RefreshIndex" xml:space="preserve">
+    <value>Refresh search _index</value>
+  </data>
+  <data name="Command_RegenerateThumbnails" xml:space="preserve">
+    <value>Regenerate _thumbnails…</value>
+  </data>
+  <data name="Command_CheckIntegrity" xml:space="preserve">
+    <value>Check library _integrity</value>
+  </data>
+  <data name="Maintenance_RefreshingIndex" xml:space="preserve">
+    <value>Refreshing the search index…</value>
+  </data>
+  <data name="Maintenance_CheckingIntegrity" xml:space="preserve">
+    <value>Checking the library…</value>
+  </data>
+  <data name="Maintenance_Progress" xml:space="preserve">
+    <value>{0} {1}%</value>
+  </data>
+  <data name="Maintenance_StopToolTip" xml:space="preserve">
+    <value>Click to stop</value>
+  </data>
+  <data name="Maintenance_StopRefresh" xml:space="preserve">
+    <value>Stop refreshing the search index?</value>
+  </data>
+  <data name="Maintenance_StopCheck" xml:space="preserve">
+    <value>Stop checking the library?</value>
+  </data>
+  <data name="Maintenance_Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Maintenance_KeepGoing" xml:space="preserve">
+    <value>Keep going</value>
+  </data>
+  <data name="Maintenance_Busy" xml:space="preserve">
+    <value>Another library task is running. Try again when it has finished.</value>
+  </data>
+  <data name="Maintenance_IndexRefreshed" xml:space="preserve">
+    <value>The search index was refreshed.</value>
+  </data>
+  <data name="Maintenance_ThumbnailsComplete" xml:space="preserve">
+    <value>Every item already has its thumbnails.</value>
+  </data>
+  <data name="Maintenance_ThumbnailsBusy" xml:space="preserve">
+    <value>Thumbnails are already being regenerated. You can follow them in the processing queue.</value>
+  </data>
+  <data name="Stage_thumbnails.regenerate" xml:space="preserve">
+    <value>Regenerating thumbnails</value>
+  </data>
+  <data name="Integrity_Healthy" xml:space="preserve">
+    <value>The library is in good health. No problems were found.</value>
+  </data>
+  <data name="Integrity_Damaged" xml:space="preserve">
+    <value>The library database is damaged. Search, browsing and saving changes may fail.</value>
+  </data>
 </root>

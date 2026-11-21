@@ -5,6 +5,7 @@ using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Maintenance;
 using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.Navigation;
 using MediaFileClassifier.Ui.Rescan;
@@ -141,6 +142,12 @@ public static class UiModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
         services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());
+
+        // Library maintenance (E02-S06).
+        services.AddSingleton<MaintenanceRunner>();
+        services.TryAddSingleton<MaintenanceDialogs>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, MaintenanceCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, MaintenanceStatusSegment>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RetryCommands>());
         services.TryAddSingleton<IAnalysisDialogs, AnalysisDialogs>();
         services.TryAddSingleton<AnalysisRunner>();

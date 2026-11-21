@@ -91,7 +91,11 @@ public static class UiModule
             .Register<ModelManagementViewModel, ModelManagementView>()
             .Register<HardwareSettingsViewModel, HardwareSettingsView>()
             .Register<AnalysisProfileViewModel, AnalysisProfileView>()
-            .Register<EndpointsViewModel, EndpointsView>());
+            .Register<EndpointsViewModel, EndpointsView>()
+            .Register<LibraryInformationSectionViewModel, LibraryInformationSectionView>()
+            .Register<LibraryMaintenanceSectionViewModel, LibraryMaintenanceSectionView>()
+            .Register<LibraryFoldersSectionViewModel, LibraryEmbeddedSectionView>()
+            .Register<LibraryExcludedItemsSectionViewModel, LibraryEmbeddedSectionView>());
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
@@ -145,6 +149,20 @@ public static class UiModule
         services.AddSingleton<EndpointsViewModel>();
         services.AddSingleton(provider => new CustomSettingsSection(
             SettingCategories.AiModels, "Endpoints_Heading", provider.GetRequiredService<EndpointsViewModel>) { Order = 1300 });
+
+        // The Library category (E17-S04): sections that host the library views and commands.
+        services.AddSingleton<LibraryInformationSectionViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.Library, "LibrarySection_InformationHeading", provider.GetRequiredService<LibraryInformationSectionViewModel>) { Order = 10 });
+        services.AddSingleton<LibraryFoldersSectionViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.Library, "LibrarySection_FoldersHeading", provider.GetRequiredService<LibraryFoldersSectionViewModel>) { Order = 20 });
+        services.AddSingleton<LibraryMaintenanceSectionViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.Library, "LibrarySection_MaintenanceHeading", provider.GetRequiredService<LibraryMaintenanceSectionViewModel>) { Order = 300 });
+        services.AddSingleton<LibraryExcludedItemsSectionViewModel>();
+        services.AddSingleton(provider => new CustomSettingsSection(
+            SettingCategories.Library, "LibrarySection_ExcludedHeading", provider.GetRequiredService<LibraryExcludedItemsSectionViewModel>) { Order = 400 });
 
         // Navigation panel (E13-S02). Features add sections through INavigationContributor.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INavigationContributor, LibraryNavigation>());

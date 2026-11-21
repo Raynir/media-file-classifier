@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Settings"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Settings.LibraryMaintenanceSectionView"
+             x:DataType="vm:LibraryMaintenanceSectionViewModel">
+  <!-- The maintenance commands of the Library menu (E02-S06) as buttons, each with what it does. -->
+  <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource Space.M}" RowSpacing="{DynamicResource Space.S}">
+    <Button x:Name="RefreshIndexButton" Grid.Row="0" MinWidth="220" Content="{Binding RefreshIndex.PlainLabel}" Command="{Binding RefreshIndex}" ToolTip.Tip="{Binding RefreshIndex.ToolTip}" />
+    <TextBlock Grid.Row="0" Grid.Column="1" Classes="Secondary" Text="{l:Loc LibrarySection_RefreshIndexHint}" VerticalAlignment="Center" TextWrapping="Wrap" />
+    <Button x:Name="RegenerateThumbnailsButton" Grid.Row="1" MinWidth="220" Content="{Binding RegenerateThumbnails.PlainLabel}" Command="{Binding RegenerateThumbnails}" ToolTip.Tip="{Binding RegenerateThumbnails.ToolTip}" />
+    <TextBlock Grid.Row="1" Grid.Column="1" Classes="Secondary" Text="{l:Loc LibrarySection_RegenerateThumbnailsHint}" VerticalAlignment="Center" TextWrapping="Wrap" />
+    <Button x:Name="CheckIntegrityButton" Grid.Row="2" MinWidth="220" Content="{Binding CheckIntegrity.PlainLabel}" Command="{Binding CheckIntegrity}" ToolTip.Tip="{Binding CheckIntegrity.ToolTip}" />
+    <TextBlock Grid.Row="2" Grid.Column="1" Classes="Secondary" Text="{l:Loc LibrarySection_CheckIntegrityHint}" VerticalAlignment="Center" TextWrapping="Wrap" />
+  </Grid>
+</UserControl>

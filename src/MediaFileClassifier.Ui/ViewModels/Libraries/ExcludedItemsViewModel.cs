@@ -38,6 +38,13 @@ public sealed partial class ExcludedItemsViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the view is hosted in the Settings "Library" page, which has its own
+    /// heading and no Close button.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsEmbedded { get; set; }
+
+    /// <summary>
     /// Raised when the user closes the view.
     /// </summary>
     public event EventHandler? CloseRequested;

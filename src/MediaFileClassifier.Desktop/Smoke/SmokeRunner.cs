@@ -108,6 +108,13 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 window.Width = width;
                 window.Height = height;
                 return null;
+            case "dialog-size":
+                // Sizes the open dialog or settings window, e.g. to show a long page whole (MFC-133).
+                SmokeScript.TryParseSize(step.Argument, out var dialogWidth, out var dialogHeight);
+                var sized = Dialog() ?? throw new SmokeStepException("no dialog is open");
+                sized.Width = dialogWidth;
+                sized.Height = dialogHeight;
+                return null;
             case "select":
                 return await SelectAsync(step.Argument);
             case "seed-keyframes":
@@ -183,11 +190,16 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 return null;
             case "dialog-select":
-                // Selects a folder in the folders dialog's list by its name, as a click does (MFC-124).
+                // Selects a folder in the folders dialog's list by its name, or a category in the settings window's sidebar by its ID, as a click does (MFC-124, MFC-133).
                 var list = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants().OfType<ListBox>().FirstOrDefault()
                     ?? throw new SmokeStepException("the dialog has no list");
-                list.SelectedItem = list.Items.OfType<Ui.ViewModels.Libraries.IndexedFolderViewModel>().FirstOrDefault(row => row.Name == step.Argument)
-                    ?? throw new SmokeStepException($"the list has no folder '{step.Argument}'");
+                list.SelectedItem = list.Items.OfType<object>().FirstOrDefault(row => row switch
+                    {
+                        Ui.ViewModels.Libraries.IndexedFolderViewModel folder => folder.Name == step.Argument,
+                        Ui.ViewModels.Settings.SettingsCategoryViewModel category => category.Category == step.Argument,
+                        _ => false,
+                    })
+                    ?? throw new SmokeStepException($"the list has no folder or settings category '{step.Argument}'");
                 return null;
             case "import-files":
                 return ImportFiles(step.Argument);

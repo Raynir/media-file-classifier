@@ -13,7 +13,7 @@ dashboard comes later (E15).
   current view at the left end.
 - **Library information window**: a small non-modal window owned by the main window, one at a time, like the
   processing queue. Opened from the summary segment and from **View › Library information**. Its content is a
-  self-contained view (`LibraryInfoView`), so the Settings "Library" page (MFC-133) can host it too.
+  self-contained view (`LibraryInfoView`), so the Settings "Library" page hosts it too (MFC-133, `LibraryInformationSectionViewModel`, which adds the library location with Reveal and Copy path).
 
 ## Counting rules
 

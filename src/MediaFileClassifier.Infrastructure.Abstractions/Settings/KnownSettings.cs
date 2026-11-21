@@ -18,6 +18,16 @@ public static class KnownSettings
     };
 
     /// <summary>
+    /// Whether informational notifications show in the app (E15-S01, E17-S05). Errors and warnings always show.
+    /// </summary>
+    public static readonly BooleanSetting InformationalNotifications = new(
+        "general.informationalNotifications", SettingScope.App, SettingCategories.General, "Setting_InformationalNotifications", defaultValue: true)
+    {
+        HelpKey = "Setting_InformationalNotifications_Help",
+        Order = 120,
+    };
+
+    /// <summary>
     /// Whether new items are analysed automatically after import (spec 1.4). Mirrors
     /// <c>LibrarySettings.AnalyzeAutomatically</c>.
     /// </summary>

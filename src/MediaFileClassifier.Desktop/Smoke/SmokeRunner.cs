@@ -1,6 +1,7 @@
 #if DEBUG
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -14,6 +15,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
@@ -22,6 +24,7 @@ using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
+using MediaFileClassifier.UseCases.Settings;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -130,6 +133,9 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                     playback.SetUnavailable(KnownCapabilities.VideoPlayback, new CapabilityReason(CapabilityReasons.DependencyFailedToLoad, ["LibVLC"]));
                 }
 
+                return null;
+            case "setting":
+                SetSetting(step.Argument);
                 return null;
             case "command":
                 var command = services.GetRequiredService<CommandRegistry>()[step.Argument];
@@ -251,6 +257,31 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         }
 
         throw new SmokeStepException($"no item named '{fileName}' among the {count} results");
+    }
+
+    private void SetSetting(string argument)
+    {
+        var space = argument.IndexOf(' ', StringComparison.Ordinal);
+        var key = argument[..space];
+        var text = argument[(space + 1)..].Trim();
+        var definition = services.GetRequiredService<SettingRegistry>().Find(key)
+            ?? throw new SmokeStepException($"no setting '{key}'");
+        JsonElement json;
+        try
+        {
+            json = JsonDocument.Parse(text).RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            json = JsonSerializer.SerializeToElement(text);
+        }
+
+        if (!definition.TryDeserialize(json, out var value))
+        {
+            throw new SmokeStepException($"'{text}' isn't a valid value for {key}");
+        }
+
+        services.GetRequiredService<ISettingsStore>().SetValue(definition, value);
     }
 
     private string? PressKey(string gestureText)

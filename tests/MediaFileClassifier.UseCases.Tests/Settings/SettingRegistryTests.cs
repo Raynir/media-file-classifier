@@ -1,5 +1,7 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Testing.Settings;
+using MediaFileClassifier.UseCases.Libraries.OpenLibrary;
+using MediaFileClassifier.UseCases.Search.Filters;
 using MediaFileClassifier.UseCases.Settings;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -39,6 +41,22 @@ public sealed class SettingRegistryTests
         Assert.Contains(KnownSettings.OpenAiCompatibleEndpoint, registry.All);
         Assert.Contains(KnownSettings.AnalyzeAutomatically, registry.All);
         Assert.Contains(KnownSettings.RetainedPreviousRuns, registry.All);
+    }
+
+    [Fact]
+    public void AddUseCases_RegistersTheGeneralSettings_OnByDefaultExceptRestoreFilters()
+    {
+        using var provider = new ServiceCollection().AddUseCases().BuildServiceProvider();
+        var registry = provider.GetRequiredService<SettingRegistry>();
+        var store = new InMemorySettingsStore();
+
+        Assert.Contains(LibraryStartupSettings.OpenLastLibrary, registry.All);
+        Assert.Contains(FilterSettings.RestoreOnStart, registry.All);
+        Assert.Contains(KnownSettings.InformationalNotifications, registry.All);
+        Assert.All(registry.All.Where(setting => setting.Category == SettingCategories.General), setting => Assert.Equal(SettingScope.App, setting.Scope));
+        Assert.True(store.Get(KnownSettings.InformationalNotifications));
+        Assert.True(store.Get(LibraryStartupSettings.OpenLastLibrary));
+        Assert.False(store.Get(FilterSettings.RestoreOnStart));
     }
 
     [Fact]

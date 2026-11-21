@@ -129,6 +129,116 @@ public sealed class ShellViewTests
         Assert.True(viewModel.Layout.Details.IsVisible);
     });
 
+    [Fact]
+    public Task ResizingTheWindow_MovesBetweenTheThreeLayouts() => RunInWindowAsync((window, viewModel) =>
+    {
+        Assert.Equal(LayoutBreakpoint.Wide, viewModel.Layout.Breakpoint);
+        Assert.Equal(240, Find<Panel>(window, "NavigationHost").Bounds.Width);
+        Assert.True(Find<Panel>(window, "DetailsHost").IsEffectivelyVisible);
+
+        window.Width = 1000;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(LayoutBreakpoint.Medium, viewModel.Layout.Breakpoint);
+        Assert.Equal(66, Find<Panel>(window, "NavigationHost").Bounds.Width);
+        Assert.False(Find<Panel>(window, "DetailsHost").IsVisible);
+
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(LayoutBreakpoint.Narrow, viewModel.Layout.Breakpoint);
+        Assert.False(Find<Panel>(window, "NavigationHost").IsVisible);
+
+        window.Width = 1280;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(240, Find<Panel>(window, "NavigationHost").Bounds.Width);
+        Assert.True(Find<Panel>(window, "DetailsHost").IsEffectivelyVisible);
+    });
+
+    [Fact]
+    public Task Drawer_OpensOverTheBrowser_WithoutResizingIt() => RunInWindowAsync((window, viewModel) =>
+    {
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+        var browserWidth = Find<Border>(window, "BrowserArea").Bounds.Width;
+        Assert.False(Find<Border>(window, "DrawerScrim").IsEffectivelyVisible);
+
+        viewModel.Layout.Details.ToggleVisible();
+        Dispatcher.UIThread.RunJobs();
+
+        var drawer = Find<Panel>(window, "DetailsHost");
+        Assert.True(drawer.IsEffectivelyVisible);
+        Assert.Equal(viewModel.Layout.Details.Width, drawer.Bounds.Width);
+        Assert.True(Find<Border>(window, "DrawerScrim").IsEffectivelyVisible);
+        Assert.Equal(browserWidth, Find<Border>(window, "BrowserArea").Bounds.Width);
+        Assert.Equal(window.Bounds.Width, drawer.TranslatePoint(new Point(drawer.Bounds.Width, 0), window)!.Value.X);
+    });
+
+    [Fact]
+    public Task Drawer_ClosesOnAScrimClick_AndOnEscape() => RunInWindowAsync((window, viewModel) =>
+    {
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+        viewModel.Layout.Navigation.Expand();
+        Dispatcher.UIThread.RunJobs();
+        var scrim = Find<Border>(window, "DrawerScrim");
+
+        var point = scrim.TranslatePoint(new Point(scrim.Bounds.Width - 5, scrim.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(viewModel.Layout.IsAnyDrawerOpen);
+
+        viewModel.Layout.Details.Expand();
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(viewModel.Layout.IsAnyDrawerOpen);
+        Assert.False(Find<Panel>(window, "DetailsHost").IsVisible);
+    });
+
+    [Fact]
+    public Task OpenButtons_ShowForClosedDrawers() => RunInWindowAsync((window, viewModel) =>
+    {
+        var buttons = window.GetVisualDescendants().OfType<Button>()
+            .Where(button => button.Command == viewModel.Commands[ShellCommands.ToggleNavigation]
+                || button.Command == viewModel.Commands[ShellCommands.ToggleDetails])
+            .ToList();
+        Assert.All(buttons, button => Assert.False(button.IsEffectivelyVisible));
+
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(2, buttons.Count(button => button.IsEffectivelyVisible));
+    });
+
+    [Fact]
+    public Task AtTheMinimumWidth_TheMenuFitsAndBothPanelsCanBeOpened() => RunInWindowAsync((window, viewModel) =>
+    {
+        window.Width = window.MinWidth;
+        Dispatcher.UIThread.RunJobs();
+
+        var menu = Find<Menu>(window, "MainMenu");
+        Assert.True(menu.IsEffectivelyVisible);
+        Assert.True(menu.Bounds.Width <= window.Bounds.Width);
+        Assert.All(menu.GetVisualChildren().OfType<MenuItem>().Concat(menu.GetVisualDescendants().OfType<MenuItem>().Where(item => item.Parent == menu)),
+            item => Assert.True(item.Bounds.Right <= window.Bounds.Width));
+
+        // The commands in the menu open both drawers, and the panels' own buttons close them again.
+        foreach (var (id, panel) in new[] { (ShellCommands.ToggleNavigation, viewModel.Layout.Navigation), (ShellCommands.ToggleDetails, viewModel.Layout.Details) })
+        {
+            ((System.Windows.Input.ICommand)viewModel.Commands[id]).Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(panel.IsExpanded);
+
+            ((System.Windows.Input.ICommand)viewModel.Commands[id]).Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(panel.IsShown);
+        }
+    });
+
     private static Task RunInWindowAsync(Action<Window, MainWindowViewModel> test) => TestApp.RunAsync(() =>
     {
         using var services = new ServiceCollection()

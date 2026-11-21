@@ -181,7 +181,8 @@ public sealed class ToolbarViewTests
         toggle.Command!.Execute(null);
         Dispatcher.UIThread.RunJobs();
 
-        Assert.False(viewModel.Layout.Details.IsVisible);
+        // At 720 the details panel is a drawer, so the command opens it.
+        Assert.True(viewModel.Layout.Details.IsExpanded);
     });
 
     [Fact]

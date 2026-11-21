@@ -69,6 +69,22 @@ internal sealed class FakeLibraryStore : ILibraryStore
         Restored.Add((libraryDirectory, backupPath));
         return Task.CompletedTask;
     }
+
+    public List<LibraryBackup> Backups { get; } = [];
+
+    public IReadOnlyList<LibraryBackup> GetBackups(string libraryDirectory) => Backups;
+
+    public Task<IntegrityCheckResult> CheckBackupAsync(string backupPath, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new IntegrityCheckResult([]));
+
+    public Task<string> ReplaceDamagedDatabaseAsync(string libraryDirectory, string backupPath, CancellationToken cancellationToken = default)
+    {
+        Restored.Add((libraryDirectory, backupPath));
+        return Task.FromResult(Path.Combine(libraryDirectory, LibraryLayout.BackupsFolderName, "library-damaged.db"));
+    }
+
+    public Task PutBackDamagedDatabaseAsync(string libraryDirectory, string damagedPath, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
 }
 
 /// <summary>

@@ -163,12 +163,24 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                     .OfType<Button>()
                     .FirstOrDefault(candidate => candidate.IsEffectivelyVisible && (candidate.Name == step.Argument || candidate.Content as string == step.Argument))
                     ?? throw new SmokeStepException($"the dialog has no visible button '{step.Argument}'");
-                if (button.Command is not { } buttonCommand || !buttonCommand.CanExecute(button.CommandParameter))
+                if (button.Command is { } buttonCommand)
                 {
-                    throw new SmokeStepException($"the button '{step.Argument}' is disabled or has no command");
+                    if (!buttonCommand.CanExecute(button.CommandParameter))
+                    {
+                        throw new SmokeStepException($"the button '{step.Argument}' is disabled");
+                    }
+
+                    buttonCommand.Execute(button.CommandParameter);
+                    return null;
                 }
 
-                buttonCommand.Execute(button.CommandParameter);
+                // A dialog that handles Click itself, such as LibraryMessageWindow (MFC-121).
+                if (!button.IsEffectivelyEnabled)
+                {
+                    throw new SmokeStepException($"the button '{step.Argument}' is disabled");
+                }
+
+                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 return null;
             case "dialog-shot":
                 var dialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
@@ -196,6 +208,11 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             case "wait-for":
                 await WaitForAsync(step);
                 return null;
+            case "damage-library":
+                return await DamageLibraryAsync();
+            case "allow-error":
+                log.AllowErrors(step.Argument);
+                return null;
             case "shot":
                 Directory.CreateDirectory(options.OutputDirectory);
                 var path = Path.Combine(options.OutputDirectory, step.Argument + ".png");
@@ -204,6 +221,45 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             default:
                 throw new SmokeStepException("unknown step");
         }
+    }
+
+    /// <summary>
+    /// Damages the open library on purpose, to show the integrity report (E02-S06-T03): backs the database up as a
+    /// migration backup, closes the library, writes garbage over the root page of an index of the items, and opens
+    /// it again. Page 1 stays intact, so the library still opens; the integrity check finds the damage.
+    /// </summary>
+    private async Task<string> DamageLibraryAsync()
+    {
+        var session = services.GetRequiredService<ILibrarySession>();
+        var library = session.Current ?? throw new SmokeStepException("no library is open");
+        var layout = library.Layout;
+        var backup = Path.Combine(
+            layout.BackupsDirectory,
+            string.Create(CultureInfo.InvariantCulture, $"library-v0-{DateTimeOffset.UtcNow.AddHours(-1):yyyyMMdd-HHmmss-fff}.db"));
+        await library.Maintenance.BackupAsync(backup);
+        await session.SetCurrentAsync(null);
+        await Task.Run(() => CorruptIndexPage(layout.DatabasePath));
+        await services.GetRequiredService<LibraryOpener>().OpenAsync(layout.RootDirectory);
+        return backup;
+    }
+
+    private static void CorruptIndexPage(string databasePath)
+    {
+        long pageSize;
+        long rootPage;
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={databasePath};Mode=ReadOnly;Pooling=False"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA page_size";
+            pageSize = (long)command.ExecuteScalar()!;
+            command.CommandText = "SELECT rootpage FROM sqlite_master WHERE name = 'IX_media_item_hashes_content_hash'";
+            rootPage = (long)command.ExecuteScalar()!;
+        }
+
+        using var file = new FileStream(databasePath, FileMode.Open, FileAccess.Write);
+        file.Position = (rootPage - 1) * pageSize;
+        file.Write(Enumerable.Repeat((byte)0xFF, (int)pageSize).ToArray());
     }
 
     private async Task<string?> LibraryAsync(SmokeStep step)

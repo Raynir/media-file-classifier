@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
+using Microsoft.Data.Sqlite;
 
 namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 
@@ -17,8 +18,16 @@ internal sealed class LibraryMaintenance(LibraryConnectionFactory connections, L
         Task.Run(
             async () =>
             {
-                await using var connection = await connections.OpenAsync(cancellationToken).ConfigureAwait(false);
-                return new IntegrityCheckResult(await SqliteBackup.CheckIntegrityAsync(connection, cancellationToken).ConfigureAwait(false));
+                try
+                {
+                    await using var connection = await connections.OpenAsync(cancellationToken).ConfigureAwait(false);
+                    return new IntegrityCheckResult(await SqliteBackup.CheckIntegrityAsync(connection, cancellationToken).ConfigureAwait(false));
+                }
+                catch (SqliteException exception) when (SqliteBackup.IsDamaged(exception))
+                {
+                    // A database too damaged to check is the worst result of the check, not a failure of it.
+                    return new IntegrityCheckResult([exception.Message]);
+                }
             },
             cancellationToken);
 

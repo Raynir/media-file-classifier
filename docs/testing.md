@@ -136,8 +136,10 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`. Fails if it's disabled. |
 | `dialog-shot <name>` | Saves `<name>.png` of the open dialog. |
 | `capability video-playback on\|off` | Turns the VideoPlayback capability on or off, to see the default-app fallback (D026). |
+| `damage-library` | Backs up the open library's database as a migration backup, then writes garbage over an index page and opens the library again, so the integrity check finds damage (MFC-121). |
+| `allow-error <logger>` | Errors logged by that logger (its full type name) no longer fail the run, e.g. the integrity check's report of the damage. |
 
-`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app). Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
+`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app); `tools/ui-smoke/library-maintenance.smoke` the regenerate thumbnails dialog, the integrity report and a backup restore. Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
 
 ## Pull requests
 

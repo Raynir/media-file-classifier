@@ -118,6 +118,8 @@ internal sealed class FakeThumbnailCache : IThumbnailCache
         throw new NotSupportedException();
 
     public void Invalidate(LibraryLayout library, Id<MediaItem> itemId) => throw new NotSupportedException();
+
+    public int Clear(LibraryLayout library, CancellationToken cancellationToken = default) => 0;
 }
 
 /// <summary>

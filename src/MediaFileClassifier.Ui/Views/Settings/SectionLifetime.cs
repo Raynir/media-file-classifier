@@ -19,7 +19,7 @@ internal static class SectionLifetime
         {
             await section.AttachAsync();
         }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             // The next refresh loads it.
         }
@@ -36,7 +36,7 @@ internal static class SectionLifetime
         {
             await section.RefreshAsync();
         }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             // The next tick tries again.
         }

@@ -46,7 +46,7 @@
     <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
       <Button Content="{l:Loc ExcludedItems_Restore}" Command="{Binding RestoreCommand}" Classes="accent" />
       <Button Content="{l:Loc ExcludedItems_Forget}" Command="{Binding ForgetCommand}" />
-      <Button Content="{l:Loc ExcludedItems_Close}" Command="{Binding CloseCommand}" IsCancel="True" IsVisible="{Binding !IsEmbedded}" />
+      <Button Content="{l:Loc ExcludedItems_Close}" Command="{Binding CloseCommand}" IsCancel="{Binding !IsEmbedded}" IsVisible="{Binding !IsEmbedded}" />
     </StackPanel>
   </Grid>
 </UserControl>

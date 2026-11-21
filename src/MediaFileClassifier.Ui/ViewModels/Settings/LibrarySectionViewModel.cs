@@ -135,9 +135,9 @@ public abstract partial class LibrarySectionViewModel : ViewModelBase
         {
             await LoadAsync();
         }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            // The library closed again meanwhile; the next change or refresh loads it.
+            // The library closed again or a folder is unreachable meanwhile; the next change or refresh loads it.
         }
     }
 }

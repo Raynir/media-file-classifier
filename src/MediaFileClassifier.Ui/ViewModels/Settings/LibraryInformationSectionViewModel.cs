@@ -107,5 +107,16 @@ public sealed partial class LibraryInformationSectionViewModel : LibrarySectionV
     }
 
     [RelayCommand(CanExecute = nameof(HasLocation))]
-    private Task CopyPathAsync() => clipboard.SetTextAsync(Location);
+    private async Task CopyPathAsync()
+    {
+        try
+        {
+            await clipboard.SetTextAsync(Location);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // Another program may hold the clipboard; the user can try again.
+            logger.LogWarning(exception, "Couldn't copy the library path");
+        }
+    }
 }

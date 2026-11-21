@@ -120,7 +120,7 @@
     </Border>
 
     <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}" IsVisible="{Binding !IsEmbedded}">
-      <Button Content="{l:Loc Folders_Close}" Command="{Binding CloseCommand}" IsCancel="True" />
+      <Button Content="{l:Loc Folders_Close}" Command="{Binding CloseCommand}" IsCancel="{Binding !IsEmbedded}" />
     </StackPanel>
   </Grid>
 </UserControl>

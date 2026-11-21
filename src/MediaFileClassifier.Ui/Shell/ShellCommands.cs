@@ -182,8 +182,8 @@ public sealed class ShellCommands : ICommandContributor
         return
         [
             Add($"view.{id}-expanded", 0, "Command_PanelExpanded", panel.Expand, () => panel.IsExpanded),
-            Add($"view.{id}-collapsed", 1, "Command_PanelCollapsed", panel.Collapse, () => panel.IsVisible && panel.IsCollapsed),
-            Add($"view.{id}-hidden", 2, "Command_PanelHidden", () => panel.IsVisible = false, () => !panel.IsVisible),
+            Add($"view.{id}-collapsed", 1, "Command_PanelCollapsed", panel.Collapse, () => panel.IsRail),
+            Add($"view.{id}-hidden", 2, "Command_PanelHidden", panel.Hide, () => !panel.IsShown),
             registry.Add(new AppCommand($"view.toggle-{id}", CommandGroups.View, order + 5, $"Command_Toggle{name}", panel.ToggleVisible)
             {
                 Submenu = submenu,

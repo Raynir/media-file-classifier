@@ -547,6 +547,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
             {
                 layout.Details.IsVisible = visible;
                 layout.Details.IsCollapsed = collapsed;
+                layout.Details.IsDrawerOpen = false;
             }
         }
         finally

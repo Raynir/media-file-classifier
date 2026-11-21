@@ -1,0 +1,86 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:n="using:MediaFileClassifier.Ui.Notifications"
+             x:Class="MediaFileClassifier.Ui.Views.Notifications.ToastHostView"
+             x:DataType="n:ToastHostViewModel"
+             HorizontalAlignment="Right"
+             VerticalAlignment="Bottom"
+             Margin="{DynamicResource Margin.ToastHost}"
+             Width="360">
+  <!--
+    Toasts (E15-S01): bottom-right, over the content and above the status bar, newest at the bottom, never modal.
+    Warnings and errors have an accent edge and stay until dismissed. There is no Figma mockup; the user approved the
+    layout in the MFC-129 session.
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.Toast">
+      <Setter Property="Background" Value="{DynamicResource Brush.Surface.Control}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+      <Setter Property="Padding" Value="12" />
+    </Style>
+    <Style Selector="Border.Toast.Warning">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Status.Missing.Foreground}" />
+    </Style>
+    <Style Selector="Border.Toast.Error">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+    </Style>
+    <Style Selector="Border.Toast.Warning PathIcon.ToastIcon">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Status.Missing.Foreground}" />
+    </Style>
+    <Style Selector="Border.Toast.Error PathIcon.ToastIcon">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Status.Error.Foreground}" />
+    </Style>
+  </UserControl.Styles>
+
+  <ItemsControl x:Name="Toasts"
+                ItemsSource="{Binding Toasts}"
+                AutomationProperties.LiveSetting="Polite"
+                AutomationProperties.Name="{l:Loc Toast_Region}">
+    <ItemsControl.ItemTemplate>
+      <DataTemplate x:DataType="n:ToastViewModel">
+        <Border Classes="Toast"
+                Classes.Warning="{Binding IsWarning}"
+                Classes.Error="{Binding IsError}"
+                AutomationProperties.Name="{Binding Message}"
+                PointerEntered="OnToastPointerEntered"
+                PointerExited="OnToastPointerExited"
+                GotFocus="OnToastGotFocus"
+                LostFocus="OnToastLostFocus">
+          <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+            <PathIcon Classes="ToastIcon"
+                      Grid.Row="0"
+                      Grid.Column="0"
+                      Margin="{DynamicResource Margin.ToastIcon}"
+                      VerticalAlignment="Top"
+                      Data="{Binding Icon}" />
+            <TextBlock Grid.Row="0"
+                       Grid.Column="1"
+                       Text="{Binding Message}"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center" />
+            <Button Grid.Row="0"
+                    Grid.Column="2"
+                    Classes="Icon"
+                    VerticalAlignment="Top"
+                    Command="{Binding DismissCommand}"
+                    ToolTip.Tip="{l:Loc Toast_Dismiss}"
+                    AutomationProperties.Name="{l:Loc Toast_Dismiss}">
+              <PathIcon Classes="Small" Data="{StaticResource Icon.Close}" />
+            </Button>
+            <Button Grid.Row="1"
+                    Grid.Column="1"
+                    Margin="{DynamicResource Margin.ToastAction}"
+                    HorizontalAlignment="Left"
+                    Content="{Binding ActionLabel}"
+                    IsVisible="{Binding HasAction}"
+                    Command="{Binding RunActionCommand}" />
+          </Grid>
+        </Border>
+      </DataTemplate>
+    </ItemsControl.ItemTemplate>
+  </ItemsControl>
+</UserControl>

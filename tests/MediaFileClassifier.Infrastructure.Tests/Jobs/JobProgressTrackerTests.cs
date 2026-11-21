@@ -79,6 +79,102 @@ public sealed class JobProgressTrackerTests
     }
 
     [Fact]
+    public void AThousandItemJob_ReportsFinishedExactlyOnce_WithItsFinalCounters()
+    {
+        var finished = new List<JobFinishedEventArgs>();
+        tracker.JobFinished += (_, e) => finished.Add(e);
+        var job = NewJob();
+        var items = Items(job, "fingerprint", 1_000);
+        tracker.AddWork(job, items);
+
+        for (var i = 0; i < items.Count - 1; i++)
+        {
+            Finish(job, items[i], i % 100 == 0 ? WorkItemState.Failed : WorkItemState.Completed);
+        }
+
+        Assert.Empty(finished);
+
+        Finish(job with { State = ProcessingJobState.Completed }, items[^1], WorkItemState.Completed);
+
+        var args = Assert.Single(finished);
+        Assert.Equal(ProcessingJobState.Completed, args.State);
+        Assert.Equal(job.Id, args.Progress.JobId);
+        Assert.Equal(new StageProgress("fingerprint", 1_000, 990, 10, false), Assert.Single(args.Progress.Stages));
+    }
+
+    [Fact]
+    public void AJobReportedFinishedBeforeAnEarlierItem_ReportsFinishedOnce_WhenTheLastItemArrives()
+    {
+        var finished = new List<JobFinishedEventArgs>();
+        tracker.JobFinished += (_, e) => finished.Add(e);
+        var job = NewJob();
+        var items = Items(job, "stage", 2);
+        tracker.AddWork(job, items);
+
+        Finish(job with { State = ProcessingJobState.Failed }, items[1], WorkItemState.Failed);
+        Assert.Empty(finished);
+        Finish(job with { State = ProcessingJobState.Running }, items[0], WorkItemState.Failed);
+
+        Assert.Equal(ProcessingJobState.Failed, Assert.Single(finished).State);
+    }
+
+    [Fact]
+    public void AFailingChangedHandler_OrJobFinishedHandler_DoesNotLoseTheEventForOthers()
+    {
+        var finished = new List<JobFinishedEventArgs>();
+        tracker.JobFinished += (_, _) => throw new InvalidOperationException("first listener fails");
+        tracker.JobFinished += (_, e) => finished.Add(e);
+        var job = NewJob();
+        var items = Items(job, "stage", 1);
+        tracker.AddWork(job, items);
+        var failOnChange = false;
+        tracker.Changed += (_, _) =>
+        {
+            if (failOnChange)
+            {
+                throw new InvalidOperationException("status bar fails");
+            }
+        };
+
+        failOnChange = true;
+        Assert.Throws<InvalidOperationException>(() => Finish(job with { State = ProcessingJobState.Completed }, items[0], WorkItemState.Completed));
+
+        Assert.Single(finished);
+    }
+
+    [Fact]
+    public void ACancelledJob_AndAClearedTracker_ReportNothing()
+    {
+        var finished = new List<JobFinishedEventArgs>();
+        tracker.JobFinished += (_, e) => finished.Add(e);
+        var cancelled = NewJob();
+        tracker.AddWork(cancelled, Items(cancelled, "stage", 2));
+        tracker.RemoveJob(cancelled.Id);
+        var other = NewJob();
+        tracker.AddWork(other, Items(other, "stage", 2));
+        tracker.Clear();
+
+        Assert.Empty(finished);
+    }
+
+    [Fact]
+    public void WorkAddedToAFinishedJob_MakesItReportFinishedAgain()
+    {
+        var finished = new List<JobFinishedEventArgs>();
+        tracker.JobFinished += (_, e) => finished.Add(e);
+        var job = NewJob();
+        var first = Items(job, "stage", 1);
+        tracker.AddWork(job, first);
+        Finish(job with { State = ProcessingJobState.Completed }, first[0], WorkItemState.Completed);
+
+        var retry = Items(job, "stage", 1);
+        tracker.AddWork(job, retry);
+        Finish(job with { State = ProcessingJobState.Completed }, retry[0], WorkItemState.Completed);
+
+        Assert.Equal(2, finished.Count);
+    }
+
+    [Fact]
     public void FinishedJob_ReportedBeforeAnEarlierItem_IsForgotten()
     {
         var job = NewJob();

@@ -20,6 +20,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <param name="menu">The main menu.</param>
     /// <param name="statusBar">The status bar.</param>
     /// <param name="modelBanner">The "no model" banner.</param>
+    /// <param name="toasts">The toasts in the corner of the window.</param>
     /// <param name="shortcuts">The shortcut reference. Taking it also builds the keymap, which gives the
     /// commands their shortcuts.</param>
     public MainWindowViewModel(
@@ -29,8 +30,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         MainMenuViewModel menu,
         StatusBarViewModel statusBar,
         ShortcutReferenceViewModel shortcuts,
-        Models.ModelBannerViewModel modelBanner)
+        Models.ModelBannerViewModel modelBanner,
+        Notifications.ToastHostViewModel toasts)
     {
+        Toasts = toasts;
         ModelBanner = modelBanner;
         Layout = layout;
         Regions = regions;
@@ -84,6 +87,11 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// Gets the status bar.
     /// </summary>
     public StatusBarViewModel StatusBar { get; }
+
+    /// <summary>
+    /// Gets the toasts (E15-S01).
+    /// </summary>
+    public Notifications.ToastHostViewModel Toasts { get; }
 
     /// <summary>
     /// Gets the shortcut reference overlay.

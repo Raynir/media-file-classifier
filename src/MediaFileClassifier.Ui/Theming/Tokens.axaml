@@ -112,6 +112,10 @@
   <x:Double x:Key="Space.L">16</x:Double>
   <x:Double x:Key="Space.XL">20</x:Double>
   <x:Double x:Key="Space.XXL">24</x:Double>
+  <!-- Toasts (E15-S01): the corner offset keeps them above the status bar. -->
+  <Thickness x:Key="Margin.ToastHost">0,0,16,44</Thickness>
+  <Thickness x:Key="Margin.ToastIcon">0,2,10,0</Thickness>
+  <Thickness x:Key="Margin.ToastAction">0,8,0,0</Thickness>
   <Thickness x:Key="Padding.Panel">20,16</Thickness>
   <Thickness x:Key="Padding.Header">16</Thickness>
   <Thickness x:Key="Padding.Control">12,6</Thickness>

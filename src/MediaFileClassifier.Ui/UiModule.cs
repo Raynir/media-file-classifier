@@ -9,6 +9,7 @@ using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Maintenance;
 using MediaFileClassifier.Ui.Models;
 using MediaFileClassifier.Ui.Navigation;
+using MediaFileClassifier.Ui.Notifications;
 using MediaFileClassifier.Ui.Rescan;
 using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Search.Filters;
@@ -43,6 +44,7 @@ using MediaFileClassifier.Ui.Views.Search;
 using MediaFileClassifier.Ui.Views.Settings;
 using MediaFileClassifier.Ui.Views.Toolbar;
 using MediaFileClassifier.UseCases.Browsing;
+using MediaFileClassifier.UseCases.Common.Notifications;
 using MediaFileClassifier.UseCases.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Playback;
@@ -94,6 +96,11 @@ public static class UiModule
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
         services.AddSetting(BrowserSettings.ShowFileNames);
+        // Notifications (E15-S01): anything can raise a toast through INotificationService.
+        services.AddSingleton<NotificationService>();
+        services.AddSingleton<INotificationService>(provider => provider.GetRequiredService<NotificationService>());
+        services.AddSingleton<JobNotifications>();
+        services.AddSingleton<ToastHostViewModel>();
         services.AddSingleton<ShellLayout>();
         services.AddSingleton<ShellRegions>();
         services.TryAddSingleton(TimeProvider.System);
@@ -243,6 +250,7 @@ public static class UiModule
         services.AddSingleton<ProcessingPanelViewModel>();
         services.AddSingleton<ProcessingPanelPresenter>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ProcessingCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, NavigationCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingStatusSegment>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, SelectionStatusSegment>());
 

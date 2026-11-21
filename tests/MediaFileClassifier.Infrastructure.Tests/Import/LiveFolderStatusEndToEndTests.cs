@@ -3,13 +3,15 @@ using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
+using MediaFileClassifier.UseCases.Rescan.StartRescan;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Import;
 
 /// <summary>
 /// End-to-end test of live folder status (E14-S07-T04): reconnecting a drive brings its items back to normal display
-/// on its own, through the volume event, the debounced check and the results' change notice, with a real library.
+/// on its own, through the volume event, the debounced check and the results' change notice, with a real library. Any
+/// writer of a folder's status refreshes the results, and an availability check stores only the availability columns.
 /// </summary>
 public sealed class LiveFolderStatusEndToEndTests : IAsyncLifetime
 {
@@ -55,6 +57,50 @@ public sealed class LiveFolderStatusEndToEndTests : IAsyncLifetime
         var items = await source.GetPageAsync(0, 10, Token);
         Assert.Equal(2, items.Count);
         Assert.All(items, item => Assert.False(item.IsFolderOffline));
+    }
+
+    [Fact]
+    public async Task ARescanThatFindsAnOfflineFolderAgain_RefreshesTheResults()
+    {
+        bed.WriteDistinctPhotos(2);
+        await bed.ImportAsync();
+        await bed.WaitUntilIdleAsync();
+        var source = bed.Get<LibraryItemsSource>();
+        var folder = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        folder.MarkOffline(DateTimeOffset.UtcNow);
+        await bed.Library.Folders.UpdateAsync(folder, Token);
+        Assert.All(await source.GetPageAsync(0, 10, Token), item => Assert.True(item.IsFolderOffline));
+
+        var refreshed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        bed.Get<FolderStatusChanges>().Changed += (_, _) => refreshed.TrySetResult();
+        await bed.Sender.Send(new StartRescanCommand(bed.Folder.Id), Token);
+        await refreshed.Task.WaitAsync(TimeSpan.FromSeconds(10), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(FolderStatus.Online, (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.Status);
+        Assert.All(await source.GetPageAsync(0, 10, Token), item => Assert.False(item.IsFolderOffline));
+    }
+
+    [Fact]
+    public async Task AnAvailabilityWrite_DoesntUndoARelinkMadeWhileTheCheckRan()
+    {
+        // The check loaded the folder before the user relinked it...
+        var stale = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        var relinked = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        var moved = temp.Combine("moved");
+        relinked.Relink(moved, moved, DateTimeOffset.UtcNow);
+        await bed.Library.Folders.UpdateAsync(relinked, Token);
+
+        // ...and stores what it found for the old path afterwards.
+        stale.MarkOffline(DateTimeOffset.UtcNow);
+        stale.ChangeVolumeLabel("Backup");
+        await bed.Library.Folders.UpdateAvailabilityAsync(stale, Token);
+
+        var stored = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        Assert.Equal(moved, stored.PlatformHandle);
+        Assert.Equal(moved, stored.DisplayPath);
+        Assert.Equal(FolderStatus.Offline, stored.Status);
+        Assert.Equal("Backup", stored.VolumeLabel);
     }
 
     private sealed class FakeVolumeWatcher : IVolumeWatcher

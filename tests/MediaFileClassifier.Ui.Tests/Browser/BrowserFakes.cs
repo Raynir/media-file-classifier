@@ -144,7 +144,8 @@ internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
 
         public Library Library { get; } = Library.Create("browser-tests", DateTimeOffset.UnixEpoch);
 
-        public IFolderRepository Folders => throw new NotSupportedException();
+        // FolderStatusChanges reads this when it is created; it only watches it for status changes.
+        public IFolderRepository Folders => null!;
 
         // LibraryItemsSource, which the search box needs, reads this when it is created; it only watches it for changes.
         public IMediaItemRepository Items => null!;

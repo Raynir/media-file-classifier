@@ -9,7 +9,8 @@ namespace MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 /// Keeps the open library's folder statuses live (E14-S07-T04, DNEW-4, amends D188). When a volume arrives or goes
 /// away, every folder is checked once the events have been quiet for <see cref="Debounce"/>; and every
 /// <see cref="PollInterval"/> the Offline folders alone are checked, because a network share coming back raises no
-/// volume event. Online folders aren't polled. Checks run one at a time; a poll that finds a check running is skipped.
+/// volume event. Online folders aren't polled. Checks run one at a time; a poll that finds a check running is skipped,
+/// and a volume check cancels a running poll, which may be stuck on an unreachable network share, rather than wait for it.
 /// </summary>
 public sealed class FolderAvailabilityMonitor : IDisposable
 {
@@ -36,6 +37,9 @@ public sealed class FolderAvailabilityMonitor : IDisposable
     private readonly Lock syncRoot = new();
     private ITimer? debounce;
     private ITimer? poll;
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Owned and disposed by the running poll itself; Dispose cancels it through the linked stopping token.")]
+    private CancellationTokenSource? runningPoll;
+    private int waitingVolumeChecks;
     private bool started;
     private bool disposed;
 
@@ -115,37 +119,23 @@ public sealed class FolderAvailabilityMonitor : IDisposable
             return;
         }
 
-        // A volume check waits for a running one, since the volumes changed after it began; a poll just skips.
-        try
-        {
-            if (offlineOnly)
-            {
-                if (!await gate.WaitAsync(TimeSpan.Zero, token).ConfigureAwait(false))
-                {
-                    return;
-                }
-            }
-            else
-            {
-                await gate.WaitAsync(token).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException)
+        var cancel = offlineOnly ? await StartPollAsync(token).ConfigureAwait(false) : await StartVolumeCheckAsync(token).ConfigureAwait(false);
+        if (cancel is null)
         {
             return;
         }
 
         try
         {
-            var changed = await sender.Send(new CheckFolderAvailabilityCommand(OfflineOnly: offlineOnly), token).ConfigureAwait(false);
+            var changed = await sender.Send(new CheckFolderAvailabilityCommand(OfflineOnly: offlineOnly), cancel.Token).ConfigureAwait(false);
             if (changed.Count > 0)
             {
                 logger.LogInformation("Live check found {Count} folder(s) changed status", changed.Count);
             }
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested)
         {
-            // Shutting down.
+            // Shutting down, or a volume check took over from this poll.
         }
         catch (Exception exception)
         {
@@ -154,7 +144,81 @@ public sealed class FolderAvailabilityMonitor : IDisposable
         }
         finally
         {
+            lock (syncRoot)
+            {
+                if (ReferenceEquals(runningPoll, cancel))
+                {
+                    runningPoll = null;
+                }
+            }
+
+            cancel.Dispose();
             gate.Release();
         }
+    }
+
+    /// <summary>
+    /// Takes the gate for a poll, unless a check is running or a volume check is waiting.
+    /// </summary>
+    /// <returns>The poll's cancellation, which a volume check cancels, or <see langword="null"/> to skip it.</returns>
+    private async Task<CancellationTokenSource?> StartPollAsync(CancellationToken token)
+    {
+        try
+        {
+            if (!await gate.WaitAsync(TimeSpan.Zero, token).ConfigureAwait(false))
+            {
+                return null;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+
+        lock (syncRoot)
+        {
+            if (waitingVolumeChecks == 0)
+            {
+                runningPoll = CancellationTokenSource.CreateLinkedTokenSource(token);
+                return runningPoll;
+            }
+        }
+
+        gate.Release();
+        return null;
+    }
+
+    /// <summary>
+    /// Takes the gate for a volume check. A running check is waited for, since the volumes changed after it began, but a
+    /// running poll is cancelled first: it may be stuck on an unreachable network share, and this check covers it.
+    /// </summary>
+    /// <returns>The check's cancellation, or <see langword="null"/> when the monitor stopped.</returns>
+    private async Task<CancellationTokenSource?> StartVolumeCheckAsync(CancellationToken token)
+    {
+        lock (syncRoot)
+        {
+            waitingVolumeChecks++;
+
+            // Disposed only after it stops being the running poll, under this lock.
+            runningPoll?.Cancel();
+        }
+
+        try
+        {
+            await gate.WaitAsync(token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        finally
+        {
+            lock (syncRoot)
+            {
+                waitingVolumeChecks--;
+            }
+        }
+
+        return CancellationTokenSource.CreateLinkedTokenSource(token);
     }
 }

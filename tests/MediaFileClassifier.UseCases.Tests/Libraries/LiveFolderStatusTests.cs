@@ -10,7 +10,8 @@ namespace MediaFileClassifier.UseCases.Tests.Libraries;
 
 /// <summary>
 /// Tests for live folder status (E14-S07-T04, DNEW-4): volume events trigger one debounced check of every folder, the
-/// Offline folders alone are polled every 30 s, checks don't overlap, and a status change refreshes the results.
+/// Offline folders alone are polled every 30 s, checks don't overlap, a volume check cancels a stuck poll, and a status
+/// change stored by any writer refreshes the results.
 /// </summary>
 public sealed class LiveFolderStatusTests
 {
@@ -78,6 +79,25 @@ public sealed class LiveFolderStatusTests
     }
 
     [Fact]
+    public async Task VolumeCheck_CancelsARunningPoll_InsteadOfWaitingForIt()
+    {
+        var (monitor, clock, volumes, sender) = Create();
+
+        // Never set: only the poll's cancellation ends it, like a probe of an unreachable share.
+        sender.Hold = new TaskCompletionSource();
+        monitor.Start();
+
+        clock.Advance(FolderAvailabilityMonitor.PollInterval);
+        Assert.True((await sender.NextAsync()).OfflineOnly);
+
+        volumes.Raise();
+        clock.Advance(FolderAvailabilityMonitor.Debounce);
+
+        Assert.False((await sender.NextAsync()).OfflineOnly);
+        Assert.Equal(2, sender.Commands.Count);
+    }
+
+    [Fact]
     public async Task AFailedCheck_DoesntStopThePoll()
     {
         var (monitor, clock, _, sender) = Create();
@@ -112,10 +132,10 @@ public sealed class LiveFolderStatusTests
         var (session, library, files) = await CreateLibraryAsync();
         var drive = await AddFolderAsync(library, Drive, offline: true);
         await AddFolderAsync(library, Card, offline: false);
-        var statusChanges = new FolderStatusChanges();
+        var statusChanges = new FolderStatusChanges(session);
         var raised = 0;
         statusChanges.Changed += (_, _) => raised++;
-        var handler = Handler(session, files, statusChanges);
+        var handler = Handler(session, files);
 
         // Still unplugged: nothing changes, and the Online card isn't even looked at.
         files.Unavailable.Add(Drive);
@@ -130,6 +150,59 @@ public sealed class LiveFolderStatusTests
         Assert.Same(drive, Assert.Single(changed));
         Assert.Equal(FolderStatus.Online, drive.Status);
         Assert.Equal(1, raised);
+        Assert.Equal(1, library.FolderList.AvailabilityUpdates);
+        Assert.Equal(1, library.FolderList.Updates);
+    }
+
+    [Fact]
+    public async Task Check_WithAProbeThatHangs_EndsWhenCancelled()
+    {
+        var (session, library, files) = await CreateLibraryAsync();
+        await AddFolderAsync(library, Drive, offline: true);
+        files.Hanging.Add(Drive);
+        using var cancel = new CancellationTokenSource();
+
+        var check = Handler(session, files).Handle(new CheckFolderAvailabilityCommand(OfflineOnly: true), cancel.Token);
+        await cancel.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => check.WaitAsync(TimeSpan.FromSeconds(10), Token));
+    }
+
+    [Fact]
+    public async Task AnyWriterThatChangesAStatus_RaisesTheChange_ButALabelOrRuleChangeDoesnt()
+    {
+        var (session, library, _) = await CreateLibraryAsync();
+        var drive = await AddFolderAsync(library, Drive, offline: true);
+        var statusChanges = new FolderStatusChanges(session);
+        var source = new LibraryItemsSource(new FakeSender(), session, TimeProvider.System, statusChanges);
+        var raised = 0;
+        source.Changed += (_, _) => raised++;
+
+        // As a rescan or discovery does when it finds the folder again.
+        drive.MarkOnline(DateTimeOffset.UnixEpoch);
+        await library.Folders.UpdateAsync(drive, Token);
+        Assert.Equal(1, raised);
+
+        drive.ChangeVolumeLabel("Backup");
+        await library.Folders.UpdateAvailabilityAsync(drive, Token);
+        await library.Folders.UpdateAsync(drive, Token);
+        Assert.Equal(1, raised);
+    }
+
+    [Fact]
+    public async Task AStatusChange_InALibraryNoLongerOpen_IsNotRaised()
+    {
+        var (session, oldLibrary, _) = await CreateLibraryAsync();
+        var drive = await AddFolderAsync(oldLibrary, Drive, offline: true);
+        var statusChanges = new FolderStatusChanges(session);
+        var raised = 0;
+        statusChanges.Changed += (_, _) => raised++;
+        await session.SetCurrentAsync(new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "y"), "y"));
+
+        drive.MarkOnline(DateTimeOffset.UnixEpoch);
+        await oldLibrary.Folders.UpdateAsync(drive, Token);
+
+        Assert.Equal(0, raised);
     }
 
     [Fact]
@@ -154,8 +227,8 @@ public sealed class LiveFolderStatusTests
         return (new FolderAvailabilityMonitor(volumes, sender, clock, NullLogger<FolderAvailabilityMonitor>.Instance), clock, volumes, sender);
     }
 
-    private static CheckFolderAvailabilityCommandHandler Handler(FakeLibrarySession session, FakeFolderSource files, FolderStatusChanges statusChanges) =>
-        new(session, files, TimeProvider.System, NullLogger<CheckFolderAvailabilityCommandHandler>.Instance, statusChanges: statusChanges);
+    private static CheckFolderAvailabilityCommandHandler Handler(FakeLibrarySession session, FakeFolderSource files) =>
+        new(session, files, TimeProvider.System, NullLogger<CheckFolderAvailabilityCommandHandler>.Instance);
 
     private static async Task<IndexedFolder> AddFolderAsync(FakeOpenLibrary library, string path, bool offline)
     {

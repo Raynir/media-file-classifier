@@ -9,6 +9,13 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 public interface IFolderRepository
 {
     /// <summary>
+    /// Raised after a write changed the stored status of a folder (Online or Offline, E14-S07-T04), whichever writer it
+    /// came from: an availability check, discovery, a rescan or an import. It's raised on the writing thread, after the
+    /// write is stored.
+    /// </summary>
+    event EventHandler? StatusChanged;
+
+    /// <summary>
     /// Gets a folder.
     /// </summary>
     /// <param name="id">Folder ID.</param>
@@ -38,6 +45,16 @@ public interface IFolderRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when the changes are stored.</returns>
     Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores only a folder's availability: its status, when that changed and its volume label (E14-S07-T04). An
+    /// availability check uses it because it holds the folder for as long as its probes take, so storing the whole row
+    /// could undo a relink or a rule change made meanwhile.
+    /// </summary>
+    /// <param name="folder">The folder, with its new status and label.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the availability is stored.</returns>
+    Task UpdateAvailabilityAsync(IndexedFolder folder, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Merges a folder into a parent folder that contains it (E02-S03-T02), in one transaction: the child's items move

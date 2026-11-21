@@ -158,6 +158,11 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 /// </summary>
 internal sealed class FakeFolderRepository : IFolderRepository
 {
+    // The status each folder was last stored with, so StatusChanged is raised like the real repository's.
+    private readonly Dictionary<Id<IndexedFolder>, FolderStatus> stored = [];
+
+    public event EventHandler? StatusChanged;
+
     public List<IndexedFolder> Folders { get; } = [];
 
     public Task<IndexedFolder?> GetAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
@@ -169,14 +174,26 @@ internal sealed class FakeFolderRepository : IFolderRepository
     public Task AddAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
     {
         Folders.Add(folder);
+        stored[folder.Id] = folder.Status;
         return Task.CompletedTask;
     }
 
     public int Updates { get; private set; }
 
+    public int AvailabilityUpdates { get; private set; }
+
     public Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
     {
         Updates++;
+        Store(folder);
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAvailabilityAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
+    {
+        Updates++;
+        AvailabilityUpdates++;
+        Store(folder);
         return Task.CompletedTask;
     }
 
@@ -191,6 +208,16 @@ internal sealed class FakeFolderRepository : IFolderRepository
 
     public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
         => Task.FromResult(Folders.RemoveAll(folder => folder.Id == id) > 0);
+
+    private void Store(IndexedFolder folder)
+    {
+        var changed = stored.TryGetValue(folder.Id, out var old) && old != folder.Status;
+        stored[folder.Id] = folder.Status;
+        if (changed)
+        {
+            StatusChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
 }
 
 /// <summary>
@@ -330,7 +357,14 @@ internal sealed class FakeFolderSource : IMediaFileSource
 
     public Task<MediaFileStat?> GetStatAsync(FileLocation file, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) => Task.FromResult(!Unavailable.Contains(folder.Id));
+    /// <summary>
+    /// Gets the folders whose check never ends and ignores its token, like an unreachable network share before the SMB
+    /// timeout.
+    /// </summary>
+    public HashSet<string> Hanging { get; } = [];
+
+    public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) =>
+        Hanging.Contains(folder.Id) ? new TaskCompletionSource<bool>().Task : Task.FromResult(!Unavailable.Contains(folder.Id));
 
     public Task<string?> GetVolumeLabelAsync(FolderHandle folder, CancellationToken cancellationToken = default) =>
         Task.FromResult(Labels.GetValueOrDefault(folder.Id));

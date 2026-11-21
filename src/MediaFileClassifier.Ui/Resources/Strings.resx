@@ -2396,4 +2396,43 @@
   <data name="Stage_exclusion.cleanup" xml:space="preserve">
     <value>Removing AI results</value>
   </data>
+  <data name="Command_ExcludedItems" xml:space="preserve">
+    <value>E_xcluded items…</value>
+  </data>
+  <data name="ExcludedItems_Title" xml:space="preserve">
+    <value>Excluded items</value>
+  </data>
+  <data name="ExcludedItems_HeaderOne" xml:space="preserve">
+    <value>1 item removed from the library. Its file is still on disk.</value>
+  </data>
+  <data name="ExcludedItems_Header" xml:space="preserve">
+    <value>{0} items removed from the library. Their files are still on disk.</value>
+  </data>
+  <data name="ExcludedItems_Empty" xml:space="preserve">
+    <value>No items have been removed from this library.</value>
+  </data>
+  <data name="ExcludedItems_Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="ExcludedItems_Forget" xml:space="preserve">
+    <value>Forget</value>
+  </data>
+  <data name="ExcludedItems_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="ExcludedItems_ForgetWarningOne" xml:space="preserve">
+    <value>Forget 1 item? Its tags, descriptions, ratings and collection memberships are deleted. If its file is still in an indexed folder, the next scan adds it as a new item.</value>
+  </data>
+  <data name="ExcludedItems_ForgetWarning" xml:space="preserve">
+    <value>Forget {0} items? Their tags, descriptions, ratings and collection memberships are deleted. Files still in an indexed folder are added as new items by the next scan.</value>
+  </data>
+  <data name="ExcludedItems_ForgetConfirm" xml:space="preserve">
+    <value>Forget</value>
+  </data>
+  <data name="ExcludedItems_ForgetCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ExcludedItems_Failed" xml:space="preserve">
+    <value>The items couldn't be changed. See the log for details.</value>
+  </data>
 </root>

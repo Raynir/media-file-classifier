@@ -16,6 +16,13 @@ public static class LibraryExclusions
     public const string RemovedByUser = "Removed from the library by the user.";
 
     /// <summary>
+    /// The status reason of a removed item the user restored, while the import brings it back (E02-S10-T04).
+    /// <see cref="Libraries.IndexedFolders.IsBackInRules"/> lets the import take it, like an item back in its folder's
+    /// rules.
+    /// </summary>
+    public const string RestoreRequested = "Restore requested by the user.";
+
+    /// <summary>
     /// Job type that deletes the AI results and thumbnails of a large selection after it was marked Excluded.
     /// </summary>
     public const string CleanupJob = "items-exclude";

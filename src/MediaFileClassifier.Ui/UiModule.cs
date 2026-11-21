@@ -76,6 +76,7 @@ public static class UiModule
             .Register<CreateLibraryViewModel, CreateLibraryView>()
             .Register<ThumbnailGridViewModel, ThumbnailGridView>()
             .Register<IndexedFoldersViewModel, IndexedFoldersView>()
+            .Register<ExcludedItemsViewModel, ExcludedItemsView>()
             .Register<ProcessingPanelViewModel, ProcessingPanelView>()
             .Register<NavigationPanelViewModel, NavigationPanelView>()
             .Register<DetailsPanelViewModel, DetailsPanelView>()
@@ -112,6 +113,8 @@ public static class UiModule
         services.AddSingleton<Func<CreateLibraryViewModel>>(provider => provider.GetRequiredService<CreateLibraryViewModel>);
         services.AddTransient<IndexedFoldersViewModel>();
         services.AddSingleton<Func<IndexedFoldersViewModel>>(provider => provider.GetRequiredService<IndexedFoldersViewModel>);
+        services.AddTransient<ExcludedItemsViewModel>();
+        services.AddSingleton<Func<ExcludedItemsViewModel>>(provider => provider.GetRequiredService<ExcludedItemsViewModel>);
         services.AddSingleton<LibraryDialogs>();
         services.TryAddSingleton<IModelDialogs, ModelDialogs>();
         services.AddSingleton<ModelBannerViewModel>();
@@ -140,6 +143,7 @@ public static class UiModule
         services.AddSingleton<WelcomeViewModel>();
         services.AddSingleton<LibraryShell>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ExcludedItemsCommands>());
         services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RetryCommands>());

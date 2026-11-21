@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Libraries"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Libraries.ExcludedItemsWindow"
+        x:DataType="vm:ExcludedItemsViewModel"
+        Title="{l:Loc ExcludedItems_Title}"
+        Width="640"
+        Height="520"
+        MinWidth="420"
+        MinHeight="360"
+        CanResize="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- Hosts the shared view on the desktop; the view locator maps the view model to ExcludedItemsView. -->
+  <ContentControl Content="{Binding}" />
+</Window>

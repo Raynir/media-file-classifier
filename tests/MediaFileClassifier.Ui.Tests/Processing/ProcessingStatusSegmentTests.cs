@@ -43,7 +43,8 @@ public sealed class ProcessingStatusSegmentTests
         var statusBar = new StatusBarViewModel([new ProcessingStatusSegment(feed, Localizer.Current, jobs: jobs)]);
         var segment = Assert.Single(statusBar.Right);
 
-        progress.Set(ProgressSummary.Empty);
+        // A paused start still has its unfinished jobs in the counters.
+        progress.Set(Summary(Job("Analyze 20 items", null, new StageProgress("custom", 20, 0, 0, false))));
         Assert.True(segment.IsVisible);
         Assert.Equal("Processing paused", segment.Text);
 

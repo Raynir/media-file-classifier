@@ -10,7 +10,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Changed
 
-- The processing options are now registered settings. `AppSettings.Processing` is gone from `settings.json`; it had no settings window, so only a hand-edited value is ignored (no schema change).
+- The processing options are now registered settings. The old `processing` section of `settings.json` (which only "Don't ask again" on quitting wrote) moves into the registered settings the next time the file is read, so nobody gets the quit question back (no schema change).
 
 ## M4 — 2026-11-21
 

@@ -19,6 +19,11 @@ public sealed class ProcessingSettings
     public const int DefaultAiConcurrency = 1;
 
     /// <summary>
+    /// The number of settings in <see cref="All"/>.
+    /// </summary>
+    public const int SettingCount = 5;
+
+    /// <summary>
     /// The largest concurrency limit of the I/O pool.
     /// </summary>
     public const int MaxIoConcurrency = 16;

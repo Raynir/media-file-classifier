@@ -41,8 +41,8 @@ public sealed class ProcessingStatusSegment(ProgressFeed feed, Localizer localiz
             return;
         }
 
-        // Processing that waits for Resume has no active job, but it must show: otherwise nothing says why it's idle.
-        if (summary.ActiveJobCount == 0 && jobs?.Current?.IsPaused == true)
+        // Processing that waits for Resume counts its unfinished jobs, but nothing runs: say why it's idle.
+        if (jobs?.Current?.IsPaused == true)
         {
             segment.IsVisible = true;
             segment.Text = localizer.Get("Processing_PausedStatus");

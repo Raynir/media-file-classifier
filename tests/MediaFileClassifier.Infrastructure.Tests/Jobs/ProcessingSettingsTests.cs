@@ -71,7 +71,8 @@ public sealed class ProcessingSettingsTests
         var definitions = provider.GetServices<SettingDefinition>().ToList();
         var processing = provider.GetRequiredService<ProcessingSettings>();
 
-        Assert.Equal(5, definitions.Count);
+        Assert.Equal(ProcessingSettings.SettingCount, processing.All.Count);
+        Assert.Equal(ProcessingSettings.SettingCount, definitions.Count);
         Assert.All(processing.All, setting => Assert.Contains(setting, definitions));
         Assert.All(definitions, setting => Assert.Equal(SettingCategories.Processing, setting.Category));
         Assert.Equal(5, processing.CpuConcurrency.Default);

@@ -1654,7 +1654,7 @@
     <value>When a library opens with unfinished work</value>
   </data>
   <data name="Setting_ResumeOnOpen_Help" xml:space="preserve">
-    <value>Continue the work at once, or wait until you start it. Applies the next time a library opens.</value>
+    <value>Continue the work at once, or wait until you start it with Resume processing. While it waits, new work waits too. Applies the next time a library opens.</value>
   </data>
   <data name="Setting_ResumeOnOpen_Automatic" xml:space="preserve">
     <value>Continue automatically</value>

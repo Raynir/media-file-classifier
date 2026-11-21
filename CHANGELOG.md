@@ -4,6 +4,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+## M5 — 2026-11-21
+
 ### Added
 
 - Offline and missing items (E14-S07, MFC-127): items whose folder is offline show dimmed with an Offline badge, and missing files with a Missing badge, in the grid and the list; the badge tooltip names the drive to connect by its volume label ("Offline: drive 'Backup-2TB' (E:\Photos)"), else its letter or network share, and the details panel says the same. A Missing item's context menu offers "Remove missing items…". The filter panel has a "Hide offline items" check box, saved with the filters and saved searches. Folder statuses now follow drives live: plugging a drive in or out rechecks the folders within about a second, and offline folders (such as network shares) are rechecked every 30 seconds, so a reconnected drive's items go back to normal on their own. An offline or missing video's keyframe strip now says why its moments can't be opened in a player, and choosing one still shows its time (MFC-1007). Library schema 16 stores each folder's volume label.

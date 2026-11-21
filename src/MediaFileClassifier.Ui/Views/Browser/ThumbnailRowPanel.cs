@@ -28,6 +28,13 @@ public sealed class ThumbnailRowPanel : StackPanel
     static ThumbnailRowPanel()
     {
         TilesProperty.Changed.AddClassHandler<ThumbnailRowPanel>((panel, _) => panel.Update());
+
+        // Switching between the grid and the list (E14-S02) swaps the template: the old views go.
+        TileTemplateProperty.Changed.AddClassHandler<ThumbnailRowPanel>((panel, _) =>
+        {
+            panel.Children.Clear();
+            panel.Update();
+        });
     }
 
     /// <summary>

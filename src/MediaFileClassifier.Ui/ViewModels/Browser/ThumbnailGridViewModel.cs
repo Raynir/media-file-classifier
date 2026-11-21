@@ -53,6 +53,16 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// </summary>
     public const double InfoStripHeight = 40;
 
+    /// <summary>
+    /// The height of a list view row (E14-S02), with its divider.
+    /// </summary>
+    public const double ListRowHeight = 44;
+
+    /// <summary>
+    /// The size of the thumbnail in a list view row.
+    /// </summary>
+    public const double ListThumbnailSize = 36;
+
     private static readonly TimeSpan RefreshDelay = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan BoostDelay = TimeSpan.FromMilliseconds(150);
     private static readonly TimeSpan SaveDelay = TimeSpan.FromMilliseconds(500);
@@ -75,6 +85,8 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     private double viewportWidth;
     private double viewportOffset;
     private double viewportHeight;
+    private int toggleAnchor;
+    private readonly ISettingsStore? settings;
     private double renderScaling = 1;
     private bool isActive;
     private bool showFileNames = true;
@@ -144,6 +156,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         selection.KnownId = index => pages.Get(index)?.Id;
         selection.Changed += (_, _) => UpdateTileStates();
         Rows = new ThumbnailRowList(CreateRow);
+        ListColumns = new ListColumnsViewModel(settings);
         refreshTimer = new DispatcherTimer { Interval = RefreshDelay };
         refreshTimer.Tick += (_, _) =>
         {
@@ -163,6 +176,42 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
             _ = SaveTileSizeAsync();
         };
         source.Changed += (_, _) => Dispatcher.UIThread.Post(OnSourceChanged);
+        this.settings = settings;
+        if (settings is not null)
+        {
+            // The view the user left on last time.
+            IsListView = settings.Get(BrowserSettings.ListView);
+        }
+
+        SyncSortGlyphs();
+        ListColumns.LayoutChanged += (_, _) => SyncSortGlyphs();
+        if (sort is not null)
+        {
+            sort.PropertyChanged += (_, _) => SyncSortGlyphs();
+        }
+    }
+
+    /// <summary>
+    /// Sorts by a list column's order, as a click on its header does (E14-S02-T03).
+    /// </summary>
+    /// <param name="column">The column; one that can't sort does nothing.</param>
+    public void SortByColumn(ListColumnViewModel column)
+    {
+        if (Sort is not null && column.SortMode is { } mode)
+        {
+            Sort.SortBy(mode);
+        }
+    }
+
+    private void SyncSortGlyphs()
+    {
+        var mode = Sort?.SelectedMode?.Mode;
+        foreach (var column in ListColumns.Columns)
+        {
+            column.SortGlyph = Sort is not null && column.SortMode is { } own && own == mode
+                ? Sort.DirectionGlyph
+                : string.Empty;
+        }
     }
 
     /// <summary>
@@ -201,6 +250,36 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     public SelectionModel Selection => selection;
 
     /// <summary>
+    /// Gets the list view's columns (E14-S02).
+    /// </summary>
+    public ListColumnsViewModel ListColumns { get; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the results show as a list, one item per row with columns (E14-S02),
+    /// instead of the thumbnail grid. The selection stays, and the first item on screen stays on screen.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RowHeight), nameof(IsGridView))]
+    public partial bool IsListView { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the results show as the thumbnail grid.
+    /// </summary>
+    public bool IsGridView => !IsListView;
+
+    /// <summary>
+    /// Shows the results as the thumbnail grid.
+    /// </summary>
+    [RelayCommand]
+    public void ShowGrid() => IsListView = false;
+
+    /// <summary>
+    /// Shows the results as the list (E14-S02).
+    /// </summary>
+    [RelayCommand]
+    public void ShowList() => IsListView = true;
+
+    /// <summary>
     /// Gets or sets a value indicating whether the focused tile shows its focus border: after keyboard navigation,
     /// until the next click (E14-S03-T02).
     /// </summary>
@@ -235,7 +314,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <summary>
     /// Gets the height of a row, with the gap under it.
     /// </summary>
-    public double RowHeight => ImageHeight + InfoStripHeight + Gap;
+    public double RowHeight => IsListView ? ListRowHeight : ImageHeight + InfoStripHeight + Gap;
 
     /// <summary>
     /// Gets the number of tiles per row.
@@ -298,6 +377,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
 
         jobs.Current?.Boost([]);
         boosted = [];
+        ListColumns.SaveNow();
         pages.Invalidate(0);
         Count = 0;
         selection.Reset(0);
@@ -507,15 +587,46 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
             return;
         }
 
-        // The slider sets TileSize directly; keep the first visible item in place and remember the size.
-        var anchor = oldValue > 0 && Columns > 0 && viewportOffset > 0
-            ? (int)Math.Floor(viewportOffset / (Math.Round(oldValue * 3 / 4.0) + InfoStripHeight + Gap)) * Columns
-            : 0;
-        Relayout(anchor, force: true);
+        // The slider sets TileSize directly; keep the first visible item in place and remember the size. The list
+        // view's rows don't depend on it.
+        if (!IsListView)
+        {
+            var anchor = oldValue > 0 && Columns > 0 && viewportOffset > 0
+                ? (int)Math.Floor(viewportOffset / (Math.Round(oldValue * 3 / 4.0) + InfoStripHeight + Gap)) * Columns
+                : 0;
+            Relayout(anchor, force: true);
+        }
+
         if (isActive && !restoringSize)
         {
             saveTimer.Stop();
             saveTimer.Start();
+        }
+    }
+
+    partial void OnIsListViewChanging(bool value) => toggleAnchor = FirstVisibleIndex();
+
+    partial void OnIsListViewChanged(bool value)
+    {
+        // The first visible item stays first, whatever the row height and columns are now.
+        var anchor = toggleAnchor;
+        viewportOffset = 0;
+        Relayout(anchor, force: true);
+        if (anchor == 0)
+        {
+            ScrollRequested?.Invoke(this, 0);
+        }
+
+        try
+        {
+            if (settings is not null && settings.Get(BrowserSettings.ListView) != value)
+            {
+                settings.SetValue(BrowserSettings.ListView, value);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The view is a convenience; the next switch tries again.
         }
     }
 
@@ -525,7 +636,9 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         var tiles = new ThumbnailTileViewModel[Math.Max(0, Math.Min(Columns, Count - first))];
         for (var column = 0; column < tiles.Length; column++)
         {
-            tiles[column] = new ThumbnailTileViewModel(loader, TileSize, ImageHeight);
+            tiles[column] = IsListView
+                ? new ThumbnailTileViewModel(loader, ListThumbnailSize, ListThumbnailSize)
+                : new ThumbnailTileViewModel(loader, TileSize, ImageHeight);
         }
 
         return new ThumbnailRowViewModel(this, index, tiles);
@@ -591,8 +704,8 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <returns>Whether the rows were rebuilt.</returns>
     private bool Relayout(int anchorIndex, bool force = false)
     {
-        var columns = Math.Max(1, (int)Math.Floor((viewportWidth + Gap) / (TileSize + Gap)));
-        var size = ThumbnailLoader.SizeFor(TileSize, renderScaling);
+        var columns = IsListView ? 1 : Math.Max(1, (int)Math.Floor((viewportWidth + Gap) / (TileSize + Gap)));
+        var size = ThumbnailLoader.SizeFor(IsListView ? ListThumbnailSize : TileSize, renderScaling);
         if (!force && columns == Columns && size == ThumbnailSize)
         {
             return false;

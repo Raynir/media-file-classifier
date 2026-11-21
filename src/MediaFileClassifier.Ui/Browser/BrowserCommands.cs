@@ -15,6 +15,12 @@ public sealed class BrowserCommands : ICommandContributor
     /// <summary>Command ID: smaller thumbnails.</summary>
     public const string SmallerThumbnails = "view.thumbnails-smaller";
 
+    /// <summary>Command ID: show the results as the thumbnail grid (E14-S02-T03).</summary>
+    public const string GridView = "view.grid";
+
+    /// <summary>Command ID: show the results as the list (E14-S02-T03).</summary>
+    public const string ListView = "view.list";
+
     /// <summary>Command ID: open the focused item.</summary>
     public const string OpenItem = "item.open";
 
@@ -46,6 +52,8 @@ public sealed class BrowserCommands : ICommandContributor
     {
         registry.Add(new AppCommand(LargerThumbnails, CommandGroups.View, 300, "Command_LargerThumbnails", () => grid().Larger()));
         registry.Add(new AppCommand(SmallerThumbnails, CommandGroups.View, 310, "Command_SmallerThumbnails", () => grid().Smaller()));
+        registry.Add(new AppCommand(GridView, CommandGroups.View, 320, "Browser_GridView", () => grid().ShowGrid()));
+        registry.Add(new AppCommand(ListView, CommandGroups.View, 330, "Browser_ListView", () => grid().ShowList()));
         registry.Add(new AppCommand(OpenItem, CommandGroups.Item, 10, "Command_OpenItem", () => grid().OpenAsync(null))
         {
             // Enter shows the item in the details panel (E14-S05); the context menu's Open is "Open in default app".

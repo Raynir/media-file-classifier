@@ -144,7 +144,7 @@ public sealed partial class LibraryInfoViewModel : ViewModelBase, IDisposable
         LibraryDiskUsage? measured;
         try
         {
-            measured = await sender.Send(new GetLibraryDiskUsageQuery(DiskUsageInterval));
+            measured = await sender.Send(new GetLibraryDiskUsageQuery(DiskUsageInterval - TimeSpan.FromSeconds(1)));
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

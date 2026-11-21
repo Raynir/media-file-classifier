@@ -90,10 +90,12 @@ public sealed class LibraryStatisticsMonitor : IDisposable
         }
 
         // A newer refresh already asked, so this answer may be stale.
-        if (current != version || Equals(statistics, Current))
+        if (current != version || (Equals(statistics, Current) && !libraryChanged))
         {
             return;
         }
+
+        libraryChanged = false;
 
         Current = statistics;
         Changed?.Invoke(this, EventArgs.Empty);
@@ -110,6 +112,9 @@ public sealed class LibraryStatisticsMonitor : IDisposable
 
         timer.Dispose();
     }
+
+    // Another library is open: report its counts even when they equal the previous library's, so views reload.
+    private bool libraryChanged;
 
     private void OnLibraryChanged(object? sender, EventArgs e) => post(() =>
     {
@@ -131,6 +136,7 @@ public sealed class LibraryStatisticsMonitor : IDisposable
         }
 
         watched = items;
+        libraryChanged = true;
         if (watched is not null)
         {
             watched.Changed += OnItemsChanged;

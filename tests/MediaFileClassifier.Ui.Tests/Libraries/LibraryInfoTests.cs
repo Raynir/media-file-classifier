@@ -71,6 +71,21 @@ public sealed class LibraryInfoTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Monitor_ReportsAChange_WhenAnotherLibraryWithTheSameCountsOpens()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("First", app.Root), Token);
+        using var monitor = NewMonitor(out _);
+        monitor.Start();
+        await WaitUntilAsync(() => monitor.Current is not null);
+        var changes = 0;
+        monitor.Changed += (_, _) => changes++;
+
+        // Both libraries are empty, so the counts are equal; views still need to know to reload.
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Second", Path.Combine(app.Root, "second")), Token);
+        await WaitUntilAsync(() => changes > 0);
+    }
+
+    [Fact]
     public async Task ViewModel_ShowsTheGroupsAndRows_AndRefreshesWhileItemsAreImported()
     {
         var folder = await CreateLibraryAsync();

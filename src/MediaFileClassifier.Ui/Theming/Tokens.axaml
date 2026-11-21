@@ -116,6 +116,8 @@
   <Thickness x:Key="Margin.ToastHost">0,0,16,44</Thickness>
   <Thickness x:Key="Margin.ToastIcon">0,2,10,0</Thickness>
   <Thickness x:Key="Margin.ToastAction">0,8,0,0</Thickness>
+  <Thickness x:Key="Margin.InfoLabel">0,0,24,0</Thickness>
+  <Thickness x:Key="Margin.InfoClose">0,16,0,0</Thickness>
   <Thickness x:Key="Padding.Panel">20,16</Thickness>
   <Thickness x:Key="Padding.Header">16</Thickness>
   <Thickness x:Key="Padding.Control">12,6</Thickness>

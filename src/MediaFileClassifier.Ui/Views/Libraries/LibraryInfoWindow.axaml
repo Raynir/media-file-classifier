@@ -15,7 +15,7 @@
     <Button x:Name="CloseButton"
             DockPanel.Dock="Bottom"
             HorizontalAlignment="Right"
-            Margin="0,16,0,0"
+            Margin="{DynamicResource Margin.InfoClose}"
             Content="{l:Loc LibraryInfo_Close}"
             IsDefault="True"
             IsCancel="True"

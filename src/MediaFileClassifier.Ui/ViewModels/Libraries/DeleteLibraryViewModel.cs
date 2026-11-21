@@ -113,6 +113,9 @@ public sealed partial class DeleteLibraryViewModel(ISender sender, Localizer loc
             if (result.Deleted)
             {
                 Result = result;
+
+                // Not busy any more, or the window would refuse to close.
+                IsBusy = false;
                 CloseRequested?.Invoke(this, EventArgs.Empty);
                 return;
             }

@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Rescan;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediatR;
@@ -18,7 +19,8 @@ namespace MediaFileClassifier.Ui.Browser;
 /// The media browser's item commands for the context menu and the Item menu (E14-S04-T02): open in the default app,
 /// reveal in File Explorer and copy file path, through the platform services. Open and Reveal act on the focused
 /// item and are disabled, with the reason, while its file is missing or its folder offline (D025). Copy file path
-/// copies the paths of all selected items, one per line.
+/// copies the paths of all selected items, one per line. A Missing item also offers the Library menu's "Remove missing
+/// items…" (E14-S07).
 /// </summary>
 public sealed partial class ItemCommands : ICommandContributor
 {
@@ -30,6 +32,11 @@ public sealed partial class ItemCommands : ICommandContributor
 
     /// <summary>Command ID: copy the selected items' file paths.</summary>
     public const string CopyPath = "item.copy-path";
+
+    /// <summary>
+    /// Command ID: the Library menu's "Remove missing items…" (D240), offered on a Missing item (E14-S07).
+    /// </summary>
+    public const string RemoveMissing = "item.remove-missing";
 
     private readonly SelectionModel selection;
     private readonly ISender sender;
@@ -89,6 +96,19 @@ public sealed partial class ItemCommands : ICommandContributor
         commands.Add(registry.Add(new AppCommand(CopyPath, CommandGroups.Item, 900, "Command_CopyPath", CopyPathAsync)
         {
             AppliesTo = () => selection.Count > 0,
+        }));
+
+        // The library-wide cleanup, with its own confirmation and count; only where the Library menu has it.
+        commands.Add(registry.Add(new AppCommand(
+            RemoveMissing,
+            CommandGroups.Item,
+            960,
+            "Command_RemoveMissing",
+            () => registry.TryGet(RescanCommands.RemoveMissing, out var command) ? command.ExecuteAsync() : Task.CompletedTask)
+        {
+            IconKey = "Icon.Delete",
+            AppliesTo = () => HasFocusedSelection() && focused?.Availability == ItemAvailability.Missing
+                && registry.TryGet(RescanCommands.RemoveMissing, out var command) && command.IsVisible,
         }));
         selection.Changed += (_, _) => Loading = LoadFocusedAsync();
     }

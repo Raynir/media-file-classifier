@@ -2887,4 +2887,16 @@
   <data name="DropImport_Failed" xml:space="preserve">
     <value>The dropped files couldn't be imported.</value>
   </data>
+  <data name="Tile_Badge_Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Tile_Badge_OfflineFolder" xml:space="preserve">
+    <value>folder {0}</value>
+  </data>
+  <data name="Tile_Badge_Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="Tile_Badge_MissingDetail" xml:space="preserve">
+    <value>the file wasn't found at the last scan. Right-click › Remove missing items… cleans up the library.</value>
+  </data>
 </root>

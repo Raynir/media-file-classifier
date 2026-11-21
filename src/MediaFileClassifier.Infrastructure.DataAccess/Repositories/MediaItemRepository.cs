@@ -259,6 +259,7 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
                 item.Id,
                 item.Path,
                 FolderPath = folder == null ? null : folder.DisplayPath,
+                FolderOffline = folder != null && folder.Status == FolderStatus.Offline,
                 item.MediaType,
                 item.SizeBytes,
                 item.FileModifiedAt,
@@ -287,7 +288,8 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             row.DateTaken,
             row.Orientation >= ImageOrientation.Transpose ? row.Height : row.Width,
             row.Orientation >= ImageOrientation.Transpose ? row.Width : row.Height,
-            FolderOf(row.FolderPath, row.Path)))];
+            FolderOf(row.FolderPath, row.Path),
+            row.FolderOffline))];
     }
 
     private static string? FolderOf(string? folderPath, RelativePath path)

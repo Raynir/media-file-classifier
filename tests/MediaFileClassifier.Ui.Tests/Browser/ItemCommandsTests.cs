@@ -62,6 +62,39 @@ public sealed class ItemCommandsTests
         Assert.True(commands[ItemCommands.CopyPath].IsEnabled);
     }
 
+    [Theory]
+    [InlineData(ItemAvailability.Missing, true)]
+    [InlineData(ItemAvailability.Offline, false)]
+    [InlineData(ItemAvailability.Available, false)]
+    public async Task Menu_ForAMissingItem_OffersRemoveMissingItems_WhichRunsTheLibraryCommand(ItemAvailability availability, bool offered)
+    {
+        var ran = 0;
+        var bed = new Bed(10, extra: new LibraryRemoveMissing(() => ran++));
+        bed.Availability[bed.Source.Ids[3]] = availability;
+
+        await bed.SelectAsync(3);
+
+        var entry = bed.Menu.Build().OfType<AppCommand>().SingleOrDefault(command => command.Id == ItemCommands.RemoveMissing);
+        Assert.Equal(offered, entry is not null);
+        if (entry is not null)
+        {
+            Assert.Equal("Remove missing items…", entry.PlainLabel);
+            await entry.ExecuteAsync();
+            Assert.Equal(1, ran);
+        }
+    }
+
+    [Fact]
+    public async Task Menu_WithoutTheLibraryCommand_LeavesRemoveMissingOut()
+    {
+        var bed = new Bed(10);
+        bed.Availability[bed.Source.Ids[3]] = ItemAvailability.Missing;
+
+        await bed.SelectAsync(3);
+
+        Assert.DoesNotContain(bed.Menu.Build().OfType<AppCommand>(), command => command.Id == ItemCommands.RemoveMissing);
+    }
+
     [Fact]
     public async Task Menu_WhereFilesCantBeRevealed_LeavesRevealOut()
     {
@@ -192,6 +225,15 @@ public sealed class ItemCommandsTests
     /// <summary>
     /// A selection over fake results, with the item commands and the context menu around it.
     /// </summary>
+    /// <summary>
+    /// Stands in for the Library menu's "Remove missing items…" (D240).
+    /// </summary>
+    private sealed class LibraryRemoveMissing(Action run) : ICommandContributor
+    {
+        public void Register(CommandRegistry registry) =>
+            registry.Add(new AppCommand(Ui.Rescan.RescanCommands.RemoveMissing, CommandGroups.Library, 130, "Command_RemoveMissing", run));
+    }
+
     private sealed class Bed
     {
         public Bed(int count, bool canReveal = true, ICommandContributor? extra = null, Func<Bed, ICommandContributor>? extraFor = null)

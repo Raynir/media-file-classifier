@@ -2794,4 +2794,7 @@
   <data name="DropImport_FoldersOne" xml:space="preserve">
     <value>1 folder added.</value>
   </data>
+  <data name="DropImport_Failed" xml:space="preserve">
+    <value>The dropped files couldn't be imported.</value>
+  </data>
 </root>

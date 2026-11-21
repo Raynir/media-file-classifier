@@ -57,7 +57,17 @@ public sealed partial class DropImportViewModel(
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var dropped in paths)
         {
-            var full = Path.GetFullPath(dropped.Path);
+            string full;
+            try
+            {
+                full = Path.GetFullPath(dropped.Path);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                // A malformed path from a shell source: skip it, the rest of the drop still counts.
+                continue;
+            }
+
             if (!seen.Add(Path.TrimEndingDirectorySeparator(full)))
             {
                 continue;
@@ -95,7 +105,20 @@ public sealed partial class DropImportViewModel(
             return;
         }
 
-        var result = files.Count > 0 ? await importFiles(files) : new ImportFilesResult();
+        var result = new ImportFilesResult();
+        if (files.Count > 0)
+        {
+            try
+            {
+                result = await importFiles(files);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                // The folders still get added; the toast says the files didn't work.
+                notifications.Error(localizer.Get("DropImport_Failed"));
+            }
+        }
+
         var foldersAdded = folders.Count > 0 ? await addFolders(folders) : 0;
         Summarize(result, foldersAdded);
     }

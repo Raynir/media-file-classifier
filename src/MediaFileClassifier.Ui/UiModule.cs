@@ -266,6 +266,7 @@ public static class UiModule
         services.AddSingleton<SortBarViewModel>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IToolbarContributor, SearchToolbar>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, FindSimilarCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, SearchCommands>());
 
         // Toolbar (E13-S03). Features fill its slots and add actions through IToolbarContributor.
         services.AddSingleton<ToolbarViewModel>();

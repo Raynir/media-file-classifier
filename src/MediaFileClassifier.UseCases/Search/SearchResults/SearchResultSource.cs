@@ -281,6 +281,16 @@ public sealed class SearchResultSource : IMediaResultSource, IResultAnnotations
     public void RefreshSimilar() => Replace(old => old.Similar is { } similar ? Create(string.Empty, old.ShowLessRelevant, old.Filter, similar: similar, filters: old.Filters) : null);
 
     /// <summary>
+    /// Runs the current search, or browsing, again with the same text, picture, "find similar" item, filters and
+    /// order (E16-S02, F5), so the results show changes made since they were listed.
+    /// </summary>
+    public void Refresh()
+    {
+        pages.Clear();
+        Replace(old => Create(old.Text, old.ShowLessRelevant, ScopeFilter(), old.Image, old.Similar, old.Filters));
+    }
+
+    /// <summary>
     /// Includes or leaves out the less relevant semantic matches of the current search.
     /// </summary>
     /// <param name="show">Whether to include them.</param>

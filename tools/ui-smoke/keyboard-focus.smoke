@@ -1,0 +1,43 @@
+# Keyboard focus smoke script (MFC-131): F6 and Shift+F6 move through the areas, the focus ring shows in both
+# themes, and a drawer at a narrow width takes the focus and gives it back.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/keyboard-focus.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-dark
+library sample
+select jpeg-exif.jpg
+command view.details-expanded
+wait-for visible Preview
+
+# F6 from the search box: browser -> details -> status bar -> navigation (the order is
+# navigation, toolbar, browser, details, status bar; the status bar has clickable segments once a library is open).
+focus SearchBox
+key F6
+shot 01-f6-browser-dark
+key F6
+shot 02-f6-details-dark
+key F6
+shot 03-f6-status-bar-dark
+key F6
+key Shift+F6
+key Shift+F6
+key Shift+F6
+key Tab
+shot 04-tab-in-toolbar-dark
+
+command view.theme-light
+focus SearchBox
+key Tab
+shot 05-tab-light
+
+# Narrow window: the details drawer takes the focus, F6 stays inside, Escape gives the focus back.
+window 700x900
+wait 300ms
+command view.toggle-details
+wait 300ms
+shot 06-drawer-open
+key F6
+key Tab
+key Escape
+wait 300ms
+shot 07-drawer-closed

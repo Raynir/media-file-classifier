@@ -153,6 +153,8 @@
   <CornerRadius x:Key="Radius.Tooltip">12</CornerRadius>
   <CornerRadius x:Key="Radius.Pill">999</CornerRadius>
   <Thickness x:Key="Border.Thin">1</Thickness>
+  <!-- The keyboard focus ring (E16-S03), drawn in Brush.State.Focus around the focused control. -->
+  <Thickness x:Key="Border.FocusRing">2</Thickness>
 
   <!-- Typography. Figma uses Roboto; the app bundles Inter (Avalonia.Fonts.Inter) until the font is decided. -->
   <FontFamily x:Key="Font.Family">fonts:Inter#Inter, $Default</FontFamily>

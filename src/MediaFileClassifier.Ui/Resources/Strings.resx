@@ -1350,6 +1350,12 @@
   <data name="Search_Field_FileName" xml:space="preserve">
     <value>File name</value>
   </data>
+  <data name="Command_FocusSearch" xml:space="preserve">
+    <value>Focus search</value>
+  </data>
+  <data name="Command_RefreshResults" xml:space="preserve">
+    <value>Refresh results</value>
+  </data>
   <data name="Command_FindSimilar" xml:space="preserve">
     <value>Find _similar</value>
   </data>

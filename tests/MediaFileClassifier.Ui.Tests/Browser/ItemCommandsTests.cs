@@ -49,9 +49,10 @@ public sealed class ItemCommandsTests
     [Theory]
     [InlineData(ItemAvailability.Missing, "The file is missing from its folder.")]
     [InlineData(ItemAvailability.Offline, "The folder Photos is offline. Connect the drive to use the file.")]
-    public async Task Menu_ForAnUnavailableFile_DisablesOpenAndReveal_WithTheReason(ItemAvailability availability, string reason)
+    [InlineData(ItemAvailability.Offline, "The folder Photos is offline. Connect drive 'Backup-2TB' to use the file.", "Backup-2TB")]
+    public async Task Menu_ForAnUnavailableFile_DisablesOpenAndReveal_WithTheReason(ItemAvailability availability, string reason, string? label = null)
     {
-        var bed = new Bed(10);
+        var bed = new Bed(10) { Label = label };
         bed.Availability[bed.Source.Ids[3]] = availability;
 
         await bed.SelectAsync(3);
@@ -265,6 +266,8 @@ public sealed class ItemCommandsTests
 
         public Dictionary<Id<MediaItem>, ItemAvailability> Availability { get; } = [];
 
+        public string? Label { get; init; }
+
         public async Task SelectAsync(int index)
         {
             await Selection.ApplyAsync(index, SelectionGesture.Replace);
@@ -279,7 +282,8 @@ public sealed class ItemCommandsTests
                 new FileLocation(new FolderHandle(@"D:\Photos", "Photos"), $"IMG_{index}.jpg"),
                 Path.Combine(@"D:\Photos", $"IMG_{index}.jpg"),
                 "Photos",
-                Availability.GetValueOrDefault(id));
+                Availability.GetValueOrDefault(id),
+                Label);
         }
 
         public IReadOnlyList<Id<MediaItem>> Resolve(ItemSelection selection) => [.. Source.Ids.Where(selection.Contains)];

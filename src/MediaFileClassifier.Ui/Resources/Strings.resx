@@ -2896,6 +2896,21 @@
   <data name="Tile_Badge_Missing" xml:space="preserve">
     <value>Missing</value>
   </data>
+  <data name="Offline_Drive_Label" xml:space="preserve">
+    <value>drive '{0}'</value>
+  </data>
+  <data name="Offline_Drive_Letter" xml:space="preserve">
+    <value>drive {0}</value>
+  </data>
+  <data name="Offline_Share" xml:space="preserve">
+    <value>share {0}</value>
+  </data>
+  <data name="Offline_SourceAndFolder" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Item_Unavailable_OfflineSource" xml:space="preserve">
+    <value>The folder {0} is offline. Connect {1} to use the file.</value>
+  </data>
   <data name="Tile_Badge_MissingDetail" xml:space="preserve">
     <value>the file wasn't found at the last scan. Right-click › Remove missing items… cleans up the library.</value>
   </data>

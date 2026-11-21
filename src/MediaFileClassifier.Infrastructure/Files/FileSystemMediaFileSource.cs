@@ -173,6 +173,34 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
     }
 
     /// <inheritdoc />
+    public Task<string?> GetVolumeLabelAsync(FolderHandle folder, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+
+        // Network shares have no drive to ask (DriveInfo takes only drive letters); the UI names the share instead.
+        return Task.Run(
+            () =>
+            {
+                try
+                {
+                    var root = Path.GetPathRoot(LocalFolder.GetFullPath(folder, string.Empty));
+                    if (string.IsNullOrEmpty(root) || root.StartsWith(@"\\", StringComparison.Ordinal))
+                    {
+                        return null;
+                    }
+
+                    var label = new DriveInfo(root).VolumeLabel;
+                    return string.IsNullOrWhiteSpace(label) ? null : label;
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or System.Security.SecurityException)
+                {
+                    return null;
+                }
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public string? GetPathInside(FolderHandle folder, FolderHandle parent)
     {
         ArgumentNullException.ThrowIfNull(folder);

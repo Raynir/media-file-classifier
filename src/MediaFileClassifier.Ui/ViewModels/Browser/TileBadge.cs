@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Media;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Localization;
 
 namespace MediaFileClassifier.Ui.ViewModels.Browser;
@@ -67,15 +68,17 @@ public sealed record TileBadge(string Kind, Geometry? Icon, string Label, string
     }
 
     /// <summary>
-    /// Gets what an offline item's badge names: its folder.
+    /// Gets what an offline item's badge names: the drive to connect and its folder (E14-S07-T02).
     /// </summary>
     /// <param name="item">The item.</param>
-    /// <returns>The text after "Offline: ".</returns>
+    /// <returns>The text after "Offline: ", e.g. <c>drive 'Backup-2TB' (E:\Photos)</c>.</returns>
     public static string? OfflineDetail(MediaItemSummary item)
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        return item.Folder is { } folder ? Localizer.Current.Format("Tile_Badge_OfflineFolder", folder) : null;
+        return item.Folder is { } folder
+            ? OfflineSource.Detail(folder, item.VolumeLabel, Localizer.Current)
+            : OfflineSource.Describe(null, item.VolumeLabel, Localizer.Current);
     }
 
     private static TileBadge Create(string kind, string iconKey, string labelKey, string? detail)

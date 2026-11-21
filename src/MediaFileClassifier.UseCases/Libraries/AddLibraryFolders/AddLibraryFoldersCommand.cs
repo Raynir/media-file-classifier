@@ -102,6 +102,7 @@ public sealed class AddLibraryFoldersCommandHandler(
             // On the desktop the handle is a full path, which is the clearer thing to show.
             var displayPath = Path.IsPathFullyQualified(handle.Id) ? handle.Id : handle.DisplayName;
             var folder = IndexedFolder.Create(library.Library.Id, displayPath, handle.Id, timeProvider.GetUtcNow());
+            folder.ChangeVolumeLabel(await files.GetVolumeLabelAsync(handle, cancellationToken).ConfigureAwait(false));
             await library.Folders.AddAsync(folder, cancellationToken).ConfigureAwait(false);
             foreach (var partial in partials)
             {

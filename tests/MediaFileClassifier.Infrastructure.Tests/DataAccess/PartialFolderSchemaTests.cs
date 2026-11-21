@@ -28,7 +28,7 @@ public sealed class PartialFolderSchemaTests
         SqliteConnection.ClearAllPools();
         await bed.OpenAgainAsync();
 
-        Assert.Equal(15, bed.Library.Library.SchemaVersion);
+        Assert.Equal(Library.CurrentSchemaVersion, bed.Library.Library.SchemaVersion);
         var folder = await bed.Library.Folders.GetAsync(bed.Folder.Id, Token);
         Assert.NotNull(folder);
         Assert.False(folder.SelectedFilesOnly);

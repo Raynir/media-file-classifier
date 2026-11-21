@@ -448,6 +448,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("status_changed_at");
 
+                    b.Property<string>("VolumeLabel")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("volume_label");
+
                     b.HasKey("Id");
 
                     b.HasIndex("LibraryId");

@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Controls;
+using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.Views.Browser;
 
@@ -29,14 +30,34 @@ public sealed class OfflineItemDisplayTests
     }
 
     [Fact]
-    public void Badges_OfAnOfflineItem_StartWithOffline_NamingTheFolder()
+    public void Badges_OfAnOfflineItem_StartWithOffline_NamingTheDriveAndFolder()
     {
         var item = Summary(MediaItemStatus.Pending, offline: true);
 
         var badges = TileBadge.For(item);
 
         Assert.Equal(["Offline", "Pending"], badges.Select(badge => badge.Kind));
-        Assert.Equal(("Offline", @"Offline: folder E:\Photos"), (badges[0].Label, badges[0].ToolTip));
+        Assert.Equal(("Offline", @"Offline: drive E: (E:\Photos)"), (badges[0].Label, badges[0].ToolTip));
+    }
+
+    [Theory]
+    [InlineData(@"E:\Photos", "Backup-2TB", "drive 'Backup-2TB'")]
+    [InlineData(@"e:\Photos\2020", null, "drive E:")]
+    [InlineData(@"\\nas\photos\2020", null, @"share \\nas\photos")]
+    [InlineData(@"\\nas\photos", "", @"share \\nas\photos")]
+    [InlineData("Photos", null, null)]
+    [InlineData(null, null, null)]
+    public void OfflineSource_NamesTheDriveByLabel_ElseByLetterOrShare(string? folder, string? label, string? expected)
+    {
+        Assert.Equal(expected, OfflineSource.Describe(folder, label, Localizer.Current));
+    }
+
+    [Fact]
+    public void Badge_OfAnOfflineItemOnALabelledDrive_NamesTheDrive()
+    {
+        var item = Summary(MediaItemStatus.Indexed, offline: true) with { VolumeLabel = "Backup-2TB" };
+
+        Assert.Equal(@"Offline: drive 'Backup-2TB' (E:\Photos)", Assert.Single(TileBadge.For(item)).ToolTip);
     }
 
     [Fact]

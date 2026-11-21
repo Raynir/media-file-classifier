@@ -33,6 +33,7 @@ public sealed class IndexedFolder
     /// <param name="addedAt">When the folder was added.</param>
     /// <param name="statusChangedAt">When <paramref name="status"/> last changed.</param>
     /// <param name="selectedFilesOnly">Whether the folder tracks only the files the user selected.</param>
+    /// <param name="volumeLabel">The label of the volume the folder is on, if the platform gave one.</param>
     public IndexedFolder(
         Id<IndexedFolder> id,
         Id<Library> libraryId,
@@ -42,7 +43,8 @@ public sealed class IndexedFolder
         FolderStatus status,
         DateTimeOffset addedAt,
         DateTimeOffset statusChangedAt,
-        bool selectedFilesOnly = false)
+        bool selectedFilesOnly = false,
+        string? volumeLabel = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(platformHandle);
@@ -57,6 +59,7 @@ public sealed class IndexedFolder
         AddedAt = addedAt;
         StatusChangedAt = statusChangedAt;
         SelectedFilesOnly = selectedFilesOnly;
+        VolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? null : volumeLabel;
     }
 
     public Id<IndexedFolder> Id { get; }
@@ -79,6 +82,13 @@ public sealed class IndexedFolder
     /// Gets a value indicating whether this is a partial folder, which tracks only the files the user selected (D012).
     /// </summary>
     public bool SelectedFilesOnly { get; private set; }
+
+    /// <summary>
+    /// Gets the label of the volume the folder is on, e.g. <c>Backup-2TB</c>, as last read while the folder was Online
+    /// (E14-S07-T02), so an Offline folder can say which drive to connect. <see langword="null"/> when the volume has
+    /// no label or the platform doesn't give one.
+    /// </summary>
+    public string? VolumeLabel { get; private set; }
 
     /// <summary>
     /// Creates a new, online folder with default rules.
@@ -131,6 +141,23 @@ public sealed class IndexedFolder
     }
 
     public void MarkOnline(DateTimeOffset now) => SetStatus(FolderStatus.Online, now);
+
+    /// <summary>
+    /// Records the label of the volume the folder is on, read while it's Online.
+    /// </summary>
+    /// <param name="label">The label, or <see langword="null"/> or blank for none.</param>
+    /// <returns><see langword="true"/> when the label changed.</returns>
+    public bool ChangeVolumeLabel(string? label)
+    {
+        label = string.IsNullOrWhiteSpace(label) ? null : label.Trim();
+        if (label == VolumeLabel)
+        {
+            return false;
+        }
+
+        VolumeLabel = label;
+        return true;
+    }
 
     public void MarkOffline(DateTimeOffset now) => SetStatus(FolderStatus.Offline, now);
 

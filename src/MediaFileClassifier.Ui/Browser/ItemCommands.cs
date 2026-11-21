@@ -118,7 +118,9 @@ public sealed partial class ItemCommands : ICommandContributor
     private string? WhyUnavailable() => focused?.Availability switch
     {
         ItemAvailability.Missing => localizer.Get("Item_Unavailable_Missing"),
-        ItemAvailability.Offline => localizer.Format("Item_Unavailable_Offline", focused.FolderName),
+        ItemAvailability.Offline => OfflineSource.Describe(focused.FolderName, focused.VolumeLabel, localizer) is { } source
+            ? localizer.Format("Item_Unavailable_OfflineSource", focused.FolderName, source)
+            : localizer.Format("Item_Unavailable_Offline", focused.FolderName),
         _ => null,
     };
 

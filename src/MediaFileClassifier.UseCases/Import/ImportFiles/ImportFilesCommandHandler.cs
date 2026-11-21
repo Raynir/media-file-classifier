@@ -62,6 +62,7 @@ public sealed class ImportFilesCommandHandler(
                 // On the desktop the handle is a full path, which is the clearer thing to show.
                 var displayPath = Path.IsPathFullyQualified(file.Folder.Id) ? file.Folder.Id : file.Folder.DisplayName;
                 folder = IndexedFolder.CreateForSelectedFiles(library.Library.Id, displayPath, file.Folder.Id, clock.GetUtcNow());
+                folder.ChangeVolumeLabel(await files.GetVolumeLabelAsync(file.Folder, cancellationToken).ConfigureAwait(false));
                 await library.Folders.AddAsync(folder, cancellationToken).ConfigureAwait(false);
                 indexed.Add(folder);
                 added.Add(folder);

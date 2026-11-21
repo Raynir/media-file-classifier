@@ -12,7 +12,8 @@ namespace MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 /// Checks whether the open library's folders can be reached, and marks them Online or Offline (E02-S03-T05). It runs
 /// when a library opens, before imports and when the folders view opens. An Offline folder's items are kept as they
 /// are: nothing is marked Missing because its root can't be reached. When a folder is Online again, the work parked
-/// for it runs (D025).
+/// for it runs (D025). An Online folder's volume label is read again, so an Offline one can name its drive
+/// (E14-S07-T02).
 /// </summary>
 /// <param name="FolderIds">The folders to check, or <c>null</c> for all of them.</param>
 public sealed record CheckFolderAvailabilityCommand(IReadOnlyCollection<Id<IndexedFolder>>? FolderIds = null) : IRequest<IReadOnlyList<IndexedFolder>>;
@@ -49,12 +50,21 @@ public sealed class CheckFolderAvailabilityCommandHandler(
             .ToList();
         var available = await Task.WhenAll(folders.Select(folder => files.IsAvailableAsync(folder.ToHandle(), cancellationToken))).ConfigureAwait(false);
         var changed = new List<IndexedFolder>();
+        var labels = await Task.WhenAll(folders.Select((folder, i) => available[i]
+            ? files.GetVolumeLabelAsync(folder.ToHandle(), cancellationToken)
+            : Task.FromResult<string?>(null))).ConfigureAwait(false);
         for (var i = 0; i < folders.Count; i++)
         {
             var folder = folders[i];
             var status = available[i] ? FolderStatus.Online : FolderStatus.Offline;
+            var relabelled = available[i] && folder.ChangeVolumeLabel(labels[i]);
             if (folder.Status == status)
             {
+                if (relabelled)
+                {
+                    await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+                }
+
                 continue;
             }
 

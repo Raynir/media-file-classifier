@@ -172,7 +172,13 @@ internal sealed class FakeFolderRepository : IFolderRepository
         return Task.CompletedTask;
     }
 
-    public Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public int Updates { get; private set; }
+
+    public Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
+    {
+        Updates++;
+        return Task.CompletedTask;
+    }
 
     public Task<int> MergeIntoAsync(IndexedFolder parent, Id<IndexedFolder> childId, string relativePath, CancellationToken cancellationToken = default)
     {
@@ -311,6 +317,11 @@ internal sealed class FakeFolderSource : IMediaFileSource
 {
     public HashSet<string> Unavailable { get; } = [];
 
+    /// <summary>
+    /// Gets the volume label of each folder, by its handle.
+    /// </summary>
+    public Dictionary<string, string?> Labels { get; } = [];
+
     public IAsyncEnumerable<MediaFileStat> EnumerateFilesAsync(FolderHandle folder, string relativeDirectory = "", CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public IAsyncEnumerable<FolderScanEntry> ScanAsync(FolderHandle folder, FolderScanOptions options, CancellationToken cancellationToken = default) => throw new NotSupportedException();
@@ -320,6 +331,9 @@ internal sealed class FakeFolderSource : IMediaFileSource
     public Task<MediaFileStat?> GetStatAsync(FileLocation file, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) => Task.FromResult(!Unavailable.Contains(folder.Id));
+
+    public Task<string?> GetVolumeLabelAsync(FolderHandle folder, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Labels.GetValueOrDefault(folder.Id));
 
     public string? GetPathInside(FolderHandle folder, FolderHandle parent)
     {

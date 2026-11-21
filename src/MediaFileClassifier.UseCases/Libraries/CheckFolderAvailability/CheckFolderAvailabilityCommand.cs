@@ -13,10 +13,13 @@ namespace MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 /// when a library opens, before imports and when the folders view opens. An Offline folder's items are kept as they
 /// are: nothing is marked Missing because its root can't be reached. When a folder is Online again, the work parked
 /// for it runs (D025). An Online folder's volume label is read again, so an Offline one can name its drive
-/// (E14-S07-T02).
+/// (E14-S07-T02). It also runs when a volume arrives or goes away, and every 30 s for the Offline folders alone
+/// (E14-S07-T04, <see cref="FolderAvailabilityMonitor"/>); when a status changes, <see cref="FolderStatusChanges"/>
+/// tells the browser.
 /// </summary>
 /// <param name="FolderIds">The folders to check, or <c>null</c> for all of them.</param>
-public sealed record CheckFolderAvailabilityCommand(IReadOnlyCollection<Id<IndexedFolder>>? FolderIds = null) : IRequest<IReadOnlyList<IndexedFolder>>;
+/// <param name="OfflineOnly">Whether to check only the folders that are Offline now, among <paramref name="FolderIds"/>.</param>
+public sealed record CheckFolderAvailabilityCommand(IReadOnlyCollection<Id<IndexedFolder>>? FolderIds = null, bool OfflineOnly = false) : IRequest<IReadOnlyList<IndexedFolder>>;
 
 /// <summary>
 /// Handles <see cref="CheckFolderAvailabilityCommand"/>.
@@ -26,12 +29,14 @@ public sealed record CheckFolderAvailabilityCommand(IReadOnlyCollection<Id<Index
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="jobs">Releases the parked work when a folder is Online again, or <see langword="null"/>.</param>
+/// <param name="statusChanges">Told when a folder's status changed, or <see langword="null"/>.</param>
 public sealed class CheckFolderAvailabilityCommandHandler(
     ILibrarySession session,
     IMediaFileSource files,
     TimeProvider clock,
     ILogger<CheckFolderAvailabilityCommandHandler> logger,
-    IJobSystem? jobs = null) : IRequestHandler<CheckFolderAvailabilityCommand, IReadOnlyList<IndexedFolder>>
+    IJobSystem? jobs = null,
+    FolderStatusChanges? statusChanges = null) : IRequestHandler<CheckFolderAvailabilityCommand, IReadOnlyList<IndexedFolder>>
 {
     /// <inheritdoc />
     /// <returns>The folders whose status changed.</returns>
@@ -47,6 +52,7 @@ public sealed class CheckFolderAvailabilityCommandHandler(
         // Checked at once, so unreachable network shares time out together rather than one after another.
         var folders = (await library.Folders.GetAllAsync(cancellationToken).ConfigureAwait(false))
             .Where(folder => request.FolderIds is null || request.FolderIds.Contains(folder.Id))
+            .Where(folder => !request.OfflineOnly || folder.Status == FolderStatus.Offline)
             .ToList();
         var available = await Task.WhenAll(folders.Select(folder => files.IsAvailableAsync(folder.ToHandle(), cancellationToken))).ConfigureAwait(false);
         var changed = new List<IndexedFolder>();
@@ -85,6 +91,11 @@ public sealed class CheckFolderAvailabilityCommandHandler(
         if (changed.Any(folder => folder.Status == FolderStatus.Online))
         {
             jobs?.Current?.ReleaseParked();
+        }
+
+        if (changed.Count > 0)
+        {
+            statusChanges?.Raise();
         }
 
         return changed;

@@ -26,6 +26,8 @@ internal static class DesktopPlatformModule
         services.TryAddSingleton<IHardwareDetector, WindowsHardwareDetector>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, SkiaSharpProbe>());
         services.TryAddSingleton<IKeyboardLayout, WindowsKeyboardLayout>();
+        services.TryAddSingleton<WindowsVolumeWatcher>();
+        services.TryAddSingleton<IVolumeWatcher>(provider => provider.GetRequiredService<WindowsVolumeWatcher>());
         return services;
     }
 }

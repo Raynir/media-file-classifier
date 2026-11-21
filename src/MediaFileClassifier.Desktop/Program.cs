@@ -20,6 +20,7 @@ using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.Ui;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Embeddings;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -96,6 +97,9 @@ internal static partial class Program
             // Search switches to a new embedding model once enough items have its vectors (E06-S07-T05).
             host.Services.GetRequiredService<EmbeddingModelMigration>();
 
+            // Folder statuses follow drives and shares coming and going (E14-S07-T04).
+            host.Services.GetRequiredService<FolderAvailabilityMonitor>().Start();
+
             if (args.Contains("--benchmark"))
             {
                 return RunBenchmark(host.Services, logger);
@@ -108,6 +112,7 @@ internal static partial class Program
                 .StartWithClassicDesktopLifetime(args, lifetime =>
                 {
                     SimulateCrashIfRequested(lifetime, args);
+                    host.Services.GetRequiredService<WindowsVolumeWatcher>().Attach(lifetime);
                     AttachSmoke(lifetime, host.Services);
                 });
             host.StopAsync().GetAwaiter().GetResult();

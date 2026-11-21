@@ -43,14 +43,12 @@ public sealed partial class SidePanel : ObservableObject
     /// Gets or sets a value indicating whether the panel is shown.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExpanded))]
     public partial bool IsVisible { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a value indicating whether the panel is collapsed to its icon rail or strip.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExpanded))]
     public partial bool IsCollapsed { get; set; }
 
     /// <summary>
@@ -60,29 +58,105 @@ public sealed partial class SidePanel : ObservableObject
     public partial double Width { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether the panel is shown at full width.
+    /// Gets or sets how the panel is shown at the current breakpoint (E13-S07). It isn't saved: the saved layout is
+    /// the docked one, and comes back when the window is wide again.
     /// </summary>
-    public bool IsExpanded => IsVisible && !IsCollapsed;
+    [ObservableProperty]
+    public partial PanelMode Mode { get; set; }
 
     /// <summary>
-    /// Shows a hidden panel as it was, or hides a shown one.
+    /// Gets or sets a value indicating whether the panel is open as a drawer. Only the drawer layouts use it, and it isn't saved.
     /// </summary>
-    public void ToggleVisible() => IsVisible = !IsVisible;
+    [ObservableProperty]
+    public partial bool IsDrawerOpen { get; set; }
 
     /// <summary>
-    /// Collapses an expanded panel, or expands a collapsed one. A hidden panel is shown expanded.
+    /// Gets a value indicating whether the panel is over the browser, as a drawer.
     /// </summary>
-    public void ToggleCollapsed() => Show(collapsed: IsVisible && !IsCollapsed);
+    public bool IsDrawer => Mode == PanelMode.Drawer || (Mode == PanelMode.Rail && IsDrawerOpen);
 
     /// <summary>
-    /// Shows the panel expanded.
+    /// Gets a value indicating whether the user can resize the panel: it's docked, not a rail or a drawer.
+    /// </summary>
+    public bool IsResizable => Mode == PanelMode.Docked;
+
+    /// <summary>
+    /// Gets a value indicating whether the panel is on screen, in its column or as an open drawer.
+    /// </summary>
+    public bool IsShown => IsDrawer ? IsDrawerOpen : IsVisible;
+
+    /// <summary>
+    /// Gets a value indicating whether the panel is on screen as its icon rail or strip, in its column.
+    /// </summary>
+    public bool IsRail => IsShown && !IsDrawer && (Mode == PanelMode.Rail || IsCollapsed);
+
+    /// <summary>
+    /// Gets a value indicating whether the panel is on screen at full width.
+    /// </summary>
+    public bool IsExpanded => IsDrawer ? IsDrawerOpen : Mode == PanelMode.Docked && IsVisible && !IsCollapsed;
+
+    /// <summary>
+    /// Gets a value indicating whether the window shows a button to open the panel: it's hidden, or a drawer that's closed.
+    /// </summary>
+    public bool NeedsOpenButton => IsDrawer ? !IsDrawerOpen : !IsVisible;
+
+    /// <summary>
+    /// Gets a value indicating whether the panel's column keeps the width of the icon rail while the panel is open as a drawer.
+    /// </summary>
+    public bool KeepsRailColumn => Mode == PanelMode.Rail && IsDrawerOpen && IsVisible;
+
+    /// <summary>
+    /// Shows a hidden panel as it was, or hides a shown one. A drawer opens or closes.
+    /// </summary>
+    public void ToggleVisible()
+    {
+        if (Mode == PanelMode.Drawer || (Mode == PanelMode.Rail && IsDrawerOpen))
+        {
+            IsDrawerOpen = !IsDrawerOpen;
+        }
+        else
+        {
+            IsVisible = !IsVisible;
+        }
+    }
+
+    /// <summary>
+    /// Collapses an expanded panel, or expands a collapsed one. A hidden panel is shown expanded. A drawer opens or closes,
+    /// and so does the drawer of a rail.
+    /// </summary>
+    public void ToggleCollapsed()
+    {
+        if (Mode == PanelMode.Docked)
+        {
+            Show(collapsed: IsVisible && !IsCollapsed);
+        }
+        else
+        {
+            IsDrawerOpen = !IsDrawerOpen;
+        }
+    }
+
+    /// <summary>
+    /// Shows the panel expanded. A drawer opens.
     /// </summary>
     public void Expand() => Show(collapsed: false);
 
     /// <summary>
-    /// Shows the panel collapsed.
+    /// Shows the panel collapsed. A drawer closes.
     /// </summary>
     public void Collapse() => Show(collapsed: true);
+
+    /// <summary>
+    /// Hides the panel. A drawer closes.
+    /// </summary>
+    public void Hide()
+    {
+        IsDrawerOpen = false;
+        if (Mode != PanelMode.Drawer)
+        {
+            IsVisible = false;
+        }
+    }
 
     /// <summary>
     /// Resizes the panel by dragging its splitter. Dragging below half the minimum width collapses the panel,
@@ -92,6 +166,11 @@ public sealed partial class SidePanel : ObservableObject
     /// <param name="available">The widest the panel can be without squeezing the media browser below its minimum.</param>
     public void ResizeTo(double requested, double available)
     {
+        if (Mode != PanelMode.Docked)
+        {
+            return;
+        }
+
         if (requested < MinWidth / 2)
         {
             IsCollapsed = true;
@@ -110,6 +189,11 @@ public sealed partial class SidePanel : ObservableObject
     /// <param name="available">The widest the panel can be without squeezing the media browser below its minimum.</param>
     public void ResizeBy(double delta, double available)
     {
+        if (Mode != PanelMode.Docked)
+        {
+            return;
+        }
+
         if (IsCollapsed)
         {
             IsCollapsed = delta <= 0;
@@ -141,8 +225,37 @@ public sealed partial class SidePanel : ObservableObject
         Width = double.IsFinite(layout.Width) ? Math.Clamp(layout.Width, MinWidth, MaxWidth) : DefaultWidth;
     }
 
+    partial void OnIsVisibleChanged(bool value) => NotifyState();
+
+    partial void OnIsCollapsedChanged(bool value) => NotifyState();
+
+    partial void OnIsDrawerOpenChanged(bool value) => NotifyState();
+
+    partial void OnModeChanged(PanelMode value)
+    {
+        IsDrawerOpen = false;
+        NotifyState();
+    }
+
+    private void NotifyState()
+    {
+        OnPropertyChanged(nameof(IsDrawer));
+        OnPropertyChanged(nameof(IsResizable));
+        OnPropertyChanged(nameof(IsShown));
+        OnPropertyChanged(nameof(IsRail));
+        OnPropertyChanged(nameof(IsExpanded));
+        OnPropertyChanged(nameof(NeedsOpenButton));
+        OnPropertyChanged(nameof(KeepsRailColumn));
+    }
+
     private void Show(bool collapsed)
     {
+        if (Mode != PanelMode.Docked)
+        {
+            IsDrawerOpen = !collapsed;
+            return;
+        }
+
         IsCollapsed = collapsed;
         IsVisible = true;
     }

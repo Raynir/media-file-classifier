@@ -214,6 +214,12 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 Directory.CreateDirectory(options.OutputDirectory);
                 var dialogPath = Path.Combine(options.OutputDirectory, step.Argument + ".png");
                 return $"{dialogPath} ({WindowCapture.Save(dialog, dialogPath)})";
+            case "dialog-type":
+                // Types into the open dialog's focused text box, e.g. a typed confirmation (MFC-122).
+                var dialogBox = (Dialog() ?? throw new SmokeStepException("no dialog is open")).FocusManager?.GetFocusedElement() as TextBox
+                    ?? throw new SmokeStepException("no text box has the focus in the dialog");
+                dialogBox.RaiseEvent(new TextInputEventArgs { RoutedEvent = InputElement.TextInputEvent, Text = step.Argument, Source = dialogBox });
+                return null;
             case "focus":
                 var control = FindVisible(step.Argument) ?? throw new SmokeStepException($"no visible control '{step.Argument}'");
                 if (!control.Focus())

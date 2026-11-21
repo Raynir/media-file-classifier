@@ -130,6 +130,8 @@ public static class UiModule
         services.AddSingleton<Func<IndexedFoldersViewModel>>(provider => provider.GetRequiredService<IndexedFoldersViewModel>);
         services.AddTransient<ExcludedItemsViewModel>();
         services.AddSingleton<Func<ExcludedItemsViewModel>>(provider => provider.GetRequiredService<ExcludedItemsViewModel>);
+        services.AddTransient<DeleteLibraryViewModel>();
+        services.AddSingleton<Func<DeleteLibraryViewModel>>(provider => provider.GetRequiredService<DeleteLibraryViewModel>);
         services.AddSingleton<LibraryDialogs>();
         services.TryAddSingleton<IModelDialogs, ModelDialogs>();
         services.AddSingleton<ModelBannerViewModel>();

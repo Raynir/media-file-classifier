@@ -1,7 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 
@@ -26,7 +28,69 @@ public partial class MainView : UserControl
         AddHandler(DragDrop.DropEvent, OnDrop, handledEventsToo: true);
     }
 
+    // The drawer takes at most the window's width less this, so the scrim stays there to click.
+    private const double DrawerGutter = 48;
+
+    private TopLevel? windowWithHandler;
+
     private DropImportViewModel? Drops => (DataContext as MainWindowViewModel)?.Drops;
+
+    private ShellLayout? Layout => (DataContext as MainWindowViewModel)?.Layout;
+
+    /// <inheritdoc />
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        Layout?.UpdateWidth(e.NewSize.Width);
+        foreach (var host in new[] { this.FindControl<Panel>("NavigationHost"), this.FindControl<Panel>("DetailsHost") })
+        {
+            if (host is not null)
+            {
+                host.MaxWidth = Math.Max(0, e.NewSize.Width - DrawerGutter);
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        Layout?.UpdateWidth(Bounds.Width);
+    }
+
+    /// <inheritdoc />
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        // On the window, so Escape works wherever the focus is, also when it's on the window itself.
+        windowWithHandler = TopLevel.GetTopLevel(this);
+        windowWithHandler?.AddHandler(KeyDownEvent, OnWindowKeyDown);
+    }
+
+    /// <inheritdoc />
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        windowWithHandler?.RemoveHandler(KeyDownEvent, OnWindowKeyDown);
+        windowWithHandler = null;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        // Escape closes an open drawer (E13-S07), unless something inside, such as a menu or the search box, took it.
+        if (!e.Handled && e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None && Layout is { IsAnyDrawerOpen: true } layout)
+        {
+            layout.CloseDrawers();
+            e.Handled = true;
+        }
+    }
+
+    private void OnScrimPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Layout?.CloseDrawers();
+        e.Handled = true;
+    }
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {

@@ -31,6 +31,7 @@ public sealed partial class ShellLayout : ObservableObject
     /// </summary>
     public ShellLayout()
     {
+        Changed += (_, _) => StateChanged?.Invoke(this, EventArgs.Empty);
         Navigation.PropertyChanged += OnPanelChanged;
         Details.PropertyChanged += OnPanelChanged;
     }
@@ -41,6 +42,11 @@ public sealed partial class ShellLayout : ObservableObject
     public event EventHandler? Changed;
 
     /// <summary>
+    /// Raised when anything in the layout changes, also the parts that aren't saved: the breakpoint and the open drawers.
+    /// </summary>
+    public event EventHandler? StateChanged;
+
+    /// <summary>
     /// Gets the navigation panel on the left. Collapsed, it's an icon rail.
     /// </summary>
     public SidePanel Navigation { get; } = new(defaultWidth: 240, minWidth: 180, maxWidth: 400);
@@ -49,6 +55,51 @@ public sealed partial class ShellLayout : ObservableObject
     /// Gets the preview and details panel on the right. Collapsed, it's a strip with its expand button.
     /// </summary>
     public SidePanel Details { get; } = new(defaultWidth: 320, minWidth: 260, maxWidth: 560);
+
+    /// <summary>
+    /// Gets the layout for the window's width (E13-S07). It isn't saved: the saved panel layout is the wide one.
+    /// </summary>
+    public LayoutBreakpoint Breakpoint { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether a side panel is open as a drawer over the browser.
+    /// </summary>
+    public bool IsAnyDrawerOpen => (Navigation.IsDrawer && Navigation.IsDrawerOpen) || (Details.IsDrawer && Details.IsDrawerOpen);
+
+    /// <summary>
+    /// Switches the panels to the layout for a window width (E13-S07): wide docks both, medium makes the navigation
+    /// an icon rail and the details a drawer, and narrow makes both drawers. Drawers close when the layout changes.
+    /// </summary>
+    /// <param name="width">The window's width.</param>
+    public void UpdateWidth(double width)
+    {
+        var breakpoint = LayoutBreakpoints.For(width);
+        if (breakpoint == Breakpoint)
+        {
+            return;
+        }
+
+        Breakpoint = breakpoint;
+        CloseDrawers();
+        Navigation.Mode = breakpoint switch
+        {
+            LayoutBreakpoint.Wide => PanelMode.Docked,
+            LayoutBreakpoint.Medium => PanelMode.Rail,
+            _ => PanelMode.Drawer,
+        };
+        Details.Mode = breakpoint == LayoutBreakpoint.Wide ? PanelMode.Docked : PanelMode.Drawer;
+        OnPropertyChanged(nameof(Breakpoint));
+        OnPropertyChanged(nameof(IsAnyDrawerOpen));
+    }
+
+    /// <summary>
+    /// Closes the open drawer, if any.
+    /// </summary>
+    public void CloseDrawers()
+    {
+        Navigation.IsDrawerOpen = false;
+        Details.IsDrawerOpen = false;
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether the status bar is shown (E13-S04).
@@ -149,7 +200,28 @@ public sealed partial class ShellLayout : ObservableObject
 
     partial void OnDetailsTabChanged(DetailsTab value) => Changed?.Invoke(this, EventArgs.Empty);
 
-    private void OnPanelChanged(object? sender, PropertyChangedEventArgs e) => Changed?.Invoke(this, EventArgs.Empty);
+    private void OnPanelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SidePanel.IsDrawerOpen) && sender is SidePanel { IsDrawerOpen: true } opened)
+        {
+            // One drawer at a time.
+            var other = ReferenceEquals(opened, Navigation) ? Details : Navigation;
+            other.IsDrawerOpen = false;
+        }
+
+        if (e.PropertyName is nameof(SidePanel.IsDrawerOpen) or nameof(SidePanel.IsDrawer) or nameof(SidePanel.Mode))
+        {
+            OnPropertyChanged(nameof(IsAnyDrawerOpen));
+        }
+
+        StateChanged?.Invoke(this, EventArgs.Empty);
+
+        // Only the saved parts of a panel are a change to save.
+        if (e.PropertyName is nameof(SidePanel.IsVisible) or nameof(SidePanel.IsCollapsed) or nameof(SidePanel.Width))
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
 }
 
 /// <summary>

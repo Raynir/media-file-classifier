@@ -1667,6 +1667,7 @@
   </data>
   <data name="Setting_ConfirmQuit_Help" xml:space="preserve">
     <value>When on, closing the app while work is pending asks first. The work continues the next time the library opens.</value>
+  </data>
   <data name="Setting_ShowFileNames" xml:space="preserve">
     <value>Show file names under tiles</value>
   </data>

@@ -55,6 +55,13 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the view is hosted in the Settings "Library" page, which has its own
+    /// heading and no Close button.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsEmbedded { get; set; }
+
+    /// <summary>
     /// Raised when the dialog should close.
     /// </summary>
     public event EventHandler? CloseRequested;

@@ -1,0 +1,19 @@
+# Settings > Library (MFC-133): information, folders, maintenance and excluded items on one page.
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/library-settings.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+# The page of the open library.
+start tools.settings
+wait-for dialog
+dialog-size 1000x1500
+dialog-select Library
+wait 1500ms
+dialog-shot 01-library-settings-top
+
+# The maintenance buttons run the library menu's commands.
+dialog-click RefreshIndexButton
+wait-for idle

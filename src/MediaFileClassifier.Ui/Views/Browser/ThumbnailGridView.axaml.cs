@@ -39,6 +39,7 @@ public partial class ThumbnailGridView : UserControl
         Scroller.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
         Scroller.LostFocus += (_, _) => viewModel?.IsFocusVisible = false;
         Scroller.AddHandler(ContextRequestedEvent, OnContextRequested, RoutingStrategies.Tunnel);
+        ListHeader.SortRequested += (_, column) => viewModel?.SortByColumn(column);
     }
 
     /// <inheritdoc />

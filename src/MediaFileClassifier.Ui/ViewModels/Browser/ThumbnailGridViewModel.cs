@@ -85,6 +85,8 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     private double viewportWidth;
     private double viewportOffset;
     private double viewportHeight;
+    private int toggleAnchor;
+    private readonly ISettingsStore? settings;
     private double renderScaling = 1;
     private bool isActive;
     private bool showFileNames = true;
@@ -174,6 +176,42 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
             _ = SaveTileSizeAsync();
         };
         source.Changed += (_, _) => Dispatcher.UIThread.Post(OnSourceChanged);
+        this.settings = settings;
+        if (settings is not null)
+        {
+            // The view the user left on last time.
+            IsListView = settings.Get(BrowserSettings.ListView);
+        }
+
+        SyncSortGlyphs();
+        ListColumns.LayoutChanged += (_, _) => SyncSortGlyphs();
+        if (sort is not null)
+        {
+            sort.PropertyChanged += (_, _) => SyncSortGlyphs();
+        }
+    }
+
+    /// <summary>
+    /// Sorts by a list column's order, as a click on its header does (E14-S02-T03).
+    /// </summary>
+    /// <param name="column">The column; one that can't sort does nothing.</param>
+    public void SortByColumn(ListColumnViewModel column)
+    {
+        if (Sort is not null && column.SortMode is { } mode)
+        {
+            Sort.SortBy(mode);
+        }
+    }
+
+    private void SyncSortGlyphs()
+    {
+        var mode = Sort?.SelectedMode?.Mode;
+        foreach (var column in ListColumns.Columns)
+        {
+            column.SortGlyph = Sort is not null && column.SortMode is { } own && own == mode
+                ? Sort.DirectionGlyph
+                : string.Empty;
+        }
     }
 
     /// <summary>
@@ -566,11 +604,23 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         }
     }
 
+    partial void OnIsListViewChanging(bool value) => toggleAnchor = FirstVisibleIndex();
+
     partial void OnIsListViewChanged(bool value)
     {
+        // The first visible item stays first, whatever the row height and columns are now.
+        var anchor = toggleAnchor;
         viewportOffset = 0;
-        ScrollRequested?.Invoke(this, 0);
-        Relayout(0, force: true);
+        Relayout(anchor, force: true);
+        if (anchor == 0)
+        {
+            ScrollRequested?.Invoke(this, 0);
+        }
+
+        if (settings is not null && settings.Get(BrowserSettings.ListView) != value)
+        {
+            settings.SetValue(BrowserSettings.ListView, value);
+        }
     }
 
     private ThumbnailRowViewModel CreateRow(int index)

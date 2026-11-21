@@ -2823,6 +2823,9 @@
   <data name="Browser_ViewToggle" xml:space="preserve">
     <value>Results view</value>
   </data>
+  <data name="Setting_ListView" xml:space="preserve">
+    <value>Show results as a list</value>
+  </data>
   <data name="Setting_ListColumns" xml:space="preserve">
     <value>List columns</value>
   </data>

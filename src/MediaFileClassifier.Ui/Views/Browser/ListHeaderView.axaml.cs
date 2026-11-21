@@ -205,7 +205,17 @@ public partial class ListHeaderView : UserControl
 
             e.Handled = true;
         }
+        else if (column.IsSortable && ColumnOf(e.Source) == column)
+        {
+            SortRequested?.Invoke(this, column);
+            e.Handled = true;
+        }
     }
+
+    /// <summary>
+    /// Raised when a header is clicked, not dragged, with the column to sort by.
+    /// </summary>
+    public event EventHandler<ListColumnViewModel>? SortRequested;
 
     private void EndDrag()
     {

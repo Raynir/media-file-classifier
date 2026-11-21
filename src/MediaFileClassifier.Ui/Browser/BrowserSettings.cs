@@ -24,4 +24,11 @@ public static class BrowserSettings
     /// </summary>
     public static readonly TextSetting ListColumns = new(
         "browse.listColumns", SettingScope.App, SettingCategories.Appearance, "Setting_ListColumns", string.Empty);
+
+    /// <summary>
+    /// Whether the results show as a list instead of the thumbnail grid (E14-S02-T03), remembered app-wide. It isn't
+    /// registered, so the Settings window doesn't show it; the view toggle and the View commands change it.
+    /// </summary>
+    public static readonly BooleanSetting ListView = new(
+        "browse.listView", SettingScope.App, SettingCategories.Appearance, "Setting_ListView", defaultValue: false);
 }

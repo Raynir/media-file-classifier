@@ -87,6 +87,39 @@ public sealed class RestoreAndForgetTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Restore_FileGoneThenBack_TheRescanMakesItsThumbnailAgain()
+    {
+        var item = await ItemAsync("a/photo.jpg");
+        await RemoveAsync(item);
+        var file = Path.Combine(bed.Root, "a/photo.jpg");
+        var away = Path.Combine(bed.Root + "-away.jpg");
+        File.Move(file, away);
+        await bed.Sender.Send(new RestoreExcludedItemsCommand([item.Id]), Token);
+
+        File.Move(away, file);
+        await ReconcilerTests.RescanAsync(bed);
+
+        var back = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        Assert.Equal(MediaItemStatus.Pending, back.Status);
+        Assert.True(File.Exists(bed.Library.Layout.GetThumbnailPath(item.Id, ThumbnailSize.Small)));
+    }
+
+    [Fact]
+    public async Task RestoreRequestedItem_IsStillListed_AndCanBeForgotten()
+    {
+        // As left by a restore whose import failed: the item mustn't become unreachable.
+        var item = await ItemAsync("a/photo.jpg");
+        await RemoveAsync(item);
+        var stored = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        stored.ChangeExclusionReason(LibraryExclusions.RestoreRequested);
+        await bed.Library.Items.UpdateAsync(stored, Token);
+
+        Assert.Equal(item.Id, Assert.Single(await bed.Sender.Send(new GetExcludedItemsQuery(), Token)).Id);
+        Assert.Equal(1, await bed.Sender.Send(new ForgetExcludedItemsCommand([item.Id]), Token));
+        Assert.Null(await bed.Library.Items.GetAsync(item.Id, Token));
+    }
+
+    [Fact]
     public async Task Restore_FileChangedWhileRemoved_ImportsTheNewContent()
     {
         var item = await ItemAsync("alpha.png");

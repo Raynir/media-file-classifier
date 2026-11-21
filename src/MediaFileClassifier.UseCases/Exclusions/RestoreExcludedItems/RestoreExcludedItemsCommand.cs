@@ -51,7 +51,7 @@ public sealed class RestoreExcludedItemsCommandHandler(
         var library = scheduler.Library;
         var now = clock.GetUtcNow();
         var items = (await library.Items.GetByIdsAsync(request.ItemIds, cancellationToken).ConfigureAwait(false))
-            .Where(LibraryExclusions.IsRemovedByUser);
+            .Where(LibraryExclusions.IsListedAsRemoved);
         var (imported, missing, ruled) = (0, 0, 0);
         foreach (var byFolder in items.GroupBy(item => item.FolderId))
         {

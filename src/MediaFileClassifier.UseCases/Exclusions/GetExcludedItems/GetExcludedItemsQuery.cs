@@ -37,7 +37,7 @@ public sealed class GetExcludedItemsQueryHandler(ILibrarySession session) : IReq
         var folders = (await library.Folders.GetAllAsync(cancellationToken).ConfigureAwait(false)).ToDictionary(folder => folder.Id);
         var items = await library.Items.GetByStatusAsync(MediaItemStatus.Excluded, cancellationToken: cancellationToken).ConfigureAwait(false);
         return [.. items
-            .Where(LibraryExclusions.IsRemovedByUser)
+            .Where(LibraryExclusions.IsListedAsRemoved)
             .OrderByDescending(item => item.StatusChangedAt)
             .ThenBy(item => item.FileName, StringComparer.CurrentCultureIgnoreCase)
             .Select(item => new ExcludedItem(item.Id, item.FileName, FolderPath(folders.GetValueOrDefault(item.FolderId)?.DisplayPath, item.Path.Value), item.StatusChangedAt))];

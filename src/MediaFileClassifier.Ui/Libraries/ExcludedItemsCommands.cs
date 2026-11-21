@@ -6,6 +6,8 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.Views.Libraries;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Ui.Libraries;
 
@@ -16,10 +18,17 @@ namespace MediaFileClassifier.Ui.Libraries;
 /// <param name="excludedItems">Makes a fresh view model.</param>
 /// <param name="localizer">UI strings.</param>
 /// <param name="session">Holds the open library; the command needs one.</param>
-public sealed class ExcludedItemsCommands(Func<ExcludedItemsViewModel> excludedItems, Localizer localizer, ILibrarySession? session = null) : ICommandContributor
+/// <param name="logger">Logs a dialog that couldn't be shown.</param>
+public sealed partial class ExcludedItemsCommands(
+    Func<ExcludedItemsViewModel> excludedItems,
+    Localizer localizer,
+    ILibrarySession? session = null,
+    ILogger<ExcludedItemsCommands>? logger = null) : ICommandContributor
 {
     /// <summary>Command ID: show the items removed from the library.</summary>
     public const string ExcludedItems = "library.excluded-items";
+
+    private readonly ILogger logger = logger ?? NullLogger<ExcludedItemsCommands>.Instance;
 
     /// <inheritdoc />
     public void Register(CommandRegistry registry)
@@ -44,10 +53,21 @@ public sealed class ExcludedItemsCommands(Func<ExcludedItemsViewModel> excludedI
             return;
         }
 
-        var viewModel = excludedItems();
-        var window = new ExcludedItemsWindow { DataContext = viewModel };
-        viewModel.CloseRequested += (_, _) => window.Close();
-        await viewModel.LoadAsync();
-        await window.ShowDialog(owner);
+        // A menu command has no caller to catch, so a failure is logged, not thrown.
+        try
+        {
+            var viewModel = excludedItems();
+            var window = new ExcludedItemsWindow { DataContext = viewModel };
+            viewModel.CloseRequested += (_, _) => window.Close();
+            await viewModel.LoadAsync();
+            await window.ShowDialog(owner);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogShowFailed(logger, ex);
+        }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't show the excluded items")]
+    private static partial void LogShowFailed(ILogger logger, Exception exception);
 }

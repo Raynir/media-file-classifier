@@ -54,4 +54,17 @@ public static class LibraryExclusions
 
         return item.Status == MediaItemStatus.Excluded && item.StatusReason == RemovedByUser;
     }
+
+    /// <summary>
+    /// Tells whether an item is listed in Excluded items: removed by the user, or restored by them but not imported yet,
+    /// e.g. because its import failed (E02-S10-T04). Such an item can be restored or forgotten again.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <returns><see langword="true"/> for an item Excluded with <see cref="RemovedByUser"/> or <see cref="RestoreRequested"/>.</returns>
+    public static bool IsListedAsRemoved(MediaItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        return item.Status == MediaItemStatus.Excluded && item.StatusReason is RemovedByUser or RestoreRequested;
+    }
 }

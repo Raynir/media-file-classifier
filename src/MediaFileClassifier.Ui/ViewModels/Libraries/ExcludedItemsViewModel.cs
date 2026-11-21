@@ -80,6 +80,13 @@ public sealed partial class ExcludedItemsViewModel : ViewModelBase
     public partial bool IsConfirmingForget { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether Restore or Forget is running, so another can't start on the same items.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RestoreCommand), nameof(ForgetCommand))]
+    public partial bool IsBusy { get; private set; }
+
+    /// <summary>
     /// Gets what Forget deletes, for the selection.
     /// </summary>
     public string ForgetWarning => SelectedItems.Count == 1
@@ -116,7 +123,7 @@ public sealed partial class ExcludedItemsViewModel : ViewModelBase
         OnPropertyChanged(nameof(Header));
     }
 
-    private bool CanChange() => HasSelection && !IsConfirmingForget;
+    private bool CanChange() => HasSelection && !IsConfirmingForget && !IsBusy;
 
     [RelayCommand(CanExecute = nameof(CanChange))]
     private Task RestoreAsync() => RunAsync(async ids => await sender.Send(new RestoreExcludedItemsCommand(ids)));
@@ -140,6 +147,7 @@ public sealed partial class ExcludedItemsViewModel : ViewModelBase
     private async Task RunAsync(Func<IReadOnlyCollection<Id<MediaItem>>, Task> action)
     {
         Error = string.Empty;
+        IsBusy = true;
         try
         {
             await action([.. SelectedItems.Select(row => row.Id)]);
@@ -149,6 +157,10 @@ public sealed partial class ExcludedItemsViewModel : ViewModelBase
         {
             LogActionFailed(logger, ex);
             Error = localizer["ExcludedItems_Failed"];
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 

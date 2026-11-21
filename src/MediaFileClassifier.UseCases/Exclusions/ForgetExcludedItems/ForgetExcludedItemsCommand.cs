@@ -33,7 +33,7 @@ public sealed class ForgetExcludedItemsCommandHandler(
 
         var library = session.Current ?? throw new InvalidOperationException("No library is open.");
         List<Id<MediaItem>> removed = [.. (await library.Items.GetByIdsAsync(request.ItemIds, cancellationToken).ConfigureAwait(false))
-            .Where(LibraryExclusions.IsRemovedByUser)
+            .Where(LibraryExclusions.IsListedAsRemoved)
             .Select(item => item.Id)];
         if (removed.Count == 0)
         {
@@ -46,8 +46,9 @@ public sealed class ForgetExcludedItemsCommandHandler(
             thumbnails.Invalidate(library.Layout, itemId);
         }
 
-        var deleted = await library.Items.DeleteExcludedAsync(removed, LibraryExclusions.RemovedByUser, cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Forgot {Count} items removed from the library", deleted.Count);
-        return deleted.Count;
+        var deleted = (await library.Items.DeleteExcludedAsync(removed, LibraryExclusions.RemovedByUser, cancellationToken).ConfigureAwait(false)).Count
+            + (await library.Items.DeleteExcludedAsync(removed, LibraryExclusions.RestoreRequested, cancellationToken).ConfigureAwait(false)).Count;
+        logger.LogInformation("Forgot {Count} items removed from the library", deleted);
+        return deleted;
     }
 }

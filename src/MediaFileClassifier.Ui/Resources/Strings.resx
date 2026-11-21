@@ -2606,6 +2606,9 @@
   <data name="Stage_exclusion.cleanup" xml:space="preserve">
     <value>Removing AI results</value>
   </data>
+  <data name="Command_ShowRecentlyImported" xml:space="preserve">
+    <value>Recently imported</value>
+  </data>
   <data name="Command_ExcludedItems" xml:space="preserve">
     <value>E_xcluded items…</value>
   </data>

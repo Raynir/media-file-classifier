@@ -248,6 +248,7 @@ public static class UiModule
         services.AddSingleton<ProcessingPanelViewModel>();
         services.AddSingleton<ProcessingPanelPresenter>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ProcessingCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, NavigationCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingStatusSegment>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, SelectionStatusSegment>());
 

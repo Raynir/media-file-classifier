@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Navigation;
 using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Common.Notifications;
@@ -78,7 +79,7 @@ public sealed class JobNotifications(IJobProgress progress, INotificationService
     /// The ID of the command that shows the items imported last (Recently imported), which the import notification's
     /// action runs.
     /// </summary>
-    public const string ImportedItemsCommand = "library.show-recently-imported";
+    public const string ImportedItemsCommand = NavigationCommands.ShowRecentlyImported;
 
     private void OnJobFinished(object? sender, JobFinishedEventArgs e)
     {

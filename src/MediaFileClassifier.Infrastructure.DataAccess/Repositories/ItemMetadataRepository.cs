@@ -195,6 +195,34 @@ internal sealed class ItemMetadataRepository(LibraryConnectionFactory connection
             cancellationToken);
     }
 
+    /// <inheritdoc />
+    public async Task RemoveAiResultsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+
+        foreach (var batch in itemIds.Distinct().Chunk(MediaItemRepository.BatchSize))
+        {
+            await writer.ExecuteAsync(
+                async (db, token) =>
+                {
+                    // Dependents first, as in ReplaceAsync: values, tags and suggestions refer to the runs.
+                    await db.TagSuggestions.Where(suggestion => batch.Contains(suggestion.ItemId)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                    await db.TagAssignments.Where(tag => batch.Contains(tag.ItemId) && tag.Source == MetadataSource.AI).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                    await db.AiFieldValues.Where(value => batch.Contains(value.ItemId)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                    await db.AnalysisRuns.Where(run => batch.Contains(run.ItemId)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                    await db.AnalyzerStates.Where(state => batch.Contains(state.ItemId)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+
+                    // The search text held the AI values; it's written again from the user and technical ones.
+                    var existing = await db.MediaItems.Where(item => batch.Contains(item.Id)).Select(item => item.Id).ToListAsync(token).ConfigureAwait(false);
+                    foreach (var metadata in (await LoadManyAsync(db, existing, token).ConfigureAwait(false)).Values)
+                    {
+                        await SearchStore.UpdateTextAsync(db, metadata, token).ConfigureAwait(false);
+                    }
+                },
+                cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     private static async Task<ItemMetadata> LoadAsync(LibraryDbContext db, Id<MediaItem> itemId, CancellationToken cancellationToken)
     {
         var technical = await db.TechnicalFieldValues.AsNoTracking().Where(value => value.ItemId == itemId)

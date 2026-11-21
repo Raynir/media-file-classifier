@@ -128,6 +128,22 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
     }
 
     /// <inheritdoc />
+    public async Task<int> RemoveForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(itemIds);
+
+        var removed = 0;
+        foreach (var batch in itemIds.Distinct().Chunk(MediaItemRepository.BatchSize))
+        {
+            var processed = new StrongBox<int>();
+            await writer.ExecuteAsync((db, token) => RemoveItemsBatchAsync(db, batch, processed, token), RaiseChanged, cancellationToken).ConfigureAwait(false);
+            removed += processed.Value;
+        }
+
+        return removed;
+    }
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<Embedding>> GetAsync(Id<MediaItem> itemId, CancellationToken cancellationToken = default) =>
         connections.ReadAsync<IReadOnlyList<Embedding>>(
             async (db, token) => await db.Embeddings.Where(embedding => embedding.ItemId == itemId).ToListAsync(token).ConfigureAwait(false),
@@ -227,6 +243,31 @@ internal sealed class EmbeddingRepository(LibraryConnectionFactory connections, 
         await db.Embeddings.Where(embedding => itemIds.Contains(embedding.ItemId) && !kept.Contains(embedding.ModelId))
             .ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
         var documents = await ReadDocumentIdsAsync(db, itemIds, cancellationToken).ConfigureAwait(false);
+        return [.. pairs
+            .Where(pair => documents.ContainsKey(pair.ItemId))
+            .Select(pair => new CommittedEmbeddings(documents[pair.ItemId], new ItemEmbeddings(pair.ItemId, pair.ModelId, [])))];
+    }
+
+    // One batch of RemoveForItemsAsync: every vector of the batch's items.
+    private static async Task<IReadOnlyList<CommittedEmbeddings>> RemoveItemsBatchAsync(
+        LibraryDbContext db,
+        Id<MediaItem>[] itemIds,
+        StrongBox<int> processed,
+        CancellationToken cancellationToken)
+    {
+        var pairs = await db.Embeddings.AsNoTracking()
+            .Where(embedding => itemIds.Contains(embedding.ItemId))
+            .Select(embedding => new { embedding.ItemId, embedding.ModelId })
+            .Distinct()
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        processed.Value = pairs.Select(pair => pair.ItemId).Distinct().Count();
+        if (pairs.Count == 0)
+        {
+            return [];
+        }
+
+        await db.Embeddings.Where(embedding => itemIds.Contains(embedding.ItemId)).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+        var documents = await ReadDocumentIdsAsync(db, pairs.Select(pair => pair.ItemId), cancellationToken).ConfigureAwait(false);
         return [.. pairs
             .Where(pair => documents.ContainsKey(pair.ItemId))
             .Select(pair => new CommittedEmbeddings(documents[pair.ItemId], new ItemEmbeddings(pair.ItemId, pair.ModelId, [])))];

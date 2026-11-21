@@ -42,6 +42,7 @@ public static class DefaultKeymap
         Bind(ItemCommands.CopyPath, PhysicalKey.C, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
         Bind(FavoriteCommands.Favorite, PhysicalKey.D, KeyModifiers.Control, ShortcutScopes.Browser),
         Bind(FavoriteCommands.Favorite, PhysicalKey.D, KeyModifiers.Control, ShortcutScopes.Viewer),
+        Bind(RemoveItemsCommands.Remove, PhysicalKey.Delete, scope: ShortcutScopes.Browser),
         Bind(FindSimilarCommands.FindSimilar, PhysicalKey.F, KeyModifiers.Control | KeyModifiers.Shift, ShortcutScopes.Browser),
 
         // Metadata editor (E07-S02): F2 anywhere, E where an item has the focus; Ctrl+S and Esc while the editor has it.

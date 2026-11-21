@@ -93,6 +93,16 @@ public interface IEmbeddingRepository
     Task ReplaceRangeAsync(IReadOnlyList<ItemEmbeddings> changes, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Deletes every embedding of the given items, e.g. of items removed from the library (E02-S10-T01). It runs in
+    /// batches of 100 items, each its own short write that raises <see cref="Changed"/> with an empty change per
+    /// removed item and model, so the in-memory index drops the vectors (D067, D072).
+    /// </summary>
+    /// <param name="itemIds">The items.</param>
+    /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>
+    /// <returns>The number of items that lost vectors.</returns>
+    Task<int> RemoveForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets an item's embeddings of every model.
     /// </summary>
     /// <param name="itemId">The item.</param>

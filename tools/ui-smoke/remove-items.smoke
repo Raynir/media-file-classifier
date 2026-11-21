@@ -1,0 +1,26 @@
+# Remove from library and Excluded items (MFC-123). Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/remove-items.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+# The grid refreshes at most once a second, so it settles before a select.
+wait 1500ms
+
+# The confirmation, shared by the context menu, the Delete key and the details panel.
+select jpeg-exif.jpg
+start item.remove
+wait-for dialog
+dialog-shot 01-remove-confirmation
+dialog-click Remove
+wait-for no-dialog
+wait-for idle
+wait 1500ms
+shot 02-browse-after-remove
+
+# The removed item is listed in Excluded items, and Restore brings it back.
+start library.excluded-items
+wait-for dialog
+dialog-shot 03-excluded-items
+dialog-click Close
+wait-for no-dialog

@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.UseCases.Exclusions;
 
 namespace MediaFileClassifier.UseCases.Rescan;
 
@@ -33,6 +34,12 @@ public sealed record FolderComparison
     public IReadOnlyList<MediaItem> Disappeared { get; init; } = [];
 
     /// <summary>
+    /// Gets the items the user removed from the library whose file isn't at its path (E02-S10-T02). They stay
+    /// Excluded, but a rescan can pair them with a moved file, so the file isn't imported again.
+    /// </summary>
+    public IReadOnlyList<MediaItem> ExcludedGone { get; init; } = [];
+
+    /// <summary>
     /// Compares a folder's items with what's on disk now.
     /// </summary>
     /// <param name="folder">The folder.</param>
@@ -50,11 +57,20 @@ public sealed record FolderComparison
         var unchanged = new List<MediaItem>();
         var modified = new List<ModifiedFile>();
         var disappeared = new List<MediaItem>();
+        var excludedGone = new List<MediaItem>();
         foreach (var item in items)
         {
-            // Rule-excluded files aren't listed at all, and user-excluded ones aren't tracked (D187, D024).
+            // Rule-excluded files aren't listed at all, and user-excluded ones aren't tracked (D187, D024), except that
+            // a user-removed item whose file is gone can still be paired with the moved file.
             if (item.Status == MediaItemStatus.Excluded)
             {
+                if (LibraryExclusions.IsRemovedByUser(item)
+                    && !files.ContainsKey(item.Path.Value)
+                    && !unlisted.Any(path => IsUnder(item.Path.Value, path)))
+                {
+                    excludedGone.Add(item);
+                }
+
                 continue;
             }
 
@@ -84,7 +100,7 @@ public sealed record FolderComparison
             }
         }
 
-        return new FolderComparison { New = snapshot.NewFiles, Unchanged = unchanged, Modified = modified, Disappeared = disappeared };
+        return new FolderComparison { New = snapshot.NewFiles, Unchanged = unchanged, Modified = modified, Disappeared = disappeared, ExcludedGone = excludedGone };
     }
 
     /// <summary>

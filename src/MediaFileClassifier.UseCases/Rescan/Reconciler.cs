@@ -32,6 +32,7 @@ public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves)
         var unchanged = new List<MediaItem>();
         var modified = new List<ModifiedFile>();
         var disappeared = new List<MediaItem>();
+        var excludedGone = new List<MediaItem>();
         foreach (var folder in folders)
         {
             FolderSnapshot snapshot;
@@ -52,6 +53,7 @@ public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves)
             unchanged.AddRange(comparison.Unchanged);
             modified.AddRange(comparison.Modified);
             disappeared.AddRange(comparison.Disappeared);
+            excludedGone.AddRange(comparison.ExcludedGone);
         }
 
         // Relinked before anything is marked Missing (E02-S04-T02).
@@ -60,9 +62,12 @@ public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves)
             .Where(item => !scannedIds.Contains(item.FolderId));
         IReadOnlyList<MovedFile> moved = newFiles.Count == 0
             ? []
-            : await moves.PairAsync(newFiles, [.. disappeared, .. missingElsewhere], cancellationToken).ConfigureAwait(false);
+            : await moves.PairAsync(newFiles, [.. disappeared, .. missingElsewhere, .. excludedGone], cancellationToken).ConfigureAwait(false);
         var movedFiles = moved.Select(pair => pair.Found.Id).ToHashSet();
         var movedItems = moved.Select(pair => pair.Item.Id).ToHashSet();
+
+        // A user-removed item follows its moved file but stays Excluded, so the file isn't imported again (E02-S10-T02).
+        var movedExcluded = moved.Where(pair => pair.Item.Status == MediaItemStatus.Excluded).ToList();
 
         return new Reconciliation
         {
@@ -71,7 +76,8 @@ public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves)
             New = [.. newFiles.Select(entry => entry.File).Where(file => !movedFiles.Contains(file.Id))],
             Unchanged = unchanged,
             Modified = modified,
-            Moved = moved,
+            Moved = [.. moved.Where(pair => pair.Item.Status != MediaItemStatus.Excluded)],
+            MovedExcluded = movedExcluded,
             Missing = [.. disappeared.Where(item => !movedItems.Contains(item.Id))],
         };
     }

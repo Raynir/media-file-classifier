@@ -211,6 +211,15 @@
                        IsVisible="{Binding MomentText, Converter={x:Static ObjectConverters.IsNotNull}}"
                        TextWrapping="Wrap" />
           </StackPanel>
+          <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding UnavailableNote, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock x:Name="KeyframesUnavailableText"
+                       Classes="Tertiary Caption"
+                       Text="{Binding UnavailableNote}"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding MomentText}"
+                       IsVisible="{Binding MomentText, Converter={x:Static ObjectConverters.IsNotNull}}"
+                       TextWrapping="Wrap" />
+          </StackPanel>
         </StackPanel>
         <TextBlock Classes="Tertiary Caption"
                    Text="{Binding PreviewNote}"

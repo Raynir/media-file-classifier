@@ -156,6 +156,17 @@
     <value>Copied {0}. Seek to it in your player.</value>
     <comment>{0}: the time in the video, e.g. 02:37.</comment>
   </data>
+  <data name="Keyframes_Unavailable_Offline" xml:space="preserve">
+    <value>The folder {0} is offline. Connect {1} to open these moments in a player.</value>
+    <comment>{0} is a folder path; {1} names what to connect, e.g. "drive 'Backup-2TB'".</comment>
+  </data>
+  <data name="Keyframes_Unavailable_OfflineFolder" xml:space="preserve">
+    <value>The folder {0} is offline, so these moments can't be opened in a player until it's back.</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Keyframes_Unavailable_Missing" xml:space="preserve">
+    <value>The file is missing, so these moments can't be opened in a player.</value>
+  </data>
   <data name="Keyframes_OpenInPlayer" xml:space="preserve">
     <value>Open in player</value>
   </data>

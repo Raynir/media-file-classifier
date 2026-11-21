@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Avalonia.Threading;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
@@ -9,6 +10,7 @@ using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.Ui.Rescan;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
 using MediaFileClassifier.UseCases.Browsing.Selection;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -44,6 +46,7 @@ public sealed partial class ItemCommands : ICommandContributor
     private readonly ITextClipboard clipboard;
     private readonly Localizer localizer;
     private readonly ILogger logger;
+    private readonly FolderStatusChanges? folderStatus;
     private readonly List<AppCommand> commands = [];
     private int loads;
     private ItemLocation? focused;
@@ -57,13 +60,16 @@ public sealed partial class ItemCommands : ICommandContributor
     /// <param name="clipboard">Takes the copied paths.</param>
     /// <param name="localizer">UI strings, for the reasons a command is disabled.</param>
     /// <param name="logger">Logs files that couldn't be opened or revealed.</param>
+    /// <param name="folderStatus">Tells when a folder went Offline or came back, so the focused item's availability is
+    /// read again (E14-S07-T04), or <see langword="null"/>.</param>
     public ItemCommands(
         SelectionModel selection,
         ISender sender,
         IPlatformServices platform,
         ITextClipboard clipboard,
         Localizer localizer,
-        ILogger<ItemCommands>? logger = null)
+        ILogger<ItemCommands>? logger = null,
+        FolderStatusChanges? folderStatus = null)
     {
         this.selection = selection;
         this.sender = sender;
@@ -71,6 +77,7 @@ public sealed partial class ItemCommands : ICommandContributor
         this.clipboard = clipboard;
         this.localizer = localizer;
         this.logger = logger ?? NullLogger<ItemCommands>.Instance;
+        this.folderStatus = folderStatus;
     }
 
     /// <summary>
@@ -111,6 +118,10 @@ public sealed partial class ItemCommands : ICommandContributor
                 && registry.TryGet(RescanCommands.RemoveMissing, out var command) && command.IsVisible,
         }));
         selection.Changed += (_, _) => Loading = LoadFocusedAsync();
+        if (folderStatus is not null)
+        {
+            folderStatus.Changed += (_, _) => Dispatcher.UIThread.Post(() => Loading = LoadFocusedAsync());
+        }
     }
 
     private bool HasFocusedSelection() => selection.Count > 0 && selection.FocusedId is not null;

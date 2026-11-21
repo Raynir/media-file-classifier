@@ -43,6 +43,11 @@ internal sealed class WindowsVolumeWatcher : IVolumeWatcher
     }
 
     /// <summary>
+    /// Raises <see cref="VolumesChanged"/> as a volume arrival does, for the UI smoke tool's <c>plug-folder</c> step.
+    /// </summary>
+    internal void SimulateVolumeChange() => VolumesChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>
     /// Says whether a window message reports a volume arriving or going away.
     /// </summary>
     /// <param name="message">The message.</param>

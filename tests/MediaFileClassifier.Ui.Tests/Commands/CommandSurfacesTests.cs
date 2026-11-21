@@ -1,14 +1,11 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
-using MediaFileClassifier.Infrastructure.Abstractions.Paths;
-using MediaFileClassifier.Infrastructure.Abstractions.Settings;
-using MediaFileClassifier.Testing.Settings;
-using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
-using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Ui.Tests.Commands;
@@ -20,20 +17,31 @@ namespace MediaFileClassifier.Ui.Tests.Commands;
 public sealed class CommandSurfacesTests
 {
     [Fact]
-    public Task CollapseNavigation_IsConsistentInMenuContextMenuAndButton() => TestApp.RunAsync(() =>
+    public async Task CollapseNavigation_IsConsistentInMenuContextMenuAndButton()
     {
-        using var services = new ServiceCollection()
-            .AddSingleton<IAppPaths>(new FakeAppPaths())
-            .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
-            .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
-            .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
-            .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
-            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
-            .AddSingleton<Infrastructure.Abstractions.Libraries.ILibrarySession>(new Browser.FakeBrowserSession(open: false))
-            .AddUseCases()
-            .AddUi()
-            .BuildServiceProvider();
-        var viewModel = services.GetRequiredService<MainWindowViewModel>();
+        await using var app = TestServices.Build(fullStack: true);
+        await TestApp.RunAsync(() => Check(app));
+    }
+
+    [Fact]
+    public async Task MainMenu_DisablesCommandsThatDoNotApplyAndEnablesThemWhenTheyDo()
+    {
+        await using var app = TestServices.Build(fullStack: true);
+        await TestApp.RunAsync(() =>
+        {
+            var menu = app.Services.GetRequiredService<MainMenuViewModel>();
+            var undo = app.Services.GetRequiredService<CommandRegistry>()[MetadataEditorCommands.UndoBulk];
+
+            menu.RefreshCommands();
+
+            Assert.False(undo.IsEnabled);
+            Assert.NotNull(undo.DisabledReason);
+        });
+    }
+
+    private static void Check(TestServices app)
+    {
+        var viewModel = app.Services.GetRequiredService<MainWindowViewModel>();
         var command = viewModel.Commands[ShellCommands.CollapseNavigation];
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
@@ -75,5 +83,5 @@ public sealed class CommandSurfacesTests
         submenu.Close();
         viewMenu.Close();
         window.Close();
-    });
+    }
 }

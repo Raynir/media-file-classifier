@@ -92,6 +92,58 @@ public sealed class CommandRegistryTests
     }
 
     [Fact]
+    public void AppliesTo_DisablesTheCommandWithAGenericReasonOnRefresh()
+    {
+        var registry = CreateRegistry();
+        var canUndo = false;
+        var command = registry.Add(new AppCommand("edit.test", CommandGroups.Edit, 1, "App_Title", () => { })
+        {
+            AppliesTo = () => canUndo,
+        });
+
+        // Added before the context is known: the first full refresh decides.
+        registry.Refresh();
+
+        Assert.False(command.IsEnabled);
+        Assert.Equal("Not available for the current selection or state.", command.DisabledReason);
+
+        canUndo = true;
+        registry.Refresh();
+
+        Assert.True(command.IsEnabled);
+        Assert.Null(command.DisabledReason);
+    }
+
+    [Fact]
+    public void AppliesTo_IsNotEvaluatedWhenTheCommandIsAdded()
+    {
+        var registry = CreateRegistry();
+        var evaluated = false;
+
+        registry.Add(new AppCommand("edit.test", CommandGroups.Edit, 1, "App_Title", () => { })
+        {
+            AppliesTo = () => evaluated = true,
+        });
+
+        Assert.False(evaluated);
+    }
+
+    [Fact]
+    public void WhyDisabled_WinsOverTheGenericNotApplicableReason()
+    {
+        var registry = CreateRegistry();
+        var command = registry.Add(new AppCommand("item.test", CommandGroups.Item, 1, "App_Title", () => { })
+        {
+            WhyDisabled = () => "Open a library first.",
+            AppliesTo = () => false,
+        });
+
+        registry.Refresh();
+
+        Assert.Equal("Open a library first.", command.DisabledReason);
+    }
+
+    [Fact]
     public void InGroup_ListsVisibleCommandsInOrder()
     {
         var registry = CreateRegistry();

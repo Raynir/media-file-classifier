@@ -922,6 +922,9 @@
   <data name="Rescan_Failed" xml:space="preserve">
     <value>The rescan failed. See the log for details.</value>
   </data>
+  <data name="Command_NotApplicable" xml:space="preserve">
+    <value>Not available for the current selection or state.</value>
+  </data>
   <data name="Command_NoLibraryOpen" xml:space="preserve">
     <value>Open a library first.</value>
   </data>

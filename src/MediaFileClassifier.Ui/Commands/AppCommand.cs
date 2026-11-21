@@ -190,7 +190,9 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
     /// <summary>
     /// Re-evaluates the label, enablement and checked state, and notifies bound surfaces.
     /// </summary>
-    public void Refresh()
+    public void Refresh() => Evaluate(checkContext: true);
+
+    private void Evaluate(bool checkContext)
     {
         Label = localizer?.Get(LabelKey) ?? LabelKey;
         string? reason = null;
@@ -200,6 +202,14 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
         }
 
         reason ??= WhyDisabled?.Invoke();
+
+        // A command that doesn't apply to the context (no selection, nothing to undo, ...) is disabled too, so the
+        // main menu doesn't offer it. Give a rule-specific WhyDisabled to say more than the generic reason.
+        if (checkContext && reason is null && !IsApplicable)
+        {
+            reason = localizer?.Get("Command_NotApplicable") ?? "Not available right now.";
+        }
+
         var wasEnabled = IsEnabled;
         IsEnabled = reason is null;
         DisabledReason = reason;
@@ -249,6 +259,9 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
     {
         this.localizer = localizer;
         this.capabilities = capabilities;
-        Refresh();
+
+        // Not the applicability rules yet: they may resolve services that need the registry, which is still being built.
+        // The main view refreshes every command once it has loaded, and again whenever a menu opens.
+        Evaluate(checkContext: false);
     }
 }

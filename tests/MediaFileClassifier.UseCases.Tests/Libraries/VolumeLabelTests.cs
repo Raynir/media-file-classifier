@@ -9,7 +9,7 @@ namespace MediaFileClassifier.UseCases.Tests.Libraries;
 
 /// <summary>
 /// Tests for recording each indexed folder's volume label (E14-S07-T02): read when the folder is added and again on
-/// every availability check while it's Online, and kept while it's Offline.
+/// every availability check while it's Online, and kept while it's Offline or when it can't be read.
 /// </summary>
 public sealed class VolumeLabelTests
 {
@@ -57,6 +57,36 @@ public sealed class VolumeLabelTests
 
         Assert.Equal(FolderStatus.Offline, Assert.Single(changed).Status);
         Assert.Equal("Backup-2TB", folder.VolumeLabel);
+    }
+
+    [Fact]
+    public async Task AvailabilityCheck_WhenTheLabelCantBeRead_KeepsTheStoredLabel_ButAVolumeWithoutOneClearsIt()
+    {
+        var (session, library, files) = await CreateAsync();
+        var folder = IndexedFolder.Create(library.Library.Id, Folder, Folder, DateTimeOffset.UnixEpoch);
+        folder.ChangeVolumeLabel("Backup-2TB");
+        await library.Folders.AddAsync(folder, TestContext.Current.CancellationToken);
+        var handler = Handler(session, files);
+
+        files.UnreadableLabels.Add(Folder);
+        await handler.Handle(new CheckFolderAvailabilityCommand(), TestContext.Current.CancellationToken);
+        Assert.Equal(("Backup-2TB", 0), (folder.VolumeLabel, library.FolderList.Updates));
+
+        files.UnreadableLabels.Remove(Folder);
+        await handler.Handle(new CheckFolderAvailabilityCommand(), TestContext.Current.CancellationToken);
+        Assert.Equal((null, 1), (folder.VolumeLabel, library.FolderList.Updates));
+    }
+
+    [Fact]
+    public async Task AddedFolder_WhoseLabelCantBeRead_IsAddedWithoutOne()
+    {
+        var (session, library, files) = await CreateAsync();
+        files.UnreadableLabels.Add(Folder);
+        var handler = new AddLibraryFoldersCommandHandler(session, files, TimeProvider.System, NullLogger<AddLibraryFoldersCommandHandler>.Instance);
+
+        await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(Folder, "Photos")]), TestContext.Current.CancellationToken);
+
+        Assert.Null(Assert.Single(library.FolderList.Folders).VolumeLabel);
     }
 
     [Theory]

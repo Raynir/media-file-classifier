@@ -66,7 +66,9 @@ public interface IMediaFileSource
     /// </summary>
     /// <param name="folder">Granted folder, which should be reachable.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The label, or <see langword="null"/> when the volume has none or it can't be read.</returns>
+    /// <returns>The label, or <see langword="null"/> when the volume has none.</returns>
+    /// <exception cref="IOException">The volume couldn't be asked, so a label already known should be kept.</exception>
+    /// <exception cref="UnauthorizedAccessException">The volume refused the question, as for <see cref="IOException"/>.</exception>
     Task<string?> GetVolumeLabelAsync(FolderHandle folder, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
 
     /// <summary>

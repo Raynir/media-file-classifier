@@ -192,9 +192,10 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
                     var label = new DriveInfo(root).VolumeLabel;
                     return string.IsNullOrWhiteSpace(label) ? null : label;
                 }
-                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or System.Security.SecurityException)
+                catch (Exception exception) when (exception is ArgumentException or System.Security.SecurityException)
                 {
-                    return null;
+                    // IOException and UnauthorizedAccessException pass as they are: the label is unknown, not absent.
+                    throw new IOException($"Couldn't read the volume label of {folder.DisplayName}", exception);
                 }
             },
             cancellationToken);

@@ -366,8 +366,15 @@ internal sealed class FakeFolderSource : IMediaFileSource
     public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) =>
         Hanging.Contains(folder.Id) ? new TaskCompletionSource<bool>().Task : Task.FromResult(!Unavailable.Contains(folder.Id));
 
+    /// <summary>
+    /// Gets the folders whose volume can't be asked for its label.
+    /// </summary>
+    public HashSet<string> UnreadableLabels { get; } = [];
+
     public Task<string?> GetVolumeLabelAsync(FolderHandle folder, CancellationToken cancellationToken = default) =>
-        Task.FromResult(Labels.GetValueOrDefault(folder.Id));
+        UnreadableLabels.Contains(folder.Id)
+            ? Task.FromException<string?>(new IOException("The device is not ready."))
+            : Task.FromResult(Labels.GetValueOrDefault(folder.Id));
 
     public string? GetPathInside(FolderHandle folder, FolderHandle parent)
     {

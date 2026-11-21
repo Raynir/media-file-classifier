@@ -58,13 +58,14 @@ public sealed class CheckFolderAvailabilityCommandHandler(
             .WaitAsync(cancellationToken).ConfigureAwait(false);
         var changed = new List<IndexedFolder>();
         var labels = await Task.WhenAll(folders.Select((folder, i) => available[i]
-            ? files.GetVolumeLabelAsync(folder.ToHandle(), cancellationToken)
-            : Task.FromResult<string?>(null))).WaitAsync(cancellationToken).ConfigureAwait(false);
+            ? VolumeLabels.TryReadAsync(files, folder.ToHandle(), logger, cancellationToken)
+            : Task.FromResult(VolumeLabels.Unknown))).WaitAsync(cancellationToken).ConfigureAwait(false);
         for (var i = 0; i < folders.Count; i++)
         {
             var folder = folders[i];
             var status = available[i] ? FolderStatus.Online : FolderStatus.Offline;
-            var relabelled = available[i] && folder.ChangeVolumeLabel(labels[i]);
+            // A label that couldn't be read keeps the stored one, so the drive stays named while it's Offline later.
+            var relabelled = labels[i].Read && folder.ChangeVolumeLabel(labels[i].Label);
             if (folder.Status == status)
             {
                 if (relabelled)

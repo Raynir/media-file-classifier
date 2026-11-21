@@ -245,7 +245,6 @@
               <!-- The source of a "find similar" search (E09-S03, D053). -->
               <Border Classes="TileMarker"
                       IsVisible="{Binding IsSource}"
-                      Margin="0"
                       VerticalAlignment="Center"
                       AutomationProperties.Name="{l:Loc Search_SourceBadge}">
                 <TextBlock Text="{l:Loc Search_SourceBadge}" FontSize="{DynamicResource FontSize.Caption}" />
@@ -355,8 +354,7 @@
             IsVisible="{Binding IsListView}"
             ClipToBounds="True"
             BorderThickness="0,0,0,1"
-            BorderBrush="{DynamicResource Brush.Border.Divider}"
-            Padding="0">
+            BorderBrush="{DynamicResource Brush.Border.Divider}">
       <views:ListHeaderView x:Name="ListHeader" DataContext="{Binding ListColumns}" HorizontalAlignment="Left" />
     </Border>
     <Panel>

@@ -79,6 +79,14 @@
   <Grid Margin="{DynamicResource Padding.Panel}" RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource Space.S}">
     <TextBlock Grid.Row="0" Classes="Title" Text="{l:Loc Processing_Title}" />
 
+    <!-- The library opened with unfinished work and "wait until I start it" is chosen in the settings. -->
+    <Border Grid.Row="0" Classes="Panel" Padding="{DynamicResource Padding.Control}" HorizontalAlignment="Right" IsVisible="{Binding IsPaused}">
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+        <TextBlock Text="{l:Loc Processing_Paused}" VerticalAlignment="Center" />
+        <Button Classes="accent" Content="{l:Loc Processing_Resume}" Command="{Binding ResumeCommand}" />
+      </StackPanel>
+    </Border>
+
     <Panel Grid.Row="1">
       <TextBlock Classes="Secondary"
                  Text="{l:Loc Processing_Empty}"

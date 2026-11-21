@@ -4,6 +4,14 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Processing settings (E17-S03, MFC-132): Settings, Processing has the number of file reading, thumbnail and image, and AI analysis jobs that run at once (the thumbnail and image default fits the computer), what happens to unfinished work when a library opens (continue automatically, or wait until you start it), and "Ask before quitting while processing". A changed limit takes effect at once, without a restart: more queued work starts now, and a lower limit applies as running work finishes. "Reset this category" puts the limits back to the recommended ones. When a library opens with processing waiting for you, the status bar says "Processing paused" and the processing queue shows a Resume processing button.
+
+### Changed
+
+- The processing options are now registered settings. `AppSettings.Processing` is gone from `settings.json`; it had no settings window, so only a hand-edited value is ignored (no schema change).
+
 ## M4 — 2026-11-21
 
 ### Added

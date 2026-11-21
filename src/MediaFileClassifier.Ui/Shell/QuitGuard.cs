@@ -14,12 +14,13 @@ namespace MediaFileClassifier.Ui.Shell;
 /// is opened (E05-S01-T05).
 /// </summary>
 /// <param name="jobs">The job system.</param>
-/// <param name="settings">App settings, for "Don't ask again".</param>
+/// <param name="settings">Setting values, for the confirmation and "Don't ask again".</param>
+/// <param name="processing">The processing setting definitions.</param>
 /// <param name="localizer">UI strings.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="unsaved">Asks about staged changes before the window closes (E07-S12-T01).</param>
 public sealed partial class QuitGuard(
-    IJobSystem jobs, ISettingsService settings, Localizer localizer, ILogger<QuitGuard> logger, UnsavedChangesGuard? unsaved = null)
+    IJobSystem jobs, ISettingsStore settings, ProcessingSettings processing, Localizer localizer, ILogger<QuitGuard> logger, UnsavedChangesGuard? unsaved = null)
 {
     private bool readyToClose;
 
@@ -63,7 +64,7 @@ public sealed partial class QuitGuard(
         ArgumentNullException.ThrowIfNull(ask);
 
         var pending = await jobs.CountPendingAsync().ConfigureAwait(true);
-        if (pending > 0 && settings.Current.Processing.ConfirmQuitWhileProcessing)
+        if (pending > 0 && settings.Get(processing.ConfirmQuitWhileProcessing))
         {
             var confirmation = new QuitConfirmationViewModel(pending, localizer);
             if (!await ask(confirmation).ConfigureAwait(true))
@@ -73,7 +74,7 @@ public sealed partial class QuitGuard(
 
             if (confirmation.DontAskAgain)
             {
-                settings.Save(settings.Current with { Processing = settings.Current.Processing with { ConfirmQuitWhileProcessing = false } });
+                settings.SetValue(processing.ConfirmQuitWhileProcessing, false);
             }
         }
 

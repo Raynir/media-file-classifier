@@ -4,6 +4,7 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
 using MediaFileClassifier.Ui.Editing;
 using MediaFileClassifier.Ui.Libraries;
+using MediaFileClassifier.Ui.Libraries.Statistics;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Maintenance;
 using MediaFileClassifier.Ui.Models;
@@ -80,6 +81,7 @@ public static class UiModule
             .Register<ThumbnailGridViewModel, ThumbnailGridView>()
             .Register<IndexedFoldersViewModel, IndexedFoldersView>()
             .Register<ExcludedItemsViewModel, ExcludedItemsView>()
+            .Register<LibraryInfoViewModel, LibraryInfoView>()
             .Register<ProcessingPanelViewModel, ProcessingPanelView>()
             .Register<NavigationPanelViewModel, NavigationPanelView>()
             .Register<DetailsPanelViewModel, DetailsPanelView>()
@@ -251,6 +253,13 @@ public static class UiModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, NavigationCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingStatusSegment>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, SelectionStatusSegment>());
+
+        // Library statistics (E02-S05).
+        services.AddSingleton<LibraryStatisticsMonitor>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, LibrarySummaryStatusSegment>());
+        services.AddSingleton<LibraryInfoViewModel>();
+        services.AddSingleton<LibraryInfoPresenter>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryInfoCommands>());
 
         // M1 segments (E13-S04-T02).
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ResultCountStatusSegment>());

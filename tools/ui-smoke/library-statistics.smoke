@@ -1,0 +1,10 @@
+# Library statistics (MFC-120): the status bar summary and the library information window.
+window 1400x900
+command view.theme-light
+library sample
+wait 2s
+shot 01-statusbar
+start view.library-info
+wait-for dialog
+wait 2s
+dialog-shot 02-info-window

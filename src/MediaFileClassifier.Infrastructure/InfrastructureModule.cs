@@ -40,6 +40,7 @@ public static class InfrastructureModule
         services.TryAddSingleton<IHardwareOverrides>(provider => new SettingsHardwareOverrides(provider));
         services.TryAddSingleton<ILibrarySession, LibrarySession>();
         services.TryAddSingleton<ILibraryLocations, LibraryLocations>();
+        services.TryAddSingleton<ILibraryDiskUsage, LibraryDiskUsageMeter>();
         services.TryAddSingleton<IHardwareDetector, PortableHardwareDetector>();
         services.TryAddSingleton<IHardwareInfo, HardwareInfo>();
         services.TryAddSingleton(provider => new ProcessingSettings(provider.GetRequiredService<IHardwareInfo>().DefaultParallelism));

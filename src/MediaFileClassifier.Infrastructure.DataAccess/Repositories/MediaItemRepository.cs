@@ -137,6 +137,16 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
                 .ConvertAll(row => new FolderItemCount(row.FolderId, row.Status, row.Count)),
             cancellationToken);
 
+    public Task<IReadOnlyList<ItemStatisticsCount>> CountByTypeAndStatusAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<ItemStatisticsCount>>(
+            async (db, token) => (await db.MediaItems
+                    .GroupBy(item => new { item.MediaType, item.Status })
+                    .Select(group => new { group.Key.MediaType, group.Key.Status, Count = group.Count(), SizeBytes = group.Sum(item => item.SizeBytes) })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false))
+                .ConvertAll(row => new ItemStatisticsCount(row.MediaType, row.Status, row.Count, row.SizeBytes)),
+            cancellationToken);
+
     public Task<IReadOnlyList<ExactDuplicateGroup>> GetExactDuplicatesAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync<IReadOnlyList<ExactDuplicateGroup>>(
             async (db, token) =>

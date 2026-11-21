@@ -71,7 +71,10 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                 var status = folder.Status;
                 var changedAt = folder.StatusChangedAt;
                 var label = folder.VolumeLabel;
-                await db.Folders.Where(row => row.Id == folder.Id)
+                var handle = folder.PlatformHandle;
+
+                // Matched on the root too: a folder relinked while the check probed its old root keeps what the relink stored.
+                var updated = await db.Folders.Where(row => row.Id == folder.Id && row.PlatformHandle == handle)
                     .ExecuteUpdateAsync(
                         setters => setters
                             .SetProperty(row => row.Status, status)
@@ -79,7 +82,7 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                             .SetProperty(row => row.VolumeLabel, label),
                         token)
                     .ConfigureAwait(false);
-                return stored is { } old && old != status;
+                return updated > 0 && stored is { } old && old != status;
             },
             cancellationToken).ConfigureAwait(false);
         RaiseIf(statusChanged);

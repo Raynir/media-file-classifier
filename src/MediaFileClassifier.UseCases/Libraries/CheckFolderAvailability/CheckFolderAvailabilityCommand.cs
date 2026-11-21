@@ -57,6 +57,9 @@ public sealed class CheckFolderAvailabilityCommandHandler(
         var available = await Task.WhenAll(folders.Select(folder => files.IsAvailableAsync(folder.ToHandle(), cancellationToken)))
             .WaitAsync(cancellationToken).ConfigureAwait(false);
         var changed = new List<IndexedFolder>();
+
+        // Once the probes are done, what they found is stored and the parked work released even if the check is
+        // cancelled now: a volume check that cancels this poll would find the folder already Online and release nothing.
         var labels = await Task.WhenAll(folders.Select((folder, i) => available[i]
             ? VolumeLabels.TryReadAsync(files, folder.ToHandle(), logger, cancellationToken)
             : Task.FromResult(VolumeLabels.Unknown))).WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -70,7 +73,7 @@ public sealed class CheckFolderAvailabilityCommandHandler(
             {
                 if (relabelled)
                 {
-                    await library.Folders.UpdateAvailabilityAsync(folder, cancellationToken).ConfigureAwait(false);
+                    await library.Folders.UpdateAvailabilityAsync(folder, CancellationToken.None).ConfigureAwait(false);
                 }
 
                 continue;
@@ -85,7 +88,7 @@ public sealed class CheckFolderAvailabilityCommandHandler(
                 folder.MarkOffline(clock.GetUtcNow());
             }
 
-            await library.Folders.UpdateAvailabilityAsync(folder, cancellationToken).ConfigureAwait(false);
+            await library.Folders.UpdateAvailabilityAsync(folder, CancellationToken.None).ConfigureAwait(false);
             logger.LogInformation("Folder {Folder} is {Status} now", folder.DisplayPath, status);
             changed.Add(folder);
         }

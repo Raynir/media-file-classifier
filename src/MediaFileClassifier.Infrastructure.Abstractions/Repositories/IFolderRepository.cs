@@ -47,9 +47,11 @@ public interface IFolderRepository
     Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Stores only a folder's availability: its status, when that changed and its volume label (E14-S07-T04). An
-    /// availability check uses it because it holds the folder for as long as its probes take, so storing the whole row
-    /// could undo a relink or a rule change made meanwhile.
+    /// Stores only a folder's availability: its status, when that changed and its volume label (E14-S07-T04). Every
+    /// writer that only changes a folder's status uses it (availability checks, discovery, rescans, imports), because
+    /// each holds the folder for as long as its probes or scan take, so storing the whole row could undo a relink or a
+    /// rule change made meanwhile. Nothing is stored if the folder was relinked to another root since it was read: what
+    /// was found applies to the old root.
     /// </summary>
     /// <param name="folder">The folder, with its new status and label.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

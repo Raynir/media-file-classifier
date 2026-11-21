@@ -91,7 +91,7 @@ public sealed class LiveFolderStatusEndToEndTests : IAsyncLifetime
         relinked.Relink(moved, moved, DateTimeOffset.UtcNow);
         await bed.Library.Folders.UpdateAsync(relinked, Token);
 
-        // ...and stores what it found for the old path afterwards.
+        // ...and stores what it found at the old root afterwards.
         stale.MarkOffline(DateTimeOffset.UtcNow);
         stale.ChangeVolumeLabel("Backup");
         await bed.Library.Folders.UpdateAvailabilityAsync(stale, Token);
@@ -99,8 +99,8 @@ public sealed class LiveFolderStatusEndToEndTests : IAsyncLifetime
         var stored = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
         Assert.Equal(moved, stored.PlatformHandle);
         Assert.Equal(moved, stored.DisplayPath);
-        Assert.Equal(FolderStatus.Offline, stored.Status);
-        Assert.Equal("Backup", stored.VolumeLabel);
+        Assert.Equal(FolderStatus.Online, stored.Status);
+        Assert.Null(stored.VolumeLabel);
     }
 
     private sealed class FakeVolumeWatcher : IVolumeWatcher

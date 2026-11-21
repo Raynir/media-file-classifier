@@ -111,6 +111,28 @@ public sealed class JsonSettingsServiceTests : IDisposable
     }
 
     [Fact]
+    public void Current_TypedProcessingSection_MovesIntoTheRegisteredValues()
+    {
+        Directory.CreateDirectory(dataDirectory);
+        File.WriteAllText(appPaths.SettingsFile, """
+            {
+              "schemaVersion": 2,
+              "processing": { "cpuConcurrency": 3, "confirmQuitWhileProcessing": false, "resumeOnOpen": "ask" },
+              "values": { "processing.cpuConcurrency": 5 }
+            }
+            """);
+        var service = CreateService();
+
+        var settings = service.Current;
+        service.Save(settings);
+
+        Assert.False(settings.Values["processing.confirmQuitWhileProcessing"].GetBoolean());
+        Assert.Equal("ask", settings.Values["processing.resumeOnOpen"].GetString());
+        Assert.Equal(5, settings.Values["processing.cpuConcurrency"].GetInt32());
+        Assert.DoesNotContain("\"processing\":", File.ReadAllText(appPaths.SettingsFile), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Save_WritesTheCurrentSchemaVersionWithoutProviders()
     {
         Directory.CreateDirectory(dataDirectory);

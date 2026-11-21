@@ -28,6 +28,7 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     private readonly ProgressFeed feed;
     private readonly Localizer localizer;
     private readonly IPlatformServices? platform;
+    private readonly IJobSystem? jobs;
     private readonly ILogger logger;
     private readonly Dictionary<Id<ProcessingJob>, ProcessingJobViewModel> rows = [];
     private int version;
@@ -40,8 +41,16 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     /// <param name="localizer">UI strings.</param>
     /// <param name="platform">Shows files in the file manager, or <see langword="null"/> for no Reveal file.</param>
     /// <param name="logger">Logger, or <see langword="null"/> for none.</param>
-    public ProcessingPanelViewModel(ISender sender, ProgressFeed feed, Localizer localizer, IPlatformServices? platform = null, ILogger<ProcessingPanelViewModel>? logger = null)
+    /// <param name="jobs">The job system, for Resume when the library opened with processing paused, or <see langword="null"/> for none.</param>
+    public ProcessingPanelViewModel(
+        ISender sender,
+        ProgressFeed feed,
+        Localizer localizer,
+        IPlatformServices? platform = null,
+        ILogger<ProcessingPanelViewModel>? logger = null,
+        IJobSystem? jobs = null)
     {
+        this.jobs = jobs;
         this.sender = sender;
         this.feed = feed;
         this.localizer = localizer;
@@ -81,6 +90,13 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     public partial bool IsEmpty { get; private set; } = true;
 
     /// <summary>
+    /// Gets a value indicating whether processing waits for Resume, because the library opened with unfinished work and the
+    /// settings say to ask first (E05-S01-T05).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsPaused { get; private set; }
+
+    /// <summary>
     /// Starts following the job progress; call it when the panel opens.
     /// </summary>
     public void Attach() => feed.Updated += OnProgress;
@@ -98,6 +114,7 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var current = ++version;
+        IsPaused = jobs?.Current?.IsPaused == true;
         ProcessingQueue queue;
         try
         {
@@ -151,6 +168,17 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
         {
             await row.LoadFailuresAsync();
         }
+    }
+
+    /// <summary>
+    /// Starts the processing that waited for it, and lists the jobs again.
+    /// </summary>
+    /// <returns>A task that completes when the lists are up to date.</returns>
+    [RelayCommand]
+    private Task ResumeAsync()
+    {
+        jobs?.Current?.Resume();
+        return RefreshAsync();
     }
 
     // Moves, adds and removes rows, so the rows that stay keep their place and state in the list.

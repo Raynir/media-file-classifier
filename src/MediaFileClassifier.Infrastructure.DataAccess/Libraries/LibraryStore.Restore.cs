@@ -100,13 +100,24 @@ internal sealed partial class LibraryStore
                     throw new FileNotFoundException("The kept database is gone.", damagedPath);
                 }
 
-                // The restored database's WAL files would be replayed onto the old one.
+                // The restored database's WAL files would be replayed onto the old one. The kept WAL goes back first
+                // and returns to the backups folder when the database can't follow, so the two never part.
                 File.Delete(layout.DatabasePath + "-wal");
                 File.Delete(layout.DatabasePath + "-shm");
-                File.Move(damagedPath, layout.DatabasePath, overwrite: true);
-                if (File.Exists(damagedPath + "-wal"))
+                var hasWal = File.Exists(damagedPath + "-wal");
+                if (hasWal)
                 {
                     File.Move(damagedPath + "-wal", layout.DatabasePath + "-wal");
+                }
+
+                try
+                {
+                    File.Move(damagedPath, layout.DatabasePath, overwrite: true);
+                }
+                catch (Exception exception) when (hasWal && exception is IOException or UnauthorizedAccessException)
+                {
+                    TryUndo(layout, () => File.Move(layout.DatabasePath + "-wal", damagedPath + "-wal"), damagedPath + "-wal");
+                    throw;
                 }
 
                 LogPutBack(layout.RootDirectory, damagedPath);
@@ -134,7 +145,17 @@ internal sealed partial class LibraryStore
         // The copy comes first, next to the database, so a full disk fails before anything is moved, and the last
         // step is a rename on the same volume.
         var incoming = layout.DatabasePath + ".restoring";
-        File.Copy(backupPath, incoming, overwrite: true);
+        try
+        {
+            File.Copy(backupPath, incoming, overwrite: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // A half-written copy (a full disk) isn't left next to the database.
+            TryUndo(layout, () => File.Delete(incoming), incoming);
+            throw;
+        }
+
         var moved = new List<(string From, string To)>();
         try
         {

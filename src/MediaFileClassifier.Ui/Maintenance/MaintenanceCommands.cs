@@ -126,6 +126,13 @@ public sealed class MaintenanceCommands(
     /// <returns>The report, or <c>null</c> when the check didn't finish.</returns>
     public async Task<IntegrityReport?> CheckIntegrityAsync()
     {
+        // A restore closes the library for a moment, before the disabled state reaches the menu.
+        if (session is { Current: null })
+        {
+            await dialogs.ShowAsync(localizer.Get("Command_NoLibraryOpen"), localizer.Get("Folders_Close"));
+            return null;
+        }
+
         var run = await runner.RunAsync(MaintenanceTask.CheckIntegrity, (_, token) => sender.Send(new CheckLibraryIntegrityQuery(), token));
         if (run is { State: MaintenanceRunState.Finished, Result: { } report })
         {

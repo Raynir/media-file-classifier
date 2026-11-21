@@ -5,6 +5,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
@@ -76,6 +77,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     private double viewportHeight;
     private double renderScaling = 1;
     private bool isActive;
+    private bool showFileNames = true;
     private bool restoringSize;
     private bool refreshing;
     private bool refreshAgain;
@@ -94,6 +96,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
     /// <param name="filters">The filter chips and panel above the results, or <see langword="null"/> for none.</param>
     /// <param name="sort">The sort control above the results, or <see langword="null"/> for none.</param>
     /// <param name="logger">Logs a favorite mark that could not be stored.</param>
+    /// <param name="settings">The setting values, for Show file names, or <see langword="null"/> to always show them.</param>
     public ThumbnailGridViewModel(
         IMediaResultSource source,
         ThumbnailLoader loader,
@@ -105,9 +108,26 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         SearchNoticeViewModel? notice = null,
         FilterBarViewModel? filters = null,
         SortBarViewModel? sort = null,
-        ILogger<ThumbnailGridViewModel>? logger = null)
+        ILogger<ThumbnailGridViewModel>? logger = null,
+        ISettingsStore? settings = null)
     {
         this.logger = logger ?? NullLogger<ThumbnailGridViewModel>.Instance;
+        if (settings is not null)
+        {
+            showFileNames = settings.Get(BrowserSettings.ShowFileNames);
+            settings.Changed += (_, e) =>
+            {
+                if (e.Setting == BrowserSettings.ShowFileNames)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        showFileNames = settings.Get(BrowserSettings.ShowFileNames);
+                        UpdateTileStates();
+                    });
+                }
+            };
+        }
+
         Notice = notice;
         Filters = filters;
         Sort = sort;
@@ -536,6 +556,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
 
     private void UpdateTileState(ThumbnailTileViewModel tile)
     {
+        tile.ShowFileName = showFileNames;
         tile.IsSelected = tile.Item is { } item && selection.IsSelected(item.Id);
         tile.IsFocused = IsFocusVisible && tile.Index == selection.FocusIndex;
     }

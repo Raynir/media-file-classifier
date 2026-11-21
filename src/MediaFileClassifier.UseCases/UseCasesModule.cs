@@ -44,6 +44,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Search.SearchResults.SearchResultSource>();
         services.TryAddSingleton<IMediaResultSource>(provider => provider.GetRequiredService<Search.SearchResults.SearchResultSource>());
         services.TryAddSingleton<Search.FindSimilar.AnalyzeNow>();
+        services.AddSetting(KnownSettings.InformationalNotifications);
         services.AddSetting(KnownSettings.OpenAiCompatibleEndpoint);
         services.AddSetting(KnownSettings.AnalyzeAutomatically);
         services.TryAddSingleton<Analysis.AutoAnalyze.AutoAnalyzeBatcher>();

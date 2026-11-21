@@ -4,6 +4,14 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- General and appearance settings (E17-S05, MFC-134): Settings, Appearance has a new "Show file names under tiles" switch (on by default) that hides the file name line under each thumbnail at once and keeps the type and size line; Settings, General has a "Show informational notifications" switch (on by default) that the in-app notifications (E15-S01) will follow. The theme, "Open the last library on startup" and "Restore the filters on startup" settings were already there.
+
+### Developer tools
+
+- UI smoke step `setting <key> <value>` (MFC-134) sets a registered setting, and `tools/ui-smoke/show-file-names.smoke` shows the file names switch.
+
 ## M4 — 2026-11-21
 
 ### Added

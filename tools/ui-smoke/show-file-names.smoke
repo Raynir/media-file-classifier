@@ -1,0 +1,12 @@
+# Show file names under tiles (MFC-134): the setting hides the name line at once and brings it back.
+window 1400x900
+command view.theme-light
+library sample
+wait-for idle
+shot 01-names-on
+setting appearance.showFileNames false
+wait 300ms
+shot 02-names-off
+setting appearance.showFileNames true
+wait 300ms
+shot 03-names-back

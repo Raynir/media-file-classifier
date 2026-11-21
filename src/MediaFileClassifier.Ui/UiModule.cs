@@ -89,6 +89,7 @@ public static class UiModule
         services.AddSingleton(Localizer.Current);
         services.AddSingleton<ThemeService>();
         services.AddSetting(ThemeService.ThemeSetting);
+        services.AddSetting(BrowserSettings.ShowFileNames);
         services.AddSingleton<ShellLayout>();
         services.AddSingleton<ShellRegions>();
         services.TryAddSingleton(TimeProvider.System);

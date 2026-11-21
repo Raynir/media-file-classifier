@@ -229,7 +229,11 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
                 return null;
             case "key":
-                return PressKey(step.Argument);
+                return PressKey(step.Argument, FocusedOrWindow());
+            case "dialog-key":
+                // Presses a key in the open dialog, on its focused control (E16-S03), e.g. Tab to see where the focus goes.
+                var keyDialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
+                return PressKey(step.Argument, keyDialog.FocusManager?.GetFocusedElement() as Interactive ?? keyDialog);
             case "type":
                 var target = FocusedOrWindow();
                 target.RaiseEvent(new TextInputEventArgs { RoutedEvent = InputElement.TextInputEvent, Text = step.Argument, Source = target });
@@ -456,11 +460,10 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         services.GetRequiredService<ISettingsStore>().SetValue(definition, value);
     }
 
-    private string? PressKey(string gestureText)
+    private string? PressKey(string gestureText, Interactive target)
     {
         SmokeScript.TryParseKey(gestureText, out var parsed);
         var gesture = parsed!;
-        var target = FocusedOrWindow();
         foreach (var routedEvent in new[] { InputElement.KeyDownEvent, InputElement.KeyUpEvent })
         {
             target.RaiseEvent(new KeyEventArgs

@@ -29,6 +29,7 @@
       <Setter Property="Grid.ColumnSpan" Value="3" />
       <Setter Property="HorizontalAlignment" Value="Left" />
       <Setter Property="ZIndex" Value="2" />
+      <Setter Property="KeyboardNavigation.TabNavigation" Value="Cycle" />
     </Style>
     <Style Selector="Panel#DetailsHost" x:DataType="vm:MainWindowViewModel">
       <Setter Property="Width" Value="{Binding Layout.Details.Width}" />
@@ -47,6 +48,7 @@
       <Setter Property="Grid.RowSpan" Value="2" />
       <Setter Property="HorizontalAlignment" Value="Right" />
       <Setter Property="ZIndex" Value="2" />
+      <Setter Property="KeyboardNavigation.TabNavigation" Value="Cycle" />
     </Style>
   </UserControl.Styles>
 

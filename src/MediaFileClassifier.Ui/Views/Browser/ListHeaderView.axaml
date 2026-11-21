@@ -18,6 +18,14 @@
       <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
       <Setter Property="FontWeight" Value="{DynamicResource FontWeight.Title}" />
     </Style>
+    <Style Selector="Border.ListHeaderCell Path.HeaderIcon">
+      <Setter Property="Width" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Height" Value="{DynamicResource Size.Icon.Small}" />
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Fill" Value="{DynamicResource Brush.Text.Secondary}" />
+    </Style>
     <Style Selector="Border.ListHeaderCell:pointerover">
       <Setter Property="Background" Value="{DynamicResource Brush.State.Hover}" />
     </Style>
@@ -46,6 +54,11 @@
           <DockPanel Margin="{DynamicResource Padding.Badge}">
             <TextBlock DockPanel.Dock="Right" Text="{Binding SortGlyph}" Classes="Secondary" />
             <TextBlock Text="{Binding Header}" Classes="Secondary" TextTrimming="CharacterEllipsis" />
+            <!-- The favorite column has no title: its star says what it is, and the tooltip names it. -->
+            <Path Classes="HeaderIcon"
+                  Data="{StaticResource Icon.Favorite}"
+                  IsVisible="{Binding HasHeaderIcon}"
+                  ToolTip.Tip="{Binding Name}" />
           </DockPanel>
           <!-- Drag the right edge to resize (E14-S02-T02). -->
           <Thumb Classes="ColumnResize"

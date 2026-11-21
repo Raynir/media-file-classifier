@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Settings"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Settings.LibraryEmbeddedSectionView"
+             x:DataType="vm:LibraryEmbeddedSectionViewModel">
+  <!-- An existing library view (indexed folders, excluded items) in a box of fixed height; the view locator maps its
+       view model to the view, the same one the dialog shows. -->
+  <StackPanel>
+    <TextBlock Classes="Secondary" Text="{l:Loc LibrarySection_NoLibrary}" IsVisible="{Binding !HasLibrary}" TextWrapping="Wrap" />
+    <Border Classes="Panel" Height="{Binding ContentHeight}" IsVisible="{Binding HasLibrary}">
+      <ContentControl Content="{Binding Content}" />
+    </Border>
+  </StackPanel>
+</UserControl>

@@ -2781,4 +2781,37 @@
   <data name="StatusBar_LibrarySummary_ToolTip" xml:space="preserve">
     <value>{0} indexed, {1} pending, {2} with errors, {3} missing. Click for library information.</value>
   </data>
+  <data name="LibrarySection_InformationHeading" xml:space="preserve">
+    <value>Library information</value>
+  </data>
+  <data name="LibrarySection_FoldersHeading" xml:space="preserve">
+    <value>Indexed folders</value>
+  </data>
+  <data name="LibrarySection_MaintenanceHeading" xml:space="preserve">
+    <value>Maintenance</value>
+  </data>
+  <data name="LibrarySection_ExcludedHeading" xml:space="preserve">
+    <value>Excluded items</value>
+  </data>
+  <data name="LibrarySection_NoLibrary" xml:space="preserve">
+    <value>Open a library to see this.</value>
+  </data>
+  <data name="LibrarySection_Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="LibrarySection_Reveal" xml:space="preserve">
+    <value>Reveal</value>
+  </data>
+  <data name="LibrarySection_CopyPath" xml:space="preserve">
+    <value>Copy path</value>
+  </data>
+  <data name="LibrarySection_RefreshIndexHint" xml:space="preserve">
+    <value>Rebuilds the keyword and vector indexes from the stored data.</value>
+  </data>
+  <data name="LibrarySection_RegenerateThumbnailsHint" xml:space="preserve">
+    <value>Makes the thumbnails again, either only the missing ones or all.</value>
+  </data>
+  <data name="LibrarySection_CheckIntegrityHint" xml:space="preserve">
+    <value>Checks the library database for damage.</value>
+  </data>
 </root>

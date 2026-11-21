@@ -38,7 +38,7 @@ internal static class SmokeScript
 
     private static readonly HashSet<string> Verbs = new(StringComparer.Ordinal)
     {
-        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-shot",
+        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-shot", "dialog-size",
         "damage-library", "allow-error", "import-files", "dialog-select",
     };
 
@@ -128,6 +128,7 @@ internal static class SmokeScript
                     : "expected 'library sample' or 'library open <folder>'";
                 break;
             case "window":
+            case "dialog-size":
                 error = TryParseSize(step.Argument, out _, out _) ? null : "expected a size such as 1400x900";
                 break;
             case "wait":

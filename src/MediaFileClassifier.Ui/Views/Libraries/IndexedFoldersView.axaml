@@ -7,7 +7,7 @@
   <!-- Provisional folders dialog (D095): Figma has no screen for it yet. E02-S03-T00 designs the real one. -->
   <Grid Margin="{DynamicResource Padding.Panel}" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="{DynamicResource Space.S}">
     <StackPanel Grid.Row="0" Spacing="{DynamicResource Space.S}">
-      <TextBlock Classes="Title" Text="{l:Loc Folders_Title}" />
+      <TextBlock Classes="Title" Text="{l:Loc Folders_Title}" IsVisible="{Binding !IsEmbedded}" />
       <TextBlock Classes="Secondary" Text="{l:Loc Folders_Hint}" TextWrapping="Wrap" />
       <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
         <Button x:Name="AddButton" Content="{l:Loc Folders_Add}" Command="{Binding AddFolderCommand}" />
@@ -119,7 +119,7 @@
       </Panel>
     </Border>
 
-    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}" IsVisible="{Binding !IsEmbedded}">
       <Button Content="{l:Loc Folders_Close}" Command="{Binding CloseCommand}" IsCancel="True" />
     </StackPanel>
   </Grid>

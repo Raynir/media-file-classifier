@@ -7,7 +7,7 @@
   <!-- Excluded items (E02-S10-T04): the items the user removed, with Restore and Forget. -->
   <Grid RowDefinitions="Auto,*,Auto" Margin="{DynamicResource Padding.Panel}" RowSpacing="{DynamicResource Space.M}">
     <StackPanel Spacing="{DynamicResource Space.S}">
-      <TextBlock Classes="Title" Text="{l:Loc ExcludedItems_Title}" />
+      <TextBlock Classes="Title" Text="{l:Loc ExcludedItems_Title}" IsVisible="{Binding !IsEmbedded}" />
       <TextBlock Classes="Secondary" Text="{Binding Header}" IsVisible="{Binding !IsEmpty}" TextWrapping="Wrap" />
       <Border Classes="Panel" Padding="{DynamicResource Padding.Control}" IsVisible="{Binding IsConfirmingForget}">
         <DockPanel>
@@ -46,7 +46,7 @@
     <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
       <Button Content="{l:Loc ExcludedItems_Restore}" Command="{Binding RestoreCommand}" Classes="accent" />
       <Button Content="{l:Loc ExcludedItems_Forget}" Command="{Binding ForgetCommand}" />
-      <Button Content="{l:Loc ExcludedItems_Close}" Command="{Binding CloseCommand}" IsCancel="True" />
+      <Button Content="{l:Loc ExcludedItems_Close}" Command="{Binding CloseCommand}" IsCancel="True" IsVisible="{Binding !IsEmbedded}" />
     </StackPanel>
   </Grid>
 </UserControl>

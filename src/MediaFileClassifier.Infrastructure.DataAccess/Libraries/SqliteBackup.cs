@@ -8,6 +8,17 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 /// </summary>
 internal static class SqliteBackup
 {
+    private const int SqliteCorrupt = 11;
+    private const int SqliteNotADatabase = 26;
+
+    /// <summary>
+    /// Tells whether SQLite failed because the database file is damaged (<c>SQLITE_CORRUPT</c> or <c>SQLITE_NOTADB</c>).
+    /// </summary>
+    /// <param name="exception">The failure.</param>
+    /// <returns><c>true</c> when the file is damaged.</returns>
+    public static bool IsDamaged(SqliteException exception) =>
+        exception.SqliteErrorCode is SqliteCorrupt or SqliteNotADatabase;
+
     /// <summary>
     /// Copies the database of a connection to a new file.
     /// </summary>

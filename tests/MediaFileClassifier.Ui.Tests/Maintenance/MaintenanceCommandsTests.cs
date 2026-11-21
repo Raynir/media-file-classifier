@@ -1,3 +1,4 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Testing.Settings;
@@ -12,6 +13,7 @@ using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Maintenance.CheckIntegrity;
 using MediaFileClassifier.UseCases.Maintenance.RegenerateThumbnails;
+using MediaFileClassifier.UseCases.Maintenance.RestoreBackup;
 using MediaFileClassifier.UseCases.Search.RebuildSearchIndex;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +28,10 @@ public sealed class MaintenanceCommandsTests
     private readonly ScriptedSender sender = new();
     private readonly RecordingDialogs dialogs = new();
     private readonly MaintenanceRunner runner = new();
+
+    private static readonly string[] Problems = ["*** in database main ***", "Page 7: btreeInitPage() returns error code 11"];
+
+    private static readonly LibraryBackup Backup = new("library-v14-20261030-115900-000.db", new DateTimeOffset(2026, 10, 30, 11, 59, 0, TimeSpan.Zero), 14);
 
     [Fact]
     public Task Commands_AreInTheLibraryMenu_InABandOfTheirOwn() => RunAsync(open: true, services =>
@@ -117,15 +123,52 @@ public sealed class MaintenanceCommandsTests
 
     [Theory]
     [InlineData(false, "The library is in good health. No problems were found.")]
-    [InlineData(true, "The library database is damaged. Search, browsing and saving changes may fail.")]
+    [InlineData(true, "The library database is damaged. Search, browsing and saving changes may fail.\n\nThere's no backup to restore.")]
     public async Task CheckIntegrity_ShowsThePlainLanguageReport(bool damaged, string expected)
     {
-        sender.OnCheck = _ => Task.FromResult(new IntegrityReport(damaged ? ["*** in database main ***", "Page 7: btreeInitPage() returns error code 11"] : []));
+        sender.OnCheck = _ => Task.FromResult(new IntegrityReport(damaged ? Problems : []));
 
         var report = await Commands().CheckIntegrityAsync();
 
         Assert.Equal(damaged, !report!.IsOk);
         Assert.Equal([expected], dialogs.Shown);
+        Assert.Empty(dialogs.Asked);
+    }
+
+    [Fact]
+    public async Task CheckIntegrity_DamagedWithABackup_OffersIt_AndNotNowRestoresNothing()
+    {
+        sender.OnCheck = _ => Task.FromResult(new IntegrityReport(Problems, Backup));
+        dialogs.Answer = false;
+
+        await Commands().CheckIntegrityAsync();
+
+        var question = Assert.Single(dialogs.Asked);
+        Assert.StartsWith("The library database is damaged. Search, browsing and saving changes may fail.\n\nA backup from ", question);
+        Assert.Contains(Backup.CreatedAt.LocalDateTime.ToString("g", System.Globalization.CultureInfo.CurrentCulture), question);
+        Assert.EndsWith("changes made after that date are lost. The damaged database is kept in the backups folder.", question);
+        Assert.Empty(sender.Restored);
+        Assert.Empty(dialogs.Shown);
+    }
+
+    [Theory]
+    [InlineData(null, true, "The backup from {0} was restored and passed the integrity check. Changes made after that date are lost.")]
+    [InlineData(null, false, "The backup from {0} was restored, but the integrity check still found problems. The damaged database is kept in the backups folder.")]
+    [InlineData(RestoreBackupFailure.BackupDamaged, true, "The backup couldn't be restored: the backup is damaged too. The library wasn't changed.")]
+    [InlineData(RestoreBackupFailure.NotReplaced, true, "The backup couldn't be restored: the library files couldn't be replaced. The library wasn't changed.")]
+    [InlineData(RestoreBackupFailure.OpenFailed, true, "The backup couldn't be restored: the restored library couldn't be opened. The library wasn't changed.")]
+    [InlineData(RestoreBackupFailure.NotPutBack, true, "The backup couldn't be restored, and the damaged database couldn't be put back. It's kept as D:\\kept.db.")]
+    public async Task CheckIntegrity_RestoreBackup_RestoresIt_AndSaysHowItWent(RestoreBackupFailure? failure, bool healthyAfter, string expected)
+    {
+        sender.OnCheck = _ => Task.FromResult(new IntegrityReport(Problems, Backup));
+        sender.OnRestore = _ => new RestoreIntegrityBackupResult(failure, failure is null ? new IntegrityReport(healthyAfter ? [] : Problems) : null, @"D:\kept.db");
+        dialogs.Answer = true;
+
+        await Commands().CheckIntegrityAsync();
+
+        Assert.Equal([Backup], sender.Restored.Select(command => command.Backup));
+        var date = Backup.CreatedAt.LocalDateTime.ToString("g", System.Globalization.CultureInfo.CurrentCulture);
+        Assert.Equal([string.Format(System.Globalization.CultureInfo.InvariantCulture, expected, date)], dialogs.Shown);
     }
 
     [Theory]
@@ -253,13 +296,25 @@ public sealed class MaintenanceCommandsTests
         public Func<RegenerateThumbnailsCommand, RegenerateThumbnailsResult> OnRegenerate { get; set; } =
             _ => new RegenerateThumbnailsResult(RegenerateThumbnailsOutcome.Started);
 
+        public Func<RestoreIntegrityBackupCommand, RestoreIntegrityBackupResult> OnRestore { get; set; } =
+            _ => new RestoreIntegrityBackupResult(Failure: null, new IntegrityReport([]));
+
+        public List<RestoreIntegrityBackupCommand> Restored { get; } = [];
+
         public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) =>
             request switch
             {
                 CheckLibraryIntegrityQuery => (TResponse)(object)await OnCheck(cancellationToken),
                 RegenerateThumbnailsCommand regenerate => (TResponse)(object)OnRegenerate(regenerate),
+                RestoreIntegrityBackupCommand restore => (TResponse)(object)Restore(restore),
                 _ => throw new NotSupportedException(request.GetType().Name),
             };
+
+        private RestoreIntegrityBackupResult Restore(RestoreIntegrityBackupCommand command)
+        {
+            Restored.Add(command);
+            return OnRestore(command);
+        }
 
         public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
             where TRequest : IRequest =>

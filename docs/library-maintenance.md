@@ -57,6 +57,12 @@ The report is a message window. States and texts:
 - **Restore done:** "The backup from {date} was restored and passed the integrity check. Changes made after that date
   are lost." Button: **Close**.
 - **Restore failed:** "The backup couldn't be restored: {reason}. The library wasn't changed." Button: **Close**.
+  The reasons: "the backup is damaged too", "the library files couldn't be replaced", "the restored library couldn't
+  be opened". In the last two cases the damaged database is put back and the library opened again.
+- **Restored, still damaged** (the reopened library fails its check): "The backup from {date} was restored, but the
+  integrity check still found problems. The damaged database is kept in the backups folder." Button: **Close**.
+- **Couldn't put back** (the restored library didn't open and the damaged database couldn't be moved back): "The
+  backup couldn't be restored, and the damaged database couldn't be put back. It's kept as {path}." Button: **Close**.
 
 SQLite's messages (the first 20) go to the log, not into the report.
 
@@ -67,6 +73,11 @@ user backups are later (E02-S09). The restore:
 
 1. checks the backup with `PRAGMA integrity_check`, and stops if it's damaged too;
 2. stops the jobs and closes the library;
-3. moves the damaged database to `backups/library-damaged-<time>.db` and removes its WAL files;
+3. copies the backup next to the database first (so a full disk fails before anything moves), then moves the damaged
+   database and its `-wal` file to `backups/library-damaged-<time>.db[-wal]`, deletes `-shm` and renames the copy in;
+   when a step fails, the moved files go back;
 4. copies the backup in and opens the library again, which migrates it to the current schema;
 5. runs the integrity check on the reopened library and reports the result.
+
+The restore doesn't run on the maintenance runner, because closing the library cancels the runner's task; once the
+library is closed the steps aren't cancelled.

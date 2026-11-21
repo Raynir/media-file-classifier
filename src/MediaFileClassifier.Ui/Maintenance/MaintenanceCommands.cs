@@ -4,6 +4,7 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases.Maintenance.CheckIntegrity;
 using MediaFileClassifier.UseCases.Maintenance.RegenerateThumbnails;
+using MediaFileClassifier.UseCases.Maintenance.RestoreBackup;
 using MediaFileClassifier.UseCases.Search.RebuildSearchIndex;
 using MediatR;
 
@@ -119,7 +120,8 @@ public sealed class MaintenanceCommands(
     }
 
     /// <summary>
-    /// Runs the integrity check in the background and shows the report.
+    /// Runs the integrity check in the background and shows the report. When the database is damaged and there's a
+    /// backup, offers to restore it, and says how that went.
     /// </summary>
     /// <returns>The report, or <c>null</c> when the check didn't finish.</returns>
     public async Task<IntegrityReport?> CheckIntegrityAsync()
@@ -127,7 +129,21 @@ public sealed class MaintenanceCommands(
         var run = await runner.RunAsync(MaintenanceTask.CheckIntegrity, (_, token) => sender.Send(new CheckLibraryIntegrityQuery(), token));
         if (run is { State: MaintenanceRunState.Finished, Result: { } report })
         {
-            await dialogs.ShowAsync(IntegrityReportText.Describe(localizer, report), localizer.Get("Folders_Close"));
+            var text = IntegrityReportText.Describe(localizer, report);
+            if (report is { IsOk: false, Backup: { } backup })
+            {
+                if (await dialogs.AskAsync(text, localizer.Get("Integrity_RestoreBackup"), localizer.Get("Integrity_NotNow")))
+                {
+                    // Not on the runner: closing the library would cancel it half-way.
+                    var restored = await sender.Send(new RestoreIntegrityBackupCommand(backup));
+                    await dialogs.ShowAsync(IntegrityReportText.DescribeRestore(localizer, backup, restored), localizer.Get("Folders_Close"));
+                }
+            }
+            else
+            {
+                await dialogs.ShowAsync(text, localizer.Get("Folders_Close"));
+            }
+
             return report;
         }
 

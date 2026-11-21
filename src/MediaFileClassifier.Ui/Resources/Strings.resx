@@ -793,6 +793,53 @@
   <data name="Command_AddFolder" xml:space="preserve">
     <value>_Add folder…</value>
   </data>
+  <data name="Command_ImportFiles" xml:space="preserve">
+    <value>_Import files…</value>
+  </data>
+  <data name="ImportFiles_PickTitle" xml:space="preserve">
+    <value>Import files</value>
+  </data>
+  <data name="ImportFiles_FilterMedia" xml:space="preserve">
+    <value>Media files</value>
+  </data>
+  <data name="ImportFiles_FilterAll" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="ImportFiles_Imported" xml:space="preserve">
+    <value>{0} files are being imported.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_ImportedOne" xml:space="preserve">
+    <value>1 file is being imported.</value>
+  </data>
+  <data name="ImportFiles_Already" xml:space="preserve">
+    <value>{0} files are already in the library.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_AlreadyOne" xml:space="preserve">
+    <value>1 file is already in the library.</value>
+  </data>
+  <data name="ImportFiles_Excluded" xml:space="preserve">
+    <value>{0} files are left out by their folder's rules.</value>
+    <comment>{0} is a number of files, more than one. The rules are the indexed folder's excluded subfolders, hidden files and cloud placeholders.</comment>
+  </data>
+  <data name="ImportFiles_ExcludedOne" xml:space="preserve">
+    <value>1 file is left out by its folder's rules.</value>
+  </data>
+  <data name="ImportFiles_Unsupported" xml:space="preserve">
+    <value>{0} files aren't a supported format.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_UnsupportedOne" xml:space="preserve">
+    <value>1 file isn't a supported format.</value>
+  </data>
+  <data name="ImportFiles_Unreadable" xml:space="preserve">
+    <value>{0} files can't be read.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_UnreadableOne" xml:space="preserve">
+    <value>1 file can't be read.</value>
+  </data>
   <data name="Command_ManageFolders" xml:space="preserve">
     <value>Manage _folders…</value>
   </data>

@@ -27,6 +27,10 @@ The create-library dialog adds folders with the same rules, without asking: the 
 
 Folders being removed don't count as overlaps. "Selected files only" folders (D012) don't exist yet; absorbing them comes with E03-S05, and the merge already moves any folder's items.
 
+## Partial folders
+
+A partial folder (`IndexedFolder.SelectedFilesOnly`, "selected files only", D012, library schema 15) tracks only the files the user imported from it by selecting them (E03-S05, `docs/import-pipeline.md`): its items. Its import and its rescans look up those files alone, so other files in the folder are ignored (`docs/file-discovery.md`, "Partial folders"). It has no rules. A picked file in one of its subfolders joins it, with a path such as `2024/b.jpg`.
+
 ## Exclusions
 
 Each folder's rules are its `FolderRules` (D142):

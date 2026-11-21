@@ -201,6 +201,7 @@ public sealed class FileSystemMediaFileSource : IMediaFileSource
         {
             CreatedUtc = new DateTimeOffset(file.CreationTimeUtc, TimeSpan.Zero),
             IsCloudPlaceholder = (file.Attributes & CloudPlaceholderAttributes) != 0,
+            IsHidden = (file.Attributes & (FileAttributes.Hidden | FileAttributes.System)) != 0,
         };
 
     // Lists one folder completely, so a listing error is caught here rather than in the middle of yielding entries.

@@ -77,8 +77,13 @@ internal sealed class FakePlatformServices(IAppPaths paths) : IPlatformServices
     public Task<FolderHandle?> PickFolderAsync(string title, CancellationToken cancellationToken = default)
         => Task.FromResult(Folders.TryDequeue(out var folder) ? folder : null);
 
+    public List<FilePickerRequest> FileRequests { get; } = [];
+
     public Task<IReadOnlyList<FileLocation>> PickFilesAsync(FilePickerRequest request, CancellationToken cancellationToken = default)
-        => Task.FromResult<IReadOnlyList<FileLocation>>([]);
+    {
+        FileRequests.Add(request);
+        return Task.FromResult<IReadOnlyList<FileLocation>>([]);
+    }
 
     public Task RevealInFileExplorerAsync(FileLocation location, CancellationToken cancellationToken = default) => Task.CompletedTask;
 

@@ -21,6 +21,16 @@ public sealed class LibraryToolbar(CommandRegistry commands) : IToolbarContribut
     public const int AddFolderPriority = 100;
 
     /// <summary>
+    /// The position of Import files among the toolbar actions, after Add folder (E03-S05).
+    /// </summary>
+    public const int ImportFilesOrder = 105;
+
+    /// <summary>
+    /// How long Import files stays on the toolbar as the window narrows: after Add folder, before Rescan.
+    /// </summary>
+    public const int ImportFilesPriority = 95;
+
+    /// <summary>
     /// The position of Rescan among the toolbar actions, after Add folder.
     /// </summary>
     public const int RescanOrder = 110;
@@ -34,6 +44,7 @@ public sealed class LibraryToolbar(CommandRegistry commands) : IToolbarContribut
     public void Register(ToolbarViewModel toolbar)
     {
         toolbar.AddAction(commands[LibraryCommands.AddFolder], AddFolderOrder, AddFolderPriority);
+        toolbar.AddAction(commands[LibraryCommands.ImportFiles], ImportFilesOrder, ImportFilesPriority);
         toolbar.AddAction(commands[RescanCommands.Rescan], RescanOrder, RescanPriority);
     }
 }

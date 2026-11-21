@@ -75,6 +75,29 @@ public sealed partial class FolderDiscovery(
         return new FolderSnapshot { Result = run.ToResult(), KnownFiles = run.KnownFiles, NewFiles = run.NewFiles };
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<FileRegistration>> RegisterFilesAsync(
+        IOpenLibrary library,
+        IndexedFolder folder,
+        IReadOnlyList<string> relativePaths,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+        ArgumentNullException.ThrowIfNull(folder);
+        ArgumentNullException.ThrowIfNull(relativePaths);
+
+        var known = await library.Items.GetFileStatesAsync(folder.Id, cancellationToken).ConfigureAwait(false);
+        var run = new Run(this, library, folder, known, progress: null, registered: null, collect: false);
+        var results = new List<FileRegistration>();
+        foreach (var path in relativePaths.Distinct(StringComparer.Ordinal))
+        {
+            results.Add(await run.RegisterAsync(path, cancellationToken).ConfigureAwait(false));
+        }
+
+        await run.FlushAsync(cancellationToken).ConfigureAwait(false);
+        return results;
+    }
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Discovery in {Folder}: can't list {Path}: {Error}")]
     private partial void LogUnreadableFolder(string folder, string path, string error);
 
@@ -213,6 +236,97 @@ public sealed partial class FolderDiscovery(
                     await AddFileAsync(file, cancellationToken).ConfigureAwait(false);
                 }
             }
+        }
+
+        // One selected file (E03-S05). The checks follow a scan's order, so a file is treated as if a scan had found it.
+        public async Task<FileRegistration> RegisterAsync(string relativePath, CancellationToken cancellationToken)
+        {
+            if (knownFiles.ContainsKey(relativePath))
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.AlreadyInLibrary);
+            }
+
+            if (!owner.formats.IsCandidate(relativePath))
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.Unsupported);
+            }
+
+            MediaFileStat? file;
+            try
+            {
+                file = await owner.files.GetStatAsync(new FileLocation(handle, relativePath), cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                owner.LogUnreadableFile(exception, folder.DisplayPath, relativePath);
+                file = null;
+            }
+
+            if (file is null)
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.Unreadable);
+            }
+
+            if (!folder.SelectedFilesOnly && IsLeftOutByRules(file))
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.ExcludedByRules);
+            }
+
+            var path = ToRelativePath(relativePath);
+            if (path is null)
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.Unsupported);
+            }
+
+            var unreadableBefore = unreadableFiles;
+            var mediaType = await DetectAsync(file, cancellationToken).ConfigureAwait(false);
+            if (mediaType is null)
+            {
+                return new FileRegistration(
+                    relativePath,
+                    unreadableFiles > unreadableBefore ? FileRegistrationOutcome.Unreadable : FileRegistrationOutcome.Unsupported);
+            }
+
+            var item = MediaItem.Discover(
+                folder.Id,
+                path,
+                mediaType.Value,
+                file.Length,
+                file.CreatedUtc ?? file.LastModifiedUtc,
+                file.LastModifiedUtc,
+                fingerprint: null,
+                owner.time.GetUtcNow());
+            knownFiles[relativePath] = new MediaItemFileState(path, file.Length, file.LastModifiedUtc);
+            pending.Add(item);
+            if (pending.Count >= BatchSize)
+            {
+                await FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            return new FileRegistration(relativePath, FileRegistrationOutcome.Registered, item);
+        }
+
+        // What a scan of a full folder would skip: excluded patterns and folders, subfolders when they aren't scanned,
+        // hidden files and cloud placeholders the folder leaves out. A hidden parent folder isn't checked.
+        private bool IsLeftOutByRules(MediaFileStat file)
+        {
+            var segments = file.RelativePath.Split('/');
+            if (segments.Length > 1 && !folder.Rules.IncludeSubfolders)
+            {
+                return true;
+            }
+
+            for (var depth = 1; depth < segments.Length; depth++)
+            {
+                if (!rules.ShouldEnterFolder(string.Join('/', segments[..depth])))
+                {
+                    return true;
+                }
+            }
+
+            return !rules.IsIncluded(file.RelativePath)
+                || (file.IsHidden && !folder.Rules.IncludeHidden)
+                || (file.IsCloudPlaceholder && !folder.Rules.IncludeCloudPlaceholders);
         }
 
         private async Task ListFolderAsync(CancellationToken cancellationToken)
@@ -366,7 +480,7 @@ public sealed partial class FolderDiscovery(
             return detection.MediaType;
         }
 
-        private async Task FlushAsync(CancellationToken cancellationToken)
+        public async Task FlushAsync(CancellationToken cancellationToken)
         {
             if (pending.Count == 0)
             {

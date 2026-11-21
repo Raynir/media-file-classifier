@@ -145,6 +145,7 @@ public static class UiModule
         services.AddSingleton<WelcomeViewModel>();
         services.AddSingleton<LibraryShell>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
+        services.TryAddSingleton<FileImporter>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ExcludedItemsCommands>());
         services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());

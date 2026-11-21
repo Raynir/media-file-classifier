@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -44,9 +45,30 @@ public partial class SearchBarView : UserControl
         }
 
         viewModel = DataContext as SearchBarViewModel;
-        if (viewModel is not null)
+        if (viewModel is not null && VisualRoot is not null)
         {
             viewModel.FocusRequested += OnFocusRequested;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (viewModel is not null)
+        {
+            viewModel.FocusRequested -= OnFocusRequested;
+            viewModel.FocusRequested += OnFocusRequested;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (viewModel is not null)
+        {
+            viewModel.FocusRequested -= OnFocusRequested;
         }
     }
 

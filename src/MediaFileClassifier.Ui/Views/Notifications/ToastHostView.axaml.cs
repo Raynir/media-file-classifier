@@ -18,27 +18,19 @@ public partial class ToastHostView : UserControl
         InitializeComponent();
     }
 
-    private static void Pause(object? sender)
+    private static void Hold(object? sender, Action<ToastViewModel> hold)
     {
         if ((sender as Control)?.DataContext is ToastViewModel toast)
         {
-            toast.Pause();
+            hold(toast);
         }
     }
 
-    private static void Resume(object? sender)
-    {
-        if ((sender as Control)?.DataContext is ToastViewModel toast)
-        {
-            toast.Resume();
-        }
-    }
+    private void OnToastPointerEntered(object? sender, PointerEventArgs e) => Hold(sender, toast => toast.SetPointerOver(true));
 
-    private void OnToastPointerEntered(object? sender, PointerEventArgs e) => Pause(sender);
+    private void OnToastPointerExited(object? sender, PointerEventArgs e) => Hold(sender, toast => toast.SetPointerOver(false));
 
-    private void OnToastPointerExited(object? sender, PointerEventArgs e) => Resume(sender);
+    private void OnToastGotFocus(object? sender, RoutedEventArgs e) => Hold(sender, toast => toast.SetFocusWithin(true));
 
-    private void OnToastGotFocus(object? sender, RoutedEventArgs e) => Pause(sender);
-
-    private void OnToastLostFocus(object? sender, RoutedEventArgs e) => Resume(sender);
+    private void OnToastLostFocus(object? sender, RoutedEventArgs e) => Hold(sender, toast => toast.SetFocusWithin(false));
 }

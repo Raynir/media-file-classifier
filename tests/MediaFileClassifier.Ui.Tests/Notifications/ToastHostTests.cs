@@ -80,16 +80,22 @@ public sealed class ToastHostTests
     }
 
     [Fact]
-    public void PausingAToast_StopsItsTimer_AndResumingStartsItAgain()
+    public void AToastHeldByThePointerOrTheFocus_StaysUntilBothLetGo()
     {
         service.Info("Done");
         var toast = Assert.Single(host.Toasts);
 
-        toast.Pause();
+        toast.SetPointerOver(true);
+        toast.SetFocusWithin(true);
         clock.Advance(TimeSpan.FromMinutes(1));
         Assert.Single(host.Toasts);
 
-        toast.Resume();
+        // The pointer leaves while the keyboard focus is still on the action button.
+        toast.SetPointerOver(false);
+        clock.Advance(TimeSpan.FromMinutes(1));
+        Assert.Single(host.Toasts);
+
+        toast.SetFocusWithin(false);
         clock.Advance(ToastViewModel.AutoDismissAfter);
         Assert.Empty(host.Toasts);
     }

@@ -20,6 +20,8 @@ public sealed partial class ToastViewModel : ObservableObject, IDisposable
     private readonly Action<ToastViewModel> dismiss;
     private readonly Func<ToastViewModel, Task> runAction;
     private readonly ITimer? timer;
+    private bool pointerOver;
+    private bool focused;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ToastViewModel"/> class and starts its timer.
@@ -94,14 +96,24 @@ public sealed partial class ToastViewModel : ObservableObject, IDisposable
     public bool IsError => Severity == NotificationSeverity.Error;
 
     /// <summary>
-    /// Stops the timer while the pointer or the focus is on the toast.
+    /// Tells the toast whether the pointer is on it. The timer stops while the pointer or the focus is on the toast.
     /// </summary>
-    public void Pause() => timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    /// <param name="isOver"><see langword="true"/> while the pointer is over the toast.</param>
+    public void SetPointerOver(bool isOver)
+    {
+        pointerOver = isOver;
+        UpdateTimer();
+    }
 
     /// <summary>
-    /// Starts the timer again, for the full time.
+    /// Tells the toast whether the focus is inside it.
     /// </summary>
-    public void Resume() => timer?.Change(AutoDismissAfter, Timeout.InfiniteTimeSpan);
+    /// <param name="hasFocus"><see langword="true"/> while the focus is inside the toast.</param>
+    public void SetFocusWithin(bool hasFocus)
+    {
+        focused = hasFocus;
+        UpdateTimer();
+    }
 
     /// <summary>
     /// Removes the toast.
@@ -128,4 +140,7 @@ public sealed partial class ToastViewModel : ObservableObject, IDisposable
 
     /// <inheritdoc />
     public void Dispose() => timer?.Dispose();
+
+    // Paused while either holds it; the full time starts again once both let go.
+    private void UpdateTimer() => timer?.Change(pointerOver || focused ? Timeout.InfiniteTimeSpan : AutoDismissAfter, Timeout.InfiniteTimeSpan);
 }

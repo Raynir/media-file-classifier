@@ -12,6 +12,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 - Remove items from the library (E02-S10, MFC-123, D024): "Remove from library" in the Item menu, the context menu and the details panel (also with several items selected), and with `Delete` in the browser, removes the selected items after one confirmation ("Don't ask again" turns it off; Settings, General, "Ask before removing items from the library" turns it back on). The files stay on disk. The items leave search, browsing and collections at once, keep their tags, descriptions, ratings and collections, and lose their AI results, embeddings and thumbnails (in the background for more than 200 items). Rescans leave them out, also when their file is moved or renamed. Library, "Excluded items…" lists the removed items: Restore imports them again (an item whose file is gone becomes Missing), and Forget deletes them with their edits, after a warning; a forgotten file that's still in an indexed folder comes back as a new item with the next scan.
 
+- In-app notifications (E15-S01, MFC-129): short toasts at the bottom right, above the status bar, never modal, at most four at a time. Information and success toasts go away after 6 seconds (not while the pointer or the keyboard is on them); warnings and errors stay until you close them. Each finished import or analysis job raises one notification, however many items it had: "Imported N items" with Show imported items, "View failed items" when some or all items failed. Cancelled jobs stay quiet. Settings, General, "Show informational notifications" hides the information and success ones, never warnings or errors. Library, "Recently imported" selects that entry of the navigation panel.
+
 ### Changed
 
 - The processing options are now registered settings. The old `processing` section of `settings.json` (which only "Don't ask again" on quitting wrote) moves into the registered settings the next time the file is read, so nobody gets the quit question back (no schema change).
@@ -21,6 +23,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - UI smoke steps `start <command>`, `dialog-click <button>`, `dialog-shot <name>` and `wait-for dialog` / `no-dialog` drive modal dialogs (MFC-123), and `tools/ui-smoke/remove-items.smoke` shows the remove confirmation and Excluded items.
 - UI smoke step `setting <key> <value>` (MFC-134) sets a registered setting, and `tools/ui-smoke/show-file-names.smoke` shows the file names switch.
 - UI smoke steps `damage-library` and `allow-error` (MFC-121), and `tools/ui-smoke/library-maintenance.smoke`, which shows the regenerate thumbnails dialog, the integrity report and a backup restore.
+- `tools/ui-smoke/notifications.smoke` (MFC-129) shows the import toast in the light and dark theme and its action.
 
 ## M4 — 2026-11-21
 

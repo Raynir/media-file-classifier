@@ -106,10 +106,20 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         var jobId = context.WorkItem.JobId;
         var now = clock.GetUtcNow();
 
+        // The items were read when the folders were listed. One the user removed since then stays removed (E02-S10):
+        // it's left out here rather than written back with its old status.
+        Id<MediaItem>[] listed = [.. result.Moved.Select(pair => pair.Item.Id), .. result.Modified.Select(file => file.Item.Id), .. result.Missing.Select(item => item.Id)];
+        var removedSince = listed.Length == 0
+            ? []
+            : (await library.Items.GetByIdsAsync(listed, cancellationToken).ConfigureAwait(false))
+                .Where(item => item.Status == MediaItemStatus.Excluded)
+                .Select(item => item.Id)
+                .ToHashSet();
+
         // Moved or renamed: the item keeps its ID and all its metadata (E02-S04-T02).
         var moved = new List<MediaItem>();
         var check = new List<MediaItem>();
-        foreach (var (item, folder, found) in result.Moved)
+        foreach (var (item, folder, found) in result.Moved.Where(pair => !removedSince.Contains(pair.Item.Id)))
         {
             item.Relocate(folder.Id, found.Path);
             item.UpdateFile(found.SizeBytes, found.FileCreatedAt, found.FileModifiedAt, item.Hashes);
@@ -136,7 +146,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         }
 
         // Changed or back: the check stage fingerprints them (E02-S04-T03). A returning item is Pending meanwhile.
-        foreach (var (item, _) in result.Modified)
+        foreach (var (item, _) in result.Modified.Where(file => !removedSince.Contains(file.Item.Id)))
         {
             if (item.Status == MediaItemStatus.Missing)
             {
@@ -150,7 +160,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         await EnqueueAsync(context.Scheduler, jobId, RescanStages.Check, check.Select(item => item.Id), cancellationToken).ConfigureAwait(false);
 
         // Gone: marked Missing with everything kept, so the item can be relinked if the file comes back (E02-S04-T04).
-        MediaItem[] missing = [.. result.Missing.Where(item => item.Status != MediaItemStatus.Missing)];
+        MediaItem[] missing = [.. result.Missing.Where(item => item.Status != MediaItemStatus.Missing && !removedSince.Contains(item.Id))];
         foreach (var item in missing)
         {
             item.ChangeStatus(MediaItemStatus.Missing, now);

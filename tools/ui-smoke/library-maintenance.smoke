@@ -27,7 +27,8 @@ start library.check-integrity
 wait-for dialog
 dialog-shot 03-integrity-damaged
 dialog-click Restore backup
-wait-for no-dialog
+# The restore closes the report and opens its result straight away.
+wait 2s
 wait-for dialog
 dialog-shot 04-restore-done
 dialog-click Close

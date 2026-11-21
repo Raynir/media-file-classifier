@@ -163,12 +163,24 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                     .OfType<Button>()
                     .FirstOrDefault(candidate => candidate.IsEffectivelyVisible && (candidate.Name == step.Argument || candidate.Content as string == step.Argument))
                     ?? throw new SmokeStepException($"the dialog has no visible button '{step.Argument}'");
-                if (button.Command is not { } buttonCommand || !buttonCommand.CanExecute(button.CommandParameter))
+                if (button.Command is { } buttonCommand)
                 {
-                    throw new SmokeStepException($"the button '{step.Argument}' is disabled or has no command");
+                    if (!buttonCommand.CanExecute(button.CommandParameter))
+                    {
+                        throw new SmokeStepException($"the button '{step.Argument}' is disabled");
+                    }
+
+                    buttonCommand.Execute(button.CommandParameter);
+                    return null;
                 }
 
-                buttonCommand.Execute(button.CommandParameter);
+                // A dialog that handles Click itself, such as LibraryMessageWindow (MFC-121).
+                if (!button.IsEffectivelyEnabled)
+                {
+                    throw new SmokeStepException($"the button '{step.Argument}' is disabled");
+                }
+
+                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 return null;
             case "dialog-shot":
                 var dialog = Dialog() ?? throw new SmokeStepException("no dialog is open");

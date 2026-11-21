@@ -145,6 +145,22 @@ public sealed class LibraryDeleterTests
     }
 
     [Fact]
+    public async Task Delete_ADatabaseThatIsntALibrary_ThrowsNotALibrary_AndDeletesNothing()
+    {
+        using var temporary = TemporaryLibrary.Create("Other");
+        var layout = LibraryLayout.FromDirectory(temporary.LibraryDirectory);
+        var thumbnail = ThumbnailOf(layout, 0x3c);
+        WriteFile(thumbnail);
+
+        var exception = await Assert.ThrowsAsync<LibraryOpenException>(() => NewDeleter().DeleteAsync(layout.RootDirectory, Token));
+
+        Assert.Equal(LibraryOpenError.NotALibrary, exception.Error);
+        Assert.True(File.Exists(layout.DatabasePath));
+        Assert.True(File.Exists(thumbnail));
+        Assert.False(File.Exists(layout.LockFilePath));
+    }
+
+    [Fact]
     public async Task Inspect_ClosedLibrary_ReturnsItsNameAndItemCount_AndLeavesItOpenable()
     {
         await using var bed = await LibraryTestBed.CreateAsync();
@@ -219,6 +235,7 @@ public sealed class LibraryDeleterTests
         WriteFile(ThumbnailOf(layout, 0x0f));
         WriteFile(layout.DatabasePath + "-wal");
         WriteFile(layout.DatabasePath + "-shm");
+        WriteFile(layout.DatabasePath + ".restoring");
         WriteFile(Path.Combine(layout.BackupsDirectory, "library-v1-20261030-120000-000.db"));
         WriteFile(Path.Combine(layout.BackupsDirectory, "library-damaged-20261030-120000-000.db"));
         WriteFile(Path.Combine(layout.BackupsDirectory, "library-damaged-20261030-120000-000.db-wal"));

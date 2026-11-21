@@ -52,12 +52,12 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 
   | Where | Files |
   |---|---|
-  | `<name>.mfc/` | `library.db`, `library.db-wal`, `library.db-shm`, `library.db-journal`, `library.lock` |
+  | `<name>.mfc/` | `library.db`, `library.db-wal`, `library.db-shm`, `library.db-journal`, `library.db.restoring`, `library.lock` |
   | `thumbnails/<2 hex digits>/` | `<item-id>-<size>.webp`, `<item-id>-frame-<n>.webp`, and either with `.<32 hex>.tmp` |
   | `backups/` | `library-v<n>-<time>.db`, `library-damaged-<time>.db`, and either with `-wal`, `-shm` or `-journal` |
 
 - **Never recursive:** each delete is of one named file, or of a folder that's already empty. A folder that is a link (junction or symbolic link) isn't looked into.
-- **Order:** the lock is taken first, so a library open in another instance gives `InUse`. The database goes next; if it can't be deleted, nothing is (`NotWritable`). Then the side files, thumbnails and backups, then the lock file, and last the library folder if it's empty. Files that can't be deleted after the database are logged and listed as kept.
+- **Order:** the database is read first, so a `library.db` that isn't a library gives `NotALibrary` and nothing is deleted. Then the lock is taken, so a library open in another instance gives `InUse`. The database goes next; if it can't be deleted, nothing is (`NotWritable`). Then the side files, thumbnails and backups, then the lock file, and last the library folder if it's empty. Files that can't be deleted after the database are logged and listed as kept.
 - **Confirmation data:** `InspectAsync` reads a closed library's name and item count with plain SQL while holding the lock, so looking doesn't migrate it.
 - A new file the app writes into the library folder must be added to `LibraryFiles`, or deleting a library leaves it behind.
 

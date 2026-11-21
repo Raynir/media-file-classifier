@@ -8,7 +8,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 /// (E02-S07) removes those and nothing else. A file the app starts writing under a new name must be added here.
 /// <code>
 /// &lt;name&gt;.mfc/
-///   library.db, library.db-wal, library.db-shm, library.db-journal
+///   library.db, library.db-wal, library.db-shm, library.db-journal, library.db.restoring
 ///   library.lock
 ///   thumbnails/&lt;2 hex digits&gt;/&lt;item-id&gt;-&lt;size&gt;.webp, &lt;item-id&gt;-frame-&lt;n&gt;.webp, and either with .&lt;32 hex&gt;.tmp
 ///   backups/library-v&lt;n&gt;-&lt;time&gt;.db, library-damaged-&lt;time&gt;.db, and either with -wal, -shm or -journal
@@ -27,6 +27,9 @@ internal static partial class LibraryFiles
         LibraryLayout.DatabaseFileName + "-wal",
         LibraryLayout.DatabaseFileName + "-shm",
         LibraryLayout.DatabaseFileName + "-journal",
+
+        // The copy a backup restore puts next to the database before renaming it (E02-S06-T03); a crash can leave it.
+        LibraryLayout.DatabaseFileName + ".restoring",
     ];
 
     /// <summary>

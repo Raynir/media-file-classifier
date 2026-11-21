@@ -61,7 +61,7 @@ public sealed class DeleteLibraryCommandHandler(
             return new DeleteLibraryResult(exception.Error, FolderRemoved: false, KeptEntries: []);
         }
 
-        RecentLibraries.Remove(settings, request.LibraryDirectory);
+        RecentLibraries.Remove(settings, Path.GetFullPath(request.LibraryDirectory));
         return new DeleteLibraryResult(Error: null, result.FolderRemoved, result.KeptEntries);
     }
 

@@ -18,6 +18,8 @@ A rescan (E02-S04) compares the files on disk with the library and brings the li
 
 Moves are paired on fingerprint and size, and confirmed by the content hash when the item has one (DNEW-2). Items under an unreadable subfolder or a skipped link, and excluded items, are left alone.
 
+A partial folder (D012) is checked only for the files it tracks (`docs/file-discovery.md`, "Partial folders"): it never has New files, so a file moved within it shows as Missing, and a tracked file that can't be looked up is left alone.
+
 **Retrying failed items:** a failed item whose file changed goes through `rescan.check` and `rescan.media` like any changed file, so replacing a corrupt file and rescanning processes it. A damaged file that hasn't changed stays failed. The failed work item of the old import job stays as history; items, not work items, are what a retry looks at (`RetryFailedItemsCommand`).
 
 ## Summary

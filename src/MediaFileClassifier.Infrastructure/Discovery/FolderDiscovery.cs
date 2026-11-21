@@ -75,6 +75,29 @@ public sealed partial class FolderDiscovery(
         return new FolderSnapshot { Result = run.ToResult(), KnownFiles = run.KnownFiles, NewFiles = run.NewFiles };
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<FileRegistration>> RegisterFilesAsync(
+        IOpenLibrary library,
+        IndexedFolder folder,
+        IReadOnlyList<string> relativePaths,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+        ArgumentNullException.ThrowIfNull(folder);
+        ArgumentNullException.ThrowIfNull(relativePaths);
+
+        var known = await library.Items.GetFileStatesAsync(folder.Id, cancellationToken).ConfigureAwait(false);
+        var run = new Run(this, library, folder, known, progress: null, registered: null, collect: false);
+        var results = new List<FileRegistration>();
+        foreach (var path in relativePaths.Distinct(StringComparer.Ordinal))
+        {
+            results.Add(await run.RegisterAsync(path, cancellationToken).ConfigureAwait(false));
+        }
+
+        await run.FlushAsync(cancellationToken).ConfigureAwait(false);
+        return results;
+    }
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Discovery in {Folder}: can't list {Path}: {Error}")]
     private partial void LogUnreadableFolder(string folder, string path, string error);
 
@@ -124,6 +147,7 @@ public sealed partial class FolderDiscovery(
         private readonly Stopwatch sincePendingStarted = new();
         private readonly List<string> unreadableFolders = [];
         private readonly List<string> skippedLinks = [];
+        private readonly List<string> uncheckedFiles = [];
         private readonly List<MediaFileStat> knownFound = [];
         private readonly List<MediaItem> newFound = [];
         private int foldersScanned;
@@ -137,38 +161,13 @@ public sealed partial class FolderDiscovery(
 
         public async Task ScanAsync(CancellationToken cancellationToken)
         {
-            var options = new FolderScanOptions
+            if (folder.SelectedFilesOnly)
             {
-                IncludeSubfolders = folder.Rules.IncludeSubfolders,
-                IncludeHidden = folder.Rules.IncludeHidden,
-                ShouldEnterFolder = rules.ShouldEnterFolder,
-            };
-
-            await foreach (var entry in owner.files.ScanAsync(handle, options, cancellationToken).ConfigureAwait(false))
+                await CheckTrackedFilesAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else
             {
-                switch (entry.Kind)
-                {
-                    case FolderScanEntryKind.File:
-                        await AddFileAsync(entry.File!, cancellationToken).ConfigureAwait(false);
-                        break;
-                    case FolderScanEntryKind.Folder:
-                        foldersScanned++;
-                        Report();
-                        break;
-                    case FolderScanEntryKind.UnreadableFolder:
-                        unreadableFolders.Add(entry.RelativePath);
-                        owner.LogUnreadableFolder(folder.DisplayPath, entry.RelativePath, entry.Error ?? string.Empty);
-                        break;
-                    case FolderScanEntryKind.SkippedLink:
-                        skippedLinks.Add(entry.RelativePath);
-                        owner.LogSkippedLink(folder.DisplayPath, entry.RelativePath);
-                        break;
-                }
-
-                if (pending.Count > 0 && sincePendingStarted.Elapsed >= owner.FlushInterval)
-                {
-                    await FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
+                await ListFolderAsync(cancellationToken).ConfigureAwait(false);
             }
 
             await FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -203,11 +202,174 @@ public sealed partial class FolderDiscovery(
             UnreadableFiles = unreadableFiles,
             UnreadableFolders = unreadableFolders,
             SkippedLinks = skippedLinks,
+            UncheckedFiles = uncheckedFiles,
         };
+
+        // A partial folder (D012) isn't listed: only the files it tracks, its items, are looked up, so other files in it
+        // are ignored and a large folder costs nothing. Its root is checked first, so an unreachable folder is offline
+        // rather than all its files missing.
+        private async Task CheckTrackedFilesAsync(CancellationToken cancellationToken)
+        {
+            if (!await owner.files.IsAvailableAsync(handle, cancellationToken).ConfigureAwait(false))
+            {
+                throw new DirectoryNotFoundException($"{folder.DisplayPath} can't be listed.");
+            }
+
+            foldersScanned++;
+            Report();
+            foreach (var path in knownFiles.Keys)
+            {
+                MediaFileStat? file;
+                try
+                {
+                    file = await owner.files.GetStatAsync(new FileLocation(handle, path), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    uncheckedFiles.Add(path);
+                    owner.LogUnreadableFile(exception, folder.DisplayPath, path);
+                    continue;
+                }
+
+                if (file is not null)
+                {
+                    await AddFileAsync(file, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        // One selected file (E03-S05). The checks follow a scan's order, so a file is treated as if a scan had found it.
+        public async Task<FileRegistration> RegisterAsync(string relativePath, CancellationToken cancellationToken)
+        {
+            if (knownFiles.ContainsKey(relativePath))
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.AlreadyInLibrary);
+            }
+
+            if (!owner.formats.IsCandidate(relativePath))
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.Unsupported);
+            }
+
+            MediaFileStat? file;
+            try
+            {
+                file = await owner.files.GetStatAsync(new FileLocation(handle, relativePath), cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                owner.LogUnreadableFile(exception, folder.DisplayPath, relativePath);
+                file = null;
+            }
+
+            if (file is null)
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.Unreadable);
+            }
+
+            if (!folder.SelectedFilesOnly && IsLeftOutByRules(file))
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.ExcludedByRules);
+            }
+
+            var path = ToRelativePath(relativePath);
+            if (path is null)
+            {
+                return new FileRegistration(relativePath, FileRegistrationOutcome.Unsupported);
+            }
+
+            var unreadableBefore = unreadableFiles;
+            var mediaType = await DetectAsync(file, cancellationToken).ConfigureAwait(false);
+            if (mediaType is null)
+            {
+                return new FileRegistration(
+                    relativePath,
+                    unreadableFiles > unreadableBefore ? FileRegistrationOutcome.Unreadable : FileRegistrationOutcome.Unsupported);
+            }
+
+            var item = MediaItem.Discover(
+                folder.Id,
+                path,
+                mediaType.Value,
+                file.Length,
+                file.CreatedUtc ?? file.LastModifiedUtc,
+                file.LastModifiedUtc,
+                fingerprint: null,
+                owner.time.GetUtcNow());
+            knownFiles[relativePath] = new MediaItemFileState(path, file.Length, file.LastModifiedUtc);
+            pending.Add(item);
+            if (pending.Count >= BatchSize)
+            {
+                await FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            return new FileRegistration(relativePath, FileRegistrationOutcome.Registered, item);
+        }
+
+        // What a scan of a full folder would skip: excluded patterns and folders, subfolders when they aren't scanned,
+        // hidden files and cloud placeholders the folder leaves out. A hidden parent folder isn't checked.
+        private bool IsLeftOutByRules(MediaFileStat file)
+        {
+            var segments = file.RelativePath.Split('/');
+            if (segments.Length > 1 && !folder.Rules.IncludeSubfolders)
+            {
+                return true;
+            }
+
+            for (var depth = 1; depth < segments.Length; depth++)
+            {
+                if (!rules.ShouldEnterFolder(string.Join('/', segments[..depth])))
+                {
+                    return true;
+                }
+            }
+
+            return !rules.IsIncluded(file.RelativePath)
+                || (file.IsHidden && !folder.Rules.IncludeHidden)
+                || (file.IsCloudPlaceholder && !folder.Rules.IncludeCloudPlaceholders);
+        }
+
+        private async Task ListFolderAsync(CancellationToken cancellationToken)
+        {
+            var options = new FolderScanOptions
+            {
+                IncludeSubfolders = folder.Rules.IncludeSubfolders,
+                IncludeHidden = folder.Rules.IncludeHidden,
+                ShouldEnterFolder = rules.ShouldEnterFolder,
+            };
+
+            await foreach (var entry in owner.files.ScanAsync(handle, options, cancellationToken).ConfigureAwait(false))
+            {
+                switch (entry.Kind)
+                {
+                    case FolderScanEntryKind.File:
+                        await AddFileAsync(entry.File!, cancellationToken).ConfigureAwait(false);
+                        break;
+                    case FolderScanEntryKind.Folder:
+                        foldersScanned++;
+                        Report();
+                        break;
+                    case FolderScanEntryKind.UnreadableFolder:
+                        unreadableFolders.Add(entry.RelativePath);
+                        owner.LogUnreadableFolder(folder.DisplayPath, entry.RelativePath, entry.Error ?? string.Empty);
+                        break;
+                    case FolderScanEntryKind.SkippedLink:
+                        skippedLinks.Add(entry.RelativePath);
+                        owner.LogSkippedLink(folder.DisplayPath, entry.RelativePath);
+                        break;
+                }
+
+                if (pending.Count > 0 && sincePendingStarted.Elapsed >= owner.FlushInterval)
+                {
+                    await FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
 
         private async Task AddFileAsync(MediaFileStat file, CancellationToken cancellationToken)
         {
-            if (!owner.formats.IsCandidate(file.RelativePath) || !rules.IsIncluded(file.RelativePath))
+            // A partial folder's rules don't apply: it tracks exactly the files the user picked (D012).
+            if (!owner.formats.IsCandidate(file.RelativePath) || (!folder.SelectedFilesOnly && !rules.IsIncluded(file.RelativePath)))
             {
                 return;
             }
@@ -318,7 +480,7 @@ public sealed partial class FolderDiscovery(
             return detection.MediaType;
         }
 
-        private async Task FlushAsync(CancellationToken cancellationToken)
+        public async Task FlushAsync(CancellationToken cancellationToken)
         {
             if (pending.Count == 0)
             {

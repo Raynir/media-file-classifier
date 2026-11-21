@@ -436,6 +436,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("rules");
 
+                    b.Property<bool>("SelectedFilesOnly")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("selected_files_only");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER")
                         .HasColumnName("status");

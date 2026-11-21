@@ -793,6 +793,53 @@
   <data name="Command_AddFolder" xml:space="preserve">
     <value>_Add folder…</value>
   </data>
+  <data name="Command_ImportFiles" xml:space="preserve">
+    <value>_Import files…</value>
+  </data>
+  <data name="ImportFiles_PickTitle" xml:space="preserve">
+    <value>Import files</value>
+  </data>
+  <data name="ImportFiles_FilterMedia" xml:space="preserve">
+    <value>Media files</value>
+  </data>
+  <data name="ImportFiles_FilterAll" xml:space="preserve">
+    <value>All files</value>
+  </data>
+  <data name="ImportFiles_Imported" xml:space="preserve">
+    <value>{0} files are being imported.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_ImportedOne" xml:space="preserve">
+    <value>1 file is being imported.</value>
+  </data>
+  <data name="ImportFiles_Already" xml:space="preserve">
+    <value>{0} files are already in the library.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_AlreadyOne" xml:space="preserve">
+    <value>1 file is already in the library.</value>
+  </data>
+  <data name="ImportFiles_Excluded" xml:space="preserve">
+    <value>{0} files are left out by their folder's rules.</value>
+    <comment>{0} is a number of files, more than one. The rules are the indexed folder's excluded subfolders, hidden files and cloud placeholders.</comment>
+  </data>
+  <data name="ImportFiles_ExcludedOne" xml:space="preserve">
+    <value>1 file is left out by its folder's rules.</value>
+  </data>
+  <data name="ImportFiles_Unsupported" xml:space="preserve">
+    <value>{0} files aren't a supported format.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_UnsupportedOne" xml:space="preserve">
+    <value>1 file isn't a supported format.</value>
+  </data>
+  <data name="ImportFiles_Unreadable" xml:space="preserve">
+    <value>{0} files can't be read.</value>
+    <comment>{0} is a number of files, more than one.</comment>
+  </data>
+  <data name="ImportFiles_UnreadableOne" xml:space="preserve">
+    <value>1 file can't be read.</value>
+  </data>
   <data name="Command_ManageFolders" xml:space="preserve">
     <value>Manage _folders…</value>
   </data>
@@ -919,6 +966,20 @@
   </data>
   <data name="Folders_Merge" xml:space="preserve">
     <value>Merge</value>
+  </data>
+  <data name="Folders_SelectedFilesOnly" xml:space="preserve">
+    <value>Selected files only</value>
+    <comment>Tag on a partial folder (E03-S05): only the files the user imported from it are in the library.</comment>
+  </data>
+  <data name="Folders_PartialNote" xml:space="preserve">
+    <value>Only the files you imported from this folder are in the library. Index the whole folder to import everything in it and apply rules.</value>
+  </data>
+  <data name="Folders_IndexWhole" xml:space="preserve">
+    <value>Index whole folder</value>
+  </data>
+  <data name="Folders_IndexWholeConfirm" xml:space="preserve">
+    <value>Index everything in {0}? The {1} already in the library keep their metadata.</value>
+    <comment>{0} = folder path, {1} = item count, e.g. "4 items".</comment>
   </data>
   <data name="Folders_AlreadyIndexed" xml:space="preserve">
     <value>{0} is indexed already.</value>

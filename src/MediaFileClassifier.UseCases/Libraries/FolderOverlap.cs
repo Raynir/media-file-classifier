@@ -26,6 +26,17 @@ public enum FolderOverlapKind
     /// The folder contains indexed folders, which are merged into it when it's added.
     /// </summary>
     ContainsIndexed,
+
+    /// <summary>
+    /// The folder is a partial ("selected files only") folder, which adding it indexes whole (E03-S05).
+    /// </summary>
+    PartialFolder,
+
+    /// <summary>
+    /// The folder is inside a partial folder, and no full folder covers it: it's added, and the partial folder's items
+    /// under it move to it (E03-S05).
+    /// </summary>
+    InsidePartial,
 }
 
 /// <summary>

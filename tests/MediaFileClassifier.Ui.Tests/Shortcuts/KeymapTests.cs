@@ -27,6 +27,7 @@ public sealed class KeymapTests
                 new ShortcutCommands(new ShortcutReferenceState()),
                 new Contributor(new AppCommand(MediaFileClassifier.Ui.Settings.SettingsCommands.OpenSettings, CommandGroups.Tools, 100, "Command_Settings", () => Task.CompletedTask)),
                 new Contributor(new AppCommand(MediaFileClassifier.Ui.Libraries.LibraryCommands.AddFolder, CommandGroups.Library, 115, "Command_AddFolder", () => Task.CompletedTask)),
+                new Contributor(new AppCommand(MediaFileClassifier.Ui.Libraries.LibraryCommands.ImportFiles, CommandGroups.Library, 116, "Command_ImportFiles", () => Task.CompletedTask)),
                 new Contributor(new AppCommand(FavoriteCommands.Favorite, CommandGroups.Item, 100, "Command_Favorite", () => Task.CompletedTask)),
                 new Contributor(new AppCommand(RemoveItemsCommands.Remove, CommandGroups.Item, 950, "Command_RemoveFromLibrary", () => Task.CompletedTask)),
                 new Contributor(new AppCommand(MediaFileClassifier.Ui.Search.FindSimilarCommands.FindSimilar, CommandGroups.Item, 300, "Command_FindSimilar", () => Task.CompletedTask)),

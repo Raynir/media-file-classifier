@@ -182,6 +182,15 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 return null;
+            case "dialog-select":
+                // Selects a folder in the folders dialog's list by its name, as a click does (MFC-124).
+                var list = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants().OfType<ListBox>().FirstOrDefault()
+                    ?? throw new SmokeStepException("the dialog has no list");
+                list.SelectedItem = list.Items.OfType<Ui.ViewModels.Libraries.IndexedFolderViewModel>().FirstOrDefault(row => row.Name == step.Argument)
+                    ?? throw new SmokeStepException($"the list has no folder '{step.Argument}'");
+                return null;
+            case "import-files":
+                return ImportFiles(step.Argument);
             case "dialog-shot":
                 var dialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
                 Directory.CreateDirectory(options.OutputDirectory);
@@ -291,6 +300,25 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         var grid = services.GetRequiredService<ThumbnailGridViewModel>();
         await PollAsync(async () => grid.Count >= SampleFiles.Count && await IsIdleAsync(), step.Timeout, $"{SampleFiles.Count} items, scanned and idle");
         return $"{grid.Count} items";
+    }
+
+    // The file picker is a native dialog, so this copies sample files to a folder of their own and imports them as
+    // picked files (E03-S05). Not awaited: the result message is a modal dialog, which the dialog-* steps drive.
+    private string ImportFiles(string argument)
+    {
+        var samples = options.SampleMediaDirectory ?? throw new SmokeStepException("tests/SampleMedia wasn't found");
+        var picked = Path.Combine(options.DataDirectory, "picked");
+        Directory.CreateDirectory(picked);
+        var files = new List<FileLocation>();
+        foreach (var name in argument.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var target = Path.Combine(picked, name);
+            File.Copy(Path.Combine(samples, name), target, overwrite: true);
+            files.Add(Infrastructure.Files.LocalFolder.ToLocation(target));
+        }
+
+        _ = services.GetRequiredService<FileImporter>().ImportAsync(files);
+        return picked;
     }
 
     // Keyframes exist only after AI analysis, which needs the model. This does what the analysis does for them: it

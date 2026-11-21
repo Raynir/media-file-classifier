@@ -23,6 +23,9 @@ public static class DefaultKeymap
         // Library (E02-S03): Add folder, also on the toolbar (E13-S03).
         Bind(LibraryCommands.AddFolder, PhysicalKey.O, KeyModifiers.Control | KeyModifiers.Shift),
 
+        // Library (E03-S05): Import files, also on the toolbar.
+        Bind(LibraryCommands.ImportFiles, PhysicalKey.I, KeyModifiers.Control | KeyModifiers.Shift),
+
         // View (E13-S01)
         Bind(ShellCommands.ToggleNavigation, PhysicalKey.Digit1, KeyModifiers.Control),
         Bind(ShellCommands.ToggleDetails, PhysicalKey.Digit2, KeyModifiers.Control),

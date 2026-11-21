@@ -77,6 +77,33 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
     }
 
     /// <inheritdoc />
+    public Task<(int Moved, bool PartialDeleted)> SplitIntoAsync(IndexedFolder folder, Id<IndexedFolder> partialId, string relativePath, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+
+        var prefix = relativePath.Trim('/') + "/";
+        return writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var items = await db.MediaItems.Where(item => item.FolderId == partialId).ToListAsync(token).ConfigureAwait(false);
+
+                // Paths compare like the platform's folder handles, which ignore case on Windows.
+                var moved = items.Where(item => item.Path.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
+                foreach (var item in moved)
+                {
+                    item.Relocate(folder.Id, RelativePath.From(item.Path.Value[prefix.Length..]));
+                }
+
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                var deleted = moved.Count == items.Count
+                    && await db.Folders.Where(partial => partial.Id == partialId).ExecuteDeleteAsync(token).ConfigureAwait(false) > 0;
+                return (moved.Count, deleted);
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default) =>
         writer.ExecuteAsync(
             async (db, token) => await db.Folders.Where(folder => folder.Id == id).ExecuteDeleteAsync(token).ConfigureAwait(false) > 0,

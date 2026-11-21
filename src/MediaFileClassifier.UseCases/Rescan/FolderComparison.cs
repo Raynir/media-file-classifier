@@ -54,10 +54,14 @@ public sealed record FolderComparison
 
         var files = snapshot.KnownFiles.ToDictionary(file => file.RelativePath, StringComparer.Ordinal);
         string[] unlisted = [.. snapshot.Result.UnreadableFolders, .. snapshot.Result.SkippedLinks];
+        var uncheckedFiles = snapshot.Result.UncheckedFiles.ToHashSet(StringComparer.Ordinal);
         var unchanged = new List<MediaItem>();
         var modified = new List<ModifiedFile>();
         var disappeared = new List<MediaItem>();
         var excludedGone = new List<MediaItem>();
+        // Items whose file couldn't be listed or looked up can't be checked.
+        bool IsUnlisted(string path) => uncheckedFiles.Contains(path) || unlisted.Any(folderPath => IsUnder(path, folderPath));
+
         foreach (var item in items)
         {
             // Rule-excluded files aren't listed at all, and user-excluded ones aren't tracked (D187, D024), except that
@@ -66,7 +70,7 @@ public sealed record FolderComparison
             {
                 if (LibraryExclusions.IsRemovedByUser(item)
                     && !files.ContainsKey(item.Path.Value)
-                    && !unlisted.Any(path => IsUnder(item.Path.Value, path)))
+                    && !IsUnlisted(item.Path.Value))
                 {
                     excludedGone.Add(item);
                 }
@@ -90,7 +94,7 @@ public sealed record FolderComparison
                     modified.Add(new ModifiedFile(item, file));
                 }
             }
-            else if (unlisted.Any(path => IsUnder(item.Path.Value, path)))
+            else if (IsUnlisted(item.Path.Value))
             {
                 unchanged.Add(item);
             }

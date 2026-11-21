@@ -1,0 +1,29 @@
+# Import by selecting files and partial folders (MFC-124). Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/import-files.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+# Two picked files outside the indexed folder: their folder becomes a partial folder, and a message says what happened.
+import-files gif-static.gif jpeg-icc-offset.jpg
+wait-for dialog
+dialog-shot 01-import-result
+dialog-click Close
+wait-for no-dialog
+wait-for idle
+
+# The folders dialog tags the partial folder and offers Index whole folder in place of its rules.
+start library.folders
+wait-for dialog
+dialog-select picked
+wait 300ms
+dialog-shot 02-partial-folder
+dialog-click IndexWholeButton
+dialog-shot 03-index-whole-confirmation
+dialog-click Index whole folder
+wait-for idle
+wait 1500ms
+dialog-shot 04-indexed-whole
+dialog-click Close
+wait-for no-dialog

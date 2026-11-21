@@ -18,4 +18,10 @@ public sealed record MediaFileStat(string RelativePath, long Length, DateTimeOff
     /// is only online. Reading it would download it, so discovery skips it unless the folder allows it.
     /// </summary>
     public bool IsCloudPlaceholder { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the file itself is hidden or a system file. A listing skips these unless the
+    /// folder includes them; a file looked up by its path reports it here instead.
+    /// </summary>
+    public bool IsHidden { get; init; }
 }

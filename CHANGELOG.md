@@ -16,6 +16,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 - In-app notifications (E15-S01, MFC-129): short toasts at the bottom right, above the status bar, never modal, at most four at a time. Information and success toasts go away after 6 seconds (not while the pointer or the keyboard is on them); warnings and errors stay until you close them. Each finished import or analysis job raises one notification, however many items it had: "Imported N items" with Show imported items, "View failed items" when some or all items failed. Cancelled jobs stay quiet. Settings, General, "Show informational notifications" hides the information and success ones, never warnings or errors. Library, "Recently imported" selects that entry of the navigation panel.
 
+- Import by selecting files (E03-S05, MFC-124): Library, "Import files…" (also on the toolbar, Ctrl+Shift+I) opens a multi-select picker filtered to media files. A picked file inside an indexed folder joins it; otherwise its folder is added as a "Selected files only" folder that tracks just the picked files: its rescans check only those files and it has no rules. Picked files are imported in the background, and a message says how many are being imported, already in the library, not supported or unreadable. A file you removed from the library is restored when you pick it. In Library, "Manage folders…", a selected-files-only folder shows "Index whole folder", which, after a question, imports everything in it and keeps the items already there with their metadata; adding that folder with Add folder does the same, and adding a folder inside it moves its items under that folder to the new one. The library database moves to schema 15 (existing folders stay full folders).
+
 ### Changed
 
 - The processing options are now registered settings. The old `processing` section of `settings.json` (which only "Don't ask again" on quitting wrote) moves into the registered settings the next time the file is read, so nobody gets the quit question back (no schema change).
@@ -24,6 +26,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 - UI smoke steps `start <command>`, `dialog-click <button>`, `dialog-shot <name>` and `wait-for dialog` / `no-dialog` drive modal dialogs (MFC-123), and `tools/ui-smoke/remove-items.smoke` shows the remove confirmation and Excluded items.
 - UI smoke step `setting <key> <value>` (MFC-134) sets a registered setting, and `tools/ui-smoke/show-file-names.smoke` shows the file names switch.
+- UI smoke steps `import-files <files>` and `dialog-select <folder>` (MFC-124), and `tools/ui-smoke/import-files.smoke`, which shows the import result, a selected-files-only folder and Index whole folder.
 - UI smoke steps `damage-library` and `allow-error` (MFC-121), and `tools/ui-smoke/library-maintenance.smoke`, which shows the regenerate thumbnails dialog, the integrity report and a backup restore.
 - `tools/ui-smoke/notifications.smoke` (MFC-129) shows the import toast in the light and dark theme and its action.
 

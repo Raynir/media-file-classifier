@@ -59,7 +59,7 @@ public sealed class IndexedFolder
         AddedAt = addedAt;
         StatusChangedAt = statusChangedAt;
         SelectedFilesOnly = selectedFilesOnly;
-        VolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? null : volumeLabel;
+        VolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? null : volumeLabel.Trim();
     }
 
     public Id<IndexedFolder> Id { get; }

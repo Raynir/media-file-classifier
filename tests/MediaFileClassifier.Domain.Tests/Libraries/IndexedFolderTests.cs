@@ -44,6 +44,19 @@ public sealed class IndexedFolderTests
         Assert.Equal(FolderStatus.Online, folder.Status);
     }
 
+    [Theory]
+    [InlineData("  Backup-2TB ", "Backup-2TB")]
+    [InlineData("   ", null)]
+    [InlineData(null, null)]
+    public void Constructor_TrimsTheVolumeLabel_LikeChangeVolumeLabel(string? stored, string? expected)
+    {
+        var folder = new IndexedFolder(
+            Id<IndexedFolder>.New(), Id<Library>.New(), @"E:\Photos", @"E:\Photos", new FolderRules(), FolderStatus.Offline, Start, Start, volumeLabel: stored);
+
+        Assert.Equal(expected, folder.VolumeLabel);
+        Assert.False(folder.ChangeVolumeLabel(stored));
+    }
+
     [Fact]
     public void Library_RenameRejectsBlankName()
     {

@@ -1632,6 +1632,18 @@
   <data name="Setting_RestoreFilters_Help" xml:space="preserve">
     <value>When on, the filters you had set when you last used a library come back when it opens.</value>
   </data>
+  <data name="Setting_ShowFileNames" xml:space="preserve">
+    <value>Show file names under tiles</value>
+  </data>
+  <data name="Setting_ShowFileNames_Help" xml:space="preserve">
+    <value>When off, tiles show only the type and size under the thumbnail.</value>
+  </data>
+  <data name="Setting_InformationalNotifications" xml:space="preserve">
+    <value>Show informational notifications</value>
+  </data>
+  <data name="Setting_InformationalNotifications_Help" xml:space="preserve">
+    <value>Short messages such as "Analysis finished". Errors and warnings always show.</value>
+  </data>
   <data name="Setting_LastFilters" xml:space="preserve">
     <value>Last filters</value>
   </data>

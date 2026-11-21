@@ -6,10 +6,12 @@ using Avalonia.Logging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.Views.Browser;
@@ -89,6 +91,56 @@ public sealed class ThumbnailGridTests
         }
 
         Assert.Equal(ThumbnailGridViewModel.MinTileSize, grid.TileSize);
+    });
+
+    [Fact]
+    public Task ShowFileNames_IsOnByDefault_AndTurningItOffHidesTheNamesAtOnce() => TestApp.RunAsync(() =>
+    {
+        var store = new InMemorySettingsStore();
+        var (grid, _, _, _) = Create(Count, settings: store);
+        var (window, view) = Show(grid);
+
+        Assert.All(Tiles(view), tile => Assert.True(tile.ShowFileName));
+        Assert.True(NameLabels(view).Count > 0);
+        Assert.All(NameLabels(view), label => Assert.True(label.IsEffectivelyVisible));
+
+        store.SetValue(BrowserSettings.ShowFileNames, false);
+        Settle();
+
+        Assert.All(Tiles(view), tile => Assert.False(tile.ShowFileName));
+        Assert.All(NameLabels(view), label => Assert.False(label.IsEffectivelyVisible));
+
+        store.SetValue(BrowserSettings.ShowFileNames, true);
+        Settle();
+
+        Assert.All(Tiles(view), tile => Assert.True(tile.ShowFileName));
+        window.Close();
+    });
+
+    [Fact]
+    public Task ShowFileNames_Off_HidesTheNamesOfTilesThatScrollIntoView() => TestApp.RunAsync(() =>
+    {
+        var store = new InMemorySettingsStore();
+        store.SetValue(BrowserSettings.ShowFileNames, false);
+        var (grid, _, _, _) = Create(Count, settings: store);
+        var (window, view) = Show(grid);
+
+        Scroller(view).Offset = new Vector(0, 5_000);
+        Settle();
+
+        Assert.NotEmpty(Tiles(view));
+        Assert.All(Tiles(view), tile => Assert.False(tile.ShowFileName));
+        window.Close();
+    });
+
+    [Fact]
+    public Task Grid_WithoutASettingsStore_ShowsFileNames() => TestApp.RunAsync(() =>
+    {
+        var (grid, _, _, _) = Create(10);
+        var (window, view) = Show(grid);
+
+        Assert.All(Tiles(view), tile => Assert.True(tile.ShowFileName));
+        window.Close();
     });
 
     [Fact]
@@ -352,13 +404,13 @@ public sealed class ThumbnailGridTests
     }
 
     private static (ThumbnailGridViewModel Grid, FakeTileSizeSender Sender, FakeResultSource Source, FakeJobSystem Jobs) Create(
-        int count, int storedSize = LibrarySettings.DefaultThumbnailTileSize, FakeItemOpener? opener = null)
+        int count, int storedSize = LibrarySettings.DefaultThumbnailTileSize, FakeItemOpener? opener = null, ISettingsStore? settings = null)
     {
         var source = new FakeResultSource(count);
         var sender = new FakeTileSizeSender { StoredSize = storedSize };
         var jobs = new FakeJobSystem();
         var loader = new ThumbnailLoader(new FakeBrowserSession(), new FakeThumbnailCache(), new ThumbnailBitmapCache());
-        return (new ThumbnailGridViewModel(source, loader, opener ?? new FakeItemOpener(), jobs, sender, new SelectionModel(() => source)), sender, source, jobs);
+        return (new ThumbnailGridViewModel(source, loader, opener ?? new FakeItemOpener(), jobs, sender, new SelectionModel(() => source), settings: settings), sender, source, jobs);
     }
 
     private static (Window Window, ThumbnailGridView View) Show(ThumbnailGridViewModel grid)
@@ -378,6 +430,12 @@ public sealed class ThumbnailGridTests
             Dispatcher.UIThread.RunJobs();
         }
     }
+
+    private static List<TextBlock> NameLabels(ThumbnailGridView view) =>
+        [.. view.GetVisualDescendants().OfType<Border>()
+            .Where(border => border.Classes.Contains("ThumbnailTile") && border.DataContext is ThumbnailTileViewModel { Item: not null })
+            .SelectMany(border => border.GetVisualDescendants().OfType<TextBlock>()
+                .Where(label => label.Text == ((ThumbnailTileViewModel)border.DataContext!).FileName))];
 
     private static ScrollViewer Scroller(ThumbnailGridView view) => view.GetVisualDescendants().OfType<ScrollViewer>().First();
 

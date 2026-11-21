@@ -62,7 +62,8 @@ public sealed class SettingsSearchAndResetTests : IDisposable
         viewModel.SearchText = string.Empty;
 
         Assert.Same(appearance, viewModel.SelectedCategory);
-        Assert.False(viewModel.VisibleEntries.Single().ShowsCategory);
+        Assert.Same(appearance.Entries, viewModel.VisibleEntries);
+        Assert.All(viewModel.VisibleEntries, entry => Assert.False(entry.ShowsCategory));
     }
 
     [Fact]

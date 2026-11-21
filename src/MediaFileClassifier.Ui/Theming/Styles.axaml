@@ -51,6 +51,21 @@
     <Setter Property="Height" Value="{DynamicResource Size.Icon.Large}" />
   </Style>
 
+  <!--
+    The keyboard focus indicator (E16-S03): one ring from Brush.State.Focus on every control, shown for keyboard
+    focus only. It replaces Fluent's own adorner, so both themes follow the token.
+  -->
+  <Style Selector=":is(Control)">
+    <Setter Property="FocusAdorner">
+      <FocusAdornerTemplate>
+        <Border BorderBrush="{DynamicResource Brush.State.Focus}"
+                BorderThickness="{DynamicResource Border.FocusRing}"
+                CornerRadius="{DynamicResource Radius.Control}"
+                IsHitTestVisible="False" />
+      </FocusAdornerTemplate>
+    </Setter>
+  </Style>
+
   <!-- Surfaces -->
   <Style Selector="Border.Panel">
     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Panel}" />

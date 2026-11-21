@@ -3,9 +3,11 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
+using System.ComponentModel;
 
 namespace MediaFileClassifier.Ui.Views;
 
@@ -31,7 +33,14 @@ public partial class MainView : UserControl
     // The drawer takes at most the window's width less this, so the scrim stays there to click.
     private const double DrawerGutter = 48;
 
+    // The main areas in F6 order (E16-S03): navigation, toolbar, browser, details.
+    private static readonly string[] AreaNames = ["NavigationHost", "ToolbarArea", "BrowserArea", "DetailsHost"];
+
+    private readonly Control?[] lastFocused = new Control?[AreaNames.Length];
+
     private TopLevel? windowWithHandler;
+    private ShellLayout? observedLayout;
+    private Control? drawerOpener;
 
     private DropImportViewModel? Drops => (DataContext as MainWindowViewModel)?.Drops;
 
@@ -56,6 +65,16 @@ public partial class MainView : UserControl
     {
         base.OnDataContextChanged(e);
         Layout?.UpdateWidth(Bounds.Width);
+        if (observedLayout is not null)
+        {
+            observedLayout.PropertyChanged -= OnLayoutPropertyChanged;
+        }
+
+        observedLayout = Layout;
+        if (observedLayout is not null)
+        {
+            observedLayout.PropertyChanged += OnLayoutPropertyChanged;
+        }
     }
 
     /// <inheritdoc />
@@ -66,18 +85,28 @@ public partial class MainView : UserControl
         // On the window, so Escape works wherever the focus is, also when it's on the window itself.
         windowWithHandler = TopLevel.GetTopLevel(this);
         windowWithHandler?.AddHandler(KeyDownEvent, OnWindowKeyDown);
+        windowWithHandler?.AddHandler(GotFocusEvent, OnWindowGotFocus);
     }
 
     /// <inheritdoc />
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         windowWithHandler?.RemoveHandler(KeyDownEvent, OnWindowKeyDown);
+        windowWithHandler?.RemoveHandler(GotFocusEvent, OnWindowGotFocus);
         windowWithHandler = null;
         base.OnDetachedFromVisualTree(e);
     }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
+        // F6 and Shift+F6 move the focus between the main areas (E16-S03).
+        if (!e.Handled && e.Key == Key.F6 && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Shift
+            && (DataContext as MainWindowViewModel)?.Shortcuts.State.IsOpen != true)
+        {
+            e.Handled = CycleAreas(e.KeyModifiers == KeyModifiers.Shift);
+            return;
+        }
+
         // Escape closes an open drawer (E13-S07), unless something inside, such as a menu or the search box, took it.
         if (!e.Handled && e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None && Layout is { IsAnyDrawerOpen: true } layout)
         {
@@ -143,5 +172,89 @@ public partial class MainView : UserControl
 
         // After the drop completes: a modal dialog inside the drop callback would block the app the items came from.
         Dispatcher.UIThread.Post(() => _ = drops.DropAsync(paths));
+    }
+
+    private static bool CanFocus(InputElement element)
+        => element.Focusable && element.IsTabStop && element.IsEffectivelyVisible && element.IsEffectivelyEnabled;
+
+    private static InputElement? FirstFocusable(Control area)
+        => area.GetVisualDescendants().OfType<InputElement>().FirstOrDefault(CanFocus);
+
+    private int? AreaOf(Visual? visual)
+    {
+        for (var node = visual; node is not null; node = node.GetVisualParent())
+        {
+            var index = Array.FindIndex(AreaNames, name => name == (node as Control)?.Name);
+            if (index >= 0)
+            {
+                return index;
+            }
+        }
+
+        return null;
+    }
+
+    private bool CycleAreas(bool backwards)
+    {
+        var areas = AreaNames.Select(name => this.FindControl<Control>(name)).ToArray();
+
+        // While a drawer is open the focus stays in it, so only that drawer is in the cycle (E16-S03).
+        int? drawer = Layout switch
+        {
+            { IsAnyDrawerOpen: false } or null => (int?)null,
+            { Navigation: { IsDrawer: true, IsDrawerOpen: true } } => 0,
+            _ => 3,
+        };
+        var available = areas
+            .Select((area, index) => area is { IsEffectivelyVisible: true } && (drawer is null || drawer == index))
+            .ToArray();
+        var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Visual;
+        if (FocusCycle.Next(available, AreaOf(focused), backwards) is not { } next)
+        {
+            return false;
+        }
+
+        var target = lastFocused[next] is { } last && last.IsAttachedToVisualTree() && CanFocus(last) && AreaOf(last) == next
+            ? last
+            : FirstFocusable(areas[next]!);
+        return target?.Focus(NavigationMethod.Tab) ?? false;
+    }
+
+    private void OnWindowGotFocus(object? sender, FocusChangedEventArgs e)
+    {
+        if (e.Source is Control control && AreaOf(control) is { } area)
+        {
+            lastFocused[area] = control;
+        }
+    }
+
+    private void OnLayoutPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(ShellLayout.IsAnyDrawerOpen) || Layout is not { } layout)
+        {
+            return;
+        }
+
+        if (layout.IsAnyDrawerOpen)
+        {
+            // Opens: remember where the focus was, and move it into the drawer, which then keeps Tab inside.
+            drawerOpener ??= TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Control;
+            var host = this.FindControl<Control>(layout.Navigation is { IsDrawer: true, IsDrawerOpen: true } ? "NavigationHost" : "DetailsHost");
+            Dispatcher.UIThread.Post(() => FirstFocusable(host!)?.Focus(NavigationMethod.Tab), DispatcherPriority.Loaded);
+        }
+        else if (drawerOpener is { } opener)
+        {
+            // Closes: the focus goes back to where it came from, or to the browser when that is gone.
+            drawerOpener = null;
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    var target = opener.IsAttachedToVisualTree() && CanFocus(opener)
+                        ? opener
+                        : FirstFocusable(this.FindControl<Control>("BrowserArea")!);
+                    target?.Focus(NavigationMethod.Tab);
+                },
+                DispatcherPriority.Loaded);
+        }
     }
 }

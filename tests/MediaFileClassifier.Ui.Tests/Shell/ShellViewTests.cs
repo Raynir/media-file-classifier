@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
@@ -239,6 +240,143 @@ public sealed class ShellViewTests
         }
     });
 
+    [Fact]
+    public Task F6_MovesTheFocusThroughTheAreasInOrder_AndWrapsAround() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        var visited = new List<string?>();
+
+        for (var i = 0; i < 5; i++)
+        {
+            PressF6(window, RawInputModifiers.None);
+            visited.Add(FocusedArea(window));
+        }
+
+        Assert.Equal(["NavigationHost", "ToolbarArea", "BrowserArea", "DetailsHost", "NavigationHost"], visited);
+    });
+
+    [Fact]
+    public Task ShiftF6_MovesTheFocusBackwards_StartingAtTheLastArea() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        var visited = new List<string?>();
+
+        for (var i = 0; i < 3; i++)
+        {
+            PressF6(window, RawInputModifiers.Shift);
+            visited.Add(FocusedArea(window));
+        }
+
+        Assert.Equal(["DetailsHost", "BrowserArea", "ToolbarArea"], visited);
+    });
+
+    [Fact]
+    public Task F6_SkipsAHiddenPanel() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        viewModel.Layout.Details.IsVisible = false;
+        Dispatcher.UIThread.RunJobs();
+        var visited = new List<string?>();
+
+        for (var i = 0; i < 4; i++)
+        {
+            PressF6(window, RawInputModifiers.None);
+            visited.Add(FocusedArea(window));
+        }
+
+        Assert.Equal(["NavigationHost", "ToolbarArea", "BrowserArea", "NavigationHost"], visited);
+    });
+
+    [Fact]
+    public Task F6_ReturnsToTheControlThatHadTheFocusInThatArea() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        var browser = Find<Border>(window, "BrowserArea").GetVisualDescendants().OfType<PlaceholderView>().Single();
+        browser.Focus(NavigationMethod.Tab);
+        PressF6(window, RawInputModifiers.None);
+        Assert.Equal("DetailsHost", FocusedArea(window));
+
+        PressF6(window, RawInputModifiers.Shift);
+
+        Assert.Same(browser, window.FocusManager!.GetFocusedElement());
+    });
+
+    [Fact]
+    public Task Drawer_TakesTheFocusWhenItOpens_KeepsTabInside_AndGivesTheFocusBackOnEscape() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        window.Width = 760;
+        Dispatcher.UIThread.RunJobs();
+        var opener = Find<Border>(window, "BrowserArea").GetVisualDescendants().OfType<Button>().First(button => button.IsEffectivelyVisible);
+        opener.Focus(NavigationMethod.Tab);
+
+        viewModel.Layout.Details.ToggleVisible();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("DetailsHost", FocusedArea(window));
+        for (var i = 0; i < 6; i++)
+        {
+            window.KeyPressQwerty(PhysicalKey.Tab, RawInputModifiers.None);
+            Assert.Equal("DetailsHost", FocusedArea(window));
+        }
+
+        PressF6(window, RawInputModifiers.None);
+        Assert.Equal("DetailsHost", FocusedArea(window));
+
+        window.KeyPressQwerty(PhysicalKey.Escape, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(viewModel.Layout.IsAnyDrawerOpen);
+        Assert.Equal("BrowserArea", FocusedArea(window));
+    });
+
+    [Fact]
+    public Task FocusRing_ComesFromTheFocusTokenInBothThemes() => RunInWindowAsync((window, viewModel) =>
+    {
+        var button = Find<Border>(window, "NavigationPanel").GetVisualDescendants().OfType<Button>().First();
+
+        foreach (var (variant, expected) in new[] { (Avalonia.Styling.ThemeVariant.Dark, Colors.White), (Avalonia.Styling.ThemeVariant.Light, Color.Parse("#1A1A1A")) })
+        {
+            var ring = Assert.IsType<Border>(button.FocusAdorner!.Build());
+            var host = new Window { Content = ring, RequestedThemeVariant = variant };
+            host.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(expected, Assert.IsAssignableFrom<ISolidColorBrush>(ring.BorderBrush).Color);
+            Assert.Equal(2, ring.BorderThickness.Left);
+            host.Close();
+        }
+    });
+
+    private static void FillRegions(MainWindowViewModel viewModel)
+    {
+        viewModel.Regions.Navigation = new PlaceholderViewModel();
+        viewModel.Regions.Toolbar = new PlaceholderViewModel();
+        viewModel.Regions.Browser = new PlaceholderViewModel();
+        viewModel.Regions.Details = new PlaceholderViewModel();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void PressF6(Window window, RawInputModifiers modifiers)
+    {
+        window.KeyPressQwerty(PhysicalKey.F6, modifiers);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static string? FocusedArea(Window window)
+    {
+        string[] areas = ["NavigationHost", "ToolbarArea", "BrowserArea", "DetailsHost"];
+        for (var node = window.FocusManager!.GetFocusedElement() as Visual; node is not null; node = node.GetVisualParent())
+        {
+            if ((node as Control)?.Name is { } name && areas.Contains(name))
+            {
+                return name;
+            }
+        }
+
+        return null;
+    }
+
     private static Task RunInWindowAsync(Action<Window, MainWindowViewModel> test) => TestApp.RunAsync(() =>
     {
         using var services = new ServiceCollection()
@@ -288,5 +426,6 @@ public sealed class ShellViewTests
 
     private sealed class PlaceholderView : Border
     {
+        public PlaceholderView() => Focusable = true;
     }
 }

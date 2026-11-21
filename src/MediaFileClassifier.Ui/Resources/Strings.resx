@@ -2887,4 +2887,59 @@
   <data name="DropImport_Failed" xml:space="preserve">
     <value>The dropped files couldn't be imported.</value>
   </data>
+  <data name="Command_DeleteLibrary" xml:space="preserve">
+    <value>_Delete library…</value>
+  </data>
+  <data name="DeleteLibrary_Title" xml:space="preserve">
+    <value>Delete library</value>
+  </data>
+  <data name="DeleteLibrary_Heading" xml:space="preserve">
+    <value>Delete the library “{0}”?</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="DeleteLibrary_Summary_One" xml:space="preserve">
+    <value>This deletes the library’s index of {0} item: its database, thumbnails and backups.</value>
+    <comment>{0} is the number 1.</comment>
+  </data>
+  <data name="DeleteLibrary_Summary_Other" xml:space="preserve">
+    <value>This deletes the library’s index of {0} items: its database, thumbnails and backups.</value>
+    <comment>{0} is a number of items.</comment>
+  </data>
+  <data name="DeleteLibrary_MediaSafe" xml:space="preserve">
+    <value>Your media files are not touched. They stay where they are, and so does anything else you keep in the library folder.</value>
+  </data>
+  <data name="DeleteLibrary_ClosesFirst" xml:space="preserve">
+    <value>The library is open, so it will be closed first.</value>
+  </data>
+  <data name="DeleteLibrary_Permanent" xml:space="preserve">
+    <value>This can’t be undone.</value>
+  </data>
+  <data name="DeleteLibrary_Prompt" xml:space="preserve">
+    <value>Type {0} to confirm.</value>
+    <comment>{0} is the library name the user must type.</comment>
+  </data>
+  <data name="DeleteLibrary_Delete" xml:space="preserve">
+    <value>Delete library</value>
+  </data>
+  <data name="DeleteLibrary_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="DeleteLibrary_KeptFiles" xml:space="preserve">
+    <value>The library was deleted. Its folder was kept because it still holds other files: {0}</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="DeleteLibrary_KeptFilesOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Welcome_DeleteLibrary" xml:space="preserve">
+    <value>Delete {0}…</value>
+    <comment>{0} is a library name.</comment>
+  </data>
+  <data name="DeleteLibrary_Partial" xml:space="preserve">
+    <value>An earlier delete of this library was cut short: its database is gone. Deleting finishes the job by removing its remaining thumbnails, backups and lock file.</value>
+  </data>
+  <data name="DeleteLibrary_ClosedNotDeleted" xml:space="preserve">
+    <value>The library was closed, but it couldn't be deleted. {0}</value>
+    <comment>{0} is the reason, a full sentence.</comment>
+  </data>
 </root>

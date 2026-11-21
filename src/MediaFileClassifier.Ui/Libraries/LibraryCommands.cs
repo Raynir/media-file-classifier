@@ -37,6 +37,9 @@ public sealed class LibraryCommands(
     /// <summary>Command ID: manage the open library's indexed folders.</summary>
     public const string ManageFolders = "library.folders";
 
+    /// <summary>Command ID: delete the open library, after a typed confirmation (E02-S07).</summary>
+    public const string DeleteLibrary = "library.delete";
+
     /// <inheritdoc />
     public void Register(CommandRegistry registry)
     {
@@ -68,6 +71,12 @@ public sealed class LibraryCommands(
             IsVisible = LibraryDialogs.IsSupported,
             WhyDisabled = () => session?.Current is null ? localizer.Get("Command_NoLibraryOpen") : null,
         });
+        var delete = registry.Add(new AppCommand(DeleteLibrary, CommandGroups.Library, 190, "Command_DeleteLibrary", DeleteOpenLibraryAsync)
+        {
+            IconKey = "Icon.Delete",
+            IsVisible = LibraryDialogs.IsSupported,
+            WhyDisabled = () => session?.Current is null ? localizer.Get("Command_NoLibraryOpen") : null,
+        });
         if (session is not null)
         {
             session.CurrentChanged += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -75,9 +84,14 @@ public sealed class LibraryCommands(
                 addFolder.Refresh();
                 importFiles.Refresh();
                 folders.Refresh();
+                delete.Refresh();
             });
         }
     }
+
+    private Task DeleteOpenLibraryAsync() => session?.Current is { } open
+        ? dialogs.ShowDeleteLibraryAsync(open.Layout.RootDirectory, open.Library.Name, isOpen: true)
+        : Task.CompletedTask;
 
     /// <summary>
     /// Asks for a folder and opens the indexed folders dialog with it added, as dropping a folder on the

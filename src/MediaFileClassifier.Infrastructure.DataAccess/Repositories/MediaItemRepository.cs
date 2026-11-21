@@ -324,6 +324,29 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
     }
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> GetByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyList<MediaItem>>([]);
+        }
+
+        return connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) =>
+            {
+                var items = new List<MediaItem>(ids.Count);
+                foreach (var batch in ids.Distinct().Chunk(5000))
+                {
+                    items.AddRange(await db.MediaItems.Where(item => batch.Contains(item.Id)).ToListAsync(token).ConfigureAwait(false));
+                }
+
+                return items;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<MediaItemPath>> GetPathsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ids);
@@ -639,6 +662,76 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
         if (deleted.Count > 0)
         {
             RaiseChanged();
+        }
+
+        return deleted;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> ExcludeAsync(IReadOnlyCollection<Id<MediaItem>> ids, string reason, DateTimeOffset now, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        ArgumentNullException.ThrowIfNull(reason);
+
+        var changed = new List<Id<MediaItem>>();
+        foreach (var batch in ids.Distinct().Chunk(BatchSize))
+        {
+            var done = await writer.ExecuteAsync<IReadOnlyList<Id<MediaItem>>>(
+                async (db, token) =>
+                {
+                    // Tracked, so only the status columns are written.
+                    var due = await db.MediaItems.AsTracking()
+                        .Where(item => batch.Contains(item.Id) && item.Status != MediaItemStatus.Excluded)
+                        .ToListAsync(token).ConfigureAwait(false);
+                    foreach (var item in due)
+                    {
+                        item.ChangeStatus(MediaItemStatus.Excluded, now, reason);
+                    }
+
+                    await db.SaveChangesAsync(token).ConfigureAwait(false);
+                    db.ChangeTracker.Clear();
+                    return [.. due.Select(item => item.Id)];
+                },
+                cancellationToken).ConfigureAwait(false);
+            if (done.Count > 0)
+            {
+                changed.AddRange(done);
+                RaiseChanged();
+            }
+        }
+
+        return changed;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Id<MediaItem>>> DeleteExcludedAsync(IReadOnlyCollection<Id<MediaItem>> ids, string reason, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        ArgumentNullException.ThrowIfNull(reason);
+
+        var deleted = new List<Id<MediaItem>>();
+        foreach (var batch in ids.Distinct().Chunk(BatchSize))
+        {
+            var done = await writer.ExecuteAsync<IReadOnlyList<Id<MediaItem>>>(
+                async (db, token) =>
+                {
+                    var due = await db.MediaItems
+                        .Where(item => batch.Contains(item.Id) && item.Status == MediaItemStatus.Excluded && item.StatusReason == reason)
+                        .Select(item => item.Id)
+                        .ToListAsync(token).ConfigureAwait(false);
+                    if (due.Count > 0)
+                    {
+                        await db.MediaItems.Where(item => due.Contains(item.Id)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                    }
+
+                    return due;
+                },
+                cancellationToken).ConfigureAwait(false);
+            if (done.Count > 0)
+            {
+                deleted.AddRange(done);
+                RaiseChanged();
+            }
         }
 
         return deleted;

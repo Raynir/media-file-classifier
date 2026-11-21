@@ -174,6 +174,26 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItemPath>> GetPathsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets items by ID, e.g. the selection to remove from the library or the excluded items to restore (E02-S10).
+    /// </summary>
+    /// <param name="ids">The item IDs.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The items that exist, in no particular order.</returns>
+    Task<IReadOnlyList<MediaItem>> GetByIdsAsync(IReadOnlyCollection<Id<MediaItem>> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks items Excluded with a reason, e.g. when the user removes them from the library (E02-S10-T01, D024). Each
+    /// batch of 100 is loaded and changed in one short write, so only the status columns change and nothing written
+    /// meanwhile is lost. Items already Excluded keep their status and reason. Nothing else about the item changes.
+    /// </summary>
+    /// <param name="ids">The item IDs.</param>
+    /// <param name="reason">The status reason.</param>
+    /// <param name="now">The time of the change.</param>
+    /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>
+    /// <returns>The IDs of the items that changed.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> ExcludeAsync(IReadOnlyCollection<Id<MediaItem>> ids, string reason, DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Counts the items added after an item, which is its position in the newest-first order of
     /// <see cref="GetSummariesAsync(int, int, CancellationToken)"/>. It still works after the item was deleted.
     /// </summary>
@@ -315,4 +335,15 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The deleted items, so the caller can delete their thumbnails; empty when none are left.</returns>
     Task<IReadOnlyList<Id<MediaItem>>> DeleteMissingAsync(int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes the given items whose status is Excluded with the given reason, as <see cref="DeleteAsync"/> does, in
+    /// one short write per batch: "forgetting" items the user removed from the library (E02-S10-T04). The status is
+    /// checked in the same write, so an item restored meanwhile stays.
+    /// </summary>
+    /// <param name="ids">The item IDs.</param>
+    /// <param name="reason">The status reason the items must have.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The deleted items, so the caller can delete their thumbnails.</returns>
+    Task<IReadOnlyList<Id<MediaItem>>> DeleteExcludedAsync(IReadOnlyCollection<Id<MediaItem>> ids, string reason, CancellationToken cancellationToken = default);
 }

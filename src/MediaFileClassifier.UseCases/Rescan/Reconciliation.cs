@@ -7,7 +7,8 @@ namespace MediaFileClassifier.UseCases.Rescan;
 
 /// <summary>
 /// How the files on disk compare with the library's items after a rescan's listing (E02-S04-T01). Nothing is written
-/// yet: <see cref="ReconcileStage"/> applies it. Items the rules or the user excluded aren't part of it.
+/// yet: <see cref="ReconcileStage"/> applies it. Items the rules or the user excluded aren't part of it,
+/// except user-removed items whose file moved (<see cref="MovedExcluded"/>).
 /// </summary>
 public sealed record Reconciliation
 {
@@ -42,6 +43,12 @@ public sealed record Reconciliation
     /// Gets the items whose file was moved or renamed within the library (E02-S04-T02).
     /// </summary>
     public IReadOnlyList<MovedFile> Moved { get; init; } = [];
+
+    /// <summary>
+    /// Gets the items the user removed from the library whose file was moved or renamed within it (E02-S10-T02). They
+    /// follow the file and stay Excluded.
+    /// </summary>
+    public IReadOnlyList<MovedFile> MovedExcluded { get; init; } = [];
 
     /// <summary>
     /// Gets the items of the listed folders whose file is gone, including those already Missing.

@@ -127,15 +127,15 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `key <gesture>` | Presses a key on the focused control, e.g. `key Space`, `key Ctrl+2`, `key Ctrl+Shift+F`. |
 | `type <text>` | Types text into the focused control. |
 | `wait <duration>` | Waits, e.g. `wait 500ms`, `wait 2s`. |
-| `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name); default 30 s. |
+| `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name), `dialog` or `no-dialog`; default 30 s. |
 | `shot <name>` | Saves `<name>.png`. |
 | `seed-keyframes <file name>` | Samples the item's video or animation and stores its keyframes and their pictures, as the analysis does (keyframes otherwise need the AI model). The item's details must be reloaded to show them: select another item, then this one. |
 | `choose-keyframe <n>` | Chooses the n-th keyframe in the preview's strip (from 1), as a click does. |
 | `setting <key> <value>` | Sets a registered setting through the settings store, e.g. `setting appearance.showFileNames false`; the value is JSON (`true`, `3`) or plain text for a choice or text setting. Fails for an unknown key or an invalid value. |
+| `start <id>` | Runs an app command without waiting for it, for a command that opens a modal dialog, e.g. `start item.remove`. |
+| `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`. Fails if it's disabled. |
+| `dialog-shot <name>` | Saves `<name>.png` of the open dialog. |
 | `capability video-playback on\|off` | Turns the VideoPlayback capability on or off, to see the default-app fallback (D026). |
-| `start <id>` | Runs a command like `command`, but doesn't wait for it, so the next steps can look at the dialog it opens. |
-| `dialog shot <name>` | Waits for a dialog (a window other than the main one) and saves `<name>.png` of it. |
-| `dialog answer primary\|secondary` | Clicks the dialog's default or cancel button and waits until it closes. |
 | `damage-library` | Backs up the open library's database as a migration backup, then writes garbage over an index page and opens the library again, so the integrity check finds damage (MFC-121). |
 | `allow-error <logger>` | Errors logged by that logger (its full type name) no longer fail the run, e.g. the integrity check's report of the damage. |
 

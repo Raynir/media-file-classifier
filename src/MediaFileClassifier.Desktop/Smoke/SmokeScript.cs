@@ -38,8 +38,8 @@ internal static class SmokeScript
 
     private static readonly HashSet<string> Verbs = new(StringComparer.Ordinal)
     {
-        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting",
-        "start", "dialog", "damage-library", "allow-error",
+        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-shot",
+        "damage-library", "allow-error",
     };
 
     /// <summary>
@@ -141,7 +141,8 @@ internal static class SmokeScript
                     ["idle"] => null,
                     ["items", var count] when int.TryParse(count, CultureInfo.InvariantCulture, out _) => null,
                     ["visible" or "hidden", _] => null,
-                    _ => "expected 'idle', 'items <count>', 'visible <control>' or 'hidden <control>', then an optional timeout",
+                    ["dialog" or "no-dialog"] => null,
+                    _ => "expected 'idle', 'items <count>', 'visible <control>', 'hidden <control>', 'dialog' or 'no-dialog', then an optional timeout",
                 };
                 break;
             case "choose-keyframe":
@@ -160,18 +161,10 @@ internal static class SmokeScript
             case "key":
                 error = TryParseKey(step.Argument, out _) ? null : "expected a key such as Space, Right, Ctrl+2 or Ctrl+Shift+F";
                 break;
-            case "dialog":
-                error = step.Argument.Split(' ', StringSplitOptions.RemoveEmptyEntries) switch
-                {
-                    ["shot", var name] when name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 => null,
-                    ["answer", "primary" or "secondary"] => null,
-                    _ => "expected 'shot <name>' or 'answer primary|secondary'",
-                };
-                break;
             case "damage-library":
                 error = step.Argument.Length == 0 ? null : "expected no argument";
                 break;
-            case "shot":
+            case "shot" or "dialog-shot":
                 error = step.Argument.Length == 0 || step.Argument.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
                     ? "expected a file name without an extension"
                     : null;

@@ -182,6 +182,27 @@ public sealed class MediaItemTests
         Assert.Equal("renamed.jpg", item.FileName);
     }
 
+    [Fact]
+    public void ChangeExclusionReason_KeepsTheStatusAndWhenItChanged()
+    {
+        var item = CreateItem();
+        item.ChangeStatus(MediaItemStatus.Excluded, Start, "Removed.");
+
+        item.ChangeExclusionReason("Restore requested.");
+
+        Assert.Equal(MediaItemStatus.Excluded, item.Status);
+        Assert.Equal("Restore requested.", item.StatusReason);
+        Assert.Equal(Start, item.StatusChangedAt);
+    }
+
+    [Fact]
+    public void ChangeExclusionReason_OnAnItemThatIsNotExcluded_Throws()
+    {
+        var item = CreateItem();
+
+        Assert.Throws<InvalidOperationException>(() => item.ChangeExclusionReason("Restore requested."));
+    }
+
     private static MediaItem CreateItem() =>
         MediaItem.Discover(
             Id<IndexedFolder>.New(),

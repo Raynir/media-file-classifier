@@ -202,6 +202,22 @@ public sealed class MediaItem
     }
 
     /// <summary>
+    /// Changes why an Excluded item is excluded, e.g. when the user asks to restore an item they removed (E02-S10-T04).
+    /// The status and the time it changed stay.
+    /// </summary>
+    /// <param name="reason">The new reason.</param>
+    /// <exception cref="InvalidOperationException">The item isn't Excluded.</exception>
+    public void ChangeExclusionReason(string? reason)
+    {
+        if (Status != MediaItemStatus.Excluded)
+        {
+            throw new InvalidOperationException($"Only an Excluded item has an exclusion reason; this one is {Status}.");
+        }
+
+        StatusReason = reason;
+    }
+
+    /// <summary>
     /// Marks the item as failed in a processing stage.
     /// </summary>
     /// <param name="error">The stage that failed and the kind of failure.</param>

@@ -10,14 +10,17 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Library maintenance (E02-S06, MFC-121): the Library menu and the command palette have Refresh search index, Regenerate thumbnails… and Check library integrity. The index refresh and the integrity check run in the background with a status-bar segment (click to stop). Regenerate thumbnails asks for "Only missing or outdated" or "All" and queues a thumbnail job in the processing queue, items on screen first; "All" deletes the item thumbnails first and keeps the keyframe pictures; neither runs while an import or rescan is unfinished. The integrity check shows a plain-language report; when the database is damaged and a migration backup exists, Restore backup puts it back, keeps the damaged database as `backups/library-damaged-<time>.db`, reopens the library and checks it again.
 - Processing settings (E17-S03, MFC-132): Settings, Processing has the number of file reading, thumbnail and image, and AI analysis jobs that run at once (the thumbnail and image default fits the computer), what happens to unfinished work when a library opens (continue automatically, or wait until you start it), and "Ask before quitting while processing". A changed limit takes effect at once, without a restart: more queued work starts now, and a lower limit applies as running work finishes. "Reset this category" puts the limits back to the recommended ones. When a library opens with processing waiting for you, the status bar says "Processing paused" and the processing queue shows a Resume processing button.
 
+- Remove items from the library (E02-S10, MFC-123, D024): "Remove from library" in the Item menu, the context menu and the details panel (also with several items selected), and with `Delete` in the browser, removes the selected items after one confirmation ("Don't ask again" turns it off; Settings, General, "Ask before removing items from the library" turns it back on). The files stay on disk. The items leave search, browsing and collections at once, keep their tags, descriptions, ratings and collections, and lose their AI results, embeddings and thumbnails (in the background for more than 200 items). Rescans leave them out, also when their file is moved or renamed. Library, "Excluded items…" lists the removed items: Restore imports them again (an item whose file is gone becomes Missing), and Forget deletes them with their edits, after a warning; a forgotten file that's still in an indexed folder comes back as a new item with the next scan.
+
 ### Changed
 
 - The processing options are now registered settings. The old `processing` section of `settings.json` (which only "Don't ask again" on quitting wrote) moves into the registered settings the next time the file is read, so nobody gets the quit question back (no schema change).
 
 ### Developer tools
 
+- UI smoke steps `start <command>`, `dialog-click <button>`, `dialog-shot <name>` and `wait-for dialog` / `no-dialog` drive modal dialogs (MFC-123), and `tools/ui-smoke/remove-items.smoke` shows the remove confirmation and Excluded items.
 - UI smoke step `setting <key> <value>` (MFC-134) sets a registered setting, and `tools/ui-smoke/show-file-names.smoke` shows the file names switch.
-- UI smoke steps `start`, `dialog shot|answer`, `damage-library` and `allow-error` (MFC-121), and `tools/ui-smoke/library-maintenance.smoke`, which shows the regenerate thumbnails dialog, the integrity report and a backup restore.
+- UI smoke steps `damage-library` and `allow-error` (MFC-121), and `tools/ui-smoke/library-maintenance.smoke`, which shows the regenerate thumbnails dialog, the integrity report and a backup restore.
 
 ## M4 — 2026-11-21
 

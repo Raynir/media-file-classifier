@@ -71,11 +71,13 @@ public static class UiModule
         services.AddSingleton(new ViewLocator()
             .Register<SettingsViewModel, SettingsView>()
             .Register<QuitConfirmationViewModel, QuitConfirmationView>()
+            .Register<RemoveItemsConfirmationViewModel, RemoveItemsConfirmationView>()
             .Register<UnsavedChangesViewModel, UnsavedChangesView>()
             .Register<WelcomeViewModel, WelcomeView>()
             .Register<CreateLibraryViewModel, CreateLibraryView>()
             .Register<ThumbnailGridViewModel, ThumbnailGridView>()
             .Register<IndexedFoldersViewModel, IndexedFoldersView>()
+            .Register<ExcludedItemsViewModel, ExcludedItemsView>()
             .Register<ProcessingPanelViewModel, ProcessingPanelView>()
             .Register<NavigationPanelViewModel, NavigationPanelView>()
             .Register<DetailsPanelViewModel, DetailsPanelView>()
@@ -113,6 +115,8 @@ public static class UiModule
         services.AddSingleton<Func<CreateLibraryViewModel>>(provider => provider.GetRequiredService<CreateLibraryViewModel>);
         services.AddTransient<IndexedFoldersViewModel>();
         services.AddSingleton<Func<IndexedFoldersViewModel>>(provider => provider.GetRequiredService<IndexedFoldersViewModel>);
+        services.AddTransient<ExcludedItemsViewModel>();
+        services.AddSingleton<Func<ExcludedItemsViewModel>>(provider => provider.GetRequiredService<ExcludedItemsViewModel>);
         services.AddSingleton<LibraryDialogs>();
         services.TryAddSingleton<IModelDialogs, ModelDialogs>();
         services.AddSingleton<ModelBannerViewModel>();
@@ -141,6 +145,7 @@ public static class UiModule
         services.AddSingleton<WelcomeViewModel>();
         services.AddSingleton<LibraryShell>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ExcludedItemsCommands>());
         services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());
 
@@ -171,6 +176,11 @@ public static class UiModule
         services.AddSingleton<ICommandContributor, MetadataEditorCommands>();
         services.TryAddSingleton<FavoriteCommands>();
         services.AddSingleton<ICommandContributor>(provider => provider.GetRequiredService<FavoriteCommands>());
+
+        // Remove from library (E02-S10-T03).
+        services.TryAddSingleton<IRemoveItemsDialog, RemoveItemsDialog>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RemoveItemsCommands>());
+        services.AddSetting(RemoveItemsCommands.AskBeforeRemoving);
         services.AddSingleton<Func<DetailsPanelViewModel>>(provider => provider.GetRequiredService<DetailsPanelViewModel>);
         services.AddSingleton<MediatR.INotificationHandler<UseCases.Metadata.ItemsMetadataChanged>, MetadataChangeHandler>();
         services.TryAddSingleton<ITextClipboard, AvaloniaTextClipboard>();

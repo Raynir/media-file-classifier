@@ -51,8 +51,6 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
 
-    private readonly List<Task> started = [];
-
     /// <summary>
     /// The physical key for each key on a US QWERTY keyboard: the app's shortcuts match physical keys (E16-S01).
     /// </summary>
@@ -149,6 +147,34 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
                 await command.ExecuteAsync();
                 return null;
+            case "start":
+                // Not awaited: the command shows a modal dialog, which the dialog-* steps drive (MFC-123).
+                var started = services.GetRequiredService<CommandRegistry>()[step.Argument];
+                started.Refresh();
+                if (!started.IsEnabled || !started.IsApplicable)
+                {
+                    throw new SmokeStepException($"the command is disabled: {started.DisabledReason ?? "it doesn't apply here"}");
+                }
+
+                _ = started.ExecuteAsync();
+                return null;
+            case "dialog-click":
+                var button = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants()
+                    .OfType<Button>()
+                    .FirstOrDefault(candidate => candidate.IsEffectivelyVisible && (candidate.Name == step.Argument || candidate.Content as string == step.Argument))
+                    ?? throw new SmokeStepException($"the dialog has no visible button '{step.Argument}'");
+                if (button.Command is not { } buttonCommand || !buttonCommand.CanExecute(button.CommandParameter))
+                {
+                    throw new SmokeStepException($"the button '{step.Argument}' is disabled or has no command");
+                }
+
+                buttonCommand.Execute(button.CommandParameter);
+                return null;
+            case "dialog-shot":
+                var dialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
+                Directory.CreateDirectory(options.OutputDirectory);
+                var dialogPath = Path.Combine(options.OutputDirectory, step.Argument + ".png");
+                return $"{dialogPath} ({WindowCapture.Save(dialog, dialogPath)})";
             case "focus":
                 var control = FindVisible(step.Argument) ?? throw new SmokeStepException($"no visible control '{step.Argument}'");
                 if (!control.Focus())
@@ -170,11 +196,6 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             case "wait-for":
                 await WaitForAsync(step);
                 return null;
-            case "start":
-                StartCommand(step.Argument);
-                return null;
-            case "dialog":
-                return await DialogAsync(step);
             case "damage-library":
                 return await DamageLibraryAsync();
             case "allow-error":
@@ -187,76 +208,6 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return $"{path} ({method})";
             default:
                 throw new SmokeStepException("unknown step");
-        }
-    }
-
-    /// <summary>
-    /// Runs a command without waiting for it, so a step after it can look at the dialog it opens.
-    /// </summary>
-    private void StartCommand(string id)
-    {
-        var command = services.GetRequiredService<CommandRegistry>()[id];
-        command.Refresh();
-        if (!command.IsEnabled || !command.IsApplicable)
-        {
-            throw new SmokeStepException($"the command is disabled: {command.DisabledReason ?? "it doesn't apply here"}");
-        }
-
-        started.Add(command.ExecuteAsync());
-    }
-
-    /// <summary>
-    /// Saves a picture of the open dialog, or answers it with its default or cancel button.
-    /// </summary>
-    private async Task<string?> DialogAsync(SmokeStep step)
-    {
-        var words = step.Argument.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var dialog = await WaitForDialogAsync(step.Timeout);
-        if (words[0] == "shot")
-        {
-            await SettleAsync();
-            Directory.CreateDirectory(options.OutputDirectory);
-            var path = Path.Combine(options.OutputDirectory, words[1] + ".png");
-            return $"{path} ({WindowCapture.Save(dialog, path)})";
-        }
-
-        var primary = words[1] == "primary";
-        var button = dialog.GetVisualDescendants().OfType<Button>()
-            .FirstOrDefault(candidate => candidate.IsVisible && (primary ? candidate.IsDefault : candidate.IsCancel))
-            ?? throw new SmokeStepException($"the dialog has no {words[1]} button");
-        var label = button.Content?.ToString();
-        button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        var watch = Stopwatch.StartNew();
-        while (dialog.IsVisible)
-        {
-            if (watch.Elapsed > step.Timeout)
-            {
-                throw new TimeoutException("the dialog didn't close");
-            }
-
-            await Task.Delay(PollInterval);
-        }
-
-        return label;
-    }
-
-    private async Task<Window> WaitForDialogAsync(TimeSpan timeout)
-    {
-        var watch = Stopwatch.StartNew();
-        while (true)
-        {
-            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime
-                && lifetime.Windows.LastOrDefault(open => open != window && open.IsVisible) is { } dialog)
-            {
-                return dialog;
-            }
-
-            if (watch.Elapsed > timeout)
-            {
-                throw new TimeoutException("no dialog opened");
-            }
-
-            await Task.Delay(PollInterval);
         }
     }
 
@@ -452,8 +403,19 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             case ["hidden", var name]:
                 await PollAsync(() => Task.FromResult(FindVisible(name) is null), step.Timeout, $"no visible control '{name}'");
                 break;
+            case ["dialog"]:
+                await PollAsync(() => Task.FromResult(Dialog() is { IsVisible: true }), step.Timeout, "a dialog");
+                break;
+            case ["no-dialog"]:
+                await PollAsync(() => Task.FromResult(Dialog() is null), step.Timeout, "no dialog");
+                break;
         }
     }
+
+    /// <summary>
+    /// Gets the newest window the main window owns, e.g. a modal dialog, or <see langword="null"/>.
+    /// </summary>
+    private Window? Dialog() => window.OwnedWindows.LastOrDefault();
 
     /// <summary>
     /// Finds a shown control by its <c>x:Name</c> or its type name.

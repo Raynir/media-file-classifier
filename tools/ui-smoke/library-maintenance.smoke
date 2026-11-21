@@ -6,23 +6,31 @@ window 1400x900
 command view.theme-light
 library sample
 
-# Regenerate thumbnails asks which ones; "All" queues every item.
+# Regenerate thumbnails asks which ones.
 start library.regenerate-thumbnails
-dialog shot 01-regenerate-dialog
-dialog answer secondary
+wait-for dialog
+dialog-shot 01-regenerate-dialog
+dialog-click Cancel
+wait-for no-dialog
 
 # A healthy library.
 start library.check-integrity
-dialog shot 02-integrity-healthy
-dialog answer primary
+wait-for dialog
+dialog-shot 02-integrity-healthy
+dialog-click Close
+wait-for no-dialog
 
 # A damaged library with a backup: the report offers to restore it.
 allow-error MediaFileClassifier.UseCases.Maintenance.CheckIntegrity.CheckLibraryIntegrityQueryHandler
 damage-library
 start library.check-integrity
-dialog shot 03-integrity-damaged
-dialog answer primary
-dialog shot 04-restore-done
-dialog answer primary
+wait-for dialog
+dialog-shot 03-integrity-damaged
+dialog-click Restore backup
+wait-for no-dialog
+wait-for dialog
+dialog-shot 04-restore-done
+dialog-click Close
+wait-for no-dialog
 wait-for idle
 shot 05-after-restore

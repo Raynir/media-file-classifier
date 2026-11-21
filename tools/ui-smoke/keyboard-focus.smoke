@@ -9,14 +9,17 @@ select jpeg-exif.jpg
 command view.details-expanded
 wait-for visible Preview
 
-# F6 from the search box: toolbar -> browser -> details -> navigation.
+# F6 from the search box: browser -> details -> status bar -> navigation (the order is
+# navigation, toolbar, browser, details, status bar; the status bar has clickable segments once a library is open).
 focus SearchBox
 key F6
 shot 01-f6-browser-dark
 key F6
 shot 02-f6-details-dark
 key F6
-shot 03-f6-navigation-dark
+shot 03-f6-status-bar-dark
+key F6
+key Shift+F6
 key Shift+F6
 key Shift+F6
 key Tab

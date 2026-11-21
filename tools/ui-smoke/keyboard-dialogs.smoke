@@ -14,9 +14,9 @@ dialog-key Tab
 dialog-key Escape
 wait-for no-dialog
 key Tab
-# F6 reaches the status bar when it has a clickable segment.
+# F6 reaches the status bar when it has a clickable segment: browser -> details -> status bar.
+command view.details-expanded
 focus Scroller
-key F6
 key F6
 key F6
 key F6

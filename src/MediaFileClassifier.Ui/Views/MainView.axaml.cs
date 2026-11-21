@@ -41,6 +41,7 @@ public partial class MainView : UserControl
     private TopLevel? windowWithHandler;
     private ShellLayout? observedLayout;
     private Control? drawerOpener;
+    private bool wasDrawerOpen;
 
     private DropImportViewModel? Drops => (DataContext as MainWindowViewModel)?.Drops;
 
@@ -65,16 +66,7 @@ public partial class MainView : UserControl
     {
         base.OnDataContextChanged(e);
         Layout?.UpdateWidth(Bounds.Width);
-        if (observedLayout is not null)
-        {
-            observedLayout.PropertyChanged -= OnLayoutPropertyChanged;
-        }
-
-        observedLayout = Layout;
-        if (observedLayout is not null)
-        {
-            observedLayout.PropertyChanged += OnLayoutPropertyChanged;
-        }
+        ObserveLayout(Layout);
     }
 
     /// <inheritdoc />
@@ -86,6 +78,7 @@ public partial class MainView : UserControl
         windowWithHandler = TopLevel.GetTopLevel(this);
         windowWithHandler?.AddHandler(KeyDownEvent, OnWindowKeyDown);
         windowWithHandler?.AddHandler(GotFocusEvent, OnWindowGotFocus);
+        ObserveLayout(Layout);
     }
 
     /// <inheritdoc />
@@ -93,6 +86,7 @@ public partial class MainView : UserControl
     {
         windowWithHandler?.RemoveHandler(KeyDownEvent, OnWindowKeyDown);
         windowWithHandler?.RemoveHandler(GotFocusEvent, OnWindowGotFocus);
+        ObserveLayout(null);
         windowWithHandler = null;
         base.OnDetachedFromVisualTree(e);
     }
@@ -228,9 +222,33 @@ public partial class MainView : UserControl
         }
     }
 
+    private void ObserveLayout(ShellLayout? layout)
+    {
+        if (observedLayout == layout)
+        {
+            return;
+        }
+
+        if (observedLayout is not null)
+        {
+            observedLayout.PropertyChanged -= OnLayoutPropertyChanged;
+            observedLayout.Navigation.PropertyChanged -= OnLayoutPropertyChanged;
+            observedLayout.Details.PropertyChanged -= OnLayoutPropertyChanged;
+        }
+
+        observedLayout = layout;
+        if (layout is not null)
+        {
+            layout.PropertyChanged += OnLayoutPropertyChanged;
+            layout.Navigation.PropertyChanged += OnLayoutPropertyChanged;
+            layout.Details.PropertyChanged += OnLayoutPropertyChanged;
+        }
+    }
+
     private void OnLayoutPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(ShellLayout.IsAnyDrawerOpen) || Layout is not { } layout)
+        // A drawer opens or closes, or one replaces the other (E16-S03).
+        if (e.PropertyName is not (nameof(ShellLayout.IsAnyDrawerOpen) or nameof(SidePanel.IsDrawerOpen)) || Layout is not { } layout)
         {
             return;
         }
@@ -239,22 +257,33 @@ public partial class MainView : UserControl
         {
             // Opens: remember where the focus was, and move it into the drawer, which then keeps Tab inside.
             drawerOpener ??= TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Control;
-            var host = this.FindControl<Control>(layout.Navigation is { IsDrawer: true, IsDrawerOpen: true } ? "NavigationHost" : "DetailsHost");
-            Dispatcher.UIThread.Post(() => FirstFocusable(host!)?.Focus(NavigationMethod.Tab), DispatcherPriority.Loaded);
+            var name = layout.Navigation is { IsDrawer: true, IsDrawerOpen: true } ? "NavigationHost" : "DetailsHost";
+            Dispatcher.UIThread.Post(
+                () =>
+                {
+                    if (this.FindControl<Control>(name) is { IsEffectivelyVisible: true } host)
+                    {
+                        FirstFocusable(host)?.Focus(NavigationMethod.Tab);
+                    }
+                },
+                DispatcherPriority.Loaded);
         }
-        else if (drawerOpener is { } opener)
+        else if (wasDrawerOpen)
         {
-            // Closes: the focus goes back to where it came from, or to the browser when that is gone.
+            // Closes: the focus goes back to where it came from, or to the browser when that is gone or was nowhere.
+            var opener = drawerOpener;
             drawerOpener = null;
             Dispatcher.UIThread.Post(
                 () =>
                 {
-                    var target = opener.IsAttachedToVisualTree() && CanFocus(opener)
+                    var target = opener is not null && opener.IsAttachedToVisualTree() && CanFocus(opener)
                         ? opener
                         : FirstFocusable(this.FindControl<Control>("BrowserArea")!);
                     target?.Focus(NavigationMethod.Tab);
                 },
                 DispatcherPriority.Loaded);
         }
+
+        wasDrawerOpen = layout.IsAnyDrawerOpen;
     }
 }

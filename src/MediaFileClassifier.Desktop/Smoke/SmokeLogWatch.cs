@@ -18,6 +18,21 @@ internal sealed class SmokeLogWatch : ILogEventSink
     /// </summary>
     public string CurrentStep { get; set; } = "startup";
 
+    private readonly HashSet<string> allowedErrorSources = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Lets a logger's errors pass, for a script that expects them (<c>allow-error</c>), e.g. after
+    /// <c>damage-library</c>. Fatal entries still fail the run.
+    /// </summary>
+    /// <param name="source">The logger name, e.g. a handler's full type name.</param>
+    public void AllowErrors(string source)
+    {
+        lock (gate)
+        {
+            allowedErrorSources.Add(source);
+        }
+    }
+
     /// <summary>
     /// Gets the failures so far, as report lines.
     /// </summary>
@@ -61,6 +76,11 @@ internal sealed class SmokeLogWatch : ILogEventSink
 
         lock (gate)
         {
+            if (logEvent.Level == LogEventLevel.Error && source is not null && allowedErrorSources.Contains(source))
+            {
+                return;
+            }
+
             failures.Add(line);
         }
     }

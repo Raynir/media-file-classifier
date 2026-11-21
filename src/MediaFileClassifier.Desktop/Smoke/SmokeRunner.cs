@@ -51,6 +51,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
 
+    private readonly List<Task> started = [];
+
     /// <summary>
     /// The physical key for each key on a US QWERTY keyboard: the app's shortcuts match physical keys (E16-S01).
     /// </summary>
@@ -168,6 +170,16 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             case "wait-for":
                 await WaitForAsync(step);
                 return null;
+            case "start":
+                StartCommand(step.Argument);
+                return null;
+            case "dialog":
+                return await DialogAsync(step);
+            case "damage-library":
+                return await DamageLibraryAsync();
+            case "allow-error":
+                log.AllowErrors(step.Argument);
+                return null;
             case "shot":
                 Directory.CreateDirectory(options.OutputDirectory);
                 var path = Path.Combine(options.OutputDirectory, step.Argument + ".png");
@@ -176,6 +188,115 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             default:
                 throw new SmokeStepException("unknown step");
         }
+    }
+
+    /// <summary>
+    /// Runs a command without waiting for it, so a step after it can look at the dialog it opens.
+    /// </summary>
+    private void StartCommand(string id)
+    {
+        var command = services.GetRequiredService<CommandRegistry>()[id];
+        command.Refresh();
+        if (!command.IsEnabled || !command.IsApplicable)
+        {
+            throw new SmokeStepException($"the command is disabled: {command.DisabledReason ?? "it doesn't apply here"}");
+        }
+
+        started.Add(command.ExecuteAsync());
+    }
+
+    /// <summary>
+    /// Saves a picture of the open dialog, or answers it with its default or cancel button.
+    /// </summary>
+    private async Task<string?> DialogAsync(SmokeStep step)
+    {
+        var words = step.Argument.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var dialog = await WaitForDialogAsync(step.Timeout);
+        if (words[0] == "shot")
+        {
+            await SettleAsync();
+            Directory.CreateDirectory(options.OutputDirectory);
+            var path = Path.Combine(options.OutputDirectory, words[1] + ".png");
+            return $"{path} ({WindowCapture.Save(dialog, path)})";
+        }
+
+        var primary = words[1] == "primary";
+        var button = dialog.GetVisualDescendants().OfType<Button>()
+            .FirstOrDefault(candidate => candidate.IsVisible && (primary ? candidate.IsDefault : candidate.IsCancel))
+            ?? throw new SmokeStepException($"the dialog has no {words[1]} button");
+        var label = button.Content?.ToString();
+        button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var watch = Stopwatch.StartNew();
+        while (dialog.IsVisible)
+        {
+            if (watch.Elapsed > step.Timeout)
+            {
+                throw new TimeoutException("the dialog didn't close");
+            }
+
+            await Task.Delay(PollInterval);
+        }
+
+        return label;
+    }
+
+    private async Task<Window> WaitForDialogAsync(TimeSpan timeout)
+    {
+        var watch = Stopwatch.StartNew();
+        while (true)
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime
+                && lifetime.Windows.LastOrDefault(open => open != window && open.IsVisible) is { } dialog)
+            {
+                return dialog;
+            }
+
+            if (watch.Elapsed > timeout)
+            {
+                throw new TimeoutException("no dialog opened");
+            }
+
+            await Task.Delay(PollInterval);
+        }
+    }
+
+    /// <summary>
+    /// Damages the open library on purpose, to show the integrity report (E02-S06-T03): backs the database up as a
+    /// migration backup, closes the library, writes garbage over the root page of an index of the items, and opens
+    /// it again. Page 1 stays intact, so the library still opens; the integrity check finds the damage.
+    /// </summary>
+    private async Task<string> DamageLibraryAsync()
+    {
+        var session = services.GetRequiredService<ILibrarySession>();
+        var library = session.Current ?? throw new SmokeStepException("no library is open");
+        var layout = library.Layout;
+        var backup = Path.Combine(
+            layout.BackupsDirectory,
+            string.Create(CultureInfo.InvariantCulture, $"library-v0-{DateTimeOffset.UtcNow.AddHours(-1):yyyyMMdd-HHmmss-fff}.db"));
+        await library.Maintenance.BackupAsync(backup);
+        await session.SetCurrentAsync(null);
+        await Task.Run(() => CorruptIndexPage(layout.DatabasePath));
+        await services.GetRequiredService<LibraryOpener>().OpenAsync(layout.RootDirectory);
+        return backup;
+    }
+
+    private static void CorruptIndexPage(string databasePath)
+    {
+        long pageSize;
+        long rootPage;
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={databasePath};Mode=ReadOnly;Pooling=False"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA page_size";
+            pageSize = (long)command.ExecuteScalar()!;
+            command.CommandText = "SELECT rootpage FROM sqlite_master WHERE name = 'IX_media_item_hashes_content_hash'";
+            rootPage = (long)command.ExecuteScalar()!;
+        }
+
+        using var file = new FileStream(databasePath, FileMode.Open, FileAccess.Write);
+        file.Position = (rootPage - 1) * pageSize;
+        file.Write(Enumerable.Repeat((byte)0xFF, (int)pageSize).ToArray());
     }
 
     private async Task<string?> LibraryAsync(SmokeStep step)

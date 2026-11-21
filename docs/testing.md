@@ -133,8 +133,13 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `choose-keyframe <n>` | Chooses the n-th keyframe in the preview's strip (from 1), as a click does. |
 | `setting <key> <value>` | Sets a registered setting through the settings store, e.g. `setting appearance.showFileNames false`; the value is JSON (`true`, `3`) or plain text for a choice or text setting. Fails for an unknown key or an invalid value. |
 | `capability video-playback on\|off` | Turns the VideoPlayback capability on or off, to see the default-app fallback (D026). |
+| `start <id>` | Runs a command like `command`, but doesn't wait for it, so the next steps can look at the dialog it opens. |
+| `dialog shot <name>` | Waits for a dialog (a window other than the main one) and saves `<name>.png` of it. |
+| `dialog answer primary\|secondary` | Clicks the dialog's default or cancel button and waits until it closes. |
+| `damage-library` | Backs up the open library's database as a migration backup, then writes garbage over an index page and opens the library again, so the integrity check finds damage (MFC-121). |
+| `allow-error <logger>` | Errors logged by that logger (its full type name) no longer fail the run, e.g. the integrity check's report of the damage. |
 
-`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app). Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
+`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app); `tools/ui-smoke/library-maintenance.smoke` the regenerate thumbnails dialog, the integrity report and a backup restore. Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
 
 ## Pull requests
 

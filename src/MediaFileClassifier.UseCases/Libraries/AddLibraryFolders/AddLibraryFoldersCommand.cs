@@ -1,5 +1,4 @@
 using MediaFileClassifier.Domain.Libraries;
-using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
@@ -78,7 +77,12 @@ public sealed class AddLibraryFoldersCommandHandler(
 
             if (overlap.Kind == FolderOverlapKind.PartialFolder)
             {
-                if (sender is not null && await sender.Send(new IndexWholeFolderCommand(overlap.Folders[0].Id), cancellationToken).ConfigureAwait(false))
+                // Without the sender nothing can index it, so it's covered as it is.
+                if (sender is null)
+                {
+                    refused.Add((handle, overlap.Folders[0]));
+                }
+                else if (await sender.Send(new IndexWholeFolderCommand(overlap.Folders[0].Id), cancellationToken).ConfigureAwait(false))
                 {
                     indexedWhole.Add(overlap.Folders[0]);
                 }
@@ -86,25 +90,30 @@ public sealed class AddLibraryFoldersCommandHandler(
                 continue;
             }
 
-            // The partial folder's other files stay in it; folders inside the new one are merged as usual.
-            var partial = overlap.Kind == FolderOverlapKind.InsidePartial ? overlap.Folders[0] : null;
-            if (partial is not null)
+            // Partial folders that contain it (picked files can make nested ones) keep their other files; folders
+            // inside the new one are merged as usual.
+            var partials = new List<IndexedFolder>();
+            while (overlap.Kind == FolderOverlapKind.InsidePartial)
             {
-                overlap = IndexedFolders.FindOverlap(files, handle, [.. indexed.Where(folder => folder.Id != partial.Id)]);
+                partials.Add(overlap.Folders[0]);
+                overlap = IndexedFolders.FindOverlap(files, handle, [.. indexed.Where(folder => !partials.Contains(folder))]);
             }
 
             // On the desktop the handle is a full path, which is the clearer thing to show.
             var displayPath = Path.IsPathFullyQualified(handle.Id) ? handle.Id : handle.DisplayName;
             var folder = IndexedFolder.Create(library.Library.Id, displayPath, handle.Id, timeProvider.GetUtcNow());
             await library.Folders.AddAsync(folder, cancellationToken).ConfigureAwait(false);
-            if (partial is not null && await SplitAsync(library, folder, partial, files.GetPathInside(handle, partial.ToHandle())!, cancellationToken).ConfigureAwait(false))
+            foreach (var partial in partials)
             {
-                indexed.Remove(partial);
+                if (await SplitAsync(library, folder, partial, files.GetPathInside(handle, partial.ToHandle())!, cancellationToken).ConfigureAwait(false))
+                {
+                    indexed.Remove(partial);
+                }
             }
 
             foreach (var child in overlap.Folders)
             {
-                await MergeAsync(library, folder, child, files.GetPathInside(child.ToHandle(), handle)!, cancellationToken).ConfigureAwait(false);
+                await Merging.MergeAsync(library, folder, child, files.GetPathInside(child.ToHandle(), handle)!, cancellationToken).ConfigureAwait(false);
                 indexed.Remove(child);
                 merged.Add(child);
             }
@@ -121,59 +130,20 @@ public sealed class AddLibraryFoldersCommandHandler(
         return new AddLibraryFoldersResult(added, refused, merged) { IndexedWhole = indexedWhole };
     }
 
-    private async Task MergeAsync(IOpenLibrary library, IndexedFolder parent, IndexedFolder child, string relativePath, CancellationToken cancellationToken)
-    {
-        // The child's jobs would write to a folder that's gone.
-        await CancelJobsAsync(library, child, cancellationToken).ConfigureAwait(false);
-
-        // Its excluded subfolders stay excluded. Its other rules give way to the parent's.
-        parent.ChangeRules(parent.Rules with { ExcludePatterns = [.. parent.Rules.ExcludePatterns, .. child.Rules.ExcludePatternsUnder(relativePath)] });
-        var moved = await library.Folders.MergeIntoAsync(parent, child.Id, relativePath, cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Merged {Child} into {Parent}: {Count} items moved", child.DisplayPath, parent.DisplayPath, moved);
-        await QueueFullHashesAsync(library, parent, cancellationToken).ConfigureAwait(false);
-    }
+    private FolderMerging Merging => new(logger, jobs, hashJobs);
 
     private async Task<bool> SplitAsync(IOpenLibrary library, IndexedFolder folder, IndexedFolder partial, string relativePath, CancellationToken cancellationToken)
     {
         // The partial folder's import may be working on the items that move; it's started again for the ones that stay.
-        await CancelJobsAsync(library, partial, cancellationToken).ConfigureAwait(false);
+        await Merging.CancelJobsAsync(library, partial, cancellationToken).ConfigureAwait(false);
         var (moved, deleted) = await library.Folders.SplitIntoAsync(folder, partial.Id, relativePath, cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Moved {Count} items of {Partial} to {Folder}", moved, partial.DisplayPath, folder.DisplayPath);
-        await QueueFullHashesAsync(library, folder, cancellationToken).ConfigureAwait(false);
+        await Merging.QueueFullHashesAsync(library, folder, cancellationToken).ConfigureAwait(false);
         if (!deleted && sender is not null)
         {
             await sender.Send(new ImportFoldersCommand([partial.Id]), cancellationToken).ConfigureAwait(false);
         }
 
         return deleted;
-    }
-
-    private async Task CancelJobsAsync(IOpenLibrary library, IndexedFolder folder, CancellationToken cancellationToken)
-    {
-        if (jobs?.Current is not { } scheduler)
-        {
-            return;
-        }
-
-        foreach (var job in (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false)).Where(job => job.FolderId == folder.Id))
-        {
-            await scheduler.CancelJobAsync(job.Id, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private async Task QueueFullHashesAsync(IOpenLibrary library, IndexedFolder parent, CancellationToken cancellationToken)
-    {
-        // The parent's import queues the items still Discovered; the full hashes the cancelled job didn't make are queued here.
-        if (jobs?.Current is { } scheduler && hashJobs is not null)
-        {
-            var unhashed = (await library.Items.GetByFolderAsync(parent.Id, cancellationToken).ConfigureAwait(false))
-                .Where(item => item.Status is MediaItemStatus.Pending or MediaItemStatus.Indexed && item.Hashes.ContentHash is null)
-                .Select(item => item.Id)
-                .ToList();
-            if (unhashed.Count > 0)
-            {
-                await hashJobs.EnqueueAsync(scheduler, parent, unhashed, cancellationToken).ConfigureAwait(false);
-            }
-        }
     }
 }

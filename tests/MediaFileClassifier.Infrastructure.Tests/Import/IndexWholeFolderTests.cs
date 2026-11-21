@@ -106,6 +106,39 @@ public sealed class IndexWholeFolderTests : IAsyncLifetime
         Assert.Equal(["b.jpg"], await PathsAsync(added.Id));
     }
 
+    [Fact]
+    public async Task IndexWholeFolder_WithAFolderInside_MergesIt_SoNoFileIsListedTwice()
+    {
+        var (partial, _) = await ImportPickedAsync();
+        Copy(SampleMedia.StaticGif, "2024/c.gif");
+        var inner = Assert.Single((await bed.Sender.Send(new AddLibraryFoldersCommand([LocalFolder.ToHandle(Path.Combine(downloads.Path, "2024"))]), Token)).Added);
+        await bed.WaitUntilIdleAsync();
+        var c = Assert.Single(await bed.Library.Items.GetByFolderAsync(inner.Id, Token));
+
+        await bed.Sender.Send(new IndexWholeFolderCommand(partial.Id), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Null(await bed.Library.Folders.GetAsync(inner.Id, Token));
+        Assert.Equal(["2024/c.gif", "a.png", "b.jpg"], await PathsAsync(partial.Id));
+        Assert.Equal(partial.Id, (await bed.Library.Items.GetAsync(c.Id, Token))!.FolderId);
+    }
+
+    [Fact]
+    public async Task AddFolder_InsideNestedPartialFolders_SplitsEach()
+    {
+        var inner = Assert.Single((await ImportAsync(Copy(SampleMedia.JpegWithExif, "2024/b.jpg"))).AddedFolders);
+        var outer = Assert.Single((await ImportAsync(Copy(SampleMedia.PngWithAlpha, "a.png"))).AddedFolders);
+        Assert.Empty((await ImportAsync(Copy(SampleMedia.StaticGif, "2024/sub/c.gif"))).AddedFolders);
+
+        var result = await bed.Sender.Send(new AddLibraryFoldersCommand([LocalFolder.ToHandle(Path.Combine(downloads.Path, "2024", "sub"))]), Token);
+        await bed.WaitUntilIdleAsync();
+
+        var added = Assert.Single(result.Added);
+        Assert.Equal(["c.gif"], await PathsAsync(added.Id));
+        Assert.Equal(["b.jpg"], await PathsAsync(inner.Id));
+        Assert.Equal(["a.png"], await PathsAsync(outer.Id));
+    }
+
     private async Task<(IndexedFolder Partial, MediaItem Picked)> ImportPickedAsync()
     {
         var result = await ImportAsync(Copy(SampleMedia.PngWithAlpha, "a.png"), Copy(SampleMedia.JpegWithExif, "b.jpg"));

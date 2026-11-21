@@ -1443,6 +1443,12 @@
   <data name="Models_Heading" xml:space="preserve">
     <value>Models</value>
   </data>
+  <data name="Models_OpenFolder" xml:space="preserve">
+    <value>Open models folder</value>
+  </data>
+  <data name="Models_OpenFolderTip" xml:space="preserve">
+    <value>Show the folder where downloaded and imported models are stored.</value>
+  </data>
   <data name="Models_Help" xml:space="preserve">
     <value>AI models run on this computer. Download a model once, or import its files on a computer without internet. The Standard tier suits the processor, and Compact suits a graphics card.</value>
   </data>

@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Models;
+using MediaFileClassifier.Ui.Platform;
 using MediaFileClassifier.UseCases.Models.GetModels;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -22,6 +24,8 @@ public sealed partial class ModelManagementViewModel : ViewModelBase, IDisposabl
     private readonly IModelDialogs dialogs;
     private readonly Localizer localizer;
     private readonly IModelAvailability? availability;
+    private readonly IModelStore? store;
+    private readonly IFolderLauncher? folderLauncher;
     private readonly ILogger logger;
     private int refreshes;
 
@@ -32,18 +36,24 @@ public sealed partial class ModelManagementViewModel : ViewModelBase, IDisposabl
     /// <param name="dialogs">The consent and file dialogs.</param>
     /// <param name="localizer">UI strings.</param>
     /// <param name="availability">Tells when models are installed or deleted, or <see langword="null"/> where the app runs without AI.</param>
+    /// <param name="store">The model store, whose folder the section can open, or <see langword="null"/> where the app runs without AI.</param>
+    /// <param name="folderLauncher">Opens folders in the file manager, or <see langword="null"/> if the platform can't.</param>
     /// <param name="logger">Logger.</param>
     public ModelManagementViewModel(
         ISender sender,
         IModelDialogs dialogs,
         Localizer localizer,
         IModelAvailability? availability = null,
+        IModelStore? store = null,
+        IFolderLauncher? folderLauncher = null,
         ILogger<ModelManagementViewModel>? logger = null)
     {
         this.sender = sender;
         this.dialogs = dialogs;
         this.localizer = localizer;
         this.availability = availability;
+        this.store = store;
+        this.folderLauncher = folderLauncher;
         this.logger = logger ?? (ILogger)NullLogger.Instance;
         localizer.Changed += OnLocalizerChanged;
         if (availability is not null)
@@ -69,6 +79,11 @@ public sealed partial class ModelManagementViewModel : ViewModelBase, IDisposabl
     /// Gets a value indicating whether the list couldn't be read.
     /// </summary>
     public bool HasLoadError => LoadError.Length > 0;
+
+    /// <summary>
+    /// Gets a value indicating whether the model folder can be opened in the file manager.
+    /// </summary>
+    public bool CanOpenFolder => store is not null && folderLauncher is not null;
 
     /// <summary>
     /// Reads the list again. Rows that are downloading, verifying or deleting keep their state.
@@ -148,6 +163,24 @@ public sealed partial class ModelManagementViewModel : ViewModelBase, IDisposabl
         }
     }
 
+    [RelayCommand(CanExecute = nameof(CanOpenFolder))]
+    private async Task OpenFolderAsync()
+    {
+        if (store is null || folderLauncher is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await folderLauncher.OpenFolderAsync(store.RootDirectory);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            LogOpenFolderFailed(ex);
+        }
+    }
+
     private void OnModelsChanged(object? sender, EventArgs e) => Dispatcher.UIThread.Post(() => _ = RefreshAsync());
 
     private void OnLocalizerChanged(object? sender, EventArgs e)
@@ -157,6 +190,9 @@ public sealed partial class ModelManagementViewModel : ViewModelBase, IDisposabl
             row.RefreshTexts();
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Opening the models folder failed")]
+    private partial void LogOpenFolderFailed(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Listing the models failed")]
     private partial void LogRefreshFailed(Exception exception);

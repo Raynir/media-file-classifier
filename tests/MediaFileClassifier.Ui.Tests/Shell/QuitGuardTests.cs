@@ -2,6 +2,7 @@ using System.Globalization;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,7 +15,8 @@ namespace MediaFileClassifier.Ui.Tests.Shell;
 public sealed class QuitGuardTests
 {
     private readonly FakeJobSystem jobs = new();
-    private readonly FakeSettings settings = new();
+    private readonly InMemorySettingsStore settings = new();
+    private readonly ProcessingSettings processing = new(2);
 
     [Fact]
     public async Task ConfirmAndStopAsync_PendingWork_AsksAndStopsOnQuit()
@@ -31,7 +33,7 @@ public sealed class QuitGuardTests
         Assert.True(quit);
         Assert.True(jobs.Stopped);
         Assert.Equal("340 items are still processing. They will continue the next time you open this library.", shown!.Message);
-        Assert.True(settings.Current.Processing.ConfirmQuitWhileProcessing);
+        Assert.True(settings.Get(processing.ConfirmQuitWhileProcessing));
     }
 
     [Fact]
@@ -62,7 +64,7 @@ public sealed class QuitGuardTests
             return Task.FromResult(false);
         });
 
-        Assert.False(settings.Current.Processing.ConfirmQuitWhileProcessing);
+        Assert.False(settings.Get(processing.ConfirmQuitWhileProcessing));
         Assert.False(asked);
         Assert.True(quit);
     }
@@ -93,7 +95,7 @@ public sealed class QuitGuardTests
     private QuitGuard Guard()
     {
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-        return new QuitGuard(jobs, settings, TestLocalizer.EnUs(), NullLogger<QuitGuard>.Instance);
+        return new QuitGuard(jobs, settings, processing, TestLocalizer.EnUs(), NullLogger<QuitGuard>.Instance);
     }
 
     private sealed class FakeJobSystem : IJobSystem
@@ -114,14 +116,5 @@ public sealed class QuitGuardTests
         }
 
         public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) => Task.FromResult(Pending);
-    }
-
-    private sealed class FakeSettings : ISettingsService
-    {
-        public AppSettings Current { get; private set; } = new();
-
-        public void Save(AppSettings settings) => Current = settings;
-
-        public AppSettings Update(Func<AppSettings, AppSettings> change) => Current = change(Current);
     }
 }

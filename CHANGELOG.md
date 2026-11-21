@@ -4,6 +4,19 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- General and appearance settings (E17-S05, MFC-134): Settings, Appearance has a new "Show file names under tiles" switch (on by default) that hides the file name line under each thumbnail at once and keeps the type and size line; Settings, General has a "Show informational notifications" switch (on by default) that the in-app notifications (E15-S01) will follow. The theme, "Open the last library on startup" and "Restore the filters on startup" settings were already there.
+- Processing settings (E17-S03, MFC-132): Settings, Processing has the number of file reading, thumbnail and image, and AI analysis jobs that run at once (the thumbnail and image default fits the computer), what happens to unfinished work when a library opens (continue automatically, or wait until you start it), and "Ask before quitting while processing". A changed limit takes effect at once, without a restart: more queued work starts now, and a lower limit applies as running work finishes. "Reset this category" puts the limits back to the recommended ones. When a library opens with processing waiting for you, the status bar says "Processing paused" and the processing queue shows a Resume processing button.
+
+### Changed
+
+- The processing options are now registered settings. The old `processing` section of `settings.json` (which only "Don't ask again" on quitting wrote) moves into the registered settings the next time the file is read, so nobody gets the quit question back (no schema change).
+
+### Developer tools
+
+- UI smoke step `setting <key> <value>` (MFC-134) sets a registered setting, and `tools/ui-smoke/show-file-names.smoke` shows the file names switch.
+
 ## M4 — 2026-11-21
 
 ### Added

@@ -1,6 +1,8 @@
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Errors;
+using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Jobs.Errors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -21,7 +23,11 @@ public static class JobsModule
     public static IServiceCollection AddJobs(this IServiceCollection services)
     {
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<Func<ISettingsStore>>(provider => () => provider.GetRequiredService<ISettingsStore>());
         services.TryAddSingleton<IJobSystem, JobSystem>();
+
+        // The CPU pool's default limit comes from the hardware; AddInfrastructure registers the settings for the window.
+        services.TryAddSingleton(provider => new ProcessingSettings(provider.GetRequiredService<IHardwareInfo>().DefaultParallelism));
         services.TryAddSingleton<JobProgressTracker>();
         services.TryAddSingleton<IJobProgress>(provider => provider.GetRequiredService<JobProgressTracker>());
         services.TryAddSingleton<IErrorClassifier, ErrorClassifier>();

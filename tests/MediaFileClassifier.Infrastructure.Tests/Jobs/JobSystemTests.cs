@@ -6,7 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
-using MediaFileClassifier.Testing.Hardware;
+using MediaFileClassifier.Testing.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
@@ -16,7 +16,8 @@ namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
 /// </summary>
 public sealed class JobSystemTests : IAsyncLifetime
 {
-    private readonly TestSettings settings = new();
+    private readonly InMemorySettingsStore settings = new();
+    private readonly ProcessingSettings processing = new(2);
     private LibraryTestBed bed = null!;
     private JobSystem? system;
 
@@ -65,7 +66,7 @@ public sealed class JobSystemTests : IAsyncLifetime
     [Fact]
     public async Task StartAsync_AskModeWithUnfinishedWork_WaitsForResume()
     {
-        settings.Current = new AppSettings { Processing = new ProcessingSettings { ResumeOnOpen = ResumeMode.Ask } };
+        settings.SetValue(processing.ResumeOnOpen, ResumeMode.Ask);
         var job = new ProcessingJob { Id = Id<ProcessingJob>.New(), Type = "t", Description = "t", CreatedAt = LibraryTestBed.Start };
         await bed.Library.Jobs.AddJobAsync(job, [WorkItem.Create(job.Id, null, "stage", ResourcePool.Cpu, 0, null, LibraryTestBed.Start)], Token);
         var handler = new TestStageHandler("stage", ResourcePool.Cpu);
@@ -85,7 +86,7 @@ public sealed class JobSystemTests : IAsyncLifetime
     [Fact]
     public async Task StartAsync_AskModeWithNothingPending_DoesNotPause()
     {
-        settings.Current = new AppSettings { Processing = new ProcessingSettings { ResumeOnOpen = ResumeMode.Ask } };
+        settings.SetValue(processing.ResumeOnOpen, ResumeMode.Ask);
         system = CreateSystem(new TestStageHandler("stage", ResourcePool.Cpu));
 
         Assert.False((await system.StartAsync(bed.Library, Token)).IsPaused);
@@ -151,7 +152,7 @@ public sealed class JobSystemTests : IAsyncLifetime
         await bed.Library.Jobs.AddJobAsync(job, items, Token);
         var done = await bed.Library.Jobs.StartAsync(items[0], LibraryTestBed.Start, Token);
         await bed.Library.Jobs.FinishAsync(done!.ChangeState(WorkItemState.Completed, LibraryTestBed.Start), LibraryTestBed.Start, Token);
-        settings.Current = new AppSettings { Processing = new ProcessingSettings { ResumeOnOpen = ResumeMode.Ask } };
+        settings.SetValue(processing.ResumeOnOpen, ResumeMode.Ask);
 
         system = CreateSystem(new TestStageHandler("stage", ResourcePool.Cpu));
         await system.StartAsync(bed.Library, Token);
@@ -166,30 +167,75 @@ public sealed class JobSystemTests : IAsyncLifetime
     }
 
     [Fact]
-    public void GetPoolLimits_UsesSettingsOrDefaults()
+    public void GetPoolLimits_UsesSettingsOrTheDefaults()
     {
-        var hardware = new FakeHardwareInfo(defaultParallelism: 6, cpuCores: 6, memoryBytes: 8L << 30);
-
-        var defaults = JobSystem.GetPoolLimits(new ProcessingSettings(), hardware);
-        var configured = JobSystem.GetPoolLimits(new ProcessingSettings { IoConcurrency = 2, CpuConcurrency = 3, AiConcurrency = 0 }, hardware);
+        var hardwareDefault = new ProcessingSettings(6);
+        var defaults = CreateSystem(hardwareDefault).GetPoolLimits();
+        settings.SetValue(processing.IoConcurrency, 2);
+        settings.SetValue(processing.CpuConcurrency, 3);
+        settings.SetValue(processing.AiConcurrency, 4);
+        var configured = CreateSystem().GetPoolLimits();
 
         Assert.Equal(4, defaults[ResourcePool.Io]);
         Assert.Equal(6, defaults[ResourcePool.Cpu]);
         Assert.Equal(1, defaults[ResourcePool.Ai]);
         Assert.Equal(2, configured[ResourcePool.Io]);
         Assert.Equal(3, configured[ResourcePool.Cpu]);
-        Assert.Equal(1, configured[ResourcePool.Ai]);
+        Assert.Equal(4, configured[ResourcePool.Ai]);
     }
 
-    private JobSystem CreateSystem(params IStageHandler[] handlers) =>
-        new(handlers, settings, new FakeHardwareInfo(defaultParallelism: 2, cpuCores: 2, memoryBytes: 8L << 30), Progress, TimeProvider.System, NullLogger<JobSystem>.Instance);
-
-    private sealed class TestSettings : ISettingsService
+    [Fact]
+    public async Task ChangingAPoolLimit_AppliesToTheRunningSchedulerWithoutARestart()
     {
-        public AppSettings Current { get; set; } = new();
+        system = CreateSystem(new TestStageHandler("stage", ResourcePool.Cpu));
+        var scheduler = await system.StartAsync(bed.Library, Token);
+        Assert.Equal(2, scheduler.GetPoolLimit(ResourcePool.Cpu));
 
-        public void Save(AppSettings settings) => Current = settings;
+        settings.SetValue(processing.CpuConcurrency, 5);
+        settings.SetValue(processing.IoConcurrency, 1);
+        settings.SetValue(processing.AiConcurrency, 3);
 
-        public AppSettings Update(Func<AppSettings, AppSettings> change) => Current = change(Current);
+        Assert.Equal(5, scheduler.GetPoolLimit(ResourcePool.Cpu));
+        Assert.Equal(1, scheduler.GetPoolLimit(ResourcePool.Io));
+        Assert.Equal(3, scheduler.GetPoolLimit(ResourcePool.Ai));
     }
+
+    [Fact]
+    public async Task RaisingTheLimit_StartsMoreQueuedWorkAtOnce_AndResettingGoesBackToTheRecommendedLimit()
+    {
+        var job = new ProcessingJob { Id = Id<ProcessingJob>.New(), Type = "t", Description = "t", CreatedAt = LibraryTestBed.Start };
+        var items = Enumerable.Range(0, 4).Select(index => WorkItem.Create(job.Id, null, "stage", ResourcePool.Cpu, 0, index.ToString(CultureInfo.InvariantCulture), LibraryTestBed.Start)).ToList();
+        await bed.Library.Jobs.AddJobAsync(job, items, Token);
+        settings.SetValue(processing.CpuConcurrency, 1);
+        var gate = new TaskCompletionSource();
+        var handler = new TestStageHandler("stage", ResourcePool.Cpu, (_, _) => gate.Task);
+        system = CreateSystem(handler);
+        var scheduler = await system.StartAsync(bed.Library, Token);
+        await JobSchedulerTests.WaitUntilAsync(() => handler.Started.Count == 1);
+        await Task.Delay(200, Token);
+        Assert.Single(handler.Started);
+
+        settings.SetValue(processing.CpuConcurrency, 3);
+        await JobSchedulerTests.WaitUntilAsync(() => handler.Started.Count == 3);
+        settings.Reset([processing.CpuConcurrency]);
+
+        Assert.Equal(2, scheduler.GetPoolLimit(ResourcePool.Cpu));
+        gate.SetResult();
+    }
+
+    [Fact]
+    public async Task ALimitChangedBeforeAnyLibraryOpens_IsUsedWhenOneDoes()
+    {
+        system = CreateSystem();
+        settings.SetValue(processing.AiConcurrency, 2);
+
+        var scheduler = await system.StartAsync(bed.Library, Token);
+
+        Assert.Equal(2, scheduler.GetPoolLimit(ResourcePool.Ai));
+    }
+
+    private JobSystem CreateSystem(params IStageHandler[] handlers) => CreateSystem(processing, handlers);
+
+    private JobSystem CreateSystem(ProcessingSettings definitions, params IStageHandler[] handlers) =>
+        new(handlers, () => settings, definitions, Progress, TimeProvider.System, NullLogger<JobSystem>.Instance);
 }

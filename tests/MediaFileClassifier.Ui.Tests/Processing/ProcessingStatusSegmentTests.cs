@@ -34,6 +34,27 @@ public sealed class ProcessingStatusSegmentTests
     }
 
     [Fact]
+    public void Segment_ShowsWhileProcessingWaitsForResume_AndHidesAfterwards()
+    {
+        var progress = new FakeJobProgress();
+        var jobs = new PausedJobSystem();
+        var clock = new ManualTimeProvider();
+        using var feed = new ProgressFeed(progress, clock, action => action());
+        var statusBar = new StatusBarViewModel([new ProcessingStatusSegment(feed, Localizer.Current, jobs: jobs)]);
+        var segment = Assert.Single(statusBar.Right);
+
+        // A paused start still has its unfinished jobs in the counters.
+        progress.Set(Summary(Job("Analyze 20 items", null, new StageProgress("custom", 20, 0, 0, false))));
+        Assert.True(segment.IsVisible);
+        Assert.Equal("Processing paused", segment.Text);
+
+        jobs.Resume();
+        progress.Set(ProgressSummary.Empty);
+        clock.Advance(ProgressFeed.Interval);
+        Assert.False(segment.IsVisible);
+    }
+
+    [Fact]
     public void Details_SayHowManyAreRetrying_BeforeAnyFailure()
     {
         var job = Job("Analyze photos", null, new StageProgress("custom", 10, 4, 0, false)) with { Retrying = 3 };

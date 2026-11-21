@@ -4,7 +4,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
-using MediaFileClassifier.Testing.Hardware;
+using MediaFileClassifier.Testing.Settings;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
@@ -57,8 +57,8 @@ public sealed class JobRetentionTests : IAsyncLifetime
         await bed.Library.Jobs.AddJobAsync(waiting, [WorkItem.Create(waiting.Id, null, "other", ResourcePool.Cpu, 0, null, LibraryTestBed.Start)], Token);
         using var system = new JobSystem(
             [new TestStageHandler("stage", ResourcePool.Cpu)],
-            new FixedSettings(),
-            new FakeHardwareInfo(defaultParallelism: 1, cpuCores: 1, memoryBytes: 8L << 30),
+            () => new InMemorySettingsStore(),
+            new ProcessingSettings(1),
             new JobProgressTracker(TimeProvider.System),
             TimeProvider.System,
             NullLogger<JobSystem>.Instance,
@@ -80,14 +80,5 @@ public sealed class JobRetentionTests : IAsyncLifetime
         var running = await bed.Library.Jobs.StartAsync(item, finishedAt, Token);
         await bed.Library.Jobs.FinishAsync(running!.ChangeState(WorkItemState.Completed, finishedAt), finishedAt, Token);
         return job.Id;
-    }
-
-    private sealed class FixedSettings : ISettingsService
-    {
-        public AppSettings Current { get; private set; } = new();
-
-        public void Save(AppSettings settings) => Current = settings;
-
-        public AppSettings Update(Func<AppSettings, AppSettings> change) => Current = change(Current);
     }
 }

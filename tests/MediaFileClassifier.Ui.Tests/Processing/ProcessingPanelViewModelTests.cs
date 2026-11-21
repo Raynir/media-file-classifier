@@ -66,6 +66,28 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Resume_AfterTheLibraryOpenedPaused_StartsTheWork_AndTheNoticeGoes()
+    {
+        var jobs = new PausedJobSystem();
+        var paused = new ProcessingPanelViewModel(sender, feed, Localizer.Current, platform, jobs: jobs);
+        await paused.RefreshAsync(Token);
+        Assert.True(paused.IsPaused);
+
+        await paused.ResumeCommand.ExecuteAsync(null);
+
+        Assert.Equal(1, jobs.ResumeCount);
+        Assert.False(paused.IsPaused);
+    }
+
+    [Fact]
+    public async Task Refresh_WithoutAPausedScheduler_ShowsNoResume()
+    {
+        await panel.RefreshAsync(Token);
+
+        Assert.False(panel.IsPaused);
+    }
+
+    [Fact]
     public async Task Refresh_WithoutJobs_IsEmpty()
     {
         await panel.RefreshAsync(Token);

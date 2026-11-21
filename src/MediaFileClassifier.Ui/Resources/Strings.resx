@@ -1632,6 +1632,54 @@
   <data name="Setting_RestoreFilters_Help" xml:space="preserve">
     <value>When on, the filters you had set when you last used a library come back when it opens.</value>
   </data>
+  <data name="Setting_IoConcurrency" xml:space="preserve">
+    <value>File reading jobs at once</value>
+  </data>
+  <data name="Setting_IoConcurrency_Help" xml:space="preserve">
+    <value>How many jobs that read files (scanning, fingerprints) run at the same time. Takes effect at once.</value>
+  </data>
+  <data name="Setting_CpuConcurrency" xml:space="preserve">
+    <value>Thumbnail and image jobs at once</value>
+  </data>
+  <data name="Setting_CpuConcurrency_Help" xml:space="preserve">
+    <value>How many processor-heavy jobs (thumbnails, decoding) run at the same time. The default fits this computer. Takes effect at once.</value>
+  </data>
+  <data name="Setting_AiConcurrency" xml:space="preserve">
+    <value>AI analysis jobs at once</value>
+  </data>
+  <data name="Setting_AiConcurrency_Help" xml:space="preserve">
+    <value>How many AI analysis jobs run at the same time. More needs more memory. Takes effect at once.</value>
+  </data>
+  <data name="Setting_ResumeOnOpen" xml:space="preserve">
+    <value>When a library opens with unfinished work</value>
+  </data>
+  <data name="Setting_ResumeOnOpen_Help" xml:space="preserve">
+    <value>Continue the work at once, or wait until you start it with Resume processing. While it waits, new work waits too. Applies the next time a library opens.</value>
+  </data>
+  <data name="Setting_ResumeOnOpen_Automatic" xml:space="preserve">
+    <value>Continue automatically</value>
+  </data>
+  <data name="Setting_ResumeOnOpen_Ask" xml:space="preserve">
+    <value>Wait until I start it</value>
+  </data>
+  <data name="Setting_ConfirmQuit" xml:space="preserve">
+    <value>Ask before quitting while processing</value>
+  </data>
+  <data name="Setting_ConfirmQuit_Help" xml:space="preserve">
+    <value>When on, closing the app while work is pending asks first. The work continues the next time the library opens.</value>
+  </data>
+  <data name="Setting_ShowFileNames" xml:space="preserve">
+    <value>Show file names under tiles</value>
+  </data>
+  <data name="Setting_ShowFileNames_Help" xml:space="preserve">
+    <value>When off, tiles show only the type and size under the thumbnail.</value>
+  </data>
+  <data name="Setting_InformationalNotifications" xml:space="preserve">
+    <value>Show informational notifications</value>
+  </data>
+  <data name="Setting_InformationalNotifications_Help" xml:space="preserve">
+    <value>Short messages such as "Analysis finished". Errors and warnings always show.</value>
+  </data>
   <data name="Setting_LastFilters" xml:space="preserve">
     <value>Last filters</value>
   </data>
@@ -1916,6 +1964,15 @@
   <data name="Command_ProcessingQueue" xml:space="preserve">
     <value>_Processing queue</value>
     <comment>View menu: opens the window with the running, queued and finished background jobs.</comment>
+  </data>
+  <data name="Processing_Paused" xml:space="preserve">
+    <value>Processing is paused until you start it.</value>
+  </data>
+  <data name="Processing_PausedStatus" xml:space="preserve">
+    <value>Processing paused</value>
+  </data>
+  <data name="Processing_Resume" xml:space="preserve">
+    <value>Resume processing</value>
   </data>
   <data name="Processing_Title" xml:space="preserve">
     <value>Processing queue</value>

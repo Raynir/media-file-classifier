@@ -77,7 +77,16 @@
 
   <!-- Provisional processing panel (D095): Figma has no screen for it, so it follows the app's existing styles. -->
   <Grid Margin="{DynamicResource Padding.Panel}" RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource Space.S}">
-    <TextBlock Grid.Row="0" Classes="Title" Text="{l:Loc Processing_Title}" />
+    <DockPanel Grid.Row="0">
+      <!-- The library opened with unfinished work and "wait until I start it" is chosen in the settings. -->
+      <Border DockPanel.Dock="Right" Classes="Panel" Padding="{DynamicResource Padding.Control}" IsVisible="{Binding IsPaused}">
+        <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+          <TextBlock Text="{l:Loc Processing_Paused}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="260" />
+          <Button Classes="accent" Content="{l:Loc Processing_Resume}" Command="{Binding ResumeCommand}" />
+        </StackPanel>
+      </Border>
+      <TextBlock Classes="Title" Text="{l:Loc Processing_Title}" VerticalAlignment="Center" />
+    </DockPanel>
 
     <Panel Grid.Row="1">
       <TextBlock Classes="Secondary"

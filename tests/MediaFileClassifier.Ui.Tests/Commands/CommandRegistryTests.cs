@@ -115,6 +115,26 @@ public sealed class CommandRegistryTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_ReevaluatesTheContextSoAStaleMenuStateDoesNotBlockAShortcut()
+    {
+        var registry = CreateRegistry();
+        var hasSelection = false;
+        var runs = 0;
+        var command = registry.Add(new AppCommand("item.test", CommandGroups.Item, 1, "App_Title", () => runs++)
+        {
+            AppliesTo = () => hasSelection,
+        });
+        registry.Refresh();
+        Assert.False(command.IsEnabled);
+
+        hasSelection = true;
+        await command.ExecuteAsync();
+
+        Assert.Equal(1, runs);
+        Assert.True(command.IsEnabled);
+    }
+
+    [Fact]
     public void AppliesTo_IsNotEvaluatedWhenTheCommandIsAdded()
     {
         var registry = CreateRegistry();

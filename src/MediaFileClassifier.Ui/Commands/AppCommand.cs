@@ -226,7 +226,12 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
     /// Runs the command if it's enabled and applies, so a shortcut doesn't run what a menu would hide.
     /// </summary>
     /// <returns>A task that completes when the handler has finished.</returns>
-    public Task ExecuteAsync() => IsEnabled && IsApplicable ? execute() : Task.CompletedTask;
+    public Task ExecuteAsync()
+    {
+        // Re-evaluate first: the cached state may predate a selection or editor change, and a shortcut must not be refused for it.
+        Refresh();
+        return IsEnabled && IsApplicable ? execute() : Task.CompletedTask;
+    }
 
     /// <inheritdoc />
     ICommand? IMenuEntry.Command => this;
@@ -261,7 +266,7 @@ public sealed class AppCommand : ObservableObject, ICommand, IMenuEntry
         this.capabilities = capabilities;
 
         // Not the applicability rules yet: they may resolve services that need the registry, which is still being built.
-        // The main view refreshes every command once it has loaded, and again whenever a menu opens.
+        // Every command is evaluated again when a menu opens and just before it runs.
         Evaluate(checkContext: false);
     }
 }

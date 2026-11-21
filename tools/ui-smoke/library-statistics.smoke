@@ -5,6 +5,6 @@ library sample
 wait 2s
 shot 01-statusbar
 start view.library-info
-wait-for visible LibraryInfoView
+wait-for dialog
 wait 2s
-shot 02-info-window
+dialog-shot 02-info-window

@@ -131,17 +131,16 @@ public sealed class LibraryDeleterTests
     }
 
     [Fact]
-    public async Task Delete_NoDatabase_ThrowsNotFound_AndDeletesNothing()
+    public async Task Delete_NoDatabaseAndNoLibraryFiles_ThrowsNotFound_AndDeletesNothing()
     {
         using var temporary = TemporaryLibrary.Reserve("Gone");
-        var layout = LibraryLayout.FromDirectory(temporary.LibraryDirectory);
-        var thumbnail = ThumbnailOf(layout, 0x3c);
-        WriteFile(thumbnail);
+        var notes = Path.Combine(temporary.LibraryDirectory, "notes.txt");
+        WriteFile(notes);
 
-        var exception = await Assert.ThrowsAsync<LibraryOpenException>(() => NewDeleter().DeleteAsync(layout.RootDirectory, Token));
+        var exception = await Assert.ThrowsAsync<LibraryOpenException>(() => NewDeleter().DeleteAsync(temporary.LibraryDirectory, Token));
 
         Assert.Equal(LibraryOpenError.NotFound, exception.Error);
-        Assert.True(File.Exists(thumbnail));
+        Assert.True(File.Exists(notes));
     }
 
     [Fact]
@@ -158,6 +157,43 @@ public sealed class LibraryDeleterTests
         Assert.True(File.Exists(layout.DatabasePath));
         Assert.True(File.Exists(thumbnail));
         Assert.False(File.Exists(layout.LockFilePath));
+    }
+
+    [Fact]
+    public async Task Delete_ADeleteCutShort_IsFinished_AndUnknownFilesSurvive()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        var layout = bed.Library.Layout;
+        await bed.Library.DisposeAsync();
+        WriteKnownFiles(layout);
+        File.Delete(layout.DatabasePath);
+        var notes = Path.Combine(layout.RootDirectory, "notes.txt");
+        WriteFile(notes);
+
+        var preview = await NewDeleter().InspectAsync(layout.RootDirectory, Token);
+        var result = await NewDeleter().DeleteAsync(layout.RootDirectory, Token);
+
+        Assert.True(preview.IsPartial);
+        Assert.Equal("test", preview.Name);
+        Assert.Equal(["notes.txt"], result.KeptEntries);
+        Assert.True(File.Exists(notes));
+        Assert.False(Directory.Exists(layout.ThumbnailsDirectory));
+        Assert.False(Directory.Exists(layout.BackupsDirectory));
+        Assert.False(File.Exists(layout.LockFilePath));
+    }
+
+    [Fact]
+    public async Task Delete_AFolderWithoutDatabaseThatIsntAMfcFolder_ThrowsNotFound()
+    {
+        using var temporary = TemporaryLibrary.Reserve("Gone");
+        var folder = Path.Combine(temporary.ParentDirectory, "Photos");
+        var thumbnail = Path.Combine(folder, "thumbnails", "3c", "019a3b2c-0000-7000-8000-00000000003c-256.webp");
+        WriteFile(thumbnail);
+
+        var exception = await Assert.ThrowsAsync<LibraryOpenException>(() => NewDeleter().DeleteAsync(folder, Token));
+
+        Assert.Equal(LibraryOpenError.NotFound, exception.Error);
+        Assert.True(File.Exists(thumbnail));
     }
 
     [Fact]

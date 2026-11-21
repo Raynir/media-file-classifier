@@ -5,7 +5,7 @@ namespace MediaFileClassifier.UseCases.Libraries.DeleteLibrary;
 
 /// <summary>
 /// Gets what the delete confirmation shows about a library (E02-S07): its name and item count, and whether it's the
-/// open library or open in another app instance.
+/// open library or open in another app instance, or partly deleted already.
 /// </summary>
 /// <param name="LibraryDirectory">The <c>&lt;name&gt;.mfc</c> folder.</param>
 public sealed record GetLibraryDeletionInfoQuery(string LibraryDirectory) : IRequest<LibraryDeletionInfo>;
@@ -19,7 +19,13 @@ public sealed record GetLibraryDeletionInfoQuery(string LibraryDirectory) : IReq
 /// <param name="IsOpen">Whether it's the library open in this app instance, which deleting closes.</param>
 /// <param name="Error">Why it can't be deleted, e.g. <see cref="LibraryOpenError.InUse"/> when another instance has it
 /// open, or <c>null</c> if it can.</param>
-public sealed record LibraryDeletionInfo(string LibraryDirectory, string? Name, int ItemCount, bool IsOpen, LibraryOpenError? Error);
+public sealed record LibraryDeletionInfo(string LibraryDirectory, string? Name, int ItemCount, bool IsOpen, LibraryOpenError? Error)
+{
+    /// <summary>
+    /// Gets a value indicating whether a delete was cut short: the database is gone and deleting finishes the rest.
+    /// </summary>
+    public bool IsPartial { get; init; }
+}
 
 /// <summary>
 /// Handles <see cref="GetLibraryDeletionInfoQuery"/>.
@@ -44,7 +50,7 @@ public sealed class GetLibraryDeletionInfoQueryHandler(ILibrarySession session, 
         try
         {
             var preview = await deleter.InspectAsync(directory, cancellationToken).ConfigureAwait(false);
-            return new LibraryDeletionInfo(directory, preview.Name, preview.ItemCount, IsOpen: false, Error: null);
+            return new LibraryDeletionInfo(directory, preview.Name, preview.ItemCount, IsOpen: false, Error: null) { IsPartial = preview.IsPartial };
         }
         catch (LibraryOpenException exception)
         {

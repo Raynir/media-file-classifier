@@ -78,8 +78,28 @@ internal sealed partial class LibraryDeleter(TimeProvider timeProvider, ILogger<
         }
     }
 
+    /// <summary>
+    /// Checks whether a delete was cut short: the folder is a <c>.mfc</c> folder without a database, but some of the
+    /// library's other files are still there.
+    /// </summary>
+    private static bool IsPartlyDeleted(LibraryLayout layout) =>
+        !File.Exists(layout.DatabasePath)
+        && layout.RootDirectory.EndsWith(LibraryLayout.Extension, StringComparison.OrdinalIgnoreCase)
+        && (File.Exists(layout.LockFilePath)
+            || Directory.Exists(layout.ThumbnailsDirectory)
+            || Directory.Exists(layout.BackupsDirectory)
+            || LibraryFiles.DatabaseFileNames.Skip(1).Any(name => File.Exists(Path.Combine(layout.RootDirectory, name))));
+
     private LibraryDeletionPreview Inspect(LibraryLayout layout)
     {
+        if (IsPartlyDeleted(layout))
+        {
+            using (LibraryLock.Acquire(layout, timeProvider.GetUtcNow()))
+            {
+                return new LibraryDeletionPreview(Path.GetFileNameWithoutExtension(layout.RootDirectory), 0) { IsPartial = true };
+            }
+        }
+
         // Read before the lock, so a folder that isn't a library doesn't get a lock file.
         var preview = Read(layout);
         using var heldLock = LibraryLock.Acquire(layout, timeProvider.GetUtcNow());
@@ -88,21 +108,34 @@ internal sealed partial class LibraryDeleter(TimeProvider timeProvider, ILogger<
 
     private LibraryDeletionResult Delete(LibraryLayout layout)
     {
-        Read(layout);
+        var partial = IsPartlyDeleted(layout);
+        if (!partial)
+        {
+            Read(layout);
+        }
+
         var failed = 0;
         using (LibraryLock.Acquire(layout, timeProvider.GetUtcNow()))
         {
-            try
+            if (partial)
             {
-                File.Delete(layout.DatabasePath);
+                LogFinishing(layout.RootDirectory);
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            else
             {
-                // Still a whole library: give up before anything else goes.
-                throw new LibraryOpenException(LibraryOpenError.NotWritable, layout.RootDirectory, exception);
+                try
+                {
+                    File.Delete(layout.DatabasePath);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    // Still a whole library: give up before anything else goes.
+                    throw new LibraryOpenException(LibraryOpenError.NotWritable, layout.RootDirectory, exception);
+                }
+
+                LogDatabaseDeleted(layout.RootDirectory);
             }
 
-            LogDatabaseDeleted(layout.RootDirectory);
             foreach (var name in LibraryFiles.DatabaseFileNames.Skip(1))
             {
                 failed += TryDeleteFile(Path.Combine(layout.RootDirectory, name));
@@ -242,6 +275,9 @@ internal sealed partial class LibraryDeleter(TimeProvider timeProvider, ILogger<
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleting library {Directory}: its database is deleted")]
     private partial void LogDatabaseDeleted(string directory);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Finishing the delete of library {Directory}, whose database is already gone")]
+    private partial void LogFinishing(string directory);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleted library {Directory}; folder removed: {Removed}, entries kept: {Kept}")]
     private partial void LogDeleted(string directory, bool removed, int kept);

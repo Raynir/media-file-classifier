@@ -58,6 +58,7 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 
 - **Never recursive:** each delete is of one named file, or of a folder that's already empty. A folder that is a link (junction or symbolic link) isn't looked into.
 - **Order:** the database is read first, so a `library.db` that isn't a library gives `NotALibrary` and nothing is deleted. Then the lock is taken, so a library open in another instance gives `InUse`. The database goes next; if it can't be deleted, nothing is (`NotWritable`). Then the side files, thumbnails and backups, then the lock file, and last the library folder if it's empty. Files that can't be deleted after the database are logged and listed as kept.
+- **Cut short:** if the app stops after the database is deleted, the `.mfc` folder keeps some library files and no database. Deleting it again finishes the job: the confirmation says so, and only the known files above go.
 - **Confirmation data:** `InspectAsync` reads a closed library's name and item count with plain SQL while holding the lock, so looking doesn't migrate it.
 - A new file the app writes into the library folder must be added to `LibraryFiles`, or deleting a library leaves it behind.
 

@@ -9,7 +9,9 @@ public interface ILibraryDeleter
 {
     /// <summary>
     /// Reads what the confirmation shows about a closed library: its name and item count. The lock is taken while it's
-    /// read, so a library open in another app instance is reported.
+    /// read, so a library open in another app instance is reported. A <c>.mfc</c> folder whose database is gone but
+    /// which still has library files, after a delete that was cut short, is reported as
+    /// <see cref="LibraryDeletionPreview.IsPartial"/>, named after its folder.
     /// </summary>
     /// <param name="libraryDirectory">The <c>&lt;name&gt;.mfc</c> folder.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -20,7 +22,8 @@ public interface ILibraryDeleter
 
     /// <summary>
     /// Deletes the known files of a closed library, then the library folder if nothing else is left in it. The caller
-    /// closes the library first. Once the database is deleted the rest is deleted too, whatever the token says.
+    /// closes the library first. Once the database is deleted the rest is deleted too, whatever the token says. A partly
+    /// deleted library (see <see cref="InspectAsync"/>) has its remaining known files deleted.
     /// </summary>
     /// <param name="libraryDirectory">The <c>&lt;name&gt;.mfc</c> folder.</param>
     /// <param name="cancellationToken">Cancellation token, honoured until deleting starts.</param>
@@ -36,7 +39,13 @@ public interface ILibraryDeleter
 /// </summary>
 /// <param name="Name">The library's name.</param>
 /// <param name="ItemCount">How many items the library has indexed, excluded ones included.</param>
-public sealed record LibraryDeletionPreview(string Name, int ItemCount);
+public sealed record LibraryDeletionPreview(string Name, int ItemCount)
+{
+    /// <summary>
+    /// Gets a value indicating whether the library's database is already gone and only its other files are left.
+    /// </summary>
+    public bool IsPartial { get; init; }
+}
 
 /// <summary>
 /// What deleting a library left behind.

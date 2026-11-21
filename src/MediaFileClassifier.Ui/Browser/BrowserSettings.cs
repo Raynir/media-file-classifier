@@ -16,4 +16,12 @@ public static class BrowserSettings
         HelpKey = "Setting_ShowFileNames_Help",
         Order = 100,
     };
+
+    /// <summary>
+    /// The list view's column setup (E14-S02-T02), as <see cref="ViewModels.Browser.ListColumnsViewModel.Serialize"/>
+    /// writes it; empty for the default setup. It isn't registered, so the Settings window doesn't show it; the list
+    /// header changes it.
+    /// </summary>
+    public static readonly TextSetting ListColumns = new(
+        "browse.listColumns", SettingScope.App, SettingCategories.Appearance, "Setting_ListColumns", string.Empty);
 }

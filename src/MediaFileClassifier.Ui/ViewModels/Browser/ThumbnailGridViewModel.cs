@@ -154,7 +154,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
         selection.KnownId = index => pages.Get(index)?.Id;
         selection.Changed += (_, _) => UpdateTileStates();
         Rows = new ThumbnailRowList(CreateRow);
-        ListColumns = new ListColumnsViewModel();
+        ListColumns = new ListColumnsViewModel(settings);
         refreshTimer = new DispatcherTimer { Interval = RefreshDelay };
         refreshTimer.Tick += (_, _) =>
         {
@@ -339,6 +339,7 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
 
         jobs.Current?.Boost([]);
         boosted = [];
+        ListColumns.SaveNow();
         pages.Invalidate(0);
         Count = 0;
         selection.Reset(0);

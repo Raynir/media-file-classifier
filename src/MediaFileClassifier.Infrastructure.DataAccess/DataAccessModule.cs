@@ -40,6 +40,7 @@ public static class DataAccessModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.TagsFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.OutdatedAnalysisFilter>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.NewSuggestionsFilter>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IFilterDefinition, Search.Filters.HideOfflineFilter>());
         return services;
     }
 }

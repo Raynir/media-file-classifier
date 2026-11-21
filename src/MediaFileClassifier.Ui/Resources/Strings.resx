@@ -1801,6 +1801,9 @@
   <data name="Filter_NewSuggestions" xml:space="preserve">
     <value>Has new AI suggestions</value>
   </data>
+  <data name="Filter_HideOffline" xml:space="preserve">
+    <value>Hide offline items</value>
+  </data>
   <data name="Filter_Status" xml:space="preserve">
     <value>Processing status</value>
   </data>

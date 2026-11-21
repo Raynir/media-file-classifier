@@ -63,7 +63,7 @@ Turning the hidden toggle off doesn't mark hidden items Excluded yet, because th
 
 A folder is **Offline** when its root can't be listed: the drive or share is gone, the folder was deleted or moved, or access is denied (`IMediaFileSource.IsAvailableAsync`). `CheckFolderAvailabilityCommand` checks the folders and updates their status; it runs when a library opens, when the folders dialog opens, and for each folder before it's imported, where an Offline folder isn't queued. A folder goes back Online as soon as a check succeeds. There's no polling: live monitoring is E04.
 
-Offline items stay as they are, with their metadata, and are never marked Missing because their root can't be reached (D025). The browser shows them dimmed with an Offline badge (E14-S07).
+Offline items stay as they are, with their metadata, and are never marked Missing because their root can't be reached (D025). The browser shows them dimmed with an Offline badge (E14-S07). The filter panel's "Hide offline items" check box (`HideOfflineFilter`, id `hide-offline`, off by default) leaves them out in every search mode, and is saved with the filter state and saved searches like any filter.
 
 Each folder stores the label of the volume it's on (`IndexedFolder.VolumeLabel`, library schema 16, `IMediaFileSource.GetVolumeLabelAsync`). It's read when the folder is added and again on every availability check that finds it Online, and kept while it's Offline, so the badge, tooltip and details panel can name the drive to connect: "Offline: drive 'Backup-2TB' (E:\Photos)". An unlabelled drive is named by its letter and a network share by `\\server\share`; on Android, which has no labels, only the folder is named.
 

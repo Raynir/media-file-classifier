@@ -261,10 +261,34 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
             }
         }
 
-        OnChanged();
-        if (finished is not null)
+        try
         {
-            JobFinished?.Invoke(this, finished);
+            OnChanged();
+        }
+        finally
+        {
+            // The job has left the list, so nothing else would report it: a failing Changed handler must not lose it.
+            if (finished is not null)
+            {
+                RaiseJobFinished(finished);
+            }
+        }
+    }
+
+    // Each listener runs on its own, so one that throws can't stop the others or break the job system's bookkeeping.
+    private void RaiseJobFinished(JobFinishedEventArgs e)
+    {
+        foreach (var handler in JobFinished?.GetInvocationList() ?? [])
+        {
+#pragma warning disable CA1031 // A notification listener must never break job bookkeeping.
+            try
+            {
+                ((EventHandler<JobFinishedEventArgs>)handler)(this, e);
+            }
+            catch (Exception)
+            {
+            }
+#pragma warning restore CA1031
         }
     }
 

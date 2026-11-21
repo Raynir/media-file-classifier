@@ -119,6 +119,30 @@ public sealed class JobProgressTrackerTests
     }
 
     [Fact]
+    public void AFailingChangedHandler_OrJobFinishedHandler_DoesNotLoseTheEventForOthers()
+    {
+        var finished = new List<JobFinishedEventArgs>();
+        tracker.JobFinished += (_, _) => throw new InvalidOperationException("first listener fails");
+        tracker.JobFinished += (_, e) => finished.Add(e);
+        var job = NewJob();
+        var items = Items(job, "stage", 1);
+        tracker.AddWork(job, items);
+        var failOnChange = false;
+        tracker.Changed += (_, _) =>
+        {
+            if (failOnChange)
+            {
+                throw new InvalidOperationException("status bar fails");
+            }
+        };
+
+        failOnChange = true;
+        Assert.Throws<InvalidOperationException>(() => Finish(job with { State = ProcessingJobState.Completed }, items[0], WorkItemState.Completed));
+
+        Assert.Single(finished);
+    }
+
+    [Fact]
     public void ACancelledJob_AndAClearedTracker_ReportNothing()
     {
         var finished = new List<JobFinishedEventArgs>();

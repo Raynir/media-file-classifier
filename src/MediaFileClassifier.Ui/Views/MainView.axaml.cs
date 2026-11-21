@@ -1,7 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 
@@ -27,6 +29,54 @@ public partial class MainView : UserControl
     }
 
     private DropImportViewModel? Drops => (DataContext as MainWindowViewModel)?.Drops;
+
+    private ShellLayout? Layout => (DataContext as MainWindowViewModel)?.Layout;
+
+    /// <inheritdoc />
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        Layout?.UpdateWidth(e.NewSize.Width);
+    }
+
+    /// <inheritdoc />
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        Layout?.UpdateWidth(Bounds.Width);
+    }
+
+    /// <inheritdoc />
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        // On the window, so Escape works wherever the focus is, also when it's on the window itself.
+        TopLevel.GetTopLevel(this)?.AddHandler(KeyDownEvent, OnWindowKeyDown);
+    }
+
+    /// <inheritdoc />
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        TopLevel.GetTopLevel(this)?.RemoveHandler(KeyDownEvent, OnWindowKeyDown);
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        // Escape closes an open drawer (E13-S07), unless something inside, such as a menu or the search box, took it.
+        if (!e.Handled && e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None && Layout is { IsAnyDrawerOpen: true } layout)
+        {
+            layout.CloseDrawers();
+            e.Handled = true;
+        }
+    }
+
+    private void OnScrimPressed(object? sender, PointerPressedEventArgs e)
+    {
+        Layout?.CloseDrawers();
+        e.Handled = true;
+    }
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {

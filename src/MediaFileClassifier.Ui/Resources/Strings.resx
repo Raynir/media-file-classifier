@@ -1291,10 +1291,7 @@
     <value>Cancel</value>
   </data>
   <data name="ModelImport_Title" xml:space="preserve">
-    <value>Import the search model files</value>
-  </data>
-  <data name="ModelImport_FileType" xml:space="preserve">
-    <value>Model files</value>
+    <value>Choose the folder that contains the model files</value>
   </data>
   <data name="Search_Placeholder" xml:space="preserve">
     <value>Search</value>

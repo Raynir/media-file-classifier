@@ -15,8 +15,9 @@ public interface IModelDialogs
     Task<bool> ConfirmDownloadAsync(ModelOffer offer);
 
     /// <summary>
-    /// Asks the user for a model's files, to import them.
+    /// Asks the user for the folder that holds a model's files, and returns the model files in it. The use case matches them
+    /// to the catalogue by name, and names the files that are missing.
     /// </summary>
-    /// <returns>The picked files' paths, or an empty list if the user cancelled.</returns>
-    Task<IReadOnlyList<string>> PickModelFilesAsync();
+    /// <returns>The model files' paths (an empty list when the folder has none), or <see langword="null"/> if the user cancelled.</returns>
+    Task<IReadOnlyList<string>?> PickModelFilesAsync();
 }

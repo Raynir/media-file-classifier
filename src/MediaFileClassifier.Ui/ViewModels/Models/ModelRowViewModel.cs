@@ -285,7 +285,7 @@ public sealed partial class ModelRowViewModel : ViewModelBase, IDisposable
         }
 
         var paths = await dialogs.PickModelFilesAsync();
-        if (paths.Count == 0)
+        if (paths is null)
         {
             return;
         }

@@ -1,0 +1,27 @@
+# Default shortcuts smoke script (MFC-130): presses a few of the keymap's shortcuts in the real app.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/default-shortcuts.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+# Ctrl+F moves the focus to the search box; typing searches; F5 runs the search again without losing the text.
+focus Scroller
+key Ctrl+F
+type jpeg
+wait 600ms
+shot 01-ctrl-f-search
+key F5
+wait 600ms
+
+# Ctrl+1 hides the navigation panel, Ctrl+2 hides the details panel; F1 opens the shortcut reference.
+key Ctrl+1
+key Ctrl+2
+wait 400ms
+shot 02-panels-toggled
+key Ctrl+1
+key Ctrl+2
+key F1
+wait 600ms
+shot 03-shortcut-reference
+key F1

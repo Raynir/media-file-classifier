@@ -2837,5 +2837,53 @@
   </data>
   <data name="List_Column_Resize" xml:space="preserve">
     <value>Resize column</value>
+  <data name="LibrarySection_InformationHeading" xml:space="preserve">
+    <value>Library information</value>
+  </data>
+  <data name="LibrarySection_FoldersHeading" xml:space="preserve">
+    <value>Indexed folders</value>
+  </data>
+  <data name="LibrarySection_MaintenanceHeading" xml:space="preserve">
+    <value>Maintenance</value>
+  </data>
+  <data name="LibrarySection_ExcludedHeading" xml:space="preserve">
+    <value>Excluded items</value>
+  </data>
+  <data name="LibrarySection_NoLibrary" xml:space="preserve">
+    <value>Open a library to see this.</value>
+  </data>
+  <data name="LibrarySection_Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="LibrarySection_Reveal" xml:space="preserve">
+    <value>Reveal</value>
+  </data>
+  <data name="LibrarySection_CopyPath" xml:space="preserve">
+    <value>Copy path</value>
+  </data>
+  <data name="LibrarySection_RefreshIndexHint" xml:space="preserve">
+    <value>Rebuilds the keyword and vector indexes from the stored data.</value>
+  </data>
+  <data name="LibrarySection_RegenerateThumbnailsHint" xml:space="preserve">
+    <value>Makes the thumbnails again, either only the missing ones or all.</value>
+  </data>
+  <data name="LibrarySection_CheckIntegrityHint" xml:space="preserve">
+    <value>Checks the library database for damage.</value>
+  </data>
+  <data name="DropImport_Title" xml:space="preserve">
+    <value>Drop to import</value>
+  </data>
+  <data name="DropImport_Hint" xml:space="preserve">
+    <value>Files are imported. Folders are added to the library.</value>
+  </data>
+  <data name="DropImport_Folders" xml:space="preserve">
+    <value>{0} folders added.</value>
+    <comment>{0} is a number of folders, more than one.</comment>
+  </data>
+  <data name="DropImport_FoldersOne" xml:space="preserve">
+    <value>1 folder added.</value>
+  </data>
+  <data name="DropImport_Failed" xml:space="preserve">
+    <value>The dropped files couldn't be imported.</value>
   </data>
 </root>

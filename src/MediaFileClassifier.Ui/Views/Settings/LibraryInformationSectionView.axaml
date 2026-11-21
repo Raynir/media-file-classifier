@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Settings"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Settings.LibraryInformationSectionView"
+             x:DataType="vm:LibraryInformationSectionViewModel">
+  <!-- The library's location with Reveal and Copy path, then the shared statistics view. -->
+  <StackPanel Spacing="{DynamicResource Space.M}">
+    <StackPanel Spacing="{DynamicResource Space.XS}" IsVisible="{Binding HasLibrary}">
+      <TextBlock Classes="Caption" Text="{l:Loc LibrarySection_Location}" />
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource Space.S}">
+        <TextBlock Text="{Binding Location}"
+                   VerticalAlignment="Center"
+                   TextTrimming="{x:Static TextTrimming.PrefixCharacterEllipsis}"
+                   ToolTip.Tip="{Binding Location}"
+                   AutomationProperties.Name="{l:Loc LibrarySection_Location}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+          <Button x:Name="RevealButton"
+                  Content="{l:Loc LibrarySection_Reveal}"
+                  Command="{Binding RevealCommand}"
+                  IsVisible="{Binding CanReveal}" />
+          <Button x:Name="CopyPathButton" Content="{l:Loc LibrarySection_CopyPath}" Command="{Binding CopyPathCommand}" />
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+    <ContentControl Content="{Binding Info}" />
+  </StackPanel>
+</UserControl>

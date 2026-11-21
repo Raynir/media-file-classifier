@@ -134,8 +134,11 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `setting <key> <value>` | Sets a registered setting through the settings store, e.g. `setting appearance.showFileNames false`; the value is JSON (`true`, `3`) or plain text for a choice or text setting. Fails for an unknown key or an invalid value. |
 | `start <id>` | Runs an app command without waiting for it, for a command that opens a modal dialog, e.g. `start item.remove`. |
 | `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`. Fails if it's disabled. |
+| `dialog-size <w>x<h>` | Sizes the open dialog or settings window, e.g. to show a long page whole (MFC-133). |
 | `dialog-shot <name>` | Saves `<name>.png` of the open dialog. |
-| `dialog-select <folder>` | Selects the folder with that name in the open folders dialog's list, as a click does (MFC-124). |
+| `dialog-select <folder>` | Selects the folder with that name in the open folders dialog's list, as a click does (MFC-124). In the settings window it selects a sidebar category by its ID, e.g. `dialog-select Library` (MFC-133). |
+| `drag-over on|off` | Shows or hides the drop overlay as dragging over the window does (MFC-125). |
+| `drop <items>` | Copies those sample files, and a folder with two files for `folder:<name>`, to `<data folder>\dropped` and runs the drop path with them, as dropping from File Explorer does; not awaited, since a folder opens the folders dialog (MFC-125). |
 | `import-files <files>` | Copies those files from `tests/SampleMedia` to `<data folder>\picked` and imports them as picked files, without waiting for the result message (MFC-124). |
 | `capability video-playback on\|off` | Turns the VideoPlayback capability on or off, to see the default-app fallback (D026). |
 | `damage-library` | Backs up the open library's database as a migration backup, then writes garbage over an index page and opens the library again, so the integrity check finds damage (MFC-121). |

@@ -7,8 +7,8 @@ changes metadata or embeddings, and none starts AI analysis (that's E06). The la
 ## Where they are
 
 The three actions are commands in the Library command group, so they show in the Library menu and the command
-palette, after Retry failed items. They are `AppCommand`s, so the Settings "Library" page (MFC-133) can show them as
-buttons too. Each is disabled with "Open a library first" when no library is open.
+palette, after Retry failed items. They are `AppCommand`s, so the Settings "Library" page shows them as
+buttons too (MFC-133, `LibraryMaintenanceSectionViewModel`). Each is disabled with "Open a library first" when no library is open.
 
 | Command | ID | What it does |
 |---|---|---|

@@ -61,11 +61,21 @@ public sealed class LibraryDialogs(Func<CreateLibraryViewModel> createLibrary, F
     /// </summary>
     /// <param name="dropped">Folders dropped on the navigation panel, or <c>null</c>.</param>
     /// <returns>A task that completes when the dialog closes.</returns>
-    public async Task ShowIndexedFoldersAsync(IReadOnlyList<FolderHandle>? dropped = null)
+    public async Task ShowIndexedFoldersAsync(IReadOnlyList<FolderHandle>? dropped = null) => await ShowFoldersAsync(dropped);
+
+    /// <summary>
+    /// Shows the indexed folders dialog with dropped folders added (E03-S06), and says how many folders were added by the
+    /// time it closed.
+    /// </summary>
+    /// <param name="dropped">The dropped folders.</param>
+    /// <returns>The number of folders added while the dialog was open.</returns>
+    public Task<int> AddDroppedFoldersAsync(IReadOnlyList<FolderHandle> dropped) => ShowFoldersAsync(dropped);
+
+    private async Task<int> ShowFoldersAsync(IReadOnlyList<FolderHandle>? dropped)
     {
         if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
         {
-            return;
+            return 0;
         }
 
         var viewModel = indexedFolders();
@@ -100,5 +110,7 @@ public sealed class LibraryDialogs(Func<CreateLibraryViewModel> createLibrary, F
             timer.Stop();
             Closed?.Invoke(this, EventArgs.Empty);
         }
+
+        return viewModel.AddedCount;
     }
 }

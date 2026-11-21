@@ -84,10 +84,14 @@ public sealed record TileBadge(string Kind, Geometry? Icon, string Label, string
     private static TileBadge Create(string kind, string iconKey, string labelKey, string? detail)
     {
         var label = Localizer.Current[labelKey];
-        if (!Icons.TryGetValue(iconKey, out var icon))
+        if (!Icons.TryGetValue(iconKey, out var icon) || icon is null)
         {
+            // A miss isn't kept: before the app's resources load (e.g. a test outside the app) there's no icon yet.
             icon = Application.Current?.TryGetResource(iconKey, null, out var resource) == true ? resource as Geometry : null;
-            Icons[iconKey] = icon;
+            if (icon is not null)
+            {
+                Icons[iconKey] = icon;
+            }
         }
 
         return new TileBadge(kind, icon, label, string.IsNullOrWhiteSpace(detail) ? label : $"{label}: {detail}");

@@ -27,7 +27,6 @@ public sealed class ThumbnailRowsControl : ItemsControl
         set => SetValue(TileTemplateProperty, value);
     }
 
-    /// <inheritdoc />
     static ThumbnailRowsControl()
     {
         // Rows on screen take a new template at once; recycled ones take it when they're prepared again.
@@ -40,6 +39,7 @@ public sealed class ThumbnailRowsControl : ItemsControl
         });
     }
 
+    /// <inheritdoc />
     protected override Type StyleKeyOverride => typeof(ItemsControl);
 
     /// <inheritdoc />

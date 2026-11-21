@@ -194,7 +194,7 @@ public sealed partial class ListColumnsViewModel : ViewModelBase
                 settings.SetValue(BrowserSettings.ListColumns, text);
             }
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // The setup is a convenience; the next change tries again.
         }

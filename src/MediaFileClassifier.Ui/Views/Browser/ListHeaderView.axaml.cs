@@ -205,7 +205,7 @@ public partial class ListHeaderView : UserControl
 
             e.Handled = true;
         }
-        else if (column.IsSortable && ColumnOf(e.Source) == column)
+        else if (column.IsSortable && ColumnAt(columns, x) == column)
         {
             SortRequested?.Invoke(this, column);
             e.Handled = true;

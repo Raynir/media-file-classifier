@@ -617,9 +617,16 @@ public sealed partial class ThumbnailGridViewModel : ViewModelBase
             ScrollRequested?.Invoke(this, 0);
         }
 
-        if (settings is not null && settings.Get(BrowserSettings.ListView) != value)
+        try
         {
-            settings.SetValue(BrowserSettings.ListView, value);
+            if (settings is not null && settings.Get(BrowserSettings.ListView) != value)
+            {
+                settings.SetValue(BrowserSettings.ListView, value);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The view is a convenience; the next switch tries again.
         }
     }
 

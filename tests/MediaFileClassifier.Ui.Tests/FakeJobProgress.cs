@@ -11,6 +11,8 @@ internal sealed class FakeJobProgress : IJobProgress
 
     public event EventHandler? Changed;
 
+    public event EventHandler<JobFinishedEventArgs>? JobFinished;
+
     public int Reads { get; private set; }
 
     public ProgressSummary Current
@@ -31,4 +33,10 @@ internal sealed class FakeJobProgress : IJobProgress
         current = summary;
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>
+    /// Raises <see cref="JobFinished"/>.
+    /// </summary>
+    /// <param name="args">What the job did.</param>
+    public void Finish(JobFinishedEventArgs args) => JobFinished?.Invoke(this, args);
 }

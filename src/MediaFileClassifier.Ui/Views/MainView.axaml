@@ -7,7 +7,8 @@
              xmlns:vn="using:MediaFileClassifier.Ui.Views.Notifications"
              xmlns:vmo="using:MediaFileClassifier.Ui.Views.Models"
              x:Class="MediaFileClassifier.Ui.Views.MainView"
-             x:DataType="vm:MainWindowViewModel">
+             x:DataType="vm:MainWindowViewModel"
+             DragDrop.AllowDrop="True">
   <!--
     The shell (E13-S01): navigation on the left, the toolbar over the media browser and details, and the
     details panel on the right, after the Figma screens (D095). Features fill the areas through ShellRegions.
@@ -208,6 +209,29 @@
 
   <!-- Toasts (E15-S01), in the bottom-right corner above the status bar. -->
   <vn:ToastHostView x:Name="ToastHost" DataContext="{Binding Toasts}" />
+
+  <!-- Drop overlay (E03-S06): dims the window while files or folders are dragged over it. -->
+  <Panel x:Name="DropOverlay"
+         IsHitTestVisible="False"
+         Background="{DynamicResource Brush.Scrim}"
+         IsVisible="{Binding Drops.IsDragActive, FallbackValue=False}">
+    <Panel HorizontalAlignment="Center"
+           VerticalAlignment="Center"
+           AutomationProperties.Name="{l:Loc DropImport_Title}">
+      <Border Classes="Panel" CornerRadius="8" />
+      <Rectangle Margin="8"
+                 RadiusX="8"
+                 RadiusY="8"
+                 Stroke="{DynamicResource Brush.Border.Selected}"
+                 StrokeThickness="2"
+                 StrokeDashArray="4,3" />
+      <StackPanel Margin="56,40" Spacing="{DynamicResource Space.S}" HorizontalAlignment="Center">
+        <PathIcon Classes="Large" Data="{StaticResource Icon.FolderAdd}" HorizontalAlignment="Center" />
+        <TextBlock Classes="Title" Text="{l:Loc DropImport_Title}" TextAlignment="Center" />
+        <TextBlock Classes="Secondary" Text="{l:Loc DropImport_Hint}" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="360" />
+      </StackPanel>
+    </Panel>
+  </Panel>
 
   <!-- Shortcut reference (E16-S01-T03), over everything. -->
   <v:ShortcutReferenceView x:Name="ShortcutReference"

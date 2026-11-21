@@ -108,6 +108,7 @@
                         Margin="{DynamicResource Padding.TileInfo}"
                         VerticalAlignment="Center">
               <TextBlock Text="{Binding FileName}"
+                         IsVisible="{Binding ShowFileName}"
                          FontSize="{DynamicResource FontSize.Body}"
                          FontWeight="{DynamicResource FontWeight.Title}"
                          TextTrimming="CharacterEllipsis" />

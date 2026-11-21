@@ -109,6 +109,12 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
     public partial bool IsFocused { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the file name shows under the thumbnail (the Show file names setting).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool ShowFileName { get; set; } = true;
+
+    /// <summary>
     /// Gets a value indicating whether the item's page is still loading.
     /// </summary>
     public bool IsLoading => Item is null;

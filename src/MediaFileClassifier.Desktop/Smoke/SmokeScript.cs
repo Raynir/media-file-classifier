@@ -38,7 +38,7 @@ internal static class SmokeScript
 
     private static readonly HashSet<string> Verbs = new(StringComparer.Ordinal)
     {
-        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability",
+        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting",
     };
 
     /// <summary>
@@ -152,6 +152,9 @@ internal static class SmokeScript
                 error = step.Argument is "video-playback on" or "video-playback off"
                     ? null
                     : "expected 'video-playback on' or 'video-playback off'";
+                break;
+            case "setting":
+                error = step.Argument.Contains(' ', StringComparison.Ordinal) ? null : "expected a setting key and a value, e.g. 'appearance.showFileNames false'";
                 break;
             case "key":
                 error = TryParseKey(step.Argument, out _) ? null : "expected a key such as Space, Right, Ctrl+2 or Ctrl+Shift+F";

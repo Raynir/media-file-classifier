@@ -2672,4 +2672,13 @@
   <data name="LibraryInfo_Calculating" xml:space="preserve">
     <value>Calculating…</value>
   </data>
+  <data name="StatusBar_LibrarySummary" xml:space="preserve">
+    <value>{0} in library</value>
+  </data>
+  <data name="StatusBar_LibrarySummaryPending" xml:space="preserve">
+    <value>{0} in library · {1} pending</value>
+  </data>
+  <data name="StatusBar_LibrarySummary_ToolTip" xml:space="preserve">
+    <value>{0} indexed, {1} pending, {2} with errors, {3} missing. Click for library information.</value>
+  </data>
 </root>

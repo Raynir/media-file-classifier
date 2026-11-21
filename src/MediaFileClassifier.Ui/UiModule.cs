@@ -248,6 +248,7 @@ public static class UiModule
 
         // Library statistics (E02-S05).
         services.AddSingleton<LibraryStatisticsMonitor>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, LibrarySummaryStatusSegment>());
         services.AddSingleton<LibraryInfoViewModel>();
         services.AddSingleton<LibraryInfoPresenter>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryInfoCommands>());

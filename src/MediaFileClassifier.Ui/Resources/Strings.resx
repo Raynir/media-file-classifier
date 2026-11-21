@@ -2363,4 +2363,37 @@
   <data name="Editor_Tag_Suggestion_Dismiss" xml:space="preserve">
     <value>Dismiss suggestion</value>
   </data>
+  <data name="Command_RemoveFromLibrary" xml:space="preserve">
+    <value>_Remove from library</value>
+  </data>
+  <data name="RemoveItems_Title" xml:space="preserve">
+    <value>Remove from library</value>
+  </data>
+  <data name="RemoveItems_QuestionOne" xml:space="preserve">
+    <value>Remove 1 item from the library?</value>
+  </data>
+  <data name="RemoveItems_Question" xml:space="preserve">
+    <value>Remove {0} items from the library?</value>
+  </data>
+  <data name="RemoveItems_Explanation" xml:space="preserve">
+    <value>The files stay on disk. The items stop appearing in search, browsing and collections. You can restore them from Excluded items.</value>
+  </data>
+  <data name="RemoveItems_DontAskAgain" xml:space="preserve">
+    <value>Don't ask again</value>
+  </data>
+  <data name="RemoveItems_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="RemoveItems_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Setting_AskBeforeRemoving" xml:space="preserve">
+    <value>Ask before removing items from the library</value>
+  </data>
+  <data name="Setting_AskBeforeRemoving_Help" xml:space="preserve">
+    <value>Shows a confirmation before items are removed from the library. Their files always stay on disk.</value>
+  </data>
+  <data name="Stage_exclusion.cleanup" xml:space="preserve">
+    <value>Removing AI results</value>
+  </data>
 </root>

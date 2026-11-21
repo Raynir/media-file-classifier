@@ -29,6 +29,7 @@ using MediaFileClassifier.UseCases.Browsing.ItemDetails;
 using MediaFileClassifier.UseCases.Browsing.ItemKeyframes;
 using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetBulkMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
@@ -299,6 +300,24 @@ public sealed class DetailsPanelTests : IDisposable
 
         strip.Choose(strip.Keyframes[0]);
         Assert.Equal("Selected moment: 02:37", strip.MomentText);
+    });
+
+    [Fact]
+    public Task FolderBackOnline_ReloadsTheShownItem_WithoutASelectionChange() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3, withStrip: true) { Availability = ItemAvailability.Offline, Type = MediaType.Video };
+        bed.Select(0, SelectionGesture.Replace);
+        Pump.Until(() => bed.Strip!.HasKeyframes);
+        Assert.NotNull(bed.Strip!.UnavailableNote);
+
+        // E14-S07-T04: the live check brought the folder back.
+        bed.Availability = ItemAvailability.Available;
+        bed.FolderStatus.Raise();
+        Pump.Until(() => bed.Panel.PreviewNote is null);
+        bed.Settle();
+
+        Assert.Null(bed.Strip.UnavailableNote);
+        Assert.True(bed.Strip.CanOpenPlayer);
     });
 
     [Theory]
@@ -769,7 +788,7 @@ public sealed class DetailsPanelTests : IDisposable
             Registry = new CommandRegistry([new MetadataEditorCommands(Selection, () => Panel!)], Localizer.Current, new FakeCapabilityGate());
             Strip = withStrip ? new KeyframeStripViewModel(this, null, null, Localizer.Current) : null;
             Panel = new DetailsPanelViewModel(
-                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard, undoStore: Undo, strip: Strip);
+                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard, undoStore: Undo, strip: Strip, folderStatus: FolderStatus);
             Selection.ConfirmChange = Guard.ConfirmLeaveAsync;
         }
 
@@ -800,6 +819,8 @@ public sealed class DetailsPanelTests : IDisposable
         public ItemAvailability Availability { get; set; }
 
         public KeyframeStripViewModel? Strip { get; }
+
+        public FolderStatusChanges FolderStatus { get; } = new();
 
         public MediaType? Type { get; set; }
 

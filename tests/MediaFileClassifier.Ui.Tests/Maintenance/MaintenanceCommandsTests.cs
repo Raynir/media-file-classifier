@@ -134,10 +134,39 @@ public sealed class MaintenanceCommandsTests
     [InlineData(RegenerateThumbnailsOutcome.Busy, "Thumbnails are already being regenerated. You can follow them in the processing queue.")]
     public async Task RegenerateThumbnails_SaysWhyNothingStarted(RegenerateThumbnailsOutcome outcome, string? expected)
     {
+        dialogs.Choice = false;
         sender.OnRegenerate = _ => new RegenerateThumbnailsResult(outcome);
 
         Assert.Equal(outcome, await Commands().RegenerateThumbnailsAsync());
         Assert.Equal(expected is null ? [] : [expected], dialogs.Shown);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RegenerateThumbnails_PassesTheChosenScope(bool all)
+    {
+        dialogs.Choice = all;
+        RegenerateThumbnailsCommand? sent = null;
+        sender.OnRegenerate = command =>
+        {
+            sent = command;
+            return new RegenerateThumbnailsResult(RegenerateThumbnailsOutcome.Started);
+        };
+
+        await Commands().RegenerateThumbnailsAsync();
+
+        Assert.Equal(all, sent!.All);
+    }
+
+    [Fact]
+    public async Task RegenerateThumbnails_Cancelled_SendsNothing()
+    {
+        dialogs.Choice = null;
+        sender.OnRegenerate = _ => throw new InvalidOperationException("Nothing should be sent.");
+
+        Assert.Null(await Commands().RegenerateThumbnailsAsync());
+        Assert.Empty(dialogs.Shown);
     }
 
     [Fact]
@@ -197,6 +226,10 @@ public sealed class MaintenanceCommandsTests
         public List<string> Asked { get; } = [];
 
         public bool Answer { get; set; }
+
+        public bool? Choice { get; set; }
+
+        public override Task<bool?> ChooseThumbnailsAsync() => Task.FromResult(Choice);
 
         public override Task<bool> AskAsync(string message, string primary, string secondary)
         {

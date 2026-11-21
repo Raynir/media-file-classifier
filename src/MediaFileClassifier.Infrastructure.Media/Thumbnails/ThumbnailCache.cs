@@ -109,6 +109,46 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
     }
 
     /// <inheritdoc />
+    public int Clear(LibraryLayout library, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(library);
+
+        if (!Directory.Exists(library.ThumbnailsDirectory))
+        {
+            return 0;
+        }
+
+        // Only "<item-id>-<size>.webp": keyframe pictures ("-frame-") and the temporary files of writes in progress stay.
+        var suffixes = Enum.GetValues<ThumbnailSize>()
+            .Select(size => FormattableString.Invariant($"-{(int)size}{LibraryLayout.ThumbnailFileExtension}"))
+            .ToArray();
+        var deleted = 0;
+        foreach (var file in Directory.EnumerateFiles(library.ThumbnailsDirectory, "*" + LibraryLayout.ThumbnailFileExtension, SearchOption.AllDirectories))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var name = Path.GetFileName(file);
+            var suffix = Array.Find(suffixes, candidate => name.EndsWith(candidate, StringComparison.OrdinalIgnoreCase));
+            if (suffix is null || !Guid.TryParse(name.AsSpan(0, name.Length - suffix.Length), out _))
+            {
+                continue;
+            }
+
+            try
+            {
+                File.Delete(file);
+                deleted++;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                LogClearFailed(logger, file, ex);
+            }
+        }
+
+        LogCleared(logger, deleted, library.RootDirectory);
+        return deleted;
+    }
+
+    /// <inheritdoc />
     public void Dispose() => gate.Dispose();
 
     // Only the item's own thumbnails. The keyframe pictures are made by the analysis, not by this generation, so a
@@ -151,6 +191,12 @@ public sealed partial class ThumbnailCache(TimeProvider timeProvider, ILogger<Th
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't store the thumbnails of item {ItemId}")]
     private static partial void LogWriteFailed(ILogger logger, Guid itemId, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't delete the thumbnail {Path}")]
+    private static partial void LogClearFailed(ILogger logger, string path, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Deleted {Count} thumbnails of library {Library}")]
+    private static partial void LogCleared(ILogger logger, int count, string library);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Couldn't delete a thumbnail of item {ItemId}")]
     private static partial void LogDeleteFailed(ILogger logger, Guid itemId, Exception exception);

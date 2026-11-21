@@ -14,7 +14,8 @@ using MediaFileClassifier.UseCases.Libraries;
 namespace MediaFileClassifier.UseCases.Maintenance.RegenerateThumbnails;
 
 /// <summary>
-/// Makes one item's thumbnails again when one is missing or older than its file (E02-S06-T02). It writes only the
+/// Makes one item's thumbnails again when one is missing or older than its file, or always with
+/// <see cref="MaintenanceJobs.ForcePayload"/> (E02-S06-T02). It writes only the
 /// thumbnail files: the item, its metadata and its embeddings stay as they are, and nothing is analyzed. A failure
 /// fails the work item but leaves the item's status alone, so the item keeps its placeholder.
 /// </summary>
@@ -54,7 +55,8 @@ public sealed class RegenerateThumbnailStage(IMediaFileSource files, IMediaForma
         var item = await library.Items.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
 
         // Removed, gone or excluded since the work was queued, or made again meanwhile (e.g. after a restart).
-        if (item is null || !MaintenanceJobs.HasThumbnails(item.Status) || !NeedsThumbnails(thumbnails, library.Layout, item.Id, item.FileModifiedAt))
+        var force = context.WorkItem.Payload == MaintenanceJobs.ForcePayload;
+        if (item is null || !MaintenanceJobs.HasThumbnails(item.Status) || (!force && !NeedsThumbnails(thumbnails, library.Layout, item.Id, item.FileModifiedAt)))
         {
             return;
         }

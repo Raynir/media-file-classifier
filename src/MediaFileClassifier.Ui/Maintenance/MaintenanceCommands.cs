@@ -91,12 +91,18 @@ public sealed class MaintenanceCommands(
     }
 
     /// <summary>
-    /// Queues the thumbnails that are missing or older than their file.
+    /// Asks which thumbnails to regenerate, then queues them: the missing or outdated ones, or all of them after the
+    /// cache is deleted.
     /// </summary>
-    /// <returns>What happened.</returns>
-    public async Task<RegenerateThumbnailsOutcome> RegenerateThumbnailsAsync()
+    /// <returns>What happened, or <c>null</c> when the user cancelled.</returns>
+    public async Task<RegenerateThumbnailsOutcome?> RegenerateThumbnailsAsync()
     {
-        var result = await sender.Send(new RegenerateThumbnailsCommand());
+        if (await dialogs.ChooseThumbnailsAsync() is not { } all)
+        {
+            return null;
+        }
+
+        var result = await sender.Send(new RegenerateThumbnailsCommand(all));
         var message = result.Outcome switch
         {
             RegenerateThumbnailsOutcome.NothingToDo => localizer.Get("Maintenance_ThumbnailsComplete"),

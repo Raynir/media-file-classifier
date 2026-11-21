@@ -2417,4 +2417,28 @@
   <data name="Integrity_Damaged" xml:space="preserve">
     <value>The library database is damaged. Search, browsing and saving changes may fail.</value>
   </data>
+  <data name="Thumbnails_Title" xml:space="preserve">
+    <value>Regenerate thumbnails</value>
+  </data>
+  <data name="Thumbnails_Missing" xml:space="preserve">
+    <value>Only missing or outdated</value>
+  </data>
+  <data name="Thumbnails_MissingHelp" xml:space="preserve">
+    <value>Makes the thumbnails that are missing or older than their file. Fast.</value>
+  </data>
+  <data name="Thumbnails_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Thumbnails_AllHelp" xml:space="preserve">
+    <value>Deletes every thumbnail and makes it again. Takes longer.</value>
+  </data>
+  <data name="Thumbnails_Note" xml:space="preserve">
+    <value>Items on screen go first. Descriptions, tags and AI results aren't changed.</value>
+  </data>
+  <data name="Thumbnails_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Thumbnails_Regenerate" xml:space="preserve">
+    <value>Regenerate</value>
+  </data>
 </root>

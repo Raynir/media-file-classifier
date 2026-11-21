@@ -18,6 +18,12 @@ public static class MaintenanceJobs
     public const string ThumbnailsStage = "thumbnails.regenerate";
 
     /// <summary>
+    /// The payload of a <see cref="ThumbnailsStage"/> work item that remakes the thumbnails even when they look current,
+    /// for "Regenerate all thumbnails".
+    /// </summary>
+    public const string ForcePayload = "all";
+
+    /// <summary>
     /// Tells whether an item has thumbnails to keep: it's imported and its file is still in the library's folders.
     /// Discovered items get theirs from the import, and missing or excluded ones show none.
     /// </summary>

@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using MediaFileClassifier.Ui.Views.Libraries;
+using MediaFileClassifier.Ui.Views.Maintenance;
 
 namespace MediaFileClassifier.Ui.Maintenance;
 
@@ -39,4 +40,13 @@ public class MaintenanceDialogs
             await new LibraryMessageWindow(message, close, null).ShowDialog<bool>(owner);
         }
     }
+
+    /// <summary>
+    /// Asks which thumbnails to regenerate.
+    /// </summary>
+    /// <returns><c>true</c> for all of them, <c>false</c> for only the missing or outdated ones, <c>null</c> when cancelled.</returns>
+    public virtual async Task<bool?> ChooseThumbnailsAsync() =>
+        Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner }
+            ? await new RegenerateThumbnailsWindow().ShowDialog<bool?>(owner)
+            : null;
 }

@@ -10,11 +10,13 @@ using Microsoft.Extensions.Logging;
 namespace MediaFileClassifier.UseCases.Maintenance.RegenerateThumbnails;
 
 /// <summary>
-/// Queues a thumbnail job for the open library's items whose thumbnails are missing or older than their file
-/// (E02-S06-T01, T02). Items on screen go first through the grid's boost, so the job runs at import priority: ahead of
-/// hashing and analysis, behind user actions.
+/// Queues a thumbnail job for the open library's items (E02-S06-T01, T02): by default those whose thumbnails are
+/// missing or older than their file; with <see cref="All"/>, every item, after the whole thumbnail cache is deleted
+/// (keyframe pictures stay). Items on screen go first through the grid's boost, so the job runs at import priority:
+/// ahead of hashing and analysis, behind user actions.
 /// </summary>
-public sealed record RegenerateThumbnailsCommand : IRequest<RegenerateThumbnailsResult>;
+/// <param name="All">Whether to delete and remake every thumbnail.</param>
+public sealed record RegenerateThumbnailsCommand(bool All = false) : IRequest<RegenerateThumbnailsResult>;
 
 /// <summary>
 /// What <see cref="RegenerateThumbnailsCommand"/> did.
@@ -83,8 +85,18 @@ public sealed class RegenerateThumbnailsCommandHandler(
             return new(RegenerateThumbnailsOutcome.Busy);
         }
 
-        // One file check per item, so off the caller's thread.
-        var items = await Task.Run(() => FindItemsAsync(library, cancellationToken), cancellationToken).ConfigureAwait(false);
+        // One file check or deletion per item, so off the caller's thread.
+        var items = await Task.Run(
+            async () =>
+            {
+                if (request.All)
+                {
+                    thumbnails.Clear(library.Layout, cancellationToken);
+                }
+
+                return await FindItemsAsync(library, request.All, cancellationToken).ConfigureAwait(false);
+            },
+            cancellationToken).ConfigureAwait(false);
         if (items.Count == 0)
         {
             logger.LogInformation("Every item of {Library} has its thumbnails", library.Library.Name);
@@ -96,13 +108,13 @@ public sealed class RegenerateThumbnailsCommandHandler(
                 MaintenanceJobs.ThumbnailsJob,
                 "Regenerate thumbnails",
                 JobPriority.Import,
-                [.. items.Select(id => new WorkItemRequest(MaintenanceJobs.ThumbnailsStage, id))]),
+                [.. items.Select(id => new WorkItemRequest(MaintenanceJobs.ThumbnailsStage, id, request.All ? MaintenanceJobs.ForcePayload : null))]),
             cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Queued thumbnails for {Count} items of {Library}", items.Count, library.Library.Name);
+        logger.LogInformation("Queued thumbnails for {Count} items of {Library} (all: {All})", items.Count, library.Library.Name, request.All);
         return new(RegenerateThumbnailsOutcome.Started, items.Count, jobId);
     }
 
-    private async Task<List<Id<MediaItem>>> FindItemsAsync(IOpenLibrary library, CancellationToken cancellationToken)
+    private async Task<List<Id<MediaItem>>> FindItemsAsync(IOpenLibrary library, bool all, CancellationToken cancellationToken)
     {
         var items = new List<Id<MediaItem>>();
         for (var offset = 0; ; offset += PageSize)
@@ -110,7 +122,7 @@ public sealed class RegenerateThumbnailsCommandHandler(
             var page = await library.Items.GetSummariesAsync(offset, PageSize, cancellationToken).ConfigureAwait(false);
             items.AddRange(page
                 .Where(item => MaintenanceJobs.HasThumbnails(item.Status)
-                    && RegenerateThumbnailStage.NeedsThumbnails(thumbnails, library.Layout, item.Id, item.FileModifiedAt))
+                    && (all || RegenerateThumbnailStage.NeedsThumbnails(thumbnails, library.Layout, item.Id, item.FileModifiedAt)))
                 .Select(item => item.Id));
             if (page.Count < PageSize)
             {

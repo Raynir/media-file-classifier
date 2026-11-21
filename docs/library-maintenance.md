@@ -34,26 +34,31 @@ Title "Regenerate thumbnails", focus order: the two options, Cancel, Regenerate 
 - ( ) **All** — "Deletes every thumbnail and makes it again. Takes longer."
 - Note: "Items on screen go first. Descriptions, tags and AI results aren't changed."
 
-"All" deletes each item's own thumbnail files (all sizes) and keeps the keyframe pictures of video strips, which only
-AI analysis makes. Items that are missing, excluded or not imported yet are skipped. A failure leaves the item's
-placeholder and doesn't mark the item as failed.
+"All" first deletes every item thumbnail file in the cache (all sizes, including files of items no longer in the
+library) and keeps the keyframe pictures of video strips, which only AI analysis makes (user's choice, 2026-11-21). Then
+it queues every item with the `all` payload, so a file that couldn't be deleted is still replaced. A cancelled run is
+finished by "Only missing or outdated". Items that are missing, excluded or not imported yet are skipped. The stage
+reads the stored technical metadata and writes only thumbnail files. A failure fails the work item (it shows in the
+processing queue) but leaves the item's status and placeholder alone.
+
+The job runs at import priority: ahead of hashing and analysis, behind user actions. The grid's boost (E05-S01-T03)
+moves the items on screen ahead of the rest.
 
 ## Integrity report
 
 The report is a message window. States and texts:
 
 - **Healthy:** "The library is in good health. No problems were found."
-- **Corruption found, backup available:** "The library database is damaged: SQLite found N problems. Search,
-  browsing and saving changes may fail.\n\nA backup from {date} is available. Restoring it brings back the library as
+- **Corruption found, backup available:** "The library database is damaged. Search, browsing and saving changes may
+  fail.\n\nA backup from {date} is available. Restoring it brings back the library as
   it was then: changes made after that date are lost. The damaged database is kept in the backups folder." Buttons:
   **Restore backup** / **Not now**.
-- **Corruption found, no backup:** "The library database is damaged: SQLite found N problems. Search, browsing and
-  saving changes may fail.\n\nThere's no backup to restore." Button: **Close**.
+- **Corruption found, no backup:** "The library database is damaged. Search, browsing and saving changes may fail.\n\nThere's no backup to restore." Button: **Close**.
 - **Restore done:** "The backup from {date} was restored and passed the integrity check. Changes made after that date
   are lost." Button: **Close**.
 - **Restore failed:** "The backup couldn't be restored: {reason}. The library wasn't changed." Button: **Close**.
 
-The first SQLite messages go to the log, not into the report.
+SQLite's messages (the first 20) go to the log, not into the report.
 
 ## Restoring the backup
 

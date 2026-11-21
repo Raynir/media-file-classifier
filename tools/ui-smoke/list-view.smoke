@@ -1,0 +1,19 @@
+# List view smoke script (MFC-126). Steps are described in docs/testing.md.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/list-view.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+shot 01-grid
+
+# The list: columns, the sort arrow on Date taken, the selected row.
+command view.list
+wait-for visible ListHeader
+select video-short.mp4
+wait 400ms
+shot 02-list
+
+# Back to the grid: the selection stays.
+command view.grid
+wait 400ms
+shot 03-grid-again

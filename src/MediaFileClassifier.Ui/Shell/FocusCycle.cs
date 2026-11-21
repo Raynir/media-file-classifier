@@ -1,7 +1,7 @@
 namespace MediaFileClassifier.Ui.Shell;
 
 /// <summary>
-/// The order F6 and Shift+F6 move the focus through the main areas (E16-S03): navigation, toolbar, browser, details.
+/// The order F6 and Shift+F6 move the focus through the main areas (E16-S03): navigation, toolbar, browser, details, status bar.
 /// </summary>
 public static class FocusCycle
 {

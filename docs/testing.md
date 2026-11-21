@@ -134,6 +134,7 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `setting <key> <value>` | Sets a registered setting through the settings store, e.g. `setting appearance.showFileNames false`; the value is JSON (`true`, `3`) or plain text for a choice or text setting. Fails for an unknown key or an invalid value. |
 | `start <id>` | Runs an app command without waiting for it, for a command that opens a modal dialog, e.g. `start item.remove`. |
 | `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`. Fails if it's disabled. |
+| `dialog-key <gesture>` | Presses a key on the open dialog's focused control, e.g. `dialog-key Tab`; the report names the control that had the focus (MFC-131). |
 | `dialog-type <text>` | Types text into the open dialog's focused text box, e.g. a typed confirmation (MFC-122). |
 | `dialog-size <w>x<h>` | Sizes the open dialog or settings window, e.g. to show a long page whole (MFC-133). |
 | `dialog-shot <name>` | Saves `<name>.png` of the open dialog. |

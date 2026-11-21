@@ -288,6 +288,23 @@ public sealed class ShellViewTests
     });
 
     [Fact]
+    public Task F6_IncludesTheStatusBar_WhenItHasSomethingToFocus_AndSkipsItOtherwise() => RunInWindowAsync((window, viewModel) =>
+    {
+        FillRegions(viewModel);
+        PressF6(window, RawInputModifiers.Shift);
+        Assert.Equal("DetailsHost", FocusedArea(window));
+
+        Find<Panel>(window, "StatusBarHost").Children.Add(new Button());
+        Dispatcher.UIThread.RunJobs();
+        PressF6(window, RawInputModifiers.None);
+        var afterDetails = FocusedArea(window);
+        PressF6(window, RawInputModifiers.None);
+
+        Assert.Equal("StatusBarHost", afterDetails);
+        Assert.Equal("NavigationHost", FocusedArea(window));
+    });
+
+    [Fact]
     public Task F6_ReturnsToTheControlThatHadTheFocusInThatArea() => RunInWindowAsync((window, viewModel) =>
     {
         FillRegions(viewModel);
@@ -365,7 +382,7 @@ public sealed class ShellViewTests
 
     private static string? FocusedArea(Window window)
     {
-        string[] areas = ["NavigationHost", "ToolbarArea", "BrowserArea", "DetailsHost"];
+        string[] areas = ["NavigationHost", "ToolbarArea", "BrowserArea", "DetailsHost", "StatusBarHost"];
         for (var node = window.FocusManager!.GetFocusedElement() as Visual; node is not null; node = node.GetVisualParent())
         {
             if ((node as Control)?.Name is { } name && areas.Contains(name))

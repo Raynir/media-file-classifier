@@ -1,0 +1,23 @@
+# Keyboard in dialogs (MFC-131): Tab stays in the dialog, Escape closes it, and the focus returns to the grid.
+# The report of each dialog-key step names the control that had the focus.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/keyboard-dialogs.smoke --out artifacts/ui-smoke
+
+window 1400x900
+library sample
+select jpeg-exif.jpg
+focus Scroller
+start item.remove
+wait-for dialog
+dialog-key Tab
+dialog-key Tab
+dialog-key Tab
+dialog-key Escape
+wait-for no-dialog
+key Tab
+# F6 reaches the status bar when it has a clickable segment.
+focus Scroller
+key F6
+key F6
+key F6
+key F6
+shot 08-f6-status-bar

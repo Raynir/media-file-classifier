@@ -33,8 +33,8 @@ public partial class MainView : UserControl
     // The drawer takes at most the window's width less this, so the scrim stays there to click.
     private const double DrawerGutter = 48;
 
-    // The main areas in F6 order (E16-S03): navigation, toolbar, browser, details.
-    private static readonly string[] AreaNames = ["NavigationHost", "ToolbarArea", "BrowserArea", "DetailsHost"];
+    // The main areas in F6 order (E16-S03): navigation, toolbar, browser, details, status bar.
+    private static readonly string[] AreaNames = ["NavigationHost", "ToolbarArea", "BrowserArea", "DetailsHost", "StatusBarHost"];
 
     private readonly Control?[] lastFocused = new Control?[AreaNames.Length];
 
@@ -206,7 +206,7 @@ public partial class MainView : UserControl
             _ => 3,
         };
         var available = areas
-            .Select((area, index) => area is { IsEffectivelyVisible: true } && (drawer is null || drawer == index))
+            .Select((area, index) => area is { IsEffectivelyVisible: true } && (drawer is null || drawer == index) && FirstFocusable(area) is not null)
             .ToArray();
         var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Visual;
         if (FocusCycle.Next(available, AreaOf(focused), backwards) is not { } next)

@@ -44,6 +44,23 @@ Thumbnails are files on disk, not database rows, to keep the database small; at 
 - **Errors:** a lock held by another instance gives `InUse`. A lock file that can't be written, e.g. in a read-only folder, gives `NotWritable`.
 - **Limitation:** locking over SMB or NFS shares isn't reliable.
 
+## Deleting a library (E02-S07)
+
+`ILibraryDeleter` deletes a library permanently, not to the Recycle Bin, so Windows and Android work the same. `DeleteLibraryCommand` closes the library first if it's the open one, and removes it from the recent list afterwards.
+
+- **Only known files:** `LibraryFiles` lists every file the app writes into a library folder, by exact name. Nothing else is deleted, so the user's own files, media included, stay even inside the library folder.
+
+  | Where | Files |
+  |---|---|
+  | `<name>.mfc/` | `library.db`, `library.db-wal`, `library.db-shm`, `library.db-journal`, `library.lock` |
+  | `thumbnails/<2 hex digits>/` | `<item-id>-<size>.webp`, `<item-id>-frame-<n>.webp`, and either with `.<32 hex>.tmp` |
+  | `backups/` | `library-v<n>-<time>.db`, `library-damaged-<time>.db`, and either with `-wal`, `-shm` or `-journal` |
+
+- **Never recursive:** each delete is of one named file, or of a folder that's already empty. A folder that is a link (junction or symbolic link) isn't looked into.
+- **Order:** the lock is taken first, so a library open in another instance gives `InUse`. The database goes next; if it can't be deleted, nothing is (`NotWritable`). Then the side files, thumbnails and backups, then the lock file, and last the library folder if it's empty. Files that can't be deleted after the database are logged and listed as kept.
+- **Confirmation data:** `InspectAsync` reads a closed library's name and item count with plain SQL while holding the lock, so looking doesn't migrate it.
+- A new file the app writes into the library folder must be added to `LibraryFiles`, or deleting a library leaves it behind.
+
 ## Creating a library (E02-S01-T04)
 
 A new library is the folder `<location>\<name>.mfc`. The create-library dialog suggests `%USERPROFILE%\Media File Classifier` as the location: it's easy to find and back up, and it's outside Documents, which OneDrive often syncs, a risk for an open SQLite database. The folder is created if it doesn't exist. Android picks its own default with E20.

@@ -73,11 +73,23 @@ public sealed class FileImporter(ISender sender, Localizer localizer, IPlatformS
     {
         ArgumentNullException.ThrowIfNull(files);
 
-        var result = await sender.Send(new ImportFilesCommand(files));
+        var result = await ImportQuietlyAsync(files);
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
         {
             await new LibraryMessageWindow(Describe(localizer, result), localizer.Get("Folders_Close"), null).ShowDialog<bool>(owner);
         }
+    }
+
+    /// <summary>
+    /// Imports files without saying anything, for callers that sum several things up in one message (E03-S06).
+    /// </summary>
+    /// <param name="files">The files.</param>
+    /// <returns>What happened to each file.</returns>
+    public async Task<ImportFilesResult> ImportQuietlyAsync(IReadOnlyList<FileLocation> files)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+
+        return await sender.Send(new ImportFilesCommand(files));
     }
 
     /// <summary>

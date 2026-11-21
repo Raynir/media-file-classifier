@@ -2781,4 +2781,17 @@
   <data name="StatusBar_LibrarySummary_ToolTip" xml:space="preserve">
     <value>{0} indexed, {1} pending, {2} with errors, {3} missing. Click for library information.</value>
   </data>
+  <data name="DropImport_Title" xml:space="preserve">
+    <value>Drop to import</value>
+  </data>
+  <data name="DropImport_Hint" xml:space="preserve">
+    <value>Files are imported. Folders are added to the library.</value>
+  </data>
+  <data name="DropImport_Folders" xml:space="preserve">
+    <value>{0} folders added.</value>
+    <comment>{0} is a number of folders, more than one.</comment>
+  </data>
+  <data name="DropImport_FoldersOne" xml:space="preserve">
+    <value>1 folder added.</value>
+  </data>
 </root>

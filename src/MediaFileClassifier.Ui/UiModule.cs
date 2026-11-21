@@ -155,6 +155,12 @@ public static class UiModule
         services.AddSingleton<LibraryShell>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryCommands>());
         services.TryAddSingleton<FileImporter>();
+        services.TryAddSingleton(provider => new DropImportViewModel(
+            provider.GetRequiredService<FileImporter>().ImportQuietlyAsync,
+            provider.GetRequiredService<LibraryDialogs>().AddDroppedFoldersAsync,
+            provider.GetRequiredService<INotificationService>(),
+            provider.GetRequiredService<Localizer>(),
+            provider.GetService<ILibrarySession>()));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ExcludedItemsCommands>());
         services.AddSingleton<RescanRunner>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, RescanCommands>());

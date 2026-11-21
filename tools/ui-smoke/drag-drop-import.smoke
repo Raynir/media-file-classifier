@@ -1,0 +1,22 @@
+# Drag-and-drop import (MFC-125). Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/drag-drop-import.smoke --out artifacts/ui-smoke
+# A real OS drag can't be scripted: drag-over shows the overlay, drop runs the drop path with copied sample items.
+
+window 1400x900
+command view.theme-dark
+library sample
+
+drag-over on
+wait 300ms
+shot 01-drop-overlay
+drag-over off
+
+# A mixed drop: two files and a folder. The folder opens the folders dialog; one toast sums everything up after it closes.
+drop gif-static.gif jpeg-icc-offset.jpg folder:Holiday
+wait-for dialog
+wait 1500ms
+dialog-shot 02-folders-dialog
+dialog-click Close
+wait-for no-dialog
+wait 800ms
+shot 03-summary-toast

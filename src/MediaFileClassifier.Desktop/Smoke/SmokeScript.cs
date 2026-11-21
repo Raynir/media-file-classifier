@@ -39,7 +39,7 @@ internal static class SmokeScript
     private static readonly HashSet<string> Verbs = new(StringComparer.Ordinal)
     {
         "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-shot",
-        "damage-library", "allow-error", "import-files", "dialog-select",
+        "damage-library", "allow-error", "import-files", "dialog-select", "drag-over", "drop",
     };
 
     /// <summary>

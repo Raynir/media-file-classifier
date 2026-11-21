@@ -214,6 +214,31 @@ public sealed class ShellViewTests
         Assert.Equal(2, buttons.Count(button => button.IsEffectivelyVisible));
     });
 
+    [Fact]
+    public Task AtTheMinimumWidth_TheMenuFitsAndBothPanelsCanBeOpened() => RunInWindowAsync((window, viewModel) =>
+    {
+        window.Width = window.MinWidth;
+        Dispatcher.UIThread.RunJobs();
+
+        var menu = Find<Menu>(window, "MainMenu");
+        Assert.True(menu.IsEffectivelyVisible);
+        Assert.True(menu.Bounds.Width <= window.Bounds.Width);
+        Assert.All(menu.GetVisualChildren().OfType<MenuItem>().Concat(menu.GetVisualDescendants().OfType<MenuItem>().Where(item => item.Parent == menu)),
+            item => Assert.True(item.Bounds.Right <= window.Bounds.Width));
+
+        // The commands in the menu open both drawers, and the panels' own buttons close them again.
+        foreach (var (id, panel) in new[] { (ShellCommands.ToggleNavigation, viewModel.Layout.Navigation), (ShellCommands.ToggleDetails, viewModel.Layout.Details) })
+        {
+            ((System.Windows.Input.ICommand)viewModel.Commands[id]).Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(panel.IsExpanded);
+
+            ((System.Windows.Input.ICommand)viewModel.Commands[id]).Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(panel.IsShown);
+        }
+    });
+
     private static Task RunInWindowAsync(Action<Window, MainWindowViewModel> test) => TestApp.RunAsync(() =>
     {
         using var services = new ServiceCollection()

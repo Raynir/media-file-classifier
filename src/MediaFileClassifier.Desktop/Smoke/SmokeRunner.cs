@@ -147,6 +147,34 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
                 await command.ExecuteAsync();
                 return null;
+            case "start":
+                // Not awaited: the command shows a modal dialog, which the dialog-* steps drive (MFC-123).
+                var started = services.GetRequiredService<CommandRegistry>()[step.Argument];
+                started.Refresh();
+                if (!started.IsEnabled || !started.IsApplicable)
+                {
+                    throw new SmokeStepException($"the command is disabled: {started.DisabledReason ?? "it doesn't apply here"}");
+                }
+
+                _ = started.ExecuteAsync();
+                return null;
+            case "dialog-click":
+                var button = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants()
+                    .OfType<Button>()
+                    .FirstOrDefault(candidate => candidate.IsEffectivelyVisible && (candidate.Name == step.Argument || candidate.Content as string == step.Argument))
+                    ?? throw new SmokeStepException($"the dialog has no visible button '{step.Argument}'");
+                if (button.Command is not { } buttonCommand || !buttonCommand.CanExecute(button.CommandParameter))
+                {
+                    throw new SmokeStepException($"the button '{step.Argument}' is disabled or has no command");
+                }
+
+                buttonCommand.Execute(button.CommandParameter);
+                return null;
+            case "dialog-shot":
+                var dialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
+                Directory.CreateDirectory(options.OutputDirectory);
+                var dialogPath = Path.Combine(options.OutputDirectory, step.Argument + ".png");
+                return $"{dialogPath} ({WindowCapture.Save(dialog, dialogPath)})";
             case "focus":
                 var control = FindVisible(step.Argument) ?? throw new SmokeStepException($"no visible control '{step.Argument}'");
                 if (!control.Focus())
@@ -331,8 +359,19 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             case ["hidden", var name]:
                 await PollAsync(() => Task.FromResult(FindVisible(name) is null), step.Timeout, $"no visible control '{name}'");
                 break;
+            case ["dialog"]:
+                await PollAsync(() => Task.FromResult(Dialog() is { IsVisible: true }), step.Timeout, "a dialog");
+                break;
+            case ["no-dialog"]:
+                await PollAsync(() => Task.FromResult(Dialog() is null), step.Timeout, "no dialog");
+                break;
         }
     }
+
+    /// <summary>
+    /// Gets the newest window the main window owns, e.g. a modal dialog, or <see langword="null"/>.
+    /// </summary>
+    private Window? Dialog() => window.OwnedWindows.LastOrDefault();
 
     /// <summary>
     /// Finds a shown control by its <c>x:Name</c> or its type name.

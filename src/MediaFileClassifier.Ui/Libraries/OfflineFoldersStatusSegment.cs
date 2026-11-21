@@ -3,6 +3,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.StatusBar;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Libraries.CountOfflineFolders;
 using MediatR;
 
@@ -10,15 +11,16 @@ namespace MediaFileClassifier.Ui.Libraries;
 
 /// <summary>
 /// The "1 folder offline" notice at the right end of the status bar (E13-S04-T02), shown while an indexed folder of
-/// the open library can't be reached. It's recounted when a library opens and whenever the jobs start or stop,
-/// because discovery is what notices a folder going offline. Clicking it will open folder management once that
+/// the open library can't be reached. It's recounted when a library opens, whenever the jobs start or stop, because
+/// discovery notices a folder going offline, and when an availability check changed a folder's status (E14-S07-T04). Clicking it will open folder management once that
 /// exists (E02-S03-T06).
 /// </summary>
 /// <param name="sender">Counts the offline folders.</param>
 /// <param name="session">Holds the open library.</param>
 /// <param name="feed">The throttled job progress.</param>
 /// <param name="localizer">UI strings.</param>
-public sealed class OfflineFoldersStatusSegment(ISender sender, ILibrarySession session, ProgressFeed feed, Localizer localizer) : IStatusBarContributor
+/// <param name="folderStatus">Tells when a folder went Offline or came back, or <see langword="null"/>.</param>
+public sealed class OfflineFoldersStatusSegment(ISender sender, ILibrarySession session, ProgressFeed feed, Localizer localizer, FolderStatusChanges? folderStatus = null) : IStatusBarContributor
 {
     /// <summary>
     /// The segment ID.
@@ -46,6 +48,11 @@ public sealed class OfflineFoldersStatusSegment(ISender sender, ILibrarySession 
             }
         };
         localizer.Changed += (_, _) => Show();
+        if (folderStatus is not null)
+        {
+            folderStatus.Changed += (_, _) => Dispatcher.UIThread.Post(() => _ = RefreshAsync());
+        }
+
         _ = RefreshAsync();
     }
 

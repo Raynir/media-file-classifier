@@ -60,6 +60,18 @@ public interface IMediaFileSource
     Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Reads the label of the volume a folder is on, e.g. <c>Backup-2TB</c>, so an Offline folder can name the drive
+    /// to connect (E14-S07-T02). Platforms without volume labels, e.g. Android's granted folders, return
+    /// <see langword="null"/>.
+    /// </summary>
+    /// <param name="folder">Granted folder, which should be reachable.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The label, or <see langword="null"/> when the volume has none.</returns>
+    /// <exception cref="IOException">The volume couldn't be asked, so a label already known should be kept.</exception>
+    /// <exception cref="UnauthorizedAccessException">The volume refused the question, as for <see cref="IOException"/>.</exception>
+    Task<string?> GetVolumeLabelAsync(FolderHandle folder, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+
+    /// <summary>
     /// Gets where a folder is inside another one, to find overlapping indexed folders (E02-S03-T02). Only the handles
     /// are compared; nothing is read.
     /// </summary>

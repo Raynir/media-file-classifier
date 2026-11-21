@@ -12,10 +12,15 @@ namespace MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 /// Checks whether the open library's folders can be reached, and marks them Online or Offline (E02-S03-T05). It runs
 /// when a library opens, before imports and when the folders view opens. An Offline folder's items are kept as they
 /// are: nothing is marked Missing because its root can't be reached. When a folder is Online again, the work parked
-/// for it runs (D025).
+/// for it runs (D025). An Online folder's volume label is read again, so an Offline one can name its drive
+/// (E14-S07-T02). It also runs when a volume arrives or goes away, and every 30 s for the Offline folders alone
+/// (E14-S07-T04, <see cref="FolderAvailabilityMonitor"/>); when a status changes, the folder repository's
+/// <c>StatusChanged</c> tells the browser through <see cref="FolderStatusChanges"/>. Only the availability columns are
+/// stored, so a relink or rule change made while the probes run isn't undone.
 /// </summary>
 /// <param name="FolderIds">The folders to check, or <c>null</c> for all of them.</param>
-public sealed record CheckFolderAvailabilityCommand(IReadOnlyCollection<Id<IndexedFolder>>? FolderIds = null) : IRequest<IReadOnlyList<IndexedFolder>>;
+/// <param name="OfflineOnly">Whether to check only the folders that are Offline now, among <paramref name="FolderIds"/>.</param>
+public sealed record CheckFolderAvailabilityCommand(IReadOnlyCollection<Id<IndexedFolder>>? FolderIds = null, bool OfflineOnly = false) : IRequest<IReadOnlyList<IndexedFolder>>;
 
 /// <summary>
 /// Handles <see cref="CheckFolderAvailabilityCommand"/>.
@@ -46,15 +51,31 @@ public sealed class CheckFolderAvailabilityCommandHandler(
         // Checked at once, so unreachable network shares time out together rather than one after another.
         var folders = (await library.Folders.GetAllAsync(cancellationToken).ConfigureAwait(false))
             .Where(folder => request.FolderIds is null || request.FolderIds.Contains(folder.Id))
+            .Where(folder => !request.OfflineOnly || folder.Status == FolderStatus.Offline)
             .ToList();
-        var available = await Task.WhenAll(folders.Select(folder => files.IsAvailableAsync(folder.ToHandle(), cancellationToken))).ConfigureAwait(false);
+        // A probe of an unreachable share may ignore the token until the SMB timeout, so the wait itself is cancellable.
+        var available = await Task.WhenAll(folders.Select(folder => files.IsAvailableAsync(folder.ToHandle(), cancellationToken)))
+            .WaitAsync(cancellationToken).ConfigureAwait(false);
         var changed = new List<IndexedFolder>();
+
+        // Once the probes are done, what they found is stored and the parked work released even if the check is
+        // cancelled now: a volume check that cancels this poll would find the folder already Online and release nothing.
+        var labels = await Task.WhenAll(folders.Select((folder, i) => available[i]
+            ? VolumeLabels.TryReadAsync(files, folder.ToHandle(), logger, cancellationToken)
+            : Task.FromResult(VolumeLabels.Unknown))).WaitAsync(cancellationToken).ConfigureAwait(false);
         for (var i = 0; i < folders.Count; i++)
         {
             var folder = folders[i];
             var status = available[i] ? FolderStatus.Online : FolderStatus.Offline;
+            // A label that couldn't be read keeps the stored one, so the drive stays named while it's Offline later.
+            var relabelled = labels[i].Read && folder.ChangeVolumeLabel(labels[i].Label);
             if (folder.Status == status)
             {
+                if (relabelled)
+                {
+                    await library.Folders.UpdateAvailabilityAsync(folder, CancellationToken.None).ConfigureAwait(false);
+                }
+
                 continue;
             }
 
@@ -67,14 +88,17 @@ public sealed class CheckFolderAvailabilityCommandHandler(
                 folder.MarkOffline(clock.GetUtcNow());
             }
 
-            await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+            await library.Folders.UpdateAvailabilityAsync(folder, CancellationToken.None).ConfigureAwait(false);
             logger.LogInformation("Folder {Folder} is {Status} now", folder.DisplayPath, status);
             changed.Add(folder);
         }
 
-        if (changed.Any(folder => folder.Status == FolderStatus.Online))
+        // The parked work of another library, opened since the check began, isn't this check's to release.
+        if (changed.Any(folder => folder.Status == FolderStatus.Online)
+            && jobs?.Current is { } scheduler
+            && ReferenceEquals(scheduler.Library, library))
         {
-            jobs?.Current?.ReleaseParked();
+            scheduler.ReleaseParked();
         }
 
         return changed;

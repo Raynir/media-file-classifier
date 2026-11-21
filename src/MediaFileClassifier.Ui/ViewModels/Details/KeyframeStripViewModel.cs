@@ -67,7 +67,7 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
     /// Gets a value indicating whether the strip is shown: for a video or an animated image.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEmpty), nameof(CanOpenPlayer))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty), nameof(CanOpenPlayer), nameof(UnavailableNote))]
     public partial bool IsVisible { get; private set; }
 
     /// <summary>
@@ -100,20 +100,34 @@ public sealed partial class KeyframeStripViewModel : ViewModelBase, IDisposable
     /// "Open in player" is offered (D026). Set by the panel.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanOpenPlayer))]
+    [NotifyPropertyChangedFor(nameof(CanOpenPlayer), nameof(UnavailableNote))]
     public partial bool IsFallback { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the file can be opened: it's there. Set by the panel.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanOpenPlayer))]
+    [NotifyPropertyChangedFor(nameof(CanOpenPlayer), nameof(UnavailableNote))]
     public partial bool IsFileAvailable { get; set; }
+
+    /// <summary>
+    /// Gets or sets why the file can't be opened, e.g. "The folder E:\Photos is offline. Connect drive 'Backup-2TB' to
+    /// open these moments in a player." (MFC-1007); <see langword="null"/> while it's there. Set by the panel.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UnavailableNote))]
+    public partial string? UnavailableReason { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether "Open in player" shows.
     /// </summary>
     public bool CanOpenPlayer => IsVisible && IsFallback && IsFileAvailable;
+
+    /// <summary>
+    /// Gets what shows in place of "Open in player" while the file is offline or missing: the keyframes stay
+    /// selectable for their time (DNEW-6), and this says why they can't be opened. <see langword="null"/> otherwise.
+    /// </summary>
+    public string? UnavailableNote => IsVisible && IsFallback && !IsFileAvailable ? UnavailableReason : null;
 
     /// <summary>
     /// Gets the chosen moment, or <see langword="null"/>.

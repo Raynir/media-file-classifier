@@ -39,6 +39,7 @@ public static class InfrastructureModule
         services.TryAddSingleton<ISettingsStore, SettingsStore>();
         services.TryAddSingleton<IHardwareOverrides>(provider => new SettingsHardwareOverrides(provider));
         services.TryAddSingleton<ILibrarySession, LibrarySession>();
+        services.TryAddSingleton<Abstractions.Platform.IVolumeWatcher, Files.NoVolumeWatcher>();
         services.TryAddSingleton<ILibraryLocations, LibraryLocations>();
         services.TryAddSingleton<ILibraryDiskUsage, LibraryDiskUsageMeter>();
         services.TryAddSingleton<IHardwareDetector, PortableHardwareDetector>();

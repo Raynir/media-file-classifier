@@ -71,7 +71,7 @@ public static class OfflineFolders
             if (folder.Status != FolderStatus.Offline)
             {
                 folder.MarkOffline(clock.GetUtcNow());
-                await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+                await library.Folders.UpdateAvailabilityAsync(folder, cancellationToken).ConfigureAwait(false);
             }
 
             throw FolderOfflineException.For(folder.DisplayPath, failure);

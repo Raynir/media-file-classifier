@@ -54,7 +54,7 @@ public sealed class ImportFoldersCommandHandler(
                 if (folder.Status != FolderStatus.Offline)
                 {
                     folder.MarkOffline(clock.GetUtcNow());
-                    await scheduler.Library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+                    await scheduler.Library.Folders.UpdateAvailabilityAsync(folder, cancellationToken).ConfigureAwait(false);
                 }
 
                 logger.LogInformation("{Folder} can't be reached, so it isn't imported", folder.DisplayPath);

@@ -86,14 +86,14 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         foreach (var folder in result.Offline.Where(folder => folder.Status != FolderStatus.Offline))
         {
             folder.MarkOffline(now);
-            await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+            await library.Folders.UpdateAvailabilityAsync(folder, cancellationToken).ConfigureAwait(false);
         }
 
         var cameOnline = false;
         foreach (var (folder, _) in result.Scanned.Where(scanned => scanned.Folder.Status == FolderStatus.Offline))
         {
             folder.MarkOnline(now);
-            await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+            await library.Folders.UpdateAvailabilityAsync(folder, cancellationToken).ConfigureAwait(false);
             cameOnline = true;
         }
 

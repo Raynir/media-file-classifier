@@ -89,7 +89,8 @@ public static class TechnicalRows
 
     private static string Status(ItemDetails item, Localizer localizer) => item.Location.Availability switch
     {
-        ItemAvailability.Offline => localizer.Format("Details_Status_Offline", item.Location.FolderName),
+        ItemAvailability.Offline => localizer.Format(
+            "Details_Status_Offline", Browser.OfflineSource.Detail(item.Location.FolderName, item.Location.VolumeLabel, localizer)),
         ItemAvailability.Missing => localizer.Get("Details_Status_Missing"),
         _ => localizer.Get($"Details_Status_{item.Status}"),
     };

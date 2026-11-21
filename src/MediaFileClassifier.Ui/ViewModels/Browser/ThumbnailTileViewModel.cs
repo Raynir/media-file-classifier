@@ -72,7 +72,8 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
         nameof(ResolutionText),
         nameof(LengthText),
         nameof(StatusText),
-        nameof(Folder))]
+        nameof(Folder),
+        nameof(IsUnavailable))]
     public partial MediaItemSummary? Item { get; private set; }
 
     /// <summary>
@@ -197,7 +198,18 @@ public sealed partial class ThumbnailTileViewModel : ObservableObject
     /// <summary>
     /// Gets the list view's Status cell, e.g. <c>Indexed</c>.
     /// </summary>
-    public string StatusText => Item is { } item ? Localizer.Current[$"Details_Status_{item.Status}"] : string.Empty;
+    public string StatusText => Item switch
+    {
+        null => string.Empty,
+        { IsFolderOffline: true } => Localizer.Current["Tile_Badge_Offline"],
+        { } item => Localizer.Current[$"Details_Status_{item.Status}"],
+    };
+
+    /// <summary>
+    /// Gets a value indicating whether the item's file can't be used now, because its folder is Offline or the file is
+    /// Missing, so the tile shows dimmed with its badge (E14-S07, D025).
+    /// </summary>
+    public bool IsUnavailable => Item is { IsFolderOffline: true } or { Status: MediaItemStatus.Missing };
 
     /// <summary>
     /// Gets the list view's Folder cell: the folder the file is in.

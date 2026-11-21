@@ -26,8 +26,10 @@ using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.Ui.Views.Details;
 using MediaFileClassifier.UseCases.Browsing.ItemDetails;
+using MediaFileClassifier.UseCases.Browsing.ItemKeyframes;
 using MediaFileClassifier.UseCases.Browsing.Selection;
 using MediaFileClassifier.UseCases.Browsing.ItemLocation;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetBulkMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
@@ -276,6 +278,60 @@ public sealed class DetailsPanelTests : IDisposable
         Assert.Equal(default, bed.Panel.PreviewImageSize);
         bed.Select(0, SelectionGesture.FocusOnly);
         Assert.Equal(default, bed.Panel.PreviewImageSize);
+    });
+
+    [Theory]
+    [InlineData(ItemAvailability.Offline, "Backup-2TB", "Showing the thumbnail: the folder Photos is offline.", "The folder Photos is offline. Connect drive 'Backup-2TB' to open these moments in a player.")]
+    [InlineData(ItemAvailability.Offline, null, "Showing the thumbnail: the folder Photos is offline.", "The folder Photos is offline, so these moments can't be opened in a player until it's back.")]
+    [InlineData(ItemAvailability.Missing, null, "Showing the thumbnail: the file is missing.", "The file is missing, so these moments can't be opened in a player.")]
+    public Task UnavailableVideo_SaysWhyInThePreviewAndTheStrip_AndItsMomentsStaySelectable(ItemAvailability availability, string? label, string note, string reason) => TestApp.RunAsync(() =>
+    {
+        // MFC-1007: before, the strip listed the keyframes with no Open in player and no reason, and a chosen one did nothing.
+        var bed = new Bed(this, 3, withStrip: true) { Availability = availability, Type = MediaType.Video, VolumeLabel = label };
+
+        bed.Select(0, SelectionGesture.Replace);
+        Pump.Until(() => bed.Strip!.HasKeyframes);
+
+        var strip = bed.Strip!;
+        Assert.Equal(note, bed.Panel.PreviewNote);
+        Assert.True(strip.IsFallback);
+        Assert.False(strip.CanOpenPlayer);
+        Assert.Equal(reason, strip.UnavailableNote);
+
+        strip.Choose(strip.Keyframes[0]);
+        Assert.Equal("Selected moment: 02:37", strip.MomentText);
+    });
+
+    [Fact]
+    public Task FolderBackOnline_ReloadsTheShownItem_WithoutASelectionChange() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3, withStrip: true) { Availability = ItemAvailability.Offline, Type = MediaType.Video };
+        bed.Select(0, SelectionGesture.Replace);
+        Pump.Until(() => bed.Strip!.HasKeyframes);
+        Assert.NotNull(bed.Strip!.UnavailableNote);
+
+        // E14-S07-T04: the live check brought the folder back.
+        bed.Availability = ItemAvailability.Available;
+        bed.FolderStatus.Raise();
+        Pump.Until(() => bed.Panel.PreviewNote is null);
+        bed.Settle();
+
+        Assert.Null(bed.Strip.UnavailableNote);
+        Assert.True(bed.Strip.CanOpenPlayer);
+    });
+
+    [Theory]
+    [InlineData(MediaType.Video)]
+    [InlineData(MediaType.AnimatedImage)]
+    public Task AvailableFile_HasNoUnavailableNote(MediaType type) => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3, withStrip: true) { Type = type };
+
+        bed.Select(0, SelectionGesture.Replace);
+        Pump.Until(() => bed.Strip!.HasKeyframes);
+
+        Assert.Null(bed.Strip!.UnavailableNote);
+        Assert.Equal(type == MediaType.Video, bed.Strip.CanOpenPlayer);
     });
 
     [Fact]
@@ -712,7 +768,7 @@ public sealed class DetailsPanelTests : IDisposable
         private readonly string original;
         private readonly string corrupt;
 
-        public Bed(DetailsPanelTests test, int count)
+        public Bed(DetailsPanelTests test, int count, bool withStrip = false)
         {
             this.test = test;
             original = test.WriteImage("original.png", 400, 300);
@@ -730,8 +786,9 @@ public sealed class DetailsPanelTests : IDisposable
 
             var loader = new ThumbnailLoader(new FakeBrowserSession(), thumbnails, new ThumbnailBitmapCache());
             Registry = new CommandRegistry([new MetadataEditorCommands(Selection, () => Panel!)], Localizer.Current, new FakeCapabilityGate());
+            Strip = withStrip ? new KeyframeStripViewModel(this, null, null, Localizer.Current) : null;
             Panel = new DetailsPanelViewModel(
-                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard, undoStore: Undo);
+                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard, undoStore: Undo, strip: Strip, folderStatus: FolderStatus);
             Selection.ConfirmChange = Guard.ConfirmLeaveAsync;
         }
 
@@ -760,6 +817,14 @@ public sealed class DetailsPanelTests : IDisposable
         public DetailsPanelViewModel Panel { get; }
 
         public ItemAvailability Availability { get; set; }
+
+        public KeyframeStripViewModel? Strip { get; }
+
+        public FolderStatusChanges FolderStatus { get; } = new();
+
+        public MediaType? Type { get; set; }
+
+        public string? VolumeLabel { get; set; }
 
         public bool Corrupt { get; set; }
 
@@ -797,6 +862,11 @@ public sealed class DetailsPanelTests : IDisposable
                 return Task.FromResult((TResponse)(object)BulkView);
             }
 
+            if (request is GetItemKeyframesQuery)
+            {
+                return Task.FromResult((TResponse)(object)(IReadOnlyList<KeyframeMarker>)[new KeyframeMarker(Id<Keyframe>.New(), 0, TimeSpan.FromSeconds(157))]);
+            }
+
             if (request is EditMetadataCommand edit)
             {
                 Saved.Add(edit);
@@ -807,7 +877,7 @@ public sealed class DetailsPanelTests : IDisposable
             var index = Source.Ids.ToList().IndexOf(query.ItemId);
             var path = AnimatedFile ?? (Corrupt ? corrupt : original);
             var location = new ItemLocation(
-                query.ItemId, new FileLocation(new FolderHandle(test.temp.Path, "Photos"), Path.GetFileName(path)), path, "Photos", Availability);
+                query.ItemId, new FileLocation(new FolderHandle(test.temp.Path, "Photos"), Path.GetFileName(path)), path, "Photos", Availability, VolumeLabel);
             var technical = new TechnicalMetadata
             {
                 ItemId = query.ItemId,
@@ -817,7 +887,7 @@ public sealed class DetailsPanelTests : IDisposable
                 ExtractedAt = DateTimeOffset.UnixEpoch,
             };
             var details = new ItemDetails(
-                query.ItemId, $"IMG_{index}.png", "png", AnimatedFile is null ? MediaType.Image : MediaType.AnimatedImage, 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, WithoutTechnical ? null : technical, ItemTitle, null, []);
+                query.ItemId, $"IMG_{index}.png", "png", Type ?? (AnimatedFile is null ? MediaType.Image : MediaType.AnimatedImage), 1000, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, MediaItemStatus.Indexed, null, location, WithoutTechnical ? null : technical, ItemTitle, null, []);
             return Task.FromResult((TResponse)(object)details);
         }
 

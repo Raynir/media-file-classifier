@@ -144,9 +144,11 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `import-files <files>` | Copies those files from `tests/SampleMedia` to `<data folder>\picked` and imports them as picked files, without waiting for the result message (MFC-124). |
 | `capability video-playback on\|off` | Turns the VideoPlayback capability on or off, to see the default-app fallback (D026). |
 | `damage-library` | Backs up the open library's database as a migration backup, then writes garbage over an index page and opens the library again, so the integrity check finds damage (MFC-121). |
+| `unplug-folder` | Moves the sample library's folder (`<data folder>\media`) away, as unplugging its drive does, and checks the folders, so its items show Offline (E14-S07). |
+| `plug-folder` | Moves it back and raises a volume event, as plugging the drive in does; the live check brings the items back about 1 s later (E14-S07-T04). |
 | `allow-error <logger>` | Errors logged by that logger (its full type name) no longer fail the run, e.g. the integrity check's report of the damage. |
 
-`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app); `tools/ui-smoke/library-maintenance.smoke` the regenerate thumbnails dialog, the integrity report and a backup restore. Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
+`tools/ui-smoke/sample.smoke` covers browsing, the details panel, an animated GIF and WebP, and a video; `tools/ui-smoke/keyframe-strip.smoke` the keyframe strip and the fallback (it opens the sample video in the default app); `tools/ui-smoke/library-maintenance.smoke` the regenerate thumbnails dialog, the integrity report and a backup restore; `tools/ui-smoke/offline-items.smoke` offline items in the grid, the list and the details panel, and a reconnected drive. Write a short script of your own for the screen you changed, keep screenshots to the few that show it, and view them scaled down.
 
 ## Pull requests
 

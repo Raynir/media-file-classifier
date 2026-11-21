@@ -22,7 +22,9 @@ using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.UseCases.Browsing;
+using MediaFileClassifier.Desktop.Platform;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
 using MediaFileClassifier.UseCases.Settings;
 using MediatR;
@@ -247,6 +249,10 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return null;
             case "damage-library":
                 return await DamageLibraryAsync();
+            case "unplug-folder":
+                return await UnplugFolderAsync();
+            case "plug-folder":
+                return PlugFolder();
             case "allow-error":
                 log.AllowErrors(step.Argument);
                 return null;
@@ -278,6 +284,43 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         await Task.Run(() => CorruptIndexPage(layout.DatabasePath));
         await services.GetRequiredService<LibraryOpener>().OpenAsync(layout.RootDirectory);
         return backup;
+    }
+
+    /// <summary>
+    /// Takes the sample library's folder away, as unplugging its drive does (E14-S07), and checks the folders, as the
+    /// next poll would, so it shows Offline at once.
+    /// </summary>
+    private async Task<string> UnplugFolderAsync()
+    {
+        var media = Path.Combine(options.DataDirectory, "media");
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                Directory.Move(media, media + "-unplugged");
+                break;
+            }
+            catch (IOException) when (attempt < 20)
+            {
+                // A file in it may still be open for a moment, e.g. a video the player just closed.
+                await Task.Delay(250);
+            }
+        }
+
+        var changed = await services.GetRequiredService<ISender>().Send(new CheckFolderAvailabilityCommand());
+        return $"{changed.Count} folder(s) offline";
+    }
+
+    /// <summary>
+    /// Puts the sample library's folder back and raises a volume event, as plugging the drive in does, so the live
+    /// check (E14-S07-T04) brings it back after its debounce, with no other step.
+    /// </summary>
+    private string PlugFolder()
+    {
+        var media = Path.Combine(options.DataDirectory, "media");
+        Directory.Move(media + "-unplugged", media);
+        services.GetRequiredService<WindowsVolumeWatcher>().SimulateVolumeChange();
+        return media;
     }
 
     private static void CorruptIndexPage(string databasePath)

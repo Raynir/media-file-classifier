@@ -170,6 +170,8 @@
   <!-- Opacity states (Figma: inactive chips 0.4, inactive nav items 0.6). -->
   <x:Double x:Key="Opacity.Disabled">0.4</x:Double>
   <x:Double x:Key="Opacity.Inactive">0.6</x:Double>
+  <!-- An item whose file can't be used now: Offline folder or Missing file (E14-S07). -->
+  <x:Double x:Key="Opacity.Unavailable">0.5</x:Double>
 
   <!-- Layout sizes -->
   <x:Double x:Key="Size.Navigation.Expanded">240</x:Double>

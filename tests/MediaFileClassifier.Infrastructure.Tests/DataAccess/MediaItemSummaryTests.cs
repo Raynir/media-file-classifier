@@ -100,6 +100,20 @@ public sealed class MediaItemSummaryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetSummariesAsync_SaysWhetherTheItemsFolderIsOffline()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+        Assert.False((await bed.Library.Items.GetSummariesByIdsAsync([item.Id], Token)).Single().IsFolderOffline);
+
+        bed.Folder.MarkOffline(bed.Clock.Tick());
+        await bed.Library.Folders.UpdateAsync(bed.Folder, Token);
+
+        Assert.True((await bed.Library.Items.GetSummariesByIdsAsync([item.Id], Token)).Single().IsFolderOffline);
+        Assert.True((await bed.Library.Items.GetSummariesAsync(0, 10, Token)).Single().IsFolderOffline);
+    }
+
+    [Fact]
     public async Task GetIdsAsync_PagesNewestFirst_FromTheNewestGiven()
     {
         var items = Enumerable.Range(0, 30).Select(bed.NewItem).ToList();

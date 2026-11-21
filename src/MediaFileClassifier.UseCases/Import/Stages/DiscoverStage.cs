@@ -55,14 +55,14 @@ public sealed partial class DiscoverStage(IFolderDiscovery discovery, TimeProvid
         {
             // E.g. its drive isn't connected: the folder shows as offline until it's back (E02-S03).
             folder.MarkOffline(clock.GetUtcNow());
-            await library.Folders.UpdateAsync(folder, CancellationToken.None).ConfigureAwait(false);
+            await library.Folders.UpdateAvailabilityAsync(folder, CancellationToken.None).ConfigureAwait(false);
             throw;
         }
 
         if (folder.Status == FolderStatus.Offline)
         {
             folder.MarkOnline(clock.GetUtcNow());
-            await library.Folders.UpdateAsync(folder, cancellationToken).ConfigureAwait(false);
+            await library.Folders.UpdateAvailabilityAsync(folder, cancellationToken).ConfigureAwait(false);
         }
 
         var queued = (await library.Jobs.GetWorkItemsAsync(jobId, cancellationToken).ConfigureAwait(false))

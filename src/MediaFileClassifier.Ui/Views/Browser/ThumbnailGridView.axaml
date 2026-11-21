@@ -148,6 +148,19 @@
     <Style Selector="Border.StatusBadge.Error Path">
       <Setter Property="Fill" Value="{DynamicResource Brush.Status.Error.Foreground}" />
     </Style>
+    <Style Selector="Border.StatusBadge.Offline Path">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Status.Offline.Foreground}" />
+    </Style>
+    <Style Selector="Border.StatusBadge.Missing Path">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Status.Missing.Foreground}" />
+    </Style>
+    <!--
+      An item whose folder is Offline or whose file is Missing (E14-S07, D025): the thumbnail and text are dimmed, the
+      badges stay at full strength so the two states stay apart.
+    -->
+    <Style Selector="Border.ThumbnailTile.Unavailable controls|MediaThumbnail, Border.ThumbnailTile.Unavailable StackPanel.TileInfo, Border.ListRow.Unavailable controls|MediaThumbnail, Border.ListRow.Unavailable StackPanel.ListName, Border.ListRow.Unavailable views|ListCellsPanel > TextBlock">
+      <Setter Property="Opacity" Value="{DynamicResource Opacity.Unavailable}" />
+    </Style>
   </UserControl.Styles>
 
   <UserControl.Resources>
@@ -156,12 +169,14 @@
               Classes.Selected="{Binding IsSelected}"
               Classes.Focused="{Binding IsFocused}"
               Classes.LessRelevant="{Binding IsLessRelevant}"
+              Classes.Unavailable="{Binding IsUnavailable}"
               ToolTip.Tip="{Binding MatchReason}"
               Width="{Binding Width}"
               AutomationProperties.Name="{Binding FileName}">
         <Panel>
           <DockPanel>
-            <StackPanel DockPanel.Dock="Bottom"
+            <StackPanel Classes="TileInfo"
+                        DockPanel.Dock="Bottom"
                         Height="32"
                         Margin="{DynamicResource Padding.TileInfo}"
                         VerticalAlignment="Center">
@@ -180,7 +195,7 @@
                                        MediaType="{Binding MediaType}"
                                        IsFailed="{Binding IsThumbnailFailed}"
                                        CornerRadius="{DynamicResource Radius.None}" />
-              <!-- Badge slot: status badges now, Favorite (E11-S01) and Offline/Missing (E14-S07) later. -->
+              <!-- Badge slot: Offline or Missing (E14-S07), then the status badge. -->
               <views:TileBadgeStrip Badges="{Binding Badges}"
                                     Orientation="Horizontal"
                                     Spacing="{DynamicResource Space.XS}"
@@ -217,13 +232,14 @@
     </DataTemplate>
     <!--
       A list view row (E14-S02). Each cell names its column; ListCellsPanel places the cells in the columns' order and
-      widths. Status has the badge slot: status badges now, Offline/Missing (E14-S07) later.
+      widths. Status has the badge slot: Offline or Missing (E14-S07), then the status badge.
     -->
     <DataTemplate x:Key="ListRowTemplate" x:DataType="vm:ThumbnailTileViewModel">
       <Border Classes="ListRow"
               Classes.Selected="{Binding IsSelected}"
               Classes.Focused="{Binding IsFocused}"
               Classes.LessRelevant="{Binding IsLessRelevant}"
+              Classes.Unavailable="{Binding IsUnavailable}"
               ToolTip.Tip="{Binding MatchReason}"
               AutomationProperties.Name="{Binding FileName}">
         <Panel>
@@ -239,6 +255,7 @@
                                        CornerRadius="{DynamicResource Radius.None}" />
             </Panel>
             <StackPanel views:ListCellsPanel.Column="Name"
+                        Classes="ListName"
                         Orientation="Horizontal"
                         Spacing="{DynamicResource Space.XS}"
                         VerticalAlignment="Center">

@@ -156,6 +156,17 @@
     <value>Copied {0}. Seek to it in your player.</value>
     <comment>{0}: the time in the video, e.g. 02:37.</comment>
   </data>
+  <data name="Keyframes_Unavailable_Offline" xml:space="preserve">
+    <value>The folder {0} is offline. Connect {1} to open these moments in a player.</value>
+    <comment>{0} is a folder path; {1} names what to connect, e.g. "drive 'Backup-2TB'".</comment>
+  </data>
+  <data name="Keyframes_Unavailable_OfflineFolder" xml:space="preserve">
+    <value>The folder {0} is offline, so these moments can't be opened in a player until it's back.</value>
+    <comment>{0} is a folder path.</comment>
+  </data>
+  <data name="Keyframes_Unavailable_Missing" xml:space="preserve">
+    <value>The file is missing, so these moments can't be opened in a player.</value>
+  </data>
   <data name="Keyframes_OpenInPlayer" xml:space="preserve">
     <value>Open in player</value>
   </data>
@@ -1807,6 +1818,9 @@
   <data name="Filter_NewSuggestions" xml:space="preserve">
     <value>Has new AI suggestions</value>
   </data>
+  <data name="Filter_HideOffline" xml:space="preserve">
+    <value>Hide offline items</value>
+  </data>
   <data name="Filter_Status" xml:space="preserve">
     <value>Processing status</value>
   </data>
@@ -2892,6 +2906,33 @@
   </data>
   <data name="DropImport_Failed" xml:space="preserve">
     <value>The dropped files couldn't be imported.</value>
+  </data>
+  <data name="Tile_Badge_Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Tile_Badge_OfflineFolder" xml:space="preserve">
+    <value>folder {0}</value>
+  </data>
+  <data name="Tile_Badge_Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="Offline_Drive_Label" xml:space="preserve">
+    <value>drive '{0}'</value>
+  </data>
+  <data name="Offline_Drive_Letter" xml:space="preserve">
+    <value>drive {0}</value>
+  </data>
+  <data name="Offline_Share" xml:space="preserve">
+    <value>share {0}</value>
+  </data>
+  <data name="Offline_SourceAndFolder" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="Item_Unavailable_OfflineSource" xml:space="preserve">
+    <value>The folder {0} is offline. Connect {1} to use the file.</value>
+  </data>
+  <data name="Tile_Badge_MissingDetail" xml:space="preserve">
+    <value>the file wasn't found at the last scan. Right-click › Remove missing items… cleans up the library.</value>
   </data>
   <data name="Command_DeleteLibrary" xml:space="preserve">
     <value>_Delete library…</value>

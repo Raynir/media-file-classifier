@@ -109,4 +109,16 @@ public interface IItemMetadataRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The tags, most used first, then by name.</returns>
     Task<IReadOnlyList<(TagName Tag, int ItemCount)>> GetEffectiveTagsAsync(string? prefix, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes the AI results of items removed from the library (E02-S10-T01, D024): their analysis runs with the AI
+    /// values, AI tags and tag suggestions of those runs, and their analyzer states. User values, tag rejections,
+    /// technical values and collection memberships stay, and the items' search text is written again from what's left.
+    /// Runs in batches of 100 items, each its own short write (D072). Embeddings are deleted through
+    /// <see cref="IEmbeddingRepository.RemoveForItemsAsync"/>.
+    /// </summary>
+    /// <param name="itemIds">The items.</param>
+    /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>
+    /// <returns>A task that completes when every batch is committed.</returns>
+    Task RemoveAiResultsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default);
 }

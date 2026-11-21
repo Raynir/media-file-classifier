@@ -25,6 +25,31 @@ public sealed class EmbeddingRepositoryTests : IAsyncLifetime
     public ValueTask DisposeAsync() => bed.DisposeAsync();
 
     [Fact]
+    public async Task RemoveForItemsAsync_DeletesEveryModelsVectors_AndRaisesAnEmptyChangePerItemAndModel()
+    {
+        var other = ModelRegistration.Create("local", "siglip-2", "1", null, 4, LibraryTestBed.Start);
+        await bed.Library.Models.AddAsync(other, Token);
+        var removed = await AddItemAsync(1);
+        var kept = await AddItemAsync(2);
+        await bed.Library.Embeddings.ReplaceAsync(removed.Id, bed.Model.Id, [Embedding.Create(removed.Id, bed.Model, EmbeddingKind.Image, [1, 0, 0, 0], bed.Clock.Tick())], Token);
+        await bed.Library.Embeddings.ReplaceAsync(removed.Id, other.Id, [Embedding.Create(removed.Id, other, EmbeddingKind.Image, [0, 1, 0, 0], bed.Clock.Tick())], Token);
+        await bed.Library.Embeddings.ReplaceAsync(kept.Id, bed.Model.Id, [Embedding.Create(kept.Id, bed.Model, EmbeddingKind.Image, [0, 0, 1, 0], bed.Clock.Tick())], Token);
+        var raised = new List<CommittedEmbeddings>();
+        bed.Library.Embeddings.Changed += (_, args) => raised.AddRange(args.Changes);
+
+        var count = await bed.Library.Embeddings.RemoveForItemsAsync([removed.Id, kept.Id, removed.Id], Token);
+        var again = await bed.Library.Embeddings.RemoveForItemsAsync([removed.Id], Token);
+
+        Assert.Equal(2, count);
+        Assert.Equal(0, again);
+        Assert.Empty(await bed.Library.Embeddings.GetAsync(removed.Id, Token));
+        Assert.Empty(await bed.Library.Embeddings.GetAsync(kept.Id, Token));
+        Assert.Equal(3, raised.Count);
+        Assert.All(raised, change => Assert.Empty(change.Embeddings.Embeddings));
+        Assert.Equivalent(new[] { bed.Model.Id, other.Id }, raised.Where(change => change.Embeddings.ItemId == removed.Id).Select(change => change.Embeddings.ModelId));
+    }
+
+    [Fact]
     public async Task ReplaceAsync_StoresTheVectors_AndRaisesChangedAfterCommit()
     {
         var item = await AddItemAsync(1);

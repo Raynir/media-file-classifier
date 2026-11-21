@@ -56,6 +56,7 @@ public static class UseCasesModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, MediaStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ContentHashStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RemoveFolderStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Exclusions.ExclusionCleanupStage>());
         services.TryAddSingleton<MoveDetector>();
         services.TryAddSingleton<Reconciler>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());

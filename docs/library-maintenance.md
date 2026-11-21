@@ -41,6 +41,10 @@ finished by "Only missing or outdated". Items that are missing, excluded or not 
 reads the stored technical metadata and writes only thumbnail files. A failure fails the work item (it shows in the
 processing queue) but leaves the item's status and placeholder alone.
 
+While an import or rescan is unfinished, both options say "Thumbnails can be regenerated when the import has
+finished." and queue nothing: the import writes thumbnails itself, and "All" would delete them under it (user's choice,
+2026-11-21).
+
 The job runs at import priority: ahead of hashing and analysis, behind user actions. The grid's boost (E05-S01-T03)
 moves the items on screen ahead of the rest.
 

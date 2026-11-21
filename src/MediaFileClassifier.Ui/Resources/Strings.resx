@@ -2420,6 +2420,9 @@
   <data name="Maintenance_ThumbnailsBusy" xml:space="preserve">
     <value>Thumbnails are already being regenerated. You can follow them in the processing queue.</value>
   </data>
+  <data name="Maintenance_ThumbnailsImportRunning" xml:space="preserve">
+    <value>Thumbnails can be regenerated when the import has finished.</value>
+  </data>
   <data name="Stage_thumbnails.regenerate" xml:space="preserve">
     <value>Regenerating thumbnails</value>
   </data>

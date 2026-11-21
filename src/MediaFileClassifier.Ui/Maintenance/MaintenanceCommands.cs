@@ -108,6 +108,7 @@ public sealed class MaintenanceCommands(
         {
             RegenerateThumbnailsOutcome.NothingToDo => localizer.Get("Maintenance_ThumbnailsComplete"),
             RegenerateThumbnailsOutcome.Busy => localizer.Get("Maintenance_ThumbnailsBusy"),
+            RegenerateThumbnailsOutcome.ImportRunning => localizer.Get("Maintenance_ThumbnailsImportRunning"),
             RegenerateThumbnailsOutcome.Unavailable => localizer.Get("Command_NoLibraryOpen"),
             _ => null,
         };

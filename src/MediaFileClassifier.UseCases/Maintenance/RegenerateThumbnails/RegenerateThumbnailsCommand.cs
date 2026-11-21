@@ -4,6 +4,8 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
+using MediaFileClassifier.UseCases.Import;
+using MediaFileClassifier.UseCases.Rescan;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -47,6 +49,12 @@ public enum RegenerateThumbnailsOutcome
     Busy,
 
     /// <summary>
+    /// An import or rescan is still unfinished. It writes thumbnails itself, and "All" would delete them under it
+    /// (user's choice, 2026-11-21).
+    /// </summary>
+    ImportRunning,
+
+    /// <summary>
     /// No library is open, or processing isn't available.
     /// </summary>
     Unavailable,
@@ -68,6 +76,11 @@ public sealed class RegenerateThumbnailsCommandHandler(
     /// </summary>
     internal const int PageSize = 2000;
 
+    /// <summary>
+    /// Makes the busy check and the enqueue one step, so two quick clicks don't queue two jobs.
+    /// </summary>
+    private static readonly SemaphoreSlim Gate = new(1, 1);
+
     /// <inheritdoc />
     public async Task<RegenerateThumbnailsResult> Handle(RegenerateThumbnailsCommand request, CancellationToken cancellationToken)
     {
@@ -78,6 +91,19 @@ public sealed class RegenerateThumbnailsCommandHandler(
             return new(RegenerateThumbnailsOutcome.Unavailable);
         }
 
+        await Gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await QueueAsync(scheduler, request.All, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
+    private async Task<RegenerateThumbnailsResult> QueueAsync(IJobScheduler scheduler, bool all, CancellationToken cancellationToken)
+    {
         var library = scheduler.Library;
         var unfinished = await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false);
         if (unfinished.Any(job => job.Type == MaintenanceJobs.ThumbnailsJob))
@@ -85,16 +111,21 @@ public sealed class RegenerateThumbnailsCommandHandler(
             return new(RegenerateThumbnailsOutcome.Busy);
         }
 
+        if (unfinished.Any(job => job.Type is ImportStages.ImportJob or RescanStages.RescanJob))
+        {
+            return new(RegenerateThumbnailsOutcome.ImportRunning);
+        }
+
         // One file check or deletion per item, so off the caller's thread.
         var items = await Task.Run(
             async () =>
             {
-                if (request.All)
+                if (all)
                 {
                     thumbnails.Clear(library.Layout, cancellationToken);
                 }
 
-                return await FindItemsAsync(library, request.All, cancellationToken).ConfigureAwait(false);
+                return await FindItemsAsync(library, all, cancellationToken).ConfigureAwait(false);
             },
             cancellationToken).ConfigureAwait(false);
         if (items.Count == 0)
@@ -108,9 +139,9 @@ public sealed class RegenerateThumbnailsCommandHandler(
                 MaintenanceJobs.ThumbnailsJob,
                 "Regenerate thumbnails",
                 JobPriority.Import,
-                [.. items.Select(id => new WorkItemRequest(MaintenanceJobs.ThumbnailsStage, id, request.All ? MaintenanceJobs.ForcePayload : null))]),
+                [.. items.Select(id => new WorkItemRequest(MaintenanceJobs.ThumbnailsStage, id, all ? MaintenanceJobs.ForcePayload : null))]),
             cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Queued thumbnails for {Count} items of {Library} (all: {All})", items.Count, library.Library.Name, request.All);
+        logger.LogInformation("Queued thumbnails for {Count} items of {Library} (all: {All})", items.Count, library.Library.Name, all);
         return new(RegenerateThumbnailsOutcome.Started, items.Count, jobId);
     }
 

@@ -175,6 +175,7 @@ public sealed class MaintenanceCommandsTests
     [InlineData(RegenerateThumbnailsOutcome.Started, null)]
     [InlineData(RegenerateThumbnailsOutcome.NothingToDo, "Every item already has its thumbnails.")]
     [InlineData(RegenerateThumbnailsOutcome.Busy, "Thumbnails are already being regenerated. You can follow them in the processing queue.")]
+    [InlineData(RegenerateThumbnailsOutcome.ImportRunning, "Thumbnails can be regenerated when the import has finished.")]
     public async Task RegenerateThumbnails_SaysWhyNothingStarted(RegenerateThumbnailsOutcome outcome, string? expected)
     {
         dialogs.Choice = false;

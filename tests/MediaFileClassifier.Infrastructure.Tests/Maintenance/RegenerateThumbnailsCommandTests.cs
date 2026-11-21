@@ -93,6 +93,41 @@ public sealed class RegenerateThumbnailsCommandTests : IAsyncLifetime
         Assert.Equal(RegenerateThumbnailsOutcome.Busy, result.Outcome);
     }
 
+    [Theory]
+    [InlineData("import", true)]
+    [InlineData("rescan", false)]
+    public async Task Regenerate_WhileAnImportIsUnfinished_DeletesAndQueuesNothing(string jobType, bool all)
+    {
+        var thumbnail = bed.Library.Layout.GetThumbnailPath((await bed.ItemsAsync())[0].Id, ThumbnailSize.Large);
+        var unfinished = new ProcessingJob
+        {
+            Id = Id<ProcessingJob>.New(),
+            Type = jobType,
+            Description = "Import",
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        await bed.Library.Jobs.AddJobAsync(unfinished, [], Token);
+
+        var result = await bed.Sender.Send(new RegenerateThumbnailsCommand(all), Token);
+
+        Assert.Equal(RegenerateThumbnailsOutcome.ImportRunning, result.Outcome);
+        Assert.True(File.Exists(thumbnail));
+        Assert.DoesNotContain(await bed.Library.Jobs.GetUnfinishedJobsAsync(Token), job => job.Type == MaintenanceJobs.ThumbnailsJob);
+    }
+
+    [Fact]
+    public async Task RegenerateAll_TwoAtOnce_QueuesOneJob()
+    {
+        var results = await Task.WhenAll(
+            bed.Sender.Send(new RegenerateThumbnailsCommand(All: true), Token),
+            bed.Sender.Send(new RegenerateThumbnailsCommand(All: true), Token));
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(
+            [RegenerateThumbnailsOutcome.Started, RegenerateThumbnailsOutcome.Busy],
+            results.Select(result => result.Outcome).Order());
+    }
+
     [Fact]
     public async Task Stage_ItemMissing_IsSkipped()
     {

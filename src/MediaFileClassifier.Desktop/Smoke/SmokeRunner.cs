@@ -262,6 +262,11 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
     private void SetSetting(string argument)
     {
         var space = argument.IndexOf(' ', StringComparison.Ordinal);
+        if (space < 0)
+        {
+            throw new SmokeStepException("expected a setting key and a value");
+        }
+
         var key = argument[..space];
         var text = argument[(space + 1)..].Trim();
         var definition = services.GetRequiredService<SettingRegistry>().Find(key)
@@ -269,7 +274,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         JsonElement json;
         try
         {
-            json = JsonDocument.Parse(text).RootElement.Clone();
+            using var document = JsonDocument.Parse(text);
+            json = document.RootElement.Clone();
         }
         catch (JsonException)
         {

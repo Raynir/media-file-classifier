@@ -6,7 +6,7 @@
              x:DataType="n:ToastHostViewModel"
              HorizontalAlignment="Right"
              VerticalAlignment="Bottom"
-             Margin="0,0,16,44"
+             Margin="{DynamicResource Margin.ToastHost}"
              Width="360">
   <!--
     Toasts (E15-S01): bottom-right, over the content and above the status bar, newest at the bottom, never modal.
@@ -54,7 +54,7 @@
             <PathIcon Classes="ToastIcon"
                       Grid.Row="0"
                       Grid.Column="0"
-                      Margin="0,2,10,0"
+                      Margin="{DynamicResource Margin.ToastIcon}"
                       VerticalAlignment="Top"
                       Data="{Binding Icon}" />
             <TextBlock Grid.Row="0"
@@ -73,7 +73,7 @@
             </Button>
             <Button Grid.Row="1"
                     Grid.Column="1"
-                    Margin="0,8,0,0"
+                    Margin="{DynamicResource Margin.ToastAction}"
                     HorizontalAlignment="Left"
                     Content="{Binding ActionLabel}"
                     IsVisible="{Binding HasAction}"

@@ -39,6 +39,7 @@ internal sealed class IndexedFolderConfiguration : IEntityTypeConfiguration<Inde
         builder.Property(folder => folder.Status);
         builder.Property(folder => folder.AddedAt);
         builder.Property(folder => folder.StatusChangedAt);
+        builder.Property(folder => folder.SelectedFilesOnly);
         builder.HasOne<Library>().WithMany().HasForeignKey(folder => folder.LibraryId).OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -124,6 +124,7 @@ public sealed partial class FolderDiscovery(
         private readonly Stopwatch sincePendingStarted = new();
         private readonly List<string> unreadableFolders = [];
         private readonly List<string> skippedLinks = [];
+        private readonly List<string> uncheckedFiles = [];
         private readonly List<MediaFileStat> knownFound = [];
         private readonly List<MediaItem> newFound = [];
         private int foldersScanned;
@@ -137,38 +138,13 @@ public sealed partial class FolderDiscovery(
 
         public async Task ScanAsync(CancellationToken cancellationToken)
         {
-            var options = new FolderScanOptions
+            if (folder.SelectedFilesOnly)
             {
-                IncludeSubfolders = folder.Rules.IncludeSubfolders,
-                IncludeHidden = folder.Rules.IncludeHidden,
-                ShouldEnterFolder = rules.ShouldEnterFolder,
-            };
-
-            await foreach (var entry in owner.files.ScanAsync(handle, options, cancellationToken).ConfigureAwait(false))
+                await CheckTrackedFilesAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else
             {
-                switch (entry.Kind)
-                {
-                    case FolderScanEntryKind.File:
-                        await AddFileAsync(entry.File!, cancellationToken).ConfigureAwait(false);
-                        break;
-                    case FolderScanEntryKind.Folder:
-                        foldersScanned++;
-                        Report();
-                        break;
-                    case FolderScanEntryKind.UnreadableFolder:
-                        unreadableFolders.Add(entry.RelativePath);
-                        owner.LogUnreadableFolder(folder.DisplayPath, entry.RelativePath, entry.Error ?? string.Empty);
-                        break;
-                    case FolderScanEntryKind.SkippedLink:
-                        skippedLinks.Add(entry.RelativePath);
-                        owner.LogSkippedLink(folder.DisplayPath, entry.RelativePath);
-                        break;
-                }
-
-                if (pending.Count > 0 && sincePendingStarted.Elapsed >= owner.FlushInterval)
-                {
-                    await FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
+                await ListFolderAsync(cancellationToken).ConfigureAwait(false);
             }
 
             await FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -203,11 +179,83 @@ public sealed partial class FolderDiscovery(
             UnreadableFiles = unreadableFiles,
             UnreadableFolders = unreadableFolders,
             SkippedLinks = skippedLinks,
+            UncheckedFiles = uncheckedFiles,
         };
+
+        // A partial folder (D012) isn't listed: only the files it tracks, its items, are looked up, so other files in it
+        // are ignored and a large folder costs nothing. Its root is checked first, so an unreachable folder is offline
+        // rather than all its files missing.
+        private async Task CheckTrackedFilesAsync(CancellationToken cancellationToken)
+        {
+            if (!await owner.files.IsAvailableAsync(handle, cancellationToken).ConfigureAwait(false))
+            {
+                throw new DirectoryNotFoundException($"{folder.DisplayPath} can't be listed.");
+            }
+
+            foldersScanned++;
+            Report();
+            foreach (var path in knownFiles.Keys)
+            {
+                MediaFileStat? file;
+                try
+                {
+                    file = await owner.files.GetStatAsync(new FileLocation(handle, path), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+                {
+                    uncheckedFiles.Add(path);
+                    owner.LogUnreadableFile(exception, folder.DisplayPath, path);
+                    continue;
+                }
+
+                if (file is not null)
+                {
+                    await AddFileAsync(file, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        private async Task ListFolderAsync(CancellationToken cancellationToken)
+        {
+            var options = new FolderScanOptions
+            {
+                IncludeSubfolders = folder.Rules.IncludeSubfolders,
+                IncludeHidden = folder.Rules.IncludeHidden,
+                ShouldEnterFolder = rules.ShouldEnterFolder,
+            };
+
+            await foreach (var entry in owner.files.ScanAsync(handle, options, cancellationToken).ConfigureAwait(false))
+            {
+                switch (entry.Kind)
+                {
+                    case FolderScanEntryKind.File:
+                        await AddFileAsync(entry.File!, cancellationToken).ConfigureAwait(false);
+                        break;
+                    case FolderScanEntryKind.Folder:
+                        foldersScanned++;
+                        Report();
+                        break;
+                    case FolderScanEntryKind.UnreadableFolder:
+                        unreadableFolders.Add(entry.RelativePath);
+                        owner.LogUnreadableFolder(folder.DisplayPath, entry.RelativePath, entry.Error ?? string.Empty);
+                        break;
+                    case FolderScanEntryKind.SkippedLink:
+                        skippedLinks.Add(entry.RelativePath);
+                        owner.LogSkippedLink(folder.DisplayPath, entry.RelativePath);
+                        break;
+                }
+
+                if (pending.Count > 0 && sincePendingStarted.Elapsed >= owner.FlushInterval)
+                {
+                    await FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
 
         private async Task AddFileAsync(MediaFileStat file, CancellationToken cancellationToken)
         {
-            if (!owner.formats.IsCandidate(file.RelativePath) || !rules.IsIncluded(file.RelativePath))
+            // A partial folder's rules don't apply: it tracks exactly the files the user picked (D012).
+            if (!owner.formats.IsCandidate(file.RelativePath) || (!folder.SelectedFilesOnly && !rules.IsIncluded(file.RelativePath)))
             {
                 return;
             }

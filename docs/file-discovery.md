@@ -27,6 +27,10 @@ New files become `MediaItem`s with status Discovered. The quick fingerprint isn'
 - `IProgress<DiscoveryProgress>` receives the folders scanned, the media files found and the items registered after each listed folder and each written batch.
 - Cancelling stops the scan; batches already written stay written. The next scan skips them as unchanged.
 
+## Partial folders
+
+A folder in "selected files only" mode (`IndexedFolder.SelectedFilesOnly`, D012, E03-S05) isn't listed. Discovery checks that its root can be reached (`IsAvailableAsync`, so an unreachable one is Offline), then looks up only the files it tracks, its items, with `GetStatAsync`. Other files in the folder are ignored, so a large Downloads folder costs nothing, and its rules don't apply. A tracked file that can't be looked up goes into `DiscoveryResult.UncheckedFiles` and is left alone, like the files of an unreadable folder.
+
 ## Cloud placeholders
 
 OneDrive Files On-Demand and other cloud-files providers leave placeholder files whose content is downloaded when they're read. `FileSystemMediaFileSource` marks a file as `MediaFileStat.IsCloudPlaceholder` when the directory listing shows `FILE_ATTRIBUTE_OFFLINE`, `FILE_ATTRIBUTE_RECALL_ON_OPEN` (0x40000) or `FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS` (0x400000). The attributes come from the listing, so the file is never opened. Files kept on the device ("Always keep on this device", or downloaded) don't have them, and are imported normally.

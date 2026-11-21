@@ -12,6 +12,11 @@ namespace MediaFileClassifier.Domain.Libraries;
 /// a persisted content URI on Android (E01-S07). Only the platform layer interprets it.
 /// <see cref="DisplayPath"/> is for showing to the user.
 /// </para>
+/// <para>
+/// A folder in "selected files only" mode (<see cref="SelectedFilesOnly"/>, D012) is a partial folder: it tracks only
+/// the files the user imported from it, which are its items. Discovery and rescans check only those files, and its
+/// rules don't apply until <see cref="IndexWholeFolder"/> makes it a full folder (E03-S05).
+/// </para>
 /// <para>Invariants: the handle and the display path are not blank.</para>
 /// </remarks>
 public sealed class IndexedFolder
@@ -27,6 +32,7 @@ public sealed class IndexedFolder
     /// <param name="status">Whether the folder is reachable.</param>
     /// <param name="addedAt">When the folder was added.</param>
     /// <param name="statusChangedAt">When <paramref name="status"/> last changed.</param>
+    /// <param name="selectedFilesOnly">Whether the folder tracks only the files the user selected.</param>
     public IndexedFolder(
         Id<IndexedFolder> id,
         Id<Library> libraryId,
@@ -35,7 +41,8 @@ public sealed class IndexedFolder
         FolderRules rules,
         FolderStatus status,
         DateTimeOffset addedAt,
-        DateTimeOffset statusChangedAt)
+        DateTimeOffset statusChangedAt,
+        bool selectedFilesOnly = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(platformHandle);
@@ -49,6 +56,7 @@ public sealed class IndexedFolder
         Status = status;
         AddedAt = addedAt;
         StatusChangedAt = statusChangedAt;
+        SelectedFilesOnly = selectedFilesOnly;
     }
 
     public Id<IndexedFolder> Id { get; }
@@ -68,6 +76,11 @@ public sealed class IndexedFolder
     public DateTimeOffset StatusChangedAt { get; private set; }
 
     /// <summary>
+    /// Gets a value indicating whether this is a partial folder, which tracks only the files the user selected (D012).
+    /// </summary>
+    public bool SelectedFilesOnly { get; private set; }
+
+    /// <summary>
     /// Creates a new, online folder with default rules.
     /// </summary>
     /// <param name="libraryId">Owning library.</param>
@@ -77,6 +90,22 @@ public sealed class IndexedFolder
     /// <returns>The new folder.</returns>
     public static IndexedFolder Create(Id<Library> libraryId, string displayPath, string platformHandle, DateTimeOffset now) =>
         new(Id<IndexedFolder>.New(), libraryId, displayPath, platformHandle, new FolderRules(), FolderStatus.Online, now, now);
+
+    /// <summary>
+    /// Creates a new, online partial folder, which tracks only the files the user selects in it (D012, E03-S05).
+    /// </summary>
+    /// <param name="libraryId">Owning library.</param>
+    /// <param name="displayPath">Root path as shown to the user.</param>
+    /// <param name="platformHandle">Opaque platform handle of the root.</param>
+    /// <param name="now">Current time.</param>
+    /// <returns>The new folder.</returns>
+    public static IndexedFolder CreateForSelectedFiles(Id<Library> libraryId, string displayPath, string platformHandle, DateTimeOffset now) =>
+        new(Id<IndexedFolder>.New(), libraryId, displayPath, platformHandle, new FolderRules(), FolderStatus.Online, now, now, selectedFilesOnly: true);
+
+    /// <summary>
+    /// Makes a partial folder a full folder, so everything in it is indexed with its rules (E03-S05-T03). Its items stay.
+    /// </summary>
+    public void IndexWholeFolder() => SelectedFilesOnly = false;
 
     public void ChangeRules(FolderRules rules)
     {

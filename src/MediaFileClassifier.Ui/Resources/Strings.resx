@@ -2609,4 +2609,52 @@
   <data name="ExcludedItems_Failed" xml:space="preserve">
     <value>The items couldn't be changed. See the log for details.</value>
   </data>
+  <data name="Command_LibraryInfo" xml:space="preserve">
+    <value>Library information</value>
+  </data>
+  <data name="LibraryInfo_Title" xml:space="preserve">
+    <value>Library information</value>
+  </data>
+  <data name="LibraryInfo_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="LibraryInfo_NoLibrary" xml:space="preserve">
+    <value>Open a library to see its statistics.</value>
+  </data>
+  <data name="LibraryInfo_Items" xml:space="preserve">
+    <value>Items</value>
+  </data>
+  <data name="LibraryInfo_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="LibraryInfo_DiskUsage" xml:space="preserve">
+    <value>Disk usage</value>
+  </data>
+  <data name="LibraryInfo_Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="LibraryInfo_Images" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="LibraryInfo_AnimatedImages" xml:space="preserve">
+    <value>Animated images</value>
+  </data>
+  <data name="LibraryInfo_Videos" xml:space="preserve">
+    <value>Videos</value>
+  </data>
+  <data name="LibraryInfo_Indexed" xml:space="preserve">
+    <value>Indexed</value>
+  </data>
+  <data name="LibraryInfo_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="LibraryInfo_Errors" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="LibraryInfo_Missing" xml:space="preserve">
+    <value>Missing</value>
+  </data>
+  <data name="LibraryInfo_MediaFiles" xml:space="preserve">
+    <value>Media files</value>
+  </data>
 </root>

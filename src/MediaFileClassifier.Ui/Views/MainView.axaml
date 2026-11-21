@@ -4,6 +4,7 @@
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              xmlns:sh="using:MediaFileClassifier.Ui.Shell"
              xmlns:v="using:MediaFileClassifier.Ui.Views"
+             xmlns:vn="using:MediaFileClassifier.Ui.Views.Notifications"
              xmlns:vmo="using:MediaFileClassifier.Ui.Views.Models"
              x:Class="MediaFileClassifier.Ui.Views.MainView"
              x:DataType="vm:MainWindowViewModel">
@@ -204,6 +205,9 @@
       </Panel>
     </Grid>
   </DockPanel>
+
+  <!-- Toasts (E15-S01), in the bottom-right corner above the status bar. -->
+  <vn:ToastHostView x:Name="ToastHost" DataContext="{Binding Toasts}" />
 
   <!-- Shortcut reference (E16-S01-T03), over everything. -->
   <v:ShortcutReferenceView x:Name="ShortcutReference"

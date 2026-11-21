@@ -97,6 +97,7 @@ public static class UiModule
         // Notifications (E15-S01): anything can raise a toast through INotificationService.
         services.AddSingleton<NotificationService>();
         services.AddSingleton<INotificationService>(provider => provider.GetRequiredService<NotificationService>());
+        services.AddSingleton<JobNotifications>();
         services.AddSingleton<ToastHostViewModel>();
         services.AddSingleton<ShellLayout>();
         services.AddSingleton<ShellRegions>();

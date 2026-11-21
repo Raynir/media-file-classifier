@@ -17,12 +17,14 @@ public sealed class ToastHostTests
     private readonly ManualTimeProvider clock = new();
     private readonly CommandRegistry commands = new([], TestLocalizer.EnUs(), new FakeCapabilityGate());
     private readonly NotificationService service;
+    private readonly JobNotifications jobs;
     private readonly ToastHostViewModel host;
 
     public ToastHostTests()
     {
         service = new NotificationService(settings, action => action());
-        host = new ToastHostViewModel(service, commands, clock, action => action());
+        jobs = new JobNotifications(new FakeJobProgress(), service, TestLocalizer.EnUs());
+        host = new ToastHostViewModel(service, commands, clock, jobs, action => action());
     }
 
     [Fact]
@@ -121,7 +123,7 @@ public sealed class ToastHostTests
     {
         var queue = new List<Action>();
         var threaded = new NotificationService(settings, queue.Add);
-        var threadedHost = new ToastHostViewModel(threaded, commands, clock, action => action());
+        var threadedHost = new ToastHostViewModel(threaded, commands, clock, jobs, action => action());
 
         await Task.Run(() => threaded.Info("From a job"), TestContext.Current.CancellationToken);
 

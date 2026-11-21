@@ -44,6 +44,9 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
     public event EventHandler? Changed;
 
     /// <inheritdoc />
+    public event EventHandler<JobFinishedEventArgs>? JobFinished;
+
+    /// <inheritdoc />
     public ProgressSummary Current
     {
         get
@@ -200,6 +203,7 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
         ArgumentNullException.ThrowIfNull(workItem);
         ArgumentNullException.ThrowIfNull(job);
 
+        JobFinishedEventArgs? finished = null;
         lock (gate)
         {
             if (Find(job.Id) is not { } counters)
@@ -242,16 +246,26 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
             if (ProcessingJobStateTransitions.IsFinished(job.State))
             {
                 counters.IsJobFinished = true;
+                counters.FinalState = job.State;
             }
 
-            // Work being added to the job right now is already counted, and reopens the job.
+            // Work being added to the job right now is already counted, and reopens the job. The job leaves the list
+            // once, so it's reported finished once, however the last work items interleave.
             if (counters.IsJobFinished && !counters.HasPending)
             {
                 jobs.Remove(counters);
+                if (counters.FinalState is ProcessingJobState.Completed or ProcessingJobState.Failed)
+                {
+                    finished = new JobFinishedEventArgs(counters.ToProgress(clock.GetUtcNow(), () => null), counters.FinalState);
+                }
             }
         }
 
         OnChanged();
+        if (finished is not null)
+        {
+            JobFinished?.Invoke(this, finished);
+        }
     }
 
     /// <summary>
@@ -294,6 +308,11 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
         /// Gets or sets whether a finished work item reported the job finished since work was last added to it.
         /// </summary>
         public bool IsJobFinished { get; set; }
+
+        /// <summary>
+        /// Gets or sets the state the job was last reported to be in when it finished.
+        /// </summary>
+        public ProcessingJobState FinalState { get; set; }
 
         /// <summary>
         /// Gets the work items that failed and were queued again for a retry since tracking started.

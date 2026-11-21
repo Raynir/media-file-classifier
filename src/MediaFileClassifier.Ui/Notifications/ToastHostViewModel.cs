@@ -25,25 +25,29 @@ public sealed class ToastHostViewModel : ViewModelBase
     private readonly Action<Action> post;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ToastHostViewModel"/> class.
+    /// Initializes a new instance of the <see cref="ToastHostViewModel"/> class and starts the job notifications.
     /// </summary>
     /// <param name="service">Raises the notifications.</param>
     /// <param name="commands">Runs the toasts' actions.</param>
     /// <param name="clock">Clock, for the toasts' timers.</param>
+    /// <param name="jobs">Raises the notifications for finished jobs; started here, so they exist once the window does.</param>
     /// <param name="post">Runs an action on the UI thread, or <see langword="null"/> for the Avalonia dispatcher.</param>
     public ToastHostViewModel(
         NotificationService service,
         CommandRegistry commands,
         TimeProvider clock,
+        JobNotifications jobs,
         Action<Action>? post = null)
     {
         ArgumentNullException.ThrowIfNull(service);
+        ArgumentNullException.ThrowIfNull(jobs);
 
         this.commands = commands;
         this.clock = clock;
         this.post = post ?? (action => Dispatcher.UIThread.Post(action));
         Toasts = new ReadOnlyObservableCollection<ToastViewModel>(toasts);
         service.Raised += (_, notification) => Show(notification);
+        jobs.Start();
     }
 
     /// <summary>

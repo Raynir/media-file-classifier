@@ -251,11 +251,14 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             from item in items
             join metadata in db.TechnicalMetadata on item.Id equals metadata.ItemId into found
             from metadata in found.DefaultIfEmpty()
+            join folder in db.Folders on item.FolderId equals folder.Id into folders
+            from folder in folders.DefaultIfEmpty()
             orderby item.Id descending
             select new
             {
                 item.Id,
                 item.Path,
+                FolderPath = folder == null ? null : folder.DisplayPath,
                 item.MediaType,
                 item.SizeBytes,
                 item.FileModifiedAt,
@@ -264,6 +267,10 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
                 item.IsFavorite,
                 Duration = metadata == null ? null : metadata.Duration,
                 Warnings = metadata == null ? null : metadata.Warnings,
+                DateTaken = metadata == null ? null : metadata.DateTaken,
+                Width = metadata == null ? null : metadata.Width,
+                Height = metadata == null ? null : metadata.Height,
+                Orientation = metadata == null ? ImageOrientation.Normal : metadata.Orientation,
             }).ToListAsync(token).ConfigureAwait(false);
         return [.. rows.Select(row => new MediaItemSummary(
             row.Id,
@@ -276,7 +283,23 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             row.StatusReason,
             row.Duration,
             row.Warnings?.Any(warning => warning.Code is ThumbnailWarnings.ThumbnailFailed or ThumbnailWarnings.ThumbnailFfmpegUnavailable) ?? false,
-            row.IsFavorite))];
+            row.IsFavorite,
+            row.DateTaken,
+            row.Orientation >= ImageOrientation.Transpose ? row.Height : row.Width,
+            row.Orientation >= ImageOrientation.Transpose ? row.Width : row.Height,
+            FolderOf(row.FolderPath, row.Path)))];
+    }
+
+    private static string? FolderOf(string? folderPath, RelativePath path)
+    {
+        var slash = path.Value.LastIndexOf('/');
+        var subfolders = slash < 0 ? string.Empty : path.Value[..slash].Replace('/', System.IO.Path.DirectorySeparatorChar);
+        if (folderPath is null)
+        {
+            return subfolders.Length == 0 ? null : subfolders;
+        }
+
+        return subfolders.Length == 0 ? folderPath : System.IO.Path.Join(folderPath, subfolders);
     }
 
     /// <inheritdoc />

@@ -2781,4 +2781,46 @@
   <data name="StatusBar_LibrarySummary_ToolTip" xml:space="preserve">
     <value>{0} indexed, {1} pending, {2} with errors, {3} missing. Click for library information.</value>
   </data>
+  <data name="List_Column_Thumbnail" xml:space="preserve">
+    <value>Thumbnail</value>
+  </data>
+  <data name="List_Column_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="List_Column_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="List_Column_DateTaken" xml:space="preserve">
+    <value>Date taken</value>
+  </data>
+  <data name="List_Column_Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="List_Column_Resolution" xml:space="preserve">
+    <value>Resolution</value>
+  </data>
+  <data name="List_Column_Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="List_Column_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="List_Column_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="List_Column_Favorite" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="Browser_List" xml:space="preserve">
+    <value>Results list</value>
+  </data>
+  <data name="Browser_GridView" xml:space="preserve">
+    <value>Grid view</value>
+  </data>
+  <data name="Browser_ListView" xml:space="preserve">
+    <value>List view</value>
+  </data>
+  <data name="Browser_ViewToggle" xml:space="preserve">
+    <value>Results view</value>
+  </data>
 </root>

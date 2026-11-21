@@ -28,6 +28,18 @@ public sealed class ThumbnailRowsControl : ItemsControl
     }
 
     /// <inheritdoc />
+    static ThumbnailRowsControl()
+    {
+        // Rows on screen take a new template at once; recycled ones take it when they're prepared again.
+        TileTemplateProperty.Changed.AddClassHandler<ThumbnailRowsControl>((control, _) =>
+        {
+            foreach (var panel in control.GetRealizedContainers().OfType<ThumbnailRowPanel>())
+            {
+                panel.TileTemplate = control.TileTemplate;
+            }
+        });
+    }
+
     protected override Type StyleKeyOverride => typeof(ItemsControl);
 
     /// <inheritdoc />
@@ -41,6 +53,7 @@ public sealed class ThumbnailRowsControl : ItemsControl
         if (item is ThumbnailRowViewModel row && container is ThumbnailRowPanel panel)
         {
             panel.Row = row;
+            panel.TileTemplate = TileTemplate;
             panel.Tiles = row.Tiles;
             row.Attach();
         }

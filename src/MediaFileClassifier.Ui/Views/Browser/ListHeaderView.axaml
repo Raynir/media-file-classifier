@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Browser"
+             xmlns:views="using:MediaFileClassifier.Ui.Views.Browser"
+             x:Class="MediaFileClassifier.Ui.Views.Browser.ListHeaderView"
+             x:DataType="vm:ListColumnsViewModel">
+  <!--
+    The list view's column header (E14-S02). One cell per column, laid out by the same ListCellsPanel as the rows.
+  -->
+  <UserControl.Styles>
+    <Style Selector="Border.ListHeaderCell">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Height" Value="{DynamicResource Size.Control.Small}" />
+    </Style>
+    <Style Selector="Border.ListHeaderCell TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="FontSize" Value="{DynamicResource FontSize.Caption}" />
+      <Setter Property="FontWeight" Value="{DynamicResource FontWeight.Title}" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <DataTemplate x:Key="HeaderCellTemplate" x:DataType="vm:ListColumnViewModel">
+      <Border Classes="ListHeaderCell" AutomationProperties.Name="{Binding Name}">
+        <DockPanel Margin="{DynamicResource Padding.Badge}">
+          <TextBlock DockPanel.Dock="Right" Text="{Binding SortGlyph}" Classes="Secondary" />
+          <TextBlock Text="{Binding Header}" Classes="Secondary" TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <views:ListCellsPanel x:Name="Cells" />
+</UserControl>

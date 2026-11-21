@@ -68,6 +68,38 @@ public sealed class MediaItemSummaryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetSummariesAsync_ReadsTheListColumns_DateTakenResolutionAsDisplayedAndFolder()
+    {
+        var plain = bed.NewItem(1);
+        var rotated = MediaItem.Discover(bed.Folder.Id, RelativePath.From("trips/2025/beach.jpg"), MediaType.Image, 2048, LibraryTestBed.Start, LibraryTestBed.Start, null, LibraryTestBed.Start);
+        await bed.Library.Items.AddAsync(plain, Token);
+        await bed.Library.Items.AddAsync(rotated, Token);
+        await using (var db = await new LibraryConnectionFactory(bed.Library.Layout.DatabasePath).CreateContextAsync(tracking: true, Token))
+        {
+            db.Add(new TechnicalMetadata
+            {
+                ItemId = rotated.Id,
+                ExtractedAt = LibraryTestBed.Start,
+                Width = 4000,
+                Height = 3000,
+                Orientation = ImageOrientation.Rotate90,
+                DateTaken = new DateTime(2025, 6, 1, 14, 30, 0),
+            });
+            await db.SaveChangesAsync(Token);
+        }
+
+        var page = await bed.Library.Items.GetSummariesAsync(0, 10, Token);
+
+        var summary = page.Single(item => item.Id == rotated.Id);
+        Assert.Equal((3000, 4000), (summary.Width, summary.Height));
+        Assert.Equal(new DateTime(2025, 6, 1, 14, 30, 0), summary.DateTaken);
+        Assert.Equal(Path.Join(bed.Folder.DisplayPath, "trips", "2025"), summary.Folder);
+        var other = page.Single(item => item.Id == plain.Id);
+        Assert.Equal((null, null, null), (other.Width, other.Height, other.DateTaken));
+        Assert.StartsWith(bed.Folder.DisplayPath, other.Folder, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GetIdsAsync_PagesNewestFirst_FromTheNewestGiven()
     {
         var items = Enumerable.Range(0, 30).Select(bed.NewItem).ToList();

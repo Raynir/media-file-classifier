@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -26,7 +27,11 @@ public partial class ThumbnailGridView : UserControl
     public ThumbnailGridView()
     {
         InitializeComponent();
-        Scroller.ScrollChanged += (_, _) => ReportViewport();
+        Scroller.ScrollChanged += (_, _) =>
+        {
+            ReportViewport();
+            AlignHeader();
+        };
         Scroller.SizeChanged += (_, _) => ReportViewport();
         AddHandler(PointerWheelChangedEvent, OnWheel, RoutingStrategies.Tunnel);
         AddHandler(DoubleTappedEvent, OnDoubleTapped);
@@ -44,6 +49,7 @@ public partial class ThumbnailGridView : UserControl
         {
             viewModel.ScrollRequested -= OnScrollRequested;
             viewModel.FocusRequested -= OnFocusRequested;
+            viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
 
         viewModel = DataContext as ThumbnailGridViewModel;
@@ -51,6 +57,8 @@ public partial class ThumbnailGridView : UserControl
         {
             viewModel.ScrollRequested += OnScrollRequested;
             viewModel.FocusRequested += OnFocusRequested;
+            viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            ApplyViewMode();
             ReportViewport();
         }
     }
@@ -61,6 +69,35 @@ public partial class ThumbnailGridView : UserControl
         base.OnAttachedToVisualTree(e);
         ReportViewport();
     }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ThumbnailGridViewModel.IsListView))
+        {
+            ApplyViewMode();
+        }
+    }
+
+    /// <summary>
+    /// Shows the rows as grid tiles or list rows (E14-S02); the list scrolls sideways when its columns are wider.
+    /// </summary>
+    private void ApplyViewMode()
+    {
+        var list = viewModel?.IsListView == true;
+        RowsControl.TileTemplate = (IDataTemplate)Resources[list ? "ListRowTemplate" : "ThumbnailTileTemplate"]!;
+        Scroller.HorizontalScrollBarVisibility = list ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
+        if (!list)
+        {
+            Scroller.Offset = new Vector(0, Scroller.Offset.Y);
+        }
+
+        AlignHeader();
+    }
+
+    /// <summary>
+    /// Keeps the list header over its columns as the list scrolls sideways.
+    /// </summary>
+    private void AlignHeader() => ListHeader.Margin = new Thickness(RowsControl.Margin.Left - Scroller.Offset.X, 0, 0, 0);
 
     private void OnFocusRequested(object? sender, EventArgs e) => Scroller.Focus(NavigationMethod.Tab);
 

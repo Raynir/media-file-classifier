@@ -39,7 +39,7 @@ public sealed partial class WelcomeViewModel(LibraryDialogs dialogs, LibraryOpen
         Recent.Clear();
         foreach (var item in items)
         {
-            Recent.Add(new RecentLibraryViewModel(item, localizer, OpenRecentAsync, RemoveRecentAsync));
+            Recent.Add(new RecentLibraryViewModel(item, localizer, OpenRecentAsync, RemoveRecentAsync, LibraryDialogs.IsSupported ? DeleteRecentAsync : null));
         }
     }
 
@@ -50,6 +50,14 @@ public sealed partial class WelcomeViewModel(LibraryDialogs dialogs, LibraryOpen
     private Task OpenLibraryAsync() => opener.PickAndOpenAsync();
 
     private Task OpenRecentAsync(RecentLibraryViewModel library) => opener.OpenAsync(library.Path);
+
+    private async Task DeleteRecentAsync(RecentLibraryViewModel library)
+    {
+        if (await dialogs.ShowDeleteLibraryAsync(library.Path, library.Name, isOpen: false))
+        {
+            await RefreshAsync();
+        }
+    }
 
     private async Task RemoveRecentAsync(RecentLibraryViewModel library)
     {

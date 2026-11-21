@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Libraries"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Libraries.DeleteLibraryWindow"
+        x:DataType="vm:DeleteLibraryViewModel"
+        Title="{l:Loc DeleteLibrary_Title}"
+        Width="480"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- Delete-library confirmation (E02-S07-T02), provisional until the T00 mockups exist (D095). Delete stays disabled
+       until the library's name is typed, so one click can't delete a library. -->
+  <StackPanel Margin="{DynamicResource Padding.Panel}" Spacing="{DynamicResource Space.M}">
+    <TextBlock Classes="Subtitle" Text="{Binding Heading}" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+
+    <!-- The reassurance the Story asks for, set apart so it's read. -->
+    <Border Classes="StatusBadge" CornerRadius="{DynamicResource Radius.Control}">
+      <TextBlock x:Name="MediaSafeText" Text="{l:Loc DeleteLibrary_MediaSafe}" TextWrapping="Wrap" />
+    </Border>
+
+    <TextBlock Classes="Secondary" Text="{l:Loc DeleteLibrary_ClosesFirst}" TextWrapping="Wrap" IsVisible="{Binding IsOpen}" />
+    <TextBlock Classes="Secondary" Text="{l:Loc DeleteLibrary_Permanent}" TextWrapping="Wrap" />
+
+    <StackPanel Spacing="{DynamicResource Space.XS}">
+      <TextBlock x:Name="PromptText" Text="{Binding Prompt}" TextWrapping="Wrap" />
+      <TextBox x:Name="NameBox"
+               Text="{Binding TypedName}"
+               IsEnabled="{Binding CanConfirm}"
+               AutomationProperties.Name="{Binding Prompt}" />
+    </StackPanel>
+
+    <Border Classes="StatusBadge Error"
+            CornerRadius="{DynamicResource Radius.Control}"
+            IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <TextBlock Text="{Binding Error}" TextWrapping="Wrap" />
+    </Border>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{DynamicResource Space.S}">
+      <Button x:Name="DeleteButton" Content="{l:Loc DeleteLibrary_Delete}" Command="{Binding DeleteCommand}" />
+      <Button x:Name="CancelButton" Content="{l:Loc DeleteLibrary_Cancel}" IsCancel="True" Command="{Binding CancelCommand}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

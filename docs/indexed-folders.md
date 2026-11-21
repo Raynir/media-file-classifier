@@ -31,6 +31,14 @@ Folders being removed don't count as overlaps. "Selected files only" folders (D0
 
 A partial folder (`IndexedFolder.SelectedFilesOnly`, "selected files only", D012, library schema 15) tracks only the files the user imported from it by selecting them (E03-S05, `docs/import-pipeline.md`): its items. Its import and its rescans look up those files alone, so other files in the folder are ignored (`docs/file-discovery.md`, "Partial folders"). It has no rules. A picked file in one of its subfolders joins it, with a path such as `2024/b.jpg`.
 
+**Index whole folder** (`IndexWholeFolderCommand`, E03-S05-T03) makes it a full folder: it cancels the folder's running import, clears `SelectedFilesOnly` and imports the folder. Full discovery knows the existing items by their paths, so they keep their IDs and metadata, and the other files are imported under the folder's rules. The folders dialog tags a partial folder "Selected files only" and shows the note and the button in place of its rules; the button asks in the dialog's confirmation bar first.
+
+Add folder and partial folders (`IndexedFolders.FindOverlap`):
+
+- Adding the partial folder itself (`FolderOverlapKind.PartialFolder`) indexes it whole; the dialog asks the same question as the button.
+- Adding a folder inside it (`InsidePartial`, when no full folder covers it) is allowed: the new folder is added, and the partial folder's items under it move to it with the prefix stripped from their paths, keeping IDs and metadata (`IFolderRepository.SplitIntoAsync`). The partial folder is deleted if it has no items left, otherwise its import is started again. Paths compare without case, like Windows handles.
+- A full folder that contains a partial folder merges it, as with any folder it contains.
+
 ## Exclusions
 
 Each folder's rules are its `FolderRules` (D142):

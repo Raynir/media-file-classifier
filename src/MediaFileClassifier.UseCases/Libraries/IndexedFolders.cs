@@ -92,12 +92,18 @@ public static class IndexedFolders
             .ToList();
         if (covering.Find(match => match.Path!.Length == 0).Folder is { } same)
         {
-            return new FolderOverlap(FolderOverlapKind.AlreadyIndexed, [same]);
+            return new FolderOverlap(same.SelectedFilesOnly ? FolderOverlapKind.PartialFolder : FolderOverlapKind.AlreadyIndexed, [same]);
+        }
+
+        // Only a full folder covers its subfolders; a partial folder covers just the files picked from it.
+        if (covering.Find(match => !match.Folder.SelectedFilesOnly).Folder is { } full)
+        {
+            return new FolderOverlap(FolderOverlapKind.InsideIndexed, [full]);
         }
 
         if (covering.Count > 0)
         {
-            return new FolderOverlap(FolderOverlapKind.InsideIndexed, [covering[0].Folder]);
+            return new FolderOverlap(FolderOverlapKind.InsidePartial, [covering[0].Folder]);
         }
 
         List<IndexedFolder> inside = [.. indexed.Where(existing => files.GetPathInside(existing.ToHandle(), folder) is { Length: > 0 })];

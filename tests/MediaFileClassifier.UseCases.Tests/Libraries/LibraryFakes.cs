@@ -180,6 +180,9 @@ internal sealed class FakeFolderRepository : IFolderRepository
         return Task.FromResult(0);
     }
 
+    public Task<(int Moved, bool PartialDeleted)> SplitIntoAsync(IndexedFolder folder, Id<IndexedFolder> partialId, string relativePath, CancellationToken cancellationToken = default) =>
+        Task.FromResult((0, false));
+
     public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
         => Task.FromResult(Folders.RemoveAll(folder => folder.Id == id) > 0);
 }

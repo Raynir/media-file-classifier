@@ -14,6 +14,7 @@ using MediaFileClassifier.UseCases.Libraries.ChangeFolderRules;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderOverlap;
 using MediaFileClassifier.UseCases.Libraries.GetIndexedFolders;
+using MediaFileClassifier.UseCases.Libraries.IndexWholeFolder;
 using MediaFileClassifier.UseCases.Libraries.RemoveFolder;
 using MediatR;
 
@@ -73,7 +74,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection), nameof(RulesTitle))]
-    [NotifyCanExecuteChangedFor(nameof(RemoveCommand), nameof(RescanCommand), nameof(AnalyzeCommand), nameof(ExcludeSubfolderCommand), nameof(ApplyRulesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveCommand), nameof(RescanCommand), nameof(AnalyzeCommand), nameof(ExcludeSubfolderCommand), nameof(ApplyRulesCommand), nameof(IndexWholeFolderCommand))]
     public partial IndexedFolderViewModel? SelectedFolder { get; set; }
 
     /// <summary>
@@ -198,6 +199,17 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
                     break;
                 case FolderOverlapKind.InsideIndexed:
                     messages.Add(localizer.Format("Folders_InsideIndexed", folder.Id, overlap.Folders[0].DisplayPath));
+                    break;
+                case FolderOverlapKind.PartialFolder:
+                    // Adding a partial folder indexes it whole (E03-S05): on its own, after the same question as its button.
+                    if (folders.Count == 1 && Folders.FirstOrDefault(row => row.Folder.Id == overlap.Folders[0].Id) is { } partial)
+                    {
+                        SelectedFolder = partial;
+                        AskIndexWhole(partial);
+                        return;
+                    }
+
+                    toAdd.Add(folder);
                     break;
                 case FolderOverlapKind.ContainsIndexed:
                     merges.Add(localizer.Format("Folders_MergeConfirm", folder.Id, string.Join(", ", overlap.Folders.Select(child => child.DisplayPath))));
@@ -330,6 +342,25 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         var result = await sender.Send(new ChangeFolderRulesCommand(row.Folder.Id, row.EditedRules()));
         Message = localizer.Format("Folders_RulesApplied", Format.Number(result.Excluded), Format.Number(result.Restored));
         await RefreshAsync();
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void IndexWholeFolder()
+    {
+        if (SelectedFolder is { IsPartial: true } row)
+        {
+            AskIndexWhole(row);
+        }
+    }
+
+    private void AskIndexWhole(IndexedFolderViewModel row)
+    {
+        var count = IndexedFolderViewModel.ItemCountText(localizer, row.Summary.ItemCount + row.Summary.ExcludedCount);
+        Ask(localizer.Format("Folders_IndexWholeConfirm", row.Path, count), localizer.Get("Folders_IndexWhole"), async () =>
+        {
+            await sender.Send(new IndexWholeFolderCommand(row.Folder.Id));
+            await RefreshAsync();
+        });
     }
 
     [RelayCommand]

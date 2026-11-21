@@ -32,7 +32,7 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     /// Gets the folder as last listed.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Path), nameof(Name), nameof(StateText), nameof(IsOffline), nameof(IsScanning), nameof(CountText))]
+    [NotifyPropertyChangedFor(nameof(Path), nameof(Name), nameof(StateText), nameof(IsOffline), nameof(IsScanning), nameof(CountText), nameof(IsPartial))]
     public partial IndexedFolderSummary Summary { get; private set; }
 
     /// <summary>
@@ -59,6 +59,11 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     /// Gets a value indicating whether the folder can't be reached.
     /// </summary>
     public bool IsOffline => Summary.State == IndexedFolderState.Offline;
+
+    /// <summary>
+    /// Gets a value indicating whether the folder is a partial ("selected files only") folder, which has no rules (E03-S05).
+    /// </summary>
+    public bool IsPartial => Summary.Folder.SelectedFilesOnly;
 
     /// <summary>
     /// Gets a value indicating whether the folder is being imported.

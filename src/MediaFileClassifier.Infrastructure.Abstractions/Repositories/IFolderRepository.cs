@@ -52,6 +52,18 @@ public interface IFolderRepository
     Task<int> MergeIntoAsync(IndexedFolder parent, Id<IndexedFolder> childId, string relativePath, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Moves the items under a subfolder of a partial folder to a folder added for that subfolder (E03-S05), in one
+    /// transaction: their paths lose the <paramref name="relativePath"/> prefix, they keep their IDs and metadata, and
+    /// the partial folder is deleted if it has no items left.
+    /// </summary>
+    /// <param name="folder">The new folder, already stored.</param>
+    /// <param name="partialId">The partial folder that contains it.</param>
+    /// <param name="relativePath">The new folder's path relative to the partial folder, with <c>/</c> separators.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of items moved, and whether the partial folder was deleted.</returns>
+    Task<(int Moved, bool PartialDeleted)> SplitIntoAsync(IndexedFolder folder, Id<IndexedFolder> partialId, string relativePath, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Deletes a folder that has no items left (E02-S03-T04).
     /// </summary>
     /// <param name="id">Folder ID.</param>

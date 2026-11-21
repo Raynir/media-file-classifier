@@ -203,6 +203,12 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return null;
             case "import-files":
                 return ImportFiles(step.Argument);
+            case "drag-over":
+                // What dragging over the window does to the drop overlay (E03-S06); a real OS drag can't be scripted.
+                services.GetRequiredService<Ui.ViewModels.Libraries.DropImportViewModel>().IsDragActive = step.Argument != "off";
+                return null;
+            case "drop":
+                return Drop(step.Argument);
             case "dialog-shot":
                 var dialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
                 Directory.CreateDirectory(options.OutputDirectory);
@@ -331,6 +337,36 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
         _ = services.GetRequiredService<FileImporter>().ImportAsync(files);
         return picked;
+    }
+
+    // A real drag from File Explorer can't be scripted, so this copies sample files (and a folder for "folder:<name>") to
+    // a folder of their own and runs the drop path with them (E03-S06). Not awaited: a dropped folder opens the folders
+    // dialog, which the dialog-* steps drive, and the summary comes after it closes.
+    private string Drop(string argument)
+    {
+        var samples = options.SampleMediaDirectory ?? throw new SmokeStepException("tests/SampleMedia wasn't found");
+        var dropped = Path.Combine(options.DataDirectory, "dropped");
+        Directory.CreateDirectory(dropped);
+        var paths = new List<Ui.ViewModels.Libraries.DroppedPath>();
+        foreach (var name in argument.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (name.StartsWith("folder:", StringComparison.Ordinal))
+            {
+                var folder = Path.Combine(dropped, name["folder:".Length..]);
+                Directory.CreateDirectory(folder);
+                File.Copy(Path.Combine(samples, "gif-static.gif"), Path.Combine(folder, "gif-static.gif"), overwrite: true);
+                File.Copy(Path.Combine(samples, "jpeg-icc-offset.jpg"), Path.Combine(folder, "jpeg-icc-offset.jpg"), overwrite: true);
+                paths.Add(new Ui.ViewModels.Libraries.DroppedPath(folder, IsFolder: true));
+                continue;
+            }
+
+            var target = Path.Combine(dropped, name);
+            File.Copy(Path.Combine(samples, name), target, overwrite: true);
+            paths.Add(new Ui.ViewModels.Libraries.DroppedPath(target, IsFolder: false));
+        }
+
+        _ = services.GetRequiredService<Ui.ViewModels.Libraries.DropImportViewModel>().DropAsync(paths);
+        return dropped;
     }
 
     // Keyframes exist only after AI analysis, which needs the model. This does what the analysis does for them: it

@@ -4,8 +4,7 @@
              xmlns:nav="using:MediaFileClassifier.Ui.Navigation"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              x:Class="MediaFileClassifier.Ui.Views.Navigation.NavigationPanelView"
-             x:DataType="vm:NavigationPanelViewModel"
-             DragDrop.AllowDrop="True">
+             x:DataType="vm:NavigationPanelViewModel">
   <!-- Provisional navigation panel (D095), after Figma 25:133 and the collapsed rail 30:3094. E13-S02-T00 designs the real one. -->
   <UserControl.Styles>
     <Style Selector="TreeViewItem" x:DataType="nav:NavigationNode">

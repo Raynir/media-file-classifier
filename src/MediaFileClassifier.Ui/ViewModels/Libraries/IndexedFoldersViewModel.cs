@@ -183,6 +183,11 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets how many folders this window has added so far, for the summary after a drop (E03-S06).
+    /// </summary>
+    public int AddedCount { get; private set; }
+
+    /// <summary>
     /// Adds folders with the overlap rules (E02-S03-T02): folders that are covered already are refused with a message,
     /// and when one contains indexed folders the dialog asks before merging them. Dropping folders on the navigation
     /// panel comes here too (E13-S02).
@@ -262,6 +267,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
             Message = string.Join(Environment.NewLine, result.Refused.Select(refused => localizer.Format("Folders_InsideIndexed", refused.Folder.Id, refused.CoveredBy.DisplayPath)));
         }
 
+        AddedCount += result.Added.Count;
         await RefreshAsync();
         SelectedFolder = result.Added.Count > 0 ? Folders.FirstOrDefault(row => row.Folder.Id == result.Added[^1].Id) : SelectedFolder;
     }

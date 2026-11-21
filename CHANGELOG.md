@@ -7,10 +7,12 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Added
 
 - General and appearance settings (E17-S05, MFC-134): Settings, Appearance has a new "Show file names under tiles" switch (on by default) that hides the file name line under each thumbnail at once and keeps the type and size line; Settings, General has a "Show informational notifications" switch (on by default) that the in-app notifications (E15-S01) will follow. The theme, "Open the last library on startup" and "Restore the filters on startup" settings were already there.
+- Library maintenance (E02-S06, MFC-121): the Library menu and the command palette have Refresh search index, Regenerate thumbnails… and Check library integrity. The index refresh and the integrity check run in the background with a status-bar segment (click to stop). Regenerate thumbnails asks for "Only missing or outdated" or "All" and queues a thumbnail job in the processing queue, items on screen first; "All" deletes the item thumbnails first and keeps the keyframe pictures; neither runs while an import or rescan is unfinished. The integrity check shows a plain-language report; when the database is damaged and a migration backup exists, Restore backup puts it back, keeps the damaged database as `backups/library-damaged-<time>.db`, reopens the library and checks it again.
 
 ### Developer tools
 
 - UI smoke step `setting <key> <value>` (MFC-134) sets a registered setting, and `tools/ui-smoke/show-file-names.smoke` shows the file names switch.
+- UI smoke steps `start`, `dialog shot|answer`, `damage-library` and `allow-error` (MFC-121), and `tools/ui-smoke/library-maintenance.smoke`, which shows the regenerate thumbnails dialog, the integrity report and a backup restore.
 
 ## M4 — 2026-11-21
 

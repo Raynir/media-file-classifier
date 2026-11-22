@@ -4,6 +4,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+## 1.0.0 — 2026-11-22
+
 ### Added
 
 - Command line (MFC-1024): `--data-dir <folder>` keeps the app's data in that folder in any build, so a published Release build can be tried on a throwaway folder. End-to-end pass report: `docs/release-checks/1.0.0-e2e.md`.

@@ -1,0 +1,14 @@
+# Compact database (MFC-1022): the command in the Library menu's maintenance band. A fresh sample library has no free
+# pages, so it answers that there's nothing worth giving back. Steps are described in docs/testing.md.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/compact-database.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+start library.compact-database
+wait-for dialog
+dialog-shot 01-nothing-to-reclaim
+dialog-click Close
+wait-for no-dialog
+shot 02-after

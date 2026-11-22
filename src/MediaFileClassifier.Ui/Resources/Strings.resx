@@ -2558,6 +2558,33 @@
   <data name="Toast_Dismiss" xml:space="preserve">
     <value>Dismiss notification</value>
   </data>
+  <data name="Command_CompactDatabase" xml:space="preserve">
+    <value>Compact _database</value>
+  </data>
+  <data name="Maintenance_CompactingDatabase" xml:space="preserve">
+    <value>Compacting the database…</value>
+  </data>
+  <data name="Maintenance_CompactAsk" xml:space="preserve">
+    <value>Compacting rewrites the library database and gives about {0} back to the disk. It can take a while for a large library, it can't be stopped once it has started, and changes wait until it's done. Compact now?</value>
+  </data>
+  <data name="Maintenance_Compact" xml:space="preserve">
+    <value>Compact</value>
+  </data>
+  <data name="Maintenance_NothingToReclaim" xml:space="preserve">
+    <value>The database has no free space worth giving back.</value>
+  </data>
+  <data name="Maintenance_CompactJobsRunning" xml:space="preserve">
+    <value>The library still has work in the processing queue. Compact the database when it has finished.</value>
+  </data>
+  <data name="Maintenance_CompactNoSpace" xml:space="preserve">
+    <value>The drive doesn't have enough free space to compact the database. It needs about {0} free.</value>
+  </data>
+  <data name="Maintenance_CompactFailed" xml:space="preserve">
+    <value>The database couldn't be compacted, and was left as it was. Check that the drive has free space, then try again. The log has the details.</value>
+  </data>
+  <data name="Maintenance_Compacted" xml:space="preserve">
+    <value>The database was compacted from {0} to {1}.</value>
+  </data>
   <data name="Maintenance_Progress" xml:space="preserve">
     <value>{0} {1}%</value>
   </data>

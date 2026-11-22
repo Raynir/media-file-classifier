@@ -128,7 +128,9 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public MediaFileClassifier.Infrastructure.Abstractions.Search.ISearchStore Search => throw new NotSupportedException();
 
-    public ILibraryMaintenance Maintenance => throw new NotSupportedException();
+    public ILibraryMaintenance? MaintenanceService { get; set; }
+
+    public ILibraryMaintenance Maintenance => MaintenanceService ?? throw new NotSupportedException();
 
     public bool IsDisposed { get; private set; }
 

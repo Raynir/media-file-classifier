@@ -46,6 +46,22 @@ internal sealed class LibraryMaintenance(LibraryConnectionFactory connections, L
     }
 
     /// <inheritdoc />
+    public Task<DatabaseSpace> GetSpaceAsync(CancellationToken cancellationToken = default) =>
+        Task.Run(
+            async () =>
+            {
+                await using var connection = await connections.OpenAsync(cancellationToken).ConfigureAwait(false);
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT page_count * page_size, freelist_count * page_size FROM pragma_page_count, pragma_page_size, pragma_freelist_count;";
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+                var file = reader.GetInt64(0);
+                var free = reader.GetInt64(1);
+                return new DatabaseSpace(file, free, AvailableDiskBytes(connection.DataSource));
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
     public Task OptimizeAsync(bool vacuum = false, CancellationToken cancellationToken = default) =>
         writer.ExecuteWithoutTransactionAsync(
             async (connection, token) =>
@@ -55,10 +71,28 @@ internal sealed class LibraryMaintenance(LibraryConnectionFactory connections, L
                 {
                     command.CommandText = "VACUUM;";
                     await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+
+                    // VACUUM goes through the WAL, so the file only shrinks once the WAL is written back and truncated.
+                    // A reader that holds it up makes this a no-op, not an error; the checkpointer finishes it later.
+                    command.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+                    await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
                 }
 
                 command.CommandText = "ANALYZE;";
                 await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             },
             cancellationToken);
+
+    private static long? AvailableDiskBytes(string databasePath)
+    {
+        try
+        {
+            var root = Path.GetPathRoot(Path.GetFullPath(databasePath));
+            return root is null ? null : new DriveInfo(root).AvailableFreeSpace;
+        }
+        catch (Exception exception) when (exception is IOException or ArgumentException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return null;
+        }
+    }
 }

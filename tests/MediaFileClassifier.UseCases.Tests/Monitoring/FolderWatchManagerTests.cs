@@ -267,12 +267,94 @@ public sealed class FolderWatchManagerTests
         Assert.Empty(bed.Sender.Rescans);
     }
 
+    [Fact]
+    public async Task Error_AgainSoonAfterARestart_WaitsBeforeWatchingAgain_AndTheWaitDoubles()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Share");
+        await bed.StartAsync();
+
+        bed.Factory.Fail(@"E:\Share", overflow: false);
+        await bed.Manager.WaitForRecoveryAsync();
+        Assert.Equal(2, bed.Factory.Started);
+
+        // Fails again at once: it isn't watched again for a minute, even by a refresh.
+        bed.Factory.Fail(@"E:\Share", overflow: false);
+        await bed.Manager.RefreshAsync();
+        Assert.Equal(2, bed.Factory.Started);
+        Assert.Empty(bed.Manager.WatchedFolders);
+        await AdvanceUntilAsync(bed, FolderWatchManager.FirstFailureWait, () => bed.Factory.Started == 3);
+        await bed.Manager.WaitForRecoveryAsync();
+
+        // And again: two minutes this time.
+        bed.Factory.Fail(@"E:\Share", overflow: false);
+        bed.Clock.Advance(FolderWatchManager.FirstFailureWait);
+        await bed.Manager.RefreshAsync();
+        Assert.Equal(3, bed.Factory.Started);
+        await AdvanceUntilAsync(bed, FolderWatchManager.FirstFailureWait, () => bed.Factory.Started == 4);
+        await bed.Manager.WaitForRecoveryAsync();
+        Assert.Equal(3, bed.Sender.Rescans.Count());
+    }
+
+    [Fact]
+    public async Task Error_LongAfterTheLastOne_IsRecoveredAtOnce()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Share");
+        await bed.StartAsync();
+        bed.Factory.Fail(@"E:\Share", overflow: false);
+        await bed.Manager.WaitForRecoveryAsync();
+
+        bed.Clock.Advance(FolderWatchManager.MaxFailureWait);
+        bed.Factory.Fail(@"E:\Share", overflow: false);
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Equal(3, bed.Factory.Started);
+    }
+
+    [Fact]
+    public async Task FolderDeletion_IsReported()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Deleted, "Trip 2020"));
+        bed.Settle();
+
+        var change = Assert.Single(bed.Published);
+        Assert.Equal((FolderChangeKind.Deleted, "Trip 2020"), (change.Kind, change.RelativePath));
+    }
+
+    [Fact]
+    public async Task Folder_MovedInOrRenamed_HasItsFilesFilteredLikeSingleFiles()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        folder.ChangeRules(new FolderRules { ExcludePatterns = ["raw"] });
+        await bed.StartAsync();
+        foreach (var path in new[] { "new/a.jpg", "new/notes.txt", "new/raw/b.jpg", "new/c.jpg.part", "2025/d.jpg", "2025/notes.txt" })
+        {
+            bed.Files.Write(path, 10, bed.Clock.GetUtcNow());
+        }
+
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Created, "new", IsDirectory: true));
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Renamed, "2025", "2024", IsDirectory: true));
+        bed.Settle();
+
+        Assert.Equal(
+            [(FolderChangeKind.Changed, "new/a.jpg", null), (FolderChangeKind.Renamed, "2025/d.jpg", "2024/d.jpg")],
+            bed.Published.Select(change => (change.Kind, change.RelativePath, change.OldRelativePath)).OrderBy(change => change.Kind));
+    }
+
     /// <summary>
     /// Moves the clock on by the retry wait until the condition holds; a retry's wait starts on a thread-pool thread.
     /// </summary>
-    private static async Task AdvanceUntilAsync(Bed bed, Func<bool> condition)
+    private static Task AdvanceUntilAsync(Bed bed, Func<bool> condition) => AdvanceUntilAsync(bed, FolderWatchManager.BusyRetry, condition);
+
+    private static async Task AdvanceUntilAsync(Bed bed, TimeSpan by, Func<bool> condition)
     {
-        bed.Clock.Advance(FolderWatchManager.BusyRetry);
+        bed.Clock.Advance(by);
         var end = DateTime.UtcNow + TimeSpan.FromSeconds(10);
         while (!condition() && DateTime.UtcNow < end)
         {

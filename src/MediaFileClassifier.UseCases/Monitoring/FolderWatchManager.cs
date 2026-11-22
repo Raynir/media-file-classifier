@@ -25,8 +25,10 @@ namespace MediaFileClassifier.UseCases.Monitoring;
 /// (<see cref="MonitoringSettings.IgnorePatterns"/>), the folder's rules or the supported formats leave out are dropped
 /// as they arrive; a partial folder (D012) reports only its tracked files, and changes to excluded items (E02-S10) aren't
 /// reported (E04-S01-T03). When a watcher overflows, the folder is rescanned (E02-S04); when it fails, the folder's
-/// availability is checked, and if it's still Online it's watched again and rescanned. A rescan refused because the
-/// folder's import or rescan work is running is asked for again every <see cref="BusyRetry"/> (E04-S01-T04).
+/// availability is checked, and if it's still Online it's watched again and rescanned. A watcher that fails again soon
+/// after is started again only after <see cref="FirstFailureWait"/>, doubling up to <see cref="MaxFailureWait"/>. A rescan
+/// refused because the folder's import or rescan work is running is asked for again every <see cref="BusyRetry"/>
+/// (E04-S01-T04).
 /// </summary>
 public sealed class FolderWatchManager : IDisposable
 {
@@ -34,6 +36,18 @@ public sealed class FolderWatchManager : IDisposable
     /// How long to wait before asking again for a rescan that was refused because other work of the folder is running.
     /// </summary>
     public static readonly TimeSpan BusyRetry = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// How long a folder whose watcher failed again soon after a restart waits before it's watched again. Each failure in
+    /// a row doubles it.
+    /// </summary>
+    public static readonly TimeSpan FirstFailureWait = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// The longest wait before a failing folder is watched again. A watcher that runs this long without failing starts
+    /// the count again.
+    /// </summary>
+    public static readonly TimeSpan MaxFailureWait = TimeSpan.FromMinutes(30);
 
     private readonly ILibrarySession session;
     private readonly IFolderWatcherFactory? factory;
@@ -48,6 +62,7 @@ public sealed class FolderWatchManager : IDisposable
     private readonly Dictionary<Id<IndexedFolder>, WatchedFolder> watched = [];
     private readonly HashSet<Id<IndexedFolder>> rescansWanted = [];
     private readonly HashSet<Task> recoveries = [];
+    private readonly Dictionary<Id<IndexedFolder>, Failures> failures = [];
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "A refresh already under way may still use it after Dispose; it holds no OS handle unless its wait handle is read.")]
     private readonly SemaphoreSlim refreshGate = new(1, 1);
@@ -93,7 +108,7 @@ public sealed class FolderWatchManager : IDisposable
         ignore = new IgnoreList(settings.Get(MonitoringSettings.IgnorePatterns));
         this.logger = logger;
         this.factory = factory;
-        buffer = new FolderChangeBuffer(files, clock, logger, PublishAsync);
+        buffer = new FolderChangeBuffer(files, clock, logger, PublishAsync, IncludesFile);
     }
 
     /// <summary>
@@ -303,6 +318,13 @@ public sealed class FolderWatchManager : IDisposable
             }
 
             var wanted = folders.ToDictionary(folder => folder.Id);
+
+            // A folder that went Offline or away starts its failure count again when it's back.
+            foreach (var id in failures.Keys.Where(id => !wanted.ContainsKey(id)).ToList())
+            {
+                failures.Remove(id);
+            }
+
             foreach (var gone in watched.Values.Where(folder => !wanted.ContainsKey(folder.Folder.Id)).ToList())
             {
                 gone.Stop();
@@ -326,6 +348,12 @@ public sealed class FolderWatchManager : IDisposable
                     existing.Stop();
                     watched.Remove(folder.Id);
                     buffer.Forget(folder.Id);
+                }
+
+                if (failures.TryGetValue(folder.Id, out var failed) && failed.RetryAt > clock.GetUtcNow())
+                {
+                    // Waiting after repeated failures; its recovery watches it again.
+                    continue;
                 }
 
                 if (StartWatching(folder) is { } started)
@@ -377,6 +405,7 @@ public sealed class FolderWatchManager : IDisposable
             return;
         }
 
+        DateTimeOffset retryAt;
         lock (syncRoot)
         {
             if (disposed || !watched.TryGetValue(folder.Id, out var current) || !ReferenceEquals(current, entry))
@@ -387,15 +416,48 @@ public sealed class FolderWatchManager : IDisposable
             entry.Stop();
             watched.Remove(folder.Id);
             buffer.Forget(folder.Id);
+            retryAt = CountFailure(folder.Id);
         }
 
         logger.LogWarning(error.Exception, "The watcher of {Folder} failed; checking the folder", folder.DisplayPath);
-        Track(RecoverAsync(folder.Id));
+        Track(RecoverAsync(folder.Id, retryAt));
     }
 
-    private async Task RecoverAsync(Id<IndexedFolder> folderId)
+    /// <summary>
+    /// Counts a watcher failure and tells when the folder may be watched again: at once after a first failure, or after
+    /// one following a restart that didn't last <see cref="MaxFailureWait"/>, a wait doubling from
+    /// <see cref="FirstFailureWait"/>.
+    /// </summary>
+    // Called under the lock.
+    private DateTimeOffset CountFailure(Id<IndexedFolder> folderId)
+    {
+        var now = clock.GetUtcNow();
+        var count = failures.TryGetValue(folderId, out var last) && now - last.RetryAt < MaxFailureWait ? last.Count + 1 : 1;
+        var wait = count == 1
+            ? TimeSpan.Zero
+            : TimeSpan.FromTicks(Math.Min(MaxFailureWait.Ticks, FirstFailureWait.Ticks << Math.Min(count - 2, 10)));
+        var retryAt = now + wait;
+        failures[folderId] = new Failures(count, retryAt);
+        return retryAt;
+    }
+
+    private async Task RecoverAsync(Id<IndexedFolder> folderId, DateTimeOffset retryAt)
     {
         await CheckAvailabilityAsync(folderId).ConfigureAwait(false);
+        var wait = retryAt - clock.GetUtcNow();
+        if (wait > TimeSpan.Zero)
+        {
+            logger.LogWarning("Folder {Folder} is watched again in {Wait} after repeated watcher failures", folderId, wait);
+            try
+            {
+                await Task.Delay(wait, clock, stopping.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
+
         await RefreshAsync().ConfigureAwait(false);
         if (IsWatched(folderId))
         {
@@ -531,7 +593,7 @@ public sealed class FolderWatchManager : IDisposable
     /// </summary>
     private FolderWatchEvent? Filter(IndexedFolder folder, FolderWatchEvent change)
     {
-        var included = Includes(folder, change.RelativePath, change.IsDirectory);
+        var included = Includes(folder, change.RelativePath, change.IsDirectory, isDeletion: change.Kind == FolderWatchEventKind.Deleted);
         if (change is not { Kind: FolderWatchEventKind.Renamed, OldRelativePath: { } oldPath })
         {
             return included ? change : null;
@@ -546,7 +608,12 @@ public sealed class FolderWatchManager : IDisposable
         };
     }
 
-    private bool Includes(IndexedFolder folder, string path, bool isDirectory)
+    /// <summary>
+    /// Checks a path against the ignore list, the folder's rules and the supported formats. A deletion's path may be a
+    /// folder (the watcher can't tell once it's gone), so it's kept if it would be included as a file or entered as a
+    /// folder, and it isn't checked for a media extension.
+    /// </summary>
+    private bool Includes(IndexedFolder folder, string path, bool isDirectory, bool isDeletion = false)
     {
         if (ignore.IsIgnored(path))
         {
@@ -557,7 +624,10 @@ public sealed class FolderWatchManager : IDisposable
         if (!folder.SelectedFilesOnly)
         {
             var rules = new FolderRuleMatcher(folder.Rules);
-            if (isDirectory ? !rules.ShouldEnterFolder(path) : !rules.IsIncluded(path))
+            var allowed = isDirectory ? rules.ShouldEnterFolder(path)
+                : isDeletion ? rules.IsIncluded(path) || rules.ShouldEnterFolder(path)
+                : rules.IsIncluded(path);
+            if (!allowed)
             {
                 return false;
             }
@@ -568,8 +638,47 @@ public sealed class FolderWatchManager : IDisposable
             }
         }
 
-        // A deletion's path may be a folder, so it isn't checked for a media extension.
-        return isDirectory || formats.IsCandidate(path);
+        return isDirectory || isDeletion || formats.IsCandidate(path);
+    }
+
+    /// <summary>
+    /// Tells the buffer whether a file found in a new folder is worth checking.
+    /// </summary>
+    private bool IncludesFile(Id<IndexedFolder> folderId, string path)
+    {
+        IndexedFolder folder;
+        lock (syncRoot)
+        {
+            if (!watched.TryGetValue(folderId, out var entry))
+            {
+                return false;
+            }
+
+            folder = entry.Folder;
+        }
+
+        return Includes(folder, path, isDirectory: false);
+    }
+
+    /// <summary>
+    /// Filters a ready change like a raw event: the files of a new or renamed folder were never filtered one by one.
+    /// </summary>
+    private FolderChange? Filter(IndexedFolder folder, FolderChange change)
+    {
+        var isDeletion = change.Kind == FolderChangeKind.Deleted;
+        var included = Includes(folder, change.RelativePath, isDirectory: false, isDeletion);
+        if (change is not { Kind: FolderChangeKind.Renamed, OldRelativePath: { } oldPath })
+        {
+            return included ? change : null;
+        }
+
+        return (Includes(folder, oldPath, isDirectory: false), included) switch
+        {
+            (true, true) => change,
+            (false, true) => change with { Kind = FolderChangeKind.Changed, OldRelativePath = null },
+            (true, false) => new FolderChange(FolderChangeKind.Deleted, oldPath),
+            _ => null,
+        };
     }
 
     /// <summary>
@@ -579,8 +688,13 @@ public sealed class FolderWatchManager : IDisposable
     private async Task<IReadOnlyList<FolderChange>> KeepAsync(IndexedFolder folder, IOpenLibrary current, IReadOnlyList<FolderChange> changes, CancellationToken cancellationToken)
     {
         var kept = new List<FolderChange>(changes.Count);
-        foreach (var change in changes)
+        foreach (var ready in changes)
         {
+            if (Filter(folder, ready) is not { } change)
+            {
+                continue;
+            }
+
             if (change.Stat is { } stat
                 && ((stat.IsHidden && !folder.Rules.IncludeHidden) || (stat.IsCloudPlaceholder && !folder.Rules.IncludeCloudPlaceholders)))
             {
@@ -635,6 +749,11 @@ public sealed class FolderWatchManager : IDisposable
         logger.LogInformation("{Count} changes in watched folder {Folder}", changes.Count, folderId);
         await publisher.Publish(new FolderChangesDetected(folderId, changes), cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// How often a folder's watcher failed in a row, and when it may be watched again.
+    /// </summary>
+    private sealed record Failures(int Count, DateTimeOffset RetryAt);
 
     /// <summary>
     /// A watched folder and its watcher.

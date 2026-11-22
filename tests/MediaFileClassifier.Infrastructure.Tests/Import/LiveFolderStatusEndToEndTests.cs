@@ -41,8 +41,14 @@ public sealed class LiveFolderStatusEndToEndTests : IAsyncLifetime
         var source = bed.Get<LibraryItemsSource>();
         var unplugged = Drive + "-unplugged";
         Directory.Move(Drive, unplugged);
+        var wentOffline = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        bed.Get<FolderStatusChanges>().Changed += (_, _) => wentOffline.TrySetResult();
         await bed.Sender.Send(new CheckFolderAvailabilityCommand(), Token);
         Assert.All(await source.GetPageAsync(0, 10, Token), item => Assert.True(item.IsFolderOffline));
+
+        // The Offline change is reported once its burst is over (MFC-1014), so it's waited for, not taken for the
+        // refresh below.
+        await wentOffline.Task.WaitAsync(TimeSpan.FromSeconds(10), Token);
 
         var refreshed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         source.Changed += (_, _) => refreshed.TrySetResult();

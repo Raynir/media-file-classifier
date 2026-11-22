@@ -7,6 +7,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Fixed
 
 - Analysis on the GPU (MFC-1038): with AI analysis set to run more than one item at a time, the app could close with a Windows error (0xC0000005) while reading text with in-process OCR on DirectML, because two items ran the same model at once and DirectML allows only one run at a time. Runs of a model on the GPU now wait for each other; other work still runs in parallel. If the GPU device is lost during analysis (driver reset or hang), the model moves to the CPU and analysis goes on, slower, instead of failing every later item until restart. The log now names each item and analyzer before it starts, so a native crash shows the last item. `docs/development.md` explains how to turn on Windows crash dumps.
+- Processing queue (MFC-1039): a job's stage is named in words ("Analyzing", "Checking changed files") instead of by its internal key ("analysis.item: 208 of 237"). The analysis, rescan and folder-removal stages were missing their names. A stage that still has no name shows its job's description, in the progress text and in the failure list, and logs a warning once; a test fails when a stage has no name.
 
 ## 1.0.0 — 2026-11-22
 

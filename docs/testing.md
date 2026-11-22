@@ -29,6 +29,7 @@ How tests are written, shared and run. xunit v3 on Microsoft.Testing.Platform (M
 | `InMemoryModelStore`, `SingleEntryModelCatalog` | `Testing` | `IModelStore` and `IModelCatalog` without files |
 | `InMemorySettingsStore`, the fake AI providers, `SampleMedia` | `Testing` | Settings, AI providers and the sample media |
 | `TemporaryFolder`, `TemporaryLibrary` | `Testing` | Disposable temp folder, and a library in one |
+| `TestPerformance` | `Testing` | Whether performance bounds are asserted (`MFC_PERF_TESTS=1`), see [Timing tests](#timing-tests-and-parallelism) |
 | `TestLocalizer.EnUs()`, `FakeModelDialogs`, `TestServices`, `NoThumbnails` | `Ui.Tests` | Need the `Ui` project, so they can't live in `Testing` |
 
 ### Naming shared helpers
@@ -76,8 +77,10 @@ dotnet test --project tests/MediaFileClassifier.Ui.Tests --no-build -- --filter-
 xunit runs the classes of a test project in parallel, so a test with a time budget competes with every other test for the CPU.
 
 - Avoid asserting on elapsed time. Wait for the condition instead (`TaskCompletionSource`, a polling helper with a generous timeout), and assert on order or counts.
-- When a time budget is the point of the test (a latency or contention check), put the class in the non-parallel collection (`[Collection(TimingTestsCollection.Name)]` in `Infrastructure.Tests`; define one per test project that needs it, with `DisableParallelization = true`), so it runs alone. Keep the budget loose enough for a slow CI machine as well.
-- A test that passes alone and fails in the full run is a bug in the test. Don't re-run until green.
+- When a time budget is the point of the test (a latency or contention check), put the class in the non-parallel collection (`[Collection(TimingTestsCollection.Name)]` in `Infrastructure.Tests`; define one per test project that needs it, with `DisableParallelization = true`), so it runs alone within its project.
+- **A bound on how fast the code runs is asserted only with `MFC_PERF_TESTS=1`** (MFC-1025). Test projects run in parallel with each other, and other builds and test runs share the machine, so no collection makes such a bound reliable in a plain `dotnet test`. Guard it with `if (TestPerformance.Enabled)` (`Testing/Timing`), keep every correctness assertion of the test unguarded, and write the measured time to the test output. Run the bounds on their own (see [Opt-in tests](development-workflow.md#opt-in-tests)).
+- A bound that checks behaviour rather than speed (a cancel or stop doesn't wait for work that takes a minute) stays in every run, set well below what the wrong behaviour would take (at most half of it, or a hang); its tight value goes behind `TestPerformance.Enabled` too.
+- A test that passes alone and fails in the full run is a bug in the test. Don't re-run until green. To find such tests, run the full suite several times while the CPU is busy (another `dotnet test`, or a CPU burner).
 
 ## Composition tests (full DI)
 

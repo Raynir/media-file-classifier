@@ -1,3 +1,4 @@
+using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
 
@@ -51,16 +52,21 @@ public sealed class PerceptualHashIndexTests
         }
 
         var query = (ulong)random.NextInt64();
-        index.FindWithin(query, PerceptualHash.SamePictureThreshold);
+        var expected = index.FindWithin(query, PerceptualHash.SamePictureThreshold);
 
         var times = new List<TimeSpan>();
         for (var run = 0; run < 5; run++)
         {
             var stopwatch = Stopwatch.StartNew();
-            index.FindWithin(query, PerceptualHash.SamePictureThreshold);
+            var found = index.FindWithin(query, PerceptualHash.SamePictureThreshold);
             times.Add(stopwatch.Elapsed);
+            Assert.Equal(expected, found);
         }
 
-        Assert.True(times.Min() < TimeSpan.FromMilliseconds(100), $"Fastest search took {times.Min().TotalMilliseconds} ms.");
+        TestContext.Current.SendDiagnosticMessage($"Fastest search of 100k hashes: {times.Min().TotalMilliseconds:F1} ms");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(times.Min() < TimeSpan.FromMilliseconds(100), $"Fastest search took {times.Min().TotalMilliseconds} ms.");
+        }
     }
 }

@@ -1,3 +1,4 @@
+using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
@@ -33,7 +34,11 @@ public sealed class SkiaPreviewDecoderTests : IDisposable
             stopwatch.Stop();
             Assert.Equal((2560, 1707, false), (screen.Width, screen.Height, screen.IsFullResolution));
             Assert.True(screen.RowBytes >= screen.Width * 4);
-            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"The screen-sized decode took {stopwatch.Elapsed}.");
+            TestContext.Current.SendDiagnosticMessage($"Screen-sized decode of 50 MP: {stopwatch.ElapsedMilliseconds} ms");
+            if (TestPerformance.Enabled)
+            {
+                Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"The screen-sized decode took {stopwatch.Elapsed}.");
+            }
         }
 
         using var full = await decoder.DecodeAsync(Content(path), null, Token);

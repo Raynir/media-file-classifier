@@ -2,6 +2,7 @@ using System.Diagnostics;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Tests.TestSupport;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Metadata.GetItemMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetItemsMetadata;
 
@@ -133,7 +134,10 @@ public sealed class ItemMetadataReadTests : IAsyncLifetime
         times.Sort();
         var median = times[times.Count / 2];
         TestContext.Current.SendDiagnosticMessage($"median {median:F2} ms, p90 {times[45]:F2} ms, max {times[^1]:F2} ms");
-        Assert.True(median < 20, $"Loading one item's metadata took {median:F1} ms (median of 50).");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(median < 20, $"Loading one item's metadata took {median:F1} ms (median of 50).");
+        }
     }
 
     // Two analyzers with an active and a retained run each, every field set by AI, user values on a few, technical

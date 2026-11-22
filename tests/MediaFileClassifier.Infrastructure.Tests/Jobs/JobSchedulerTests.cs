@@ -1,3 +1,4 @@
+using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
@@ -208,7 +209,14 @@ public sealed class JobSchedulerTests : IAsyncLifetime
         await WaitUntilAsync(() => scheduler.GetRunningCount(ResourcePool.Ai) == 0);
         stopwatch.Stop();
 
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Cancelling took {stopwatch.Elapsed}.");
+        // The analysis takes a minute, so cancelling well under that shows it was stopped, not awaited; under 3 s on an
+        // idle machine (MFC_PERF_TESTS=1, TestPerformance).
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), $"Cancelling took {stopwatch.Elapsed}.");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Cancelling took {stopwatch.Elapsed}.");
+        }
+
         Assert.Equal(ProcessingJobState.Cancelled, (await bed.Library.Jobs.GetJobAsync(jobId, Token))!.State);
         var states = (await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token)).ToDictionary(item => item.ItemId!.Value, item => item.State);
         Assert.Equal(WorkItemState.Completed, states[media[0].Id]);

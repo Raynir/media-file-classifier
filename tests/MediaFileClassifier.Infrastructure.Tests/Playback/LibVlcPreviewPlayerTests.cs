@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Playback;
 using MediaFileClassifier.Infrastructure.Playback;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Timing;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Playback;
@@ -189,13 +191,20 @@ public sealed class LibVlcPreviewPlayerTests : IDisposable
         player.Open(SampleMedia.ShortVideo, TimeSpan.Zero, play: true);
         await WaitForAsync(() => player.State == PlaybackState.Playing);
 
-        var started = DateTime.UtcNow;
+        var stopwatch = Stopwatch.StartNew();
         player.Dispose();
         player.Dispose();
         player.Play();
         player.Seek(TimeSpan.FromSeconds(1));
+        stopwatch.Stop();
 
-        Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(3));
+        // A dispose that deadlocks with LibVLC's threads never returns; under 3 s on an idle machine (MFC_PERF_TESTS=1,
+        // TestPerformance).
+        Assert.True(stopwatch.Elapsed < Timeout, $"Disposing took {stopwatch.Elapsed}.");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Disposing took {stopwatch.Elapsed}.");
+        }
     }
 
     private static async Task WaitForAsync(Func<bool> condition, TimeSpan? timeout = null)

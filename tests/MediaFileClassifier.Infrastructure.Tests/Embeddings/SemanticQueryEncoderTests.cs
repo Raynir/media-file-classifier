@@ -15,6 +15,7 @@ using MediaFileClassifier.Infrastructure.Tests.Search;
 using MediaFileClassifier.Infrastructure.Tests.TestSupport;
 using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Embeddings;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Embeddings;
@@ -146,7 +147,10 @@ public sealed class SemanticQueryEncoderTests : IAsyncLifetime
         }
 
         TestContext.Current.SendDiagnosticMessage($"text query: median {medians.Min():F1} ms");
-        Assert.True(medians.Min() < 50, $"median {medians.Min():F1} ms");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(medians.Min() < 50, $"median {medians.Min():F1} ms");
+        }
     }
 
     [Fact]

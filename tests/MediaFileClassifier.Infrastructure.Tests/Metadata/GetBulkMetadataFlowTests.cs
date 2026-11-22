@@ -1,3 +1,4 @@
+using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
@@ -93,7 +94,10 @@ public sealed class GetBulkMetadataFlowTests : IAsyncLifetime
         TestContext.Current.SendDiagnosticMessage($"Aggregated 500 items in {clock.ElapsedMilliseconds} ms");
         Assert.Equal(500, view.ItemCount);
         Assert.Equal(500, view.Tags.Single().ItemCount);
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1), $"Aggregating 500 items took {clock.ElapsedMilliseconds} ms.");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1), $"Aggregating 500 items took {clock.ElapsedMilliseconds} ms.");
+        }
     }
 
     private Task Edit(IReadOnlyCollection<Id<MediaItem>> ids, params MetadataEdit[] edits) =>

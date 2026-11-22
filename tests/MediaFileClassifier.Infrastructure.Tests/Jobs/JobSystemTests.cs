@@ -1,3 +1,4 @@
+using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using System.Globalization;
 using MediaFileClassifier.Domain.Identity;
@@ -130,7 +131,14 @@ public sealed class JobSystemTests : IAsyncLifetime
         stopwatch.Stop();
         await bed.ReopenAsync();
 
-        Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, TimeSpan.FromSeconds(4));
+        // The slow work takes a minute, so stopping well under that shows it was stopped, not awaited. The grace period
+        // is 2 s, so it's under 4 s on an idle machine (MFC_PERF_TESTS=1, TestPerformance).
+        Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        if (TestPerformance.Enabled)
+        {
+            Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, TimeSpan.FromSeconds(4));
+        }
+
         Assert.True((await bed.Library.Maintenance.CheckIntegrityAsync(Token)).IsOk);
         var stored = await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token);
         Assert.DoesNotContain(stored, item => item.State == WorkItemState.Running);

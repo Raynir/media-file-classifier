@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Rescan.GetRescanSummary;
+using MediaFileClassifier.UseCases.Rescan.StartRescan;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Watching;
@@ -99,6 +100,24 @@ public sealed class QuickSyncTests
         var job = Assert.Single(await bed.Library.Jobs.GetRecentJobsAsync(10, Token), job => job.Type == RescanStages.QuickSyncJob);
         var counts = (await bed.Sender.Send(new GetRescanSummaryQuery(job.Id), Token))!.Counts!;
         Assert.Equal((0, 0, 0, 0, 3), (counts.New, counts.Moved, counts.Missing, counts.Modified, counts.Unchanged));
+    }
+
+    [Fact]
+    public async Task QuickSyncOfOneFolder_FindsItsNewFiles_AsAQuickSyncJob()
+    {
+        await using var bed = await ImportTestBed.CreateAsync();
+        bed.Copy(SampleMedia.JpegWithExif, "kept.jpg");
+        await bed.ImportAsync();
+        await bed.WaitUntilIdleAsync();
+        bed.Copy(SampleMedia.WebP, "new.webp");
+
+        var result = await bed.Sender.Send(new StartRescanCommand(bed.Folder.Id, Quick: true), Token);
+        await bed.WaitUntilIdleAsync();
+
+        Assert.Equal(StartRescanOutcome.Started, result.Outcome);
+        var job = Assert.Single(await bed.Library.Jobs.GetRecentJobsAsync(10, Token), job => job.Type == RescanStages.QuickSyncJob);
+        Assert.Equal(bed.Folder.Id, job.FolderId);
+        Assert.Equal(["kept.jpg", "new.webp"], (await bed.ItemsAsync()).Select(item => item.Path.Value).Order(StringComparer.Ordinal));
     }
 
     /// <summary>

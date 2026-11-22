@@ -20,6 +20,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Added
 
+- About and releases (MFC-1023): Help, "About Media File Classifier" shows the version and commit of the build, for example `1.0.0 (3bace9e)`, and the repository address; the first line of the log carries the same text. `tools/publish-release/New-Release.ps1` builds the self-contained Windows zip and creates the GitHub Release with the notes from this file. The release steps in `docs/development-workflow.md` are rewritten for `v<version>` tags.
 - UI smoke tool (MFC-1013): `popup-key` and `popup-shot` steps and `wait-for popup` / `no-popup` send a key to, and capture, the open flyout, context menu or combo drop-down, so keyboard use of popups can be checked by script.
 - AI & Models settings (MFC-1016): an "Open models folder" button shows the folder where models are stored in File Explorer (MFC-1019).
 

@@ -1,3 +1,4 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.UseCases.Search.SearchResults;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,9 @@ public sealed class SearchCommands(IServiceProvider services) : ICommandContribu
         {
             services.GetRequiredService<SearchResultSource>().Refresh();
             return Task.CompletedTask;
-        }));
+        })
+        {
+            AppliesTo = () => services.GetRequiredService<ILibrarySession>().Current is not null,
+        });
     }
 }

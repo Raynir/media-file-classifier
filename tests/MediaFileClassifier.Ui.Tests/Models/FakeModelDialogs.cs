@@ -24,5 +24,5 @@ internal sealed class FakeModelDialogs : IModelDialogs
         return Task.FromResult(Agree);
     }
 
-    public Task<IReadOnlyList<string>> PickModelFilesAsync() => Task.FromResult(Picked);
+    public Task<IReadOnlyList<string>?> PickModelFilesAsync() => Task.FromResult<IReadOnlyList<string>?>(Picked.Count == 0 ? null : Picked);
 }

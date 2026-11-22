@@ -1,6 +1,8 @@
 using System.Globalization;
 using MediaFileClassifier.Infrastructure.Abstractions.AI.Models;
+using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.Testing.UseCases;
+using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.UseCases.Models.DeleteModel;
 using MediaFileClassifier.UseCases.Models.DownloadModel;
@@ -185,6 +187,30 @@ public sealed class ModelManagementViewModelTests
         ModelPurpose.Embedding,
         IsDefaultTier: tier == "standard",
         installed ? DateTimeOffset.UnixEpoch : null);
+
+    [Fact]
+    public async Task OpenFolder_OpensTheModelStoreFolder()
+    {
+        var launcher = new FakeFolderLauncher();
+        var store = new InMemoryModelStore();
+        using var viewModel = new ModelManagementViewModel(sender, dialogs, TestLocalizer.EnUs(), store: store, folderLauncher: launcher);
+
+        Assert.True(viewModel.CanOpenFolder);
+        await viewModel.OpenFolderCommand.ExecuteAsync(null);
+
+        Assert.Equal([store.RootDirectory], launcher.Opened);
+    }
+
+    [Fact]
+    public void OpenFolder_IsUnavailableWithoutAStoreOrLauncher()
+    {
+        using var withoutStore = new ModelManagementViewModel(sender, dialogs, TestLocalizer.EnUs(), folderLauncher: new FakeFolderLauncher());
+        using var withoutLauncher = new ModelManagementViewModel(sender, dialogs, TestLocalizer.EnUs(), store: new InMemoryModelStore());
+
+        Assert.False(withoutStore.CanOpenFolder);
+        Assert.False(withoutStore.OpenFolderCommand.CanExecute(null));
+        Assert.False(withoutLauncher.CanOpenFolder);
+    }
 
     private ModelManagementViewModel Create() =>
         new(sender, dialogs, TestLocalizer.EnUs());

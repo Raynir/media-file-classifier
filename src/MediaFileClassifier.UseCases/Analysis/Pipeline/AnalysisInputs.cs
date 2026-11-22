@@ -3,10 +3,9 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
-using MediaFileClassifier.Infrastructure.Abstractions.Frames;
-using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.UseCases.Analysis.Keyframes;
 using MediaFileClassifier.UseCases.Embeddings;
 
 namespace MediaFileClassifier.UseCases.Analysis.Pipeline;
@@ -14,15 +13,14 @@ namespace MediaFileClassifier.UseCases.Analysis.Pipeline;
 /// <summary>
 /// One item's prepared inputs, shared by its analyzers so the media is decoded or sampled only once (E06-S01-T02).
 /// A still image is read and decoded on first use, at the size every enabled analyzer needs together, and each
-/// analyzer gets a copy shrunk to its own size. A video or animated image is sampled once (E06-S02) and its keyframes
-/// are stored once. Analyzers of one item run one after another, so this isn't thread-safe.
+/// analyzer gets a copy shrunk to its own size. A video or animated image is sampled and its keyframes stored once,
+/// through <see cref="ItemKeyframeSampler"/> (E06-S02). Analyzers of one item run one after another, so this isn't thread-safe.
 /// </summary>
 public sealed class AnalysisInputs
 {
     private readonly IAnalysisImageDecoder decoder;
-    private readonly IFrameSampler frameSampler;
+    private readonly ItemKeyframeSampler keyframeSampler;
     private readonly IOpenLibrary library;
-    private readonly IKeyframeThumbnails? keyframeThumbnails;
     private readonly InputSize decodeSize;
     private readonly Dictionary<int, DecodedImage> shrunk = [];
     private DecodedImage? still;
@@ -33,25 +31,23 @@ public sealed class AnalysisInputs
     /// Initializes a new instance of the <see cref="AnalysisInputs"/> class.
     /// </summary>
     /// <param name="decoder">Still image decoder.</param>
-    /// <param name="frameSampler">Keyframe sampler.</param>
+    /// <param name="keyframeSampler">Samples and stores the keyframes.</param>
     /// <param name="library">The open library, where keyframes are stored.</param>
     /// <param name="content">The item's content.</param>
     /// <param name="format">The detected format.</param>
     /// <param name="metadata">The item's technical metadata (duration, orientation).</param>
     /// <param name="decodeSize">The size a still image is decoded at: what the enabled analyzers need together.</param>
-    /// <param name="keyframeThumbnails">Stores the keyframes' pictures for the preview's strip, or <see langword="null"/> for none.</param>
     public AnalysisInputs(
         IAnalysisImageDecoder decoder,
-        IFrameSampler frameSampler,
+        ItemKeyframeSampler keyframeSampler,
         IOpenLibrary library,
         MediaContent content,
         MediaFormatDetection format,
         TechnicalMetadata metadata,
-        InputSize decodeSize,
-        IKeyframeThumbnails? keyframeThumbnails = null)
+        InputSize decodeSize)
     {
         ArgumentNullException.ThrowIfNull(decoder);
-        ArgumentNullException.ThrowIfNull(frameSampler);
+        ArgumentNullException.ThrowIfNull(keyframeSampler);
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(format);
@@ -59,9 +55,8 @@ public sealed class AnalysisInputs
         ArgumentNullException.ThrowIfNull(decodeSize);
 
         this.decoder = decoder;
-        this.frameSampler = frameSampler;
+        this.keyframeSampler = keyframeSampler;
         this.library = library;
-        this.keyframeThumbnails = keyframeThumbnails;
         this.decodeSize = decodeSize;
         Content = content;
         Format = format;
@@ -167,23 +162,7 @@ public sealed class AnalysisInputs
             return frames;
         }
 
-        var sample = await frameSampler.SampleAsync(Content, Format, Metadata, FrameSamplingOptions.Default, cancellationToken).ConfigureAwait(false);
-        if (sample.Frames.Count == 0)
-        {
-            frames = new FrameInputs([], sample.Warnings);
-            return frames;
-        }
-
-        var keyframes = sample.Frames.Select(frame => frame.ToKeyframe(Content.ItemId)).ToList();
-        await library.Keyframes.ReplaceAsync(Content.ItemId, keyframes, cancellationToken).ConfigureAwait(false);
-        if (keyframeThumbnails is not null)
-        {
-            await keyframeThumbnails.StoreAsync(library.Layout, Content.ItemId, sample.Frames, cancellationToken).ConfigureAwait(false);
-        }
-
-        frames = new FrameInputs(
-            [.. keyframes.Zip(sample.Frames, (keyframe, frame) => new KeyframeImage(keyframe, AiImage.FromRgba(frame.Pixels, frame.Width, frame.Height, $"frame {frame.Index}")))],
-            sample.Warnings);
+        frames = await keyframeSampler.SampleAndStoreAsync(library, Content, Format, Metadata, cancellationToken).ConfigureAwait(false);
         return frames;
     }
 }

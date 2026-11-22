@@ -1,6 +1,6 @@
-using System.Reflection;
 using System.Runtime.InteropServices;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+using MediaFileClassifier.Ui.About;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Desktop.Diagnostics;
@@ -16,8 +16,7 @@ internal static class StartupInfo
     /// <param name="logger">Logger to write to.</param>
     public static void Log(ILogger logger)
     {
-        var version = typeof(StartupInfo).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
+        var version = AppVersion.Current.Text;
         logger.LogInformation(
             "Media File Classifier {Version} starting on {OS} ({Architecture}), {Runtime}",
             version,

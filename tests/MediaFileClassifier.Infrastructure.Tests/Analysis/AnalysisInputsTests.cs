@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.AI.Imaging;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.UseCases.Analysis.Keyframes;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Analysis;
@@ -88,7 +89,7 @@ public sealed class AnalysisInputsTests : IAsyncLifetime
     private AnalysisInputs Inputs(MediaItem item, string path, MediaType type, InputSize size) =>
         new(
             decoder,
-            sampler,
+            new ItemKeyframeSampler(sampler),
             bed.Library,
             new MediaContent(item.Id, DateTimeOffset.UnixEpoch, _ => Task.FromResult<Stream>(File.OpenRead(path))) { LocalPath = path },
             new MediaFormatDetection { MediaType = type },

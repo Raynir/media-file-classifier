@@ -29,6 +29,7 @@ How tests are written, shared and run. xunit v3 on Microsoft.Testing.Platform (M
 | `InMemoryModelStore`, `SingleEntryModelCatalog` | `Testing` | `IModelStore` and `IModelCatalog` without files |
 | `InMemorySettingsStore`, the fake AI providers, `SampleMedia` | `Testing` | Settings, AI providers and the sample media |
 | `TemporaryFolder`, `TemporaryLibrary` | `Testing` | Disposable temp folder, and a library in one |
+| `TestPerformance` | `Testing` | Whether performance bounds are asserted (`MFC_PERF_TESTS=1`), see [Timing tests](#timing-tests-and-parallelism) |
 | `TestLocalizer.EnUs()`, `FakeModelDialogs`, `TestServices`, `NoThumbnails` | `Ui.Tests` | Need the `Ui` project, so they can't live in `Testing` |
 
 ### Naming shared helpers
@@ -76,8 +77,10 @@ dotnet test --project tests/MediaFileClassifier.Ui.Tests --no-build -- --filter-
 xunit runs the classes of a test project in parallel, so a test with a time budget competes with every other test for the CPU.
 
 - Avoid asserting on elapsed time. Wait for the condition instead (`TaskCompletionSource`, a polling helper with a generous timeout), and assert on order or counts.
-- When a time budget is the point of the test (a latency or contention check), put the class in the non-parallel collection (`[Collection(TimingTestsCollection.Name)]` in `Infrastructure.Tests`; define one per test project that needs it, with `DisableParallelization = true`), so it runs alone. Keep the budget loose enough for a slow CI machine as well.
-- A test that passes alone and fails in the full run is a bug in the test. Don't re-run until green.
+- When a time budget is the point of the test (a latency or contention check), put the class in the non-parallel collection (`[Collection(TimingTestsCollection.Name)]` in `Infrastructure.Tests`; define one per test project that needs it, with `DisableParallelization = true`), so it runs alone within its project.
+- **A bound on how fast the code runs is asserted only with `MFC_PERF_TESTS=1`** (MFC-1025). Test projects run in parallel with each other, and other builds and test runs share the machine, so no collection makes such a bound reliable in a plain `dotnet test`. Guard it with `if (TestPerformance.Enabled)` (`Testing/Timing`), keep every correctness assertion of the test unguarded, and write the measured time to the test output. Run the bounds on their own (see [Opt-in tests](development-workflow.md#opt-in-tests)).
+- A bound that checks behaviour rather than speed (a cancel or stop doesn't wait for work that takes a minute) stays in every run, set well below what the wrong behaviour would take (at most half of it, or a hang); its tight value goes behind `TestPerformance.Enabled` too.
+- A test that passes alone and fails in the full run is a bug in the test. Don't re-run until green. To find such tests, run the full suite several times while the CPU is busy (another `dotnet test`, or a CPU burner).
 
 ## Composition tests (full DI)
 
@@ -114,6 +117,8 @@ dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/s
 - **Exit code.** 0 when every step passed and nothing failing was logged; 1 when a step failed, or when an error or any Avalonia warning (binding warnings included) was logged, also while the app shut down; 2 for a bad script or option. The app's own warnings don't fail a run.
 - **Capture.** `PrintWindow` with full content gives the composed pixels of the window's client area, so natively drawn content shows. If it fails or comes back black, the tool falls back to Avalonia's `RenderTargetBitmap`, which only has what Avalonia draws; the report says which one (`window` or `render`). Popups and dialogs are separate windows and don't show. It needs a signed-in desktop session, so it doesn't run in CI.
 
+**Published builds.** `--data-dir <folder>` works in every build, not only with `--smoke`: the app then keeps its settings, logs, cache and models in that folder instead of `%LOCALAPPDATA%\MediaFileClassifier` (MFC-1024). Use it to run a published Release build on a throwaway folder.
+
 A script has one step per line; `#` starts a comment line. Paths are relative to the script's folder.
 
 | Step | What it does |
@@ -127,7 +132,7 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `key <gesture>` | Presses a key on the focused control, e.g. `key Space`, `key Ctrl+2`, `key Ctrl+Shift+F`. |
 | `type <text>` | Types text into the focused control. |
 | `wait <duration>` | Waits, e.g. `wait 500ms`, `wait 2s`. |
-| `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name), `dialog` or `no-dialog`; default 30 s. |
+| `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name), `dialog`, `no-dialog`, `popup` or `no-popup`; default 30 s. |
 | `shot <name>` | Saves `<name>.png`. |
 | `seed-keyframes <file name>` | Samples the item's video or animation and stores its keyframes and their pictures, as the analysis does (keyframes otherwise need the AI model). The item's details must be reloaded to show them: select another item, then this one. |
 | `choose-keyframe <n>` | Chooses the n-th keyframe in the preview's strip (from 1), as a click does. |
@@ -135,6 +140,9 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `start <id>` | Runs an app command without waiting for it, for a command that opens a modal dialog, e.g. `start item.remove`. |
 | `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`. Fails if it's disabled. |
 | `dialog-key <gesture>` | Presses a key on the open dialog's focused control, e.g. `dialog-key Tab`; the report names the control that had the focus (MFC-131). |
+| `dialog-focus <control>` | Fails unless the open dialog's focus is on the control with that `x:Name` or type name, e.g. `dialog-focus CancelButton`: a dialog focuses its first input or default button when it opens (MFC-1012). |
+| `popup-key <gesture>` | Presses a key on the focused control of the open popup (a flyout, a context menu or a combo drop-down), e.g. `popup-key Tab`; the report names the control that had the focus. `key` goes to the main window's focused control, which is not in the popup (MFC-1013). |
+| `popup-shot <name>` | Saves `<name>.png` of the open popup. |
 | `dialog-type <text>` | Types text into the open dialog's focused text box, e.g. a typed confirmation (MFC-122). |
 | `dialog-size <w>x<h>` | Sizes the open dialog or settings window, e.g. to show a long page whole (MFC-133). |
 | `dialog-shot <name>` | Saves `<name>.png` of the open dialog. |

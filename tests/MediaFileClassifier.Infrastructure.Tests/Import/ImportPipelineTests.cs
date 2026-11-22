@@ -149,18 +149,25 @@ public sealed class ImportPipelineTests : IAsyncLifetime
         Assert.True(await bed.Jobs.Current!.CancelJobAsync(jobId, Token));
         await bed.WaitUntilIdleAsync();
 
+        // Discovery queues the work for each batch while the scan goes on, so the cancel can land before every file is
+        // registered (MFC-1025): fewer than 150 items, all of them processed, is a valid state here.
         var afterCancel = await bed.ItemsAsync();
         Assert.Equal(ProcessingJobState.Cancelled, (await bed.Library.Jobs.GetJobAsync(jobId, Token))!.State);
         Assert.DoesNotContain(afterCancel, item => item.Status == MediaItemStatus.Error);
-        Assert.Contains(afterCancel, item => item.Status == MediaItemStatus.Discovered);
         var processed = afterCancel.Where(item => item.Status == MediaItemStatus.Pending).Select(item => item.Id).ToHashSet();
         Assert.NotEmpty(processed);
+        Assert.True(processed.Count < 150, "The import finished before it was cancelled.");
+
+        // Every item the cancel left unprocessed is still Discovered, and the next import finishes it.
+        Assert.All(afterCancel.Where(item => !processed.Contains(item.Id)), item => Assert.Equal(MediaItemStatus.Discovered, item.Status));
 
         await bed.ImportAsync();
         await bed.WaitUntilIdleAsync();
 
         var items = await bed.ItemsAsync();
-        Assert.Equal(afterCancel.Count, items.Count);
+        Assert.Equal(150, items.Count);
+        Assert.Equal(150, items.Select(item => item.Path.Value).Distinct().Count());
+        Assert.Subset(items.Select(item => item.Id).ToHashSet(), afterCancel.Select(item => item.Id).ToHashSet());
         Assert.All(items, item => Assert.Equal(MediaItemStatus.Pending, item.Status));
     }
 

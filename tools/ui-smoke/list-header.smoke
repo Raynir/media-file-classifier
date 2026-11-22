@@ -1,0 +1,7 @@
+# List view header with the Favorite column's star icon (MFC-1020).
+window 1900x900
+command view.theme-light
+library sample
+command view.list
+wait 500ms
+shot 01-list-header

@@ -24,7 +24,7 @@ internal static class WindowCapture
     /// <param name="window">The window. It must be shown and not minimised.</param>
     /// <param name="path">The PNG file.</param>
     /// <returns>How it was captured: <c>window</c> or <c>render</c>.</returns>
-    public static string Save(Window window, string path)
+    public static string Save(TopLevel window, string path)
     {
         if (window.TryGetPlatformHandle()?.Handle is { } handle && handle != 0 && TryCaptureWindow(handle) is { } captured)
         {

@@ -347,6 +347,21 @@
   <data name="Splitter_Details" xml:space="preserve">
     <value>Resize details panel</value>
   </data>
+  <data name="Command_About" xml:space="preserve">
+    <value>_About Media File Classifier</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>About Media File Classifier</value>
+  </data>
+  <data name="About_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="About_Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="About_Repository" xml:space="preserve">
+    <value>Repository and releases</value>
+  </data>
   <data name="Command_KeyboardShortcuts" xml:space="preserve">
     <value>_Keyboard shortcuts</value>
   </data>
@@ -922,6 +937,9 @@
   <data name="Rescan_Failed" xml:space="preserve">
     <value>The rescan failed. See the log for details.</value>
   </data>
+  <data name="Command_NotApplicable" xml:space="preserve">
+    <value>Not available for the current selection or state.</value>
+  </data>
   <data name="Command_NoLibraryOpen" xml:space="preserve">
     <value>Open a library first.</value>
   </data>
@@ -1288,10 +1306,7 @@
     <value>Cancel</value>
   </data>
   <data name="ModelImport_Title" xml:space="preserve">
-    <value>Import the search model files</value>
-  </data>
-  <data name="ModelImport_FileType" xml:space="preserve">
-    <value>Model files</value>
+    <value>Choose the folder that contains the model files</value>
   </data>
   <data name="Search_Placeholder" xml:space="preserve">
     <value>Search</value>
@@ -1439,6 +1454,12 @@
   </data>
   <data name="Models_Heading" xml:space="preserve">
     <value>Models</value>
+  </data>
+  <data name="Models_OpenFolder" xml:space="preserve">
+    <value>Open models folder</value>
+  </data>
+  <data name="Models_OpenFolderTip" xml:space="preserve">
+    <value>Show the folder where downloaded and imported models are stored.</value>
   </data>
   <data name="Models_Help" xml:space="preserve">
     <value>AI models run on this computer. Download a model once, or import its files on a computer without internet. The Standard tier suits the processor, and Compact suits a graphics card.</value>
@@ -2551,6 +2572,33 @@
   </data>
   <data name="Toast_Dismiss" xml:space="preserve">
     <value>Dismiss notification</value>
+  </data>
+  <data name="Command_CompactDatabase" xml:space="preserve">
+    <value>Compact _database</value>
+  </data>
+  <data name="Maintenance_CompactingDatabase" xml:space="preserve">
+    <value>Compacting the database…</value>
+  </data>
+  <data name="Maintenance_CompactAsk" xml:space="preserve">
+    <value>Compacting rewrites the library database and gives about {0} back to the disk. It can take a while for a large library, it can't be stopped once it has started, and changes wait until it's done. Compact now?</value>
+  </data>
+  <data name="Maintenance_Compact" xml:space="preserve">
+    <value>Compact</value>
+  </data>
+  <data name="Maintenance_NothingToReclaim" xml:space="preserve">
+    <value>The database has no free space worth giving back.</value>
+  </data>
+  <data name="Maintenance_CompactJobsRunning" xml:space="preserve">
+    <value>The library still has work in the processing queue. Compact the database when it has finished.</value>
+  </data>
+  <data name="Maintenance_CompactNoSpace" xml:space="preserve">
+    <value>The drive doesn't have enough free space to compact the database. It needs about {0} free.</value>
+  </data>
+  <data name="Maintenance_CompactFailed" xml:space="preserve">
+    <value>The database couldn't be compacted, and was left as it was. Check that the drive has free space, then try again. The log has the details.</value>
+  </data>
+  <data name="Maintenance_Compacted" xml:space="preserve">
+    <value>The database was compacted from {0} to {1}.</value>
   </data>
   <data name="Maintenance_Progress" xml:space="preserve">
     <value>{0} {1}%</value>

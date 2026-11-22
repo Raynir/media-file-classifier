@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
 using MediaFileClassifier.Infrastructure.Tests.TestSupport;
+using MediaFileClassifier.Testing.Timing;
 
 namespace MediaFileClassifier.Infrastructure.Tests.DataAccess;
 
@@ -13,7 +14,9 @@ public sealed class WriteConcurrencyTests
 {
     private const int ItemsPerJob = 10_000;
 
-    // Generous bounds, so a slow CI machine doesn't fail the test; typical values are a few milliseconds.
+    // Asserted only with MFC_PERF_TESTS=1 (TestPerformance): typical values are a few milliseconds for a read and
+    // under 100 ms for an edit (it waits for at most the two running batches), but a busy machine stalls either for
+    // over a second (MFC-1025).
     private static readonly TimeSpan MaxReadLatency = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan MaxEditLatency = TimeSpan.FromSeconds(1);
 
@@ -75,8 +78,11 @@ public sealed class WriteConcurrencyTests
         Assert.Equal(edited.IsFavorite, (await bed.Library.Items.GetAsync(edited.Id, Token))?.IsFavorite);
         Assert.NotEmpty(readLatencies);
         Assert.NotEmpty(editLatencies);
-        Assert.True(readLatencies.Max() < MaxReadLatency, $"A read took {readLatencies.Max()}.");
-        Assert.True(editLatencies.Max() < MaxEditLatency, $"An edit took {editLatencies.Max()}.");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(readLatencies.Max() < MaxReadLatency, $"A read took {readLatencies.Max()}.");
+            Assert.True(editLatencies.Max() < MaxEditLatency, $"An edit took {editLatencies.Max()}.");
+        }
     }
 
     [Fact]

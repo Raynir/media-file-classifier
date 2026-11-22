@@ -12,6 +12,7 @@ The pipeline runs the library's analyzers on items and stores what they find. An
 | `AnalyzeItemsCommand` | `UseCases/Analysis/AnalyzeItems` | Queues an `analysis` job with one `analysis.item` work item per item, in the AI pool. It can name analyzers, e.g. only `ocr` to retry OCR. |
 | `AnalysisStage` | `UseCases/Analysis/Pipeline` | The stage handler: runs the analyzers of one item and sets its status. |
 | `AnalysisInputs` | same | One decode of a still image, or one sampling of the keyframes, shared by an item's analyzers. |
+| `ItemKeyframeSampler` | `UseCases/Analysis/Keyframes` | The one place that samples an item's keyframes and stores their rows and pictures; `AnalysisInputs` keeps its result for all of an item's analyzers (MFC-1008). |
 | `EmbeddingItemAnalyzer`, `DescriberItemAnalyzer`, `OcrItemAnalyzer` | same (internal) | The analyzers. |
 
 ## What one item goes through

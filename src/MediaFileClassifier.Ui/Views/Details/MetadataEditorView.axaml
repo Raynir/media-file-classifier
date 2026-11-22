@@ -24,7 +24,14 @@
           </Style>
         </Border.Styles>
         <StackPanel Spacing="{DynamicResource Space.XS}">
-          <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+          <!-- A WrapPanel, so the badges and buttons drop to the next line in a narrow panel instead of being cut off (MFC-1029). -->
+          <WrapPanel Orientation="Horizontal">
+            <WrapPanel.Styles>
+              <Style Selector="WrapPanel > :is(Control)">
+                <Setter Property="Margin" Value="0,0,8,2" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+              </Style>
+            </WrapPanel.Styles>
             <TextBlock Classes="FieldLabel" Text="{Binding Label}" />
             <!-- What the stored value is: the AI's, the user's edit or an accepted AI value, with model and date in the tooltip. -->
             <Border Classes="Provenance Ai" IsVisible="{Binding IsAi}" ToolTip.Tip="{Binding ProvenanceTip}">
@@ -66,7 +73,7 @@
                     Content="{l:Loc Editor_FieldUndo}"
                     Command="{Binding UndoCommand}"
                     IsVisible="{Binding HasStagedAction}" />
-          </StackPanel>
+          </WrapPanel>
           <TextBlock Classes="Tertiary" FontStyle="Italic" Text="{l:Loc Editor_NotAvailable}" IsVisible="{Binding IsNotAvailable}" />
           <TextBox Text="{Binding Text}"
                    IsReadOnly="{Binding IsReadOnly}"

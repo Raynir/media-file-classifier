@@ -1,14 +1,14 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
-using MediaFileClassifier.Infrastructure.Abstractions.Paths;
-using MediaFileClassifier.Infrastructure.Abstractions.Settings;
-using MediaFileClassifier.Testing.Settings;
-using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Browser;
+using MediaFileClassifier.Ui.Commands;
+using MediaFileClassifier.Ui.Details;
+using MediaFileClassifier.Ui.Libraries.Statistics;
+using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
-using MediaFileClassifier.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Ui.Tests.Commands;
@@ -20,20 +20,74 @@ namespace MediaFileClassifier.Ui.Tests.Commands;
 public sealed class CommandSurfacesTests
 {
     [Fact]
-    public Task CollapseNavigation_IsConsistentInMenuContextMenuAndButton() => TestApp.RunAsync(() =>
+    public async Task CollapseNavigation_IsConsistentInMenuContextMenuAndButton()
     {
-        using var services = new ServiceCollection()
-            .AddSingleton<IAppPaths>(new FakeAppPaths())
-            .AddSingleton<IFolderLauncher>(new FakeFolderLauncher())
-            .AddSingleton<ICapabilityGate>(new FakeCapabilityGate())
-            .AddSingleton<ISettingsStore>(new InMemorySettingsStore())
-            .AddSingleton<Infrastructure.Abstractions.Platform.IPlatformServices>(new Commands.FakePlatformServices())
-            .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
-            .AddSingleton<Infrastructure.Abstractions.Libraries.ILibrarySession>(new Browser.FakeBrowserSession(open: false))
-            .AddUseCases()
-            .AddUi()
-            .BuildServiceProvider();
-        var viewModel = services.GetRequiredService<MainWindowViewModel>();
+        await using var app = TestServices.Build(fullStack: true);
+        await TestApp.RunAsync(() => Check(app));
+    }
+
+    [Fact]
+    public async Task MainMenu_DisablesCommandsThatDoNotApplyAndEnablesThemWhenTheyDo()
+    {
+        await using var app = TestServices.Build(fullStack: true);
+        await TestApp.RunAsync(() =>
+        {
+            var menu = app.Services.GetRequiredService<MainMenuViewModel>();
+            var undo = app.Services.GetRequiredService<CommandRegistry>()[MetadataEditorCommands.UndoBulk];
+
+            menu.RefreshCommands();
+
+            Assert.False(undo.IsEnabled);
+            Assert.NotNull(undo.DisabledReason);
+        });
+    }
+
+    [Fact]
+    public async Task MainMenu_DisablesTheBrowseCommands_WhenNoLibraryIsOpen()
+    {
+        // Open item, Previous/Next, Select all/none, Library info and Refresh results (MFC-1021).
+        string[] ids =
+        [
+            BrowserCommands.OpenItem, BrowserCommands.PreviousItem, BrowserCommands.NextItem, BrowserCommands.SelectAll,
+            BrowserCommands.SelectNone, LibraryInfoCommands.OpenInfo, SearchCommands.RefreshResults,
+        ];
+        await using var app = TestServices.Build(fullStack: true);
+        await TestApp.RunAsync(() =>
+        {
+            app.Services.GetRequiredService<MainMenuViewModel>().RefreshCommands();
+            var registry = app.Services.GetRequiredService<CommandRegistry>();
+
+            foreach (var id in ids)
+            {
+                Assert.False(registry[id].IsEnabled, id);
+                Assert.NotNull(registry[id].DisabledReason);
+            }
+        });
+    }
+
+    [Fact]
+    public Task BrowseCommands_FollowTheResultCountAndTheSelection() => TestApp.RunAsync(() =>
+    {
+        var selection = new SelectionModel(() => throw new InvalidOperationException("No results in this test."));
+        var registry = new CommandRegistry(
+            [new BrowserCommands(() => throw new InvalidOperationException("No grid in this test."), selection)],
+            TestLocalizer.EnUs(),
+            new FakeCapabilityGate());
+        string[] needResults = [BrowserCommands.OpenItem, BrowserCommands.PreviousItem, BrowserCommands.NextItem, BrowserCommands.SelectAll];
+
+        registry.Refresh();
+        Assert.All(needResults, id => Assert.False(registry[id].IsEnabled, id));
+        Assert.False(registry[BrowserCommands.SelectNone].IsEnabled);
+
+        selection.Reset(5);
+        registry.Refresh();
+        Assert.All(needResults, id => Assert.True(registry[id].IsEnabled, id));
+        Assert.False(registry[BrowserCommands.SelectNone].IsEnabled);
+    });
+
+    private static void Check(TestServices app)
+    {
+        var viewModel = app.Services.GetRequiredService<MainWindowViewModel>();
         var command = viewModel.Commands[ShellCommands.CollapseNavigation];
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
@@ -75,5 +129,5 @@ public sealed class CommandSurfacesTests
         submenu.Close();
         viewMenu.Close();
         window.Close();
-    });
+    }
 }

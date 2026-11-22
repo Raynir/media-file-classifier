@@ -14,12 +14,33 @@ The branching and commit rules (D064).
 
 ## Releases
 
-- **MVP milestones:** at the end of each milestone, cut `release/M0` … `release/M5` from `develop`.
-  1. Test the branch, and update `CHANGELOG.md`.
-  2. Merge it into `main` and back into `develop`.
-  3. Tag `main` as `m0` … `m4`. `release/M5` is tagged `v1.0.0` (D058).
-- **After the MVP:** use `release/1.1.0`, `release/1.2.0` and so on, with a `v1.x.0` tag.
-- **Hotfixes:** a hotfix branches from `main`, and merges into `main` and `develop`, with a `v1.x.y` tag.
+- **MVP milestones:** at the end of each milestone, cut `release/M0` … `release/M5` from `develop`, test it, update `CHANGELOG.md`, merge it into `main` and back into `develop`, and tag `main` as `m0` … `m5`. Those tags stay as they are.
+- **From 1.0.0:** `release/1.0.0`, `release/1.1.0` and so on, tagged `v1.0.0`, `v1.1.0` (SemVer, D058). A hotfix (`hotfix/1.0.1`) branches from `main`, merges into `main` and `develop`, and is tagged `v1.0.1`.
+- **The version is manual.** `<Version>` in `Directory.Build.props` is the only place it is written. The SDK appends the commit SHA, so the app shows `1.0.0 (3bace9e)` in Help › About and in the first log line.
+
+### Steps
+
+1. Branch `release/<version>` from `develop` (a hotfix from `main`).
+2. On the branch: set `<Version>` in `Directory.Build.props`, and rename `## Unreleased` in `CHANGELOG.md` to `## <version> — <yyyy-mm-dd>` (add a new empty `## Unreleased` above it). Run the final tests, and check Help › About shows the version.
+3. Open a PR into `main` and merge it.
+4. Tag the merge commit with an annotated tag, and push it:
+
+   ```powershell
+   git checkout main; git pull
+   git tag -a v1.0.0 -m "Media File Classifier 1.0.0"
+   git push origin v1.0.0
+   ```
+
+5. Create the GitHub Release from that tag. GitHub Actions can't be relied on yet (billing), so this runs on your machine, from the repository root, with the .NET SDK, PowerShell 7 and an authenticated `gh`:
+
+   ```powershell
+   pwsh tools/publish-release/New-Release.ps1
+   ```
+
+   The script reads the version from `Directory.Build.props`, takes the notes from the `## <version>` section of `CHANGELOG.md`, publishes `win-x64` self-contained (about 340 MB unpacked), zips it to `artifacts/release/<version>/MediaFileClassifier-<version>-win-x64.zip` (about 120 MB) with a `.sha256` file, and runs `gh release create v<version>` with the notes and both files. It refuses to run unless the tree is clean and HEAD is the pushed tag. A version with a suffix (`1.1.0-rc.1`) becomes a pre-release.
+6. Merge `main` back into `develop`.
+
+To try the flow before the tag exists, run it with `-DryRun` (builds and zips, prints the `gh` command) or `-Draft` (creates a draft release that only people with write access see; delete it with `gh release delete <tag> --yes`). Both also take `-Section Unreleased` for the notes, and `-Version 0.0.0-trial`. `-SkipBuild` reuses an earlier zip.
 
 ## Commits
 
@@ -53,12 +74,21 @@ A plain `dotnet test` (and CI) skips tests that are slow, heavy or need the netw
 |---|---|---|---|
 | `MFC_QUALITY_TESTS=1` | `Siglip2QualityTests` (SigLIP 2 embedding quality against the D094 baselines) | `models/siglip2` or `MFC_SIGLIP2_DIR`, and the fetched `eval/corpus` | About 2 minutes, all CPU cores, so it makes timing tests fail if it runs alongside them |
 | `MFC_NETWORK_TESTS=1` | `ModelCatalogTests` network checks | Network access | A few requests |
+| `MFC_PERF_TESTS=1` | The performance bounds of timing tests (`TestPerformance`, MFC-1025): write latency, list scrolling, statistics, metadata reads, search and decode speed | An otherwise idle machine | The tests run anyway; only the bounds are added |
 
 Run one on its own, never with the whole suite:
 
 ```powershell
 $env:MFC_QUALITY_TESTS = "1"
 dotnet test --project tests/MediaFileClassifier.Evaluation.Tests -- --filter-class "*Siglip2QualityTests"
+```
+
+The performance bounds run one test project at a time, with nothing else busy on the machine:
+
+```powershell
+$env:MFC_PERF_TESTS = "1"
+dotnet test --project tests/MediaFileClassifier.Infrastructure.Tests
+dotnet test --project tests/MediaFileClassifier.Ui.Tests -- --filter-class "*ListViewTests"
 ```
 
 ## Android development

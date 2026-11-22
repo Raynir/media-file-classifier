@@ -16,7 +16,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Repositories;
 internal sealed class JobRepository(LibraryConnectionFactory connections, LibraryWriter writer) : IJobRepository
 {
     /// <inheritdoc />
-    public async Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, CancellationToken cancellationToken = default)
+    public async Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, Action<IReadOnlyCollection<WorkItem>>? stored, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(workItems);
@@ -31,12 +31,13 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                 return db.SaveChangesAsync(token);
             },
             cancellationToken).ConfigureAwait(false);
+        stored?.Invoke(first);
 
         // The first batch may already run and finish the job before the rest is written, so the rest is added like
         // later work, which queues a finished job again.
         if (workItems.Count > first.Count)
         {
-            await AddWorkItemsAsync(job.Id, [.. workItems.Skip(first.Count)], job.CreatedAt, cancellationToken).ConfigureAwait(false);
+            await AddWorkItemsAsync(job.Id, [.. workItems.Skip(first.Count)], job.CreatedAt, stored, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -45,6 +46,7 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         Id<ProcessingJob> jobId,
         IReadOnlyCollection<WorkItem> workItems,
         DateTimeOffset now,
+        Action<IReadOnlyCollection<WorkItem>>? stored,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workItems);
@@ -75,6 +77,8 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
             {
                 return false;
             }
+
+            stored?.Invoke(batch);
         }
 
         return true;

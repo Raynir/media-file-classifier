@@ -200,7 +200,7 @@ public sealed partial class ModelBannerViewModel : ViewModelBase, IDisposable
     private async Task ImportAsync()
     {
         var paths = await dialogs.PickModelFilesAsync();
-        if (paths.Count == 0)
+        if (paths is null)
         {
             return;
         }

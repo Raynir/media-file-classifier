@@ -1,0 +1,17 @@
+# UI smoke script for the browser header: no empty band above the filter chips (MFC-1027) and a readable selected
+# chip in both themes (MFC-1028). Steps: docs/testing.md.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/browse-header.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+shot 01-light
+
+command view.theme-dark
+wait 300ms
+shot 02-dark
+
+# With the navigation panel collapsed to its rail, the content still starts right under the toolbar.
+command view.collapse-navigation
+wait 300ms
+shot 03-nav-collapsed

@@ -1,4 +1,4 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -35,6 +35,20 @@ public sealed class ShortcutHandlerTests
         window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.None);
 
         Assert.Equal(["browser.select", "global.accept"], ran);
+    });
+
+    [Fact]
+    public Task FocusedButton_KeepsEnterAndSpace_ButNotOtherKeys() => RunAsync((window, browserButton, _) =>
+    {
+        browserButton.Focus();
+
+        // Enter on the Filters chip opens its flyout, so the Open item shortcut must not take it (MFC-1011).
+        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        window.KeyPressQwerty(PhysicalKey.Space, RawInputModifiers.None);
+        Assert.Empty(ran);
+
+        window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.None);
+        Assert.Equal(["browser.select"], ran);
     });
 
     [Fact]
@@ -101,6 +115,8 @@ public sealed class ShortcutHandlerTests
             new("global.accept", ShortcutScopes.Global, new KeyChord(PhysicalKey.A)),
             new("global.accept", ShortcutScopes.Global, new KeyChord(PhysicalKey.Slash, KeyModifiers.Shift)),
             new("cancel", ShortcutScopes.Global, new KeyChord(PhysicalKey.Escape)),
+            new("browser.select", ShortcutScopes.Browser, new KeyChord(PhysicalKey.Enter)),
+            new("global.accept", ShortcutScopes.Global, new KeyChord(PhysicalKey.Space)),
             new("find", ShortcutScopes.Global, new KeyChord(PhysicalKey.Z, KeyModifiers.Control)),
             new(help, ShortcutScopes.Global, new KeyChord(PhysicalKey.F1)),
         ]);

@@ -33,6 +33,23 @@ public sealed class JobRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AddJobAsync_FailingAfterTheFirstBatch_ReportsTheStoredBatch()
+    {
+        var (job, items) = NewJob(MediaItemRepository.BatchSize + 5);
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        var stored = new List<WorkItem>();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => bed.Library.Jobs.AddJobAsync(job, items, batch =>
+        {
+            stored.AddRange(batch);
+            cancel.Cancel();
+        }, cancel.Token));
+
+        Assert.Equal(items.Take(MediaItemRepository.BatchSize).Select(item => item.Id), stored.Select(item => item.Id));
+        Assert.Equal(stored.Select(item => item.Id), (await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token)).Select(item => item.Id));
+    }
+
+    [Fact]
     public async Task GetQueuedAsync_OrdersByPriorityThenAge_AndFiltersPoolAndExclusions()
     {
         var job = NewJobRecord();

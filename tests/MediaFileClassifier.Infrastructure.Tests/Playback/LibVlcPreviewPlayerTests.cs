@@ -1,7 +1,10 @@
+using System.Diagnostics;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Playback;
 using MediaFileClassifier.Infrastructure.Playback;
+using MediaFileClassifier.Infrastructure.Tests.TestSupport;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Timing;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Playback;
@@ -10,6 +13,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Playback;
 /// Tests for the LibVLC preview player on the frames route (E14-S06-T01, D070), against the sample clips and the
 /// trimmed LibVLC that the tests ship like the app.
 /// </summary>
+[Collection(TimingTestsCollection.Name)]
 public sealed class LibVlcPreviewPlayerTests : IDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
@@ -189,13 +193,21 @@ public sealed class LibVlcPreviewPlayerTests : IDisposable
         player.Open(SampleMedia.ShortVideo, TimeSpan.Zero, play: true);
         await WaitForAsync(() => player.State == PlaybackState.Playing);
 
-        var started = DateTime.UtcNow;
+        var stopwatch = Stopwatch.StartNew();
         player.Dispose();
         player.Dispose();
         player.Play();
         player.Seek(TimeSpan.FromSeconds(1));
+        stopwatch.Stop();
+        TestContext.Current.SendDiagnosticMessage($"Disposing took {stopwatch.ElapsedMilliseconds} ms");
 
-        Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(3));
+        // A dispose that deadlocks with LibVLC's threads never returns; under 3 s on an idle machine (MFC_PERF_TESTS=1,
+        // TestPerformance).
+        Assert.True(stopwatch.Elapsed < Timeout, $"Disposing took {stopwatch.Elapsed}.");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Disposing took {stopwatch.Elapsed}.");
+        }
     }
 
     private static async Task WaitForAsync(Func<bool> condition, TimeSpan? timeout = null)

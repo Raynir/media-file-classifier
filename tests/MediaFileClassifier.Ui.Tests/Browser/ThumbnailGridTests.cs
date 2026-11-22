@@ -217,7 +217,7 @@ public sealed class ThumbnailGridTests
     {
         var (grid, _, _, _) = Create(Count);
         var (window, view) = Show(grid);
-        var registry = new CommandRegistry([new BrowserCommands(() => grid)], Localizer.Current, new FakeCapabilityGate());
+        var registry = new CommandRegistry([new BrowserCommands(() => grid, grid.Selection)], Localizer.Current, new FakeCapabilityGate());
         void Run(string id) => registry[id].ExecuteAsync().GetAwaiter().GetResult();
 
         // A row ends at the last column; next goes on to the first item of the next row.

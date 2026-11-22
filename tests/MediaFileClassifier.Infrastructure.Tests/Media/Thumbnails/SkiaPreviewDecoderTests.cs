@@ -3,7 +3,9 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Media.Thumbnails;
+using MediaFileClassifier.Infrastructure.Tests.TestSupport;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Timing;
 using SkiaSharp;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
@@ -12,6 +14,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
 /// Tests for decoding the details panel preview (E14-S05-T02): screen-sized first, quickly even for a 50-megapixel
 /// JPEG, and at full resolution for zooming.
 /// </summary>
+[Collection(TimingTestsCollection.Name)]
 public sealed class SkiaPreviewDecoderTests : IDisposable
 {
     private readonly string folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"))).FullName;
@@ -33,7 +36,11 @@ public sealed class SkiaPreviewDecoderTests : IDisposable
             stopwatch.Stop();
             Assert.Equal((2560, 1707, false), (screen.Width, screen.Height, screen.IsFullResolution));
             Assert.True(screen.RowBytes >= screen.Width * 4);
-            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"The screen-sized decode took {stopwatch.Elapsed}.");
+            TestContext.Current.SendDiagnosticMessage($"Screen-sized decode of 50 MP: {stopwatch.ElapsedMilliseconds} ms");
+            if (TestPerformance.Enabled)
+            {
+                Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"The screen-sized decode took {stopwatch.Elapsed}.");
+            }
         }
 
         using var full = await decoder.DecodeAsync(Content(path), null, Token);

@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.UseCases.Monitoring;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -30,12 +31,15 @@ public sealed record CheckFolderAvailabilityCommand(IReadOnlyCollection<Id<Index
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="jobs">Releases the parked work when a folder is Online again, or <see langword="null"/>.</param>
+/// <param name="publisher">Tells that folders came back Online (<see cref="FoldersReconnected"/>), or
+/// <see langword="null"/>.</param>
 public sealed class CheckFolderAvailabilityCommandHandler(
     ILibrarySession session,
     IMediaFileSource files,
     TimeProvider clock,
     ILogger<CheckFolderAvailabilityCommandHandler> logger,
-    IJobSystem? jobs = null) : IRequestHandler<CheckFolderAvailabilityCommand, IReadOnlyList<IndexedFolder>>
+    IJobSystem? jobs = null,
+    IPublisher? publisher = null) : IRequestHandler<CheckFolderAvailabilityCommand, IReadOnlyList<IndexedFolder>>
 {
     /// <inheritdoc />
     /// <returns>The folders whose status changed.</returns>
@@ -99,6 +103,23 @@ public sealed class CheckFolderAvailabilityCommandHandler(
             && ReferenceEquals(scheduler.Library, library))
         {
             scheduler.ReleaseParked();
+        }
+
+        // Told after the statuses are stored, so a catch-up finds the folders Online. A folder of a library closed
+        // meanwhile isn't caught up: it's checked again when its library opens.
+        if (publisher is not null
+            && ReferenceEquals(session.Current, library)
+            && changed.Where(folder => folder.Status == FolderStatus.Online).Select(folder => folder.Id).ToList() is { Count: > 0 } reconnected)
+        {
+            try
+            {
+                await publisher.Publish(new FoldersReconnected(reconnected), CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                // The statuses are stored; a catch-up that couldn't start leaves the changes to the next sync or rescan.
+                logger.LogWarning(exception, "Couldn't start the catch-up of {Count} reconnected folder(s)", reconnected.Count);
+            }
         }
 
         return changed;

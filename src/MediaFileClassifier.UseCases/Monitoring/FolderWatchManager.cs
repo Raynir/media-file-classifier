@@ -50,6 +50,7 @@ public sealed class FolderWatchManager : IDisposable
     public static readonly TimeSpan MaxFailureWait = TimeSpan.FromMinutes(30);
 
     private readonly ILibrarySession session;
+    private readonly IMediaFileSource files;
     private readonly IFolderWatcherFactory? factory;
     private readonly IPublisher publisher;
     private readonly ISender sender;
@@ -100,6 +101,7 @@ public sealed class FolderWatchManager : IDisposable
         IFolderWatcherFactory? factory = null)
     {
         this.session = session;
+        this.files = files;
         this.publisher = publisher;
         this.sender = sender;
         this.clock = clock;
@@ -743,6 +745,16 @@ public sealed class FolderWatchManager : IDisposable
         changes = await KeepAsync(folder, current, changes, cancellationToken).ConfigureAwait(false);
         if (changes.Count == 0)
         {
+            return;
+        }
+
+        // A file on a drive just unplugged looks deleted. Its folder is checked instead, which marks it Offline, so no
+        // item is lost (E04-S04-T02); its changes are found by the catch-up when it's back.
+        if (changes.Any(change => change.Kind == FolderChangeKind.Deleted)
+            && !await files.IsAvailableAsync(folder.ToHandle(), cancellationToken).ConfigureAwait(false))
+        {
+            logger.LogInformation("Watched folder {Folder} can't be reached: its {Count} changes are dropped and it's checked", folderId, changes.Count);
+            Track(CheckAvailabilityAsync(folderId));
             return;
         }
 

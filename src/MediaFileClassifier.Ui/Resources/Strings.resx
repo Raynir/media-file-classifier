@@ -1179,6 +1179,24 @@
   <data name="Stage_hash.content" xml:space="preserve">
     <value>Hashing</value>
   </data>
+  <data name="Stage_analysis.item" xml:space="preserve">
+    <value>Analyzing</value>
+  </data>
+  <data name="Stage_analysis.embedding" xml:space="preserve">
+    <value>Creating the search embedding</value>
+  </data>
+  <data name="Stage_rescan.reconcile" xml:space="preserve">
+    <value>Comparing folders with the library</value>
+  </data>
+  <data name="Stage_rescan.check" xml:space="preserve">
+    <value>Checking changed files</value>
+  </data>
+  <data name="Stage_rescan.media" xml:space="preserve">
+    <value>Refreshing metadata and thumbnails</value>
+  </data>
+  <data name="Stage_folder.remove" xml:space="preserve">
+    <value>Removing the folder</value>
+  </data>
   <data name="Navigation_Panel" xml:space="preserve">
     <value>Navigation</value>
   </data>

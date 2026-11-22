@@ -66,7 +66,7 @@ public sealed class ProgressText(Localizer localizer)
         ArgumentNullException.ThrowIfNull(job);
 
         var stage = job.CurrentStage;
-        return Counts(stage is null ? string.Empty : StageName(stage.Stage) ?? stage.Stage, stage, job.IsTotalGrowing);
+        return Counts(stage is null ? string.Empty : StageName(stage.Stage) ?? job.Description, stage, job.IsTotalGrowing);
     }
 
     /// <summary>
@@ -87,7 +87,7 @@ public sealed class ProgressText(Localizer localizer)
             : localizer.Format("Progress_HoursMinutes", (minutes / 60).ToString(CultureInfo.CurrentCulture), (minutes % 60).ToString(CultureInfo.CurrentCulture));
     }
 
-    private string? StageName(string stage) => localizer.Find("Stage_" + stage);
+    private string? StageName(string stage) => StageNames.Find(localizer, stage);
 
     private string Counts(string name, StageProgress? stage, bool growing)
     {

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Ui.Localization;
+using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.UseCases.Processing.GetJobFailures;
 
 namespace MediaFileClassifier.Ui.ViewModels.Processing;
@@ -29,7 +30,7 @@ public sealed partial class FailedItemViewModel
         this.panel = panel;
         Title = failure.FileName ?? localizer.Get("Processing_WholeTarget");
         Path = failure.RelativePath;
-        Stage = localizer.Find("Stage_" + failure.Stage) ?? failure.Stage;
+        Stage = StageNames.Find(localizer, failure.Stage) ?? failure.Stage;
         Error = string.IsNullOrWhiteSpace(failure.Error) ? localizer.Get("Processing_NoErrorMessage") : failure.Error;
         CanRetry = failure.ItemId is not null;
         CanReveal = canReveal && failure.ItemId is not null;

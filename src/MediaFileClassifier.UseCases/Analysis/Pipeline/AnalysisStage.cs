@@ -180,6 +180,8 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
             // that can't be opened fails the whole item, not one analyzer.
             inputs ??= await PrepareAsync(library, item, requested, cancellationToken).ConfigureAwait(false);
 
+            // Logged before the run, so if a native model crashes the process (MFC-1038) the log names the item.
+            LogAnalyzerStarting(key, item.Path.Value);
             try
             {
                 var result = await analyzers[key].RunAsync(new AnalyzerContext(library, item, inputs, settings), cancellationToken).ConfigureAwait(false);
@@ -450,6 +452,9 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Analyzer {Analyzer} failed for {Path} (transient: {IsTransient})")]
     private partial void LogAnalyzerFailed(Exception exception, string analyzer, string path, bool isTransient);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Running analyzer {Analyzer} on {Path}")]
+    private partial void LogAnalyzerStarting(string analyzer, string path);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Analyzer {Analyzer} skipped {Path}: its model isn't installed ({Message})")]
     private partial void LogModelMissing(string analyzer, string path, string message);

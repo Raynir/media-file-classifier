@@ -4,6 +4,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Hardware;
+using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
@@ -190,6 +191,28 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
         Assert.Equal(expectedOverlap, provider.MaxOverlap);
     }
 
+    [Fact]
+    public void Run_LogsTheModelAndInputAtDebugBeforeTheRun()
+    {
+        var logger = new ListLogger();
+        var factory = new OnnxSessionFactory(logger)
+        {
+            AvailableProviders = () => [ExecutionProvider.Cpu, ExecutionProvider.DirectMl],
+            AppendExecutionProvider = (_, _, _) => { },
+        };
+        using var provider = new FlakyEmbedder(modelPath, factory, failingRuns: 0)
+        {
+            InsideRun = () => logger.Add(LogLevel.Trace, "inside the run"),
+        };
+
+        provider.Embed();
+
+        var debug = logger.Entries.FindIndex(entry => entry.Level == LogLevel.Debug);
+        Assert.True(debug >= 0, "No Debug line was logged.");
+        Assert.Equal("Running tiny.onnx on DirectMl: 1 x 4 vector", logger.Entries[debug].Message);
+        Assert.True(debug < logger.Entries.FindIndex(entry => entry.Message == "inside the run"));
+    }
+
     public void Dispose()
     {
         temp.Dispose();
@@ -201,6 +224,27 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
             AvailableProviders = () => [ExecutionProvider.Cpu, ExecutionProvider.DirectMl],
             AppendExecutionProvider = append,
         };
+
+    private sealed class ListLogger : ILogger<OnnxSessionFactory>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Add(logLevel, formatter(state, exception));
+
+        public void Add(LogLevel level, string message)
+        {
+            lock (Entries)
+            {
+                Entries.Add((level, message));
+            }
+        }
+    }
 
     private static OnnxRuntimeException CreateRuntimeException(string message)
     {
@@ -239,7 +283,9 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
 
         public ExecutionProvider LoadedExecutionProvider => GetSession("text").ExecutionProvider;
 
-        public float[] Embed() => Run("text", session =>
+        public float[] Embed() => Run(
+            "text",
+            session =>
         {
             Attempts++;
             if (FailNextWith is { } error)
@@ -265,7 +311,8 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
             var input = new DenseTensor<float>(new float[] { 1, 2, 3, 4 }, [1, Width]);
             using var results = session.Run([NamedOnnxValue.CreateFromTensor(fail ? "wrong" : TinyOnnxModel.InputName, input)]);
             return results[0].AsEnumerable<float>().ToArray();
-        });
+        },
+            "1 x 4 vector");
 
         private static void InterlockedMax(ref int target, int value)
         {

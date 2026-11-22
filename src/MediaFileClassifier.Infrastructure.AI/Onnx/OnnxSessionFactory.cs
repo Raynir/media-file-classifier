@@ -161,6 +161,11 @@ public sealed class OnnxSessionFactory
     }
 
     /// <summary>
+    /// Gets the logger, which the providers also use for their runs.
+    /// </summary>
+    internal ILogger Logger => logger;
+
+    /// <summary>
     /// Records that a model file failed a run on a GPU provider (its first run, or after the device was lost), so later sessions of that file use the CPU
     /// until the app restarts.
     /// </summary>

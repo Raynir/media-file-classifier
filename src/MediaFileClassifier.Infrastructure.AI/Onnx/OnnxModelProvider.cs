@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
 
 namespace MediaFileClassifier.Infrastructure.AI.Onnx;
@@ -168,14 +169,20 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
     /// <typeparam name="T">Type of the result.</typeparam>
     /// <param name="role">The file's role, a key of the model files passed to the constructor.</param>
     /// <param name="run">The run, e.g. <c>session =&gt; session.Run(inputs, outputs)</c>.</param>
+    /// <param name="input">A short description of the input, e.g. its size, logged at Debug before the run.</param>
     /// <returns>The result.</returns>
     /// <exception cref="AiProviderException">The file is missing or doesn't load.</exception>
     /// <exception cref="OnnxRuntimeException">The run failed.</exception>
-    protected T Run<T>(string role, Func<InferenceSession, T> run)
+    protected T Run<T>(string role, Func<InferenceSession, T> run, string? input = null)
     {
         ArgumentNullException.ThrowIfNull(run);
 
         var session = GetSession(role);
+        if (sessionFactory.Logger.IsEnabled(LogLevel.Debug))
+        {
+            sessionFactory.Logger.LogDebug("Running {Model} on {ExecutionProvider}: {Input}", Path.GetFileName(modelFiles[role]), session.ExecutionProvider, input ?? role);
+        }
+
         T result;
         try
         {

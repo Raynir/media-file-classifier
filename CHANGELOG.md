@@ -14,6 +14,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Background work (MFC-1025): when the view scrolls while work is starting, the items now on screen are processed next; before, one item from the previous screen could run first.
+- Tests (MFC-1025): a plain `dotnet test` no longer fails at random on a busy machine. Bounds on how fast the code runs are checked only with `MFC_PERF_TESTS=1` (docs/testing.md), and the import cancel test no longer assumes that the scan has ended when the import is cancelled.
 - Filter chips (MFC-1028): the selected chip ("All") is readable in the light theme; its text was white on light grey. The checked chip now takes its text colour from the theme's primary text token.
 - Browser (MFC-1027): the empty band of about 90 px between the toolbar and the filter chips is gone; the header that holds the buttons for reopening a collapsed panel now takes space only when one of them shows.
 - Details panel (MFC-1029): a field's header row (label, AI badges, Confirm AI, Revert, Undo) wraps onto a second line in a narrow panel instead of cutting off "Confirm AI".

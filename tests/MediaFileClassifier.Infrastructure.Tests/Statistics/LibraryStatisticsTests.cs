@@ -2,6 +2,7 @@ using System.Diagnostics;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.TestSupport;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Libraries.GetLibraryStatistics;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Statistics;
@@ -85,7 +86,10 @@ public sealed class LibraryStatisticsTests : IAsyncLifetime
 
         var excluded = items.Count(item => item.Status == MediaItemStatus.Excluded);
         Assert.Equal(ItemCount - excluded, statistics!.Total);
-        Assert.True(median < 100, line);
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(median < 100, line);
+        }
     }
 
     private MediaItem Item(int number, MediaType type, long size, MediaItemStatus status)

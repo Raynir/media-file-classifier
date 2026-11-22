@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Infrastructure.Tests.TestSupport;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Exclusions;
 using MediaFileClassifier.UseCases.Exclusions.ExcludeItems;
 
@@ -53,7 +54,11 @@ public sealed class ExcludeItemsBenchmarkTests : IAsyncLifetime
         }
 
         Assert.Equal(new ExcludeItemsResult(ItemCount, CleanupQueued: true), result);
-        Assert.True(marked < TimeSpan.FromSeconds(3), $"Marking took {marked.TotalMilliseconds:F0} ms.");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(marked < TimeSpan.FromSeconds(3), $"Marking took {marked.TotalMilliseconds:F0} ms.");
+        }
+
         Assert.All(await bed.Library.Items.GetByIdsAsync([.. items.Select(item => item.Id)], Token), item => Assert.True(LibraryExclusions.IsRemovedByUser(item)));
         Assert.Equal(0, await bed.Library.Items.CountAsync(new MediaItemFilter(), Token));
         Assert.Empty(await bed.Library.Embeddings.GetModelsInUseAsync(Token));

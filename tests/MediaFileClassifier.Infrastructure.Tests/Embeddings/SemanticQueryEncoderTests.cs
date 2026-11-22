@@ -1,20 +1,21 @@
 using System.Diagnostics;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.AI.Embeddings;
+using MediaFileClassifier.Infrastructure.AI.Onnx;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
-using MediaFileClassifier.Infrastructure.AI;
-using MediaFileClassifier.Infrastructure.AI.Embeddings;
-using MediaFileClassifier.Infrastructure.AI.Onnx;
 using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Search;
 using MediaFileClassifier.Infrastructure.Tests.TestSupport;
 using MediaFileClassifier.Testing.AI;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Embeddings;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Embeddings;
@@ -146,7 +147,10 @@ public sealed class SemanticQueryEncoderTests : IAsyncLifetime
         }
 
         TestContext.Current.SendDiagnosticMessage($"text query: median {medians.Min():F1} ms");
-        Assert.True(medians.Min() < 50, $"median {medians.Min():F1} ms");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(medians.Min() < 50, $"median {medians.Min():F1} ms");
+        }
     }
 
     [Fact]

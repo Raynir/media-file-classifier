@@ -6,6 +6,7 @@ using Avalonia.VisualTree;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.Views.Browser;
@@ -44,7 +45,8 @@ public sealed class ListViewTests
     /// notch (3 rows), with jumps across the whole list as a scroll bar drag does. A step's layout must fit in a frame
     /// (16.7 ms) on average; the 95th percentile is reported, not checked, as it swings with the machine's load. Headless, so it
     /// times layout and bindings, not drawing. Measured on 2026-11-21: mean 4.6 ms, p95 13 ms, max 31–39 ms (the
-    /// thumbnail grid in the same harness: mean 6.6 ms, p95 23 ms).
+    /// thumbnail grid in the same harness: mean 6.6 ms, p95 23 ms). The mean is asserted only with MFC_PERF_TESTS=1
+    /// (<see cref="TestPerformance"/>): with two test runs on the machine it reached 22–26 ms (MFC-1025).
     /// </summary>
     [Fact]
     public Task Scrolling_Through100kRows_FitsInAFrame() => TestApp.RunAsync(() =>
@@ -83,7 +85,15 @@ public sealed class ListViewTests
             File.AppendAllText(output, report + Environment.NewLine);
         }
 
-        Assert.True(mean < 16.7, $"mean {mean:F2} ms");
+        // The steps scrolled: the view is far down the list and shows the rows there.
+        Assert.True(scroller.Offset.Y > 0, $"offset {scroller.Offset.Y}");
+        Assert.InRange(Rows(view).Count, 1, 60);
+        Assert.Contains(Rows(view), row => row.Index > 0);
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(mean < 16.7, $"mean {mean:F2} ms");
+        }
+
         window.Close();
     });
 

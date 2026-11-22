@@ -5,6 +5,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.TestSupport;
+using MediaFileClassifier.Testing.Timing;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
@@ -165,8 +166,10 @@ public sealed class JobSchedulerTests : IAsyncLifetime
             Assert.Equal(user, started[0].JobId);
             Assert.Equivalent(firstScreen, started.Skip(1).Take(10).Select(item => item.ItemId!.Value));
 
-            // Scrolling: the next screen replaces the boost, and runs as soon as the running work item finishes.
-            var secondScreen = media.Skip(120).Take(10).Select(item => item.Id).ToList();
+            // Scrolling: the next screen replaces the boost, and runs as soon as the running work item finishes. Work
+            // created at the same time runs in ID order, which is random, so the running one may be on that screen
+            // too: the screen is made of items that haven't started (MFC-1025).
+            var secondScreen = media.Skip(120).Select(item => item.Id).Except(started.Select(item => item.ItemId!.Value)).Take(10).ToList();
             scheduler.Boost(secondScreen);
             gate.Release(10);
             await WaitUntilAsync(() => handler.Started.Count == 22);
@@ -205,10 +208,18 @@ public sealed class JobSchedulerTests : IAsyncLifetime
 
         var stopwatch = Stopwatch.StartNew();
         Assert.True(await scheduler.CancelJobAsync(jobId, Token));
-        await WaitUntilAsync(() => scheduler.GetRunningCount(ResourcePool.Ai) == 0);
+        await WaitUntilAsync(() => scheduler.GetRunningCount(ResourcePool.Ai) == 0, TimeSpan.FromSeconds(30));
         stopwatch.Stop();
+        TestContext.Current.SendDiagnosticMessage($"Cancelling took {stopwatch.ElapsedMilliseconds} ms");
 
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Cancelling took {stopwatch.Elapsed}.");
+        // The analysis takes a minute, so cancelling well under that shows it was stopped, not awaited; under 3 s on an
+        // idle machine (MFC_PERF_TESTS=1, TestPerformance).
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), $"Cancelling took {stopwatch.Elapsed}.");
+        if (TestPerformance.Enabled)
+        {
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(3), $"Cancelling took {stopwatch.Elapsed}.");
+        }
+
         Assert.Equal(ProcessingJobState.Cancelled, (await bed.Library.Jobs.GetJobAsync(jobId, Token))!.State);
         var states = (await bed.Library.Jobs.GetWorkItemsAsync(jobId, Token)).ToDictionary(item => item.ItemId!.Value, item => item.State);
         Assert.Equal(WorkItemState.Completed, states[media[0].Id]);

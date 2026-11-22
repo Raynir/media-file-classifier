@@ -74,12 +74,21 @@ A plain `dotnet test` (and CI) skips tests that are slow, heavy or need the netw
 |---|---|---|---|
 | `MFC_QUALITY_TESTS=1` | `Siglip2QualityTests` (SigLIP 2 embedding quality against the D094 baselines) | `models/siglip2` or `MFC_SIGLIP2_DIR`, and the fetched `eval/corpus` | About 2 minutes, all CPU cores, so it makes timing tests fail if it runs alongside them |
 | `MFC_NETWORK_TESTS=1` | `ModelCatalogTests` network checks | Network access | A few requests |
+| `MFC_PERF_TESTS=1` | The performance bounds of timing tests (`TestPerformance`, MFC-1025): write latency, list scrolling, statistics, metadata reads, search and decode speed | An otherwise idle machine | The tests run anyway; only the bounds are added |
 
 Run one on its own, never with the whole suite:
 
 ```powershell
 $env:MFC_QUALITY_TESTS = "1"
 dotnet test --project tests/MediaFileClassifier.Evaluation.Tests -- --filter-class "*Siglip2QualityTests"
+```
+
+The performance bounds run one test project at a time, with nothing else busy on the machine:
+
+```powershell
+$env:MFC_PERF_TESTS = "1"
+dotnet test --project tests/MediaFileClassifier.Infrastructure.Tests
+dotnet test --project tests/MediaFileClassifier.Ui.Tests -- --filter-class "*ListViewTests"
 ```
 
 ## Android development

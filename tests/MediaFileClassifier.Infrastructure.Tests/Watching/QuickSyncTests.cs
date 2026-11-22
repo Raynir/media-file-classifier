@@ -2,6 +2,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Rescan.GetRescanSummary;
@@ -71,7 +72,7 @@ public sealed class QuickSyncTests
     {
         await using var bed = await ImportTestBed.CreateAsync();
         bed.Copy(SampleMedia.JpegWithExif, "a.jpg");
-        bed.Store.SetValue(MonitoringSettings.QuickSyncOnOpen, false);
+        bed.Store.SetValue(KnownSettings.QuickSyncOnOpen, false);
         using var starter = bed.Get<QuickSyncStarter>();
 
         starter.Start();

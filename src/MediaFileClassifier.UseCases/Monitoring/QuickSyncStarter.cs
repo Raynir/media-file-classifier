@@ -133,7 +133,7 @@ public sealed class QuickSyncStarter : IDisposable
         var token = stopping.Token;
         try
         {
-            if (!settings.Get(MonitoringSettings.QuickSyncOnOpen))
+            if (!settings.Get(KnownSettings.QuickSyncOnOpen))
             {
                 logger.LogInformation("The quick sync on open is turned off for this library");
                 return;

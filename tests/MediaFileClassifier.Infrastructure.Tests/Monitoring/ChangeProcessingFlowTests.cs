@@ -2,26 +2,32 @@ using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Libraries;
 using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Monitoring;
 
 /// <summary>
 /// Watched changes reach the library through the job system (E04-S02-T01): each kind of change, on a real folder and
-/// library.
+/// library. Deletions are held for the grace period (E04-S02-T02) on a manual clock.
 /// </summary>
 public sealed class ChangeProcessingFlowTests : IAsyncLifetime
 {
+    private readonly ManualClock clock = new(DateTimeOffset.UtcNow);
     private ImportTestBed bed = null!;
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    public async ValueTask InitializeAsync() => bed = await ImportTestBed.CreateAsync();
+    public async ValueTask InitializeAsync() => bed = await ImportTestBed.CreateAsync(configure: services =>
+        services.AddSingleton(provider => new ChangeProcessor(provider.GetRequiredService<HeldDeletes>(), clock, NullLogger<ChangeProcessor>.Instance, provider.GetRequiredService<IJobSystem>())));
 
     public async ValueTask DisposeAsync() => await bed.DisposeAsync();
 
@@ -80,7 +86,7 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         await ImportAsync();
         var bytes = await File.ReadAllBytesAsync(path, Token);
         File.Delete(path);
-        await ApplyAsync(new FolderChange(FolderChangeKind.Deleted, "photo.jpg"));
+        await DeleteAsync("photo.jpg");
         Assert.Equal(MediaItemStatus.Missing, (await ItemAsync("photo.jpg")).Status);
 
         await File.WriteAllBytesAsync(path, bytes, Token);
@@ -148,7 +154,7 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         await TagAsync(item);
 
         File.Delete(path);
-        await ApplyAsync(new FolderChange(FolderChangeKind.Deleted, "photo.jpg"));
+        await DeleteAsync("photo.jpg");
 
         Assert.Equal(MediaItemStatus.Missing, (await ItemAsync("photo.jpg")).Status);
         Assert.Contains((await bed.Library.Metadata.GetAsync(item.Id, Token)).Tags, tag => tag.Tag.Value == "holiday");
@@ -163,7 +169,7 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         await ImportAsync();
 
         Directory.Delete(Path.Combine(bed.Root, "trip"), recursive: true);
-        await ApplyAsync(new FolderChange(FolderChangeKind.Deleted, "trip"));
+        await DeleteAsync("trip");
 
         var items = await bed.ItemsAsync();
         Assert.Equal(MediaItemStatus.Missing, items.Single(item => item.Path.Value == "trip/day1/a.jpg").Status);
@@ -177,7 +183,7 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         bed.Copy(SampleMedia.JpegWithExif, "photo.jpg");
         await ImportAsync();
 
-        await ApplyAsync(new FolderChange(FolderChangeKind.Deleted, "photo.jpg"));
+        await DeleteAsync("photo.jpg");
 
         Assert.NotEqual(MediaItemStatus.Missing, (await ItemAsync("photo.jpg")).Status);
     }
@@ -191,7 +197,7 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         Directory.Move(bed.Root, away);
         try
         {
-            await ApplyAsync(new FolderChange(FolderChangeKind.Deleted, "photo.jpg"));
+            await DeleteAsync("photo.jpg");
 
             Assert.NotEqual(MediaItemStatus.Missing, (await ItemAsync("photo.jpg")).Status);
         }
@@ -199,6 +205,115 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         {
             Directory.Move(away, bed.Root);
         }
+    }
+
+    [Fact]
+    public async Task Deleted_File_IsHeldForTheGracePeriod()
+    {
+        var path = bed.Copy(SampleMedia.JpegWithExif, "photo.jpg");
+        await ImportAsync();
+
+        File.Delete(path);
+        await ApplyAsync(new FolderChange(FolderChangeKind.Deleted, "photo.jpg"));
+
+        Assert.NotEqual(MediaItemStatus.Missing, (await ItemAsync("photo.jpg")).Status);
+        Assert.Equal([(bed.Folder.Id, "photo.jpg")], bed.Get<HeldDeletes>().GetAll());
+        await ReleaseHeldAsync();
+        Assert.Equal(MediaItemStatus.Missing, (await ItemAsync("photo.jpg")).Status);
+        Assert.Empty(bed.Get<HeldDeletes>().GetAll());
+    }
+
+    [Theory]
+    [InlineData("b/photo.jpg")]
+    [InlineData("b/renamed.jpg")]
+    public async Task MoveBetweenSubfolders_DeleteThenCreate_KeepsTheItemAndItsMetadata(string target)
+    {
+        bed.Copy(SampleMedia.JpegWithExif, "a/photo.jpg");
+        bed.Copy(SampleMedia.PngWithAlpha, "a/other.png");
+        await ImportAsync();
+        var item = await ItemAsync("a/photo.jpg");
+        await TagAsync(item);
+
+        Move("a/photo.jpg", target);
+        await ApplyAsync(new FolderChange(FolderChangeKind.Deleted, "a/photo.jpg"));
+        await ApplyAsync(await ChangedAsync(target));
+        await ReleaseHeldAsync();
+
+        var items = await bed.ItemsAsync();
+        Assert.Equal(2, items.Count);
+        var moved = Assert.Single(items, other => other.Id == item.Id);
+        Assert.Equal(target, moved.Path.Value);
+        Assert.NotEqual(MediaItemStatus.Missing, moved.Status);
+        Assert.True(moved.IsFavorite);
+        Assert.Contains((await bed.Library.Metadata.GetAsync(item.Id, Token)).Tags, tag => tag.Tag.Value == "holiday");
+    }
+
+    [Fact]
+    public async Task Move_CreatedAfterTheGracePeriod_RelinksTheMissingItem()
+    {
+        bed.Copy(SampleMedia.JpegWithExif, "a/photo.jpg");
+        await ImportAsync();
+        var item = await ItemAsync("a/photo.jpg");
+        await TagAsync(item);
+
+        Move("a/photo.jpg", "b/photo.jpg");
+        await DeleteAsync("a/photo.jpg");
+        Assert.Equal(MediaItemStatus.Missing, (await bed.Library.Items.GetAsync(item.Id, Token))!.Status);
+        await ApplyAsync(await ChangedAsync("b/photo.jpg"));
+
+        var moved = Assert.Single(await bed.ItemsAsync());
+        Assert.Equal((item.Id, "b/photo.jpg"), (moved.Id, moved.Path.Value));
+        Assert.NotEqual(MediaItemStatus.Missing, moved.Status);
+        Assert.Contains((await bed.Library.Metadata.GetAsync(item.Id, Token)).Tags, tag => tag.Tag.Value == "holiday");
+    }
+
+    [Fact]
+    public async Task Copy_OfAFileThatIsStillThere_IsImportedAsANewItem()
+    {
+        bed.Copy(SampleMedia.JpegWithExif, "a/photo.jpg");
+        await ImportAsync();
+        var item = await ItemAsync("a/photo.jpg");
+
+        bed.Copy(SampleMedia.JpegWithExif, "b/photo.jpg");
+        await ApplyAsync(await ChangedAsync("b/photo.jpg"));
+
+        var items = await bed.ItemsAsync();
+        Assert.Equal(2, items.Count);
+        Assert.Equal("a/photo.jpg", items.Single(other => other.Id == item.Id).Path.Value);
+    }
+
+    [Fact]
+    public async Task DeleteThenCreate_WithOtherContent_IsNotAMove()
+    {
+        var path = bed.Copy(SampleMedia.JpegWithExif, "a/photo.jpg");
+        await ImportAsync();
+        var item = await ItemAsync("a/photo.jpg");
+
+        File.Delete(path);
+        bed.Copy(SampleMedia.JpegWithIccAndOffset, "b/photo.jpg");
+        await ApplyAsync(new FolderChange(FolderChangeKind.Deleted, "a/photo.jpg"));
+        await ApplyAsync(await ChangedAsync("b/photo.jpg"));
+        await ReleaseHeldAsync();
+
+        Assert.Equal(MediaItemStatus.Missing, (await bed.Library.Items.GetAsync(item.Id, Token))!.Status);
+        Assert.NotEqual(item.Id, (await ItemAsync("b/photo.jpg")).Id);
+    }
+
+    [Fact]
+    public async Task Changes_WhileProcessingIsPaused_WaitForResume()
+    {
+        await ImportAsync();
+        var scheduler = bed.Jobs.Current!;
+        scheduler.Pause();
+        bed.Copy(SampleMedia.JpegWithExif, "photo.jpg");
+
+        await bed.Get<ChangeProcessor>().SubmitAsync(bed.Folder.Id, [await ChangedAsync("photo.jpg")], Token);
+        await Task.Delay(500, Token);
+        Assert.Empty(await bed.ItemsAsync());
+
+        scheduler.Resume();
+        await bed.WaitUntilIdleAsync();
+        Assert.Single(await bed.ItemsAsync());
     }
 
     [Fact]
@@ -212,6 +327,27 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         await ApplyAsync(change);
 
         Assert.Empty(await bed.ItemsAsync());
+    }
+
+    // Submits a deletion and lets its grace period pass.
+    private async Task DeleteAsync(string path)
+    {
+        await bed.Get<ChangeProcessor>().SubmitAsync(bed.Folder.Id, [new FolderChange(FolderChangeKind.Deleted, path)], Token);
+        await ReleaseHeldAsync();
+    }
+
+    private async Task ReleaseHeldAsync()
+    {
+        var jobs = (await bed.Library.Jobs.GetRecentJobsAsync(100, Token)).Count;
+        clock.Advance(ChangeProcessor.DeleteGrace);
+        var end = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        while ((await bed.Library.Jobs.GetRecentJobsAsync(100, Token)).Count == jobs)
+        {
+            Assert.True(DateTime.UtcNow < end, "The held deletions weren't queued.");
+            await Task.Delay(20, Token);
+        }
+
+        await bed.WaitUntilIdleAsync();
     }
 
     private async Task ApplyAsync(params FolderChange[] changes)

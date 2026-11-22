@@ -17,7 +17,10 @@ namespace MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
 /// <summary>
 /// Applies a batch of a watched folder's changes (E04-S02-T01) with the operations a rescan uses (E02-S04):
 /// <list type="bullet">
-/// <item>A new file is registered with the folder's rules and goes on through the import's stages (E03-S07).</item>
+/// <item>A new file is registered with the folder's rules. When its content matches an item whose file is gone (a
+/// deletion still held, <see cref="HeldDeletes"/>, or a Missing item of any folder), the item is relinked to it
+/// with the rescan's move rules (<see cref="MoveDetector"/>, E04-S02-T02); otherwise it goes on through the import's
+/// stages (E03-S07).</item>
 /// <item>A changed file, or a Missing item's file that's back, goes to the rescan's check stage (E02-S04-T03), which
 /// keeps the user's metadata and queues re-analysis when the content changed.</item>
 /// <item>A renamed or moved file relinks its item, which keeps its ID and metadata (E02-S04-T02).</item>
@@ -27,11 +30,15 @@ namespace MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
 /// </summary>
 /// <param name="files">Checks that deleted files are gone.</param>
 /// <param name="discovery">Registers new files.</param>
+/// <param name="moves">Pairs new files with items whose file is gone.</param>
+/// <param name="held">The deletions still held.</param>
 /// <param name="clock">Clock for status changes.</param>
 /// <param name="logger">Logger.</param>
 public sealed partial class ApplyChangesStage(
     IMediaFileSource files,
     IFolderDiscovery discovery,
+    MoveDetector moves,
+    HeldDeletes held,
     TimeProvider clock,
     ILogger<ApplyChangesStage> logger) : IStageHandler, IDisposable
 {
@@ -60,14 +67,15 @@ public sealed partial class ApplyChangesStage(
         try
         {
             // Removed, or being removed, since the changes were queued: nothing of it is changed any more.
-            var folder = (await IndexedFolders.GetActiveAsync(library, cancellationToken).ConfigureAwait(false)).FirstOrDefault(other => other.Id == folderId);
+            var folders = await IndexedFolders.GetActiveAsync(library, cancellationToken).ConfigureAwait(false);
+            var folder = folders.FirstOrDefault(other => other.Id == folderId);
             if (folder is null)
             {
                 LogFolderGone(changes.Count, folderId);
                 return;
             }
 
-            await ApplyAsync(context, folder, changes, cancellationToken).ConfigureAwait(false);
+            await ApplyAsync(context, folder, folders, changes, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -99,7 +107,12 @@ public sealed partial class ApplyChangesStage(
         }
     }
 
-    private async Task ApplyAsync(WorkItemContext context, IndexedFolder folder, IReadOnlyList<FolderChange> changes, CancellationToken cancellationToken)
+    private async Task ApplyAsync(
+        WorkItemContext context,
+        IndexedFolder folder,
+        IReadOnlyList<IndexedFolder> folders,
+        IReadOnlyList<FolderChange> changes,
+        CancellationToken cancellationToken)
     {
         var library = context.Library;
         var items = await FolderItems.CreateAsync(library, folder, changes.Count, cancellationToken).ConfigureAwait(false);
@@ -135,9 +148,11 @@ public sealed partial class ApplyChangesStage(
         await EnqueueAsync(context, RescanStages.Check, batch.Check, cancellationToken).ConfigureAwait(false);
         var missing = await MarkMissingAsync(library, folder, items, batch, cancellationToken).ConfigureAwait(false);
         var registered = await RegisterAsync(library, folder, batch.New, cancellationToken).ConfigureAwait(false);
-        await EnqueueAsync(context, ImportStages.Fingerprint, registered.Select(item => item.Id), cancellationToken).ConfigureAwait(false);
+        var moved = await PairMovesAsync(context, folder, folders, registered, batch.Now, cancellationToken).ConfigureAwait(false);
+        await EnqueueAsync(context, ImportStages.Fingerprint, registered.Select(item => item.Id).Where(itemId => !moved.Contains(itemId)), cancellationToken)
+            .ConfigureAwait(false);
 
-        LogApplied(folder.Id, registered.Count, batch.Check.Count, batch.Relinked, missing);
+        LogApplied(folder.Id, registered.Count - moved.Count, batch.Check.Count, batch.Relinked + moved.Count, missing);
     }
 
     // A renamed file whose item isn't known is handled as a new file at its new path.
@@ -259,6 +274,86 @@ public sealed partial class ApplyChangesStage(
         var registrations = await discovery.RegisterFilesAsync(library, folder, [.. paths.Select(path => path.Value).Distinct(StringComparer.Ordinal)], cancellationToken)
             .ConfigureAwait(false);
         return [.. registrations.Where(registration => registration.Outcome == FileRegistrationOutcome.Registered).Select(registration => registration.Item!)];
+    }
+
+    // A new file with the content of an item whose file is gone is that file, moved: the item takes its place and keeps
+    // its ID and metadata, and the item just registered for it goes. Returns the new items that went.
+    private async Task<IReadOnlySet<Id<MediaItem>>> PairMovesAsync(
+        WorkItemContext context,
+        IndexedFolder folder,
+        IReadOnlyList<IndexedFolder> folders,
+        IReadOnlyList<MediaItem> registered,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (registered.Count == 0)
+        {
+            return new HashSet<Id<MediaItem>>();
+        }
+
+        var library = context.Library;
+        var gone = await GetGoneItemsAsync(library, folders, cancellationToken).ConfigureAwait(false);
+        if (gone.Count == 0)
+        {
+            return new HashSet<Id<MediaItem>>();
+        }
+
+        var pairs = await moves.PairAsync([.. registered.Select(item => (folder, item))], gone, cancellationToken).ConfigureAwait(false);
+        var removed = new HashSet<Id<MediaItem>>();
+        var check = new List<Id<MediaItem>>();
+        foreach (var (item, _, found) in pairs)
+        {
+            // The new item goes first, so the moved one can take its path.
+            await library.Items.DeleteAsync(found.Id, cancellationToken).ConfigureAwait(false);
+            removed.Add(found.Id);
+            item.Relocate(folder.Id, found.Path);
+            item.UpdateFile(found.SizeBytes, found.FileCreatedAt, found.FileModifiedAt, item.Hashes);
+            if (item.Status == MediaItemStatus.Missing)
+            {
+                item.ChangeStatus(MediaItemStatus.Pending, now);
+                check.Add(item.Id);
+            }
+
+            await library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
+        }
+
+        await EnqueueAsync(context, RescanStages.Check, check, cancellationToken).ConfigureAwait(false);
+        return removed;
+    }
+
+    // Missing items of any folder, and the items of held deletions whose file is still gone. Items of a folder that
+    // can't be reached aren't gone.
+    private async Task<IReadOnlyList<MediaItem>> GetGoneItemsAsync(IOpenLibrary library, IReadOnlyList<IndexedFolder> folders, CancellationToken cancellationToken)
+    {
+        var gone = (await library.Items.GetByStatusAsync(MediaItemStatus.Missing, cancellationToken: cancellationToken).ConfigureAwait(false)).ToList();
+        foreach (var byFolder in held.GetAll().GroupBy(entry => entry.FolderId))
+        {
+            if (folders.FirstOrDefault(other => other.Id == byFolder.Key) is not { Status: FolderStatus.Online } heldFolder)
+            {
+                continue;
+            }
+
+            var items = await FolderItems.CreateAsync(library, heldFolder, 0, cancellationToken).ConfigureAwait(false);
+            foreach (var (_, heldPath) in byFolder)
+            {
+                if (ToPath(heldPath) is not { } path)
+                {
+                    continue;
+                }
+
+                foreach (var item in await items.FindUnderAsync(path, cancellationToken).ConfigureAwait(false))
+                {
+                    if (item.Status is not (MediaItemStatus.Missing or MediaItemStatus.Excluded)
+                        && !gone.Contains(item)
+                        && await files.GetStatAsync(ItemStage.GetLocation(heldFolder, item), cancellationToken).ConfigureAwait(false) is null)
+                    {
+                        gone.Add(item);
+                    }
+                }
+            }
+        }
+
+        return gone;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Changes of watched folder {Folder}: {New} new, {Checked} to check, {Relinked} relinked, {Missing} missing")]

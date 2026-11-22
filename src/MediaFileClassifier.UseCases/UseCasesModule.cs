@@ -39,6 +39,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderStatusChanges>();
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderAvailabilityMonitor>();
         services.TryAddSingleton<Monitoring.FolderWatchManager>();
+        services.TryAddSingleton<Monitoring.ChangeProcessing.HeldDeletes>();
         services.TryAddSingleton<Monitoring.ChangeProcessing.ChangeProcessor>();
         services.AddSetting(Monitoring.MonitoringSettings.IgnorePatterns);
         services.TryAddSingleton<LibraryItemsSource>();

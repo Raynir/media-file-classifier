@@ -22,8 +22,18 @@ public interface ILibraryMaintenance
     Task BackupAsync(string destinationPath, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Reads how much of the database file is free space, and how much room the drive has (MFC-1022). Reads and
+    /// writes can continue meanwhile.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The sizes.</returns>
+    Task<DatabaseSpace> GetSpaceAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Updates the query planner statistics, and optionally rebuilds the database to reclaim free space. It's queued
-    /// like any other write.
+    /// like any other write. A <c>VACUUM</c> holds the writer until it's done, so other writes wait, and it can't be
+    /// stopped once it has started. It needs room for about twice the data (the rebuilt file and the WAL), and the
+    /// WAL file is truncated after it.
     /// </summary>
     /// <param name="vacuum">Whether to run <c>VACUUM</c> too, which rewrites the whole file.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

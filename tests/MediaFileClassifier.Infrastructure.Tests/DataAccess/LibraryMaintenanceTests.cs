@@ -12,6 +12,9 @@ public sealed class LibraryMaintenanceTests : IAsyncLifetime
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
+    private static long OnDisk(string path) =>
+        new FileInfo(path).Length + (File.Exists(path + "-wal") ? new FileInfo(path + "-wal").Length : 0);
+
     public async ValueTask InitializeAsync() => bed = await LibraryTestBed.CreateAsync();
 
     public ValueTask DisposeAsync() => bed.DisposeAsync();
@@ -56,6 +59,59 @@ public sealed class LibraryMaintenanceTests : IAsyncLifetime
 
         await Assert.ThrowsAsync<IOException>(() => bed.Library.Maintenance.BackupAsync(destination, Token));
         Assert.Equal("keep me", await File.ReadAllTextAsync(destination, Token));
+    }
+
+    [Fact]
+    public async Task OptimizeAsync_WithVacuum_ShrinksTheFileAfterALargeDelete_AndKeepsTheRest()
+    {
+        var items = Enumerable.Range(1, 6_000).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(items, Token);
+        var full = await bed.Library.Maintenance.GetSpaceAsync(Token);
+        Assert.True(full.FreeBytes < full.FileBytes / 10, "A fresh library shouldn't have much free space.");
+        await bed.Library.Items.DeleteFromFolderAsync(bed.Folder.Id, int.MaxValue, Token);
+        await bed.Library.Items.AddRangeAsync([.. Enumerable.Range(100_001, 100).Select(bed.NewItem)], Token);
+
+        var afterDelete = await bed.Library.Maintenance.GetSpaceAsync(Token);
+        await bed.Library.Maintenance.OptimizeAsync(vacuum: true, Token);
+        var compacted = await bed.Library.Maintenance.GetSpaceAsync(Token);
+
+        Assert.True(afterDelete.FreeBytes > afterDelete.FileBytes / 2, $"Most of the file should be free after the delete: {afterDelete}.");
+        Assert.True(compacted.FileBytes < afterDelete.FileBytes / 2, $"The file should have shrunk: {afterDelete.FileBytes} -> {compacted.FileBytes}.");
+        Assert.True(compacted.FreeBytes < compacted.FileBytes / 10);
+        Assert.True(compacted.AvailableDiskBytes > 0);
+        Assert.Equal(100, await bed.Library.Items.CountAsync(Token));
+        Assert.True((await bed.Library.Maintenance.CheckIntegrityAsync(Token)).IsOk);
+        TestContext.Current.TestOutputHelper?.WriteLine($"{afterDelete.FileBytes} -> {compacted.FileBytes} bytes");
+    }
+
+    [Fact]
+    public async Task OptimizeAsync_WithVacuum_TruncatesTheWal_SoTheFilesOnDiskShrink()
+    {
+        var items = Enumerable.Range(1, 6_000).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(items, Token);
+        await bed.Library.Items.DeleteFromFolderAsync(bed.Folder.Id, int.MaxValue, Token);
+        await bed.Library.Items.AddRangeAsync([.. Enumerable.Range(100_001, 100).Select(bed.NewItem)], Token);
+
+        var path = bed.Library.Layout.DatabasePath;
+        var before = OnDisk(path);
+        await bed.Library.Maintenance.OptimizeAsync(vacuum: true, Token);
+
+        var after = OnDisk(path);
+        Assert.True(after < before / 2, $"On disk {before} -> {after} bytes.");
+    }
+
+    [Fact]
+    public async Task OptimizeAsync_WithVacuum_WritesQueuedMeanwhileWaitAndAreKept()
+    {
+        var items = Enumerable.Range(1, 3_000).Select(bed.NewItem).ToList();
+        await bed.Library.Items.AddRangeAsync(items, Token);
+
+        var vacuum = bed.Library.Maintenance.OptimizeAsync(vacuum: true, Token);
+        var write = bed.Library.Items.DeleteAsync(items[0].Id, Token);
+        await Task.WhenAll(vacuum, write);
+
+        Assert.Equal(2_999, await bed.Library.Items.CountAsync(Token));
+        Assert.True((await bed.Library.Maintenance.CheckIntegrityAsync(Token)).IsOk);
     }
 
     [Fact]

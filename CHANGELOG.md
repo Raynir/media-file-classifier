@@ -14,6 +14,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Filter chips (MFC-1028): the selected chip ("All") is readable in the light theme; its text was white on light grey. The checked chip now takes its text colour from the theme's primary text token.
+- Browser (MFC-1027): the empty band of about 90 px between the toolbar and the filter chips is gone; the header that holds the buttons for reopening a collapsed panel now takes space only when one of them shows.
+- Details panel (MFC-1029): a field's header row (label, AI badges, Confirm AI, Revert, Undo) wraps onto a second line in a narrow panel instead of cutting off "Confirm AI".
+- Release build (MFC-1030): the published app no longer ships .pdb symbol files or the ONNX Runtime import library (`onnxruntime.lib`); about 110 MB less. Builds still produce them. A crash log's stack traces keep method names but lose file and line numbers.
 - Main menu (MFC-1021): Open item, Previous and Next, Select all and Select none, Library information and Refresh results are now disabled, with a tooltip that says why, when there is no library, no results or no selection to act on.
 - Dialogs (MFC-1012): a dialog now opens with the keyboard focus on a control instead of on the window: its first text box, list or combo box, else its default button (Cancel in Remove item, the typed-name box in Delete library). Before, the first Tab only reached the first control. The UI smoke tool has a `dialog-focus` step.
 - Keyboard (MFC-1011): Enter and Space on a focused button, such as the Filters chip, press the button instead of running a shortcut. Enter on the Filters chip used to open the selected item, so the filter flyout never opened from the keyboard.

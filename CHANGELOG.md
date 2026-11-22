@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Activity log (MFC-215): View > Activity log opens a window that lists what the app did to the library, newest first and grouped by day: imports, rescans, analysis, bulk edits and added or removed folders. Filter chips (All, Imports, Rescans, Analysis, Edits, Folders, Duplicates, Exports, Errors), a "Show items" link that selects the folder, paging, and a live refresh. The newest 5,000 events are kept. The library schema is now 17. Details: `docs/activity-log.md`.
+
 ## 1.0.0 — 2026-11-22
 
 ### Added

@@ -59,7 +59,7 @@ public sealed class ProcessingStatusSegmentTests
     {
         var job = Job("Analyze photos", null, new StageProgress("custom", 10, 4, 0, false)) with { Retrying = 3 };
 
-        Assert.Equal("Analyze photos — custom: 4 of 10, 3 retrying", text.Details(Summary(job)));
+        Assert.Equal("Analyze photos — Analyze photos: 4 of 10, 3 retrying", text.Details(Summary(job)));
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public sealed class ProcessingStatusSegmentTests
         var summary = Summary(Job("Full hashing", TimeSpan.FromMinutes(11.5), new StageProgress("custom", 900, 40, 0, false)));
 
         Assert.Equal("Full hashing: 40 of 900 · 12 min left", text.Summary(summary));
-        Assert.Equal("Full hashing — custom: 40 of 900", text.Details(summary));
+        Assert.Equal("Full hashing — Full hashing: 40 of 900", text.Details(summary));
     }
 
     [Fact]

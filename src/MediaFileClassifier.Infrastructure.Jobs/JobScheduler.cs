@@ -733,6 +733,9 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                     pool.Buffer.AddRange(page.Where(item => !running.ContainsKey(item.Id) && !pool.Buffer.Any(buffered => buffered.Id == item.Id)));
                     pool.Exhausted = page.Count == 0;
                 }
+
+                // A boost that came during the read is loaded too; the read cleared Stale, so this can't loop.
+                boostLoaded = false;
             }
         }
     }

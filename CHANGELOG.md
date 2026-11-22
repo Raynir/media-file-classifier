@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Fixed
+
+- Processing queue (MFC-1039): a job's stage is named in words ("Analyzing", "Checking changed files") instead of by its internal key ("analysis.item: 208 of 237"). The analysis, rescan and folder-removal stages were missing their names. A stage that still has no name shows its job's description, in the progress text and in the failure list, and logs a warning once; a test fails when a stage has no name.
+
 ## 1.0.0 — 2026-11-22
 
 ### Added

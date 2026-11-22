@@ -319,6 +319,20 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Failures_AtAStageWithoutAName_ShowTheJobDescription_NotTheKey()
+    {
+        var job = Job("Watch photos", ProcessingJobState.Failed, total: 1, done: 0) with { Failed = 1, FinishedAt = Now };
+        sender.Queue = new ProcessingQueue([], [job]);
+        sender.Failures.Add(new FailedWorkItem(Id<WorkItem>.New(), null, null, null, "no.such.stage.failure", "Boom", null));
+        await panel.RefreshAsync(Token);
+        var row = Assert.Single(panel.Recent);
+
+        await row.ToggleFailuresCommand.ExecuteAsync(null);
+
+        Assert.Equal("Watch photos", Assert.Single(row.Failures).Stage);
+    }
+
+    [Fact]
     public async Task Failures_RetryRetriesOneItem_AndRevealShowsItsFile()
     {
         var job = Job("Import photos", ProcessingJobState.Failed, total: 10, done: 9) with { Failed = 1, FinishedAt = Now };

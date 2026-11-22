@@ -252,7 +252,7 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
         {
             var failures = await sender.Send(new GetJobFailuresQuery(row.Id));
             var canReveal = platform?.CanRevealInFileExplorer == true;
-            return [.. failures.Select(failure => new FailedItemViewModel(failure, localizer, this, canReveal))];
+            return [.. failures.Select(failure => new FailedItemViewModel(failure, localizer, this, canReveal, row.Description))];
         }
         catch (Exception exception) when (exception is IOException or InvalidOperationException)
         {

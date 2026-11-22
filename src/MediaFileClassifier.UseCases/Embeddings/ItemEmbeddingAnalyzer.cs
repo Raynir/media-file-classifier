@@ -11,6 +11,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.UseCases.Analysis.Keyframes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -28,10 +29,9 @@ namespace MediaFileClassifier.UseCases.Embeddings;
 public sealed partial class ItemEmbeddingAnalyzer
 {
     private readonly IAiProviderRegistry registry;
-    private readonly IFrameSampler frameSampler;
+    private readonly ItemKeyframeSampler keyframeSampler;
     private readonly IModelStore modelStore;
     private readonly TimeProvider clock;
-    private readonly IKeyframeThumbnails? keyframeThumbnails;
     private readonly ILogger logger;
     private readonly ConcurrentDictionary<(string Library, string Model), bool> recordedUsage = new();
 
@@ -58,10 +58,9 @@ public sealed partial class ItemEmbeddingAnalyzer
         ArgumentNullException.ThrowIfNull(clock);
 
         this.registry = registry;
-        this.frameSampler = frameSampler;
+        keyframeSampler = new ItemKeyframeSampler(frameSampler, keyframeThumbnails);
         this.modelStore = modelStore;
         this.clock = clock;
-        this.keyframeThumbnails = keyframeThumbnails;
         this.logger = logger ?? NullLogger<ItemEmbeddingAnalyzer>.Instance;
     }
 
@@ -91,24 +90,14 @@ public sealed partial class ItemEmbeddingAnalyzer
         _ = GetProvider();
         if (format.MediaType is MediaType.Video or MediaType.AnimatedImage)
         {
-            var sample = await frameSampler.SampleAsync(content, format, metadata, FrameSamplingOptions.Default, cancellationToken).ConfigureAwait(false);
-            if (sample.Frames.Count == 0)
+            var sampled = await keyframeSampler.SampleAndStoreAsync(library, content, format, metadata, cancellationToken).ConfigureAwait(false);
+            if (sampled.Frames.Count == 0)
             {
-                return new ItemEmbeddingResult(null, 0, sample.Warnings);
+                return new ItemEmbeddingResult(null, 0, sampled.Warnings);
             }
 
-            var keyframes = sample.Frames.Select(frame => frame.ToKeyframe(content.ItemId)).ToList();
-            await library.Keyframes.ReplaceAsync(content.ItemId, keyframes, cancellationToken).ConfigureAwait(false);
-            if (keyframeThumbnails is not null)
-            {
-                await keyframeThumbnails.StoreAsync(library.Layout, content.ItemId, sample.Frames, cancellationToken).ConfigureAwait(false);
-            }
-
-            var frames = keyframes
-                .Zip(sample.Frames, (keyframe, frame) => new KeyframeImage(keyframe, AiImage.FromRgba(frame.Pixels, frame.Width, frame.Height, $"frame {frame.Index}")))
-                .ToList();
-            var stored = await EmbedKeyframesAsync(library, content.ItemId, frames, cancellationToken).ConfigureAwait(false);
-            return stored with { Warnings = sample.Warnings };
+            var stored = await EmbedKeyframesAsync(library, content.ItemId, sampled.Frames, cancellationToken).ConfigureAwait(false);
+            return stored with { Warnings = sampled.Warnings };
         }
 
         var bytes = await ReadAsync(content, cancellationToken).ConfigureAwait(false);

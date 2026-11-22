@@ -1761,6 +1761,12 @@
   <data name="Setting_ResumeOnOpen_Ask" xml:space="preserve">
     <value>Wait until I start it</value>
   </data>
+  <data name="Setting_KeepPaused" xml:space="preserve">
+    <value>Keep processing paused after a restart</value>
+  </data>
+  <data name="Setting_KeepPaused_Help" xml:space="preserve">
+    <value>When on, processing, pools and jobs you paused stay paused the next time the library opens. When off, everything starts again.</value>
+  </data>
   <data name="Setting_ConfirmQuit" xml:space="preserve">
     <value>Ask before quitting while processing</value>
   </data>

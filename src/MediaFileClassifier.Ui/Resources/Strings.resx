@@ -1791,6 +1791,15 @@
   <data name="Setting_MonitoringIgnorePatterns_Help" xml:space="preserve">
     <value>Temporary and partly written files, such as downloads in progress and Office lock files, separated by semicolons. * matches any characters. A name matches files only; use **/name to ignore a folder.</value>
   </data>
+  <data name="Setting_QuickSyncOnOpen" xml:space="preserve">
+    <value>Check for changes when the library opens</value>
+  </data>
+  <data name="Setting_QuickSyncOnOpen_Help" xml:space="preserve">
+    <value>Looks for files added, changed or removed while the app was closed. It runs in the background. Turn it off for very large or slow drives; the Rescan command still works.</value>
+  </data>
+  <data name="Notification_QuickSyncDone" xml:space="preserve">
+    <value>Library updated: {0} new, {1} moved, {2} missing, {3} changed</value>
+  </data>
   <data name="Setting_LastFilters" xml:space="preserve">
     <value>Last filters</value>
   </data>

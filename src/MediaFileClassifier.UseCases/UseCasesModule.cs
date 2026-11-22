@@ -40,6 +40,8 @@ public static class UseCasesModule
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderAvailabilityMonitor>();
         services.TryAddSingleton<Monitoring.FolderWatchManager>();
         services.AddSetting(Monitoring.MonitoringSettings.IgnorePatterns);
+        services.TryAddSingleton<Monitoring.QuickSyncStarter>();
+        services.AddSetting(Monitoring.MonitoringSettings.QuickSyncOnOpen);
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();
         services.TryAddSingleton<Activity.ActivityChanges>();

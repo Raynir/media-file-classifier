@@ -16,10 +16,20 @@ public interface IJobRepository
     /// <param name="job">The new job.</param>
     /// <param name="workItems">Its work items.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the job and its items are stored.</returns>
+    Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, CancellationToken cancellationToken = default) =>
+        AddJobAsync(job, workItems, null, cancellationToken);
+
+    /// <summary>
+    /// Adds a job with its first work items, and tells which batches are stored (MFC-1010).
+    /// </summary>
+    /// <param name="job">The new job.</param>
+    /// <param name="workItems">Its work items.</param>
     /// <param name="stored">Called with each batch once it's stored, or <see langword="null"/>. A write that fails
     /// after the first batch leaves the earlier batches stored, and they may run.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when the job and its items are stored.</returns>
-    Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, CancellationToken cancellationToken = default, Action<IReadOnlyCollection<WorkItem>>? stored = null);
+    Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, Action<IReadOnlyCollection<WorkItem>>? stored, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds work items to an existing job, e.g. the next stage for an item. A finished job goes back to
@@ -29,11 +39,24 @@ public interface IJobRepository
     /// <param name="workItems">The new work items.</param>
     /// <param name="now">Current time.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <param name="stored">Called with each batch once it's stored, or <see langword="null"/>. A write that fails or
-    /// stops after the first batch leaves the earlier batches stored, and they may run.</param>
     /// <returns><see langword="false"/> if the job doesn't exist or is cancelled; the batches from then on aren't
     /// added.</returns>
-    Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, CancellationToken cancellationToken = default, Action<IReadOnlyCollection<WorkItem>>? stored = null);
+    Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        AddWorkItemsAsync(jobId, workItems, now, null, cancellationToken);
+
+    /// <summary>
+    /// Adds work items to an existing job, and tells which batches are stored (MFC-1010). A finished job goes back to
+    /// <see cref="ProcessingJobState.Queued"/>; a cancelled one doesn't take new work.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="workItems">The new work items.</param>
+    /// <param name="now">Current time.</param>
+    /// <param name="stored">Called with each batch once it's stored, or <see langword="null"/>. A write that fails or
+    /// stops after the first batch leaves the earlier batches stored, and they may run.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist or is cancelled; the batches from then on aren't
+    /// added.</returns>
+    Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, Action<IReadOnlyCollection<WorkItem>>? stored, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a job.

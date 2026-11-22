@@ -177,14 +177,19 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         var stored = new StoredWorkItems();
         try
         {
-            await Library.Jobs.AddJobAsync(job, workItems, cancellationToken, stored.Add).ConfigureAwait(false);
+            await Library.Jobs.AddJobAsync(job, workItems, stored.Add, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
             progress.EndAddWork(addition, stored.NotStored(workItems));
+
+            // Batches stored before a failure run too, so the loop wakes for them.
+            if (stored.Any)
+            {
+                OnNewWork();
+            }
         }
 
-        OnNewWork();
         return job.Id;
     }
 
@@ -206,16 +211,17 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         var added = false;
         try
         {
-            added = await Library.Jobs.AddWorkItemsAsync(jobId, created, now, cancellationToken, stored.Add).ConfigureAwait(false);
+            added = await Library.Jobs.AddWorkItemsAsync(jobId, created, now, stored.Add, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
             progress.EndAddWork(addition, stored.NotStored(created));
-        }
 
-        if (added)
-        {
-            OnNewWork();
+            // Batches stored before a failure, or before the job was cancelled, run too, so the loop wakes for them.
+            if (stored.Any)
+            {
+                OnNewWork();
+            }
         }
 
         return added;

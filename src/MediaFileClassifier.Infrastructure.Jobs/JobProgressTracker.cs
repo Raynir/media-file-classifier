@@ -467,7 +467,9 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
         /// <summary>
         /// Takes back one pending work item counted in a state, e.g. one that finished or wasn't stored. One that was
         /// never counted (e.g. stored while the library's counters were reset) isn't, so the pending count never goes
-        /// below zero.
+        /// below zero. The guard is per stage, not per item: such an item can still take a count of the same stage that
+        /// a write under way holds, which needs a reset racing an enqueue and leaves that job's progress short, never
+        /// negative.
         /// </summary>
         public void Take(WorkItemState state)
         {

@@ -13,6 +13,20 @@ internal sealed class StoredWorkItems
     private readonly HashSet<Id<WorkItem>> stored = [];
 
     /// <summary>
+    /// Gets a value indicating whether any batch was stored.
+    /// </summary>
+    public bool Any
+    {
+        get
+        {
+            lock (gate)
+            {
+                return stored.Count > 0;
+            }
+        }
+    }
+
+    /// <summary>
     /// Records a stored batch.
     /// </summary>
     /// <param name="batch">The batch.</param>

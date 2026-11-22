@@ -114,6 +114,8 @@ dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/s
 - **Exit code.** 0 when every step passed and nothing failing was logged; 1 when a step failed, or when an error or any Avalonia warning (binding warnings included) was logged, also while the app shut down; 2 for a bad script or option. The app's own warnings don't fail a run.
 - **Capture.** `PrintWindow` with full content gives the composed pixels of the window's client area, so natively drawn content shows. If it fails or comes back black, the tool falls back to Avalonia's `RenderTargetBitmap`, which only has what Avalonia draws; the report says which one (`window` or `render`). Popups and dialogs are separate windows and don't show. It needs a signed-in desktop session, so it doesn't run in CI.
 
+**Published builds.** `--data-dir <folder>` works in every build, not only with `--smoke`: the app then keeps its settings, logs, cache and models in that folder instead of `%LOCALAPPDATA%\MediaFileClassifier` (MFC-1024). Use it to run a published Release build on a throwaway folder.
+
 A script has one step per line; `#` starts a comment line. Paths are relative to the script's folder.
 
 | Step | What it does |

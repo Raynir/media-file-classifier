@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Folder watching (MFC-135): while a library is open, each Online folder is watched for new, changed, deleted and renamed media files. A file is reported once it has been quiet for 2 s and stable for another 2 s and opens for reading, so a long copy is reported once, after it completes; a locked file is checked again with the wait doubling up to 30 s. Temporary files, Office lock files, partial downloads and editor swap files are ignored by default; the list is the new General setting "Files to ignore while watching folders" (`monitoring.ignorePatterns`); a pattern without `/` matches file names only, and `**/name` ignores a folder. The folder's rules, the supported formats, partial folders and excluded items apply as in a rescan. When the watcher loses events (its buffer overflows or it fails), the folder is rescanned; if the folder's import or rescan work is running, the rescan is asked for again every 15 s. A watcher that keeps failing on a reachable folder is restarted after 1 min, then 2, 4 and so on up to 30 min, instead of at once. Changes are detected only; processing them comes with MFC-136 (no schema change).
+
 ## 1.0.0 — 2026-11-22
 
 ### Added

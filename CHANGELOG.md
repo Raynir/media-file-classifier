@@ -6,6 +6,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Keyboard (MFC-1011): Enter and Space on a focused button, such as the Filters chip, press the button instead of running a shortcut. Enter on the Filters chip used to open the selected item, so the filter flyout never opened from the keyboard.
 - Main menu (MFC-1016): commands that don't apply are now disabled, with a tooltip that says why, instead of staying enabled. For example Edit, "Undo bulk edit" is off until there is a bulk edit to undo, and Select none is off without a selection. The menu rechecks every command when it opens (MFC-1017).
 - Importing a model from files (MFC-1016): "Import from file" now asks for the folder that holds the model files and picks the ones the catalogue expects by name, so a model's files no longer have to be picked one by one (MFC-1018).
 - List view (MFC-1016): the Favorite column's header shows a star icon, with the name in its tooltip, instead of looking like an empty column (MFC-1020).

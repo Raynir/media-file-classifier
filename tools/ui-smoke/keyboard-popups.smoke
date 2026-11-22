@@ -1,0 +1,20 @@
+# Popup keyboard smoke script (MFC-1013, MFC-1011): the Filters flyout takes focus when opened with Enter, Tab stays
+# inside it, and Escape closes it and gives the focus back to the Filters chip.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/keyboard-popups.smoke --out artifacts/ui-smoke
+
+window 1400x900
+library sample
+focus FiltersButton
+key Enter
+popup-key Tab
+popup-key Tab
+popup-shot 01-filters-flyout
+popup-key Escape
+wait-for no-popup 5s
+shot 02-flyout-closed
+
+# The focus is back on the Filters chip: Enter opens the flyout again.
+key Enter
+wait-for popup 5s
+popup-key Escape
+wait-for no-popup 5s

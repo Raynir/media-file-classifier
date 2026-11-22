@@ -6,6 +6,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Main menu (MFC-1021): Open item, Previous and Next, Select all and Select none, Library information and Refresh results are now disabled, with a tooltip that says why, when there is no library, no results or no selection to act on.
 - Dialogs (MFC-1012): a dialog now opens with the keyboard focus on a control instead of on the window: its first text box, list or combo box, else its default button (Cancel in Remove item, the typed-name box in Delete library). Before, the first Tab only reached the first control. The UI smoke tool has a `dialog-focus` step.
 - Keyboard (MFC-1011): Enter and Space on a focused button, such as the Filters chip, press the button instead of running a shortcut. Enter on the Filters chip used to open the selected item, so the filter flyout never opened from the keyboard.
 - Main menu (MFC-1016): commands that don't apply are now disabled, with a tooltip that says why, instead of staying enabled. For example Edit, "Undo bulk edit" is off until there is a bulk edit to undo, and Select none is off without a selection. The menu rechecks every command when it opens (MFC-1017).

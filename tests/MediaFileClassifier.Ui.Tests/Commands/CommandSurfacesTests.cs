@@ -1,8 +1,11 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
+using MediaFileClassifier.Ui.Libraries.Statistics;
+using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Shell;
 using MediaFileClassifier.Ui.ViewModels;
 using MediaFileClassifier.Ui.Views;
@@ -38,6 +41,49 @@ public sealed class CommandSurfacesTests
             Assert.NotNull(undo.DisabledReason);
         });
     }
+
+    [Fact]
+    public async Task MainMenu_DisablesTheBrowseCommands_WhenNoLibraryIsOpen()
+    {
+        // Open item, Previous/Next, Select all/none, Library info and Refresh results (MFC-1021).
+        string[] ids =
+        [
+            BrowserCommands.OpenItem, BrowserCommands.PreviousItem, BrowserCommands.NextItem, BrowserCommands.SelectAll,
+            BrowserCommands.SelectNone, LibraryInfoCommands.OpenInfo, SearchCommands.RefreshResults,
+        ];
+        await using var app = TestServices.Build(fullStack: true);
+        await TestApp.RunAsync(() =>
+        {
+            app.Services.GetRequiredService<MainMenuViewModel>().RefreshCommands();
+            var registry = app.Services.GetRequiredService<CommandRegistry>();
+
+            foreach (var id in ids)
+            {
+                Assert.False(registry[id].IsEnabled, id);
+                Assert.NotNull(registry[id].DisabledReason);
+            }
+        });
+    }
+
+    [Fact]
+    public Task BrowseCommands_FollowTheResultCountAndTheSelection() => TestApp.RunAsync(() =>
+    {
+        var selection = new SelectionModel(() => throw new InvalidOperationException("No results in this test."));
+        var registry = new CommandRegistry(
+            [new BrowserCommands(() => throw new InvalidOperationException("No grid in this test."), selection)],
+            TestLocalizer.EnUs(),
+            new FakeCapabilityGate());
+        string[] needResults = [BrowserCommands.OpenItem, BrowserCommands.PreviousItem, BrowserCommands.NextItem, BrowserCommands.SelectAll];
+
+        registry.Refresh();
+        Assert.All(needResults, id => Assert.False(registry[id].IsEnabled, id));
+        Assert.False(registry[BrowserCommands.SelectNone].IsEnabled);
+
+        selection.Reset(5);
+        registry.Refresh();
+        Assert.All(needResults, id => Assert.True(registry[id].IsEnabled, id));
+        Assert.False(registry[BrowserCommands.SelectNone].IsEnabled);
+    });
 
     private static void Check(TestServices app)
     {

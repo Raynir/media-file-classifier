@@ -1,3 +1,4 @@
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.Commands;
 
 namespace MediaFileClassifier.Ui.Libraries.Statistics;
@@ -6,7 +7,8 @@ namespace MediaFileClassifier.Ui.Libraries.Statistics;
 /// The library information command (E02-S05-T02): "Library information" in the View menu, after the processing queue.
 /// </summary>
 /// <param name="presenter">Opens the window.</param>
-public sealed class LibraryInfoCommands(LibraryInfoPresenter presenter) : ICommandContributor
+/// <param name="session">Tells whether a library is open.</param>
+public sealed class LibraryInfoCommands(LibraryInfoPresenter presenter, ILibrarySession session) : ICommandContributor
 {
     /// <summary>
     /// The command ID.
@@ -22,6 +24,7 @@ public sealed class LibraryInfoCommands(LibraryInfoPresenter presenter) : IComma
         {
             IconKey = "Icon.Info",
             IsVisible = LibraryInfoPresenter.IsSupported,
+            AppliesTo = () => session.Current is not null,
         });
     }
 }

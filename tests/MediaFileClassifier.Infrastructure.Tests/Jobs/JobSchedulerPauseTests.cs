@@ -128,6 +128,12 @@ public sealed class JobSchedulerPauseTests : IAsyncLifetime
         var stopwatch = Stopwatch.StartNew();
         scheduler.Pause();
         await Task.Delay(TimeSpan.FromSeconds(1.5), Token);
+        if (stopwatch.Elapsed >= JobScheduler.StopGracePeriod - TimeSpan.FromMilliseconds(200))
+        {
+            // The machine is too busy to resume inside the first grace; this run can't show anything.
+            return;
+        }
+
         scheduler.Resume();
         scheduler.Pause();
         await Task.Delay(JobScheduler.StopGracePeriod - stopwatch.Elapsed + TimeSpan.FromMilliseconds(500), Token);

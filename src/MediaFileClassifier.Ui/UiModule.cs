@@ -286,6 +286,7 @@ public static class UiModule
 
         // Processing indicator (E05-S02).
         services.AddSingleton<ProgressFeed>();
+        services.AddSingleton<ProcessingPause>();
         services.AddSingleton<ProcessingPanelViewModel>();
         services.AddSingleton<ProcessingPanelPresenter>();
 
@@ -303,6 +304,9 @@ public static class UiModule
         // Library statistics (E02-S05).
         services.AddSingleton<LibraryStatisticsMonitor>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, LibrarySummaryStatusSegment>());
+
+        // The pause button (E05-S05) shares order -1 with the summary, so it's registered after it to sit on its left.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingPauseSegment>());
         services.AddSingleton<LibraryInfoViewModel>();
         services.AddSingleton<LibraryInfoPresenter>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, LibraryInfoCommands>());

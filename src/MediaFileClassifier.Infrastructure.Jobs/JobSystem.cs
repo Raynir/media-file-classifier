@@ -50,6 +50,7 @@ public sealed partial class JobSystem(
     public const int DefaultAiConcurrency = ProcessingSettings.DefaultAiConcurrency;
 
     private readonly SemaphoreSlim lifecycle = new(1, 1);
+    private readonly HashSet<Task> pendingSaves = [];
     private ISettingsStore? subscribedTo;
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Stopped by StopAsync, before the library closes; Dispose can't wait for it.")]
     private volatile JobScheduler? current;
@@ -95,8 +96,17 @@ public sealed partial class JobSystem(
                 LogPruneFailed(exception);
             }
 
+            // The pause the user left the library in (E05-S05-T03), or nothing paused when it isn't kept.
+            var saved = library.Library.Settings;
+            var keepPaused = settingsStore().Get(processing.KeepPausedAfterRestart);
+            if (!keepPaused)
+            {
+                await ForgetPauseAsync(library, cancellationToken).ConfigureAwait(false);
+            }
+
             var pending = await library.Jobs.CountPendingAsync(cancellationToken).ConfigureAwait(false);
-            var startPaused = pending > 0 && settingsStore().Get(processing.ResumeOnOpen) == ResumeMode.Ask;
+            var restorePaused = keepPaused && saved.ProcessingPaused;
+            var startPaused = restorePaused || (pending > 0 && settingsStore().Get(processing.ResumeOnOpen) == ResumeMode.Ask);
             var unfinished = await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false);
             var counts = await library.Jobs.CountUnfinishedWorkAsync(cancellationToken).ConfigureAwait(false);
             if (!startPaused)
@@ -105,7 +115,16 @@ public sealed partial class JobSystem(
             }
 
             var scheduler = new JobScheduler(library, handlers, GetPoolLimits(), progress, clock, logger, models, classifier, retryPolicy, breaker, retention);
-            scheduler.Start(startPaused);
+            if (keepPaused)
+            {
+                foreach (var pool in saved.PausedPools)
+                {
+                    scheduler.PausePool(pool);
+                }
+            }
+
+            scheduler.PauseChanged += OnPauseChanged;
+            scheduler.Start(startPaused, pausedByUser: restorePaused);
             current = scheduler;
             if (startPaused)
             {
@@ -177,12 +196,97 @@ public sealed partial class JobSystem(
         }
     }
 
+    /// <summary>
+    /// Opens a library with nothing paused: resumes its paused jobs, and clears the stored pause.
+    /// </summary>
+    private async Task ForgetPauseAsync(IOpenLibrary library, CancellationToken cancellationToken)
+    {
+        var resumed = await library.Jobs.ResumeAllJobsAsync(clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+        if (resumed > 0)
+        {
+            LogPausedJobsResumed(resumed);
+        }
+
+        if (library.Library.Settings is { ProcessingPaused: false, PausedPools.Count: 0 })
+        {
+            return;
+        }
+
+        await library.UpdateSettingsAsync(settings => settings with { ProcessingPaused = false, PausedPools = [] }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Stores the pause in the library settings, so it can be restored when the library opens again (E05-S05-T03).
+    /// </summary>
+    private void OnPauseChanged(object? sender, EventArgs e)
+    {
+        if (sender is not JobScheduler scheduler)
+        {
+            return;
+        }
+
+        Task save;
+        lock (pendingSaves)
+        {
+            // A change racing the library's close isn't saved: StopCurrentAsync takes its list of saves under this
+            // lock after the scheduler stopped being current, so every save it doesn't wait for is skipped here.
+            if (!ReferenceEquals(scheduler, current))
+            {
+                return;
+            }
+
+            save = SavePauseAsync(scheduler);
+            pendingSaves.Add(save);
+        }
+
+        _ = save.ContinueWith(
+            done =>
+            {
+                lock (pendingSaves)
+                {
+                    pendingSaves.Remove(done);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+    }
+
+    private async Task SavePauseAsync(JobScheduler scheduler)
+    {
+        try
+        {
+            // Read inside the settings step, so the last of several quick changes is what's stored.
+            await scheduler.Library.UpdateSettingsAsync(
+                settings => settings with
+                {
+                    ProcessingPaused = scheduler.IsPausedByUser,
+                    PausedPools = [.. Enum.GetValues<ResourcePool>().Where(scheduler.IsPoolPaused)],
+                }).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // E.g. the library closed in the meantime: the pause still applies now, it just isn't kept.
+            LogPauseNotSaved(exception);
+        }
+    }
+
     private async Task StopCurrentAsync()
     {
         if (current is { } scheduler)
         {
+            scheduler.PauseChanged -= OnPauseChanged;
             current = null;
             await scheduler.DisposeAsync().ConfigureAwait(false);
+
+            // A pause made just before the library closes is still stored. SavePauseAsync doesn't throw.
+            Task[] saves;
+            lock (pendingSaves)
+            {
+                saves = [.. pendingSaves];
+            }
+
+            await Task.WhenAll(saves).ConfigureAwait(false);
             progress.Clear();
             LogStopped(scheduler.Library.Layout.RootDirectory);
         }
@@ -196,4 +300,10 @@ public sealed partial class JobSystem(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Old finished jobs couldn't be deleted")]
     private partial void LogPruneFailed(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} paused jobs were resumed, because paused processing isn't kept after a restart")]
+    private partial void LogPausedJobsResumed(int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The paused state of processing couldn't be saved")]
+    private partial void LogPauseNotSaved(Exception exception);
 }

@@ -87,6 +87,92 @@ public sealed class JobSystemTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task StartAsync_KeepPausedOn_RestoresThePauseOfEveryLevel()
+    {
+        var jobId = await AddJobAsync();
+        system = CreateSystem(new TestStageHandler("stage", ResourcePool.Cpu));
+        var scheduler = await system.StartAsync(bed.Library, Token);
+        scheduler.Pause();
+        scheduler.PausePool(ResourcePool.Ai);
+        Assert.True(await scheduler.PauseJobAsync(jobId, Token));
+        await system.StopAsync();
+        await bed.ReopenAsync();
+
+        scheduler = await system.StartAsync(bed.Library, Token);
+
+        Assert.True(scheduler.IsPaused);
+        Assert.True(scheduler.IsPoolPaused(ResourcePool.Ai));
+        Assert.False(scheduler.IsPoolPaused(ResourcePool.Cpu));
+        Assert.Equal(ProcessingJobState.Paused, (await bed.Library.Jobs.GetJobAsync(jobId, Token))!.State);
+    }
+
+    [Fact]
+    public async Task StartAsync_TheAskFirstWait_IsNotKeptAsAPause()
+    {
+        settings.SetValue(processing.ResumeOnOpen, ResumeMode.Ask);
+        await AddJobAsync();
+        system = CreateSystem(new TestStageHandler("stage", ResourcePool.Cpu));
+        var scheduler = await system.StartAsync(bed.Library, Token);
+        Assert.True(scheduler.IsPaused);
+
+        // A pool paused during the wait saves the pause, but the wait itself isn't the user's.
+        scheduler.PausePool(ResourcePool.Ai);
+        await system.StopAsync();
+        await bed.ReopenAsync();
+        settings.SetValue(processing.ResumeOnOpen, ResumeMode.Automatic);
+
+        scheduler = await system.StartAsync(bed.Library, Token);
+
+        Assert.False(scheduler.IsPaused);
+        Assert.True(scheduler.IsPoolPaused(ResourcePool.Ai));
+    }
+
+    [Fact]
+    public async Task StartAsync_KeepPausedOn_AfterResume_StartsUnpaused()
+    {
+        system = CreateSystem(new TestStageHandler("stage", ResourcePool.Cpu));
+        var scheduler = await system.StartAsync(bed.Library, Token);
+        scheduler.Pause();
+        scheduler.PausePool(ResourcePool.Io);
+        scheduler.Resume();
+        scheduler.ResumePool(ResourcePool.Io);
+        await system.StopAsync();
+        await bed.ReopenAsync();
+
+        scheduler = await system.StartAsync(bed.Library, Token);
+
+        Assert.False(scheduler.IsPaused);
+        Assert.False(scheduler.IsPoolPaused(ResourcePool.Io));
+    }
+
+    [Fact]
+    public async Task StartAsync_KeepPausedOff_OpensWithNothingPaused_AndForgetsThePause()
+    {
+        var jobId = await AddJobAsync();
+        var handler = new TestStageHandler("stage", ResourcePool.Cpu);
+        system = CreateSystem(handler);
+        var scheduler = await system.StartAsync(bed.Library, Token);
+        scheduler.Pause();
+        scheduler.PausePool(ResourcePool.Cpu);
+        Assert.True(await scheduler.PauseJobAsync(jobId, Token));
+        await system.StopAsync();
+        await bed.ReopenAsync();
+        settings.SetValue(processing.KeepPausedAfterRestart, false);
+
+        scheduler = await system.StartAsync(bed.Library, Token);
+
+        Assert.False(scheduler.IsPaused);
+        Assert.False(scheduler.IsPoolPaused(ResourcePool.Cpu));
+        await JobSchedulerTests.WaitUntilAsync(() => handler.Started.Count == 1);
+
+        // Turning the setting back on later doesn't bring back the old pause.
+        await system.StopAsync();
+        await bed.ReopenAsync();
+        settings.SetValue(processing.KeepPausedAfterRestart, true);
+        Assert.False((await system.StartAsync(bed.Library, Token)).IsPaused);
+    }
+
+    [Fact]
     public async Task StartAsync_AskModeWithNothingPending_DoesNotPause()
     {
         settings.SetValue(processing.ResumeOnOpen, ResumeMode.Ask);
@@ -246,6 +332,13 @@ public sealed class JobSystemTests : IAsyncLifetime
     }
 
     private JobSystem CreateSystem(params IStageHandler[] handlers) => CreateSystem(processing, handlers);
+
+    private async Task<Id<ProcessingJob>> AddJobAsync()
+    {
+        var job = new ProcessingJob { Id = Id<ProcessingJob>.New(), Type = "t", Description = "t", CreatedAt = LibraryTestBed.Start };
+        await bed.Library.Jobs.AddJobAsync(job, [WorkItem.Create(job.Id, null, "stage", ResourcePool.Cpu, 0, null, LibraryTestBed.Start)], Token);
+        return job.Id;
+    }
 
     private JobSystem CreateSystem(ProcessingSettings definitions, params IStageHandler[] handlers) =>
         new(handlers, () => settings, definitions, Progress, TimeProvider.System, NullLogger<JobSystem>.Instance);

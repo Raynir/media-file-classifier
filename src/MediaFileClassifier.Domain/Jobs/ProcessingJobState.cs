@@ -17,7 +17,7 @@ public enum ProcessingJobState
     WaitingForModel,
 
     /// <summary>
-    /// Paused by the user (E05-S05, Later).
+    /// Paused by the user (E05-S05): its queued work isn't started until it's resumed.
     /// </summary>
     Paused,
 }

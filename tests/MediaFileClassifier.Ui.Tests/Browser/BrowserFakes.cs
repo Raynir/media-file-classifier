@@ -223,6 +223,30 @@ internal sealed class FakeJobSystem : IJobSystem
         {
         }
 
+        public event EventHandler? PauseChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public void Pause()
+        {
+        }
+
+        public bool IsPoolPaused(ResourcePool pool) => false;
+
+        public void PausePool(ResourcePool pool)
+        {
+        }
+
+        public void ResumePool(ResourcePool pool)
+        {
+        }
+
+        public Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+
+        public Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+
         public void ReleaseParked()
         {
         }

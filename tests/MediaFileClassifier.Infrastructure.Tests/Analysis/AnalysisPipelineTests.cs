@@ -9,6 +9,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Errors;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.AI;
 using MediaFileClassifier.Infrastructure.Media.Frames;
@@ -744,6 +745,36 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Animation_IsSampledOncePerAnalysis_ForEveryAnalyzer_AndItsPicturesAreTheStoredKeyframes()
+    {
+        CountingSampler? sampler = null;
+        var describer = new FakeImageDescriber();
+        var ocr = new FakeOcrProvider();
+        var items = await ImportAsync(
+            [new FakeEmbeddingProvider(), describer, ocr],
+            services => services.AddSingleton<IFrameSampler>(provider => sampler = new CountingSampler(ActivatorUtilities.CreateInstance<FrameSampler>(provider))),
+            SampleMedia.AnimatedGif);
+        var before = sampler?.Calls ?? 0;
+
+        await AnalyzeAsync(items);
+
+        Assert.Equal(before + 1, sampler!.Calls);
+        Assert.All(
+            await bed!.Library.AnalyzerStates.GetForItemAsync(items[0].Id, Token),
+            state => Assert.Equal(AnalyzerStatus.Done, state.Status));
+        Assert.True(describer.Calls > 0 && ocr.Calls > 0, "Every analyzer read the keyframes.");
+        var keyframes = await bed.Library.Keyframes.GetForItemAsync(items[0].Id, Token);
+        Assert.NotEmpty(keyframes);
+        var folder = Path.GetDirectoryName(bed.Library.Layout.GetKeyframeThumbnailPath(items[0].Id, 0))!;
+        Assert.Equal(keyframes.Count, Directory.GetFiles(folder, LibraryLayout.KeyframeThumbnailSearchPattern(items[0].Id)).Length);
+
+        // A second analysis samples the item again, once.
+        await AnalyzeAsync(items);
+
+        Assert.Equal(before + 2, sampler.Calls);
+    }
+
+    [Fact]
     public async Task AnimationWithoutFrames_BecauseFfmpegIsMissing_WaitsAsPending()
     {
         var sampler = new NoFramesSampler(FrameSamplingWarnings.FrameSamplingFfmpegUnavailable);
@@ -922,6 +953,19 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
         {
             var sample = await inner.SampleAsync(content, format, metadata, options, cancellationToken);
             return sample with { Frames = [.. sample.Frames.Take(count)] };
+        }
+    }
+
+    private sealed class CountingSampler(IFrameSampler inner) : IFrameSampler
+    {
+        private int calls;
+
+        public int Calls => Volatile.Read(ref calls);
+
+        public Task<FrameSample> SampleAsync(MediaContent content, MediaFormatDetection format, TechnicalMetadata metadata, FrameSamplingOptions options, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref calls);
+            return inner.SampleAsync(content, format, metadata, options, cancellationToken);
         }
     }
 

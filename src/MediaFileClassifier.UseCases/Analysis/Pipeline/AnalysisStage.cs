@@ -12,6 +12,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
+using MediaFileClassifier.UseCases.Analysis.Keyframes;
 using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.Stages;
@@ -49,8 +50,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
     private readonly IMediaFileSource files;
     private readonly IMediaFormatRegistry formats;
     private readonly IAnalysisImageDecoder decoder;
-    private readonly IFrameSampler frameSampler;
-    private readonly IKeyframeThumbnails? keyframeThumbnails;
+    private readonly ItemKeyframeSampler keyframeSampler;
     private readonly IPublisher? publisher;
     private readonly TimeProvider clock;
     private readonly ILogger<AnalysisStage> logger;
@@ -96,8 +96,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         this.files = files;
         this.formats = formats;
         this.decoder = decoder;
-        this.frameSampler = frameSampler;
-        this.keyframeThumbnails = keyframeThumbnails;
+        keyframeSampler = new ItemKeyframeSampler(frameSampler, keyframeThumbnails);
         this.publisher = publisher;
         this.clock = clock;
         this.logger = logger ?? NullLogger<AnalysisStage>.Instance;
@@ -397,7 +396,7 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
         };
         var size = requested.Where(settings => settings.Enabled)
             .Aggregate(new InputSize(0, 0), (union, settings) => union.Union(analyzers[settings.Analyzer].InputSize));
-        return new AnalysisInputs(decoder, frameSampler, library, content, format, metadata, size, keyframeThumbnails);
+        return new AnalysisInputs(decoder, keyframeSampler, library, content, format, metadata, size);
     }
 
     private async Task UpdateItemStatusAsync(

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MediaFileClassifier.Infrastructure.Tests.DataAccess;
 
 /// <summary>
-/// Library schema 19 stores each indexed folder's volume identity (E04-S04-T03), and a folder that followed its drive to
+/// Library schema 18 stores each indexed folder's volume identity (E04-S04-T03), and a folder that followed its drive to
 /// another letter is stored without undoing a newer relink or its rules.
 /// </summary>
 public sealed class VolumeIdSchemaTests

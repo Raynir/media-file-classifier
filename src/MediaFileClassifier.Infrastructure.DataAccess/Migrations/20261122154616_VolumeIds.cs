@@ -5,7 +5,7 @@
 namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
 {
     /// <summary>
-    /// Library schema 19: volume identities (MFC-718, E04-S04-T03). Adds <c>volume_id</c> to <c>indexed_folder</c>, the
+    /// Library schema 18: volume identities (MFC-718, E04-S04-T03). Adds <c>volume_id</c> to <c>indexed_folder</c>, the
     /// identity of the drive the folder is on (on Windows its file system's serial number), so a drive that comes back
     /// under another letter is found again and another drive that took the letter isn't taken for it. Existing folders
     /// get <c>NULL</c> until their next availability check while Online.

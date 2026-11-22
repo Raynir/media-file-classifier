@@ -4,9 +4,12 @@ using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
+using MediaFileClassifier.Testing.Files;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Libraries;
 using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Tests.Libraries;
+using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.UseCases.Tests.Monitoring;
@@ -139,6 +142,39 @@ public sealed class FolderWatchManagerTests
         Assert.Empty(bed.Manager.WatchedFolders);
     }
 
+    [Fact]
+    public async Task Changes_OfAWatchedFolder_ArePublishedOnceStable()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+
+        bed.Files.Write("a.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Created, "a.jpg"));
+        bed.Clock.Advance(TimeSpan.FromMinutes(1));
+
+        var published = Assert.Single(bed.Publisher.Published);
+        Assert.Equal(folder.Id, published.FolderId);
+        Assert.Equal("a.jpg", Assert.Single(published.Changes).RelativePath);
+    }
+
+    [Fact]
+    public async Task Changes_OfAFolderNoLongerWatched_AreDropped()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Files.Write("a.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Created, "a.jpg"));
+
+        folder.MarkOffline(Now);
+        await bed.Library.FolderList.UpdateAvailabilityAsync(folder, TestContext.Current.CancellationToken);
+        await bed.Manager.RefreshAsync();
+        bed.Clock.Advance(TimeSpan.FromMinutes(1));
+
+        Assert.Empty(bed.Publisher.Published);
+    }
+
     /// <summary>
     /// A manager on a fake library, with watchers that record whether they run.
     /// </summary>
@@ -147,10 +183,16 @@ public sealed class FolderWatchManagerTests
         public Bed()
         {
             Library = new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "watching"), "watching");
-            Manager = new FolderWatchManager(Session, NullLogger<FolderWatchManager>.Instance, Factory);
+            Manager = new FolderWatchManager(Session, Files, Publisher, Clock, NullLogger<FolderWatchManager>.Instance, Factory);
         }
 
         public FakeLibrarySession Session { get; } = new();
+
+        public ManualClock Clock { get; } = new();
+
+        public InMemoryMediaFileSource Files { get; } = new();
+
+        public RecordingPublisher Publisher { get; } = new();
 
         public FakeOpenLibrary Library { get; }
 
@@ -186,6 +228,10 @@ public sealed class FolderWatchManagerTests
 
         public IReadOnlyList<string> Running => [.. watchers.Where(watcher => !watcher.Disposed).Select(watcher => watcher.Folder.Id)];
 
+        public void Raise(string folder, FolderWatchEvent change) => Latest(folder).Raise(change);
+
+        public void Fail(string folder, bool overflow) => Latest(folder).Fail(overflow);
+
         public IFolderWatcher Watch(FolderHandle folder)
         {
             if (Failing.Contains(folder.Id))
@@ -198,25 +244,45 @@ public sealed class FolderWatchManagerTests
             return watcher;
         }
 
+        private Watcher Latest(string folder) => watchers.Last(watcher => watcher.Folder.Id == folder);
+
         private sealed class Watcher(FolderHandle folder) : IFolderWatcher
         {
-            public event EventHandler<FolderWatchEvent>? Changed
-            {
-                add { }
-                remove { }
-            }
+            public event EventHandler<FolderWatchEvent>? Changed;
 
-            public event EventHandler<FolderWatchErrorEventArgs>? Failed
-            {
-                add { }
-                remove { }
-            }
+            public event EventHandler<FolderWatchErrorEventArgs>? Failed;
 
             public FolderHandle Folder { get; } = folder;
 
             public bool Disposed { get; private set; }
 
             public void Dispose() => Disposed = true;
+
+            public void Raise(FolderWatchEvent change) => Changed?.Invoke(this, change);
+
+            public void Fail(bool overflow) => Failed?.Invoke(this, new FolderWatchErrorEventArgs(overflow, overflow ? new InternalBufferOverflowException() : new IOException("The network name is no longer available.")));
+        }
+    }
+
+    /// <summary>
+    /// Records the published notifications.
+    /// </summary>
+    private sealed class RecordingPublisher : IPublisher
+    {
+        public List<FolderChangesDetected> Published { get; } = [];
+
+        public Task Publish(object notification, CancellationToken cancellationToken = default) =>
+            notification is INotification typed ? Publish(typed, cancellationToken) : Task.CompletedTask;
+
+        public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+            where TNotification : INotification
+        {
+            if (notification is FolderChangesDetected detected)
+            {
+                Published.Add(detected);
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

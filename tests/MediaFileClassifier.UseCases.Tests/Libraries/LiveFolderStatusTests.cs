@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
@@ -421,63 +422,6 @@ public sealed class LiveFolderStatusTests
                 var waiter = new TaskCompletionSource<CheckFolderAvailabilityCommand>(TaskCreationOptions.RunContinuationsAsynchronously);
                 waiting.Enqueue(waiter);
                 return waiter.Task.WaitAsync(TimeSpan.FromSeconds(10), Token);
-            }
-        }
-    }
-
-    /// <summary>
-    /// A clock whose one-shot and periodic timers fire only when the test advances it.
-    /// </summary>
-    private sealed class ManualClock : TimeProvider
-    {
-        private readonly List<ManualTimer> timers = [];
-        private TimeSpan now;
-
-        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
-        {
-            var timer = new ManualTimer(this, callback, state);
-            timer.Change(dueTime, period);
-            timers.Add(timer);
-            return timer;
-        }
-
-        public void Advance(TimeSpan time)
-        {
-            var end = now + time;
-            while (timers.Where(timer => timer.DueAt <= end).MinBy(timer => timer.DueAt) is { } next)
-            {
-                now = next.DueAt!.Value;
-                next.Fire();
-            }
-
-            now = end;
-        }
-
-        private sealed class ManualTimer(ManualClock clock, TimerCallback callback, object? state) : ITimer
-        {
-            private TimeSpan period = Timeout.InfiniteTimeSpan;
-
-            public TimeSpan? DueAt { get; private set; }
-
-            public bool Change(TimeSpan dueTime, TimeSpan period)
-            {
-                this.period = period;
-                DueAt = dueTime == Timeout.InfiniteTimeSpan ? null : clock.now + dueTime;
-                return true;
-            }
-
-            public void Fire()
-            {
-                DueAt = period == Timeout.InfiniteTimeSpan ? null : clock.now + period;
-                callback(state);
-            }
-
-            public void Dispose() => DueAt = null;
-
-            public ValueTask DisposeAsync()
-            {
-                Dispose();
-                return ValueTask.CompletedTask;
             }
         }
     }

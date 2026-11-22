@@ -1,10 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.UseCases.Libraries;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.UseCases.Monitoring;
@@ -13,13 +15,16 @@ namespace MediaFileClassifier.UseCases.Monitoring;
 /// Keeps one recursive watcher on each Online folder of the open library (E04-S01-T01). The watchers follow the
 /// library opening and closing, folders being added, changed, merged or removed, and folders going Offline and coming
 /// back. A folder being removed isn't watched. Where the platform can't watch folders (no
-/// <see cref="IFolderWatcherFactory"/>), it does nothing.
+/// <see cref="IFolderWatcherFactory"/>), it does nothing. Raw events go through a <see cref="FolderChangeBuffer"/>, and
+/// the stable changes are published as <see cref="FolderChangesDetected"/> (E04-S01-T02).
 /// </summary>
 public sealed class FolderWatchManager : IDisposable
 {
     private readonly ILibrarySession session;
     private readonly IFolderWatcherFactory? factory;
+    private readonly IPublisher publisher;
     private readonly ILogger<FolderWatchManager> logger;
+    private readonly FolderChangeBuffer buffer;
     private readonly Lock syncRoot = new();
     private readonly Dictionary<Id<IndexedFolder>, WatchedFolder> watched = [];
 
@@ -38,13 +43,24 @@ public sealed class FolderWatchManager : IDisposable
     /// Initializes a new instance of the <see cref="FolderWatchManager"/> class.
     /// </summary>
     /// <param name="session">Holds the open library.</param>
+    /// <param name="files">Checks that changed files are stable.</param>
+    /// <param name="publisher">Publishes the stable changes.</param>
+    /// <param name="clock">Times the debounce and the stability checks.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="factory">Starts the watchers, or <see langword="null"/> where the platform can't watch folders.</param>
-    public FolderWatchManager(ILibrarySession session, ILogger<FolderWatchManager> logger, IFolderWatcherFactory? factory = null)
+    public FolderWatchManager(
+        ILibrarySession session,
+        IMediaFileSource files,
+        IPublisher publisher,
+        TimeProvider clock,
+        ILogger<FolderWatchManager> logger,
+        IFolderWatcherFactory? factory = null)
     {
         this.session = session;
+        this.publisher = publisher;
         this.logger = logger;
         this.factory = factory;
+        buffer = new FolderChangeBuffer(files, clock, logger, PublishAsync);
     }
 
     /// <summary>
@@ -144,6 +160,7 @@ public sealed class FolderWatchManager : IDisposable
         }
 
         Follow(null);
+        buffer.Dispose();
         stopping.Cancel();
     }
 
@@ -191,6 +208,7 @@ public sealed class FolderWatchManager : IDisposable
             foreach (var folder in watched.Values)
             {
                 folder.Stop();
+                buffer.Forget(folder.Folder.Id);
             }
 
             watched.Clear();
@@ -219,6 +237,7 @@ public sealed class FolderWatchManager : IDisposable
             {
                 gone.Stop();
                 watched.Remove(gone.Folder.Id);
+                buffer.Forget(gone.Folder.Id);
                 logger.LogInformation("Stopped watching {Folder}", gone.Folder.DisplayPath);
             }
 
@@ -236,6 +255,7 @@ public sealed class FolderWatchManager : IDisposable
                     // Relinked to a new root.
                     existing.Stop();
                     watched.Remove(folder.Id);
+                    buffer.Forget(folder.Id);
                 }
 
                 if (StartWatching(folder) is { } started)
@@ -270,7 +290,22 @@ public sealed class FolderWatchManager : IDisposable
             return;
         }
 
-        logger.LogDebug("{Kind} {Path} in {Folder}", change.Kind, change.RelativePath, folder.Folder.DisplayPath);
+        buffer.Record(folder.Folder.Id, folder.Handle, change);
+    }
+
+    private async Task PublishAsync(Id<IndexedFolder> folderId, IReadOnlyList<FolderChange> changes, CancellationToken cancellationToken)
+    {
+        lock (syncRoot)
+        {
+            // Stopped being watched during the checks, e.g. it went Offline: what's left is the rescan's to find.
+            if (!watched.ContainsKey(folderId))
+            {
+                return;
+            }
+        }
+
+        logger.LogInformation("{Count} changes in watched folder {Folder}", changes.Count, folderId);
+        await publisher.Publish(new FolderChangesDetected(folderId, changes), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -294,6 +329,11 @@ public sealed class FolderWatchManager : IDisposable
         /// Gets the root the watcher was started on.
         /// </summary>
         public string Root { get; } = folder.PlatformHandle;
+
+        /// <summary>
+        /// Gets the handle the watcher was started on.
+        /// </summary>
+        public FolderHandle Handle { get; } = folder.ToHandle();
 
         public bool IsStopped => stopped;
 

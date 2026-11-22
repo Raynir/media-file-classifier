@@ -61,6 +61,23 @@ public sealed class ItemKeyframeSamplerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SampleAndStore_CancelledWhileSampling_StoresNothing_AndKeepsTheEarlierKeyframes()
+    {
+        var item = await AddItemAsync();
+        var keyframeSampler = Create();
+        var earlier = await keyframeSampler.SampleAndStoreAsync(bed.Library, Content(item), Format, Metadata(item), Token);
+        sampler.Cancel = true;
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => keyframeSampler.SampleAndStoreAsync(bed.Library, Content(item), Format, Metadata(item), Token));
+
+        Assert.Equal(
+            earlier.Frames.Select(frame => frame.Keyframe.Id),
+            (await bed.Library.Keyframes.GetForItemAsync(item.Id, Token)).Select(keyframe => keyframe.Id));
+        Assert.Equal(3, Pictures(item).Length);
+    }
+
+    [Fact]
     public async Task SampleAndStore_WithoutAPictureStore_StoresOnlyTheRows()
     {
         var item = await AddItemAsync();
@@ -100,9 +117,16 @@ public sealed class ItemKeyframeSamplerTests : IAsyncLifetime
 
         public bool Fail { get; set; }
 
+        public bool Cancel { get; set; }
+
         public Task<FrameSample> SampleAsync(MediaContent content, MediaFormatDetection format, TechnicalMetadata metadata, FrameSamplingOptions options, CancellationToken cancellationToken)
         {
             Calls++;
+            if (Cancel)
+            {
+                throw new OperationCanceledException();
+            }
+
             if (Fail)
             {
                 return Task.FromResult(FrameSample.Failed(new ExtractionWarning(FrameSamplingWarnings.FrameSamplingFailed)));

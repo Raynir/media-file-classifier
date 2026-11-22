@@ -747,6 +747,7 @@ public sealed class AnalysisPipelineTests : IAsyncDisposable
     [Fact]
     public async Task Animation_IsSampledOncePerAnalysis_ForEveryAnalyzer_AndItsPicturesAreTheStoredKeyframes()
     {
+        // A regression guard (MFC-1008): the embedding, describer and OCR analyzers share one sampling of the item.
         CountingSampler? sampler = null;
         var describer = new FakeImageDescriber();
         var ocr = new FakeOcrProvider();

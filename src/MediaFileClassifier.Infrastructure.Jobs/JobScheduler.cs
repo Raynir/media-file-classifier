@@ -83,6 +83,13 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     private Task loop = Task.CompletedTask;
     private volatile bool paused;
 
+    // Whether the global pause is the user's (or restored from the user's last session), not the "ask first" wait on open.
+    private bool pausedByUser;
+
+    // Counts the pauses of each scope (all processing, a pool, a job), so a settle cancels work only for the pause that
+    // started it: after Resume and another pause, the newer pause's own settle gives the work its full grace period.
+    private readonly Dictionary<object, int> pauseGenerations = [];
+
     /// <summary>
     /// Initializes a new instance of the <see cref="JobScheduler"/> class. Call <see cref="Start"/> to start it.
     /// </summary>
@@ -142,8 +149,28 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         pools = Enum.GetValues<ResourcePool>().ToDictionary(pool => pool, pool => new PoolState(Math.Max(1, limits.GetValueOrDefault(pool, 1))));
     }
 
+    /// <summary>
+    /// The pause scope of all processing, for <see cref="Settle"/>.
+    /// </summary>
+    private static readonly object AllScope = new();
+
     /// <inheritdoc />
     public event EventHandler? PauseChanged;
+
+    /// <summary>
+    /// Gets whether all processing is paused by the user, as opposed to the wait when a library opens and the settings
+    /// say to ask first. Only the user's pause is kept for the next session (E05-S05-T03).
+    /// </summary>
+    public bool IsPausedByUser
+    {
+        get
+        {
+            lock (gate)
+            {
+                return paused && pausedByUser;
+            }
+        }
+    }
 
     /// <inheritdoc />
     public IOpenLibrary Library { get; }
@@ -155,9 +182,11 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// Starts the dispatcher loop.
     /// </summary>
     /// <param name="startPaused">Whether to wait for <see cref="Resume"/> before starting any work.</param>
-    public void Start(bool startPaused)
+    /// <param name="pausedByUser">Whether that wait is the user's pause restored from the last session, rather than the settings asking first.</param>
+    public void Start(bool startPaused, bool pausedByUser = false)
     {
         paused = startPaused;
+        this.pausedByUser = startPaused && pausedByUser;
         loop = Task.Run(RunLoopAsync);
     }
 
@@ -329,19 +358,26 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     /// <inheritdoc />
     public void Pause()
     {
+        bool wasPaused;
         lock (gate)
         {
-            if (paused)
+            if (paused && pausedByUser)
             {
                 return;
             }
 
+            // Pausing while the library waits for "ask first" makes it the user's pause; nothing runs to settle.
+            wasPaused = paused;
             paused = true;
+            pausedByUser = true;
         }
 
         LogPaused("all");
         OnPauseChanged();
-        Settle(_ => true);
+        if (!wasPaused)
+        {
+            Settle(AllScope, _ => true);
+        }
     }
 
     /// <inheritdoc />
@@ -355,6 +391,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             }
 
             paused = false;
+            pausedByUser = false;
             MarkAllPoolsStale();
         }
 
@@ -385,7 +422,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 
         LogPaused(pool.ToString());
         OnPauseChanged();
-        Settle(work => work.Pool == pool);
+        Settle(pool, work => work.Pool == pool);
     }
 
     /// <inheritdoc />
@@ -428,22 +465,27 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 
         LogPaused(jobId.ToString());
         OnPauseChanged();
-        Settle(work => work.JobId == jobId);
+        Settle(jobId, work => work.JobId == jobId);
         return true;
     }
 
     /// <inheritdoc />
     public async Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default)
     {
-        if (!await Library.Jobs.ResumeJobAsync(jobId, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false))
-        {
-            return false;
-        }
-
+        var resumed = await Library.Jobs.ResumeJobAsync(jobId, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
         lock (gate)
         {
+            // Also when it wasn't paused any more, e.g. it finished while paused: the entry is stale then.
             pausedJobs.Remove(jobId);
-            MarkAllPoolsStale();
+            if (resumed)
+            {
+                MarkAllPoolsStale();
+            }
+        }
+
+        if (!resumed)
+        {
+            return false;
         }
 
         LogResumed(jobId.ToString());
@@ -595,29 +637,37 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     }
 
     /// <summary>
-    /// Gets whether running work is held by a pause: of everything, of its pool or of its job. Called under the lock.
+    /// Gets whether a pause scope (<see cref="AllScope"/>, a <see cref="ResourcePool"/> or a job ID) is paused. Called
+    /// under the lock.
     /// </summary>
-    private bool IsHeld(RunningWork work) => paused || pausedPools.Contains(work.Pool) || pausedJobs.Contains(work.JobId);
+    private bool IsScopePaused(object scope) => scope switch
+    {
+        ResourcePool pool => pausedPools.Contains(pool),
+        Id<ProcessingJob> jobId => pausedJobs.Contains(jobId),
+        _ => paused,
+    };
 
     /// <summary>
     /// Settles the running work a pause just held: it gets <see cref="StopGracePeriod"/> to finish, and what's still
     /// running and still held then is cancelled, which puts it back in the queue. Work resumed in the meantime runs on.
     /// </summary>
-    private void Settle(Func<RunningWork, bool> heldNow)
+    private void Settle(object scope, Func<RunningWork, bool> heldNow)
     {
         List<RunningWork> works;
+        int generation;
         lock (gate)
         {
+            generation = pauseGenerations[scope] = pauseGenerations.GetValueOrDefault(scope) + 1;
             works = [.. running.Values.Where(heldNow)];
         }
 
         if (works.Count > 0)
         {
-            _ = SettleAsync(works);
+            _ = SettleAsync(scope, generation, works);
         }
     }
 
-    private async Task SettleAsync(List<RunningWork> works)
+    private async Task SettleAsync(object scope, int generation, List<RunningWork> works)
     {
         try
         {
@@ -630,7 +680,10 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             List<CancellationTokenSource> toCancel;
             lock (gate)
             {
-                toCancel = [.. works.Where(work => !work.Task.IsCompleted && IsHeld(work)).Select(work => work.Cancellation)];
+                // Resumed since (and maybe paused again, with a settle of its own): this pause no longer holds the work.
+                toCancel = IsScopePaused(scope) && pauseGenerations[scope] == generation
+                    ? [.. works.Where(work => !work.Task.IsCompleted).Select(work => work.Cancellation)]
+                    : [];
             }
 
             if (toCancel.Count > 0)
@@ -906,7 +959,8 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                 List<string> excludingStages;
                 lock (gate)
                 {
-                    if (pool.Running >= pool.Limit || pausedPools.Contains(resource))
+                    // Checked under the lock, so work can't start after Pause has taken its snapshot of the running work.
+                    if (pool.Running >= pool.Limit || paused || pausedPools.Contains(resource))
                     {
                         break;
                     }
@@ -1014,6 +1068,12 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
             progress.Finished(finished, job);
             if (ProcessingJobStateTransitions.IsFinished(job.State))
             {
+                lock (gate)
+                {
+                    // A job paused while its last work ran finished: it's no longer paused.
+                    pausedJobs.Remove(job.Id);
+                }
+
                 await PruneJobsAsync().ConfigureAwait(false);
             }
 

@@ -404,7 +404,11 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                     return false;
                 }
 
-                db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Queued, now));
+                // Resumed while its work still runs (within the pause's grace): it's running, so it finishes when that
+                // work does. A queued job with only running work would never finish.
+                var queued = job.ChangeState(ProcessingJobState.Queued, now);
+                var stillRunning = await db.WorkItems.AnyAsync(item => item.JobId == jobId && item.State == WorkItemState.Running, token).ConfigureAwait(false);
+                db.Entry(job).CurrentValues.SetValues(stillRunning ? queued.ChangeState(ProcessingJobState.Running, now) : queued);
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
                 return true;
             },

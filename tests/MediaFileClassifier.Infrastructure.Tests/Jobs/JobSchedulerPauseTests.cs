@@ -117,6 +117,43 @@ public sealed class JobSchedulerPauseTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task PauseResumePause_GivesTheSecondPauseItsFullGrace()
+    {
+        var handler = new TestStageHandler("stage", ResourcePool.Cpu, (_, token) => Task.Delay(TimeSpan.FromMinutes(1), token));
+        Start([handler], cpu: 1);
+        await scheduler!.EnqueueJobAsync(Job(JobPriority.Import, [new WorkItemRequest("stage")]), Token);
+        await WaitUntilAsync(() => scheduler.GetRunningCount(ResourcePool.Cpu) == 1);
+
+        // The first pause's grace ends 2 s in; the second pause's grace ends 1.5 s later.
+        var stopwatch = Stopwatch.StartNew();
+        scheduler.Pause();
+        await Task.Delay(TimeSpan.FromSeconds(1.5), Token);
+        scheduler.Resume();
+        scheduler.Pause();
+        await Task.Delay(JobScheduler.StopGracePeriod - stopwatch.Elapsed + TimeSpan.FromMilliseconds(500), Token);
+
+        Assert.Equal(1, scheduler.GetRunningCount(ResourcePool.Cpu));
+        await WaitUntilAsync(() => scheduler.GetRunningCount(ResourcePool.Cpu) == 0, TimeSpan.FromSeconds(30));
+    }
+
+    [Fact]
+    public async Task ResumeJobAsync_WithinTheGrace_WhileItsLastWorkRuns_StillFinishesTheJob()
+    {
+        using var release = new SemaphoreSlim(0);
+        var handler = new TestStageHandler("stage", ResourcePool.Cpu, (_, token) => release.WaitAsync(token));
+        Start([handler]);
+        var jobId = await scheduler!.EnqueueJobAsync(Job(JobPriority.Import, [new WorkItemRequest("stage")]), Token);
+        await WaitUntilAsync(() => scheduler.GetRunningCount(ResourcePool.Cpu) == 1);
+
+        Assert.True(await scheduler.PauseJobAsync(jobId, Token));
+        Assert.True(await scheduler.ResumeJobAsync(jobId, Token));
+        release.Release();
+
+        await WaitForJobAsync(jobId, ProcessingJobState.Completed);
+        Assert.Single(handler.Started);
+    }
+
+    [Fact]
     public async Task PausePool_HoldsOnlyThatPool_UntilItsResumed()
     {
         var ai = new TestStageHandler("ai", ResourcePool.Ai);

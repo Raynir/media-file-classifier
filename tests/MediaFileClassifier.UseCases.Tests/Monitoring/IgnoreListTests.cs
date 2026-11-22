@@ -33,11 +33,27 @@ public sealed class IgnoreListTests
     [Fact]
     public void Custom_PatternsReplaceTheDefaults_AndBlankEntriesAreSkipped()
     {
-        var list = new IgnoreList(" *.bak ;; drafts \n");
+        var list = new IgnoreList(" *.bak ;; **/drafts \n");
 
         Assert.True(list.IsIgnored("a.bak"));
         Assert.True(list.IsIgnored("drafts/a.jpg"));
         Assert.False(list.IsIgnored("a.tmp"));
+    }
+
+    [Theory]
+    [InlineData("Old~/party.jpg")]
+    [InlineData("session.part/clip.mp4")]
+    [InlineData("a/b.tmp/c.jpg")]
+    public void Default_FolderNamedLikeATemporaryFile_DoesntHideItsFiles(string path) =>
+        Assert.False(new IgnoreList(MonitoringSettings.DefaultIgnorePatterns).IsIgnored(path));
+
+    [Fact]
+    public void Custom_PatternWithoutSlash_MatchesTheFileNameOnly()
+    {
+        var list = new IgnoreList("drafts");
+
+        Assert.True(list.IsIgnored("a/drafts"));
+        Assert.False(list.IsIgnored("drafts/a.jpg"));
     }
 
     [Fact]

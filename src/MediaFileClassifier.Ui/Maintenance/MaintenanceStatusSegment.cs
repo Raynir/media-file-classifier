@@ -37,7 +37,12 @@ public sealed class MaintenanceStatusSegment(
     {
         ArgumentNullException.ThrowIfNull(localizer);
 
-        var text = localizer.Get(task == MaintenanceTask.RefreshIndex ? "Maintenance_RefreshingIndex" : "Maintenance_CheckingIntegrity");
+        var text = localizer.Get(task switch
+        {
+            MaintenanceTask.RefreshIndex => "Maintenance_RefreshingIndex",
+            MaintenanceTask.CompactDatabase => "Maintenance_CompactingDatabase",
+            _ => "Maintenance_CheckingIntegrity",
+        });
         return progress is { } share ? localizer.Format("Maintenance_Progress", text, Math.Floor(share * 100)) : text;
     }
 
@@ -69,13 +74,14 @@ public sealed class MaintenanceStatusSegment(
         if (task is { } current)
         {
             segment.Text = Describe(localizer, current, runner.Progress);
-            segment.ToolTip = localizer.Get("Maintenance_StopToolTip");
+            segment.ToolTip = current == MaintenanceTask.CompactDatabase ? null : localizer.Get("Maintenance_StopToolTip");
         }
     }
 
     private async Task StopAsync()
     {
-        if (runner.Current is not { } task)
+        // A VACUUM can't be stopped half-way, so there's nothing to ask.
+        if (runner.Current is not { } task || task == MaintenanceTask.CompactDatabase)
         {
             return;
         }

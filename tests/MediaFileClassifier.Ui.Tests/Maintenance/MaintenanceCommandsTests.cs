@@ -12,6 +12,7 @@ using MediaFileClassifier.Ui.Tests.Browser;
 using MediaFileClassifier.Ui.Tests.Commands;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Maintenance.CheckIntegrity;
+using MediaFileClassifier.UseCases.Maintenance.CompactDatabase;
 using MediaFileClassifier.UseCases.Maintenance.RegenerateThumbnails;
 using MediaFileClassifier.UseCases.Maintenance.RestoreBackup;
 using MediaFileClassifier.UseCases.Search.RebuildSearchIndex;
@@ -60,6 +61,72 @@ public sealed class MaintenanceCommandsTests
             Assert.Equal("Open a library first.", commands[id].ToolTip);
         }
     });
+
+    [Fact]
+    public Task CompactDatabase_IsInTheLibraryMenuBand_AndNeedsALibrary() => RunAsync(open: false, services =>
+    {
+        var command = services.GetRequiredService<CommandRegistry>()[MaintenanceCommands.CompactDatabase];
+
+        Assert.Equal(CommandGroups.Library, command.Group);
+        Assert.Equal(2, command.Order / 100);
+        Assert.False(command.IsEnabled);
+        Assert.Equal("Open a library first.", command.ToolTip);
+    });
+
+    [Fact]
+    public async Task CompactDatabase_Confirmed_CompactsAndReportsTheSizes()
+    {
+        dialogs.Answer = true;
+
+        var result = await Commands().CompactDatabaseAsync();
+
+        Assert.Equal(CompactDatabaseOutcome.Compacted, result?.Outcome);
+        Assert.Equal(1, sender.Compactions);
+        Assert.Contains("60", Assert.Single(dialogs.Asked));
+        Assert.Contains("100", Assert.Single(dialogs.Shown));
+        Assert.Null(runner.Current);
+    }
+
+    [Fact]
+    public async Task CompactDatabase_Declined_ChangesNothing()
+    {
+        dialogs.Answer = false;
+
+        Assert.Null(await Commands().CompactDatabaseAsync());
+
+        Assert.Equal(0, sender.Compactions);
+        Assert.Empty(dialogs.Shown);
+    }
+
+    [Fact]
+    public async Task CompactDatabase_NothingWorthReclaiming_SaysSoWithoutAsking()
+    {
+        sender.Space = new DatabaseSpace(100L * 1024 * 1024, 1024 * 1024);
+
+        var result = await Commands().CompactDatabaseAsync();
+
+        Assert.Equal(CompactDatabaseOutcome.NothingToReclaim, result?.Outcome);
+        Assert.Empty(dialogs.Asked);
+        Assert.Equal(0, sender.Compactions);
+        Assert.Equal(["The database has no free space worth giving back."], dialogs.Shown);
+    }
+
+    [Fact]
+    public async Task CompactDatabase_JobsStillRunning_ExplainsWhy()
+    {
+        dialogs.Answer = true;
+        sender.OnCompact = () => new CompactDatabaseResult(CompactDatabaseOutcome.JobsRunning);
+
+        await Commands().CompactDatabaseAsync();
+
+        Assert.Equal(["The library still has work in the processing queue. Compact the database when it has finished."], dialogs.Shown);
+    }
+
+    [Fact]
+    public void CompactStatus_ShowsTheTask()
+    {
+        Assert.Equal("Compacting the database…", MaintenanceStatusSegment.Describe(Localizer.Current, MaintenanceTask.CompactDatabase, null));
+    }
 
     [Fact]
     public async Task RefreshIndex_RebuildsWithProgress_AndSaysWhenDone()
@@ -302,14 +369,29 @@ public sealed class MaintenanceCommandsTests
 
         public List<RestoreIntegrityBackupCommand> Restored { get; } = [];
 
+        public DatabaseSpace? Space { get; set; } = new(100L * 1024 * 1024, 60L * 1024 * 1024);
+
+        public Func<CompactDatabaseResult> OnCompact { get; set; } =
+            () => new CompactDatabaseResult(CompactDatabaseOutcome.Compacted, new DatabaseSpace(100L * 1024 * 1024, 60L * 1024 * 1024), new DatabaseSpace(40L * 1024 * 1024, 0));
+
+        public int Compactions { get; private set; }
+
         public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default) =>
             request switch
             {
                 CheckLibraryIntegrityQuery => (TResponse)(object)await OnCheck(cancellationToken),
+                GetDatabaseSpaceQuery => (TResponse)(object)Space!,
+                CompactDatabaseCommand => (TResponse)(object)Compact(),
                 RegenerateThumbnailsCommand regenerate => (TResponse)(object)OnRegenerate(regenerate),
                 RestoreIntegrityBackupCommand restore => (TResponse)(object)Restore(restore),
                 _ => throw new NotSupportedException(request.GetType().Name),
             };
+
+        private CompactDatabaseResult Compact()
+        {
+            Compactions++;
+            return OnCompact();
+        }
 
         private RestoreIntegrityBackupResult Restore(RestoreIntegrityBackupCommand command)
         {

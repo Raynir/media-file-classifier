@@ -210,6 +210,7 @@ public sealed class MaintenanceCommands(
                 Format.FileSize(result.After?.FileBytes ?? 0)),
             CompactDatabaseOutcome.JobsRunning => localizer.Get("Maintenance_CompactJobsRunning"),
             CompactDatabaseOutcome.NothingToReclaim => localizer.Get("Maintenance_NothingToReclaim"),
+            CompactDatabaseOutcome.Failed => localizer.Get("Maintenance_CompactFailed"),
             CompactDatabaseOutcome.NotEnoughDiskSpace => localizer.Format(
                 "Maintenance_CompactNoSpace",
                 Format.FileSize(result.Before is { } before ? DatabaseCompaction.RequiredDiskBytes(before) : 0)),

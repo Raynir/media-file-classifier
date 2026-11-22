@@ -104,6 +104,11 @@ public enum CompactDatabaseOutcome
     /// The drive has too little room for the rebuilt file. Nothing was changed.
     /// </summary>
     NotEnoughDiskSpace,
+
+    /// <summary>
+    /// SQLite couldn't finish, e.g. because the temporary folder's drive filled up. The database is as it was.
+    /// </summary>
+    Failed,
 }
 
 /// <summary>
@@ -165,8 +170,29 @@ public sealed class CompactDatabaseCommandHandler(
             var started = Stopwatch.GetTimestamp();
 
             // Once it starts it runs to the end: SQLite can't stop a VACUUM half-way, so the token only stops a queued one.
-            await library.Maintenance.OptimizeAsync(vacuum: true, cancellationToken).ConfigureAwait(false);
-            var after = await library.Maintenance.GetSpaceAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                await library.Maintenance.OptimizeAsync(vacuum: true, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not (OperationCanceledException or ObjectDisposedException))
+            {
+                // A VACUUM that fails (disk full, I/O error) is rolled back, so nothing is lost; say so instead of crashing.
+                logger.LogError(ex, "Compacting {Library} failed", library.Library.Name);
+                return new CompactDatabaseResult(CompactDatabaseOutcome.Failed, before);
+            }
+
+            // The compaction is done; a failed read of the new size mustn't turn it into a failure.
+            DatabaseSpace after;
+            try
+            {
+                after = await library.Maintenance.GetSpaceAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not (OperationCanceledException or ObjectDisposedException))
+            {
+                logger.LogWarning(ex, "Couldn't read the size of {Library} after compacting it", library.Library.Name);
+                after = before with { FileBytes = before.UsedBytes, FreeBytes = 0 };
+            }
+
             logger.LogInformation(
                 "Compacted {Library} from {Before} to {After} bytes in {ElapsedMs} ms",
                 library.Library.Name,

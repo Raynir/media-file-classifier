@@ -9,8 +9,9 @@ namespace MediaFileClassifier.Infrastructure.AI.Onnx;
 /// <summary>
 /// Base class for providers that run an in-process ONNX model (D005). It owns the session lifecycle: each model file
 /// is loaded on first use with the preferred execution provider (falling back to the CPU), shared by all callers, and
-/// released on <see cref="Dispose()"/>. Runs on a GPU provider are serialised per session (MFC-1038). If a GPU session's
-/// first run fails, or the GPU device is lost, the file is reloaded on the CPU and the run is retried once (E06-S08). A missing file is reported as <see cref="ProviderHealthStatus.ModelMissing"/>,
+/// released on <see cref="Dispose()"/>. Runs on a GPU provider are serialised per session (MFC-1038). If a GPU
+/// session's first run fails, or the GPU device is lost, the file is reloaded on the CPU and the run is retried once
+/// (E06-S08). A missing file is reported as <see cref="ProviderHealthStatus.ModelMissing"/>,
 /// so jobs wait for the model instead of failing (D037).
 /// </summary>
 /// <remarks>

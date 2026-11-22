@@ -179,14 +179,17 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
         using var provider = new FlakyEmbedder(modelPath, factory, failingRuns: 0, preferred);
         provider.Embed();
 
-        // Each run waits up to a second for the other to enter, so overlapping runs meet and serialised ones time out.
+        // Each run waits for the other to enter, so overlapping runs meet and serialised ones time out. The runs get
+        // their own threads, so a busy thread pool can't start the second one too late.
         using var bothInside = new CountdownEvent(2);
         provider.InsideRun = () =>
         {
             bothInside.Signal();
-            bothInside.Wait(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+            bothInside.Wait(TimeSpan.FromSeconds(expectedOverlap == 1 ? 1 : 10), TestContext.Current.CancellationToken);
         };
-        await Task.WhenAll(Task.Run(provider.Embed, TestContext.Current.CancellationToken), Task.Run(provider.Embed, TestContext.Current.CancellationToken));
+        await Task.WhenAll(
+            Task.Factory.StartNew(provider.Embed, TestContext.Current.CancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default),
+            Task.Factory.StartNew(provider.Embed, TestContext.Current.CancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default));
 
         Assert.Equal(expectedOverlap, provider.MaxOverlap);
     }
@@ -248,7 +251,8 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
 
     private static OnnxRuntimeException CreateRuntimeException(string message)
     {
-        // The (ErrorCode, string) constructor and its enum are internal to ONNX Runtime.
+        // The (ErrorCode, string) constructor and its enum are internal to ONNX Runtime (written against 1.31.1); an
+        // upgrade that changes them fails here at run time.
         var constructor = typeof(OnnxRuntimeException).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
             .Single(candidate => candidate.GetParameters() is [{ ParameterType.IsEnum: true }, { ParameterType: var text }] && text == typeof(string));
         var code = Enum.ToObject(constructor.GetParameters()[0].ParameterType, 1);

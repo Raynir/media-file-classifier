@@ -176,12 +176,13 @@ public sealed partial class AnalysisStage : IModelDependentStage, IFailureAwareS
                 continue;
             }
 
+            // Logged before the inputs are decoded and the model runs, so if native code crashes the process (MFC-1038)
+            // the log names the item.
+            LogAnalyzerStarting(key, item.Path.Value);
+
             // Prepared only when an analyzer runs, so a retry with nothing left to do doesn't touch the file. A file
             // that can't be opened fails the whole item, not one analyzer.
             inputs ??= await PrepareAsync(library, item, requested, cancellationToken).ConfigureAwait(false);
-
-            // Logged before the run, so if a native model crashes the process (MFC-1038) the log names the item.
-            LogAnalyzerStarting(key, item.Path.Value);
             try
             {
                 var result = await analyzers[key].RunAsync(new AnalyzerContext(library, item, inputs, settings), cancellationToken).ConfigureAwait(false);

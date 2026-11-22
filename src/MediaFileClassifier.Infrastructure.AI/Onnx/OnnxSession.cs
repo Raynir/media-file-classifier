@@ -4,8 +4,10 @@ using Microsoft.ML.OnnxRuntime;
 namespace MediaFileClassifier.Infrastructure.AI.Onnx;
 
 /// <summary>
-/// A loaded ONNX model, with the execution provider it actually runs on. <see cref="InferenceSession.Run(IReadOnlyCollection{NamedOnnxValue})"/>
-/// is thread-safe, so one session serves every caller.
+/// A loaded ONNX model, with the execution provider it actually runs on. One session serves every caller. On the CPU
+/// <see cref="InferenceSession.Run(IReadOnlyCollection{NamedOnnxValue})"/> is thread-safe, but DirectML allows only one
+/// run of a session at a time (two at once end the process with an access violation, MFC-1038), so runs on a GPU
+/// provider take <see cref="RunLock"/>.
 /// </summary>
 public sealed class OnnxSession : IDisposable
 {
@@ -27,6 +29,16 @@ public sealed class OnnxSession : IDisposable
     /// provider moves the model to the CPU (E06-S08).
     /// </summary>
     internal bool HasRun { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether runs of this session must not overlap: true on every provider but the CPU.
+    /// </summary>
+    internal bool RunsOneAtATime => ExecutionProvider != ExecutionProvider.Cpu;
+
+    /// <summary>
+    /// Gets the lock a run takes when <see cref="RunsOneAtATime"/> is true.
+    /// </summary>
+    internal Lock RunLock { get; } = new();
 
     /// <inheritdoc />
     public void Dispose()

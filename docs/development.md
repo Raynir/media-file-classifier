@@ -90,6 +90,22 @@ Everything lives under `%LOCALAPPDATA%\MediaFileClassifier` (D061):
 | `settings.json` | App settings, such as window placement. Delete it to reset. A corrupt file is kept as `settings.json.corrupt`, and the app starts with defaults. |
 | `models\` | The AI model store (from E06-S12). |
 
+### Native crash dumps (optional)
+
+A crash in native code, such as an access violation (`0xC0000005`) in ONNX Runtime or DirectML, ends the process before any managed handler runs, so the app log can't record it (MFC-1038). The log does name the last item: each analyzer logs `Running analyzer <key> on <path>` before it starts, and each model run logs its input size at Debug (left out at the default Information level; lower `MinimumLevel` in `Program.cs` for a debugging build).
+
+To get a crash dump, turn on Windows Error Reporting local dumps for the app. This changes the machine's registry, needs an administrator PowerShell, and the app never does it itself:
+
+```powershell
+$key = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\MediaFileClassifier.Desktop.exe'
+New-Item -Path $key -Force | Out-Null
+New-ItemProperty -Path $key -Name DumpFolder -PropertyType ExpandString -Value '%LOCALAPPDATA%\MediaFileClassifier\crashdumps' -Force | Out-Null
+New-ItemProperty -Path $key -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null   # 2 = full dump, 1 = mini dump
+New-ItemProperty -Path $key -Name DumpCount -PropertyType DWord -Value 5 -Force | Out-Null
+```
+
+Reproduce the crash, then open the newest `.dmp` file in `%LOCALAPPDATA%\MediaFileClassifier\crashdumps` with Visual Studio or WinDbg (`!analyze -v`). A full dump can be several GB. Turn it off again with `Remove-Item -Path $key`.
+
 ### Local model servers (optional)
 
 The app talks to AI models in-process and through OpenAI-compatible HTTP endpoints (D005). You need a model server only for features and integration tests that use one.

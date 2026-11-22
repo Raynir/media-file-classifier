@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
+using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
 
 namespace MediaFileClassifier.Infrastructure.AI.Onnx;
@@ -8,8 +9,9 @@ namespace MediaFileClassifier.Infrastructure.AI.Onnx;
 /// <summary>
 /// Base class for providers that run an in-process ONNX model (D005). It owns the session lifecycle: each model file
 /// is loaded on first use with the preferred execution provider (falling back to the CPU), shared by all callers, and
-/// released on <see cref="Dispose()"/>. If a GPU session's first run fails, the file is reloaded on the CPU and the run
-/// is retried once (E06-S08). A missing file is reported as <see cref="ProviderHealthStatus.ModelMissing"/>,
+/// released on <see cref="Dispose()"/>. Runs on a GPU provider are serialised per session (MFC-1038). If a GPU
+/// session's first run fails, or the GPU device is lost, the file is reloaded on the CPU and the run is retried once
+/// (E06-S08). A missing file is reported as <see cref="ProviderHealthStatus.ModelMissing"/>,
 /// so jobs wait for the model instead of failing (D037).
 /// </summary>
 /// <remarks>
@@ -161,37 +163,82 @@ public abstract class OnnxModelProvider : IAiProvider, IDisposable
     }
 
     /// <summary>
-    /// Runs one model file's session. If the session is on a GPU provider and this is its first run, a failure moves the
+    /// Runs one model file's session. Runs on a GPU provider never overlap (DirectML allows one at a time, MFC-1038).
+    /// If the session is on a GPU provider and this is its first run, or the GPU device was lost, a failure moves the
     /// file to the CPU, and the run is retried once there. Later failures, and failures on the CPU, are thrown.
     /// </summary>
     /// <typeparam name="T">Type of the result.</typeparam>
     /// <param name="role">The file's role, a key of the model files passed to the constructor.</param>
     /// <param name="run">The run, e.g. <c>session =&gt; session.Run(inputs, outputs)</c>.</param>
+    /// <param name="input">A short description of the input, e.g. its size, logged at Debug before the run.</param>
     /// <returns>The result.</returns>
     /// <exception cref="AiProviderException">The file is missing or doesn't load.</exception>
     /// <exception cref="OnnxRuntimeException">The run failed.</exception>
-    protected T Run<T>(string role, Func<InferenceSession, T> run)
+    protected T Run<T>(string role, Func<InferenceSession, T> run, string? input = null)
     {
         ArgumentNullException.ThrowIfNull(run);
 
         var session = GetSession(role);
+        if (sessionFactory.Logger.IsEnabled(LogLevel.Debug))
+        {
+            sessionFactory.Logger.LogDebug("Running {Model} on {ExecutionProvider}: {Input}", Path.GetFileName(modelFiles[role]), session.ExecutionProvider, input ?? role);
+        }
+
         T result;
         try
         {
-            result = run(session.Session);
+            result = RunSession(session, run);
         }
-        catch (OnnxRuntimeException ex) when (session.ExecutionProvider != ExecutionProvider.Cpu && !session.HasRun)
+        catch (OnnxRuntimeException ex) when (session.ExecutionProvider != ExecutionProvider.Cpu && (!session.HasRun || IsDeviceLost(ex)))
         {
             var gpu = session.ExecutionProvider;
+            var deviceLost = IsDeviceLost(ex);
+            if (deviceLost)
+            {
+                // The device is gone whatever the input was, so the file stays on the CPU even if the retry fails.
+                sessionFactory.ReportRunFailure(modelFiles[role], gpu, ex);
+            }
+
             session = MoveToCpu(role, session);
-            result = run(session.Session);
+            result = RunSession(session, run);
 
             // The CPU run worked, so the GPU was at fault. If it threw too, the input was bad, and the GPU stays usable.
-            sessionFactory.ReportRunFailure(modelFiles[role], gpu, ex);
+            if (!deviceLost)
+            {
+                sessionFactory.ReportRunFailure(modelFiles[role], gpu, ex);
+            }
         }
 
         session.HasRun = true;
         return result;
+    }
+
+    /// <summary>
+    /// Tells whether a run failed because the GPU device was lost (removed, hung, reset or its driver failed), after
+    /// which every later run of a session on it fails too.
+    /// </summary>
+    /// <param name="error">The run's error.</param>
+    /// <returns><c>true</c> if the device was lost.</returns>
+    internal static bool IsDeviceLost(OnnxRuntimeException error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+
+        // ONNX Runtime has no error code for it; the DXGI HRESULT is only in the message.
+        string[] codes = ["887A0005", "887A0006", "887A0007", "887A0020"];
+        return codes.Any(code => error.Message.Contains(code, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static T RunSession<T>(OnnxSession session, Func<InferenceSession, T> run)
+    {
+        if (!session.RunsOneAtATime)
+        {
+            return run(session.Session);
+        }
+
+        lock (session.RunLock)
+        {
+            return run(session.Session);
+        }
     }
 
     /// <summary>

@@ -11,6 +11,13 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Startup synchronisation (MFC-137): when a library opens, a quick sync runs in the background as one low-priority job (import priority) over its Online folders, so files added, changed, moved or removed while the app was closed are picked up without waiting. It starts after the folder watchers run, shows in the processing queue, waits while processing is paused, and shows a notification and an activity-log entry only when it found a change. The new library setting "Check for changes when the library opens" (`monitoring.quickSyncOnOpen`, on by default) turns it off for very large or slow drives. An unchanged library of 50,000 files syncs in about 0.7 s on an SSD (no schema change).
 - Pause and resume (MFC-194): background processing can be paused as a whole, per kind of work (disk, processor, AI analysis) and per job, from the processing queue and from a pause button next to the processing indicator in the status bar. Work already running gets 2 seconds to finish, then goes back in the queue, so nothing is lost. A new setting, "Keep processing paused after a restart" (on by default), keeps the pause when the library opens again; the global and per-kind pause is stored in the library settings (no schema change).
 
+## 1.0.1 — 2026-11-22
+
+### Fixed
+
+- Analysis on the GPU (MFC-1038): with AI analysis set to run more than one item at a time, the app could close with a Windows error (0xC0000005) while reading text with in-process OCR on DirectML, because two items ran the same model at once and DirectML allows only one run at a time. Runs of a model on the GPU now wait for each other; other work still runs in parallel. If the GPU device is lost during analysis (driver reset or hang), the model moves to the CPU and analysis goes on, slower, instead of failing every later item until restart. The log now names each item and analyzer before it starts, so a native crash shows the last item. `docs/development.md` explains how to turn on Windows crash dumps.
+- Processing queue (MFC-1039): a job's stage is named in words ("Analyzing", "Checking changed files") instead of by its internal key ("analysis.item: 208 of 237"). The analysis, rescan and folder-removal stages were missing their names. A stage that still has no name shows its job's description, in the progress text and in the failure list, and logs a warning once; a test fails when a stage has no name.
+
 ## 1.0.0 — 2026-11-22
 
 ### Added

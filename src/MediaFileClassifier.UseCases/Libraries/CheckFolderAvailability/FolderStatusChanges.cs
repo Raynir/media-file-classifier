@@ -110,7 +110,9 @@ public sealed class FolderStatusChanges : IDisposable
     {
         lock (syncRoot)
         {
-            if (disposed)
+            // The repository raises on the writing thread from its own copy of the handlers, so a change of a library
+            // closed meanwhile can still arrive after Watch() moved on.
+            if (disposed || !ReferenceEquals(sender, watched))
             {
                 return;
             }

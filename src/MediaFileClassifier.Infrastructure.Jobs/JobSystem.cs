@@ -124,7 +124,7 @@ public sealed partial class JobSystem(
             }
 
             scheduler.PauseChanged += OnPauseChanged;
-            scheduler.Start(startPaused);
+            scheduler.Start(startPaused, pausedByUser: restorePaused);
             current = scheduler;
             if (startPaused)
             {
@@ -220,26 +220,36 @@ public sealed partial class JobSystem(
     /// </summary>
     private void OnPauseChanged(object? sender, EventArgs e)
     {
-        if (sender is JobScheduler scheduler)
+        if (sender is not JobScheduler scheduler)
         {
-            var save = SavePauseAsync(scheduler);
-            lock (pendingSaves)
+            return;
+        }
+
+        Task save;
+        lock (pendingSaves)
+        {
+            // A change racing the library's close isn't saved: StopCurrentAsync takes its list of saves under this
+            // lock after the scheduler stopped being current, so every save it doesn't wait for is skipped here.
+            if (!ReferenceEquals(scheduler, current))
             {
-                pendingSaves.Add(save);
+                return;
             }
 
-            _ = save.ContinueWith(
-                done =>
-                {
-                    lock (pendingSaves)
-                    {
-                        pendingSaves.Remove(done);
-                    }
-                },
-                CancellationToken.None,
-                TaskContinuationOptions.ExecuteSynchronously,
-                TaskScheduler.Default);
+            save = SavePauseAsync(scheduler);
+            pendingSaves.Add(save);
         }
+
+        _ = save.ContinueWith(
+            done =>
+            {
+                lock (pendingSaves)
+                {
+                    pendingSaves.Remove(done);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
     private async Task SavePauseAsync(JobScheduler scheduler)
@@ -250,7 +260,7 @@ public sealed partial class JobSystem(
             await scheduler.Library.UpdateSettingsAsync(
                 settings => settings with
                 {
-                    ProcessingPaused = scheduler.IsPaused,
+                    ProcessingPaused = scheduler.IsPausedByUser,
                     PausedPools = [.. Enum.GetValues<ResourcePool>().Where(scheduler.IsPoolPaused)],
                 }).ConfigureAwait(false);
         }

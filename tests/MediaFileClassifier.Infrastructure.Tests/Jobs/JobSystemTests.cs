@@ -107,6 +107,27 @@ public sealed class JobSystemTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task StartAsync_TheAskFirstWait_IsNotKeptAsAPause()
+    {
+        settings.SetValue(processing.ResumeOnOpen, ResumeMode.Ask);
+        await AddJobAsync();
+        system = CreateSystem(new TestStageHandler("stage", ResourcePool.Cpu));
+        var scheduler = await system.StartAsync(bed.Library, Token);
+        Assert.True(scheduler.IsPaused);
+
+        // A pool paused during the wait saves the pause, but the wait itself isn't the user's.
+        scheduler.PausePool(ResourcePool.Ai);
+        await system.StopAsync();
+        await bed.ReopenAsync();
+        settings.SetValue(processing.ResumeOnOpen, ResumeMode.Automatic);
+
+        scheduler = await system.StartAsync(bed.Library, Token);
+
+        Assert.False(scheduler.IsPaused);
+        Assert.True(scheduler.IsPoolPaused(ResourcePool.Ai));
+    }
+
+    [Fact]
     public async Task StartAsync_KeepPausedOn_AfterResume_StartsUnpaused()
     {
         system = CreateSystem(new TestStageHandler("stage", ResourcePool.Cpu));

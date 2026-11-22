@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Pause and resume (MFC-194): background processing can be paused as a whole, per kind of work (disk, processor, AI analysis) and per job, from the processing queue and from a pause button next to the processing indicator in the status bar. Work already running gets 2 seconds to finish, then goes back in the queue, so nothing is lost. A new setting, "Keep processing paused after a restart" (on by default), keeps the pause when the library opens again; the global and per-kind pause is stored in the library settings (no schema change).
+
 ## 1.0.0 — 2026-11-22
 
 ### Added

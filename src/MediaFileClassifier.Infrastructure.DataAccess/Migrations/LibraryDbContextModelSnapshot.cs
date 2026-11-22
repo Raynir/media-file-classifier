@@ -17,6 +17,50 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
+            modelBuilder.Entity("MediaFileClassifier.Domain.Activity.ActivityEvent", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Counts")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("counts");
+
+                    b.Property<string>("FolderId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("folder_id");
+
+                    b.Property<string>("ItemId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("item_id");
+
+                    b.Property<long>("OccurredAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("severity");
+
+                    b.Property<string>("Subject")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("subject");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAt", "Id");
+
+                    b.HasIndex("Type", "OccurredAt");
+
+                    b.ToTable("activity_event");
+                });
+
             modelBuilder.Entity("MediaFileClassifier.Domain.Analysis.AnalysisRun", b =>
                 {
                     b.Property<string>("Id")

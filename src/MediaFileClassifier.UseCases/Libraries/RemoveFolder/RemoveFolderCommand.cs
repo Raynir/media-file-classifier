@@ -24,11 +24,13 @@ public sealed record RemoveFolderCommand(Id<IndexedFolder> FolderId) : IRequest<
 /// <param name="thumbnails">Deletes the thumbnails.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="jobs">Runs the removal, if the platform has background processing.</param>
+/// <param name="sender">Records the event in the activity log, or <see langword="null"/> for none.</param>
 public sealed class RemoveFolderCommandHandler(
     ILibrarySession session,
     IThumbnailCache thumbnails,
     ILogger<RemoveFolderCommandHandler> logger,
-    IJobSystem? jobs = null) : IRequestHandler<RemoveFolderCommand, bool>
+    IJobSystem? jobs = null,
+    ISender? sender = null) : IRequestHandler<RemoveFolderCommand, bool>
 {
     /// <inheritdoc />
     /// <returns><see langword="false"/> if there's no such folder, or it's being removed already.</returns>
@@ -46,7 +48,8 @@ public sealed class RemoveFolderCommandHandler(
 
         if (jobs?.Current is not { } scheduler)
         {
-            await RemoveFolderStage.RemoveAsync(library, thumbnails, folder.Id, cancellationToken).ConfigureAwait(false);
+            var removed = await RemoveFolderStage.RemoveAsync(library, thumbnails, folder.Id, cancellationToken).ConfigureAwait(false);
+            await RemoveFolderStage.RecordAsync(sender, folder.DisplayPath, removed).ConfigureAwait(false);
             logger.LogInformation("Removed {Folder} from the library", folder.DisplayPath);
             return true;
         }

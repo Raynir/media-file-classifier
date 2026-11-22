@@ -66,6 +66,11 @@ public interface IOpenLibrary : IAsyncDisposable
     IAnalyzerStateRepository AnalyzerStates { get; }
 
     /// <summary>
+    /// Gets the activity log (E15-S04).
+    /// </summary>
+    IActivityRepository Activity { get; }
+
+    /// <summary>
     /// Gets the integrity check, backup and optimization services.
     /// </summary>
     ILibraryMaintenance Maintenance { get; }

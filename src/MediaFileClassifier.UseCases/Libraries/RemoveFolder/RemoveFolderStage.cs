@@ -1,9 +1,12 @@
+using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
+using MediaFileClassifier.UseCases.Activity.RecordActivity;
+using MediatR;
 
 namespace MediaFileClassifier.UseCases.Libraries.RemoveFolder;
 
@@ -12,7 +15,8 @@ namespace MediaFileClassifier.UseCases.Libraries.RemoveFolder;
 /// other writes get their turn. Interrupted, it carries on where it stopped when the library opens again.
 /// </summary>
 /// <param name="thumbnails">Deletes the thumbnails.</param>
-public sealed class RemoveFolderStage(IThumbnailCache thumbnails) : IStageHandler
+/// <param name="sender">Records the event in the activity log, or <see langword="null"/> for none.</param>
+public sealed class RemoveFolderStage(IThumbnailCache thumbnails, ISender? sender = null) : IStageHandler
 {
     /// <summary>
     /// Number of items deleted per write.
@@ -68,6 +72,28 @@ public sealed class RemoveFolderStage(IThumbnailCache thumbnails) : IStageHandle
 
         var job = await context.Library.Jobs.GetJobAsync(context.WorkItem.JobId, cancellationToken).ConfigureAwait(false);
         var folderId = job?.FolderId ?? throw new InvalidOperationException("A folder removal needs a folder.");
-        await RemoveAsync(context.Library, thumbnails, folderId, cancellationToken).ConfigureAwait(false);
+        var path = (await context.Library.Folders.GetAsync(folderId, cancellationToken).ConfigureAwait(false))?.DisplayPath;
+        var removed = await RemoveAsync(context.Library, thumbnails, folderId, cancellationToken).ConfigureAwait(false);
+        await RecordAsync(sender, path, removed).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Records that a folder was removed in the activity log (E15-S04).
+    /// </summary>
+    /// <param name="sender">Records the event, or <see langword="null"/> for none.</param>
+    /// <param name="path">The folder's path.</param>
+    /// <param name="items">How many items went with it.</param>
+    /// <returns>A task that completes when the event is recorded.</returns>
+    internal static async Task RecordAsync(ISender? sender, string? path, int items)
+    {
+        if (sender is not null && path is not null)
+        {
+            await sender.Send(
+                new RecordActivityCommand(
+                    ActivityEventType.FolderRemoved,
+                    Subject: path,
+                    Counts: new Dictionary<string, long> { [ActivityCounts.Items] = items }),
+                CancellationToken.None).ConfigureAwait(false);
+        }
     }
 }

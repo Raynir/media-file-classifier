@@ -39,7 +39,7 @@ internal static partial class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        var appPaths = new AppPaths();
+        var appPaths = DataDirectoryArgument(args) is { } dataDirectory ? new AppPaths(dataDirectory) : new AppPaths();
         int? smokeExitCode = null;
         StartSmoke(args, ref appPaths, ref smokeExitCode);
         if (smokeExitCode is { } usageError)
@@ -177,6 +177,16 @@ internal static partial class Program
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont();
+
+    /// <summary>
+    /// The folder given with <c>--data-dir &lt;folder&gt;</c>, used for the app's data (settings, logs, cache, models) instead of
+    /// <c>%LOCALAPPDATA%\MediaFileClassifier</c>, so a published build can run on a throwaway folder (MFC-1024).
+    /// </summary>
+    private static string? DataDirectoryArgument(string[] args)
+    {
+        var index = Array.IndexOf(args, "--data-dir");
+        return index >= 0 && index + 1 < args.Length ? Path.GetFullPath(args[index + 1]) : null;
+    }
 
     private static AppBuilder BuildAvaloniaApp(IServiceProvider services)
         => AppBuilder.Configure(() => new App(services))

@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Command line (MFC-1024): `--data-dir <folder>` keeps the app's data in that folder in any build, so a published Release build can be tried on a throwaway folder. End-to-end pass report: `docs/release-checks/1.0.0-e2e.md`.
+
 ### Changed
 
 - Offline folders (MFC-1014): when several folders change status at once, for example when a hub with many indexed folders is unplugged, the results and the details panel now refresh once, about a quarter of a second after the last change, instead of once per folder (no schema change).

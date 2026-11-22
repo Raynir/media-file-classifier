@@ -8,6 +8,9 @@ select jpeg-exif.jpg
 focus Scroller
 start item.remove
 wait-for dialog
+# The dialog opens with the focus on its safe default button, Cancel (MFC-1012).
+dialog-focus CancelButton
+dialog-shot 00-remove-initial-focus
 dialog-key Tab
 dialog-key Tab
 dialog-key Tab
@@ -21,3 +24,11 @@ key F6
 key F6
 key F6
 shot 08-f6-status-bar
+
+# Delete library opens on its typed-confirmation box (MFC-1012).
+start library.delete
+wait-for dialog
+dialog-focus NameBox
+dialog-shot 09-delete-library-initial-focus
+dialog-key Escape
+wait-for no-dialog

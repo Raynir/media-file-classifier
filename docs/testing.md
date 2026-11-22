@@ -135,6 +135,7 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `start <id>` | Runs an app command without waiting for it, for a command that opens a modal dialog, e.g. `start item.remove`. |
 | `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`. Fails if it's disabled. |
 | `dialog-key <gesture>` | Presses a key on the open dialog's focused control, e.g. `dialog-key Tab`; the report names the control that had the focus (MFC-131). |
+| `dialog-focus <control>` | Fails unless the open dialog's focus is on the control with that `x:Name` or type name, e.g. `dialog-focus CancelButton`: a dialog focuses its first input or default button when it opens (MFC-1012). |
 | `popup-key <gesture>` | Presses a key on the focused control of the open popup (a flyout, a context menu or a combo drop-down), e.g. `popup-key Tab`; the report names the control that had the focus. `key` goes to the main window's focused control, which is not in the popup (MFC-1013). |
 | `popup-shot <name>` | Saves `<name>.png` of the open popup. |
 | `dialog-type <text>` | Types text into the open dialog's focused text box, e.g. a typed confirmation (MFC-122). |

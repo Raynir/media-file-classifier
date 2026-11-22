@@ -236,6 +236,16 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 // Presses a key in the open dialog, on its focused control (E16-S03), e.g. Tab to see where the focus goes.
                 var keyDialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
                 return PressKey(step.Argument, keyDialog.FocusManager?.GetFocusedElement() as Interactive ?? keyDialog);
+            case "dialog-focus":
+                // Fails unless the open dialog's focus is on the control with this x:Name or type name (MFC-1012).
+                var focusDialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
+                var focusedIn = focusDialog.FocusManager?.GetFocusedElement() as Control;
+                if (focusedIn is null || (focusedIn.Name != step.Argument && focusedIn.GetType().Name != step.Argument))
+                {
+                    throw new SmokeStepException($"the focus is on {focusedIn?.GetType().Name ?? "nothing"} '{focusedIn?.Name}', not '{step.Argument}'");
+                }
+
+                return null;
             case "popup-key":
                 // Presses a key in the open popup (flyout, context menu or combo drop-down), on its focused control (MFC-1013).
                 var keyPopup = OpenPopup() ?? throw new SmokeStepException("no popup is open");

@@ -185,6 +185,7 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         return connections.ReadAsync<IReadOnlyList<WorkItem>>(
             async (db, token) => await db.WorkItems
                 .Where(item => item.State == WorkItemState.Queued && item.Pool == pool && !excluded.Contains(item.Id) && !excludedStages.Contains(item.Stage))
+                .Where(item => !db.ProcessingJobs.Any(job => job.Id == item.JobId && job.State == ProcessingJobState.Paused))
                 .Where(item => dueBy == null || item.RetryAt == null || item.RetryAt <= dueBy)
                 .OrderByDescending(item => item.Priority)
                 .ThenBy(item => item.CreatedAt)
@@ -224,6 +225,7 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         return connections.ReadAsync<IReadOnlyList<WorkItem>>(
             async (db, token) => await db.WorkItems
                 .Where(item => item.State == WorkItemState.Queued && ids.Contains(item.ItemId))
+                .Where(item => !db.ProcessingJobs.Any(job => job.Id == item.JobId && job.State == ProcessingJobState.Paused))
                 .ToListAsync(token)
                 .ConfigureAwait(false),
             cancellationToken);
@@ -246,7 +248,7 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
             (db, token) => db.WorkItems.CountAsync(
                 item => item.State == WorkItemState.Running
                     || (item.State == WorkItemState.Queued
-                        && db.ProcessingJobs.Any(job => job.Id == item.JobId && job.State != ProcessingJobState.WaitingForModel)),
+                        && db.ProcessingJobs.Any(job => job.Id == item.JobId && job.State != ProcessingJobState.WaitingForModel && job.State != ProcessingJobState.Paused)),
                 token),
             cancellationToken);
 
@@ -280,9 +282,15 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                     return null;
                 }
 
+                var job = await db.ProcessingJobs.AsTracking().SingleAsync(job => job.Id == workItem.JobId, token).ConfigureAwait(false);
+                if (job.State == ProcessingJobState.Paused)
+                {
+                    // Paused after the scheduler read the work: it stays queued until the job is resumed.
+                    return null;
+                }
+
                 var running = stored.ChangeState(WorkItemState.Running, now);
                 db.Entry(stored).CurrentValues.SetValues(running);
-                var job = await db.ProcessingJobs.AsTracking().SingleAsync(job => job.Id == workItem.JobId, token).ConfigureAwait(false);
                 if (job.State == ProcessingJobState.WaitingForModel)
                 {
                     // The model arrived between the scheduler reading the work and starting it.
@@ -319,7 +327,7 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                     .Select(group => group.Key)
                     .ToListAsync(token)
                     .ConfigureAwait(false);
-                if (job.State == ProcessingJobState.Running && !states.Any(WorkItemStateTransitions.IsPending))
+                if (job.State is ProcessingJobState.Running or ProcessingJobState.Paused && !states.Any(WorkItemStateTransitions.IsPending))
                 {
                     var finished = states.Contains(WorkItemState.Failed) && !states.Contains(WorkItemState.Completed)
                         ? job.ChangeState(ProcessingJobState.Failed, now, "Every work item failed.")
@@ -365,6 +373,60 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                         token)
                     .ConfigureAwait(false);
                 return true;
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var job = await db.ProcessingJobs.AsTracking().SingleOrDefaultAsync(job => job.Id == jobId, token).ConfigureAwait(false);
+                if (job is null || ProcessingJobStateTransitions.IsFinished(job.State) || job.State == ProcessingJobState.Paused)
+                {
+                    return false;
+                }
+
+                db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Paused, now));
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return true;
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var job = await db.ProcessingJobs.AsTracking().SingleOrDefaultAsync(job => job.Id == jobId, token).ConfigureAwait(false);
+                if (job is null || job.State != ProcessingJobState.Paused)
+                {
+                    return false;
+                }
+
+                // Resumed while its work still runs (within the pause's grace): it's running, so it finishes when that
+                // work does. A queued job with only running work would never finish.
+                var queued = job.ChangeState(ProcessingJobState.Queued, now);
+                var stillRunning = await db.WorkItems.AnyAsync(item => item.JobId == jobId && item.State == WorkItemState.Running, token).ConfigureAwait(false);
+                db.Entry(job).CurrentValues.SetValues(stillRunning ? queued.ChangeState(ProcessingJobState.Running, now) : queued);
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return true;
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> ResumeAllJobsAsync(DateTimeOffset now, CancellationToken cancellationToken = default) =>
+        writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var jobs = await db.ProcessingJobs.AsTracking().Where(job => job.State == ProcessingJobState.Paused).ToListAsync(token).ConfigureAwait(false);
+                foreach (var job in jobs)
+                {
+                    db.Entry(job).CurrentValues.SetValues(job.ChangeState(ProcessingJobState.Queued, now));
+                }
+
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return jobs.Count;
             },
             cancellationToken);
 

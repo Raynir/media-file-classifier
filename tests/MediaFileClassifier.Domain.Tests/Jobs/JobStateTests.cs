@@ -77,6 +77,12 @@ public sealed class JobStateTests
     [InlineData(ProcessingJobState.WaitingForModel, ProcessingJobState.Queued)]
     [InlineData(ProcessingJobState.Completed, ProcessingJobState.Queued)]
     [InlineData(ProcessingJobState.Failed, ProcessingJobState.Queued)]
+    [InlineData(ProcessingJobState.Queued, ProcessingJobState.Paused)]
+    [InlineData(ProcessingJobState.Running, ProcessingJobState.Paused)]
+    [InlineData(ProcessingJobState.WaitingForModel, ProcessingJobState.Paused)]
+    [InlineData(ProcessingJobState.Paused, ProcessingJobState.Queued)]
+    [InlineData(ProcessingJobState.Paused, ProcessingJobState.Cancelled)]
+    [InlineData(ProcessingJobState.Paused, ProcessingJobState.Completed)]
     public void JobTransitions_Allowed(ProcessingJobState from, ProcessingJobState to)
     {
         Assert.True(ProcessingJobStateTransitions.IsAllowed(from, to));
@@ -87,6 +93,8 @@ public sealed class JobStateTests
     [InlineData(ProcessingJobState.Completed, ProcessingJobState.Running)]
     [InlineData(ProcessingJobState.Cancelled, ProcessingJobState.Running)]
     [InlineData(ProcessingJobState.WaitingForModel, ProcessingJobState.Running)]
+    [InlineData(ProcessingJobState.Paused, ProcessingJobState.Running)]
+    [InlineData(ProcessingJobState.Completed, ProcessingJobState.Paused)]
     public void JobTransitions_NotAllowed(ProcessingJobState from, ProcessingJobState to)
     {
         Assert.False(ProcessingJobStateTransitions.IsAllowed(from, to));

@@ -18,8 +18,14 @@ public interface IJobScheduler
     IOpenLibrary Library { get; }
 
     /// <summary>
-    /// Gets whether processing waits for <see cref="Resume"/>, e.g. after the library opened with unfinished work
-    /// and the settings say to ask first.
+    /// Raised after processing, a pool or a job is paused or resumed (E05-S05), on the thread that changed it.
+    /// </summary>
+    event EventHandler? PauseChanged;
+
+    /// <summary>
+    /// Gets whether all processing is paused and waits for <see cref="Resume"/>: by the user (E05-S05), or after the
+    /// library opened with unfinished work and the settings say to ask first. Work that would start in the background,
+    /// such as an import from folder monitoring, should check it too.
     /// </summary>
     bool IsPaused { get; }
 
@@ -75,9 +81,52 @@ public interface IJobScheduler
     void SetPoolLimit(ResourcePool pool, int limit);
 
     /// <summary>
-    /// Starts processing after the scheduler was started paused.
+    /// Pauses all processing (E05-S05): no new work starts. Running work gets a short grace period to finish; what's
+    /// still running then is cancelled and put back in the queue, so nothing is lost. Pools and jobs paused on their
+    /// own stay paused after <see cref="Resume"/>.
+    /// </summary>
+    void Pause();
+
+    /// <summary>
+    /// Resumes all processing after <see cref="Pause"/>, or after the scheduler was started paused.
     /// </summary>
     void Resume();
+
+    /// <summary>
+    /// Gets whether a pool is paused on its own, e.g. only AI analysis (E05-S05). It doesn't include <see cref="IsPaused"/>.
+    /// </summary>
+    /// <param name="pool">The pool.</param>
+    /// <returns><see langword="true"/> if the pool is paused.</returns>
+    bool IsPoolPaused(ResourcePool pool);
+
+    /// <summary>
+    /// Pauses one pool, like <see cref="Pause"/> does for all of them.
+    /// </summary>
+    /// <param name="pool">The pool.</param>
+    void PausePool(ResourcePool pool);
+
+    /// <summary>
+    /// Resumes a pool paused with <see cref="PausePool"/>.
+    /// </summary>
+    /// <param name="pool">The pool.</param>
+    void ResumePool(ResourcePool pool);
+
+    /// <summary>
+    /// Pauses a job (E05-S05): it goes to <see cref="ProcessingJobState.Paused"/>, and its work is settled like
+    /// <see cref="Pause"/> does. Work added to it while it's paused waits too. The state is stored with the job.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist, is finished, or is already paused.</returns>
+    Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resumes a job paused with <see cref="PauseJobAsync"/>.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist or isn't paused.</returns>
+    Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Queues the parked work again, e.g. after a folder came back Online (D188). Work whose folder or AI provider is

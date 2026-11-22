@@ -13,7 +13,13 @@ namespace MediaFileClassifier.Ui.Processing;
 /// <param name="localizer">UI strings.</param>
 /// <param name="panel">Opens the processing panel, or <see langword="null"/> where there's no window for it.</param>
 /// <param name="jobs">The job system, to show when processing waits for Resume, or <see langword="null"/> for none.</param>
-public sealed class ProcessingStatusSegment(ProgressFeed feed, Localizer localizer, ProcessingPanelPresenter? panel = null, IJobSystem? jobs = null) : IStatusBarContributor
+/// <param name="pause">Tells when processing is paused or resumed (E05-S05), or <see langword="null"/> to notice only with the next progress update.</param>
+public sealed class ProcessingStatusSegment(
+    ProgressFeed feed,
+    Localizer localizer,
+    ProcessingPanelPresenter? panel = null,
+    IJobSystem? jobs = null,
+    ProcessingPause? pause = null) : IStatusBarContributor
 {
     /// <summary>
     /// The segment ID.
@@ -30,6 +36,11 @@ public sealed class ProcessingStatusSegment(ProgressFeed feed, Localizer localiz
 
         segment = statusBar.Add(new StatusBarSegment(SegmentId, StatusBarSide.Right, 0) { IconKey = "Icon.Status.Pending", Command = panel is null ? null : new RelayCommand(panel.Show) });
         feed.Updated += (_, summary) => Show(summary);
+        if (pause is not null)
+        {
+            pause.Changed += (_, _) => Show(feed.Current);
+        }
+
         localizer.Changed += (_, _) => Show(feed.Current);
         Show(feed.Current);
     }

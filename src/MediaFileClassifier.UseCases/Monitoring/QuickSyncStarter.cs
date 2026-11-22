@@ -1,6 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
+using MediaFileClassifier.UseCases.Libraries;
+using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Rescan.StartRescan;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -128,20 +132,62 @@ public sealed class QuickSyncStarter : IDisposable
         }
     }
 
+    private bool IsOn()
+    {
+        if (settings.Get(KnownSettings.QuickSyncOnOpen))
+        {
+            return true;
+        }
+
+        logger.LogInformation("The quick sync on open is turned off for this library");
+        return false;
+    }
+
+    private static async Task<bool> LibraryWideSyncUnfinishedAsync(IOpenLibrary library, CancellationToken cancellationToken) =>
+        (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false)).Any(job =>
+            job is { FolderId: null, Type: RescanStages.RescanJob or RescanStages.QuickSyncJob }
+
+            // Waiting for a model means its listing is done, as for StartRescanCommandHandler.
+            && job.State != ProcessingJobState.WaitingForModel);
+
+    // The refresh doesn't tell when it couldn't watch a folder (it failed, or the folder waits after repeated failures);
+    // the sync goes on, but the gap is worth a line in the log.
+    private async Task WarnIfNotWatchedAsync(IOpenLibrary library, CancellationToken cancellationToken)
+    {
+        if (!watchers.IsWatching)
+        {
+            return;
+        }
+
+        var watched = watchers.WatchedFolders;
+        var unwatched = (await IndexedFolders.GetActiveAsync(library, cancellationToken).ConfigureAwait(false))
+            .Count(folder => folder.Status == FolderStatus.Online && !watched.Contains(folder.Id));
+        if (unwatched > 0)
+        {
+            logger.LogWarning("The quick sync on open starts while {Count} Online folder(s) aren't watched", unwatched);
+        }
+    }
+
     private async Task RunAsync(IOpenLibrary library)
     {
         var token = stopping.Token;
         try
         {
-            if (!settings.Get(KnownSettings.QuickSyncOnOpen))
+            if (!IsOn())
             {
-                logger.LogInformation("The quick sync on open is turned off for this library");
                 return;
             }
 
             await watchers.EnsureWatchingAsync().ConfigureAwait(false);
+            await WarnIfNotWatchedAsync(library, token).ConfigureAwait(false);
             while (ReferenceEquals(session.Current, library))
             {
+                // Read again each time: the user may turn the switch off while the start waits.
+                if (!IsOn())
+                {
+                    return;
+                }
+
                 var result = await sender.Send(new StartRescanCommand(Quick: true), token).ConfigureAwait(false);
                 if (result.Outcome != StartRescanOutcome.Busy)
                 {
@@ -150,6 +196,14 @@ public sealed class QuickSyncStarter : IDisposable
                         logger.LogInformation("No quick sync on open: {Outcome}", result.Outcome);
                     }
 
+                    return;
+                }
+
+                // A library-wide rescan or sync that's unfinished lists every folder itself, e.g. one resumed from the
+                // last session or a manual rescan: queueing another when it ends would list everything twice.
+                if (await LibraryWideSyncUnfinishedAsync(library, token).ConfigureAwait(false))
+                {
+                    logger.LogInformation("No quick sync on open: a library rescan is unfinished");
                     return;
                 }
 

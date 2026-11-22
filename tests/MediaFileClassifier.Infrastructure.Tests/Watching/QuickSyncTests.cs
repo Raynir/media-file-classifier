@@ -103,6 +103,27 @@ public sealed class QuickSyncTests
     }
 
     [Fact]
+    public async Task Open_WithALibraryRescanUnfinished_QueuesNoSecondSync()
+    {
+        await using var bed = await ImportTestBed.CreateAsync();
+        bed.Copy(SampleMedia.JpegWithExif, "a.jpg");
+
+        // Processing is paused, so the rescan, e.g. one resumed from the last session, stays unfinished.
+        bed.Jobs.Current!.Pause();
+        var rescan = await bed.Sender.Send(new StartRescanCommand(), Token);
+        Assert.Equal(StartRescanOutcome.Started, rescan.Outcome);
+        using var starter = bed.Get<QuickSyncStarter>();
+
+        starter.Start();
+        await starter.WaitAsync().WaitAsync(TimeSpan.FromSeconds(10), Token);
+
+        bed.Jobs.Current!.Resume();
+        await bed.WaitUntilIdleAsync();
+        Assert.DoesNotContain(await bed.Library.Jobs.GetRecentJobsAsync(10, Token), job => job.Type == RescanStages.QuickSyncJob);
+        Assert.Single(await bed.ItemsAsync());
+    }
+
+    [Fact]
     public async Task QuickSyncOfOneFolder_FindsItsNewFiles_AsAQuickSyncJob()
     {
         await using var bed = await ImportTestBed.CreateAsync();

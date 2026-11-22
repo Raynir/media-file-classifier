@@ -9,6 +9,7 @@ using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Rescan.GetRescanSummary;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Ui.Notifications;
 
@@ -22,7 +23,8 @@ namespace MediaFileClassifier.Ui.Notifications;
 /// <param name="notifications">Shows the notifications; safe to call from any thread.</param>
 /// <param name="localizer">UI strings.</param>
 /// <param name="summaries">Reads a quick sync's summary, or <see langword="null"/> to leave quick syncs silent.</param>
-public sealed class JobNotifications(IJobProgress progress, INotificationService notifications, Localizer localizer, ISender? summaries = null)
+/// <param name="logger">Logs a quick sync summary that couldn't be made, or <see langword="null"/> for none.</param>
+public sealed class JobNotifications(IJobProgress progress, INotificationService notifications, Localizer localizer, ISender? summaries = null, ILogger<JobNotifications>? logger = null)
 {
     private const int QuickSyncSummaryAttempts = 5;
     private static readonly TimeSpan QuickSyncSummaryWait = TimeSpan.FromMilliseconds(200);
@@ -133,9 +135,10 @@ public sealed class JobNotifications(IJobProgress progress, INotificationService
                 notifications.Notify(notification);
             }
         }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException or ObjectDisposedException)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            // The library closed meanwhile: there's no summary to show.
+            // E.g. the library closed meanwhile: there's no summary to show. Nothing waits for this task, so it mustn't throw.
+            logger?.LogWarning(exception, "Couldn't summarise the quick sync");
         }
     }
 

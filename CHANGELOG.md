@@ -7,7 +7,6 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Added
 
 - Activity log (MFC-215): View > Activity log opens a window that lists what the app did to the library, newest first and grouped by day: imports, rescans, analysis, bulk edits and added or removed folders. Filter chips (All, Imports, Rescans, Analysis, Edits, Folders, Duplicates, Exports, Errors), a "Show items" link that selects the folder, paging, and a live refresh. The newest 5,000 events are kept. The library schema is now 17. Details: `docs/activity-log.md`.
-
 - Pause and resume (MFC-194): background processing can be paused as a whole, per kind of work (disk, processor, AI analysis) and per job, from the processing queue and from a pause button next to the processing indicator in the status bar. Work already running gets 2 seconds to finish, then goes back in the queue, so nothing is lost. A new setting, "Keep processing paused after a restart" (on by default), keeps the pause when the library opens again; the global and per-kind pause is stored in the library settings (no schema change).
 
 ## 1.0.0 — 2026-11-22

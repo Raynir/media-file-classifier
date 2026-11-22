@@ -171,19 +171,25 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         };
         var workItems = CreateWorkItems(job.Id, job.Priority, request.WorkItems, now);
 
-        // Counted first, so a work item can't finish before its job is tracked.
-        progress.AddWork(job, workItems);
+        // Counted first, so a work item can't finish before its job is tracked. A write that fails takes back only the
+        // batches it didn't store: the stored ones run (MFC-1010).
+        var addition = progress.AddWork(job, workItems);
+        var stored = new StoredWorkItems();
         try
         {
-            await Library.Jobs.AddJobAsync(job, workItems, cancellationToken).ConfigureAwait(false);
+            await Library.Jobs.AddJobAsync(job, workItems, stored.Add, cancellationToken).ConfigureAwait(false);
         }
-        catch
+        finally
         {
-            progress.RemoveWork(job.Id, workItems);
-            throw;
+            progress.EndAddWork(addition, stored.NotStored(workItems));
+
+            // Batches stored before a failure run too, so the loop wakes for them.
+            if (stored.Any)
+            {
+                OnNewWork();
+            }
         }
 
-        OnNewWork();
         return job.Id;
     }
 
@@ -200,23 +206,22 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
 
         var now = clock.GetUtcNow();
         var created = CreateWorkItems(jobId, job.Priority, workItems, now);
-        progress.AddWork(job, created);
+        var addition = progress.AddWork(job, created);
+        var stored = new StoredWorkItems();
         var added = false;
         try
         {
-            added = await Library.Jobs.AddWorkItemsAsync(jobId, created, now, cancellationToken).ConfigureAwait(false);
+            added = await Library.Jobs.AddWorkItemsAsync(jobId, created, now, stored.Add, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            if (!added)
-            {
-                progress.RemoveWork(jobId, created);
-            }
-        }
+            progress.EndAddWork(addition, stored.NotStored(created));
 
-        if (added)
-        {
-            OnNewWork();
+            // Batches stored before a failure, or before the job was cancelled, run too, so the loop wakes for them.
+            if (stored.Any)
+            {
+                OnNewWork();
+            }
         }
 
         return added;

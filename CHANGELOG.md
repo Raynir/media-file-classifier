@@ -9,6 +9,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Main menu (MFC-1016): commands that don't apply are now disabled, with a tooltip that says why, instead of staying enabled. For example Edit, "Undo bulk edit" is off until there is a bulk edit to undo, and Select none is off without a selection. The menu rechecks every command when it opens (MFC-1017).
 - Importing a model from files (MFC-1016): "Import from file" now asks for the folder that holds the model files and picks the ones the catalogue expects by name, so a model's files no longer have to be picked one by one (MFC-1018).
 - List view (MFC-1016): the Favorite column's header shows a star icon, with the name in its tooltip, instead of looking like an empty column (MFC-1020).
+- Processing queue (MFC-1010): a job that's given more work which then fails to be stored now still reports finished, with its completion notification, and leaves the processing queue and the status bar. When a large batch fails part way, the work items already stored are still counted, so a job's progress no longer goes wrong or below zero (no schema change).
 
 ### Added
 

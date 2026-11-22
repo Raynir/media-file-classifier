@@ -44,6 +44,11 @@ public sealed partial class ListColumnViewModel : ObservableObject
     public string Header => Kind is ListColumnKind.Thumbnail or ListColumnKind.Favorite ? string.Empty : Name;
 
     /// <summary>
+    /// Gets a value indicating whether the header shows a star icon instead of text (the favorite column).
+    /// </summary>
+    public bool HasHeaderIcon => Kind == ListColumnKind.Favorite;
+
+    /// <summary>
     /// Gets the column's name, for the show and hide menu and the header's accessible name.
     /// </summary>
     public string Name => Localizer.Current[$"List_Column_{Kind}"];

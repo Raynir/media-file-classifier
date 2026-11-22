@@ -922,6 +922,9 @@
   <data name="Rescan_Failed" xml:space="preserve">
     <value>The rescan failed. See the log for details.</value>
   </data>
+  <data name="Command_NotApplicable" xml:space="preserve">
+    <value>Not available for the current selection or state.</value>
+  </data>
   <data name="Command_NoLibraryOpen" xml:space="preserve">
     <value>Open a library first.</value>
   </data>
@@ -1288,10 +1291,7 @@
     <value>Cancel</value>
   </data>
   <data name="ModelImport_Title" xml:space="preserve">
-    <value>Import the search model files</value>
-  </data>
-  <data name="ModelImport_FileType" xml:space="preserve">
-    <value>Model files</value>
+    <value>Choose the folder that contains the model files</value>
   </data>
   <data name="Search_Placeholder" xml:space="preserve">
     <value>Search</value>
@@ -1439,6 +1439,12 @@
   </data>
   <data name="Models_Heading" xml:space="preserve">
     <value>Models</value>
+  </data>
+  <data name="Models_OpenFolder" xml:space="preserve">
+    <value>Open models folder</value>
+  </data>
+  <data name="Models_OpenFolderTip" xml:space="preserve">
+    <value>Show the folder where downloaded and imported models are stored.</value>
   </data>
   <data name="Models_Help" xml:space="preserve">
     <value>AI models run on this computer. Download a model once, or import its files on a computer without internet. The Standard tier suits the processor, and Compact suits a graphics card.</value>

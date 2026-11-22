@@ -9,6 +9,8 @@ namespace MediaFileClassifier.Ui.ViewModels;
 /// </summary>
 public sealed class MainMenuViewModel : ViewModelBase
 {
+    private readonly CommandRegistry commands;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MainMenuViewModel"/> class.
     /// </summary>
@@ -16,10 +18,17 @@ public sealed class MainMenuViewModel : ViewModelBase
     /// <param name="localizer">UI strings.</param>
     public MainMenuViewModel(CommandRegistry commands, Localizer localizer)
     {
+        this.commands = commands;
         Groups = [.. CommandGroups.All
             .Select(group => new MenuGroupViewModel(group, BuildEntries(commands.InGroup(group), localizer), localizer))
             .Where(group => group.Items.Count > 0)];
     }
+
+    /// <summary>
+    /// Re-evaluates every command's enablement. The view calls it when a menu opens, so the menu always shows the
+    /// current state, whatever changed the context (selection, library, editor, jobs).
+    /// </summary>
+    public void RefreshCommands() => commands.Refresh();
 
     /// <summary>
     /// Gets the menu groups, in menu order.

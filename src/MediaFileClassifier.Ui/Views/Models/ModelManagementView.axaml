@@ -14,6 +14,12 @@
                Margin="{DynamicResource Padding.Compact}"
                Text="{l:Loc Models_Help}"
                TextWrapping="Wrap" />
+    <Button Margin="{DynamicResource Padding.Compact}"
+            HorizontalAlignment="Left"
+            Content="{l:Loc Models_OpenFolder}"
+            Command="{Binding OpenFolderCommand}"
+            IsVisible="{Binding CanOpenFolder}"
+            ToolTip.Tip="{l:Loc Models_OpenFolderTip}" />
     <TextBlock
                Margin="{DynamicResource Padding.Compact}"
                Foreground="{DynamicResource Brush.Status.Error.Foreground}"

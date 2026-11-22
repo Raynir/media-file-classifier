@@ -170,5 +170,17 @@ public sealed class ListColumnsTests
         Assert.Equal(expected, ListHeaderView.ColumnAt(new ListColumnsViewModel(), x)?.Kind);
     });
 
+    [Theory]
+    [InlineData(ListColumnKind.Favorite, true, "")]
+    [InlineData(ListColumnKind.Thumbnail, false, "")]
+    [InlineData(ListColumnKind.Name, false, "Name")]
+    public Task HeaderIcon_IsOnlyForTheFavoriteColumn(ListColumnKind kind, bool hasIcon, string header) => TestApp.RunAsync(() =>
+    {
+        var column = new ListColumnViewModel(kind, 40, true);
+
+        Assert.Equal(hasIcon, column.HasHeaderIcon);
+        Assert.Equal(header, column.Header);
+    });
+
     private static string Describe(ListColumnViewModel column) => $"{column.Kind}:{column.Width}:{column.IsVisible}";
 }

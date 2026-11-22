@@ -31,20 +31,47 @@ public sealed class ModelDialogs(Localizer localizer) : IModelDialogs
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<string>> PickModelFilesAsync()
+    public async Task<IReadOnlyList<string>?> PickModelFilesAsync()
     {
         if (FindOwner() is not { } owner)
         {
-            return [];
+            return null;
         }
 
-        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        var folders = await owner.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
             Title = localizer.Get("ModelImport_Title"),
-            AllowMultiple = true,
-            FileTypeFilter = [new FilePickerFileType(localizer.Get("ModelImport_FileType")) { Patterns = ["*.onnx", "*.model"] }],
+            AllowMultiple = false,
         });
-        return [.. files.Select(file => file.TryGetLocalPath()).OfType<string>()];
+        if (folders.Count == 0 || folders[0].TryGetLocalPath() is not { } folder)
+        {
+            return null;
+        }
+
+        return FindModelFiles(folder);
+    }
+
+    /// <summary>
+    /// Lists the model files directly inside a folder: the app matches them to the catalogue by name.
+    /// </summary>
+    /// <param name="folder">The folder the user picked.</param>
+    /// <returns>The files' paths, which are none when the folder has no model files or can't be read.</returns>
+    internal static IReadOnlyList<string> FindModelFiles(string folder)
+    {
+        try
+        {
+            return
+            [
+                .. Directory.EnumerateFiles(folder)
+                    .Where(path => Path.GetExtension(path) is { } extension
+                        && (extension.Equals(".onnx", StringComparison.OrdinalIgnoreCase)
+                            || extension.Equals(".model", StringComparison.OrdinalIgnoreCase))),
+            ];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
     }
 
     private static Window? FindOwner() =>

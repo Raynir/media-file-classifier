@@ -24,6 +24,11 @@ public partial class MainView : UserControl
     {
         InitializeComponent();
 
+        // Commands are enabled by context (selection, library, undo history): refresh when a menu opens.
+        this.FindControl<Menu>("MainMenu")?.AddHandler(
+            MenuItem.SubmenuOpenedEvent,
+            (_, _) => (DataContext as MainWindowViewModel)?.Menu.RefreshCommands());
+
         // Handled events too: the search bar takes drops for itself (search by image), and the overlay must hide then.
         AddHandler(DragDrop.DragOverEvent, OnDragOver, handledEventsToo: true);
         AddHandler(DragDrop.DragLeaveEvent, OnDragLeave, handledEventsToo: true);

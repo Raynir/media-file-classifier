@@ -1,5 +1,6 @@
 ﻿#if DEBUG
 using System.Diagnostics;
+using ActivityEvent = MediaFileClassifier.Domain.Activity.ActivityEvent;
 using System.Globalization;
 using System.Text.Json;
 using Avalonia.Controls;
@@ -7,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
@@ -21,6 +23,7 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
+using MediaFileClassifier.UseCases.Activity;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.Desktop.Platform;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
@@ -119,6 +122,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return null;
             case "select":
                 return await SelectAsync(step.Argument);
+            case "seed-activity":
+                return await SeedActivityAsync();
             case "seed-keyframes":
                 return await SeedKeyframesAsync(step.Argument);
             case "choose-keyframe":
@@ -439,6 +444,34 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
         _ = services.GetRequiredService<Ui.ViewModels.Libraries.DropImportViewModel>().DropAsync(paths);
         return dropped;
+    }
+
+    // The activity log fills as the app works. This adds a spread of events over a few days, including a warning and
+    // an error, so the window shows its day headers, links and Errors filter (E15-S04).
+    private async Task<string> SeedActivityAsync()
+    {
+        var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
+        var folder = (await library.Folders.GetAllAsync(CancellationToken.None)).FirstOrDefault() ?? throw new SmokeStepException("the library has no folder");
+        var now = DateTimeOffset.UtcNow;
+        ActivityEvent Make(ActivityEventType type, ActivitySeverity severity, TimeSpan ago, string? subject, params (string Name, long Value)[] counts) =>
+            ActivityEvent.Create(type, severity, now - ago, subject, counts.ToDictionary(count => count.Name, count => count.Value), folder.Id);
+
+        ActivityEvent[] events =
+        [
+            Make(ActivityEventType.Rescan, ActivitySeverity.Info, TimeSpan.FromMinutes(20), folder.DisplayPath, (ActivityCounts.Added, 4), (ActivityCounts.Modified, 2), (ActivityCounts.Missing, 1)),
+            Make(ActivityEventType.BulkEdit, ActivitySeverity.Info, TimeSpan.FromHours(1), null, (ActivityCounts.Edited, 12)),
+            Make(ActivityEventType.Analysis, ActivitySeverity.Warning, TimeSpan.FromHours(30), folder.DisplayPath, (ActivityCounts.Items, 40), (ActivityCounts.Failed, 3)),
+            Make(ActivityEventType.Import, ActivitySeverity.Info, TimeSpan.FromHours(31), folder.DisplayPath, (ActivityCounts.Items, 40)),
+            Make(ActivityEventType.Import, ActivitySeverity.Error, TimeSpan.FromDays(4), folder.DisplayPath, (ActivityCounts.Items, 8), (ActivityCounts.Failed, 8)),
+            Make(ActivityEventType.FolderAdded, ActivitySeverity.Info, TimeSpan.FromDays(4.1), folder.DisplayPath),
+        ];
+        foreach (var activity in events)
+        {
+            await library.Activity.AddAsync(activity, CancellationToken.None);
+        }
+
+        services.GetRequiredService<ActivityChanges>().Raise();
+        return $"{events.Length} events";
     }
 
     // Keyframes exist only after AI analysis, which needs the model. This does what the analysis does for them: it

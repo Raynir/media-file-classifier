@@ -1,7 +1,9 @@
+using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.UseCases.Activity.RecordActivity;
 using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediatR;
 
@@ -41,7 +43,8 @@ public sealed record EditMetadataResult(IReadOnlyList<Id<MediaItem>> ChangedItem
 /// <param name="clock">The clock, for the change time.</param>
 /// <param name="publisher">Publishes the change.</param>
 /// <param name="undoStore">Keeps what a bulk edit changed, for Undo.</param>
-public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProvider clock, IPublisher publisher, BulkUndoStore? undoStore = null)
+/// <param name="sender">Records the event in the activity log, or <see langword="null"/> for none.</param>
+public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProvider clock, IPublisher publisher, BulkUndoStore? undoStore = null, ISender? sender = null)
     : IRequestHandler<EditMetadataCommand, EditMetadataResult>
 {
     private const int TagCheckBatchSize = 100;
@@ -129,6 +132,16 @@ public sealed class EditMetadataCommandHandler(ILibrarySession session, TimeProv
                 catch (Exception) when (!completed)
                 {
                     // The write's own failure is the one to report, not a handler's that ran because of it.
+                }
+
+                // An edit of several items is an event of its own (E15-S04); editing one item is not.
+                if (request.ItemIds.Count > 1 && sender is not null)
+                {
+                    await sender.Send(
+                        new RecordActivityCommand(
+                            ActivityEventType.BulkEdit,
+                            Counts: new Dictionary<string, long> { [ActivityCounts.Edited] = written.Count }),
+                        CancellationToken.None).ConfigureAwait(false);
                 }
             }
         }

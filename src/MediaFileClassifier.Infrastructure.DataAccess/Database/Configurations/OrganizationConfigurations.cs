@@ -1,3 +1,4 @@
+using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Collections;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
@@ -82,5 +83,28 @@ internal sealed class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
         builder.HasIndex(item => new { item.State, item.Pool, item.Priority, item.CreatedAt });
         builder.HasIndex(item => new { item.JobId, item.State });
         builder.HasIndex(item => item.ItemId);
+    }
+}
+
+/// <summary>
+/// Maps <see cref="ActivityEvent"/> (E15-S04). The folder and item it points at are plain columns, not foreign keys:
+/// the log outlives them. Pages are read newest first, so time and ID have an index, and so does the type for the filter.
+/// </summary>
+internal sealed class ActivityEventConfiguration : IEntityTypeConfiguration<ActivityEvent>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ActivityEvent> builder)
+    {
+        builder.HasKey(activity => activity.Id);
+        builder.Property(activity => activity.Id);
+        builder.Property(activity => activity.Type);
+        builder.Property(activity => activity.Severity);
+        builder.Property(activity => activity.OccurredAt);
+        builder.Property(activity => activity.Subject);
+        builder.Property(activity => activity.FolderId);
+        builder.Property(activity => activity.ItemId);
+        builder.Property(activity => activity.Counts).HasConversion(new ActivityCountsConverter(), new ActivityCountsComparer());
+        builder.HasIndex(activity => new { activity.OccurredAt, activity.Id });
+        builder.HasIndex(activity => new { activity.Type, activity.OccurredAt });
     }
 }

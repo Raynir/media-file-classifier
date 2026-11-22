@@ -42,6 +42,8 @@ public static class UseCasesModule
         services.AddSetting(Monitoring.MonitoringSettings.IgnorePatterns);
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();
+        services.TryAddSingleton<Activity.ActivityChanges>();
+        services.TryAddSingleton<Activity.ActivityJobRecorder>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
         services.TryAddSingleton<Embeddings.EmbeddingModelMigration>();

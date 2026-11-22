@@ -101,6 +101,9 @@ internal static partial class Program
             // Folder statuses follow drives and shares coming and going (E14-S07-T04).
             host.Services.GetRequiredService<FolderAvailabilityMonitor>().Start();
 
+            // Finished imports, rescans and analysis jobs are recorded in the activity log (E15-S04).
+            host.Services.GetRequiredService<MediaFileClassifier.UseCases.Activity.ActivityJobRecorder>().Start();
+
             // New and changed files in the Online folders are noticed while the app runs (E04-S01).
             host.Services.GetRequiredService<FolderWatchManager>().Start();
 

@@ -122,6 +122,10 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IAnalyzerStateRepository AnalyzerStates => AnalyzerStateList ?? throw new NotSupportedException();
 
+    public MediaFileClassifier.Testing.Activity.InMemoryActivityRepository ActivityList { get; } = new();
+
+    public IActivityRepository Activity => ActivityList;
+
     public IEmbeddingRepository? EmbeddingList { get; set; }
 
     public IEmbeddingRepository Embeddings => EmbeddingList ?? throw new NotSupportedException();
@@ -288,8 +292,10 @@ internal sealed class FakeJobRepository : IJobRepository
     /// </summary>
     public ProcessingJobState? JobState { get; set; }
 
+    public ProcessingJob? StoredJob { get; set; }
+
     public Task<ProcessingJob?> GetJobAsync(Id<ProcessingJob> id, CancellationToken cancellationToken = default) =>
-        Task.FromResult(JobState is { } jobState
+        Task.FromResult(StoredJob is { } stored && stored.Id == id ? stored : JobState is { } jobState
             ? new ProcessingJob { Id = id, Type = "analysis", Description = "Analyze 1 item", State = jobState, CreatedAt = DateTimeOffset.UnixEpoch }
             : null);
 

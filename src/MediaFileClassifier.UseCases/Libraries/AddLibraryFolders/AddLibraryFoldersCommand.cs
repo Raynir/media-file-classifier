@@ -1,7 +1,9 @@
+using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.UseCases.Activity.RecordActivity;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.ImportFolders;
 using MediaFileClassifier.UseCases.Libraries.IndexWholeFolder;
@@ -121,6 +123,16 @@ public sealed class AddLibraryFoldersCommandHandler(
 
             indexed.Add(folder);
             added.Add(folder);
+            if (sender is not null)
+            {
+                await sender.Send(
+                    new RecordActivityCommand(
+                        ActivityEventType.FolderAdded,
+                        Subject: folder.DisplayPath,
+                        Counts: overlap.Folders.Count == 0 ? null : new Dictionary<string, long> { [ActivityCounts.Folders] = overlap.Folders.Count },
+                        FolderId: folder.Id),
+                    CancellationToken.None).ConfigureAwait(false);
+            }
         }
 
         if (added.Count > 0 && sender is not null)

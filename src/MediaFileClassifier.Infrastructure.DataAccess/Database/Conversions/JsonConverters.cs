@@ -243,4 +243,27 @@ internal sealed record FieldTextJson(string Text, string? Other);
 [JsonSerializable(typeof(FolderRulesJson))]
 [JsonSerializable(typeof(LibrarySettingsJson))]
 [JsonSerializable(typeof(FieldTextJson))]
+[JsonSerializable(typeof(Dictionary<string, long>))]
 internal sealed partial class DataAccessJsonContext : JsonSerializerContext;
+
+/// <summary>
+/// Stores the counts of an activity event as a JSON object of numbers.
+/// </summary>
+internal sealed class ActivityCountsConverter()
+    : ValueConverter<IReadOnlyDictionary<string, long>, string>(counts => ToJson(counts), json => FromJson(json))
+{
+    private static string ToJson(IReadOnlyDictionary<string, long> counts) =>
+        JsonSerializer.Serialize(counts.ToDictionary(pair => pair.Key, pair => pair.Value), DataAccessJsonContext.Default.DictionaryStringInt64);
+
+    private static IReadOnlyDictionary<string, long> FromJson(string json) =>
+        JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.DictionaryStringInt64) ?? [];
+}
+
+/// <summary>
+/// Compares the counts of activity events by content.
+/// </summary>
+internal sealed class ActivityCountsComparer()
+    : ValueComparer<IReadOnlyDictionary<string, long>>(
+        (left, right) => left == null ? right == null : right != null && left.Count == right.Count && left.All(pair => right.ContainsKey(pair.Key) && right[pair.Key] == pair.Value),
+        counts => counts.Aggregate(0, (hash, pair) => hash ^ HashCode.Combine(pair.Key, pair.Value)),
+        counts => counts.ToDictionary(pair => pair.Key, pair => pair.Value));

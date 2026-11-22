@@ -10,6 +10,8 @@ using MediaFileClassifier.UseCases.Metadata;
 using MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Metadata;
 
@@ -66,6 +68,7 @@ internal sealed class MetadataTestBed : IAsyncDisposable
         var services = new ServiceCollection()
             .AddSingleton<ILibrarySession>(new TestSession(library.Library))
             .AddSingleton<TimeProvider>(library.Clock)
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
             .AddUseCases()
             .AddSingleton<INotificationHandler<ItemsMetadataChanged>>(new Recorder(published, failPublishing))
             .BuildServiceProvider();

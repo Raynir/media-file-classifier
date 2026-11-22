@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Activity"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Activity.ActivityLogView"
+             x:DataType="vm:ActivityLogViewModel">
+  <!-- Activity log: two-line rows grouped by day, filter chips above, "Show items" on rows with a folder. -->
+  <Grid Margin="{DynamicResource Padding.Panel}" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{DynamicResource Space.S}">
+    <TextBlock Grid.Row="0" Classes="Title" Text="{l:Loc Activity_Title}" />
+
+    <ItemsControl Grid.Row="1"
+                  ItemsSource="{Binding Chips}"
+                  AutomationProperties.Name="{l:Loc Activity_FiltersLabel}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <WrapPanel />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:ActivityChipViewModel">
+          <ToggleButton Classes="FilterChip"
+                        Content="{Binding Label}"
+                        IsChecked="{Binding IsSelected, Mode=OneWay}"
+                        Command="{Binding $parent[UserControl].((vm:ActivityLogViewModel)DataContext).SelectChipCommand}"
+                        CommandParameter="{Binding}"
+                        AutomationProperties.Name="{Binding Label}" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Panel Grid.Row="2">
+      <TextBlock Classes="Secondary"
+                 Text="{l:Loc Activity_Empty}"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding IsEmpty}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+      <TextBlock Classes="Secondary"
+                 Text="{l:Loc Activity_FilteredEmpty}"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding IsFilteredEmpty}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+      <ListBox x:Name="EventList"
+               ItemsSource="{Binding Rows}"
+               Background="Transparent"
+               AutomationProperties.Name="{l:Loc Activity_ListLabel}"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:ActivityRowViewModel">
+            <Panel AutomationProperties.Name="{Binding AccessibleName}">
+              <TextBlock Classes="Label"
+                         Text="{Binding Header}"
+                         IsVisible="{Binding IsHeader}"
+                         Margin="{DynamicResource Padding.Control}" />
+              <Grid IsVisible="{Binding IsEvent}"
+                    ColumnDefinitions="Auto,*,Auto"
+                    ColumnSpacing="{DynamicResource Space.S}"
+                    Margin="{DynamicResource Padding.Control}">
+                <PathIcon Grid.Column="0"
+                          Data="{Binding Icon}"
+                          Foreground="{DynamicResource Brush.Icon}"
+                          VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1">
+                  <TextBlock Text="{Binding Title}" FontWeight="{DynamicResource FontWeight.Title}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="Secondary" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Detail}" />
+                  <Button Content="{l:Loc Activity_ShowItems}"
+                          Command="{Binding ShowItemsCommand}"
+                          IsVisible="{Binding CanShowItems}"
+                          HorizontalAlignment="Left"
+                          Padding="{DynamicResource Padding.Compact}"
+                          Background="Transparent"
+                          Foreground="{DynamicResource Brush.Text.Secondary}"
+                          BorderThickness="0" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Classes="Secondary Caption" Text="{Binding Time}" VerticalAlignment="Top" />
+              </Grid>
+            </Panel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Panel>
+
+    <DockPanel Grid.Row="3">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+        <Button Content="{l:Loc Activity_LoadMore}" Command="{Binding LoadMoreCommand}" IsVisible="{Binding HasMore}" />
+        <Button Content="{l:Loc Activity_Close}" Command="{Binding CloseCommand}" IsCancel="True" />
+      </StackPanel>
+      <TextBlock Classes="Secondary" Text="{Binding CountText}" VerticalAlignment="Center" />
+    </DockPanel>
+  </Grid>
+</UserControl>

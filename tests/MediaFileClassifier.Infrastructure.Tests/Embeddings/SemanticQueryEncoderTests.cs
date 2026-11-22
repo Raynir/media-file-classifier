@@ -1,14 +1,14 @@
 using System.Diagnostics;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.AI;
+using MediaFileClassifier.Infrastructure.AI.Embeddings;
+using MediaFileClassifier.Infrastructure.AI.Onnx;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Frames;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
-using MediaFileClassifier.Infrastructure.AI;
-using MediaFileClassifier.Infrastructure.AI.Embeddings;
-using MediaFileClassifier.Infrastructure.AI.Onnx;
 using MediaFileClassifier.Infrastructure.Tests.AI.Embeddings;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Search;

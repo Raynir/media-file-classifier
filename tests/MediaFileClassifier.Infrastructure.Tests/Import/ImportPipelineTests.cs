@@ -158,13 +158,16 @@ public sealed class ImportPipelineTests : IAsyncLifetime
         Assert.NotEmpty(processed);
         Assert.True(processed.Count < 150, "The import finished before it was cancelled.");
 
+        // Every item the cancel left unprocessed is still Discovered, and the next import finishes it.
+        Assert.All(afterCancel.Where(item => !processed.Contains(item.Id)), item => Assert.Equal(MediaItemStatus.Discovered, item.Status));
+
         await bed.ImportAsync();
         await bed.WaitUntilIdleAsync();
 
         var items = await bed.ItemsAsync();
         Assert.Equal(150, items.Count);
         Assert.Equal(150, items.Select(item => item.Path.Value).Distinct().Count());
-        Assert.Subset(items.Select(item => item.Id).ToHashSet(), processed);
+        Assert.Subset(items.Select(item => item.Id).ToHashSet(), afterCancel.Select(item => item.Id).ToHashSet());
         Assert.All(items, item => Assert.Equal(MediaItemStatus.Pending, item.Status));
     }
 

@@ -1,4 +1,3 @@
-using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using MediaFileClassifier.Domain.Analysis;
@@ -9,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Infrastructure.Tests.TestSupport;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Exclusions;
 using MediaFileClassifier.UseCases.Exclusions.ExcludeItems;
 

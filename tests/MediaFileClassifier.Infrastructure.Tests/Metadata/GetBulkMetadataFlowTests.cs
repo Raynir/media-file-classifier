@@ -1,8 +1,9 @@
-using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.Tests.TestSupport;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Metadata.EditMetadata;
 using MediaFileClassifier.UseCases.Metadata.GetBulkMetadata;
 
@@ -12,6 +13,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Metadata;
 /// Tests for the aggregated metadata of a selection (E07-S03-T01) through <see cref="GetBulkMetadataQuery"/> against a
 /// real library.
 /// </summary>
+[Collection(TimingTestsCollection.Name)]
 public sealed class GetBulkMetadataFlowTests : IAsyncLifetime
 {
     private MetadataTestBed bed = null!;

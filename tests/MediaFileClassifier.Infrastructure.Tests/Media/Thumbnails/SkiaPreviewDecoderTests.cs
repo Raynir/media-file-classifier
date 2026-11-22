@@ -1,10 +1,11 @@
-using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Metadata;
 using MediaFileClassifier.Infrastructure.Media.Thumbnails;
+using MediaFileClassifier.Infrastructure.Tests.TestSupport;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Timing;
 using SkiaSharp;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
@@ -13,6 +14,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Media.Thumbnails;
 /// Tests for decoding the details panel preview (E14-S05-T02): screen-sized first, quickly even for a 50-megapixel
 /// JPEG, and at full resolution for zooming.
 /// </summary>
+[Collection(TimingTestsCollection.Name)]
 public sealed class SkiaPreviewDecoderTests : IDisposable
 {
     private readonly string folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "mfc-tests", Guid.NewGuid().ToString("N"))).FullName;

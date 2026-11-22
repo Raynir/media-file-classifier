@@ -1,12 +1,14 @@
-using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
+using MediaFileClassifier.Infrastructure.Tests.TestSupport;
+using MediaFileClassifier.Testing.Timing;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Hashing;
 
 /// <summary>
 /// Tests for <see cref="PerceptualHashIndex{TKey}"/>.
 /// </summary>
+[Collection(TimingTestsCollection.Name)]
 public sealed class PerceptualHashIndexTests
 {
     [Fact]

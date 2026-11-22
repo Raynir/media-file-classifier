@@ -85,7 +85,10 @@ public sealed class ListViewTests
             File.AppendAllText(output, report + Environment.NewLine);
         }
 
-        Assert.Equal(600, times.Count);
+        // The steps scrolled: the view is far down the list and shows the rows there.
+        Assert.True(scroller.Offset.Y > 0, $"offset {scroller.Offset.Y}");
+        Assert.InRange(Rows(view).Count, 1, 60);
+        Assert.Contains(Rows(view), row => row.Index > 0);
         if (TestPerformance.Enabled)
         {
             Assert.True(mean < 16.7, $"mean {mean:F2} ms");

@@ -11,7 +11,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Fixed
 
 - Background work (MFC-1025): when the view scrolls while work is starting, the items now on screen are processed next; before, one item from the previous screen could run first.
-- Tests (MFC-1025): a plain `dotnet test` no longer fails at random on a busy machine. Bounds on how fast the code runs are checked only with `MFC_PERF_TESTS=1` (docs/testing.md), and two tests that assumed an order the code doesn't promise were fixed.
+- Tests (MFC-1025): a plain `dotnet test` no longer fails at random on a busy machine. Bounds on how fast the code runs are checked only with `MFC_PERF_TESTS=1` (docs/testing.md), and the import cancel test no longer assumes that the scan has ended when the import is cancelled.
 - Main menu (MFC-1021): Open item, Previous and Next, Select all and Select none, Library information and Refresh results are now disabled, with a tooltip that says why, when there is no library, no results or no selection to act on.
 - Dialogs (MFC-1012): a dialog now opens with the keyboard focus on a control instead of on the window: its first text box, list or combo box, else its default button (Cancel in Remove item, the typed-name box in Delete library). Before, the first Tab only reached the first control. The UI smoke tool has a `dialog-focus` step.
 - Keyboard (MFC-1011): Enter and Space on a focused button, such as the Filters chip, press the button instead of running a shortcut. Enter on the Filters chip used to open the selected item, so the filter flyout never opened from the keyboard.

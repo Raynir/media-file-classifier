@@ -1,4 +1,3 @@
-using MediaFileClassifier.Testing.Timing;
 using System.Diagnostics;
 using System.Globalization;
 using MediaFileClassifier.Domain.Identity;
@@ -7,7 +6,9 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.DataAccess;
+using MediaFileClassifier.Infrastructure.Tests.TestSupport;
 using MediaFileClassifier.Testing.Settings;
+using MediaFileClassifier.Testing.Timing;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
@@ -15,6 +16,7 @@ namespace MediaFileClassifier.Infrastructure.Tests.Jobs;
 /// <summary>
 /// Tests for <see cref="JobSystem"/>: restart recovery and the scheduler's lifetime (E05-S01-T05, T06).
 /// </summary>
+[Collection(TimingTestsCollection.Name)]
 public sealed class JobSystemTests : IAsyncLifetime
 {
     private readonly InMemorySettingsStore settings = new();
@@ -129,6 +131,7 @@ public sealed class JobSystemTests : IAsyncLifetime
         var stopwatch = Stopwatch.StartNew();
         await system.StopAsync();
         stopwatch.Stop();
+        TestContext.Current.SendDiagnosticMessage($"Stopping took {stopwatch.ElapsedMilliseconds} ms");
         await bed.ReopenAsync();
 
         // The slow work takes a minute, so stopping well under that shows it was stopped, not awaited. The grace period

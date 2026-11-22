@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.UseCases.Libraries;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -18,11 +19,13 @@ namespace MediaFileClassifier.UseCases.Import.ImportFolders;
 /// <param name="clock">The clock.</param>
 /// <param name="jobs">Runs the jobs of the open library, if the platform has background processing.</param>
 /// <param name="files">Checks that the folders can be reached, or <c>null</c> to leave that to discovery.</param>
+/// <param name="volumes">Tells another drive under a folder's letter apart from its own, or <c>null</c>.</param>
 public sealed class ImportFoldersCommandHandler(
     ILogger<ImportFoldersCommandHandler> logger,
     TimeProvider clock,
     IJobSystem? jobs = null,
-    IMediaFileSource? files = null)
+    IMediaFileSource? files = null,
+    IVolumeLocator? volumes = null)
     : IRequestHandler<ImportFoldersCommand, IReadOnlyList<Id<ProcessingJob>>>
 {
     /// <inheritdoc />
@@ -49,7 +52,9 @@ public sealed class ImportFoldersCommandHandler(
                 continue;
             }
 
-            if (files is not null && !await files.IsAvailableAsync(folder.ToHandle(), cancellationToken).ConfigureAwait(false))
+            // Another drive under the folder's letter isn't the folder (E04-S04-T03).
+            if (files is not null && (!await files.IsAvailableAsync(folder.ToHandle(), cancellationToken).ConfigureAwait(false)
+                || !await FolderReachability.IsOnItsVolumeAsync(volumes, folder, cancellationToken).ConfigureAwait(false)))
             {
                 if (folder.Status != FolderStatus.Offline)
                 {

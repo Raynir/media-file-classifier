@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.UseCases.Libraries;
 
 namespace MediaFileClassifier.UseCases.Rescan;
@@ -14,7 +15,9 @@ namespace MediaFileClassifier.UseCases.Rescan;
 /// <param name="discovery">Lists the folders.</param>
 /// <param name="moves">Pairs new files with disappeared items (E02-S04-T02).</param>
 /// <param name="files">Checks again that a folder whose files seem gone can still be reached (E04-S04-T02).</param>
-public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves, IMediaFileSource files)
+/// <param name="volumes">Tells another drive that took a folder's drive letter apart from the folder's own (E04-S04-T03),
+/// or <see langword="null"/>.</param>
+public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves, IMediaFileSource files, IVolumeLocator? volumes = null)
 {
     /// <summary>
     /// Reconciles folders of a library. All of them are listed before anything is classified as moved or missing, so a
@@ -38,6 +41,13 @@ public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves, I
         var excludedGone = new List<MediaItem>();
         foreach (var folder in folders)
         {
+            // Another drive under the folder's letter isn't the folder: it's Offline (E04-S04-T03).
+            if (!await FolderReachability.IsOnItsVolumeAsync(volumes, folder, cancellationToken).ConfigureAwait(false))
+            {
+                offline.Add(folder);
+                continue;
+            }
+
             FolderSnapshot snapshot;
             try
             {

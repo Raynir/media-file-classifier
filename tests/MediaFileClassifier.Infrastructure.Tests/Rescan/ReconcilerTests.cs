@@ -7,6 +7,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.UseCases.Rescan;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Rescan;
@@ -71,6 +72,22 @@ public sealed class ReconcilerTests : IAsyncLifetime
         Assert.Equal(bed.Folder.Id, Assert.Single(result.Offline).Id);
         Assert.Empty(result.Missing);
         Assert.Empty(result.Scanned);
+    }
+
+    [Fact]
+    public async Task Reconcile_FolderWhoseLetterLeadsToAnotherDrive_IsOffline_AndNothingIsListed()
+    {
+        File.Delete(Path.Combine(bed.Root, "gone.gif"));
+        bed.Folder.ChangeVolumeId("1111-1111");
+        var volumes = new FakeVolumeLocator();
+        volumes.Volumes[Path.GetPathRoot(bed.Root)!] = "2222-2222";
+        var reconciler = new Reconciler(bed.Get<IFolderDiscovery>(), bed.Get<MoveDetector>(), new InMemoryMediaFileSource(), volumes);
+
+        var result = await reconciler.ReconcileAsync(bed.Library, [bed.Folder], Token);
+
+        Assert.Equal(bed.Folder.Id, Assert.Single(result.Offline).Id);
+        Assert.Empty(result.Missing);
+        Assert.Empty(result.New);
     }
 
     [Fact]

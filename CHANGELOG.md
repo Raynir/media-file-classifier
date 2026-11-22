@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Command line (MFC-1024): `--data-dir <folder>` keeps the app's data in that folder in any build, so a published Release build can be tried on a throwaway folder. End-to-end pass report: `docs/release-checks/1.0.0-e2e.md`.
+
 ### Changed
 
 - Offline folders (MFC-1014): when several folders change status at once, for example when a hub with many indexed folders is unplugged, the results and the details panel now refresh once, about a quarter of a second after the last change, instead of once per folder (no schema change).
@@ -12,6 +16,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 - Background work (MFC-1025): when the view scrolls while work is starting, the items now on screen are processed next; before, one item from the previous screen could run first.
 - Tests (MFC-1025): a plain `dotnet test` no longer fails at random on a busy machine. Bounds on how fast the code runs are checked only with `MFC_PERF_TESTS=1` (docs/testing.md), and the import cancel test no longer assumes that the scan has ended when the import is cancelled.
+- Filter chips (MFC-1028): the selected chip ("All") is readable in the light theme; its text was white on light grey. The checked chip now takes its text colour from the theme's primary text token.
+- Browser (MFC-1027): the empty band of about 90 px between the toolbar and the filter chips is gone; the header that holds the buttons for reopening a collapsed panel now takes space only when one of them shows.
+- Details panel (MFC-1029): a field's header row (label, AI badges, Confirm AI, Revert, Undo) wraps onto a second line in a narrow panel instead of cutting off "Confirm AI".
+- Release build (MFC-1030): the published app no longer ships .pdb symbol files or the ONNX Runtime import library (`onnxruntime.lib`); about 110 MB less. Builds still produce them. A crash log's stack traces keep method names but lose file and line numbers.
 - Main menu (MFC-1021): Open item, Previous and Next, Select all and Select none, Library information and Refresh results are now disabled, with a tooltip that says why, when there is no library, no results or no selection to act on.
 - Dialogs (MFC-1012): a dialog now opens with the keyboard focus on a control instead of on the window: its first text box, list or combo box, else its default button (Cancel in Remove item, the typed-name box in Delete library). Before, the first Tab only reached the first control. The UI smoke tool has a `dialog-focus` step.
 - Keyboard (MFC-1011): Enter and Space on a focused button, such as the Filters chip, press the button instead of running a shortcut. Enter on the Filters chip used to open the selected item, so the filter flyout never opened from the keyboard.
@@ -22,6 +30,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Added
 
+- Documentation and licences (MFC-1026): the README is now for users: what the app does, system requirements, downloading and running a release, getting the models (download or import from a folder), the optional model server and `ffprobe`, where data, settings and logs are, privacy, known limitations and how to report a problem. The developer guide moved to `docs/development.md`. `LICENSE` is the Apache License 2.0 (D504). `THIRD_PARTY_NOTICES.md` now matches the packages the Windows app ships (LibVLC, DirectML, Avalonia.Labs.AnimatedImage and Microsoft.Extensions.AI added, ONNX Runtime corrected to 1.24.4) and the four models in the catalogue, which are downloaded, not shipped. The release zip holds `LICENSE`, `THIRD_PARTY_NOTICES.md` and a `licenses` folder with the LGPL-2.1 and DirectML texts.
+- About and releases (MFC-1023): Help, "About Media File Classifier" shows the version and commit of the build, for example `1.0.0 (3bace9e)`, and the repository address; the first line of the log carries the same text. `tools/publish-release/New-Release.ps1` builds the self-contained Windows zip and creates the GitHub Release with the notes from this file. The release steps in `docs/development-workflow.md` are rewritten for `v<version>` tags.
 - UI smoke tool (MFC-1013): `popup-key` and `popup-shot` steps and `wait-for popup` / `no-popup` send a key to, and capture, the open flyout, context menu or combo drop-down, so keyboard use of popups can be checked by script.
 - AI & Models settings (MFC-1016): an "Open models folder" button shows the folder where models are stored in File Explorer (MFC-1019).
 - Library menu, "Compact database" (MFC-1022): a deleted folder or pruned jobs leave free space inside the library's database file, which SQLite never gives back on its own. The command says how much a compaction would return and asks first, then rewrites the file in the background with `VACUUM`, with a status bar entry. It doesn't start while the processing queue has work, needs free disk space of about twice the data, and says when there is less than 4 MB (or 10% of the file) to gain. In a test, a 446 MB library with 80% deleted shrank to 89 MB in 0.7 s (no schema change).

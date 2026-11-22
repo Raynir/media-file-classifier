@@ -14,6 +14,17 @@
     <Microsoft_AI_DirectML_SkipDebugLayerCopy>true</Microsoft_AI_DirectML_SkipDebugLayerCopy>
   </PropertyGroup>
 
+  <!-- The published app leaves out what only a developer needs: .pdb symbols, XML documentation and the ONNX Runtime
+       import library (about 110 MB, MFC-1030). Builds still make them, and Debug publishes keep them. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
+  </PropertyGroup>
+  <Target Name="RemoveDeveloperFilesFromPublish" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.lib' Or '%(Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="../MediaFileClassifier.Ui/MediaFileClassifier.Ui.csproj" />
     <ProjectReference Include="../MediaFileClassifier.Infrastructure/MediaFileClassifier.Infrastructure.csproj" />

@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:a="using:MediaFileClassifier.Ui.About"
+             x:Class="MediaFileClassifier.Ui.Views.AboutView"
+             x:DataType="a:AboutViewModel"
+             KeyboardNavigation.TabNavigation="Cycle">
+  <!--
+    About (MFC-1023): a dimmed overlay over the main window with the version and commit of the running build.
+    Esc, the close button or a click on the dimmed area closes it. Tab stays inside the card.
+  -->
+  <Panel>
+    <Border x:Name="Scrim" Background="{DynamicResource Brush.Scrim}" PointerPressed="OnScrimPressed" />
+    <Border x:Name="Card"
+            Classes="Panel"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Width="{DynamicResource Size.Dialog.Width}"
+            CornerRadius="{DynamicResource Radius.Control}"
+            BorderThickness="1"
+            Focusable="True"
+            AutomationProperties.Name="{l:Loc About_Title}">
+      <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="{DynamicResource Padding.Header}">
+          <Button x:Name="CloseButton"
+                  DockPanel.Dock="Right"
+                  Classes="Icon"
+                  Command="{Binding CloseCommand}"
+                  ToolTip.Tip="{l:Loc About_Close}"
+                  AutomationProperties.Name="{l:Loc About_Close}">
+            <PathIcon Data="{StaticResource Icon.Close}" />
+          </Button>
+          <TextBlock Classes="Title" Text="{l:Loc About_Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
+        </DockPanel>
+        <StackPanel Spacing="{DynamicResource Space.S}" Margin="{DynamicResource Padding.Panel}">
+          <TextBlock Classes="Label" Text="{l:Loc About_Version}" />
+          <SelectableTextBlock x:Name="VersionText" Text="{Binding VersionText}" />
+          <TextBlock Classes="Label" Text="{l:Loc About_Repository}" />
+          <SelectableTextBlock x:Name="RepositoryText" Text="{Binding Repository}" TextWrapping="Wrap" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+  </Panel>
+</UserControl>

@@ -60,8 +60,10 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                 return stored is { } status && status != folder.Status;
             },
             cancellationToken).ConfigureAwait(false);
-        Changed?.Invoke(this, EventArgs.Empty);
+
+        // The status event first, as before Changed existed, so a Changed handler that throws can't hold it back.
         RaiseIf(statusChanged);
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <inheritdoc />

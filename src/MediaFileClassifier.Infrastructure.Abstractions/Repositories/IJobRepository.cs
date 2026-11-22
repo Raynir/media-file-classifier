@@ -163,8 +163,8 @@ public interface IJobRepository
     Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Counts the work items still to do (queued or running) in the whole library. Work of jobs that wait for a model
-    /// isn't counted: it can't run until the model is installed (D037).
+    /// Counts the work items still to do (queued or running) in the whole library. Queued work of jobs that wait for a
+    /// model (D037) or are paused (E05-S05) isn't counted: it can't run until the model is installed or the job resumed.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of work items.</returns>
@@ -184,14 +184,14 @@ public interface IJobRepository
     /// <param name="workItem">The work item, in <see cref="WorkItemState.Queued"/> state.</param>
     /// <param name="now">Current time.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The running work item, or <see langword="null"/> if it's no longer queued, e.g. its job was cancelled.</returns>
+    /// <returns>The running work item, or <see langword="null"/> if it's no longer queued (e.g. its job was cancelled) or its job is paused.</returns>
     Task<WorkItem?> StartAsync(WorkItem workItem, DateTimeOffset now, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Stores the new state of a running work item. When it was the job's last pending work item, the job finishes in
     /// the same write: <see cref="ProcessingJobState.Completed"/> if any of its items completed, even when others
     /// failed (they keep their error for a retry), and <see cref="ProcessingJobState.Failed"/> if they all failed.
-    /// A cancelled job stays cancelled.
+    /// A cancelled job stays cancelled. A paused job finishes the same way once nothing of it is pending.
     /// </summary>
     /// <param name="workItem">The work item in its new state: completed, failed, cancelled, or queued again.</param>
     /// <param name="now">Current time.</param>
@@ -208,6 +208,33 @@ public interface IJobRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><see langword="false"/> if the job doesn't exist or was already finished.</returns>
     Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Pauses a job (E05-S05): its queued work items stay queued but aren't started until it's resumed. Running items
+    /// are the scheduler's to settle.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="now">Current time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist, is finished, or is already paused.</returns>
+    Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resumes a paused job (E05-S05): it's queued again, so its work runs.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="now">Current time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist or isn't paused.</returns>
+    Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resumes every paused job, e.g. when a library opens and paused states aren't kept after a restart (E05-S05-T03).
+    /// </summary>
+    /// <param name="now">Current time.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of jobs resumed.</returns>
+    Task<int> ResumeAllJobsAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Restart recovery (E05-S01-T05): puts work items left running by a crash or a closed app back in the queue, and

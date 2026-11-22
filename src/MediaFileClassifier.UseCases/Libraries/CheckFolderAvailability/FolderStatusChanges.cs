@@ -10,19 +10,35 @@ namespace MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 /// <see cref="IFolderRepository.StatusChanged"/> of the open library, so every writer of a folder's status is covered:
 /// availability checks, discovery, rescans and imports.
 /// </summary>
-public sealed class FolderStatusChanges
+/// <remarks>
+/// A burst of status changes, e.g. one availability check that finds a hub's folders offline, or one volume event, is
+/// reported once, <see cref="Quiet"/> after the last change of the burst (MFC-1014). So the results re-query and the
+/// details panel reloads once, not once per folder.
+/// </remarks>
+public sealed class FolderStatusChanges : IDisposable
 {
+    /// <summary>
+    /// How long folder statuses must stay unchanged before a burst of changes is reported.
+    /// </summary>
+    public static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(250);
+
     private readonly ILibrarySession? session;
+    private readonly ITimer timer;
     private readonly Lock syncRoot = new();
     private IFolderRepository? watched;
+    private bool pending;
+    private bool disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FolderStatusChanges"/> class.
     /// </summary>
     /// <param name="session">Holds the open library whose folders are watched, or <see langword="null"/> to rely on
     /// <see cref="Raise"/> alone.</param>
-    public FolderStatusChanges(ILibrarySession? session = null)
+    /// <param name="clock">Times the wait for a burst of changes to end, or <see langword="null"/> for the system
+    /// clock.</param>
+    public FolderStatusChanges(ILibrarySession? session = null, TimeProvider? clock = null)
     {
+        timer = (clock ?? TimeProvider.System).CreateTimer(_ => OnQuiet(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         this.session = session;
         if (session is not null)
         {
@@ -32,22 +48,44 @@ public sealed class FolderStatusChanges
     }
 
     /// <summary>
-    /// Raised after a folder of the open library changed status. It's raised on the writing thread, once per stored
-    /// change.
+    /// Raised after folders of the open library changed status: once per burst of stored changes, <see cref="Quiet"/>
+    /// after the last one, on a timer thread.
     /// </summary>
     public event EventHandler? Changed;
 
     /// <summary>
-    /// Raises <see cref="Changed"/>.
+    /// Raises <see cref="Changed"/> now.
     /// </summary>
     public void Raise() => Changed?.Invoke(this, EventArgs.Empty);
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        lock (syncRoot)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            disposed = true;
+            pending = false;
+            if (watched is not null)
+            {
+                watched.StatusChanged -= OnStatusChanged;
+                watched = null;
+            }
+        }
+
+        timer.Dispose();
+    }
 
     private void Watch()
     {
         lock (syncRoot)
         {
             var folders = session?.Current?.Folders;
-            if (ReferenceEquals(folders, watched))
+            if (disposed || ReferenceEquals(folders, watched))
             {
                 return;
             }
@@ -57,6 +95,8 @@ public sealed class FolderStatusChanges
                 watched.StatusChanged -= OnStatusChanged;
             }
 
+            // A change of the library that's closing isn't the new one's to report.
+            pending = false;
             watched = folders;
             if (watched is not null)
             {
@@ -65,5 +105,35 @@ public sealed class FolderStatusChanges
         }
     }
 
-    private void OnStatusChanged(object? sender, EventArgs e) => Raise();
+    // Each change restarts the wait, so the burst is reported once it's over.
+    private void OnStatusChanged(object? sender, EventArgs e)
+    {
+        lock (syncRoot)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            pending = true;
+            timer.Change(Quiet, Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    // A change stored while this runs either is seen by the listeners' refresh, or restarts the wait and is reported
+    // again: none is lost.
+    private void OnQuiet()
+    {
+        lock (syncRoot)
+        {
+            if (!pending)
+            {
+                return;
+            }
+
+            pending = false;
+        }
+
+        Raise();
+    }
 }

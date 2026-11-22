@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Changed
+
+- Offline folders (MFC-1014): when several folders change status at once, for example when a hub with many indexed folders is unplugged, the results and the details panel now refresh once, about a quarter of a second after the last change, instead of once per folder (no schema change).
+
 ### Fixed
 
 - Main menu (MFC-1016): commands that don't apply are now disabled, with a tooltip that says why, instead of staying enabled. For example Edit, "Undo bulk edit" is off until there is a bulk edit to undo, and Select none is off without a selection. The menu rechecks every command when it opens (MFC-1017).

@@ -132,7 +132,8 @@ public sealed class LiveFolderStatusTests
         var (session, library, files) = await CreateLibraryAsync();
         var drive = await AddFolderAsync(library, Drive, offline: true);
         await AddFolderAsync(library, Card, offline: false);
-        var statusChanges = new FolderStatusChanges(session);
+        var clock = new ManualClock();
+        using var statusChanges = new FolderStatusChanges(session, clock);
         var raised = 0;
         statusChanges.Changed += (_, _) => raised++;
         var handler = Handler(session, files);
@@ -141,11 +142,13 @@ public sealed class LiveFolderStatusTests
         files.Unavailable.Add(Drive);
         files.Unavailable.Add(Card);
         Assert.Empty(await handler.Handle(new CheckFolderAvailabilityCommand(OfflineOnly: true), Token));
+        clock.Advance(FolderStatusChanges.Quiet);
         Assert.Equal(0, raised);
 
         // Plugged back in.
         files.Unavailable.Remove(Drive);
         var changed = await handler.Handle(new CheckFolderAvailabilityCommand(OfflineOnly: true), Token);
+        clock.Advance(FolderStatusChanges.Quiet);
 
         Assert.Same(drive, Assert.Single(changed));
         Assert.Equal(FolderStatus.Online, drive.Status);
@@ -173,7 +176,8 @@ public sealed class LiveFolderStatusTests
     {
         var (session, library, _) = await CreateLibraryAsync();
         var drive = await AddFolderAsync(library, Drive, offline: true);
-        var statusChanges = new FolderStatusChanges(session);
+        var clock = new ManualClock();
+        using var statusChanges = new FolderStatusChanges(session, clock);
         var source = new LibraryItemsSource(new FakeSender(), session, TimeProvider.System, statusChanges);
         var raised = 0;
         source.Changed += (_, _) => raised++;
@@ -181,11 +185,13 @@ public sealed class LiveFolderStatusTests
         // As a rescan or discovery does when it finds the folder again.
         drive.MarkOnline(DateTimeOffset.UnixEpoch);
         await library.Folders.UpdateAsync(drive, Token);
+        clock.Advance(FolderStatusChanges.Quiet);
         Assert.Equal(1, raised);
 
         drive.ChangeVolumeLabel("Backup");
         await library.Folders.UpdateAvailabilityAsync(drive, Token);
         await library.Folders.UpdateAsync(drive, Token);
+        clock.Advance(FolderStatusChanges.Quiet);
         Assert.Equal(1, raised);
     }
 
@@ -194,13 +200,95 @@ public sealed class LiveFolderStatusTests
     {
         var (session, oldLibrary, _) = await CreateLibraryAsync();
         var drive = await AddFolderAsync(oldLibrary, Drive, offline: true);
-        var statusChanges = new FolderStatusChanges(session);
+        var clock = new ManualClock();
+        using var statusChanges = new FolderStatusChanges(session, clock);
         var raised = 0;
         statusChanges.Changed += (_, _) => raised++;
-        await session.SetCurrentAsync(new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "y"), "y"));
 
+        // One change made just before the library closes, and one after.
+        drive.MarkOffline(DateTimeOffset.UnixEpoch);
+        await oldLibrary.Folders.UpdateAsync(drive, Token);
+        await session.SetCurrentAsync(new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "y"), "y"));
         drive.MarkOnline(DateTimeOffset.UnixEpoch);
         await oldLibrary.Folders.UpdateAsync(drive, Token);
+        clock.Advance(FolderStatusChanges.Quiet);
+
+        Assert.Equal(0, raised);
+    }
+
+    [Fact]
+    public async Task OneCheckThatFindsManyFoldersOffline_GivesOneResultsRefresh_AfterTheBurst()
+    {
+        var (session, library, files) = await CreateLibraryAsync();
+        var hub = new List<string>();
+        for (var i = 0; i < 15; i++)
+        {
+            var path = $@"G:\Hub\Folder{i}";
+            hub.Add(path);
+            await AddFolderAsync(library, path, offline: false);
+            files.Unavailable.Add(path);
+        }
+
+        var clock = new ManualClock();
+        using var statusChanges = new FolderStatusChanges(session, clock);
+        var raised = 0;
+        statusChanges.Changed += (_, _) => raised++;
+        var source = new LibraryItemsSource(new FakeSender(), session, TimeProvider.System, statusChanges);
+        var refreshed = 0;
+        source.Changed += (_, _) => refreshed++;
+
+        Assert.Equal(15, (await Handler(session, files).Handle(new CheckFolderAvailabilityCommand(), Token)).Count);
+        clock.Advance(FolderStatusChanges.Quiet - TimeSpan.FromMilliseconds(1));
+        Assert.Equal(0, raised);
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+
+        Assert.Equal((1, 1), (raised, refreshed));
+
+        // The hub is plugged back in: the next burst is reported once too.
+        files.Unavailable.Clear();
+        Assert.Equal(15, (await Handler(session, files).Handle(new CheckFolderAvailabilityCommand(), Token)).Count);
+        clock.Advance(FolderStatusChanges.Quiet);
+        Assert.Equal((2, 2), (raised, refreshed));
+    }
+
+    [Fact]
+    public async Task EachChange_RestartsTheWait_SoAStaggeredBurstIsReportedOnceItsOver()
+    {
+        var (session, library, _) = await CreateLibraryAsync();
+        var drive = await AddFolderAsync(library, Drive, offline: true);
+        var card = await AddFolderAsync(library, Card, offline: true);
+        var clock = new ManualClock();
+        using var statusChanges = new FolderStatusChanges(session, clock);
+        var raised = 0;
+        statusChanges.Changed += (_, _) => raised++;
+        var step = FolderStatusChanges.Quiet - TimeSpan.FromMilliseconds(50);
+
+        drive.MarkOnline(DateTimeOffset.UnixEpoch);
+        await library.Folders.UpdateAsync(drive, Token);
+        clock.Advance(step);
+        card.MarkOnline(DateTimeOffset.UnixEpoch);
+        await library.Folders.UpdateAsync(card, Token);
+        clock.Advance(step);
+        Assert.Equal(0, raised);
+
+        clock.Advance(FolderStatusChanges.Quiet);
+        Assert.Equal(1, raised);
+    }
+
+    [Fact]
+    public async Task ADisposedWatcher_ReportsNoPendingChange()
+    {
+        var (session, library, _) = await CreateLibraryAsync();
+        var drive = await AddFolderAsync(library, Drive, offline: true);
+        var clock = new ManualClock();
+        var statusChanges = new FolderStatusChanges(session, clock);
+        var raised = 0;
+        statusChanges.Changed += (_, _) => raised++;
+
+        drive.MarkOnline(DateTimeOffset.UnixEpoch);
+        await library.Folders.UpdateAsync(drive, Token);
+        statusChanges.Dispose();
+        clock.Advance(FolderStatusChanges.Quiet);
 
         Assert.Equal(0, raised);
     }
@@ -209,7 +297,7 @@ public sealed class LiveFolderStatusTests
     public async Task StatusChange_RaisesTheResultsChanged()
     {
         var (session, _, _) = await CreateLibraryAsync();
-        var statusChanges = new FolderStatusChanges();
+        using var statusChanges = new FolderStatusChanges();
         var source = new LibraryItemsSource(new FakeSender(), session, TimeProvider.System, statusChanges);
         var raised = 0;
         source.Changed += (_, _) => raised++;

@@ -137,7 +137,14 @@
       <!-- Media browser -->
       <Border x:Name="BrowserArea" Grid.Row="1" Grid.Column="1" Classes="Content">
         <DockPanel>
+          <!-- Holds only the buttons that reopen a collapsed panel, so it takes no space while neither is needed (MFC-1027). -->
           <DockPanel DockPanel.Dock="Top" Height="{DynamicResource Size.ContentHeader}" Margin="{DynamicResource Padding.Header}">
+            <DockPanel.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                <Binding Path="Layout.Navigation.NeedsOpenButton" />
+                <Binding Path="Layout.Details.NeedsOpenButton" />
+              </MultiBinding>
+            </DockPanel.IsVisible>
             <Button DockPanel.Dock="Left"
                     Classes="Icon"
                     IsVisible="{Binding Layout.Navigation.NeedsOpenButton}"

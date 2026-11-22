@@ -134,6 +134,7 @@
     <Style Selector="ToggleButton.FilterChip:checked /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Selected}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
     </Style>
     <Style Selector="Button.FilterChip.Selected">
       <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />

@@ -116,6 +116,16 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
     public bool CanCancel => !job.IsFinished;
 
     /// <summary>
+    /// Gets a value indicating whether the job is paused on its own (E05-S05).
+    /// </summary>
+    public bool IsJobPaused => job.State == ProcessingJobState.Paused;
+
+    /// <summary>
+    /// Gets a value indicating whether the job can be paused: it's unfinished and not paused yet.
+    /// </summary>
+    public bool CanPause => !job.IsFinished && !IsJobPaused;
+
+    /// <summary>
     /// Gets the question waiting for an answer before the job is cancelled, or <see langword="null"/>.
     /// </summary>
     [ObservableProperty]
@@ -187,6 +197,8 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
         OnPropertyChanged(nameof(State));
         OnPropertyChanged(nameof(IsFinished));
         OnPropertyChanged(nameof(CanCancel));
+        OnPropertyChanged(nameof(IsJobPaused));
+        OnPropertyChanged(nameof(CanPause));
         if (job.IsFinished)
         {
             CancelQuestion = null;
@@ -225,6 +237,20 @@ public sealed partial class ProcessingJobViewModel : ObservableObject
 
         await panel.CancelJobAsync(this);
     }
+
+    /// <summary>
+    /// Pauses the job: it starts no new work until it's resumed (E05-S05-T02).
+    /// </summary>
+    /// <returns>A task that completes when the lists are up to date.</returns>
+    [RelayCommand]
+    private Task PauseAsync() => panel is null || !CanPause ? Task.CompletedTask : panel.SetJobPausedAsync(this, paused: true);
+
+    /// <summary>
+    /// Resumes the paused job.
+    /// </summary>
+    /// <returns>A task that completes when the lists are up to date.</returns>
+    [RelayCommand]
+    private Task ResumeAsync() => panel is null || !IsJobPaused ? Task.CompletedTask : panel.SetJobPausedAsync(this, paused: false);
 
     [RelayCommand]
     private async Task ConfirmCancelAsync()

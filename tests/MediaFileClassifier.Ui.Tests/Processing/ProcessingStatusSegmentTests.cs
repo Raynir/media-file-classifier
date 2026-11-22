@@ -55,6 +55,57 @@ public sealed class ProcessingStatusSegmentTests
     }
 
     [Fact]
+    public void PauseButton_ShowsWhileWorkIsActive_AndPausesThenResumesEverything()
+    {
+        var progress = new FakeJobProgress();
+        var jobs = new PausedJobSystem();
+        jobs.Resume();
+        using var feed = new ProgressFeed(progress, new ManualTimeProvider(), action => action());
+        using var pause = new ProcessingPause(feed, jobs, action => action());
+        var statusBar = new StatusBarViewModel([new ProcessingStatusSegment(feed, Localizer.Current, jobs: jobs, pause: pause), new ProcessingPauseSegment(feed, pause, Localizer.Current)]);
+        var indicator = statusBar.Right.Single(segment => segment.Id == ProcessingStatusSegment.SegmentId);
+        var button = statusBar.Right.Single(segment => segment.Id == ProcessingPauseSegment.SegmentId);
+        Assert.False(button.IsVisible);
+
+        progress.Set(Summary(Job("Import photos", null, new StageProgress("import.fingerprint", 340, 118, 0, false))));
+        Assert.True(button.IsVisible);
+        Assert.Equal("Icon.Pause", button.IconKey);
+        Assert.Equal("Pause all processing", button.AccessibleName);
+
+        button.Command!.Execute(null);
+
+        Assert.True(jobs.IsPaused);
+        Assert.Equal("Icon.Play", button.IconKey);
+        Assert.Equal("Resume processing", button.ToolTip);
+        Assert.Equal("Processing paused", indicator.Text);
+
+        // A pool paused from the panel is resumed by the same button too.
+        jobs.PausePool(ResourcePool.Ai);
+        button.Command.Execute(null);
+
+        Assert.False(jobs.IsPaused);
+        Assert.Empty(jobs.PausedPools);
+        Assert.Equal("Icon.Pause", button.IconKey);
+        Assert.NotEqual("Processing paused", indicator.Text);
+    }
+
+    [Fact]
+    public void PauseButton_ShowsWhileAPoolIsPaused_EvenWithNothingActive()
+    {
+        var jobs = new PausedJobSystem();
+        jobs.Resume();
+        using var feed = new ProgressFeed(new FakeJobProgress(), new ManualTimeProvider(), action => action());
+        using var pause = new ProcessingPause(feed, jobs, action => action());
+        var statusBar = new StatusBarViewModel([new ProcessingPauseSegment(feed, pause, Localizer.Current)]);
+        var button = Assert.Single(statusBar.Right);
+
+        jobs.PausePool(ResourcePool.Ai);
+
+        Assert.True(button.IsVisible);
+        Assert.Equal("Icon.Play", button.IconKey);
+    }
+
+    [Fact]
     public void Details_SayHowManyAreRetrying_BeforeAnyFailure()
     {
         var job = Job("Analyze photos", null, new StageProgress("custom", 10, 4, 0, false)) with { Retrying = 3 };

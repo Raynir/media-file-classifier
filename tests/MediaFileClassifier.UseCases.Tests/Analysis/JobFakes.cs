@@ -76,9 +76,14 @@ internal sealed class RecordingScheduler : IJobScheduler
     {
     }
 
-    public Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+    public Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(PausedJobs.Add(jobId));
 
-    public Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+    public Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(PausedJobs.Remove(jobId));
+
+    /// <summary>
+    /// Gets the jobs paused through <see cref="PauseJobAsync"/>.
+    /// </summary>
+    public HashSet<Id<ProcessingJob>> PausedJobs { get; } = [];
 
     /// <summary>
     /// Gets how often the parked work was released.

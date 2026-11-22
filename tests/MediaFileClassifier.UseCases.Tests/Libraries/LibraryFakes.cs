@@ -165,6 +165,8 @@ internal sealed class FakeFolderRepository : IFolderRepository
 
     public event EventHandler? StatusChanged;
 
+    public event EventHandler? Changed;
+
     public List<IndexedFolder> Folders { get; } = [];
 
     public Task<IndexedFolder?> GetAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
@@ -177,6 +179,7 @@ internal sealed class FakeFolderRepository : IFolderRepository
     {
         Folders.Add(folder);
         stored[folder.Id] = folder.Status;
+        Changed?.Invoke(this, EventArgs.Empty);
         return Task.CompletedTask;
     }
 
@@ -188,6 +191,7 @@ internal sealed class FakeFolderRepository : IFolderRepository
     {
         Updates++;
         Store(folder);
+        Changed?.Invoke(this, EventArgs.Empty);
         return Task.CompletedTask;
     }
 
@@ -209,7 +213,11 @@ internal sealed class FakeFolderRepository : IFolderRepository
         Task.FromResult((0, false));
 
     public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
-        => Task.FromResult(Folders.RemoveAll(folder => folder.Id == id) > 0);
+    {
+        var deleted = Folders.RemoveAll(folder => folder.Id == id) > 0;
+        Changed?.Invoke(this, EventArgs.Empty);
+        return Task.FromResult(deleted);
+    }
 
     private void Store(IndexedFolder folder)
     {

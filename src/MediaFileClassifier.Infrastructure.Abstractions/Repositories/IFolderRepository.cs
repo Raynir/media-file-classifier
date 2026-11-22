@@ -16,6 +16,17 @@ public interface IFolderRepository
     event EventHandler? StatusChanged;
 
     /// <summary>
+    /// Raised after a write added, changed, merged, split or deleted folders (E04-S01-T01), so folder watching follows
+    /// the folder list. Status changes raise <see cref="StatusChanged"/> instead. It's raised on the writing thread, after
+    /// the write is stored. A repository that never raises it may leave it as this no-op.
+    /// </summary>
+    event EventHandler? Changed
+    {
+        add { }
+        remove { }
+    }
+
+    /// <summary>
     /// Gets a folder.
     /// </summary>
     /// <param name="id">Folder ID.</param>

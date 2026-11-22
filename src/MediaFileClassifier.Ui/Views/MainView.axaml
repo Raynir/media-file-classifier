@@ -277,5 +277,10 @@
   <v:ShortcutReferenceView x:Name="ShortcutReference"
                            DataContext="{Binding Shortcuts}"
                            IsVisible="{Binding State.IsOpen}" />
+
+  <!-- About (MFC-1023), over everything. -->
+  <v:AboutView x:Name="About"
+               DataContext="{Binding About}"
+               IsVisible="{Binding State.IsOpen}" />
   </Panel>
 </UserControl>

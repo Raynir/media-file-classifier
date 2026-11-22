@@ -72,14 +72,15 @@ if (-not $trial) {
     $tagCommit = (git rev-parse --verify --quiet "refs/tags/$tag^{commit}")
     if (-not $tagCommit) { throw "Tag $tag doesn't exist. Tag the release first (docs/development-workflow.md)." }
     if ($tagCommit.Trim() -ne $commit) { throw "HEAD is not at tag $tag. Check out the tag." }
-    if (-not (git ls-remote --tags origin "refs/tags/$tag")) { throw "Tag $tag isn't on origin. Push it first." }
+    $remote = git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}"
+    if (-not $remote) { throw "Tag $tag isn't on origin. Push it first." }
+    if (-not ($remote | Where-Object { $_ -like "$commit*" })) { throw "Tag $tag on origin points at a different commit than HEAD." }
 }
 
 # 2. Notes from the CHANGELOG.
 if (-not $Section) { $Section = $Version }
 $changelog = Get-Content CHANGELOG.md -Raw
 $escaped = [regex]::Escape($Section)
-$dash = [char]0x2014
 $match = [regex]::Match($changelog, "(?ms)^## $escaped(?: — [^\r\n]*)?\r?\n(?<body>.*?)(?=^## |\z)")
 if (-not $match.Success) { throw "CHANGELOG.md has no '## $Section' section." }
 $notes = $match.Groups['body'].Value.Trim()

@@ -6,7 +6,9 @@
     Run from the repository root on the release's tag (docs/development-workflow.md, "Releases"). It:
       1. reads the version from <Version> in Directory.Build.props (the tag is v<version>);
       2. takes the release notes from the "## <version> — <date>" section of CHANGELOG.md;
-      3. publishes the desktop app self-contained for win-x64 and zips it, with a SHA-256 file;
+      3. publishes the desktop app self-contained for win-x64 and zips it, with a SHA-256 file. The zip also holds
+         LICENSE, THIRD_PARTY_NOTICES.md and licenses/ (the LGPL-2.1 text for LibVLC and the DirectML licence,
+         from tools/publish-release/licenses);
       4. runs "gh release create" with the notes and both files.
     GitHub Actions is not used: this works from any machine that has the .NET SDK and an authenticated gh.
 
@@ -92,6 +94,7 @@ $zipName = "MediaFileClassifier-$Version-win-x64.zip"
 $zip = Join-Path $output $zipName
 $hashFile = "$zip.sha256"
 $notesFile = Join-Path $output 'notes.md'
+$licenseSource = Join-Path 'tools' 'publish-release' 'licenses'
 
 # 3. Build and zip.
 New-Item -ItemType Directory -Force $output | Out-Null
@@ -99,6 +102,11 @@ Set-Content -Path $notesFile -Value $notes -Encoding utf8
 if (-not $SkipBuild) {
     Remove-Item $publishDir, $zip, $hashFile -Recurse -Force -ErrorAction SilentlyContinue
     Invoke-Native dotnet @('publish', 'src/MediaFileClassifier.Desktop', '-c', 'Release', '-r', 'win-x64', '--self-contained', "-p:Version=$Version", '-o', $publishDir, '-v', 'q')
+    foreach ($required in @('LICENSE', 'THIRD_PARTY_NOTICES.md', $licenseSource)) {
+        if (-not (Test-Path $required)) { throw "$required is missing: the release zip must carry the licence texts." }
+    }
+    Copy-Item LICENSE, THIRD_PARTY_NOTICES.md -Destination $publishDir
+    Copy-Item $licenseSource -Destination (Join-Path $publishDir 'licenses') -Recurse -Exclude 'README.md'
     Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $zip -CompressionLevel Optimal
 }
 if (-not (Test-Path $zip)) { throw "$zip doesn't exist. Run without -SkipBuild." }
@@ -112,6 +120,15 @@ if ($Version -match '-') { $ghArguments += '--prerelease' }
 if ($Draft) { $ghArguments += @('--draft', '--target', $commit) } else { $ghArguments += '--verify-tag' }
 
 if ($DryRun) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zip).Path)
+    try {
+        Write-Host "`nZip contents (top-level files other than libraries, and licenses/):"
+        $archive.Entries |
+            Where-Object { ($_.FullName -notmatch '/' -and $_.FullName -notmatch '\.(dll|pdb|json)$') -or $_.FullName -like 'licenses/*' } |
+            ForEach-Object { Write-Host ('  {0,12:N0}  {1}' -f $_.Length, $_.FullName) }
+        Write-Host ('  ({0} entries in all)' -f $archive.Entries.Count)
+    } finally { $archive.Dispose() }
     Write-Host "`nDry run. Notes ($notesFile):`n"
     Write-Host $notes
     Write-Host "`nWould run: gh $($ghArguments -join ' ')"

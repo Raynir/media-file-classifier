@@ -1,4 +1,4 @@
-#if DEBUG
+﻿#if DEBUG
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
@@ -236,6 +236,15 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 // Presses a key in the open dialog, on its focused control (E16-S03), e.g. Tab to see where the focus goes.
                 var keyDialog = Dialog() ?? throw new SmokeStepException("no dialog is open");
                 return PressKey(step.Argument, keyDialog.FocusManager?.GetFocusedElement() as Interactive ?? keyDialog);
+            case "popup-key":
+                // Presses a key in the open popup (flyout, context menu or combo drop-down), on its focused control (MFC-1013).
+                var keyPopup = OpenPopup() ?? throw new SmokeStepException("no popup is open");
+                return PressKey(step.Argument, keyPopup.FocusManager?.GetFocusedElement() as Interactive ?? keyPopup);
+            case "popup-shot":
+                var popup = OpenPopup() ?? throw new SmokeStepException("no popup is open");
+                Directory.CreateDirectory(options.OutputDirectory);
+                var popupPath = Path.Combine(options.OutputDirectory, step.Argument + ".png");
+                return $"{popupPath} ({WindowCapture.Save(popup, popupPath)})";
             case "type":
                 var target = FocusedOrWindow();
                 target.RaiseEvent(new TextInputEventArgs { RoutedEvent = InputElement.TextInputEvent, Text = step.Argument, Source = target });
@@ -546,6 +555,12 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             case ["dialog"]:
                 await PollAsync(() => Task.FromResult(Dialog() is { IsVisible: true }), step.Timeout, "a dialog");
                 break;
+            case ["popup"]:
+                await PollAsync(() => Task.FromResult(OpenPopup() is not null), step.Timeout, "a popup");
+                break;
+            case ["no-popup"]:
+                await PollAsync(() => Task.FromResult(OpenPopup() is null), step.Timeout, "no popup");
+                break;
             case ["no-dialog"]:
                 await PollAsync(() => Task.FromResult(Dialog() is null), step.Timeout, "no dialog");
                 break;
@@ -556,6 +571,42 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
     /// Gets the newest window the main window owns, e.g. a modal dialog, or <see langword="null"/>.
     /// </summary>
     private Window? Dialog() => window.OwnedWindows.LastOrDefault();
+
+    /// <summary>
+    /// Gets the window of the open popup (a flyout, a context menu or a combo box drop-down), or <see langword="null"/>.
+    /// Popups are not owned windows and are not in the main window's visual tree, so this asks the controls that can
+    /// open one for their content's top level (MFC-1013).
+    /// </summary>
+    private TopLevel? OpenPopup()
+    {
+        foreach (var control in window.GetVisualDescendants().OfType<Control>())
+        {
+            Control? content = null;
+            if (control is ComboBox { IsDropDownOpen: true } combo)
+            {
+                content = combo.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Popup>().FirstOrDefault(p => p.IsOpen)?.Child;
+            }
+            else if (control is Button { Flyout: Avalonia.Controls.Primitives.FlyoutBase { IsOpen: true } flyout })
+            {
+                content = (flyout as Flyout)?.Content as Control;
+            }
+            else if (control.ContextFlyout is Avalonia.Controls.Primitives.FlyoutBase { IsOpen: true } contextFlyout)
+            {
+                content = (contextFlyout as Flyout)?.Content as Control ?? (contextFlyout as MenuFlyout)?.Items.OfType<Control>().FirstOrDefault();
+            }
+            else if (control.ContextMenu is { IsOpen: true } menu)
+            {
+                content = menu;
+            }
+
+            if (content is not null && TopLevel.GetTopLevel(content) is { } top && top != window)
+            {
+                return top;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Finds a shown control by its <c>x:Name</c> or its type name.

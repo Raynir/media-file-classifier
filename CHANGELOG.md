@@ -12,6 +12,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Added
 
+- UI smoke tool (MFC-1013): `popup-key` and `popup-shot` steps and `wait-for popup` / `no-popup` send a key to, and capture, the open flyout, context menu or combo drop-down, so keyboard use of popups can be checked by script.
 - AI & Models settings (MFC-1016): an "Open models folder" button shows the folder where models are stored in File Explorer (MFC-1019).
 
 ## M5 — 2026-11-21

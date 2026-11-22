@@ -38,7 +38,7 @@ internal static class SmokeScript
 
     private static readonly HashSet<string> Verbs = new(StringComparer.Ordinal)
     {
-        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-type", "dialog-key", "dialog-shot", "dialog-size",
+        "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-type", "dialog-key", "popup-key", "popup-shot", "dialog-shot", "dialog-size",
         "damage-library", "unplug-folder", "plug-folder", "allow-error", "import-files", "dialog-select", "drag-over", "drop",
     };
 
@@ -142,7 +142,7 @@ internal static class SmokeScript
                     ["idle"] => null,
                     ["items", var count] when int.TryParse(count, CultureInfo.InvariantCulture, out _) => null,
                     ["visible" or "hidden", _] => null,
-                    ["dialog" or "no-dialog"] => null,
+                    ["dialog" or "no-dialog" or "popup" or "no-popup"] => null,
                     _ => "expected 'idle', 'items <count>', 'visible <control>', 'hidden <control>', 'dialog' or 'no-dialog', then an optional timeout",
                 };
                 break;
@@ -159,7 +159,7 @@ internal static class SmokeScript
             case "setting":
                 error = step.Argument.Contains(' ', StringComparison.Ordinal) ? null : "expected a setting key and a value, e.g. 'appearance.showFileNames false'";
                 break;
-            case "key" or "dialog-key":
+            case "key" or "dialog-key" or "popup-key":
                 error = TryParseKey(step.Argument, out _) ? null : "expected a key such as Space, Right, Ctrl+2 or Ctrl+Shift+F";
                 break;
             case "damage-library" or "unplug-folder" or "plug-folder":

@@ -9,6 +9,8 @@ using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.UseCases.Libraries;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
+using MediaFileClassifier.UseCases.Rescan.StartRescan;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -22,19 +24,30 @@ namespace MediaFileClassifier.UseCases.Monitoring;
 /// the stable changes are published as <see cref="FolderChangesDetected"/> (E04-S01-T02). Paths the ignore list
 /// (<see cref="MonitoringSettings.IgnorePatterns"/>), the folder's rules or the supported formats leave out are dropped
 /// as they arrive; a partial folder (D012) reports only its tracked files, and changes to excluded items (E02-S10) aren't
-/// reported (E04-S01-T03).
+/// reported (E04-S01-T03). When a watcher overflows, the folder is rescanned (E02-S04); when it fails, the folder's
+/// availability is checked, and if it's still Online it's watched again and rescanned. A rescan refused because the
+/// folder's import or rescan work is running is asked for again every <see cref="BusyRetry"/> (E04-S01-T04).
 /// </summary>
 public sealed class FolderWatchManager : IDisposable
 {
+    /// <summary>
+    /// How long to wait before asking again for a rescan that was refused because other work of the folder is running.
+    /// </summary>
+    public static readonly TimeSpan BusyRetry = TimeSpan.FromSeconds(15);
+
     private readonly ILibrarySession session;
     private readonly IFolderWatcherFactory? factory;
     private readonly IPublisher publisher;
+    private readonly ISender sender;
+    private readonly TimeProvider clock;
     private readonly ISettingsStore settings;
     private readonly IMediaFormatRegistry formats;
     private readonly ILogger<FolderWatchManager> logger;
     private readonly FolderChangeBuffer buffer;
     private readonly Lock syncRoot = new();
     private readonly Dictionary<Id<IndexedFolder>, WatchedFolder> watched = [];
+    private readonly HashSet<Id<IndexedFolder>> rescansWanted = [];
+    private readonly HashSet<Task> recoveries = [];
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "A refresh already under way may still use it after Dispose; it holds no OS handle unless its wait handle is read.")]
     private readonly SemaphoreSlim refreshGate = new(1, 1);
@@ -54,15 +67,17 @@ public sealed class FolderWatchManager : IDisposable
     /// <param name="session">Holds the open library.</param>
     /// <param name="files">Checks that changed files are stable.</param>
     /// <param name="publisher">Publishes the stable changes.</param>
+    /// <param name="sender">Sends the rescans and availability checks that recover lost events.</param>
     /// <param name="settings">Holds the ignore list.</param>
     /// <param name="formats">Tells which files are media files.</param>
-    /// <param name="clock">Times the debounce and the stability checks.</param>
+    /// <param name="clock">Times the debounce, the stability checks and the rescan retries.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="factory">Starts the watchers, or <see langword="null"/> where the platform can't watch folders.</param>
     public FolderWatchManager(
         ILibrarySession session,
         IMediaFileSource files,
         IPublisher publisher,
+        ISender sender,
         ISettingsStore settings,
         IMediaFormatRegistry formats,
         TimeProvider clock,
@@ -71,6 +86,8 @@ public sealed class FolderWatchManager : IDisposable
     {
         this.session = session;
         this.publisher = publisher;
+        this.sender = sender;
+        this.clock = clock;
         this.settings = settings;
         this.formats = formats;
         ignore = new IgnoreList(settings.Get(MonitoringSettings.IgnorePatterns));
@@ -157,6 +174,30 @@ public sealed class FolderWatchManager : IDisposable
         finally
         {
             refreshGate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Waits until the rescans and availability checks under way after lost events are done. A rescan waiting for busy
+    /// work counts as under way.
+    /// </summary>
+    /// <returns>A task that completes when no recovery is under way.</returns>
+    public async Task WaitForRecoveryAsync()
+    {
+        while (true)
+        {
+            Task[] pending;
+            lock (syncRoot)
+            {
+                pending = [.. recoveries];
+            }
+
+            if (pending.Length == 0)
+            {
+                return;
+            }
+
+            await Task.WhenAll(pending).ConfigureAwait(false);
         }
     }
 
@@ -302,14 +343,173 @@ public sealed class FolderWatchManager : IDisposable
             var watcher = factory!.Watch(folder.ToHandle());
             var entry = new WatchedFolder(folder, watcher);
             watcher.Changed += (_, change) => OnChanged(entry, change);
+            watcher.Failed += (_, error) => OnFailed(entry, error);
             logger.LogInformation("Watching {Folder}", folder.DisplayPath);
             return entry;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or PlatformNotSupportedException)
         {
+            // E.g. the folder went away since its last check. The check marks it Offline, and coming back watches it. A
+            // folder that's still Online but can't be watched isn't tried again until the next refresh.
             logger.LogWarning(exception, "Can't watch {Folder}", folder.DisplayPath);
+            Track(Task.Run(() => CheckAvailabilityAsync(folder.Id)));
             return null;
         }
+    }
+
+    /// <summary>
+    /// Recovers the events a watcher lost. An overflow leaves the watcher running, so the folder is rescanned. Any other
+    /// error stops the watcher; the folder's availability is checked, and if it's still Online it's watched again and
+    /// rescanned. If it's Offline, coming back Online watches it again.
+    /// </summary>
+    private void OnFailed(WatchedFolder entry, FolderWatchErrorEventArgs error)
+    {
+        if (entry.IsStopped)
+        {
+            return;
+        }
+
+        var folder = entry.Folder;
+        if (error.IsOverflow)
+        {
+            logger.LogWarning("The watcher of {Folder} lost events; rescanning it", folder.DisplayPath);
+            RequestRescan(folder.Id);
+            return;
+        }
+
+        lock (syncRoot)
+        {
+            if (disposed || !watched.TryGetValue(folder.Id, out var current) || !ReferenceEquals(current, entry))
+            {
+                return;
+            }
+
+            entry.Stop();
+            watched.Remove(folder.Id);
+            buffer.Forget(folder.Id);
+        }
+
+        logger.LogWarning(error.Exception, "The watcher of {Folder} failed; checking the folder", folder.DisplayPath);
+        Track(RecoverAsync(folder.Id));
+    }
+
+    private async Task RecoverAsync(Id<IndexedFolder> folderId)
+    {
+        await CheckAvailabilityAsync(folderId).ConfigureAwait(false);
+        await RefreshAsync().ConfigureAwait(false);
+        if (IsWatched(folderId))
+        {
+            RequestRescan(folderId);
+        }
+    }
+
+    private async Task CheckAvailabilityAsync(Id<IndexedFolder> folderId)
+    {
+        var token = stopping.Token;
+        try
+        {
+            await sender.Send(new CheckFolderAvailabilityCommand([folderId]), token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Shutting down.
+        }
+        catch (Exception exception)
+        {
+            // E.g. the library closed during the check.
+            logger.LogWarning(exception, "Couldn't check folder {Folder} after its watcher failed", folderId);
+        }
+    }
+
+    /// <summary>
+    /// Asks for a rescan of the folder, unless one is asked for already.
+    /// </summary>
+    private void RequestRescan(Id<IndexedFolder> folderId)
+    {
+        lock (syncRoot)
+        {
+            if (disposed || !rescansWanted.Add(folderId))
+            {
+                return;
+            }
+        }
+
+        Track(RescanAsync(folderId));
+    }
+
+    /// <summary>
+    /// Starts a rescan of the folder. While the folder's import or rescan work runs, it's asked for again every
+    /// <see cref="BusyRetry"/>, because the running job may have passed the changed files; it stops when the folder isn't
+    /// watched anymore.
+    /// </summary>
+    private async Task RescanAsync(Id<IndexedFolder> folderId)
+    {
+        var token = stopping.Token;
+        try
+        {
+            while (IsWatched(folderId))
+            {
+                var result = await sender.Send(new StartRescanCommand(folderId), token).ConfigureAwait(false);
+                if (result.Outcome != StartRescanOutcome.Busy)
+                {
+                    if (result.Outcome != StartRescanOutcome.Started)
+                    {
+                        logger.LogWarning("Folder {Folder} wasn't rescanned after lost events: {Outcome}", folderId, result.Outcome);
+                    }
+
+                    return;
+                }
+
+                await Task.Delay(BusyRetry, clock, token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Shutting down.
+        }
+        catch (Exception exception)
+        {
+            // E.g. the library closed. Opening it again checks its folders.
+            logger.LogWarning(exception, "Couldn't rescan folder {Folder} after lost events", folderId);
+        }
+        finally
+        {
+            lock (syncRoot)
+            {
+                rescansWanted.Remove(folderId);
+            }
+        }
+    }
+
+    private bool IsWatched(Id<IndexedFolder> folderId)
+    {
+        lock (syncRoot)
+        {
+            return !disposed && watched.ContainsKey(folderId);
+        }
+    }
+
+    /// <summary>
+    /// Keeps a recovery task until it's done, for <see cref="WaitForRecoveryAsync"/>. The tasks don't fail.
+    /// </summary>
+    private void Track(Task task)
+    {
+        lock (syncRoot)
+        {
+            recoveries.Add(task);
+        }
+
+        _ = task.ContinueWith(
+            done =>
+            {
+                lock (syncRoot)
+                {
+                    recoveries.Remove(done);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
     private void OnChanged(WatchedFolder folder, FolderWatchEvent change)

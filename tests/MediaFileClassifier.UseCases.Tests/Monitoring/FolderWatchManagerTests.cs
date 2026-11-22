@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
@@ -9,8 +10,11 @@ using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Testing.Timing;
+using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Libraries;
+using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Monitoring;
+using MediaFileClassifier.UseCases.Rescan.StartRescan;
 using MediaFileClassifier.UseCases.Tests.Libraries;
 using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -130,6 +134,152 @@ public sealed class FolderWatchManagerTests
         await bed.StartAsync();
 
         Assert.Equal([other.Id], bed.Manager.WatchedFolders);
+    }
+
+    [Fact]
+    public async Task Overflow_RescansTheFolder_AndKeepsWatchingIt()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        var other = await bed.AddFolderAsync(@"E:\Other");
+        await bed.StartAsync();
+
+        bed.Factory.Fail(@"E:\Photos", overflow: true);
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Equal([folder.Id], bed.Sender.Rescans.Select(rescan => rescan.FolderId));
+        Assert.Equal(2, bed.Manager.WatchedFolders.Count);
+        Assert.Contains(folder.Id, bed.Manager.WatchedFolders);
+        Assert.Contains(other.Id, bed.Manager.WatchedFolders);
+        Assert.Equal(2, bed.Factory.Started);
+    }
+
+    [Fact]
+    public async Task Overflow_WhileTheFolderIsBusy_IsRetriedEvery15Seconds_UntilARescanStarts()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Sender.Outcomes.Enqueue(StartRescanOutcome.Busy);
+        bed.Sender.Outcomes.Enqueue(StartRescanOutcome.Busy);
+
+        bed.Factory.Fail(@"E:\Photos", overflow: true);
+
+        // A second overflow while one is waiting doesn't ask twice.
+        bed.Factory.Fail(@"E:\Photos", overflow: true);
+        Assert.Single(bed.Sender.Rescans);
+        bed.Clock.Advance(FolderWatchManager.BusyRetry - TimeSpan.FromSeconds(1));
+        Assert.Single(bed.Sender.Rescans);
+        await AdvanceUntilAsync(bed, () => bed.Sender.Rescans.Count() == 2);
+        await AdvanceUntilAsync(bed, () => bed.Sender.Rescans.Count() == 3);
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.All(bed.Sender.Rescans, rescan => Assert.Equal(folder.Id, rescan.FolderId));
+        Assert.Equal(3, bed.Sender.Rescans.Count());
+    }
+
+    [Fact]
+    public async Task Overflow_WhileTheFolderIsBusy_StopsRetrying_WhenTheFolderIsntWatchedAnymore()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Sender.Then = StartRescanOutcome.Busy;
+
+        bed.Factory.Fail(@"E:\Photos", overflow: true);
+        await bed.Library.FolderList.DeleteAsync(folder.Id, TestContext.Current.CancellationToken);
+        await bed.Manager.RefreshAsync();
+        bed.Clock.Advance(FolderWatchManager.BusyRetry);
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Single(bed.Sender.Rescans);
+    }
+
+    [Theory]
+    [InlineData(StartRescanOutcome.NothingToScan)]
+    [InlineData(StartRescanOutcome.Unavailable)]
+    public async Task Overflow_RescanRefusedForGood_IsNotRetried(StartRescanOutcome outcome)
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Sender.Then = outcome;
+
+        bed.Factory.Fail(@"E:\Photos", overflow: true);
+        bed.Clock.Advance(FolderWatchManager.BusyRetry * 2);
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Single(bed.Sender.Rescans);
+    }
+
+    [Fact]
+    public async Task Error_FolderStillOnline_ChecksIt_WatchesItAgain_AndRescansIt()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Share");
+        await bed.StartAsync();
+
+        bed.Factory.Fail(@"E:\Share", overflow: false);
+        await bed.Manager.WaitForRecoveryAsync();
+
+        var check = Assert.Single(bed.Sender.Requests.OfType<CheckFolderAvailabilityCommand>());
+        Assert.Equal([folder.Id], check.FolderIds!);
+        Assert.Equal(2, bed.Factory.Started);
+        Assert.Equal([@"E:\Share"], bed.Factory.Running);
+        Assert.Equal([folder.Id], bed.Sender.Rescans.Select(rescan => rescan.FolderId));
+    }
+
+    [Fact]
+    public async Task Error_FolderNowOffline_StopsItsWatcher_WithoutARescan()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Share");
+        await bed.StartAsync();
+        bed.Sender.OnCheck = async _ =>
+        {
+            folder.MarkOffline(Now);
+            await bed.Library.FolderList.UpdateAvailabilityAsync(folder, TestContext.Current.CancellationToken);
+        };
+
+        bed.Factory.Fail(@"E:\Share", overflow: false);
+        await bed.Manager.WaitForRecoveryAsync();
+        await bed.Manager.RefreshAsync();
+
+        Assert.Empty(bed.Manager.WatchedFolders);
+        Assert.Empty(bed.Factory.Running);
+        Assert.Empty(bed.Sender.Rescans);
+    }
+
+    [Fact]
+    public async Task Folder_ThatCantBeWatched_IsChecked()
+    {
+        var bed = new Bed();
+        var gone = await bed.AddFolderAsync(@"E:\Gone");
+        bed.Factory.Failing.Add(@"E:\Gone");
+
+        await bed.StartAsync();
+        await bed.Manager.WaitForRecoveryAsync();
+
+        // Each refresh that can't watch it asks for a check.
+        var checks = bed.Sender.Requests.OfType<CheckFolderAvailabilityCommand>().ToList();
+        Assert.NotEmpty(checks);
+        Assert.All(checks, check => Assert.Equal([gone.Id], check.FolderIds!));
+        Assert.Empty(bed.Sender.Rescans);
+    }
+
+    /// <summary>
+    /// Moves the clock on by the retry wait until the condition holds; a retry's wait starts on a thread-pool thread.
+    /// </summary>
+    private static async Task AdvanceUntilAsync(Bed bed, Func<bool> condition)
+    {
+        bed.Clock.Advance(FolderWatchManager.BusyRetry);
+        var end = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (!condition() && DateTime.UtcNow < end)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        Assert.True(condition());
     }
 
     [Fact]
@@ -298,7 +448,7 @@ public sealed class FolderWatchManagerTests
         public Bed()
         {
             Library = new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "watching"), "watching");
-            Manager = new FolderWatchManager(Session, Files, Publisher, Settings, new MediaExtensions(), Clock, NullLogger<FolderWatchManager>.Instance, Factory);
+            Manager = new FolderWatchManager(Session, Files, Publisher, Sender, Settings, new MediaExtensions(), Clock, NullLogger<FolderWatchManager>.Instance, Factory);
         }
 
         public FakeLibrarySession Session { get; } = new();
@@ -308,6 +458,8 @@ public sealed class FolderWatchManagerTests
         public InMemoryMediaFileSource Files { get; } = new();
 
         public RecordingPublisher Publisher { get; } = new();
+
+        public RecordingSender Sender { get; } = new();
 
         public InMemorySettingsStore Settings { get; } = new();
 
@@ -391,6 +543,42 @@ public sealed class FolderWatchManagerTests
             public void Raise(FolderWatchEvent change) => Changed?.Invoke(this, change);
 
             public void Fail(bool overflow) => Failed?.Invoke(this, new FolderWatchErrorEventArgs(overflow, overflow ? new InternalBufferOverflowException() : new IOException("The network name is no longer available.")));
+        }
+    }
+
+    /// <summary>
+    /// Records the requests, answers rescans with the queued outcomes, then with <see cref="Then"/>.
+    /// </summary>
+    private sealed class RecordingSender : FakeSender
+    {
+        public ConcurrentQueue<object> Requests { get; } = new();
+
+        public ConcurrentQueue<StartRescanOutcome> Outcomes { get; } = new();
+
+        public StartRescanOutcome Then { get; set; } = StartRescanOutcome.Started;
+
+        public Func<CheckFolderAvailabilityCommand, Task>? OnCheck { get; set; }
+
+        public IEnumerable<StartRescanCommand> Rescans => Requests.OfType<StartRescanCommand>();
+
+        public override async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        {
+            Requests.Enqueue(request);
+            switch (request)
+            {
+                case StartRescanCommand:
+                    var outcome = Outcomes.TryDequeue(out var next) ? next : Then;
+                    return (TResponse)(object)new StartRescanResult(null, outcome);
+                case CheckFolderAvailabilityCommand check:
+                    if (OnCheck is not null)
+                    {
+                        await OnCheck(check);
+                    }
+
+                    return (TResponse)(object)Array.Empty<IndexedFolder>();
+                default:
+                    throw new NotSupportedException(request.GetType().Name);
+            }
         }
     }
 

@@ -16,8 +16,10 @@ public interface IJobRepository
     /// <param name="job">The new job.</param>
     /// <param name="workItems">Its work items.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="stored">Called with each batch once it's stored, or <see langword="null"/>. A write that fails
+    /// after the first batch leaves the earlier batches stored, and they may run.</param>
     /// <returns>A task that completes when the job and its items are stored.</returns>
-    Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, CancellationToken cancellationToken = default);
+    Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, CancellationToken cancellationToken = default, Action<IReadOnlyCollection<WorkItem>>? stored = null);
 
     /// <summary>
     /// Adds work items to an existing job, e.g. the next stage for an item. A finished job goes back to
@@ -27,8 +29,11 @@ public interface IJobRepository
     /// <param name="workItems">The new work items.</param>
     /// <param name="now">Current time.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns><see langword="false"/> if the job doesn't exist or is cancelled; nothing is added then.</returns>
-    Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, CancellationToken cancellationToken = default);
+    /// <param name="stored">Called with each batch once it's stored, or <see langword="null"/>. A write that fails or
+    /// stops after the first batch leaves the earlier batches stored, and they may run.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist or is cancelled; the batches from then on aren't
+    /// added.</returns>
+    Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, CancellationToken cancellationToken = default, Action<IReadOnlyCollection<WorkItem>>? stored = null);
 
     /// <summary>
     /// Gets a job.

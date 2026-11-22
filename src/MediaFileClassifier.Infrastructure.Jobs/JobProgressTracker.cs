@@ -123,16 +123,19 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
     }
 
     /// <summary>
-    /// Counts new work items of a job. A job that isn't tracked yet, e.g. a new one or a finished one that gets more
-    /// work, starts with these items.
+    /// Counts new work items of a job before they're stored, so one can't finish before its job is tracked. A job that
+    /// isn't tracked yet, e.g. a new one or a finished one that gets more work, starts with these items. Once the write
+    /// is over, pass the result to <see cref="EndAddWork"/>.
     /// </summary>
     /// <param name="job">The job.</param>
     /// <param name="workItems">The new work items, queued.</param>
-    public void AddWork(ProcessingJob job, IEnumerable<WorkItem> workItems)
+    /// <returns>The counted work items.</returns>
+    public WorkAddition AddWork(ProcessingJob job, IEnumerable<WorkItem> workItems)
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(workItems);
 
+        WorkAddition addition;
         lock (gate)
         {
             var now = clock.GetUtcNow();
@@ -149,47 +152,86 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
                 jobs.Add(counters);
             }
 
+            // The first of the writes under way remembers whether the job was reported finished, so the report comes
+            // back if none of them stores anything.
+            if (counters.OpenAdditions == 0)
+            {
+                counters.WasFinishedBeforeAdditions = counters.IsJobFinished;
+                counters.AnyAdditionStored = false;
+            }
+
+            counters.OpenAdditions++;
+
             // The new work reopens a job that was reported finished.
             counters.IsJobFinished = false;
 
+            var count = 0;
             foreach (var workItem in workItems)
             {
                 counters.Stage(workItem.Stage, workItem.ItemId is null).Add(WorkItemState.Queued, 1);
+                count++;
             }
+
+            addition = new WorkAddition(job.Id, count, counters);
         }
 
         OnChanged();
+        return addition;
     }
 
     /// <summary>
-    /// Takes back work items counted by <see cref="AddWork"/> that weren't stored after all. A job left with no work
-    /// items is forgotten.
+    /// Ends a write of work items counted by <see cref="AddWork"/>, and takes back those that weren't stored. When none
+    /// of the job's writes under way stored anything, the job is as it was before them: one left with no work items is
+    /// forgotten, and one that was reported finished is again, and reports finished now if nothing else is pending.
     /// </summary>
-    /// <param name="jobId">The job.</param>
-    /// <param name="workItems">The work items.</param>
-    public void RemoveWork(Id<ProcessingJob> jobId, IEnumerable<WorkItem> workItems)
+    /// <param name="addition">What <see cref="AddWork"/> returned.</param>
+    /// <param name="notStored">The work items that weren't stored: none when the write succeeded, all of them when it
+    /// stored nothing.</param>
+    public void EndAddWork(WorkAddition addition, IReadOnlyCollection<WorkItem> notStored)
     {
-        ArgumentNullException.ThrowIfNull(workItems);
+        ArgumentNullException.ThrowIfNull(addition);
+        ArgumentNullException.ThrowIfNull(notStored);
 
+        JobFinishedEventArgs? finished = null;
         lock (gate)
         {
-            if (Find(jobId) is not { } counters)
+            var ended = addition.IsEnded;
+            addition.IsEnded = true;
+
+            // Counters replaced since (a reset, a cancel, or a job that finished and was tracked again) don't hold
+            // these items, so taking them back would push the queued count below zero.
+            if (ended || Find(addition.JobId) is not { } counters || !ReferenceEquals(counters, addition.Counters))
             {
                 return;
             }
 
-            foreach (var workItem in workItems)
+            foreach (var workItem in notStored)
             {
-                counters.Stage(workItem.Stage, workItem.ItemId is null).Add(WorkItemState.Queued, -1);
+                counters.Stage(workItem.Stage, workItem.ItemId is null).Take(WorkItemState.Queued);
             }
 
-            if (counters.IsEmpty)
+            counters.OpenAdditions--;
+            counters.AnyAdditionStored |= notStored.Count < addition.Count;
+
+            // Nothing new was stored, so nothing will report the job finished again: a report kept from before the
+            // writes is restored, unless the job was reported finished meanwhile.
+            if (counters.OpenAdditions == 0 && !counters.AnyAdditionStored && !counters.IsJobFinished)
+            {
+                counters.IsJobFinished = counters.WasFinishedBeforeAdditions;
+            }
+
+            if (counters.IsEmpty && counters.OpenAdditions == 0)
             {
                 jobs.Remove(counters);
             }
+            else
+            {
+                // The rest of the job's work may have finished during the write.
+                finished = ForgetIfFinished(counters);
+            }
         }
 
-        OnChanged();
+        RaiseChanges(finished);
     }
 
     /// <summary>
@@ -203,7 +245,7 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
         ArgumentNullException.ThrowIfNull(workItem);
         ArgumentNullException.ThrowIfNull(job);
 
-        JobFinishedEventArgs? finished = null;
+        JobFinishedEventArgs? finished;
         lock (gate)
         {
             if (Find(job.Id) is not { } counters)
@@ -229,15 +271,15 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
             {
                 case WorkItemState.Completed or WorkItemState.Failed:
                     var now = clock.GetUtcNow();
-                    // Already part of the total since it was queued.
+                    // Already part of the total since it was queued, unless the tracker never counted it.
+                    stage.Take(WorkItemState.Queued);
                     stage.Add(workItem.State, 1);
-                    stage.Add(WorkItemState.Queued, -1);
                     counters.Throughput.Record(now);
                     overall.Record(now);
                     break;
                 case WorkItemState.Cancelled:
                     // Pending work that won't run isn't counted.
-                    stage.Add(WorkItemState.Queued, -1);
+                    stage.Take(WorkItemState.Queued);
                     break;
             }
 
@@ -249,18 +291,29 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
                 counters.FinalState = job.State;
             }
 
-            // Work being added to the job right now is already counted, and reopens the job. The job leaves the list
-            // once, so it's reported finished once, however the last work items interleave.
-            if (counters.IsJobFinished && !counters.HasPending)
-            {
-                jobs.Remove(counters);
-                if (counters.FinalState is ProcessingJobState.Completed or ProcessingJobState.Failed)
-                {
-                    finished = new JobFinishedEventArgs(counters.ToProgress(clock.GetUtcNow(), () => null), counters.FinalState);
-                }
-            }
+            finished = ForgetIfFinished(counters);
         }
 
+        RaiseChanges(finished);
+    }
+
+    // Work being added to the job right now is already counted, and reopens the job. The job leaves the list once, so
+    // it's reported finished once, however the last work items interleave. Called under the gate.
+    private JobFinishedEventArgs? ForgetIfFinished(JobCounters counters)
+    {
+        if (!counters.IsJobFinished || counters.HasPending)
+        {
+            return null;
+        }
+
+        jobs.Remove(counters);
+        return counters.FinalState is ProcessingJobState.Completed or ProcessingJobState.Failed
+            ? new JobFinishedEventArgs(counters.ToProgress(clock.GetUtcNow(), () => null), counters.FinalState)
+            : null;
+    }
+
+    private void RaiseChanges(JobFinishedEventArgs? finished)
+    {
         try
         {
             OnChanged();
@@ -339,13 +392,28 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
         public ProcessingJobState FinalState { get; set; }
 
         /// <summary>
+        /// Gets or sets how many writes of work items counted by <see cref="AddWork"/> haven't ended yet.
+        /// </summary>
+        public int OpenAdditions { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the job was reported finished when the first of the open writes began.
+        /// </summary>
+        public bool WasFinishedBeforeAdditions { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether one of the open writes stored work items.
+        /// </summary>
+        public bool AnyAdditionStored { get; set; }
+
+        /// <summary>
         /// Gets the work items that failed and were queued again for a retry since tracking started.
         /// </summary>
         public HashSet<Id<WorkItem>> Retrying { get; } = [];
 
         public bool IsEmpty => stages.All(stage => stage.Total == 0);
 
-        public bool HasPending => stages.Any(stage => stage.Total > stage.Done + stage.Failed);
+        public bool HasPending => stages.Any(stage => stage.Pending > 0);
 
         public StageCounters Stage(string stage, bool isWholeTarget)
         {
@@ -393,6 +461,21 @@ public sealed class JobProgressTracker(TimeProvider clock, IThroughputHints? hin
         public int Done { get; private set; }
 
         public int Failed { get; private set; }
+
+        public int Pending => Total - Done - Failed;
+
+        /// <summary>
+        /// Takes back one pending work item counted in a state, e.g. one that finished or wasn't stored. One that was
+        /// never counted (e.g. stored while the library's counters were reset) isn't, so the pending count never goes
+        /// below zero.
+        /// </summary>
+        public void Take(WorkItemState state)
+        {
+            if (Pending > 0)
+            {
+                Add(state, -1);
+            }
+        }
 
         /// <summary>
         /// Counts work items in a state: queued and running ones are only part of the total.

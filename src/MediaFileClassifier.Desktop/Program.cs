@@ -120,6 +120,7 @@ internal static partial class Program
                 {
                     SimulateCrashIfRequested(lifetime, args);
                     host.Services.GetRequiredService<WindowsVolumeWatcher>().Attach(lifetime);
+                    host.Services.GetRequiredService<WindowsEjectNotifications>().Attach(lifetime);
                     AttachSmoke(lifetime, host.Services);
                 });
             host.StopAsync().GetAwaiter().GetResult();

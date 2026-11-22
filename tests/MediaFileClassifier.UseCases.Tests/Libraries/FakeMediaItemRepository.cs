@@ -74,7 +74,8 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
         return Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. due.Select(item => item.Id)]);
     }
 
-    public Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Items.FirstOrDefault(item => item.FolderId == folderId && string.Equals(item.Path.Value, path.Value, StringComparison.OrdinalIgnoreCase)));
 
     public Task<IReadOnlyList<MediaItemFileState>> GetFileStatesAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

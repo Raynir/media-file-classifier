@@ -39,6 +39,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderStatusChanges>();
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderAvailabilityMonitor>();
         services.TryAddSingleton<Monitoring.FolderWatchManager>();
+        services.AddSetting(Monitoring.MonitoringSettings.IgnorePatterns);
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();

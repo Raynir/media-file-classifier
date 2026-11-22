@@ -1779,6 +1779,12 @@
   <data name="Setting_InformationalNotifications_Help" xml:space="preserve">
     <value>Short messages such as "Analysis finished". Errors and warnings always show.</value>
   </data>
+  <data name="Setting_MonitoringIgnorePatterns" xml:space="preserve">
+    <value>Files to ignore while watching folders</value>
+  </data>
+  <data name="Setting_MonitoringIgnorePatterns_Help" xml:space="preserve">
+    <value>Temporary and partly written files, such as downloads in progress and Office lock files, separated by semicolons. * matches any characters.</value>
+  </data>
   <data name="Setting_LastFilters" xml:space="preserve">
     <value>Last filters</value>
   </data>

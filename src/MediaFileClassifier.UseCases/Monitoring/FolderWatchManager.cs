@@ -1,9 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.UseCases.Libraries;
 using MediatR;
@@ -16,13 +19,18 @@ namespace MediaFileClassifier.UseCases.Monitoring;
 /// library opening and closing, folders being added, changed, merged or removed, and folders going Offline and coming
 /// back. A folder being removed isn't watched. Where the platform can't watch folders (no
 /// <see cref="IFolderWatcherFactory"/>), it does nothing. Raw events go through a <see cref="FolderChangeBuffer"/>, and
-/// the stable changes are published as <see cref="FolderChangesDetected"/> (E04-S01-T02).
+/// the stable changes are published as <see cref="FolderChangesDetected"/> (E04-S01-T02). Paths the ignore list
+/// (<see cref="MonitoringSettings.IgnorePatterns"/>), the folder's rules or the supported formats leave out are dropped
+/// as they arrive; a partial folder (D012) reports only its tracked files, and changes to excluded items (E02-S10) aren't
+/// reported (E04-S01-T03).
 /// </summary>
 public sealed class FolderWatchManager : IDisposable
 {
     private readonly ILibrarySession session;
     private readonly IFolderWatcherFactory? factory;
     private readonly IPublisher publisher;
+    private readonly ISettingsStore settings;
+    private readonly IMediaFormatRegistry formats;
     private readonly ILogger<FolderWatchManager> logger;
     private readonly FolderChangeBuffer buffer;
     private readonly Lock syncRoot = new();
@@ -34,6 +42,7 @@ public sealed class FolderWatchManager : IDisposable
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Cancelled by Dispose; a refresh already under way may still read its token. It has no timer or wait handle.")]
     private readonly CancellationTokenSource stopping = new();
 
+    private volatile IgnoreList ignore;
     private IOpenLibrary? library;
     private IFolderRepository? folderEvents;
     private bool started;
@@ -45,6 +54,8 @@ public sealed class FolderWatchManager : IDisposable
     /// <param name="session">Holds the open library.</param>
     /// <param name="files">Checks that changed files are stable.</param>
     /// <param name="publisher">Publishes the stable changes.</param>
+    /// <param name="settings">Holds the ignore list.</param>
+    /// <param name="formats">Tells which files are media files.</param>
     /// <param name="clock">Times the debounce and the stability checks.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="factory">Starts the watchers, or <see langword="null"/> where the platform can't watch folders.</param>
@@ -52,12 +63,17 @@ public sealed class FolderWatchManager : IDisposable
         ILibrarySession session,
         IMediaFileSource files,
         IPublisher publisher,
+        ISettingsStore settings,
+        IMediaFormatRegistry formats,
         TimeProvider clock,
         ILogger<FolderWatchManager> logger,
         IFolderWatcherFactory? factory = null)
     {
         this.session = session;
         this.publisher = publisher;
+        this.settings = settings;
+        this.formats = formats;
+        ignore = new IgnoreList(settings.Get(MonitoringSettings.IgnorePatterns));
         this.logger = logger;
         this.factory = factory;
         buffer = new FolderChangeBuffer(files, clock, logger, PublishAsync);
@@ -92,6 +108,7 @@ public sealed class FolderWatchManager : IDisposable
 
             started = true;
             session.CurrentChanged += OnLibraryChanged;
+            settings.Changed += OnSettingChanged;
         }
 
         RequestRefresh();
@@ -157,6 +174,7 @@ public sealed class FolderWatchManager : IDisposable
 
             disposed = true;
             session.CurrentChanged -= OnLibraryChanged;
+            settings.Changed -= OnSettingChanged;
         }
 
         Follow(null);
@@ -166,7 +184,18 @@ public sealed class FolderWatchManager : IDisposable
 
     private void RequestRefresh() => _ = RefreshAsync();
 
+    private static Task<MediaItem?> FindAsync(IOpenLibrary current, Id<IndexedFolder> folderId, string path, CancellationToken cancellationToken) =>
+        current.Items.FindByPathAsync(folderId, RelativePath.From(path), cancellationToken);
+
     private void OnLibraryChanged(object? sender, EventArgs e) => RequestRefresh();
+
+    private void OnSettingChanged(object? sender, SettingChangedEventArgs e)
+    {
+        if (e.Setting.Key == MonitoringSettings.IgnorePatterns.Key)
+        {
+            ignore = new IgnoreList(settings.Get(MonitoringSettings.IgnorePatterns));
+        }
+    }
 
     private void OnFoldersChanged(object? sender, EventArgs e)
     {
@@ -290,18 +319,117 @@ public sealed class FolderWatchManager : IDisposable
             return;
         }
 
-        buffer.Record(folder.Folder.Id, folder.Handle, change);
+        if (Filter(folder.Folder, change) is { } kept)
+        {
+            buffer.Record(folder.Folder.Id, folder.Handle, kept);
+        }
+    }
+
+    /// <summary>
+    /// Drops what the ignore list, the folder's rules or the supported formats leave out. A rename between a path that's
+    /// left out and one that isn't is a new file or a deletion.
+    /// </summary>
+    private FolderWatchEvent? Filter(IndexedFolder folder, FolderWatchEvent change)
+    {
+        var included = Includes(folder, change.RelativePath, change.IsDirectory);
+        if (change is not { Kind: FolderWatchEventKind.Renamed, OldRelativePath: { } oldPath })
+        {
+            return included ? change : null;
+        }
+
+        return (Includes(folder, oldPath, change.IsDirectory), included) switch
+        {
+            (true, true) => change,
+            (false, true) => change with { Kind = FolderWatchEventKind.Created, OldRelativePath = null },
+            (true, false) => new FolderWatchEvent(FolderWatchEventKind.Deleted, oldPath),
+            _ => null,
+        };
+    }
+
+    private bool Includes(IndexedFolder folder, string path, bool isDirectory)
+    {
+        if (ignore.IsIgnored(path))
+        {
+            return false;
+        }
+
+        // A partial folder's rules don't apply (D012); its tracked files are checked when the change is ready.
+        if (!folder.SelectedFilesOnly)
+        {
+            var rules = new FolderRuleMatcher(folder.Rules);
+            if (isDirectory ? !rules.ShouldEnterFolder(path) : !rules.IsIncluded(path))
+            {
+                return false;
+            }
+
+            if (!folder.Rules.IncludeSubfolders && path.Contains('/', StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        // A deletion's path may be a folder, so it isn't checked for a media extension.
+        return isDirectory || formats.IsCandidate(path);
+    }
+
+    /// <summary>
+    /// Keeps the ready changes that the library should hear about: hidden files and cloud placeholders only where the
+    /// rules include them, a partial folder's tracked files only, and nothing about excluded items.
+    /// </summary>
+    private async Task<IReadOnlyList<FolderChange>> KeepAsync(IndexedFolder folder, IOpenLibrary current, IReadOnlyList<FolderChange> changes, CancellationToken cancellationToken)
+    {
+        var kept = new List<FolderChange>(changes.Count);
+        foreach (var change in changes)
+        {
+            if (change.Stat is { } stat
+                && ((stat.IsHidden && !folder.Rules.IncludeHidden) || (stat.IsCloudPlaceholder && !folder.Rules.IncludeCloudPlaceholders)))
+            {
+                if (change is { Kind: FolderChangeKind.Renamed, OldRelativePath: { } hiddenFrom })
+                {
+                    kept.Add(new FolderChange(FolderChangeKind.Deleted, hiddenFrom));
+                }
+
+                continue;
+            }
+
+            var item = await FindAsync(current, folder.Id, change.OldRelativePath ?? change.RelativePath, cancellationToken).ConfigureAwait(false);
+            if (folder.SelectedFilesOnly && item is null && (change.OldRelativePath is null
+                || await FindAsync(current, folder.Id, change.RelativePath, cancellationToken).ConfigureAwait(false) is null))
+            {
+                continue;
+            }
+
+            if (item?.Status == MediaItemStatus.Excluded)
+            {
+                continue;
+            }
+
+            kept.Add(change);
+        }
+
+        return kept;
     }
 
     private async Task PublishAsync(Id<IndexedFolder> folderId, IReadOnlyList<FolderChange> changes, CancellationToken cancellationToken)
     {
+        IndexedFolder folder;
+        IOpenLibrary current;
         lock (syncRoot)
         {
-            // Stopped being watched during the checks, e.g. it went Offline: what's left is the rescan's to find.
-            if (!watched.ContainsKey(folderId))
+            // Stopped being watched during the checks, e.g. it went Offline: its changes are found when it's checked again.
+            if (!watched.TryGetValue(folderId, out var entry) || library is null)
             {
                 return;
             }
+
+            folder = entry.Folder;
+            current = library;
+        }
+
+        changes = await KeepAsync(folder, current, changes, cancellationToken).ConfigureAwait(false);
+        if (changes.Count == 0)
+        {
+            return;
         }
 
         logger.LogInformation("{Count} changes in watched folder {Folder}", changes.Count, folderId);

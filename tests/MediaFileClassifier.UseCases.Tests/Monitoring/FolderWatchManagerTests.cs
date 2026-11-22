@@ -1,10 +1,13 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Testing.Files;
+using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Libraries;
 using MediaFileClassifier.UseCases.Monitoring;
@@ -175,6 +178,118 @@ public sealed class FolderWatchManagerTests
         Assert.Empty(bed.Publisher.Published);
     }
 
+    [Fact]
+    public async Task BrowserDownload_IsReportedOnlyAsTheFinishedFile()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Downloads");
+        await bed.StartAsync();
+
+        // Chrome writes "clip.mp4.crdownload" and renames it when the download is done.
+        for (var chunk = 1; chunk <= 5; chunk++)
+        {
+            bed.Write(@"E:\Downloads", "clip.mp4.crdownload", chunk * 1000);
+            bed.Clock.Advance(TimeSpan.FromSeconds(5));
+        }
+
+        Assert.Empty(bed.Published);
+
+        bed.Files.Delete("clip.mp4.crdownload");
+        bed.Files.Write("clip.mp4", 5000, bed.Clock.GetUtcNow());
+        bed.Factory.Raise(@"E:\Downloads", new FolderWatchEvent(FolderWatchEventKind.Renamed, "clip.mp4", "clip.mp4.crdownload"));
+        bed.Settle();
+
+        var change = Assert.Single(bed.Published);
+        Assert.Equal((FolderChangeKind.Changed, "clip.mp4", (string?)null), (change.Kind, change.RelativePath, change.OldRelativePath));
+    }
+
+    [Fact]
+    public async Task OfficeLockFiles_AndOtherIgnoredFiles_AreNeverReported()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+
+        bed.Write(@"E:\Photos", "~$Holiday.mp4");
+        bed.Write(@"E:\Photos", "notes.txt");
+        bed.Write(@"E:\Photos", "a.jpg.tmp");
+        bed.Settle();
+
+        Assert.Empty(bed.Published);
+    }
+
+    [Fact]
+    public async Task IgnoreList_Changed_AppliesToNewEvents()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+
+        bed.Settings.SetValue(MonitoringSettings.IgnorePatterns, "*.jpg");
+        bed.Write(@"E:\Photos", "a.jpg");
+        bed.Write(@"E:\Photos", "b.png");
+        bed.Settle();
+
+        Assert.Equal(["b.png"], bed.Published.Select(change => change.RelativePath));
+    }
+
+    [Fact]
+    public async Task FolderRules_ExcludedSubfoldersAndHiddenFiles_AreNotReported()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        folder.ChangeRules(new FolderRules { ExcludePatterns = [FolderRules.ForSubfolder("raw")] });
+        await bed.StartAsync();
+
+        bed.Write(@"E:\Photos", "raw/a.jpg");
+        bed.Files.Write("hidden.jpg", 10, bed.Clock.GetUtcNow(), isHidden: true);
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Created, "hidden.jpg"));
+        bed.Write(@"E:\Photos", "kept.jpg");
+
+        // Moved out of the excluded folder: a new file. Moved into it: gone from the library's view.
+        bed.Files.Write("moved-out.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Renamed, "moved-out.jpg", "raw/moved-out.jpg"));
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Renamed, "raw/moved-in.jpg", "moved-in.jpg"));
+        bed.Settle();
+
+        Assert.Equal(
+            [(FolderChangeKind.Changed, "kept.jpg"), (FolderChangeKind.Deleted, "moved-in.jpg"), (FolderChangeKind.Changed, "moved-out.jpg")],
+            bed.Published.Select(change => (change.Kind, change.RelativePath)).OrderBy(change => change.RelativePath, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task PartialFolder_ReportsOnlyItsTrackedFiles()
+    {
+        var bed = new Bed();
+        var folder = IndexedFolder.CreateForSelectedFiles(bed.Library.Library.Id, @"E:\Picked", @"E:\Picked", Now);
+        await bed.Library.FolderList.AddAsync(folder, TestContext.Current.CancellationToken);
+        bed.Library.ItemList.Items.Add(MediaItem.Discover(folder.Id, RelativePath.From("tracked.jpg"), MediaType.Image, 10, Now, Now, null, Now));
+        await bed.StartAsync();
+
+        bed.Write(@"E:\Picked", "tracked.jpg", 20);
+        bed.Write(@"E:\Picked", "other.jpg");
+        bed.Settle();
+
+        Assert.Equal(["tracked.jpg"], bed.Published.Select(change => change.RelativePath));
+    }
+
+    [Fact]
+    public async Task ExcludedItems_AreNotReported()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        var removed = MediaItem.Discover(folder.Id, RelativePath.From("removed.jpg"), MediaType.Image, 10, Now, Now, null, Now);
+        removed.ChangeStatus(MediaItemStatus.Excluded, Now, "Removed by the user.");
+        bed.Library.ItemList.Items.Add(removed);
+        await bed.StartAsync();
+
+        bed.Write(@"E:\Photos", "removed.jpg", 20);
+        bed.Write(@"E:\Photos", "new.jpg");
+        bed.Settle();
+
+        Assert.Equal(["new.jpg"], bed.Published.Select(change => change.RelativePath));
+    }
+
     /// <summary>
     /// A manager on a fake library, with watchers that record whether they run.
     /// </summary>
@@ -183,7 +298,7 @@ public sealed class FolderWatchManagerTests
         public Bed()
         {
             Library = new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "watching"), "watching");
-            Manager = new FolderWatchManager(Session, Files, Publisher, Clock, NullLogger<FolderWatchManager>.Instance, Factory);
+            Manager = new FolderWatchManager(Session, Files, Publisher, Settings, new MediaExtensions(), Clock, NullLogger<FolderWatchManager>.Instance, Factory);
         }
 
         public FakeLibrarySession Session { get; } = new();
@@ -193,6 +308,21 @@ public sealed class FolderWatchManagerTests
         public InMemoryMediaFileSource Files { get; } = new();
 
         public RecordingPublisher Publisher { get; } = new();
+
+        public InMemorySettingsStore Settings { get; } = new();
+
+        public IEnumerable<FolderChange> Published => Publisher.Published.SelectMany(batch => batch.Changes);
+
+        /// <summary>
+        /// Writes a file and raises its event on the folder's watcher.
+        /// </summary>
+        public void Write(string folder, string path, long length = 10)
+        {
+            Files.Write(path, length, Clock.GetUtcNow());
+            Factory.Raise(folder, new FolderWatchEvent(FolderWatchEventKind.Created, path));
+        }
+
+        public void Settle() => Clock.Advance(TimeSpan.FromMinutes(1));
 
         public FakeOpenLibrary Library { get; }
 
@@ -284,5 +414,22 @@ public sealed class FolderWatchManagerTests
 
             return Task.CompletedTask;
         }
+    }
+
+    /// <summary>
+    /// Treats images and videos by their extension as media files.
+    /// </summary>
+    private sealed class MediaExtensions : IMediaFormatRegistry
+    {
+        private static readonly string[] Extensions = [".jpg", ".png", ".mp4"];
+
+        public IReadOnlyList<IMediaFormatHandler> Handlers => [];
+
+        public bool IsCandidate(string fileName) => Extensions.Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase);
+
+        public IMediaFormatHandler? FindByFormatId(string formatId) => null;
+
+        public Task<MediaFormatDetection> DetectAsync(Stream content, string fileName, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Detection isn't needed for watching.");
     }
 }

@@ -14,6 +14,7 @@ using MediaFileClassifier.Ui.Rescan;
 using MediaFileClassifier.Ui.Search;
 using MediaFileClassifier.Ui.Search.Filters;
 using MediaFileClassifier.Ui.Platform;
+using MediaFileClassifier.Ui.Activity;
 using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
@@ -29,6 +30,7 @@ using MediaFileClassifier.Ui.ViewModels.Hardware;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
+using MediaFileClassifier.Ui.ViewModels.Activity;
 using MediaFileClassifier.Ui.ViewModels.Processing;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
@@ -39,6 +41,7 @@ using MediaFileClassifier.Ui.Views.Hardware;
 using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Models;
 using MediaFileClassifier.Ui.Views.Navigation;
+using MediaFileClassifier.Ui.Views.Activity;
 using MediaFileClassifier.Ui.Views.Processing;
 using MediaFileClassifier.Ui.Views.Search;
 using MediaFileClassifier.Ui.Views.Settings;
@@ -84,6 +87,7 @@ public static class UiModule
             .Register<ExcludedItemsViewModel, ExcludedItemsView>()
             .Register<LibraryInfoViewModel, LibraryInfoView>()
             .Register<ProcessingPanelViewModel, ProcessingPanelView>()
+            .Register<ActivityLogViewModel, ActivityLogView>()
             .Register<NavigationPanelViewModel, NavigationPanelView>()
             .Register<DetailsPanelViewModel, DetailsPanelView>()
             .Register<ToolbarViewModel, ToolbarView>()
@@ -284,6 +288,13 @@ public static class UiModule
         services.AddSingleton<ProgressFeed>();
         services.AddSingleton<ProcessingPanelViewModel>();
         services.AddSingleton<ProcessingPanelPresenter>();
+
+        // Activity log (E15-S04).
+        services.AddSingleton<IActivityNavigator, ActivityNavigator>();
+        services.AddSingleton<ActivityLogViewModel>();
+        services.AddSingleton<ActivityLogPresenter>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ActivityCommands>());
+
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, ProcessingCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, NavigationCommands>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStatusBarContributor, ProcessingStatusSegment>());

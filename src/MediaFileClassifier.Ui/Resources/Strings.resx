@@ -3037,4 +3037,149 @@
     <value>The library was closed, but it couldn't be deleted. {0}</value>
     <comment>{0} is the reason, a full sentence.</comment>
   </data>
+  <data name="Command_ActivityLog" xml:space="preserve">
+    <value>_Activity log</value>
+    <comment>View menu: opens the window that lists what the app did to the library.</comment>
+  </data>
+  <data name="Activity_Title" xml:space="preserve">
+    <value>Activity log</value>
+  </data>
+  <data name="Activity_Empty" xml:space="preserve">
+    <value>Nothing has happened yet. Imports, rescans, analysis and edits are listed here.</value>
+  </data>
+  <data name="Activity_FilteredEmpty" xml:space="preserve">
+    <value>No events match this filter.</value>
+  </data>
+  <data name="Activity_Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Activity_Yesterday" xml:space="preserve">
+    <value>Yesterday</value>
+  </data>
+  <data name="Activity_ShowItems" xml:space="preserve">
+    <value>Show items</value>
+  </data>
+  <data name="Activity_LoadMore" xml:space="preserve">
+    <value>Load older events</value>
+  </data>
+  <data name="Activity_Showing" xml:space="preserve">
+    <value>Showing {0} of {1}</value>
+    <comment>{0} is how many events are listed, {1} how many match the filter.</comment>
+  </data>
+  <data name="Activity_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Activity_FiltersLabel" xml:space="preserve">
+    <value>Filter events</value>
+  </data>
+  <data name="Activity_ListLabel" xml:space="preserve">
+    <value>Activity events</value>
+  </data>
+  <data name="Activity_CountSeparator" xml:space="preserve">
+    <value> · </value>
+    <comment>Between the counts of one event.</comment>
+  </data>
+  <data name="Activity_DetailSeparator" xml:space="preserve">
+    <value> · </value>
+    <comment>Between the subject and the counts of one event.</comment>
+  </data>
+  <data name="Activity_NoChanges" xml:space="preserve">
+    <value>No changes</value>
+  </data>
+  <data name="Activity_Chip_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Activity_Chip_Imports" xml:space="preserve">
+    <value>Imports</value>
+  </data>
+  <data name="Activity_Chip_Rescans" xml:space="preserve">
+    <value>Rescans</value>
+  </data>
+  <data name="Activity_Chip_Analysis" xml:space="preserve">
+    <value>Analysis</value>
+  </data>
+  <data name="Activity_Chip_Edits" xml:space="preserve">
+    <value>Edits</value>
+  </data>
+  <data name="Activity_Chip_Folders" xml:space="preserve">
+    <value>Folders</value>
+  </data>
+  <data name="Activity_Chip_Duplicates" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="Activity_Chip_Exports" xml:space="preserve">
+    <value>Exports</value>
+  </data>
+  <data name="Activity_Chip_Errors" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="Activity_Title_Other" xml:space="preserve">
+    <value>Activity</value>
+  </data>
+  <data name="Activity_Title_Import" xml:space="preserve">
+    <value>Import finished</value>
+  </data>
+  <data name="Activity_Title_Rescan" xml:space="preserve">
+    <value>Rescan finished</value>
+  </data>
+  <data name="Activity_Title_Analysis" xml:space="preserve">
+    <value>Analysis finished</value>
+  </data>
+  <data name="Activity_Title_BulkEdit" xml:space="preserve">
+    <value>Items edited</value>
+  </data>
+  <data name="Activity_Title_BulkEditUndone" xml:space="preserve">
+    <value>Edit undone</value>
+  </data>
+  <data name="Activity_Title_DuplicateResolution" xml:space="preserve">
+    <value>Duplicates resolved</value>
+  </data>
+  <data name="Activity_Title_FolderAdded" xml:space="preserve">
+    <value>Folder added</value>
+  </data>
+  <data name="Activity_Title_FolderRemoved" xml:space="preserve">
+    <value>Folder removed</value>
+  </data>
+  <data name="Activity_Title_Export" xml:space="preserve">
+    <value>Export finished</value>
+  </data>
+  <data name="Activity_Title_LibraryImport" xml:space="preserve">
+    <value>Library import finished</value>
+  </data>
+  <data name="Activity_Title_Maintenance" xml:space="preserve">
+    <value>Maintenance finished</value>
+  </data>
+  <data name="Activity_Title_FolderMonitoring" xml:space="preserve">
+    <value>Folder monitoring</value>
+  </data>
+  <data name="Activity_Count_items" xml:space="preserve">
+    <value>Items: {0}</value>
+  </data>
+  <data name="Activity_Count_added" xml:space="preserve">
+    <value>New: {0}</value>
+  </data>
+  <data name="Activity_Count_modified" xml:space="preserve">
+    <value>Modified: {0}</value>
+  </data>
+  <data name="Activity_Count_moved" xml:space="preserve">
+    <value>Moved: {0}</value>
+  </data>
+  <data name="Activity_Count_missing" xml:space="preserve">
+    <value>Missing: {0}</value>
+  </data>
+  <data name="Activity_Count_folders" xml:space="preserve">
+    <value>Folders: {0}</value>
+  </data>
+  <data name="Activity_Count_offline" xml:space="preserve">
+    <value>Offline: {0}</value>
+  </data>
+  <data name="Activity_Count_edited" xml:space="preserve">
+    <value>Edited: {0}</value>
+  </data>
+  <data name="Activity_Count_restored" xml:space="preserve">
+    <value>Restored: {0}</value>
+  </data>
+  <data name="Activity_Count_failed" xml:space="preserve">
+    <value>Failed: {0}</value>
+  </data>
 </root>

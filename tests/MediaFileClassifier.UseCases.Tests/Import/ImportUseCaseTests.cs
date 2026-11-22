@@ -66,7 +66,7 @@ public sealed class ImportUseCaseTests
         var added = (await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\Photos", "Photos")]), CancellationToken.None)).Added;
         await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\Photos", "Photos")]), CancellationToken.None);
 
-        var import = Assert.IsType<ImportFoldersCommand>(Assert.Single(sender.Sent));
+        var import = Assert.IsType<ImportFoldersCommand>(Assert.Single(sender.Sent, request => request is ImportFoldersCommand));
         Assert.Equal([Assert.Single(added).Id], import.FolderIds);
     }
 

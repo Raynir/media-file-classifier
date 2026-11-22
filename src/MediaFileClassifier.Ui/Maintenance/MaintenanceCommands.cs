@@ -3,6 +3,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases.Maintenance.CheckIntegrity;
+using MediaFileClassifier.UseCases.Maintenance.CompactDatabase;
 using MediaFileClassifier.UseCases.Maintenance.RegenerateThumbnails;
 using MediaFileClassifier.UseCases.Maintenance.RestoreBackup;
 using MediaFileClassifier.UseCases.Search.RebuildSearchIndex;
@@ -36,6 +37,9 @@ public sealed class MaintenanceCommands(
     /// <summary>Command ID: run the database integrity check and show the report.</summary>
     public const string CheckIntegrity = "library.check-integrity";
 
+    /// <summary>Command ID: compact the library database (VACUUM) to give free space back to the disk.</summary>
+    public const string CompactDatabase = "library.compact-database";
+
     /// <inheritdoc />
     public void Register(CommandRegistry registry)
     {
@@ -58,6 +62,11 @@ public sealed class MaintenanceCommands(
             registry.Add(new AppCommand(CheckIntegrity, CommandGroups.Library, 220, "Command_CheckIntegrity", CheckIntegrityAsync)
             {
                 IconKey = "Icon.Info",
+                IsVisible = MaintenanceDialogs.IsSupported,
+                WhyDisabled = NoLibrary,
+            }),
+            registry.Add(new AppCommand(CompactDatabase, CommandGroups.Library, 230, "Command_CompactDatabase", CompactDatabaseAsync)
+            {
                 IsVisible = MaintenanceDialogs.IsSupported,
                 WhyDisabled = NoLibrary,
             }),
@@ -157,6 +166,57 @@ public sealed class MaintenanceCommands(
 
         await ShowEndAsync(run.State, null);
         return null;
+    }
+
+    /// <summary>
+    /// Says how much space compacting would give back and asks, then compacts the database in the background (MFC-1022).
+    /// It refuses while jobs have work left, and tells the user why.
+    /// </summary>
+    /// <returns>What happened, or <c>null</c> when the user declined or no library is open.</returns>
+    public async Task<CompactDatabaseResult?> CompactDatabaseAsync()
+    {
+        if (await sender.Send(new GetDatabaseSpaceQuery()) is not { } space)
+        {
+            await dialogs.ShowAsync(localizer.Get("Command_NoLibraryOpen"), localizer.Get("Folders_Close"));
+            return null;
+        }
+
+        if (!DatabaseCompaction.IsWorthwhile(space))
+        {
+            await dialogs.ShowAsync(localizer.Get("Maintenance_NothingToReclaim"), localizer.Get("Folders_Close"));
+            return new CompactDatabaseResult(CompactDatabaseOutcome.NothingToReclaim, space);
+        }
+
+        var question = localizer.Format("Maintenance_CompactAsk", Format.FileSize(space.FreeBytes));
+        if (!await dialogs.AskAsync(question, localizer.Get("Maintenance_Compact"), localizer.Get("Integrity_NotNow")))
+        {
+            return null;
+        }
+
+        var run = await runner.RunAsync(
+            MaintenanceTask.CompactDatabase,
+            (_, token) => sender.Send(new CompactDatabaseCommand(), token));
+        if (run is not { State: MaintenanceRunState.Finished, Result: { } result })
+        {
+            await ShowEndAsync(run.State, null);
+            return null;
+        }
+
+        var message = result.Outcome switch
+        {
+            CompactDatabaseOutcome.Compacted => localizer.Format(
+                "Maintenance_Compacted",
+                Format.FileSize(result.Before?.FileBytes ?? 0),
+                Format.FileSize(result.After?.FileBytes ?? 0)),
+            CompactDatabaseOutcome.JobsRunning => localizer.Get("Maintenance_CompactJobsRunning"),
+            CompactDatabaseOutcome.NothingToReclaim => localizer.Get("Maintenance_NothingToReclaim"),
+            CompactDatabaseOutcome.NotEnoughDiskSpace => localizer.Format(
+                "Maintenance_CompactNoSpace",
+                Format.FileSize(result.Before is { } before ? DatabaseCompaction.RequiredDiskBytes(before) : 0)),
+            _ => localizer.Get("Command_NoLibraryOpen"),
+        };
+        await dialogs.ShowAsync(message, localizer.Get("Folders_Close"));
+        return result;
     }
 
     private string? NoLibrary() => session?.Current is null ? localizer.Get("Command_NoLibraryOpen") : null;

@@ -154,6 +154,11 @@ public enum MaintenanceTask
     /// Check library integrity.
     /// </summary>
     CheckIntegrity,
+
+    /// <summary>
+    /// Compact the library database. It can't be stopped once it has started.
+    /// </summary>
+    CompactDatabase,
 }
 
 /// <summary>

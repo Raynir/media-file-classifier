@@ -14,7 +14,11 @@ namespace MediaFileClassifier.UseCases.Rescan.StartRescan;
 /// <c>null</c>. A library rescan is one job, so a file moved from one folder to another keeps its item (DNEW-5).
 /// </summary>
 /// <param name="FolderId">The folder, or <c>null</c> for every folder of the library.</param>
-public sealed record StartRescanCommand(Id<IndexedFolder>? FolderId = null) : IRequest<StartRescanResult>;
+/// <param name="Quick">
+/// Whether this is the quick sync on library open (E04-S03): a library-wide job over the Online folders at import
+/// priority, whose summary is shown only when something changed. It's meant for <paramref name="FolderId"/> <c>null</c>.
+/// </param>
+public sealed record StartRescanCommand(Id<IndexedFolder>? FolderId = null, bool Quick = false) : IRequest<StartRescanResult>;
 
 /// <summary>
 /// What <see cref="StartRescanCommand"/> did.
@@ -65,19 +69,24 @@ public sealed class StartRescanCommandHandler(
         var library = scheduler.Library;
         var folders = await IndexedFolders.GetActiveAsync(library, cancellationToken).ConfigureAwait(false);
         var targets = request.FolderId is { } folderId ? folders.Where(folder => folder.Id == folderId).ToList() : folders.ToList();
+        if (request.Quick)
+        {
+            targets = [.. targets.Where(folder => folder.Status == FolderStatus.Online)];
+        }
+
         if (targets.Count == 0)
         {
             return new StartRescanResult(null, StartRescanOutcome.NothingToScan);
         }
 
         var unfinished = (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false))
-            .Where(job => job.Type is ImportStages.ImportJob or RescanStages.RescanJob or IndexedFolders.RemoveJob)
+            .Where(job => job.Type is ImportStages.ImportJob or RescanStages.RescanJob or RescanStages.QuickSyncJob or IndexedFolders.RemoveJob)
 
             // Waiting for a model means discovery and registration are done; the rest of the job needn't hold up a rescan.
             .Where(job => job.State != ProcessingJobState.WaitingForModel)
             .ToList();
         var busy = request.FolderId is { } single
-            ? unfinished.Any(job => job.FolderId == single || (job.FolderId is null && job.Type == RescanStages.RescanJob))
+            ? unfinished.Any(job => job.FolderId == single || (job.FolderId is null && job.Type is RescanStages.RescanJob or RescanStages.QuickSyncJob))
             : unfinished.Count > 0;
         if (busy)
         {
@@ -85,9 +94,13 @@ public sealed class StartRescanCommandHandler(
             return new StartRescanResult(null, StartRescanOutcome.Busy);
         }
 
-        var title = request.FolderId is null ? "Rescan library" : $"Rescan {targets[0].DisplayPath}";
+        var title = request.Quick ? "Quick sync" : request.FolderId is null ? "Rescan library" : $"Rescan {targets[0].DisplayPath}";
         var jobId = await scheduler.EnqueueJobAsync(
-            new JobRequest(RescanStages.RescanJob, title, JobPriority.UserAction, [new WorkItemRequest(RescanStages.Reconcile)])
+            new JobRequest(
+                request.Quick ? RescanStages.QuickSyncJob : RescanStages.RescanJob,
+                title,
+                request.Quick ? JobPriority.Import : JobPriority.UserAction,
+                [new WorkItemRequest(RescanStages.Reconcile)])
             {
                 FolderId = request.FolderId,
             },

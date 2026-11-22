@@ -111,7 +111,7 @@ public sealed class RegenerateThumbnailsCommandHandler(
             return new(RegenerateThumbnailsOutcome.Busy);
         }
 
-        if (unfinished.Any(job => job.Type is ImportStages.ImportJob or RescanStages.RescanJob))
+        if (unfinished.Any(job => job.Type is ImportStages.ImportJob or RescanStages.RescanJob or RescanStages.QuickSyncJob))
         {
             return new(RegenerateThumbnailsOutcome.ImportRunning);
         }

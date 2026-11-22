@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Domain.Activity;
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Ui.Activity;
 using MediaFileClassifier.Ui.Localization;
@@ -19,7 +20,7 @@ namespace MediaFileClassifier.Ui.ViewModels.Activity;
 /// The activity log window (E15-S04-T02): what the app did to the library, newest first and grouped by day, with
 /// filter chips, paging and a live refresh. The window only reads the log.
 /// </summary>
-public sealed partial class ActivityLogViewModel : ViewModelBase
+public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
 {
     /// <summary>
     /// How many events one page loads.
@@ -35,7 +36,8 @@ public sealed partial class ActivityLogViewModel : ViewModelBase
     private readonly Action<Action> post;
     private readonly ILogger logger;
     private readonly List<ActivityEntry> entries = [];
-    private int version;
+    private readonly SemaphoreSlim loading = new(1, 1);
+    private readonly ILibrarySession? session;
     private bool attached;
 
     /// <summary>
@@ -48,6 +50,7 @@ public sealed partial class ActivityLogViewModel : ViewModelBase
     /// <param name="navigator">Runs "Show items", or <see langword="null"/> for no links.</param>
     /// <param name="logger">Logger, or <see langword="null"/> for none.</param>
     /// <param name="post">Runs an action on the UI thread, or <see langword="null"/> for the Avalonia dispatcher.</param>
+    /// <param name="session">Holds the open library, so the list is emptied when it closes or another opens, or <see langword="null"/> to ignore that.</param>
     public ActivityLogViewModel(
         ISender sender,
         ActivityChanges changes,
@@ -55,8 +58,10 @@ public sealed partial class ActivityLogViewModel : ViewModelBase
         TimeProvider clock,
         IActivityNavigator? navigator = null,
         ILogger<ActivityLogViewModel>? logger = null,
-        Action<Action>? post = null)
+        Action<Action>? post = null,
+        ILibrarySession? session = null)
     {
+        this.session = session;
         this.sender = sender;
         this.changes = changes;
         this.localizer = localizer;
@@ -125,6 +130,9 @@ public sealed partial class ActivityLogViewModel : ViewModelBase
     [ObservableProperty]
     public partial string CountText { get; private set; } = string.Empty;
 
+    /// <inheritdoc />
+    public void Dispose() => loading.Dispose();
+
     /// <summary>
     /// Starts following new events; call it when the window opens.
     /// </summary>
@@ -134,6 +142,10 @@ public sealed partial class ActivityLogViewModel : ViewModelBase
         {
             attached = true;
             changes.Changed += OnChanged;
+            if (session is not null)
+            {
+                session.CurrentChanged += OnLibraryChanged;
+            }
 
             // Every opening starts on All, so a filter left on earlier never hides new events unnoticed.
             if (SelectedChip != Chips[0])
@@ -155,6 +167,10 @@ public sealed partial class ActivityLogViewModel : ViewModelBase
     {
         attached = false;
         changes.Changed -= OnChanged;
+        if (session is not null)
+        {
+            session.CurrentChanged -= OnLibraryChanged;
+        }
     }
 
     /// <summary>
@@ -164,28 +180,38 @@ public sealed partial class ActivityLogViewModel : ViewModelBase
     /// <returns>A task that completes when the list is up to date.</returns>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        var current = ++version;
-        var chip = SelectedChip;
-        ActivityPage page;
+        // One load at a time, each reading what the list holds when its turn comes, so a refresh is never dropped
+        // by a page load that started later, and a page never starts from a stale count.
+        await loading.WaitAsync(cancellationToken);
         try
         {
-            page = await sender.Send(new GetActivityPageQuery(chip.Filter, 0, Math.Max(PageSize, entries.Count)), cancellationToken);
-        }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException)
-        {
-            // The library closed under us; the next change tries again.
-            LogRefreshFailed(exception);
-            return;
-        }
+            var chip = SelectedChip;
+            ActivityPage page;
+            try
+            {
+                page = await sender.Send(new GetActivityPageQuery(chip.Filter, 0, Math.Max(PageSize, entries.Count)), cancellationToken);
+            }
+            catch (Exception exception) when (exception is IOException or InvalidOperationException)
+            {
+                // The library closed under us; the next change tries again.
+                LogRefreshFailed(exception);
+                return;
+            }
 
-        if (current != version)
-        {
-            return;
-        }
+            // The chip changed while the page was read: its own refresh follows.
+            if (chip != SelectedChip)
+            {
+                return;
+            }
 
-        entries.Clear();
-        entries.AddRange(page.Entries);
-        Apply(page.Total);
+            entries.Clear();
+            entries.AddRange(page.Entries);
+            Apply(page.Total);
+        }
+        finally
+        {
+            loading.Release();
+        }
     }
 
     /// <summary>
@@ -196,30 +222,40 @@ public sealed partial class ActivityLogViewModel : ViewModelBase
     [RelayCommand]
     public async Task LoadMoreAsync(CancellationToken cancellationToken = default)
     {
-        if (!HasMore)
-        {
-            return;
-        }
-
-        var current = ++version;
-        ActivityPage page;
+        await loading.WaitAsync(cancellationToken);
         try
         {
-            page = await sender.Send(new GetActivityPageQuery(SelectedChip.Filter, entries.Count, PageSize), cancellationToken);
-        }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException)
-        {
-            LogRefreshFailed(exception);
-            return;
-        }
+            if (!HasMore)
+            {
+                return;
+            }
 
-        if (current != version)
-        {
-            return;
-        }
+            var chip = SelectedChip;
+            ActivityPage page;
+            try
+            {
+                page = await sender.Send(new GetActivityPageQuery(chip.Filter, entries.Count, PageSize), cancellationToken);
+            }
+            catch (Exception exception) when (exception is IOException or InvalidOperationException)
+            {
+                LogRefreshFailed(exception);
+                return;
+            }
 
-        entries.AddRange(page.Entries);
-        Apply(page.Total);
+            if (chip != SelectedChip)
+            {
+                return;
+            }
+
+            // An event recorded since the last page shifts the list by one, so the page may repeat the last row.
+            var known = entries.Select(entry => entry.Event.Id).ToHashSet();
+            entries.AddRange(page.Entries.Where(entry => !known.Contains(entry.Event.Id)));
+            Apply(page.Total);
+        }
+        finally
+        {
+            loading.Release();
+        }
     }
 
     /// <summary>
@@ -247,6 +283,14 @@ public sealed partial class ActivityLogViewModel : ViewModelBase
     }
 
     private void OnChanged(object? sender, EventArgs e) => post(() => _ = RefreshAsync());
+
+    // The events belong to a library, so the ones listed are gone with it.
+    private void OnLibraryChanged(object? sender, EventArgs e) => post(() =>
+    {
+        entries.Clear();
+        Rows.Clear();
+        _ = RefreshAsync();
+    });
 
     private ActivityChipViewModel Chip(string key, ActivityEventType[] types) =>
         new(key, localizer.Get($"Activity_Chip_{key}"), new ActivityFilter(types));

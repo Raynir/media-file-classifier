@@ -131,7 +131,7 @@ public sealed class AddLibraryFoldersCommandHandler(
                         Subject: folder.DisplayPath,
                         Counts: overlap.Folders.Count == 0 ? null : new Dictionary<string, long> { [ActivityCounts.Folders] = overlap.Folders.Count },
                         FolderId: folder.Id),
-                    cancellationToken).ConfigureAwait(false);
+                    CancellationToken.None).ConfigureAwait(false);
             }
         }
 

@@ -1,12 +1,14 @@
 using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Testing.Activity;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Activity;
 using MediaFileClassifier.Ui.ViewModels.Activity;
 using MediaFileClassifier.UseCases.Activity;
 using MediaFileClassifier.UseCases.Activity.GetActivityPage;
+using MediatR;
 
 namespace MediaFileClassifier.Ui.Tests.Activity;
 
@@ -195,6 +197,50 @@ public sealed class ActivityLogViewModelTests
     }
 
     [Fact]
+    public async Task LoadMore_DuringARefresh_NeitherDropsTheRefresh_NorRepeatsARow()
+    {
+        for (var i = 0; i < ActivityLogViewModel.PageSize + 20; i++)
+        {
+            Add(ActivityEventType.Import, Now.AddSeconds(-i - 10));
+        }
+
+        var sender = new LogSender(log, existing);
+        var model = new ActivityLogViewModel(sender, changes, TestLocalizer.EnUs(), new FixedClock(Now), navigator, null, action => action());
+        await model.RefreshAsync(Token);
+        var gate = new TaskCompletionSource();
+        sender.Gate = gate;
+        Add(ActivityEventType.Rescan, Now);
+
+        var refresh = model.RefreshAsync(Token);
+        var more = model.LoadMoreAsync(Token);
+        gate.SetResult();
+        await Task.WhenAll(refresh, more);
+
+        var events = model.Rows.Where(row => row.IsEvent).ToList();
+        Assert.Equal((ActivityLogViewModel.PageSize + 21, "Rescan finished", false), (events.Count, events[0].Title, model.HasMore));
+        Assert.Equal(events.Count, events.Select(row => row.Key).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task ALibraryChange_EmptiesTheListAtOnce_AndListsTheNewLibrary()
+    {
+        Add(ActivityEventType.Import, Now);
+        var session = new SwitchableSession();
+        var posted = new List<Action>();
+        var model = new ActivityLogViewModel(new LogSender(log, existing), changes, TestLocalizer.EnUs(), new FixedClock(Now), navigator, null, posted.Add, session);
+        model.Attach();
+        await model.RefreshAsync(Token);
+        log.Events.Clear();
+
+        session.Raise();
+        Assert.Single(posted);
+        posted[0]();
+        await WaitForAsync(() => model.IsEmpty);
+
+        Assert.Empty(model.Rows);
+    }
+
+    [Fact]
     public async Task Rows_HaveAccessibleNames_ThatReadTimeTitleAndDetail()
     {
         Add(ActivityEventType.FolderAdded, Now, subject: @"D:\Media");
@@ -241,8 +287,31 @@ public sealed class ActivityLogViewModelTests
         public void ShowFolder(Id<IndexedFolder> folderId) => Shown.Add(folderId);
     }
 
+    private sealed class SwitchableSession : ILibrarySession
+    {
+        public event EventHandler? CurrentChanged;
+
+        public IOpenLibrary? Current => null;
+
+        public Task SetCurrentAsync(IOpenLibrary? library) => Task.CompletedTask;
+
+        public void Raise() => CurrentChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private sealed class LogSender(InMemoryActivityRepository log, HashSet<Id<IndexedFolder>> existing) : FakeSender
     {
+        public TaskCompletionSource? Gate { get; set; }
+
+        public override async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        {
+            if (Gate is { } gate)
+            {
+                await gate.Task;
+            }
+
+            return await base.Send(request, cancellationToken);
+        }
+
         protected override object? Handle(object request)
         {
             var query = (GetActivityPageQuery)request;

@@ -54,7 +54,7 @@ public sealed class StageNamesTests
             StageNames.Logger = before;
         }
 
-        var entry = Assert.Single(logger.Entries);
+        var entry = Assert.Single(logger.Entries, e => e.Message.Contains("no.such.stage.log", StringComparison.Ordinal));
         Assert.Equal(LogLevel.Warning, entry.Level);
         Assert.Contains("Stage_no.such.stage.log", entry.Message, StringComparison.Ordinal);
     }

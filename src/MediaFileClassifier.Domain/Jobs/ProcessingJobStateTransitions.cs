@@ -5,13 +5,13 @@ namespace MediaFileClassifier.Domain.Jobs;
 /// </summary>
 /// <remarks>
 /// <code>
-/// Queued          → Running | Cancelled | WaitingForModel
-/// Running         → Completed | Failed | Cancelled | WaitingForModel | Queued   (Queued: new work after it finished)
-/// WaitingForModel → Queued | Cancelled                                         (Queued: the model was installed)
+/// Queued          → Running | Cancelled | WaitingForModel | Paused
+/// Running         → Completed | Failed | Cancelled | WaitingForModel | Queued | Paused   (Queued: new work after it finished)
+/// WaitingForModel → Queued | Cancelled | Paused                                (Queued: the model was installed)
 /// Completed       → Queued                                                     (more work added, e.g. a retry)
 /// Failed          → Queued                                                     (retry, E05-S04)
 /// Cancelled       → Queued                                                     (retry)
-/// Paused          → Queued | Cancelled                                         (E05-S05, Later)
+/// Paused          → Queued | Cancelled | Completed | Failed                    (E05-S05; finished: its last running work ended while it was paused)
 /// </code>
 /// </remarks>
 public static class ProcessingJobStateTransitions
@@ -28,11 +28,11 @@ public static class ProcessingJobStateTransitions
             ProcessingJobState.Queued,
             ProcessingJobState.Paused,
         ],
-        [ProcessingJobState.WaitingForModel] = [ProcessingJobState.Queued, ProcessingJobState.Cancelled],
+        [ProcessingJobState.WaitingForModel] = [ProcessingJobState.Queued, ProcessingJobState.Cancelled, ProcessingJobState.Paused],
         [ProcessingJobState.Completed] = [ProcessingJobState.Queued],
         [ProcessingJobState.Failed] = [ProcessingJobState.Queued],
         [ProcessingJobState.Cancelled] = [ProcessingJobState.Queued],
-        [ProcessingJobState.Paused] = [ProcessingJobState.Queued, ProcessingJobState.Cancelled],
+        [ProcessingJobState.Paused] = [ProcessingJobState.Queued, ProcessingJobState.Cancelled, ProcessingJobState.Completed, ProcessingJobState.Failed],
     };
 
     public static bool IsAllowed(ProcessingJobState from, ProcessingJobState to) =>

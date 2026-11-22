@@ -1761,6 +1761,12 @@
   <data name="Setting_ResumeOnOpen_Ask" xml:space="preserve">
     <value>Wait until I start it</value>
   </data>
+  <data name="Setting_KeepPaused" xml:space="preserve">
+    <value>Keep processing paused after a restart</value>
+  </data>
+  <data name="Setting_KeepPaused_Help" xml:space="preserve">
+    <value>When on, processing, pools and jobs you paused stay paused the next time the library opens. When off, everything starts again.</value>
+  </data>
   <data name="Setting_ConfirmQuit" xml:space="preserve">
     <value>Ask before quitting while processing</value>
   </data>
@@ -2081,6 +2087,44 @@
   </data>
   <data name="Processing_Resume" xml:space="preserve">
     <value>Resume processing</value>
+  </data>
+  <data name="Processing_PauseAll" xml:space="preserve">
+    <value>Pause all processing</value>
+  </data>
+  <data name="Processing_ResumeAll" xml:space="preserve">
+    <value>Resume processing</value>
+  </data>
+  <data name="Processing_PausePools" xml:space="preserve">
+    <value>Pause only some work</value>
+    <comment>Accessible name of the drop-down part of the Pause all processing button, which lists the pools.</comment>
+  </data>
+  <data name="Processing_PausePool_Io" xml:space="preserve">
+    <value>Pause disk work</value>
+  </data>
+  <data name="Processing_PausePool_Cpu" xml:space="preserve">
+    <value>Pause processor work</value>
+  </data>
+  <data name="Processing_PausePool_Ai" xml:space="preserve">
+    <value>Pause AI analysis</value>
+  </data>
+  <data name="Processing_Pool_Io" xml:space="preserve">
+    <value>Disk work</value>
+  </data>
+  <data name="Processing_Pool_Cpu" xml:space="preserve">
+    <value>Processor work</value>
+  </data>
+  <data name="Processing_Pool_Ai" xml:space="preserve">
+    <value>AI analysis</value>
+  </data>
+  <data name="Processing_PoolsPaused" xml:space="preserve">
+    <value>Paused: {0}. Other work continues.</value>
+    <comment>{0} is a list of pools, e.g. "AI analysis" or "Disk work, AI analysis".</comment>
+  </data>
+  <data name="Processing_PauseJob" xml:space="preserve">
+    <value>Pause job</value>
+  </data>
+  <data name="Processing_ResumeJob" xml:space="preserve">
+    <value>Resume job</value>
   </data>
   <data name="Processing_Title" xml:space="preserve">
     <value>Processing queue</value>

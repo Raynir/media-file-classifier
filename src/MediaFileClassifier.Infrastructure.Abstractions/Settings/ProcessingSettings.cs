@@ -21,7 +21,7 @@ public sealed class ProcessingSettings
     /// <summary>
     /// The number of settings in <see cref="All"/>.
     /// </summary>
-    public const int SettingCount = 5;
+    public const int SettingCount = 6;
 
     /// <summary>
     /// The largest concurrency limit of the I/O pool.
@@ -74,6 +74,12 @@ public sealed class ProcessingSettings
             HelpKey = "Setting_ResumeOnOpen_Help",
             Order = 200,
         };
+        KeepPausedAfterRestart = new BooleanSetting(
+            "processing.keepPausedAfterRestart", SettingScope.App, SettingCategories.Processing, "Setting_KeepPaused", defaultValue: true)
+        {
+            HelpKey = "Setting_KeepPaused_Help",
+            Order = 205,
+        };
         ConfirmQuitWhileProcessing = new BooleanSetting(
             "processing.confirmQuitWhileProcessing", SettingScope.App, SettingCategories.Processing, "Setting_ConfirmQuit", defaultValue: true)
         {
@@ -103,6 +109,12 @@ public sealed class ProcessingSettings
     public ChoiceSetting<ResumeMode> ResumeOnOpen { get; }
 
     /// <summary>
+    /// Gets whether processing paused by the user stays paused when the library opens again (E05-S05-T03): all
+    /// processing, single pools and single jobs. When it's off, a library opens with nothing paused.
+    /// </summary>
+    public BooleanSetting KeepPausedAfterRestart { get; }
+
+    /// <summary>
     /// Gets whether closing the app while work is pending asks first (D027). "Don't ask again" turns it off.
     /// </summary>
     public BooleanSetting ConfirmQuitWhileProcessing { get; }
@@ -110,5 +122,5 @@ public sealed class ProcessingSettings
     /// <summary>
     /// Gets every setting, for registering them.
     /// </summary>
-    public IReadOnlyList<SettingDefinition> All => [IoConcurrency, CpuConcurrency, AiConcurrency, ResumeOnOpen, ConfirmQuitWhileProcessing];
+    public IReadOnlyList<SettingDefinition> All => [IoConcurrency, CpuConcurrency, AiConcurrency, ResumeOnOpen, KeepPausedAfterRestart, ConfirmQuitWhileProcessing];
 }

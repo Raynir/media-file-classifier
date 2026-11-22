@@ -164,6 +164,98 @@ public sealed class FolderChangeBufferTests
     }
 
     [Fact]
+    public void NewFile_RenamedBeforeItSettles_IsAChangeAtItsNewPath()
+    {
+        var bed = new Bed();
+        bed.Files.Write("a.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Raise(FolderWatchEventKind.Created, "a.jpg");
+        bed.Files.Delete("a.jpg");
+        bed.Files.Write("b.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Raise(FolderWatchEventKind.Renamed, "b.jpg", "a.jpg");
+        bed.Settle();
+
+        // The library never saw a.jpg, so its deletion is nothing to it.
+        Assert.Equal(
+            [(FolderChangeKind.Changed, "b.jpg", null), (FolderChangeKind.Deleted, "a.jpg", null)],
+            bed.Reported.Select(change => (change.Kind, change.RelativePath, change.OldRelativePath)).OrderBy(change => change.Kind));
+    }
+
+    [Fact]
+    public void SafeSave_ByARenameOverADeletedFile_IsAChange_NotARename()
+    {
+        var bed = new Bed();
+        bed.Raise(FolderWatchEventKind.Deleted, "p.jpg");
+        bed.Files.Write("p.jpg", 20, bed.Clock.GetUtcNow());
+        bed.Raise(FolderWatchEventKind.Renamed, "p.jpg", "p-new.jpg");
+        bed.Settle();
+
+        Assert.Equal(
+            [(FolderChangeKind.Changed, "p.jpg"), (FolderChangeKind.Deleted, "p-new.jpg")],
+            bed.Reported.Select(change => (change.Kind, change.RelativePath)).OrderBy(change => change.Kind));
+        Assert.All(bed.Reported, change => Assert.Null(change.OldRelativePath));
+    }
+
+    [Fact]
+    public void NewFolder_RenamedBeforeItIsListed_IsStillANewFolder()
+    {
+        var bed = new Bed();
+        bed.Raise(FolderWatchEventKind.Created, "New folder", isDirectory: true);
+        bed.Files.Write("Trip/a.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Raise(FolderWatchEventKind.Renamed, "Trip", "New folder", isDirectory: true);
+        bed.Settle();
+
+        var change = Assert.Single(bed.Reported);
+        Assert.Equal((FolderChangeKind.Changed, "Trip/a.jpg", null), (change.Kind, change.RelativePath, change.OldRelativePath));
+    }
+
+    [Fact]
+    public void Folder_RenamedWhileACopyIntoItSettles_ReportsTheCopyAtItsNewPath_Once()
+    {
+        var bed = new Bed();
+        bed.Files.Write("A/old.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Files.Write("A/big.mp4", 10, bed.Clock.GetUtcNow());
+        bed.Raise(FolderWatchEventKind.Created, "A/big.mp4");
+        bed.Files.Delete("A/old.jpg");
+        bed.Files.Delete("A/big.mp4");
+        bed.Files.Write("B/old.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Files.Write("B/big.mp4", 10, bed.Clock.GetUtcNow());
+        bed.Raise(FolderWatchEventKind.Renamed, "B", "A", isDirectory: true);
+        bed.Settle();
+
+        Assert.Equal(
+            [(FolderChangeKind.Changed, "B/big.mp4", null), (FolderChangeKind.Deleted, "A/big.mp4", null), (FolderChangeKind.Renamed, "B/old.jpg", "A/old.jpg")],
+            bed.Reported.Select(change => (change.Kind, change.RelativePath, change.OldRelativePath)).OrderBy(change => change.Kind));
+    }
+
+    [Fact]
+    public void Check_ThatFailsUnexpectedly_DropsThatPath_AndReportsTheOthers()
+    {
+        var bed = new Bed();
+        bed.Files.Write("a.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Files.Write("b.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Files.Break("a.jpg");
+        bed.Raise(FolderWatchEventKind.Created, "a.jpg");
+        bed.Raise(FolderWatchEventKind.Created, "b.jpg");
+        bed.Settle();
+
+        Assert.Equal(["b.jpg"], bed.Reported.Select(change => change.RelativePath));
+        Assert.Equal(0, bed.Buffer.PendingCount);
+    }
+
+    [Fact]
+    public void NewFolder_FilesTheFilterLeavesOut_AreNotChecked()
+    {
+        var bed = new Bed(includes: path => path.EndsWith(".jpg", StringComparison.Ordinal));
+        bed.Files.Write("trip/a.jpg", 10, bed.Clock.GetUtcNow());
+        bed.Files.Write("trip/notes.txt", 10, bed.Clock.GetUtcNow());
+        bed.Raise(FolderWatchEventKind.Created, "trip", isDirectory: true);
+        bed.Settle();
+
+        Assert.Equal(["trip/a.jpg"], bed.Reported.Select(change => change.RelativePath));
+        Assert.Equal(1, bed.Files.Opens);
+    }
+
+    [Fact]
     public void Forget_DropsWhatIsWaiting()
     {
         var bed = new Bed();
@@ -181,14 +273,19 @@ public sealed class FolderChangeBufferTests
     /// </summary>
     private sealed class Bed
     {
-        public Bed()
+        public Bed(Func<string, bool>? includes = null)
         {
-            Buffer = new FolderChangeBuffer(Files, Clock, NullLogger.Instance, (folderId, changes, _) =>
-            {
-                Assert.Equal(FolderId, folderId);
-                Reported.AddRange(changes);
-                return Task.CompletedTask;
-            });
+            Buffer = new FolderChangeBuffer(
+                Files,
+                Clock,
+                NullLogger.Instance,
+                (folderId, changes, _) =>
+                {
+                    Assert.Equal(FolderId, folderId);
+                    Reported.AddRange(changes);
+                    return Task.CompletedTask;
+                },
+                includes is null ? null : (_, path) => includes(path));
         }
 
         public ManualClock Clock { get; } = new();

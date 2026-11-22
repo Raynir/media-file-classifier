@@ -11,6 +11,7 @@ public sealed class InMemoryMediaFileSource : IMediaFileSource
 {
     private readonly Dictionary<string, MediaFileStat> files = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> locked = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> broken = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock syncRoot = new();
 
     /// <summary>
@@ -43,6 +44,18 @@ public sealed class InMemoryMediaFileSource : IMediaFileSource
         lock (syncRoot)
         {
             files.Remove(relativePath);
+        }
+    }
+
+    /// <summary>
+    /// Makes reading a file's size and times fail with an unexpected error, not an I/O one.
+    /// </summary>
+    /// <param name="relativePath">The path.</param>
+    public void Break(string relativePath)
+    {
+        lock (syncRoot)
+        {
+            broken.Add(relativePath);
         }
     }
 
@@ -113,7 +126,9 @@ public sealed class InMemoryMediaFileSource : IMediaFileSource
 
         lock (syncRoot)
         {
-            return Task.FromResult(files.GetValueOrDefault(file.RelativePath));
+            return broken.Contains(file.RelativePath)
+                ? Task.FromException<MediaFileStat?>(new InvalidOperationException($"'{file.RelativePath}' can't be read."))
+                : Task.FromResult(files.GetValueOrDefault(file.RelativePath));
         }
     }
 

@@ -2,11 +2,13 @@ namespace MediaFileClassifier.Testing.Timing;
 
 /// <summary>
 /// A clock whose time moves and whose one-shot and periodic timers fire only when the test advances it. Timers fire
-/// on the test's thread, in due order.
+/// on the test's thread, in due order. Timers may be created and changed from other threads while it advances. A period
+/// of zero or less is one-shot, like <see cref="System.Threading.Timer"/>'s.
 /// </summary>
 public sealed class ManualClock : TimeProvider
 {
     private readonly List<ManualTimer> timers = [];
+    private readonly Lock syncRoot = new();
     private readonly DateTimeOffset start;
     private TimeSpan now;
 
@@ -17,14 +19,24 @@ public sealed class ManualClock : TimeProvider
     public ManualClock(DateTimeOffset? start = null) => this.start = start ?? DateTimeOffset.UnixEpoch;
 
     /// <inheritdoc />
-    public override DateTimeOffset GetUtcNow() => start + now;
+    public override DateTimeOffset GetUtcNow()
+    {
+        lock (syncRoot)
+        {
+            return start + now;
+        }
+    }
 
     /// <inheritdoc />
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {
         var timer = new ManualTimer(this, callback, state);
         timer.Change(dueTime, period);
-        timers.Add(timer);
+        lock (syncRoot)
+        {
+            timers.Add(timer);
+        }
+
         return timer;
     }
 
@@ -34,14 +46,30 @@ public sealed class ManualClock : TimeProvider
     /// <param name="time">How far.</param>
     public void Advance(TimeSpan time)
     {
-        var end = now + time;
-        while (timers.Where(timer => timer.DueAt <= end).MinBy(timer => timer.DueAt) is { } next)
+        TimeSpan end;
+        lock (syncRoot)
         {
-            now = next.DueAt!.Value;
-            next.Fire();
+            end = now + time;
         }
 
-        now = end;
+        while (true)
+        {
+            ManualTimer? next;
+            lock (syncRoot)
+            {
+                next = timers.Where(timer => timer.DueAt <= end).MinBy(timer => timer.DueAt);
+                if (next is null)
+                {
+                    now = end;
+                    return;
+                }
+
+                now = next.DueAt!.Value;
+                next.Advance();
+            }
+
+            next.Fire();
+        }
     }
 
     private sealed class ManualTimer(ManualClock clock, TimerCallback callback, object? state) : ITimer
@@ -52,18 +80,27 @@ public sealed class ManualClock : TimeProvider
 
         public bool Change(TimeSpan dueTime, TimeSpan period)
         {
-            this.period = period;
-            DueAt = dueTime == Timeout.InfiniteTimeSpan ? null : clock.now + dueTime;
+            lock (clock.syncRoot)
+            {
+                this.period = period;
+                DueAt = dueTime == Timeout.InfiniteTimeSpan ? null : clock.now + dueTime;
+            }
+
             return true;
         }
 
-        public void Fire()
-        {
-            DueAt = period == Timeout.InfiniteTimeSpan ? null : clock.now + period;
-            callback(state);
-        }
+        // Called under the clock's lock: sets the next due time before the callback runs.
+        public void Advance() => DueAt = period == Timeout.InfiniteTimeSpan || period <= TimeSpan.Zero ? null : clock.now + period;
 
-        public void Dispose() => DueAt = null;
+        public void Fire() => callback(state);
+
+        public void Dispose()
+        {
+            lock (clock.syncRoot)
+            {
+                DueAt = null;
+            }
+        }
 
         public ValueTask DisposeAsync()
         {

@@ -680,8 +680,24 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     {
         foreach (var (resource, pool) in pools)
         {
+            // Whether a boost was loaded since this pool last started work, so a stream of boosts can't stall it.
+            var boostLoaded = false;
             while (!token.IsCancellationRequested && !paused)
             {
+                // A boost that came after this pass loaded the boosted work (the view scrolled while a slot was
+                // freeing up) decides what runs next, so its work is read in before the next start (MFC-1025).
+                bool loadBoost;
+                lock (gate)
+                {
+                    loadBoost = boostChanged && !boostLoaded && pool.Running < pool.Limit;
+                }
+
+                if (loadBoost)
+                {
+                    await LoadBoostedAsync(token).ConfigureAwait(false);
+                    boostLoaded = true;
+                }
+
                 List<Id<WorkItem>> excluding;
                 List<string> excludingStages;
                 lock (gate)
@@ -700,6 +716,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
                         }
 
                         StartWorkItem(next, pool);
+                        boostLoaded = false;
                         continue;
                     }
 

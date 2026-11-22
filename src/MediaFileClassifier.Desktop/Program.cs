@@ -21,6 +21,7 @@ using MediaFileClassifier.Ui;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
+using MediaFileClassifier.UseCases.Monitoring;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -102,6 +103,9 @@ internal static partial class Program
 
             // Finished imports, rescans and analysis jobs are recorded in the activity log (E15-S04).
             host.Services.GetRequiredService<MediaFileClassifier.UseCases.Activity.ActivityJobRecorder>().Start();
+
+            // New and changed files in the Online folders are noticed while the app runs (E04-S01).
+            host.Services.GetRequiredService<FolderWatchManager>().Start();
 
             if (args.Contains("--benchmark"))
             {

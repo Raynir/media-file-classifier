@@ -2,6 +2,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Ui.Platform;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,7 @@ internal static class DesktopPlatformModule
     {
         services.TryAddSingleton<IPlatformServices, WindowsPlatformServices>();
         services.TryAddSingleton<IMediaFileSource, FileSystemMediaFileSource>();
+        services.TryAddSingleton<IFolderWatcherFactory, FileSystemFolderWatcherFactory>();
         services.TryAddSingleton<IHardwareDetector, WindowsHardwareDetector>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, SkiaSharpProbe>());
         services.TryAddSingleton<IKeyboardLayout, WindowsKeyboardLayout>();

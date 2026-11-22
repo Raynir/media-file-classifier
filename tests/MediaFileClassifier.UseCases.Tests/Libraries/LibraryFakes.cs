@@ -169,6 +169,8 @@ internal sealed class FakeFolderRepository : IFolderRepository
 
     public event EventHandler? StatusChanged;
 
+    public event EventHandler? Changed;
+
     public List<IndexedFolder> Folders { get; } = [];
 
     public Task<IndexedFolder?> GetAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
@@ -181,6 +183,7 @@ internal sealed class FakeFolderRepository : IFolderRepository
     {
         Folders.Add(folder);
         stored[folder.Id] = folder.Status;
+        Changed?.Invoke(this, EventArgs.Empty);
         return Task.CompletedTask;
     }
 
@@ -192,6 +195,7 @@ internal sealed class FakeFolderRepository : IFolderRepository
     {
         Updates++;
         Store(folder);
+        Changed?.Invoke(this, EventArgs.Empty);
         return Task.CompletedTask;
     }
 
@@ -203,17 +207,31 @@ internal sealed class FakeFolderRepository : IFolderRepository
         return Task.CompletedTask;
     }
 
+    // Changed is raised like the real repository's: after every add, update, merge and split, and after a delete that
+    // removed the folder.
     public Task<int> MergeIntoAsync(IndexedFolder parent, Id<IndexedFolder> childId, string relativePath, CancellationToken cancellationToken = default)
     {
         Folders.RemoveAll(folder => folder.Id == childId);
+        Changed?.Invoke(this, EventArgs.Empty);
         return Task.FromResult(0);
     }
 
-    public Task<(int Moved, bool PartialDeleted)> SplitIntoAsync(IndexedFolder folder, Id<IndexedFolder> partialId, string relativePath, CancellationToken cancellationToken = default) =>
-        Task.FromResult((0, false));
+    public Task<(int Moved, bool PartialDeleted)> SplitIntoAsync(IndexedFolder folder, Id<IndexedFolder> partialId, string relativePath, CancellationToken cancellationToken = default)
+    {
+        Changed?.Invoke(this, EventArgs.Empty);
+        return Task.FromResult((0, false));
+    }
 
     public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
-        => Task.FromResult(Folders.RemoveAll(folder => folder.Id == id) > 0);
+    {
+        var deleted = Folders.RemoveAll(folder => folder.Id == id) > 0;
+        if (deleted)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        return Task.FromResult(deleted);
+    }
 
     private void Store(IndexedFolder folder)
     {

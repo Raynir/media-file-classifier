@@ -26,21 +26,25 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
             cancellationToken);
 
     /// <inheritdoc />
-    public Task AddAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
+    public async Task AddAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(folder);
 
-        return writer.ExecuteAsync(
+        await writer.ExecuteAsync(
             (db, token) =>
             {
                 db.Folders.Add(folder);
                 return db.SaveChangesAsync(token);
             },
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <inheritdoc />
     public event EventHandler? StatusChanged;
+
+    /// <inheritdoc />
+    public event EventHandler? Changed;
 
     /// <inheritdoc />
     public async Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
@@ -56,7 +60,10 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                 return stored is { } status && status != folder.Status;
             },
             cancellationToken).ConfigureAwait(false);
+
+        // The status event first, as before Changed existed, so a Changed handler that throws can't hold it back.
         RaiseIf(statusChanged);
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <inheritdoc />
@@ -89,12 +96,12 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
     }
 
     /// <inheritdoc />
-    public Task<int> MergeIntoAsync(IndexedFolder parent, Id<IndexedFolder> childId, string relativePath, CancellationToken cancellationToken = default)
+    public async Task<int> MergeIntoAsync(IndexedFolder parent, Id<IndexedFolder> childId, string relativePath, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(parent);
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
 
-        return writer.ExecuteAsync(
+        var moved = await writer.ExecuteAsync(
             async (db, token) =>
             {
                 var items = await db.MediaItems.Where(item => item.FolderId == childId).ToListAsync(token).ConfigureAwait(false);
@@ -108,17 +115,19 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                 await db.Folders.Where(folder => folder.Id == childId).ExecuteDeleteAsync(token).ConfigureAwait(false);
                 return items.Count;
             },
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke(this, EventArgs.Empty);
+        return moved;
     }
 
     /// <inheritdoc />
-    public Task<(int Moved, bool PartialDeleted)> SplitIntoAsync(IndexedFolder folder, Id<IndexedFolder> partialId, string relativePath, CancellationToken cancellationToken = default)
+    public async Task<(int Moved, bool PartialDeleted)> SplitIntoAsync(IndexedFolder folder, Id<IndexedFolder> partialId, string relativePath, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(folder);
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
 
         var prefix = relativePath.Trim('/') + "/";
-        return writer.ExecuteAsync(
+        var result = await writer.ExecuteAsync(
             async (db, token) =>
             {
                 var items = await db.MediaItems.Where(item => item.FolderId == partialId).ToListAsync(token).ConfigureAwait(false);
@@ -135,14 +144,24 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                     && await db.Folders.Where(partial => partial.Id == partialId).ExecuteDeleteAsync(token).ConfigureAwait(false) > 0;
                 return (moved.Count, deleted);
             },
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        Changed?.Invoke(this, EventArgs.Empty);
+        return result;
     }
 
     /// <inheritdoc />
-    public Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default) =>
-        writer.ExecuteAsync(
+    public async Task<bool> DeleteAsync(Id<IndexedFolder> id, CancellationToken cancellationToken = default)
+    {
+        var deleted = await writer.ExecuteAsync(
             async (db, token) => await db.Folders.Where(folder => folder.Id == id).ExecuteDeleteAsync(token).ConfigureAwait(false) > 0,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        if (deleted)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        return deleted;
+    }
 
     private static async Task<FolderStatus?> StoredStatusAsync(LibraryDbContext db, Id<IndexedFolder> id, CancellationToken cancellationToken) =>
         (await db.Folders.AsNoTracking().Where(row => row.Id == id).Select(row => new { row.Status })

@@ -112,7 +112,8 @@ public sealed class SettingsSearchAndResetTests : IDisposable
         store.IsLibraryOpen = true;
         store.SetValue(ThemeService.ThemeSetting, ThemeMode.Light);
         store.SetValue(KnownSettings.RetainedPreviousRuns, 4);
-        var endpoint = viewModel.Categories.SelectMany(category => category.Entries).OfType<TextSettingItemViewModel>().Single();
+        var endpoint = viewModel.Categories.SelectMany(category => category.Entries).OfType<TextSettingItemViewModel>()
+            .Single(entry => entry.Definition.Key == KnownSettings.OpenAiCompatibleEndpoint.Key);
         endpoint.Text = "not a url";
         endpoint.CommitCommand.Execute(null);
 

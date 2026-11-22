@@ -37,14 +37,17 @@ public sealed class BrowserCommands : ICommandContributor
     public const string SelectNone = "edit.select-none";
 
     private readonly Func<ThumbnailGridViewModel> grid;
+    private readonly SelectionModel selection;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BrowserCommands"/> class.
     /// </summary>
     /// <param name="grid">Gets the thumbnail grid, once a command runs.</param>
-    public BrowserCommands(Func<ThumbnailGridViewModel> grid)
+    /// <param name="selection">The selection and the result count, which the enablement rules read: unlike the grid, resolving them needs no job services (MFC-1021).</param>
+    public BrowserCommands(Func<ThumbnailGridViewModel> grid, SelectionModel selection)
     {
         this.grid = grid;
+        this.selection = selection;
     }
 
     /// <inheritdoc />
@@ -58,18 +61,23 @@ public sealed class BrowserCommands : ICommandContributor
         {
             // Enter shows the item in the details panel (E14-S05); the context menu's Open is "Open in default app".
             InContextMenu = false,
+            AppliesTo = HasResults,
         });
 
         // Previous and next follow the result order, as the selection moves (E14-S05-T03).
         registry.Add(new AppCommand(PreviousItem, CommandGroups.Item, 100, "Command_PreviousItem", () => grid().MoveAsync(GridMove.Left, extend: false, keepSelection: false))
         {
             InContextMenu = false,
+            AppliesTo = HasResults,
         });
         registry.Add(new AppCommand(NextItem, CommandGroups.Item, 110, "Command_NextItem", () => grid().MoveAsync(GridMove.Right, extend: false, keepSelection: false))
         {
             InContextMenu = false,
+            AppliesTo = HasResults,
         });
-        registry.Add(new AppCommand(SelectAll, CommandGroups.Edit, 100, "Command_SelectAll", () => grid().SelectAllAsync()));
-        registry.Add(new AppCommand(SelectNone, CommandGroups.Edit, 110, "Command_SelectNone", () => grid().ClearSelection()));
+        registry.Add(new AppCommand(SelectAll, CommandGroups.Edit, 100, "Command_SelectAll", () => grid().SelectAllAsync()) { AppliesTo = HasResults });
+        registry.Add(new AppCommand(SelectNone, CommandGroups.Edit, 110, "Command_SelectNone", () => grid().ClearSelection()) { AppliesTo = () => selection.Count > 0 });
     }
+
+    private bool HasResults() => selection.ResultCount > 0;
 }

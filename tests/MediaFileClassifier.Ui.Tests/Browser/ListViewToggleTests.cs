@@ -77,7 +77,7 @@ public sealed class ListViewToggleTests
     public Task ViewCommands_SwitchTheView() => TestApp.RunAsync(async () =>
     {
         var grid = Restart(new InMemorySettingsStore());
-        var registry = new CommandRegistry([new BrowserCommands(() => grid)], Localizer.Current, new FakeCapabilityGate());
+        var registry = new CommandRegistry([new BrowserCommands(() => grid, grid.Selection)], Localizer.Current, new FakeCapabilityGate());
 
         await registry[BrowserCommands.ListView].ExecuteAsync();
         Assert.True(grid.IsListView);

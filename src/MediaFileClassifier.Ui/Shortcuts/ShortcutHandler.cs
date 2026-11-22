@@ -50,7 +50,7 @@ public sealed class ShortcutHandler
     {
         var chord = new KeyChord(e.PhysicalKey, e.KeyModifiers);
         var focused = FocusedElement(sender);
-        if (e.Handled || (focused is TextBox && TextInputRules.IsReservedForText(chord)))
+        if (e.Handled || (focused is TextBox && TextInputRules.IsReservedForText(chord)) || TextInputRules.IsActivationKeyForButton(focused, chord))
         {
             return;
         }

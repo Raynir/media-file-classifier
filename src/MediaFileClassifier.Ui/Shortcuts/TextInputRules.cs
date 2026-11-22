@@ -37,5 +37,16 @@ public static class TextInputRules
         return EditingChordKeys.Contains(chord.Key);
     }
 
+    /// <summary>
+    /// Checks whether the keys press the focused button: Enter and Space belong to a focused button (a chip, a toggle
+    /// or the Filters button that opens a flyout), so a shortcut on them, such as Enter opening the selected item, must
+    /// not take them (MFC-1011).
+    /// </summary>
+    /// <param name="focused">The focused element.</param>
+    /// <param name="chord">The keys pressed.</param>
+    /// <returns>Whether the button keeps them.</returns>
+    public static bool IsActivationKeyForButton(object? focused, KeyChord chord)
+        => focused is Avalonia.Controls.Button && chord.Modifiers == KeyModifiers.None && chord.Key is PhysicalKey.Enter or PhysicalKey.Space;
+
     private static bool IsFunctionKey(PhysicalKey key) => key is >= PhysicalKey.F1 and <= PhysicalKey.F24;
 }

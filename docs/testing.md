@@ -127,7 +127,7 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `key <gesture>` | Presses a key on the focused control, e.g. `key Space`, `key Ctrl+2`, `key Ctrl+Shift+F`. |
 | `type <text>` | Types text into the focused control. |
 | `wait <duration>` | Waits, e.g. `wait 500ms`, `wait 2s`. |
-| `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name), `dialog` or `no-dialog`; default 30 s. |
+| `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name), `dialog`, `no-dialog`, `popup` or `no-popup`; default 30 s. |
 | `shot <name>` | Saves `<name>.png`. |
 | `seed-keyframes <file name>` | Samples the item's video or animation and stores its keyframes and their pictures, as the analysis does (keyframes otherwise need the AI model). The item's details must be reloaded to show them: select another item, then this one. |
 | `choose-keyframe <n>` | Chooses the n-th keyframe in the preview's strip (from 1), as a click does. |
@@ -135,6 +135,9 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `start <id>` | Runs an app command without waiting for it, for a command that opens a modal dialog, e.g. `start item.remove`. |
 | `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`. Fails if it's disabled. |
 | `dialog-key <gesture>` | Presses a key on the open dialog's focused control, e.g. `dialog-key Tab`; the report names the control that had the focus (MFC-131). |
+| `dialog-focus <control>` | Fails unless the open dialog's focus is on the control with that `x:Name` or type name, e.g. `dialog-focus CancelButton`: a dialog focuses its first input or default button when it opens (MFC-1012). |
+| `popup-key <gesture>` | Presses a key on the focused control of the open popup (a flyout, a context menu or a combo drop-down), e.g. `popup-key Tab`; the report names the control that had the focus. `key` goes to the main window's focused control, which is not in the popup (MFC-1013). |
+| `popup-shot <name>` | Saves `<name>.png` of the open popup. |
 | `dialog-type <text>` | Types text into the open dialog's focused text box, e.g. a typed confirmation (MFC-122). |
 | `dialog-size <w>x<h>` | Sizes the open dialog or settings window, e.g. to show a long page whole (MFC-133). |
 | `dialog-shot <name>` | Saves `<name>.png` of the open dialog. |

@@ -10,6 +10,9 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Main menu (MFC-1021): Open item, Previous and Next, Select all and Select none, Library information and Refresh results are now disabled, with a tooltip that says why, when there is no library, no results or no selection to act on.
+- Dialogs (MFC-1012): a dialog now opens with the keyboard focus on a control instead of on the window: its first text box, list or combo box, else its default button (Cancel in Remove item, the typed-name box in Delete library). Before, the first Tab only reached the first control. The UI smoke tool has a `dialog-focus` step.
+- Keyboard (MFC-1011): Enter and Space on a focused button, such as the Filters chip, press the button instead of running a shortcut. Enter on the Filters chip used to open the selected item, so the filter flyout never opened from the keyboard.
 - Main menu (MFC-1016): commands that don't apply are now disabled, with a tooltip that says why, instead of staying enabled. For example Edit, "Undo bulk edit" is off until there is a bulk edit to undo, and Select none is off without a selection. The menu rechecks every command when it opens (MFC-1017).
 - Importing a model from files (MFC-1016): "Import from file" now asks for the folder that holds the model files and picks the ones the catalogue expects by name, so a model's files no longer have to be picked one by one (MFC-1018).
 - List view (MFC-1016): the Favorite column's header shows a star icon, with the name in its tooltip, instead of looking like an empty column (MFC-1020).
@@ -17,6 +20,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Added
 
+- UI smoke tool (MFC-1013): `popup-key` and `popup-shot` steps and `wait-for popup` / `no-popup` send a key to, and capture, the open flyout, context menu or combo drop-down, so keyboard use of popups can be checked by script.
 - AI & Models settings (MFC-1016): an "Open models folder" button shows the folder where models are stored in File Explorer (MFC-1019).
 
 ## M5 — 2026-11-21

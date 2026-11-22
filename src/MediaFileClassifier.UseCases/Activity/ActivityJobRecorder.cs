@@ -55,7 +55,7 @@ public sealed partial class ActivityJobRecorder(
         var type = job.Type switch
         {
             ImportStages.ImportJob => ActivityEventType.Import,
-            RescanStages.RescanJob => ActivityEventType.Rescan,
+            RescanStages.RescanJob or RescanStages.QuickSyncJob => ActivityEventType.Rescan,
             AnalysisStages.AnalysisJob => ActivityEventType.Analysis,
             MaintenanceJobs.ThumbnailsJob => ActivityEventType.Maintenance,
             _ => (ActivityEventType?)null,
@@ -85,6 +85,13 @@ public sealed partial class ActivityJobRecorder(
         {
             if (RescanCounts.FromJson(stored.Result) is { } rescan)
             {
+                // A quick sync on open says nothing when it found nothing to do (E04-S03).
+                if (job.Type == RescanStages.QuickSyncJob && finished.State == ProcessingJobState.Completed && failed == 0
+                    && rescan.New + rescan.Moved + rescan.Missing + rescan.Modified == 0)
+                {
+                    return;
+                }
+
                 counts[ActivityCounts.Folders] = rescan.Folders;
                 counts[ActivityCounts.Offline] = rescan.Offline;
                 counts[ActivityCounts.Added] = rescan.New;

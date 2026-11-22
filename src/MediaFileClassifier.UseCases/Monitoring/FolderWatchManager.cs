@@ -195,6 +195,39 @@ public sealed class FolderWatchManager : IDisposable
     }
 
     /// <summary>
+    /// Gets a value indicating whether the manager follows the open library, which it doesn't where the platform can't
+    /// watch folders.
+    /// </summary>
+    public bool IsWatching
+    {
+        get
+        {
+            lock (syncRoot)
+            {
+                return started && !disposed;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Waits until the watchers match the open library's Online folders, so a sync that runs after it can't miss a change
+    /// made while it lists (E04-S03). Does nothing where nothing is watched.
+    /// </summary>
+    /// <returns>A task that completes when the watchers are running.</returns>
+    public Task EnsureWatchingAsync()
+    {
+        lock (syncRoot)
+        {
+            if (!started || disposed)
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        return RefreshAsync();
+    }
+
+    /// <summary>
     /// Waits until the rescans and availability checks under way after lost events are done. A rescan waiting for busy
     /// work counts as under way.
     /// </summary>

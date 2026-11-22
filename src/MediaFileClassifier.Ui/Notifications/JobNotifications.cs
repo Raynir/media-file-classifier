@@ -1,3 +1,4 @@
+using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.Ui.Navigation;
@@ -5,6 +6,10 @@ using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Common.Notifications;
 using MediaFileClassifier.UseCases.Import;
+using MediaFileClassifier.UseCases.Rescan;
+using MediaFileClassifier.UseCases.Rescan.GetRescanSummary;
+using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.Ui.Notifications;
 
@@ -17,8 +22,12 @@ namespace MediaFileClassifier.Ui.Notifications;
 /// <param name="progress">Reports finished jobs, on a background thread.</param>
 /// <param name="notifications">Shows the notifications; safe to call from any thread.</param>
 /// <param name="localizer">UI strings.</param>
-public sealed class JobNotifications(IJobProgress progress, INotificationService notifications, Localizer localizer)
+/// <param name="summaries">Reads a quick sync's summary, or <see langword="null"/> to leave quick syncs silent.</param>
+/// <param name="logger">Logs a quick sync summary that couldn't be made, or <see langword="null"/> for none.</param>
+public sealed class JobNotifications(IJobProgress progress, INotificationService notifications, Localizer localizer, ISender? summaries = null, ILogger<JobNotifications>? logger = null)
 {
+    private const int QuickSyncSummaryAttempts = 5;
+    private static readonly TimeSpan QuickSyncSummaryWait = TimeSpan.FromMilliseconds(200);
     private int started;
 
     /// <summary>
@@ -81,8 +90,66 @@ public sealed class JobNotifications(IJobProgress progress, INotificationService
     /// </summary>
     public const string ImportedItemsCommand = NavigationCommands.ShowRecentlyImported;
 
+    /// <summary>
+    /// Makes the notification for a finished quick sync (E04-S03): its summary, or nothing when it found no change.
+    /// </summary>
+    /// <param name="finished">The finished job.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The notification, or <see langword="null"/> when nothing changed, the job isn't a quick sync, or it can't be told.</returns>
+    public async Task<Notification?> DescribeQuickSyncAsync(JobFinishedEventArgs finished, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(finished);
+
+        if (finished.Progress.Type != RescanStages.QuickSyncJob || finished.State != ProcessingJobState.Completed || summaries is null)
+        {
+            return null;
+        }
+
+        // The job's end may be stored a moment after it's reported.
+        RescanSummary? summary = null;
+        for (var attempt = 0; attempt < QuickSyncSummaryAttempts && summary is null; attempt++)
+        {
+            summary = await summaries.Send(new GetRescanSummaryQuery(finished.Progress.JobId), cancellationToken).ConfigureAwait(false);
+            if (summary is null)
+            {
+                await Task.Delay(QuickSyncSummaryWait, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        if (summary?.Counts is not { } counts || counts.New + counts.Moved + counts.Missing + counts.Modified == 0)
+        {
+            return null;
+        }
+
+        return new Notification(
+            localizer.Format("Notification_QuickSyncDone", Format.Number(counts.New), Format.Number(counts.Moved), Format.Number(counts.Missing), Format.Number(counts.Modified)),
+            NotificationSeverity.Info);
+    }
+
+    private async Task NotifyQuickSyncAsync(JobFinishedEventArgs finished)
+    {
+        try
+        {
+            if (await DescribeQuickSyncAsync(finished).ConfigureAwait(false) is { } notification)
+            {
+                notifications.Notify(notification);
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // E.g. the library closed meanwhile: there's no summary to show. Nothing waits for this task, so it mustn't throw.
+            logger?.LogWarning(exception, "Couldn't summarise the quick sync");
+        }
+    }
+
     private void OnJobFinished(object? sender, JobFinishedEventArgs e)
     {
+        if (e.Progress.Type == RescanStages.QuickSyncJob)
+        {
+            _ = NotifyQuickSyncAsync(e);
+            return;
+        }
+
         if (Describe(e) is { } notification)
         {
             notifications.Notify(notification);

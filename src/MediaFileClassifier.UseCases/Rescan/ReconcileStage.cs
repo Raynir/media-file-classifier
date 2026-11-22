@@ -40,6 +40,11 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         var job = await library.Jobs.GetJobAsync(jobId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("The rescan job isn't in the library.");
         var folders = await GetFoldersAsync(library, job, cancellationToken).ConfigureAwait(false);
+        if (job.Type == RescanStages.QuickSyncJob)
+        {
+            // Offline folders are the availability monitor's to bring back; listing a dead share would stall startup.
+            folders = [.. folders.Where(folder => folder.Status == FolderStatus.Online)];
+        }
 
         var result = await reconciler.ReconcileAsync(library, folders, cancellationToken).ConfigureAwait(false);
         if (await UpdateFolderStatusAsync(library, result, cancellationToken).ConfigureAwait(false))

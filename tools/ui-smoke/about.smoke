@@ -1,0 +1,10 @@
+# Help > About (MFC-1023): the overlay shows the version and commit.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/about.smoke --out artifacts/ui-smoke
+
+window 1000x700
+command view.theme-light
+command help.about
+wait-for visible VersionText
+shot 01-about
+key Escape
+wait-for hidden VersionText

@@ -1,158 +1,93 @@
 # Media File Classifier
 
-A Windows desktop app that indexes local media with local AI and lets you find any file by describing it.
+Find any photo or video on your computer by describing it.
 
-The product backlog lives in Jira (project MFC). The decisions behind it (D001, D002, …) are in the [development plan repository](https://github.com/Raynir/mfc-development-plan/blob/main/DECISIONS.md).
+Media File Classifier is a Windows desktop app. You point it at your folders, and it reads each file with AI models that run on your own computer. It records a description, tags, the text in the picture and a "meaning" vector. Then you search in plain words, such as "dog on a beach at sunset", or look for pictures similar to one you already have.
 
-## Setting up a development machine
+- **Search by description** in English or Russian, with filters and sorting, in a grid or list view.
+- **Descriptions, tags and text:** each image gets a title, a description and tags, and text in images is read (OCR). You can edit them, mark favourites and review items.
+- **Videos and animated images:** the app samples key frames, so a clip is searchable too.
+- **Folders stay where they are.** A library is a separate folder with an index and thumbnails. A folder that's unplugged shows as offline.
 
-### Prerequisites
+## System requirements
 
-- **Windows 11** (D039).
-- **.NET 10 SDK**, 10.0.400 or later. `global.json` selects it. Install it with:
+| | |
+|---|---|
+| **Operating system** | Windows 11, 64-bit (x64). |
+| **Processor and graphics** | Any x64 processor works. A graphics card with DirectX 12 and at least 2 GB of its own memory is used through DirectML to speed up search indexing. Without one the processor does the work, only slower. |
+| **Download** | About 121 MB (`MediaFileClassifier-<version>-win-x64.zip`). |
+| **Disk space** | About 340 MB for the unzipped app. The AI models are separate downloads: about 2.6 GB for the ones that are used by default (search model 1.5 GB, descriptions 1.1 GB, text reading 13 MB), 0.9 GB for the smaller graphics-card version of the search model, and 3.3 GB more for the optional larger description model. A library adds its own index and thumbnails next to your choice of location. |
+| **Internet** | Only to download the models, once. After that the app works offline. |
 
-  ```powershell
-  winget install Microsoft.DotNet.SDK.10
-  ```
+## Download and run
 
-- **Git.**
-- **An IDE (optional):** Visual Studio 2026, or JetBrains Rider with the AvaloniaRider plugin, or VS Code with the C# Dev Kit and Avalonia extensions. The Avalonia extension gives you the XAML previewer.
-- **Avalonia project templates (optional).** You only need them to create new projects:
+1. Open the [Releases page](https://github.com/Raynir/media-file-classifier/releases) and download `MediaFileClassifier-<version>-win-x64.zip` from the latest release. The `.sha256` file next to it lets you check the download.
+2. Windows marks files from the internet as blocked. Right-click the zip, choose **Properties**, tick **Unblock** and click OK. Or run `Unblock-File` on it in PowerShell.
+3. Extract the zip into a folder you own, such as `C:\Apps\MediaFileClassifier`, and run `MediaFileClassifier.Desktop.exe`. There is nothing to install.
 
-  ```powershell
-  dotnet new install Avalonia.Templates
-  ```
+To update, extract the new version over a new folder. Your libraries and settings are kept outside the app folder.
 
-- **Android (optional):** only for the Android head, `src/MediaFileClassifier.App.Android`, which `dotnet build` skips. See [Android development](docs/development-workflow.md#android-development).
+## Your first search
 
-### Build, run and test
+1. **Create a library.** On the welcome screen choose **Create library** (or **Library, New library…**) and pick a name and a place on a disk with some free space.
+2. **Add your folders.** Choose **Library, Add folder…**. The app finds the supported files in it and in its subfolders. It reads JPEG, PNG, GIF, WebP and MP4 (`.mp4`, `.m4v`) files. You can also drop files into the window or use **Library, Import files…**.
+3. **Get the AI models.** Open **Tools, Settings, AI & Models**. Choose **Download** on each model you want, one time. You need at least the search model (SigLIP 2) to search by description. The others add descriptions and tags (Florence-2) and text reading (PP-OCRv5). The Standard version suits the processor, and Compact suits a graphics card.
+   - **No internet on this computer?** Download the model files on another computer and use **Import from file**. It asks for the folder with the model's files and picks the ones it needs by name. The files are listed in `src/MediaFileClassifier.Infrastructure.AI/Models/model-catalog.json`.
+4. **Wait for the analysis.** New items are analysed automatically. Items wait while a model is missing; after you install one, choose **Library, Analyze pending items** if they are still waiting. Progress shows in the status bar and in **View, Processing queue**. You can search while it runs: items that are done are searchable.
+5. **Search.** Type a description in the search box at the top.
 
-All commands run from the repository root.
+## Optional: a local model server for descriptions
 
-```powershell
-dotnet build
-dotnet run --project src/MediaFileClassifier.Desktop
-dotnet test
-```
+By default the descriptions come from Florence-2, which runs inside the app. If you prefer a stronger vision model, the app can use any server with an OpenAI-compatible address, such as [LM Studio](https://lmstudio.ai/) (`http://localhost:1234/v1`) or Ollama (`http://localhost:11434/v1`):
 
-The tests run on Microsoft.Testing.Platform. `global.json` opts `dotnet test` into it.
+1. Start the server with a vision-capable model loaded.
+2. In **Tools, Settings, AI & Models, Endpoints**, add it (there is a shortcut for LM Studio), choose the model, and use **Test**.
 
-To check that unhandled exceptions are logged rather than closing the app, run a Debug build with `--simulate-crash`:
+When a server is set up, it takes over the descriptions. If you use a server on another computer, your images are sent to it, and the app asks you to confirm. Details are in [docs/analysis-pipeline.md](docs/analysis-pipeline.md).
 
-```powershell
-dotnet run --project src/MediaFileClassifier.Desktop -- --simulate-crash
-```
+## Optional: ffprobe for video
 
-### UI strings and pseudo-localisation
-
-Every user-facing string lives in `src/MediaFileClassifier.Ui/Resources/Strings.resx` (E13-S08). Views bind strings with `{l:Loc Key}` (`xmlns:l="using:MediaFileClassifier.Ui.Localization"`), and code uses `Localizer.Current.Get(key)` or `Format(key, args)`. Numbers, dates, durations and file sizes go through `Format` or `FormatConverters`, which use the current culture. A test fails if a view has a hard-coded string or uses a key that isn't in `Strings.resx`.
-
-To check that layouts survive longer translations, run with pseudo-localisation. It accents every string and makes it about 40% longer, in brackets, so clipped text is easy to spot:
-
-```powershell
-dotnet run --project src/MediaFileClassifier.Desktop -- --pseudo-loc
-```
-
-### Themes and design tokens
-
-Colours, sizes and fonts come from design tokens in `src/MediaFileClassifier.Ui/Theming/`. [docs/design-tokens.md](docs/design-tokens.md) explains how to use them. The app follows the Windows light or dark setting. To check a view in one theme, run:
+Reading a video's duration, size and codecs, and sampling its key frames for analysis, need the free [FFmpeg](https://ffmpeg.org/) tools, `ffmpeg` and `ffprobe`. The app doesn't ship them. Without them, videos are still imported, with only their file information, and are not analysed.
 
 ```powershell
-dotnet run --project src/MediaFileClassifier.Desktop -- --theme=light
-dotnet run --project src/MediaFileClassifier.Desktop -- --theme=dark
+winget install --id Gyan.FFmpeg.Essentials
 ```
 
-### Commands and the main menu
+The app looks in a folder named `ffmpeg` next to `MediaFileClassifier.Desktop.exe` and in every folder on `PATH`. Restart the app after you install it.
 
-Every user action is an `AppCommand` in the command registry (E13-S05). It has an ID, a label, an icon, a shortcut, an enablement rule and a handler, so the main menu, context menus, buttons and shortcuts show it the same way:
+## Where things are kept
 
-- A feature registers its commands in an `ICommandContributor`, added with `services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, MyCommands>())`. The command's group (`CommandGroups`: Library, Edit, View, Item, Tools, Help) places it in the main menu.
-- Bind a button with `Command="{Binding Commands[help.open-log-folder]}"`, and its `ToolTip.Tip` and `AutomationProperties.Name` to the command's `ToolTip` and `PlainLabel`. Menus and context menus with `Classes="Commands"` take everything from the command (`Commands/CommandStyles.axaml`).
-- `RequiredCapability` disables a command when a capability flag is off, with the reason as its tooltip. `WhyDisabled` covers context, such as an empty selection.
-- **Help → Open log folder** opens the log folder. **Tools → Pseudo-localisation** switches pseudo-localisation on and off while the app runs.
+| What | Where |
+|---|---|
+| **Libraries** | The folder you chose, as `<name>.mfc`: the database, thumbnails and backups. Move or back up the whole folder. |
+| **Settings** | `%LOCALAPPDATA%\MediaFileClassifier\settings.json`. Delete the file to reset. |
+| **AI models** | `%LOCALAPPDATA%\MediaFileClassifier\models`. **Tools, Settings, AI & Models, Open models folder** opens it. |
+| **Logs** | `%LOCALAPPDATA%\MediaFileClassifier\logs`, one file a day, the last 14 days. **Help, Open log folder** opens it. |
 
-### UI checks for every view
+Your media files stay where they are. Deleting a library deletes only the files the app wrote into its folder, never your media.
 
-On top of the [definition of done](https://github.com/Raynir/mfc-development-plan/blob/main/README.md#definition-of-done-every-mvp-story), check each new or changed view by running the app:
+## Privacy
 
-- in the light theme (`--theme=light`) and the dark theme (`--theme=dark`): every text, icon and border is readable;
-- with pseudo-localisation (`--pseudo-loc`): no text is clipped, and every string shows its closing bracket.
+Everything runs on your computer. Your files, descriptions and searches are not sent anywhere, and the app has no accounts, tracking or usage reports. The app uses the network in only two cases: to download a model from Hugging Face or ModelScope when you ask, and to talk to a model server that you add yourself. A model server on `localhost` keeps your images on the computer.
 
-Tests catch hard-coded strings and literal colours and sizes in views.
+## Known limitations
 
-### Where the app keeps its files
+- **Windows 11 on x64 only.** Other systems and Windows on ARM aren't tested, and the DirectML graphics acceleration is not available on ARM.
+- **File types:** JPEG, PNG, GIF, WebP and MP4 only. Other formats (HEIC, RAW, MOV, MKV, …) are not imported.
+- **Graphics card:** speed-up was checked on an NVIDIA card. AMD, Intel Arc and machines without a graphics card haven't been measured; the app falls back to the processor when the card can't be used. Integrated graphics with less than 2 GB of their own memory are not used. The built-in Florence-2 description model always runs on the processor, so descriptions are the slowest step.
+- **Languages:** search was measured with English and Russian queries. The text-reading model covers Latin and Cyrillic scripts (Eastern European and Slavic languages), not Chinese, Japanese, Arabic and others.
+- **Video** analysis needs `ffmpeg` and `ffprobe` (see above).
+- **First analysis of a large collection takes a long time** on a processor, since each item goes through several models.
+- The AI can be wrong, so descriptions and tags are suggestions: you can edit them.
 
-Everything lives under `%LOCALAPPDATA%\MediaFileClassifier` (D061):
+## Reporting a problem
 
-| Path | Contents |
-|------|----------|
-| `logs\mfc-<date>.log` | Daily log files. The last 14 days are kept. |
-| `settings.json` | App settings, such as window placement. Delete it to reset. A corrupt file is kept as `settings.json.corrupt`, and the app starts with defaults. |
-| `models\` | The AI model store (from E06-S12). |
+Open **Help, Open log folder**, and attach the newest `mfc-<date>.log` file to a report. **Help, About Media File Classifier** shows the version to quote. Report it on the [issues page](https://github.com/Raynir/media-file-classifier/issues), saying what you did, what you expected and what happened. The log has file names and folder paths, so look through it first.
 
-### Local model servers (optional)
+## Licence
 
-The app talks to AI models in-process and through OpenAI-compatible HTTP endpoints (D005). You need a model server only for features and integration tests that use one.
+Media File Classifier is licensed under the [Apache License 2.0](LICENSE). The third-party libraries and AI models it uses, and their licences, are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The release zip also carries both files, and a `licenses` folder with the texts for LibVLC (LGPL-2.1) and DirectML.
 
-**LM Studio**
+## For developers
 
-1. Install [LM Studio](https://lmstudio.ai/) and download a vision-capable model.
-2. Start its server from the **Developer** tab. It listens on `http://localhost:1234/v1` by default.
-3. Check it with:
-
-   ```powershell
-   curl http://localhost:1234/v1/models
-   ```
-
-**Ollama in a Podman container**
-
-Use this setup for repeatable integration tests:
-
-```powershell
-podman run -d --name mfc-ollama -p 11434:11434 -v mfc-ollama:/root/.ollama docker.io/ollama/ollama
-podman exec mfc-ollama ollama pull llava
-```
-
-The OpenAI-compatible endpoint is `http://localhost:11434/v1`. Stop the container with `podman stop mfc-ollama`.
-
-## Solution structure
-
-The solution uses a layered structure (D062). Inner layers never reference outer ones.
-
-| Project | Contents |
-|---------|----------|
-| `Domain` | Entities and enums. No project references. |
-| `Infrastructure.Abstractions` | Interfaces implemented by the infrastructure: paths, settings, and later repositories, search and AI providers. |
-| `UseCases`, `UseCases.Common` | MediatR commands, queries and handlers, DTOs (Mapperly), shared helpers (D063). |
-| `Infrastructure` | General implementations: app paths, JSON settings. |
-| `Infrastructure.DataAccess`, `.Search`, `.AI`, `.Jobs` | SQLite persistence, search index, AI providers, background jobs. |
-| `Ui` | Shared Avalonia views and view models (CommunityToolkit.Mvvm, D060). |
-| `Desktop` | Windows head: entry point, composition root, logging. |
-
-Tests live in `tests/`. Code style follows `tools/MediaFileClassifier.ruleset` and StyleCop, with warnings treated as errors (D065).
-
-## Tests
-
-`dotnet test` runs every test project in `tests/`. Shared test helpers live in `MediaFileClassifier.Testing`:
-
-- **`TemporaryLibrary`** creates a library folder (`<name>.mfc/library.db`) in `%TEMP%\mfc-tests` and deletes it on dispose. Use one per test.
-- **`SampleMedia`** points to the edge-case media corpus in `tests/SampleMedia`: JPEG with EXIF, PNG, WebP, static and animated GIF, a short MP4, an image with text, and corrupt, empty and non-ASCII-named files. [tests/SampleMedia/README.md](tests/SampleMedia/README.md) describes each file and how to regenerate them.
-
-## Continuous integration
-
-GitHub Actions runs `.github/workflows/ci.yml`. The repository is private on GitHub Free, so CI is set up to use few Actions minutes:
-
-- It builds and tests on Windows for pushes to `develop`, `main`, `release/**` and `hotfix/**`, and for pull requests into `develop` and `main`. Pull requests also build the shared projects (everything except `Desktop`) on Linux, to catch Windows-only dependencies.
-- Pushes to a feature branch don't trigger it. Open a pull request, or run the workflow by hand from the Actions tab (**Run workflow**, then pick the branch).
-- Changes to Markdown files and `docs/` only don't trigger it. Neither does a commit with `[skip ci]` in its message.
-- A newer push to the same branch cancels the running build.
-
-Minutes used are under **Settings → Billing and licensing → Usage** on GitHub.
-
-## Evaluation corpus
-
-Search and OCR quality are measured on a labelled corpus of 351 media files with English and Russian queries. `pwsh tools/eval-corpus/fetch-corpus.ps1` fetches it, and `tools/MediaFileClassifier.Evaluation` scores a system's results. See [docs/evaluation-corpus.md](docs/evaluation-corpus.md), which also explains private runs on your own media.
-
-## Contributing
-
-Branching and commit rules are in [docs/development-workflow.md](docs/development-workflow.md).
+Setting up a development machine, building, testing, the solution structure and CI are in [docs/development.md](docs/development.md). Branching and commit rules are in [docs/development-workflow.md](docs/development-workflow.md). The backlog is in Jira (project MFC), and the decisions behind it are in the [development plan repository](https://github.com/Raynir/mfc-development-plan/blob/main/DECISIONS.md).

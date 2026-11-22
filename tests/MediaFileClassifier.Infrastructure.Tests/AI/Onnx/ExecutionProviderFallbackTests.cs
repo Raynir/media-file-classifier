@@ -1,3 +1,4 @@
+using System.Reflection;
 using MediaFileClassifier.Infrastructure.Abstractions.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.AI.Onnx;
@@ -140,6 +141,55 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
         Assert.Equal(1, provider.Attempts);
     }
 
+    [Fact]
+    public void Run_GpuDeviceLostAfterAGoodRun_MovesToCpuAndRetries()
+    {
+        var factory = CreateFactory(append: (_, _, _) => { });
+        using var provider = new FlakyEmbedder(modelPath, factory, failingRuns: 0);
+        provider.Embed();
+
+        provider.FailNextWith = CreateRuntimeException("887A0005 The GPU device instance has been suspended.");
+        var vector = provider.Embed();
+
+        Assert.Equal(Width, vector.Length);
+        Assert.Equal(ExecutionProvider.Cpu, provider.LoadedExecutionProvider);
+
+        // The device is gone, so new sessions of the file start on the CPU.
+        using var next = new FlakyEmbedder(modelPath, factory, failingRuns: 0);
+        Assert.Equal(ExecutionProvider.Cpu, next.LoadedExecutionProvider);
+    }
+
+    [Theory]
+    [InlineData("Exception(5) tid(1470) 887A0005 The GPU device instance has been suspended.", true)]
+    [InlineData("Exception(2) tid(b2a8) 887A0006 The GPU will not respond to more commands", true)]
+    [InlineData("887a0007 reset", true)]
+    [InlineData("Invalid input name: wrong", false)]
+    public void IsDeviceLost_MatchesTheDxgiDeviceLostCodes(string message, bool expected)
+    {
+        Assert.Equal(expected, OnnxModelProvider.IsDeviceLost(CreateRuntimeException(message)));
+    }
+
+    [Theory]
+    [InlineData(ExecutionProvider.DirectMl, 1)]
+    [InlineData(ExecutionProvider.Cpu, 2)]
+    public async Task Run_FromTwoThreads_OverlapsOnlyOnTheCpu(ExecutionProvider preferred, int expectedOverlap)
+    {
+        var factory = CreateFactory(append: (_, _, _) => { });
+        using var provider = new FlakyEmbedder(modelPath, factory, failingRuns: 0, preferred);
+        provider.Embed();
+
+        // Each run waits up to a second for the other to enter, so overlapping runs meet and serialised ones time out.
+        using var bothInside = new CountdownEvent(2);
+        provider.InsideRun = () =>
+        {
+            bothInside.Signal();
+            bothInside.Wait(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+        };
+        await Task.WhenAll(Task.Run(provider.Embed, TestContext.Current.CancellationToken), Task.Run(provider.Embed, TestContext.Current.CancellationToken));
+
+        Assert.Equal(expectedOverlap, provider.MaxOverlap);
+    }
+
     public void Dispose()
     {
         temp.Dispose();
@@ -151,6 +201,15 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
             AvailableProviders = () => [ExecutionProvider.Cpu, ExecutionProvider.DirectMl],
             AppendExecutionProvider = append,
         };
+
+    private static OnnxRuntimeException CreateRuntimeException(string message)
+    {
+        // The (ErrorCode, string) constructor and its enum are internal to ONNX Runtime.
+        var constructor = typeof(OnnxRuntimeException).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+            .Single(candidate => candidate.GetParameters() is [{ ParameterType.IsEnum: true }, { ParameterType: var text }] && text == typeof(string));
+        var code = Enum.ToObject(constructor.GetParameters()[0].ParameterType, 1);
+        return (OnnxRuntimeException)constructor.Invoke([code, message]);
+    }
 
     /// <summary>
     /// An identity model whose first runs use a wrong input name, which ONNX Runtime rejects.
@@ -165,16 +224,41 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
             preferred)
     {
         private int remainingFailures = failingRuns;
+        private int inside;
+        private int maxOverlap;
 
         public int Attempts { get; private set; }
 
         public bool FailNext { get; set; }
+
+        public OnnxRuntimeException? FailNextWith { get; set; }
+
+        public Action? InsideRun { get; set; }
+
+        public int MaxOverlap => Volatile.Read(ref maxOverlap);
 
         public ExecutionProvider LoadedExecutionProvider => GetSession("text").ExecutionProvider;
 
         public float[] Embed() => Run("text", session =>
         {
             Attempts++;
+            if (FailNextWith is { } error)
+            {
+                FailNextWith = null;
+                throw error;
+            }
+
+            var now = Interlocked.Increment(ref inside);
+            InterlockedMax(ref maxOverlap, now);
+            try
+            {
+                InsideRun?.Invoke();
+            }
+            finally
+            {
+                Interlocked.Decrement(ref inside);
+            }
+
             var fail = FailNext || remainingFailures > 0;
             remainingFailures--;
             FailNext = false;
@@ -182,5 +266,13 @@ public sealed class ExecutionProviderFallbackTests : IDisposable
             using var results = session.Run([NamedOnnxValue.CreateFromTensor(fail ? "wrong" : TinyOnnxModel.InputName, input)]);
             return results[0].AsEnumerable<float>().ToArray();
         });
+
+        private static void InterlockedMax(ref int target, int value)
+        {
+            int current;
+            while ((current = Volatile.Read(ref target)) < value && Interlocked.CompareExchange(ref target, value, current) != current)
+            {
+            }
+        }
     }
 }

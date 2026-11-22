@@ -74,6 +74,7 @@ public static class UiModule
         services.AddSingleton(new ViewLocator()
             .Register<SettingsViewModel, SettingsView>()
             .Register<QuitConfirmationViewModel, QuitConfirmationView>()
+            .Register<About.AboutViewModel, AboutView>()
             .Register<RemoveItemsConfirmationViewModel, RemoveItemsConfirmationView>()
             .Register<UnsavedChangesViewModel, UnsavedChangesView>()
             .Register<WelcomeViewModel, WelcomeView>()
@@ -248,6 +249,12 @@ public static class UiModule
         services.AddSingleton<ShortcutHandler>();
         services.AddSingleton<ShortcutReferenceViewModel>();
         services.TryAddSingleton<IKeyboardLayout, QwertyKeyboardLayout>();
+
+        // About (MFC-1023).
+        services.AddSingleton<About.AboutState>();
+        services.AddSingleton(About.AppVersion.Current);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ICommandContributor, About.AboutCommands>());
+        services.AddSingleton<About.AboutViewModel>();
 
         // Status bar (E13-S04). Features add segments through IStatusBarContributor.
         services.AddSingleton<StatusBarViewModel>();

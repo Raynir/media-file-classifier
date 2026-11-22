@@ -347,6 +347,21 @@
   <data name="Splitter_Details" xml:space="preserve">
     <value>Resize details panel</value>
   </data>
+  <data name="Command_About" xml:space="preserve">
+    <value>_About Media File Classifier</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>About Media File Classifier</value>
+  </data>
+  <data name="About_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="About_Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="About_Repository" xml:space="preserve">
+    <value>Repository and releases</value>
+  </data>
   <data name="Command_KeyboardShortcuts" xml:space="preserve">
     <value>_Keyboard shortcuts</value>
   </data>

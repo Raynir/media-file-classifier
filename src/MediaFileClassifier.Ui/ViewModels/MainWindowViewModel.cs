@@ -24,6 +24,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <param name="drops">Drag-and-drop import (E03-S06), or <c>null</c> where dropping isn't supported.</param>
     /// <param name="shortcuts">The shortcut reference. Taking it also builds the keymap, which gives the
     /// commands their shortcuts.</param>
+    /// <param name="about">The About overlay (MFC-1023).</param>
     public MainWindowViewModel(
         ShellLayout layout,
         ShellRegions regions,
@@ -31,11 +32,13 @@ public sealed class MainWindowViewModel : ViewModelBase
         MainMenuViewModel menu,
         StatusBarViewModel statusBar,
         ShortcutReferenceViewModel shortcuts,
+        About.AboutViewModel about,
         Models.ModelBannerViewModel modelBanner,
         Notifications.ToastHostViewModel toasts,
         Libraries.DropImportViewModel? drops = null)
     {
         Drops = drops;
+        About = about;
         Toasts = toasts;
         ModelBanner = modelBanner;
         Layout = layout;
@@ -105,6 +108,11 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// Gets the shortcut reference overlay.
     /// </summary>
     public ShortcutReferenceViewModel Shortcuts { get; }
+
+    /// <summary>
+    /// Gets the About overlay (MFC-1023).
+    /// </summary>
+    public About.AboutViewModel About { get; }
 
     /// <summary>
     /// Gets the entries of the navigation panel's context menu.

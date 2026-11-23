@@ -18,6 +18,7 @@ using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Infrastructure.Playback;
 using MediaFileClassifier.Infrastructure.Search;
 using MediaFileClassifier.Ui;
+using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
@@ -84,6 +85,7 @@ internal static partial class Program
             StartupInfo.LogHardware(logger, host.Services.GetRequiredService<IHardwareInfo>());
             GlobalExceptionHandlers.Install(logger);
             Logger.Sink = new AvaloniaLogSink(loggerFactory);
+            StageNames.Logger = loggerFactory.CreateLogger(typeof(StageNames).FullName!);
             host.Services.GetRequiredService<ICapabilityService>().RefreshAsync().GetAwaiter().GetResult();
 
             // The model catalogue is checked at startup, so a malformed one fails here, not at a user's download (E06-S12).
@@ -106,6 +108,9 @@ internal static partial class Program
 
             // New and changed files in the Online folders are noticed while the app runs (E04-S01).
             host.Services.GetRequiredService<FolderWatchManager>().Start();
+
+            // Changes made while the app was closed are picked up once the watchers run (E04-S03).
+            host.Services.GetRequiredService<MediaFileClassifier.UseCases.Monitoring.QuickSyncStarter>().Start();
 
             if (args.Contains("--benchmark"))
             {

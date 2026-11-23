@@ -119,6 +119,23 @@ public sealed class OpenAiCompatibleImageDescriberTests : IDisposable
     }
 
     [Fact]
+    public async Task Describe_CutOffInTheTagsWithStopTwice_ThrowsInvalidOutput()
+    {
+        // LM Studio answered like this with finish_reason "stop" (MFC-1038): the JSON ends inside a Russian tag.
+        var cut = ImageDescriptionContractTests.ValidJson2[..(ImageDescriptionContractTests.ValidJson2.IndexOf("\"ru\":\"пляж", StringComparison.Ordinal) + 9)];
+        Assert.EndsWith("\"ru\":\"пля", cut, StringComparison.Ordinal);
+        server.ChatAnswers.Enqueue(cut);
+        server.ChatAnswers.Enqueue(cut);
+
+        var exception = await Assert.ThrowsAsync<AiProviderException>(
+            () => describer.DescribeAsync(Image, ImageDescriptionOptions.Default, TestContext.Current.CancellationToken));
+
+        Assert.Equal(AiFailureKind.InvalidOutput, exception.Kind);
+        Assert.Equal(cut, exception.RawOutput);
+        Assert.Equal(2, server.ChatRequests.Count);
+    }
+
+    [Fact]
     public async Task Describe_MalformedTwice_PipelineRecordsAFailedRunInsteadOfCrashing()
     {
         server.ChatAnswers.Enqueue("{}");

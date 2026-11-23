@@ -84,7 +84,8 @@ internal sealed class LibrarySettingsConverter()
             settings.EmbeddingSwitchThreshold,
             settings.LastFilters.Length > 0 ? settings.LastFilters : null,
             settings.ProcessingPaused ? true : null,
-            settings.PausedPools.Count > 0 ? [.. settings.PausedPools.Select(pool => pool.ToString())] : null),
+            settings.PausedPools.Count > 0 ? [.. settings.PausedPools.Select(pool => pool.ToString())] : null,
+            settings.QuickSyncOnOpen ? null : false),
         DataAccessJsonContext.Default.LibrarySettingsJson);
 
     private static LibrarySettings FromJson(string json)
@@ -103,6 +104,7 @@ internal sealed class LibrarySettingsConverter()
                 : LibrarySettings.DefaultEmbeddingSwitchThreshold,
             LastFilters = stored.LastFilters ?? string.Empty,
             ProcessingPaused = stored.ProcessingPaused ?? false,
+            QuickSyncOnOpen = stored.QuickSyncOnOpen ?? true,
 
             // A pool name this version doesn't know is dropped, so the library still opens.
             PausedPools = stored.PausedPools is { } pools
@@ -207,7 +209,8 @@ internal sealed record LibrarySettingsJson(
     double? EmbeddingSwitchThreshold = null,
     string? LastFilters = null,
     bool? ProcessingPaused = null,
-    string[]? PausedPools = null);
+    string[]? PausedPools = null,
+    bool? QuickSyncOnOpen = null);
 
 /// <summary>
 /// Stored shape of <see cref="AnalysisProfile"/>. Libraries stored before it read as <see cref="AnalysisProfile.Default"/>.

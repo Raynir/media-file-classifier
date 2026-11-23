@@ -161,8 +161,13 @@ public sealed class OnnxSessionFactory
     }
 
     /// <summary>
-    /// Records that a model file failed its first run on a GPU provider, so later sessions of that file use the CPU
-    /// until the app restarts.
+    /// Gets the logger, which the providers also use for their runs.
+    /// </summary>
+    internal ILogger Logger => logger;
+
+    /// <summary>
+    /// Records that a model file failed a run on a GPU provider (its first run, or after the device was lost), so later
+    /// sessions of that file use the CPU until the app restarts.
     /// </summary>
     /// <param name="modelPath">Full path of the <c>.onnx</c> file.</param>
     /// <param name="provider">The provider it failed on.</param>
@@ -177,7 +182,7 @@ public sealed class OnnxSessionFactory
         }
 
         failedRuns[(modelPath, provider)] = error.Message;
-        logger.LogWarning(error, "{Model} failed its first run on {ExecutionProvider}, switching it to the CPU", Path.GetFileName(modelPath), provider);
+        logger.LogWarning(error, "{Model} failed a run on {ExecutionProvider}, switching it to the CPU", Path.GetFileName(modelPath), provider);
     }
 
     private static void AppendToOptions(SessionOptions options, ExecutionProvider provider, int deviceId)

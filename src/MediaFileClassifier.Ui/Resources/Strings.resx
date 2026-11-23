@@ -1179,6 +1179,24 @@
   <data name="Stage_hash.content" xml:space="preserve">
     <value>Hashing</value>
   </data>
+  <data name="Stage_analysis.item" xml:space="preserve">
+    <value>Analyzing</value>
+  </data>
+  <data name="Stage_analysis.embedding" xml:space="preserve">
+    <value>Creating the search embedding</value>
+  </data>
+  <data name="Stage_rescan.reconcile" xml:space="preserve">
+    <value>Comparing folders with the library</value>
+  </data>
+  <data name="Stage_rescan.check" xml:space="preserve">
+    <value>Checking changed files</value>
+  </data>
+  <data name="Stage_rescan.media" xml:space="preserve">
+    <value>Refreshing metadata and thumbnails</value>
+  </data>
+  <data name="Stage_folder.remove" xml:space="preserve">
+    <value>Removing the folder</value>
+  </data>
   <data name="Navigation_Panel" xml:space="preserve">
     <value>Navigation</value>
   </data>
@@ -1790,6 +1808,15 @@
   </data>
   <data name="Setting_MonitoringIgnorePatterns_Help" xml:space="preserve">
     <value>Temporary and partly written files, such as downloads in progress and Office lock files, separated by semicolons. * matches any characters. A name matches files only; use **/name to ignore a folder.</value>
+  </data>
+  <data name="Setting_QuickSyncOnOpen" xml:space="preserve">
+    <value>Check for changes when the library opens</value>
+  </data>
+  <data name="Setting_QuickSyncOnOpen_Help" xml:space="preserve">
+    <value>Looks for files added, changed or removed while the app was closed. It runs in the background. Turn it off for very large or slow drives; the Rescan command still works.</value>
+  </data>
+  <data name="Notification_QuickSyncDone" xml:space="preserve">
+    <value>Library updated: {0} new, {1} moved, {2} missing, {3} changed</value>
   </data>
   <data name="Setting_LastFilters" xml:space="preserve">
     <value>Last filters</value>

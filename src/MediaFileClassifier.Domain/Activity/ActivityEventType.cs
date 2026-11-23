@@ -37,4 +37,7 @@ public enum ActivityEventType
 
     /// <summary>Changes found by folder monitoring (MFC-140).</summary>
     FolderMonitoring = 11,
+
+    /// <summary>A folder's drive came back under another drive letter and the folder followed it (E04-S04-T03).</summary>
+    FolderRelinked = 12,
 }

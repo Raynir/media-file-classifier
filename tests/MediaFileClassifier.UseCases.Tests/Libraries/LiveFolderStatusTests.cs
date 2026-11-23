@@ -5,6 +5,7 @@ using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
+using MediaFileClassifier.UseCases.Monitoring;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.UseCases.Tests.Libraries;
@@ -156,6 +157,27 @@ public sealed class LiveFolderStatusTests
         Assert.Equal(1, raised);
         Assert.Equal(1, library.FolderList.AvailabilityUpdates);
         Assert.Equal(1, library.FolderList.Updates);
+    }
+
+    [Fact]
+    public async Task Check_AnnouncesTheFoldersThatCameBackOnline_Only()
+    {
+        var (session, library, files) = await CreateLibraryAsync();
+        var drive = await AddFolderAsync(library, Drive, offline: true);
+        await AddFolderAsync(library, Card, offline: false);
+        var publisher = new FakePublisher();
+        var handler = Handler(session, files, publisher);
+
+        // The card goes away, which is no reconnect; then the drive comes back.
+        files.Unavailable.Add(Drive);
+        files.Unavailable.Add(Card);
+        await handler.Handle(new CheckFolderAvailabilityCommand(), Token);
+        files.Unavailable.Remove(Drive);
+        await handler.Handle(new CheckFolderAvailabilityCommand(), Token);
+        await handler.Handle(new CheckFolderAvailabilityCommand(), Token);
+
+        var reconnected = Assert.Single(publisher.Of<FoldersReconnected>());
+        Assert.Equal([drive.Id], reconnected.FolderIds);
     }
 
     [Fact]
@@ -316,8 +338,8 @@ public sealed class LiveFolderStatusTests
         return (new FolderAvailabilityMonitor(volumes, sender, clock, NullLogger<FolderAvailabilityMonitor>.Instance), clock, volumes, sender);
     }
 
-    private static CheckFolderAvailabilityCommandHandler Handler(FakeLibrarySession session, FakeFolderSource files) =>
-        new(session, files, TimeProvider.System, NullLogger<CheckFolderAvailabilityCommandHandler>.Instance);
+    private static CheckFolderAvailabilityCommandHandler Handler(FakeLibrarySession session, FakeFolderSource files, FakePublisher? publisher = null) =>
+        new(session, files, TimeProvider.System, NullLogger<CheckFolderAvailabilityCommandHandler>.Instance, publisher: publisher);
 
     private static async Task<IndexedFolder> AddFolderAsync(FakeOpenLibrary library, string path, bool offline)
     {

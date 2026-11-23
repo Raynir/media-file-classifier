@@ -1,7 +1,10 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.UseCases.Libraries;
 
 namespace MediaFileClassifier.UseCases.Rescan;
 
@@ -11,7 +14,10 @@ namespace MediaFileClassifier.UseCases.Rescan;
 /// </summary>
 /// <param name="discovery">Lists the folders.</param>
 /// <param name="moves">Pairs new files with disappeared items (E02-S04-T02).</param>
-public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves)
+/// <param name="files">Checks again that a folder whose files seem gone can still be reached (E04-S04-T02).</param>
+/// <param name="volumes">Tells another drive that took a folder's drive letter apart from the folder's own (E04-S04-T03),
+/// or <see langword="null"/>.</param>
+public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves, IMediaFileSource files, IVolumeLocator? volumes = null)
 {
     /// <summary>
     /// Reconciles folders of a library. All of them are listed before anything is classified as moved or missing, so a
@@ -35,6 +41,13 @@ public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves)
         var excludedGone = new List<MediaItem>();
         foreach (var folder in folders)
         {
+            // Another drive under the folder's letter isn't the folder: it's Offline (E04-S04-T03).
+            if (!await FolderReachability.IsOnItsVolumeAsync(volumes, folder, cancellationToken).ConfigureAwait(false))
+            {
+                offline.Add(folder);
+                continue;
+            }
+
             FolderSnapshot snapshot;
             try
             {
@@ -48,6 +61,15 @@ public sealed class Reconciler(IFolderDiscovery discovery, MoveDetector moves)
 
             var items = await library.Items.GetByFolderAsync(folder.Id, cancellationToken).ConfigureAwait(false);
             var comparison = FolderComparison.Compare(folder, items, snapshot);
+
+            // A drive unplugged during the listing leaves its files unlisted, not gone: the folder is Offline instead,
+            // so nothing is marked Missing (E04-S04-T02).
+            if (comparison.Disappeared.Count > 0 && !await files.IsAvailableAsync(folder.ToHandle(), cancellationToken).ConfigureAwait(false))
+            {
+                offline.Add(folder);
+                continue;
+            }
+
             scanned.Add((folder, snapshot.Result));
             newFiles.AddRange(comparison.New.Select(file => (folder, file)));
             unchanged.AddRange(comparison.Unchanged);

@@ -74,6 +74,9 @@
   <data name="Details_Preview_Thumbnail_Offline" xml:space="preserve">
     <value>Showing the thumbnail: the folder {0} is offline.</value>
   </data>
+  <data name="Details_Preview_Thumbnail_Ejecting" xml:space="preserve">
+    <value>Showing the thumbnail: the drive of {0} is being ejected.</value>
+  </data>
   <data name="Details_Preview_Thumbnail_Missing" xml:space="preserve">
     <value>Showing the thumbnail: the file is missing.</value>
   </data>
@@ -3228,6 +3231,9 @@
   </data>
   <data name="Activity_Title_FolderMonitoring" xml:space="preserve">
     <value>Folder monitoring</value>
+  </data>
+  <data name="Activity_Title_FolderRelinked" xml:space="preserve">
+    <value>Folder moved to a new drive letter</value>
   </data>
   <data name="Activity_Count_items" xml:space="preserve">
     <value>Items: {0}</value>

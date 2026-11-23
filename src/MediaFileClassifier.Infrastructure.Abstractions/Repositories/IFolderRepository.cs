@@ -70,6 +70,17 @@ public interface IFolderRepository
     Task UpdateAvailabilityAsync(IndexedFolder folder, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Stores a folder found under another root on its own volume (E04-S04-T03): its paths, availability, volume label
+    /// and volume identity, not its rules. Nothing is stored if the folder was relinked or moved since it was read, so
+    /// the newer root wins.
+    /// </summary>
+    /// <param name="folder">The relinked folder.</param>
+    /// <param name="oldPlatformHandle">The root it had when it was read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="true"/> when the relink was stored.</returns>
+    Task<bool> RelinkAsync(IndexedFolder folder, string oldPlatformHandle, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Merges a folder into a parent folder that contains it (E02-S03-T02), in one transaction: the child's items move
     /// to the parent with their paths prefixed by <paramref name="relativePath"/>, keeping their IDs and metadata, the
     /// parent's changes are stored, and the child is deleted.

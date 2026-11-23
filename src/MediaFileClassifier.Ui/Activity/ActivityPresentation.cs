@@ -42,6 +42,7 @@ public sealed class ActivityPresentation(Localizer localizer)
         ActivityEventType.LibraryImport => "Icon.Library",
         ActivityEventType.Maintenance => "Icon.Settings",
         ActivityEventType.FolderMonitoring => "Icon.Status.Pending",
+        ActivityEventType.FolderRelinked => "Icon.FolderOpen",
         _ => "Icon.Info",
     };
 

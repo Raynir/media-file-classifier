@@ -394,6 +394,38 @@ public sealed class FolderWatchManagerTests
     }
 
     [Fact]
+    public async Task Deletions_InAFolderThatCantBeReached_AreDropped_AndTheFolderIsChecked()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+
+        // The drive was unplugged: its files look deleted.
+        bed.Files.IsAvailable = false;
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Deleted, "a.jpg"));
+        bed.Settle();
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Empty(bed.Publisher.Published);
+        var check = Assert.Single(bed.Sender.Requests.OfType<CheckFolderAvailabilityCommand>());
+        Assert.Equal([folder.Id], check.FolderIds!);
+    }
+
+    [Fact]
+    public async Task Deletions_InAFolderThatCanBeReached_ArePublished()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Deleted, "a.jpg"));
+        bed.Settle();
+
+        Assert.Equal(FolderChangeKind.Deleted, Assert.Single(bed.Published).Kind);
+        Assert.Empty(bed.Sender.Requests.OfType<CheckFolderAvailabilityCommand>());
+    }
+
+    [Fact]
     public async Task Changes_OfAFolderNoLongerWatched_AreDropped()
     {
         var bed = new Bed();
@@ -667,23 +699,9 @@ public sealed class FolderWatchManagerTests
     /// <summary>
     /// Records the published notifications.
     /// </summary>
-    private sealed class RecordingPublisher : IPublisher
+    private sealed class RecordingPublisher : FakePublisher
     {
-        public List<FolderChangesDetected> Published { get; } = [];
-
-        public Task Publish(object notification, CancellationToken cancellationToken = default) =>
-            notification is INotification typed ? Publish(typed, cancellationToken) : Task.CompletedTask;
-
-        public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
-            where TNotification : INotification
-        {
-            if (notification is FolderChangesDetected detected)
-            {
-                Published.Add(detected);
-            }
-
-            return Task.CompletedTask;
-        }
+        public IReadOnlyList<FolderChangesDetected> Published => Of<FolderChangesDetected>();
     }
 
     /// <summary>

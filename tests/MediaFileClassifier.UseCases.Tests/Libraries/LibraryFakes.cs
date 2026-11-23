@@ -191,6 +191,8 @@ internal sealed class FakeFolderRepository : IFolderRepository
 
     public int AvailabilityUpdates { get; private set; }
 
+    public int Relinks { get; private set; }
+
     public Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
     {
         Updates++;
@@ -205,6 +207,15 @@ internal sealed class FakeFolderRepository : IFolderRepository
         AvailabilityUpdates++;
         Store(folder);
         return Task.CompletedTask;
+    }
+
+    public Task<bool> RelinkAsync(IndexedFolder folder, string oldPlatformHandle, CancellationToken cancellationToken = default)
+    {
+        Relinks++;
+        Updates++;
+        Store(folder);
+        Changed?.Invoke(this, EventArgs.Empty);
+        return Task.FromResult(true);
     }
 
     // Changed is raised like the real repository's: after every add, update, merge and split, and after a delete that

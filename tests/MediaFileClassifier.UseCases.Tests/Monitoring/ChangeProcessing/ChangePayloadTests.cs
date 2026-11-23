@@ -28,9 +28,14 @@ public sealed class ChangePayloadTests
     [InlineData("")]
     public void Deserialize_NoPayload_GivesNoChanges(string? payload) => Assert.Empty(ChangePayload.Deserialize(payload));
 
-    [Fact]
-    public void Deserialize_UnknownKind_Throws() =>
-        Assert.Throws<JsonException>(() => ChangePayload.Deserialize("""{"changes":[{"kind":"Exploded","path":"a.jpg"}]}"""));
+    [Theory]
+    [InlineData("""{"changes":[{"kind":"Exploded","path":"a.jpg"}]}""")]
+    [InlineData("""{"changes":[{"kind":"7","path":"a.jpg"}]}""")]
+    [InlineData("""{"changes":[{"kind":"Changed, Deleted","path":"a.jpg"}]}""")]
+    [InlineData("""{"changes":[{"kind":"Renamed","oldPath":"a.jpg"}]}""")]
+    [InlineData("""{"changes":[{"kind":"Changed","path":""}]}""")]
+    public void Deserialize_UnknownKindOrNoPath_Throws(string payload) =>
+        Assert.Throws<JsonException>(() => ChangePayload.Deserialize(payload));
 
     [Fact]
     public void Serialize_StoresTheKindByName_SoTheEnumCanGrow() =>

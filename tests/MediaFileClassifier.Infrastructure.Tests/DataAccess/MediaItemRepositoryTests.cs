@@ -84,7 +84,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
 
         b.Relocate(b.FolderId, pathA);
 
-        await Assert.ThrowsAnyAsync<Exception>(() => bed.Library.Items.UpdateMovedAsync([a, b], Token));
+        await Assert.ThrowsAsync<DbUpdateException>(() => bed.Library.Items.UpdateMovedAsync([b], Token));
         Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathA, Token))?.Id);
         Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
     }

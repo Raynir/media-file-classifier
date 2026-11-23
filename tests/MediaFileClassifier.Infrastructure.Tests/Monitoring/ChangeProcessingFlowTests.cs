@@ -11,6 +11,7 @@ using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Libraries;
 using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
+using MediaFileClassifier.UseCases.Rescan;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -165,6 +166,36 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
 
         Assert.Equal(b.Id, (await ItemAsync("a.jpg")).Id);
         Assert.Equal(a.Id, (await ItemAsync("b.jpg")).Id);
+    }
+
+    [Fact]
+    public async Task Renamed_ExcludedItem_MovesAndStaysExcluded()
+    {
+        bed.Copy(SampleMedia.JpegWithExif, "photo.jpg");
+        await ImportAsync();
+        var item = await ExcludeAsync("photo.jpg");
+        var registered = bed.Registered.Received.Count;
+
+        Move("photo.jpg", "sub/photo.jpg");
+        await ApplyAsync(await RenamedAsync("photo.jpg", "sub/photo.jpg"));
+
+        var moved = Assert.Single(await bed.ItemsAsync());
+        Assert.Equal((item.Id, "sub/photo.jpg", MediaItemStatus.Excluded), (moved.Id, moved.Path.Value, moved.Status));
+        Assert.Equal(registered, bed.Registered.Received.Count);
+    }
+
+    [Fact]
+    public async Task Changed_PendingItemWhoseFileIsTheSame_IsChecked()
+    {
+        // A batch stopped after the item left Missing may not have queued its check.
+        bed.Copy(SampleMedia.JpegWithExif, "photo.jpg");
+        await ImportAsync();
+        Assert.Equal(MediaItemStatus.Pending, (await ItemAsync("photo.jpg")).Status);
+
+        await ApplyAsync(await ChangedAsync("photo.jpg"));
+
+        var job = Assert.Single(await ChangeJobsAsync());
+        Assert.Contains(await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token), work => work.Stage == RescanStages.Check);
     }
 
     [Fact]
@@ -333,6 +364,22 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MoveBetweenSubfolders_OfAnExcludedItem_KeepsItExcluded()
+    {
+        bed.Copy(SampleMedia.JpegWithExif, "a/photo.jpg");
+        await ImportAsync();
+        var item = await ExcludeAsync("a/photo.jpg");
+
+        Move("a/photo.jpg", "b/photo.jpg");
+        await ApplyAsync(new FolderChange(FolderChangeKind.Deleted, "a/photo.jpg"));
+        await ApplyAsync(await ChangedAsync("b/photo.jpg"));
+        await ReleaseHeldAsync();
+
+        var moved = Assert.Single(await bed.ItemsAsync());
+        Assert.Equal((item.Id, "b/photo.jpg", MediaItemStatus.Excluded), (moved.Id, moved.Path.Value, moved.Status));
+    }
+
+    [Fact]
     public async Task DeleteThenCreate_WithOtherContent_IsNotAMove()
     {
         var path = bed.Copy(SampleMedia.JpegWithExif, "a/photo.jpg");
@@ -380,6 +427,7 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         await Task.Delay(300, Token);
         await bed.WaitUntilIdleAsync();
 
+        Assert.Empty(await ChangeJobsAsync());
         Assert.Empty(await bed.ItemsAsync());
     }
 
@@ -402,11 +450,11 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
 
         var job = Assert.Single(await ChangeJobsAsync());
         var work = await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token);
-        Assert.Equal(2000 / ChangeProcessor.ChangesPerWorkItem, work.Count(item => item.Stage == ChangeProcessingStages.Apply));
+        Assert.Single(work, item => item.Stage == ChangeProcessingStages.Apply);
     }
 
     [Fact]
-    public async Task Burst_ThatKeepsComing_IsQueuedAfterTheLongestGather_AndTheRestJoinsTheSameJob()
+    public async Task Burst_ThatKeepsComing_IsQueuedAfterTheLongestGather_AndLaterChangesWaitForThatBatch()
     {
         await ImportAsync();
         var scheduler = bed.Jobs.Current!;
@@ -421,14 +469,23 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         }
 
         await WaitForAsync(async () => (await ChangeJobsAsync()).Count == 1);
-        await processor.SubmitAsync(bed.Folder.Id, [new FolderChange(FolderChangeKind.Changed, "copy/last.jpg")], Token);
         var job = Assert.Single(await ChangeJobsAsync());
+
+        // The first batch is still queued, so the next one waits: a folder's batches never run side by side.
+        await processor.SubmitAsync(bed.Folder.Id, [new FolderChange(FolderChangeKind.Changed, "copy/last.jpg")], Token);
         clock.Advance(ChangeProcessor.GatherQuiet);
-        await WaitForAsync(async () => (await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token)).Count == 2);
+        await Task.Delay(300, Token);
+        Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token));
 
         scheduler.Resume();
         await bed.WaitUntilIdleAsync();
-        Assert.Single(await ChangeJobsAsync());
+        await AdvanceUntilQueuedAsync(ChangeProcessor.GatherQuiet);
+        await bed.WaitUntilIdleAsync();
+
+        var batches = (await Task.WhenAll((await ChangeJobsAsync()).Select(other => bed.Library.Jobs.GetWorkItemsAsync(other.Id, Token))))
+            .SelectMany(items => items).Where(item => item.Stage == ChangeProcessingStages.Apply).OrderBy(item => item.CreatedAt).ToList();
+        Assert.Equal(2, batches.Count);
+        Assert.True(batches[1].CreatedAt >= batches[0].FinishedAt);
     }
 
     [Fact]
@@ -549,6 +606,14 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         }
 
         return items;
+    }
+
+    private async Task<MediaItem> ExcludeAsync(string path)
+    {
+        var item = await ItemAsync(path);
+        item.ChangeStatus(MediaItemStatus.Excluded, DateTimeOffset.UtcNow);
+        await bed.Library.Items.UpdateAsync(item, Token);
+        return item;
     }
 
     private async Task<MediaItem> ItemAsync(string path) => (await bed.ItemsAsync()).Single(item => item.Path.Value == path);

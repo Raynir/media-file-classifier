@@ -26,7 +26,8 @@ namespace MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
 /// <item>A renamed or moved file relinks its item, which keeps its ID and metadata (E02-S04-T02).</item>
 /// <item>A deleted file's item is marked Missing with everything kept (E02-S04-T04), if the file is still gone.</item>
 /// </list>
-/// Batches are applied one at a time, so the changes of one folder never race each other.
+/// Batches are applied one at a time, in steps of <see cref="ChangesPerStep"/>, and <see cref="ChangeProcessor"/> queues one
+/// batch of a folder at a time, so the changes of one folder are applied in order.
 /// </summary>
 /// <param name="files">Checks that deleted files are gone.</param>
 /// <param name="discovery">Registers new files.</param>
@@ -42,6 +43,11 @@ public sealed partial class ApplyChangesStage(
     TimeProvider clock,
     ILogger<ApplyChangesStage> logger) : IStageHandler, IDisposable
 {
+    /// <summary>
+    /// The most changes applied in one step, so a renamed folder of many files is read and written in a few steps.
+    /// </summary>
+    public const int ChangesPerStep = 1000;
+
     private readonly SemaphoreSlim gate = new(1, 1);
 
     /// <inheritdoc />
@@ -75,7 +81,10 @@ public sealed partial class ApplyChangesStage(
                 return;
             }
 
-            await ApplyAsync(context, folder, folders, changes, cancellationToken).ConfigureAwait(false);
+            foreach (var step in changes.Chunk(ChangesPerStep))
+            {
+                await ApplyAsync(context, folder, folders, step, cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {
@@ -152,7 +161,8 @@ public sealed partial class ApplyChangesStage(
         LogApplied(folder.Id, registered.Count - moved.Count, batch.Check.Count, batch.Relinked + moved.Count, missing);
     }
 
-    // A renamed file whose item isn't known is handled as a new file at its new path.
+    // A renamed file whose item isn't known is handled as a new file at its new path. An excluded item moves and stays
+    // excluded, as in a rescan.
     private async Task RenameAsync(
         IndexedFolder folder,
         FolderItems items,
@@ -163,7 +173,7 @@ public sealed partial class ApplyChangesStage(
         CancellationToken cancellationToken)
     {
         var item = await items.FindAsync(oldPath, cancellationToken).ConfigureAwait(false);
-        if (item is null || item.Status == MediaItemStatus.Excluded)
+        if (item is null)
         {
             await ChangeAsync(items, batch, path, stat, cancellationToken).ConfigureAwait(false);
             return;
@@ -181,6 +191,11 @@ public sealed partial class ApplyChangesStage(
         items.Moved(item, oldPath);
         batch.Relinked++;
         batch.Written[item.Id] = item;
+        if (item.Status == MediaItemStatus.Excluded)
+        {
+            return;
+        }
+
         if (item.Status == MediaItemStatus.Missing)
         {
             item.ChangeStatus(MediaItemStatus.Pending, batch.Now);
@@ -212,7 +227,8 @@ public sealed partial class ApplyChangesStage(
                 batch.Check.Add(item.Id);
                 return;
             default:
-                if (stat is null || !FolderComparison.IsSame(item, stat))
+                // A Pending item is checked anyway: a batch stopped after it left Missing may not have queued its check.
+                if (item.Status == MediaItemStatus.Pending || stat is null || !FolderComparison.IsSame(item, stat))
                 {
                     batch.Check.Add(item.Id);
                 }
@@ -237,12 +253,13 @@ public sealed partial class ApplyChangesStage(
         }
 
         var missing = new List<MediaItem>();
+        var seen = new HashSet<Id<MediaItem>>();
         foreach (var path in batch.Gone)
         {
             foreach (var item in await items.FindUnderAsync(path, cancellationToken).ConfigureAwait(false))
             {
                 if (item.Status is MediaItemStatus.Missing or MediaItemStatus.Excluded
-                    || missing.Contains(item)
+                    || !seen.Add(item.Id)
                     || await files.GetStatAsync(ItemStage.GetLocation(folder, item), cancellationToken).ConfigureAwait(false) is not null)
                 {
                     continue;
@@ -318,11 +335,12 @@ public sealed partial class ApplyChangesStage(
         return removed;
     }
 
-    // Missing items of any folder, and the items of held deletions whose file is still gone. Items of a folder that
-    // can't be reached aren't gone.
+    // Missing items of any folder, and the items of held deletions whose file is still gone, excluded ones included: a
+    // moved excluded file stays excluded. Items of a folder that can't be reached aren't gone.
     private async Task<IReadOnlyList<MediaItem>> GetGoneItemsAsync(IOpenLibrary library, IReadOnlyList<IndexedFolder> folders, CancellationToken cancellationToken)
     {
         var gone = (await library.Items.GetByStatusAsync(MediaItemStatus.Missing, cancellationToken: cancellationToken).ConfigureAwait(false)).ToList();
+        var seen = gone.Select(item => item.Id).ToHashSet();
         foreach (var byFolder in held.GetAll().GroupBy(entry => entry.FolderId))
         {
             if (folders.FirstOrDefault(other => other.Id == byFolder.Key) is not { Status: FolderStatus.Online } heldFolder)
@@ -340,10 +358,11 @@ public sealed partial class ApplyChangesStage(
 
                 foreach (var item in await items.FindUnderAsync(path, cancellationToken).ConfigureAwait(false))
                 {
-                    if (item.Status is not (MediaItemStatus.Missing or MediaItemStatus.Excluded)
-                        && !gone.Contains(item)
+                    if (item.Status != MediaItemStatus.Missing
+                        && !seen.Contains(item.Id)
                         && await files.GetStatAsync(ItemStage.GetLocation(heldFolder, item), cancellationToken).ConfigureAwait(false) is null)
                     {
+                        seen.Add(item.Id);
                         gone.Add(item);
                     }
                 }

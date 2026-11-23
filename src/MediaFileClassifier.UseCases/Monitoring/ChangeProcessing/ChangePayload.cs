@@ -56,10 +56,18 @@ public sealed record ChangePayload([property: JsonPropertyName("changes")] IRead
 
         internal FolderChange ToChange()
         {
-            if (!Enum.TryParse<FolderChangeKind>(Kind, out var kind))
+            // By its exact name: TryParse would also take a number or a list of names.
+            if (!Enum.GetNames<FolderChangeKind>().Contains(Kind, StringComparer.Ordinal))
             {
                 throw new JsonException($"Unknown change kind '{Kind}'.");
             }
+
+            if (string.IsNullOrEmpty(Path))
+            {
+                throw new JsonException("A change has no path.");
+            }
+
+            var kind = Enum.Parse<FolderChangeKind>(Kind);
 
             var stat = Length is { } length && Modified is { } modified
                 ? new MediaFileStat(Path, length, modified) { CreatedUtc = Created }

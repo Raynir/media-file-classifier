@@ -1,7 +1,7 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
-using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Infrastructure.Files;
+using MediaFileClassifier.Testing.Platform;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Watching;
 
@@ -144,7 +144,7 @@ public sealed class EjectAwareFolderWatcherFactoryTests
 
         public ScriptedWatcherFactory Inner { get; } = new();
 
-        public ScriptedEjects Ejects { get; } = new();
+        public FakeEjectNotifications Ejects { get; } = new();
 
         public EjectAwareFolderWatcherFactory Factory { get; }
     }
@@ -180,42 +180,6 @@ public sealed class EjectAwareFolderWatcherFactoryTests
         public void RaiseChanged(FolderWatchEvent change) => Changed?.Invoke(this, change);
 
         public void RaiseFailed(FolderWatchErrorEventArgs failure) => Failed?.Invoke(this, failure);
-
-        public void Dispose() => IsDisposed = true;
-    }
-
-    private sealed class ScriptedEjects : IEjectNotifications
-    {
-        public List<ScriptedRegistration> Registrations { get; } = [];
-
-        public bool Unsupported { get; set; }
-
-        public IEjectRegistration? Register(FolderHandle folder)
-        {
-            if (Unsupported)
-            {
-                return null;
-            }
-
-            var registration = new ScriptedRegistration(folder);
-            Registrations.Add(registration);
-            return registration;
-        }
-    }
-
-    private sealed class ScriptedRegistration(FolderHandle folder) : IEjectRegistration
-    {
-        public event EventHandler? EjectRequested;
-
-        public event EventHandler? EjectCancelled;
-
-        public FolderHandle Folder { get; } = folder;
-
-        public bool IsDisposed { get; private set; }
-
-        public void RequestEject() => EjectRequested?.Invoke(this, EventArgs.Empty);
-
-        public void CancelEject() => EjectCancelled?.Invoke(this, EventArgs.Empty);
 
         public void Dispose() => IsDisposed = true;
     }

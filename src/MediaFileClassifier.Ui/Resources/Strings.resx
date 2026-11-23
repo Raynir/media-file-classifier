@@ -74,6 +74,9 @@
   <data name="Details_Preview_Thumbnail_Offline" xml:space="preserve">
     <value>Showing the thumbnail: the folder {0} is offline.</value>
   </data>
+  <data name="Details_Preview_Thumbnail_Ejecting" xml:space="preserve">
+    <value>Showing the thumbnail: the drive of {0} is being ejected.</value>
+  </data>
   <data name="Details_Preview_Thumbnail_Missing" xml:space="preserve">
     <value>Showing the thumbnail: the file is missing.</value>
   </data>

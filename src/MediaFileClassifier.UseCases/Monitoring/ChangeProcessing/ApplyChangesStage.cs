@@ -139,11 +139,8 @@ public sealed partial class ApplyChangesStage(
             }
         }
 
-        // Relinked first, so the paths they left are free for new items.
-        foreach (var written in batch.Written.Values.Chunk(ReconcileStage.BatchSize))
-        {
-            await library.Items.UpdateRangeAsync(written, cancellationToken).ConfigureAwait(false);
-        }
+        // Relinked first, so the paths they left are free for new items. Files may have swapped names in the batch.
+        await library.Items.UpdateMovedAsync(batch.Written.Values, cancellationToken).ConfigureAwait(false);
 
         await EnqueueAsync(context, RescanStages.Check, batch.Check, cancellationToken).ConfigureAwait(false);
         var missing = await MarkMissingAsync(library, folder, items, batch, cancellationToken).ConfigureAwait(false);

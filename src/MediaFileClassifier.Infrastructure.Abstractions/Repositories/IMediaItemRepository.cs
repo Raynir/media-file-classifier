@@ -307,6 +307,16 @@ public interface IMediaItemRepository
     Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Stores the changes made to many items, some of which moved with <see cref="MediaItem.Relocate"/>. An item may
+    /// take a path that another of the items leaves, as when two files swap names: those items are written together in
+    /// one transaction, the others in batches like <see cref="AddRangeAsync"/>.
+    /// </summary>
+    /// <param name="items">The changed items.</param>
+    /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>
+    /// <returns>A task that completes when every change is stored.</returns>
+    Task UpdateMovedAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Stores the changes made to an item together with its technical metadata, in one transaction, replacing any
     /// metadata stored before.
     /// </summary>

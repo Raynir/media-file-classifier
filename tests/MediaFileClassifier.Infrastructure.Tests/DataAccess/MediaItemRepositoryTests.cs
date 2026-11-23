@@ -37,6 +37,59 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task UpdateMovedAsync_ItemsThatSwapPaths_AreStoredAtTheirNewPaths()
+    {
+        var (a, b, c) = (bed.NewItem(1), bed.NewItem(2), bed.NewItem(3));
+        await bed.Library.Items.AddRangeAsync([a, b, c], Token);
+        var (pathA, pathB) = (a.Path, b.Path);
+
+        // A and B swap; C moves to a free path and is written on its own.
+        a.Relocate(a.FolderId, pathB);
+        b.Relocate(b.FolderId, pathA);
+        c.Relocate(c.FolderId, RelativePath.From("other/IMG_00003.jpg"));
+        b.SetFavorite(true, DateTimeOffset.UtcNow);
+        await bed.Library.Items.UpdateMovedAsync([a, b, c], Token);
+
+        Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathA, Token))?.Id);
+        Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
+        Assert.True((await bed.Library.Items.GetAsync(b.Id, Token))!.IsFavorite);
+        Assert.Equal("other/IMG_00003.jpg", (await bed.Library.Items.GetAsync(c.Id, Token))!.Path.Value);
+    }
+
+    [Fact]
+    public async Task UpdateMovedAsync_ChainOfMovesWrittenFirstToLast_IsStored()
+    {
+        var (a, b, c) = (bed.NewItem(1), bed.NewItem(2), bed.NewItem(3));
+        await bed.Library.Items.AddRangeAsync([a, b, c], Token);
+        var (pathA, pathB, pathC) = (a.Path, b.Path, c.Path);
+
+        // A takes B's path and B takes C's, while C goes to a free path.
+        a.Relocate(a.FolderId, pathB);
+        b.Relocate(b.FolderId, pathC);
+        c.Relocate(c.FolderId, RelativePath.From("free.jpg"));
+        await bed.Library.Items.UpdateMovedAsync([a, b, c], Token);
+
+        Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
+        Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathC, Token))?.Id);
+        Assert.Equal(c.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, RelativePath.From("free.jpg"), Token))?.Id);
+        Assert.Null(await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathA, Token));
+    }
+
+    [Fact]
+    public async Task UpdateMovedAsync_PathOfAnItemThatStays_FailsWithoutMovingAnything()
+    {
+        var (a, b) = (bed.NewItem(1), bed.NewItem(2));
+        await bed.Library.Items.AddRangeAsync([a, b], Token);
+        var (pathA, pathB) = (a.Path, b.Path);
+
+        b.Relocate(b.FolderId, pathA);
+
+        await Assert.ThrowsAnyAsync<Exception>(() => bed.Library.Items.UpdateMovedAsync([a, b], Token));
+        Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathA, Token))?.Id);
+        Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
+    }
+
+    [Fact]
     public async Task Changed_ListenerThatThrows_DoesNotFailTheWrite_AndTheOthersStillHearIt()
     {
         // MFC-1002: listeners run on the writing job's thread, so one that threw failed the import that added the items.

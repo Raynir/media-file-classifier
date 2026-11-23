@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
@@ -115,6 +116,55 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         Assert.True(moved.IsFavorite);
         Assert.Contains((await bed.Library.Metadata.GetAsync(item.Id, Token)).Tags, tag => tag.Tag.Value == "holiday");
         Assert.Equal(registered, bed.Registered.Received.Count);
+    }
+
+    [Fact]
+    public async Task Renamed_FolderOf5000Items_RelinksThemAllWithoutReanalysis()
+    {
+        const int Count = 5000;
+        var items = await AddItemsAsync("album", Count);
+        var registered = bed.Registered.Received.Count;
+
+        Directory.Move(Path.Combine(bed.Root, "album"), Path.Combine(bed.Root, "renamed"));
+        FolderChange[] changes = [.. items.Select(item =>
+        {
+            var path = "renamed/" + item.Path.FileName;
+            var file = new FileInfo(Path.Combine(bed.Root, path));
+            return new FolderChange(FolderChangeKind.Renamed, path, item.Path.Value, new MediaFileStat(path, file.Length, file.LastWriteTimeUtc));
+        })];
+        var stopwatch = Stopwatch.StartNew();
+        await ApplyAsync(changes);
+        stopwatch.Stop();
+        TestContext.Current.TestOutputHelper?.WriteLine($"Relinked {Count} items in {stopwatch.ElapsedMilliseconds} ms");
+
+        var relinked = (await bed.ItemsAsync()).ToDictionary(item => item.Id);
+        Assert.Equal(Count, relinked.Count);
+        Assert.All(items, item =>
+        {
+            var moved = relinked[item.Id];
+            Assert.Equal(("renamed/" + item.Path.FileName, MediaItemStatus.Indexed), (moved.Path.Value, moved.Status));
+        });
+        Assert.Equal(registered, bed.Registered.Received.Count);
+        var job = (await bed.Library.Jobs.GetRecentJobsAsync(20, Token)).Single(other => other.Description.StartsWith("Import changes", StringComparison.Ordinal));
+        Assert.All(await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token), work => Assert.Equal(ChangeProcessingStages.Apply, work.Stage));
+    }
+
+    [Fact]
+    public async Task Renamed_TwoFilesSwappedInOneBatch_RelinksBoth()
+    {
+        bed.Copy(SampleMedia.JpegWithExif, "a.jpg");
+        bed.Copy(SampleMedia.JpegWithIccAndOffset, "b.jpg");
+        await ImportAsync();
+        var a = await ItemAsync("a.jpg");
+        var b = await ItemAsync("b.jpg");
+
+        Move("a.jpg", "tmp.jpg");
+        Move("b.jpg", "a.jpg");
+        Move("tmp.jpg", "b.jpg");
+        await ApplyAsync(await RenamedAsync("a.jpg", "tmp.jpg"), await RenamedAsync("b.jpg", "a.jpg"), await RenamedAsync("tmp.jpg", "b.jpg"));
+
+        Assert.Equal(b.Id, (await ItemAsync("a.jpg")).Id);
+        Assert.Equal(a.Id, (await ItemAsync("b.jpg")).Id);
     }
 
     [Fact]
@@ -381,6 +431,33 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         await bed.Library.Metadata.UpdateAsync(item.Id, metadata => metadata.AddTag(TagName.From("holiday"), DateTimeOffset.UtcNow), Token);
         item.SetFavorite(true, DateTimeOffset.UtcNow);
         await bed.Library.Items.UpdateAsync(item, Token);
+    }
+
+    // Indexed items for small files, added straight to the library: importing thousands of files is slow.
+    private async Task<IReadOnlyList<MediaItem>> AddItemsAsync(string directory, int count)
+    {
+        Directory.CreateDirectory(Path.Combine(bed.Root, directory));
+        var now = DateTimeOffset.UtcNow;
+        var items = new List<MediaItem>(count);
+        for (var i = 0; i < count; i++)
+        {
+            var path = $"{directory}/IMG_{i:D5}.jpg";
+            var file = new FileInfo(Path.Combine(bed.Root, path));
+            await File.WriteAllBytesAsync(file.FullName, BitConverter.GetBytes(i), Token);
+            file.Refresh();
+            var modified = DateTimeOffset.FromUnixTimeMilliseconds(new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeMilliseconds());
+            var item = MediaItem.Discover(bed.Folder.Id, RelativePath.From(path), MediaType.Image, file.Length, modified, modified, (UInt128)i + 1, now);
+            item.ChangeStatus(MediaItemStatus.Pending, now);
+            item.ChangeStatus(MediaItemStatus.Indexed, now);
+            items.Add(item);
+        }
+
+        foreach (var chunk in items.Chunk(500))
+        {
+            await bed.Library.Items.AddRangeAsync(chunk, Token);
+        }
+
+        return items;
     }
 
     private async Task<MediaItem> ItemAsync(string path) => (await bed.ItemsAsync()).Single(item => item.Path.Value == path);

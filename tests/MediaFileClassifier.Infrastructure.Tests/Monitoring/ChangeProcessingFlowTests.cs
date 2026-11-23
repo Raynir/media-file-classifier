@@ -358,6 +358,7 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         bed.Copy(SampleMedia.JpegWithExif, "photo.jpg");
 
         await bed.Get<ChangeProcessor>().SubmitAsync(bed.Folder.Id, [await ChangedAsync("photo.jpg")], Token);
+        await AdvanceUntilQueuedAsync(ChangeProcessor.GatherQuiet);
         await Task.Delay(500, Token);
         Assert.Empty(await bed.ItemsAsync());
 
@@ -374,9 +375,77 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         var change = await ChangedAsync("photo.jpg");
         await bed.Library.Folders.DeleteAsync(bed.Folder.Id, Token);
 
-        await ApplyAsync(change);
+        await bed.Get<ChangeProcessor>().SubmitAsync(bed.Folder.Id, [change], Token);
+        clock.Advance(ChangeProcessor.GatherQuiet);
+        await Task.Delay(300, Token);
+        await bed.WaitUntilIdleAsync();
 
         Assert.Empty(await bed.ItemsAsync());
+    }
+
+    [Fact]
+    public async Task Burst_2000ChangesIn40Submits_MakeOneImportJob()
+    {
+        await ImportAsync();
+        var processor = bed.Get<ChangeProcessor>();
+
+        // A copy reports its files as they become stable, a few every half second.
+        for (var submit = 0; submit < 40; submit++)
+        {
+            await processor.SubmitAsync(bed.Folder.Id, [.. Enumerable.Range(submit * 50, 50).Select(i => new FolderChange(FolderChangeKind.Changed, $"copy/IMG_{i:D4}.jpg"))], Token);
+            clock.Advance(TimeSpan.FromMilliseconds(500));
+        }
+
+        Assert.Empty(await ChangeJobsAsync());
+        await AdvanceUntilQueuedAsync(ChangeProcessor.GatherQuiet);
+        await bed.WaitUntilIdleAsync();
+
+        var job = Assert.Single(await ChangeJobsAsync());
+        var work = await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token);
+        Assert.Equal(2000 / ChangeProcessor.ChangesPerWorkItem, work.Count(item => item.Stage == ChangeProcessingStages.Apply));
+    }
+
+    [Fact]
+    public async Task Burst_ThatKeepsComing_IsQueuedAfterTheLongestGather_AndTheRestJoinsTheSameJob()
+    {
+        await ImportAsync();
+        var scheduler = bed.Jobs.Current!;
+        scheduler.Pause();
+        var processor = bed.Get<ChangeProcessor>();
+        var step = TimeSpan.FromSeconds(1);
+
+        for (var elapsed = TimeSpan.Zero; elapsed < ChangeProcessor.GatherMax; elapsed += step)
+        {
+            await processor.SubmitAsync(bed.Folder.Id, [new FolderChange(FolderChangeKind.Changed, $"copy/{elapsed.TotalSeconds}.jpg")], Token);
+            clock.Advance(step);
+        }
+
+        await WaitForAsync(async () => (await ChangeJobsAsync()).Count == 1);
+        await processor.SubmitAsync(bed.Folder.Id, [new FolderChange(FolderChangeKind.Changed, "copy/last.jpg")], Token);
+        var job = Assert.Single(await ChangeJobsAsync());
+        clock.Advance(ChangeProcessor.GatherQuiet);
+        await WaitForAsync(async () => (await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token)).Count == 2);
+
+        scheduler.Resume();
+        await bed.WaitUntilIdleAsync();
+        Assert.Single(await ChangeJobsAsync());
+    }
+
+    [Fact]
+    public async Task Changes_AfterTheFoldersJobFinished_StartANewJob_LeavingTheFinishedOneFinished()
+    {
+        await ImportAsync();
+        bed.Copy(SampleMedia.JpegWithExif, "a.jpg");
+        await ApplyAsync(await ChangedAsync("a.jpg"));
+        var first = Assert.Single(await ChangeJobsAsync());
+
+        bed.Copy(SampleMedia.PngWithAlpha, "b.png");
+        await ApplyAsync(await ChangedAsync("b.png"));
+
+        var jobs = await ChangeJobsAsync();
+        Assert.Equal(2, jobs.Count);
+        Assert.Equal(ProcessingJobState.Completed, jobs.Single(job => job.Id == first.Id).State);
+        Assert.Equal(first.FinishedAt, jobs.Single(job => job.Id == first.Id).FinishedAt);
     }
 
     // Submits a deletion and lets its grace period pass.
@@ -388,23 +457,45 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
 
     private async Task ReleaseHeldAsync()
     {
-        var jobs = (await bed.Library.Jobs.GetRecentJobsAsync(100, Token)).Count;
-        clock.Advance(ChangeProcessor.DeleteGrace);
-        var end = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-        while ((await bed.Library.Jobs.GetRecentJobsAsync(100, Token)).Count == jobs)
+        await AdvanceUntilQueuedAsync(ChangeProcessor.DeleteGrace);
+        await bed.WaitUntilIdleAsync();
+    }
+
+    // Deletions are held; the other changes are queued once the gathering is quiet.
+    private async Task ApplyAsync(params FolderChange[] changes)
+    {
+        await bed.Get<ChangeProcessor>().SubmitAsync(bed.Folder.Id, changes, Token);
+        if (changes.Any(change => change.Kind != FolderChangeKind.Deleted))
         {
-            Assert.True(DateTime.UtcNow < end, "The held deletions weren't queued.");
-            await Task.Delay(20, Token);
+            await AdvanceUntilQueuedAsync(ChangeProcessor.GatherQuiet);
         }
 
         await bed.WaitUntilIdleAsync();
     }
 
-    private async Task ApplyAsync(params FolderChange[] changes)
+    // Lets time pass and waits for the job it queues. The earlier jobs have finished, so it's a new one.
+    private async Task AdvanceUntilQueuedAsync(TimeSpan time)
     {
-        await bed.Get<ChangeProcessor>().SubmitAsync(bed.Folder.Id, changes, Token);
-        await bed.WaitUntilIdleAsync();
+        var jobs = (await AllJobsAsync()).Count;
+        clock.Advance(time);
+        await WaitForAsync(async () => (await AllJobsAsync()).Count > jobs);
     }
+
+    private static async Task WaitForAsync(Func<Task<bool>> condition)
+    {
+        var end = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        while (!await condition())
+        {
+            Assert.True(DateTime.UtcNow < end, "The changes weren't queued.");
+            await Task.Delay(20, Token);
+        }
+    }
+
+    private async Task<IReadOnlyList<ProcessingJob>> ChangeJobsAsync() =>
+        [.. (await AllJobsAsync()).Where(job => job.Description.StartsWith("Import changes", StringComparison.Ordinal))];
+
+    private async Task<IReadOnlyList<ProcessingJob>> AllJobsAsync() =>
+        [.. (await bed.Library.Jobs.GetUnfinishedJobsAsync(Token)).Concat(await bed.Library.Jobs.GetRecentJobsAsync(100, Token)).DistinctBy(job => job.Id)];
 
     private async Task<FolderChange> ChangedAsync(string path) => new(FolderChangeKind.Changed, path, Stat: await StatAsync(path));
 

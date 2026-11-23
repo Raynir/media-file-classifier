@@ -15,6 +15,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.Infrastructure.Media.Thumbnails;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
@@ -113,6 +114,105 @@ public sealed class DetailsPanelTests : IDisposable
         bed.Selection.Clear();
         bed.Settle();
         Assert.Null(bed.Panel.Animation);
+    });
+
+    [Fact]
+    public Task EjectRequest_ClosesAPlayingAnimationsFile_BeforeItReturns_AndACancelledEjectPlaysItAgain() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 1);
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+        bed.Select(0, SelectionGesture.Replace);
+        var animation = bed.Panel.Animation;
+        Assert.NotNull(animation);
+        var registration = Assert.Single(bed.Ejects.Registrations);
+        Assert.Equal(temp.Path, registration.Folder.Id);
+
+        // MFC-138: the animation held its file open, so Windows refused to eject the drive.
+        registration.RequestEject();
+        Assert.Null(bed.Panel.Animation);
+        Assert.False(animation.IsPlaying);
+        using (new FileStream(bed.AnimatedFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            // Nothing in the app holds the file any more.
+        }
+
+        Assert.NotNull(bed.Panel.PreviewBitmap);
+        Assert.Equal("Showing the thumbnail: the drive of Photos is being ejected.", bed.Panel.PreviewNote);
+
+        registration.CancelEject();
+        Pump.Until(() => bed.Panel.Animation is not null);
+        Assert.Null(bed.Panel.PreviewNote);
+        Assert.Same(registration, Assert.Single(bed.Ejects.Registrations));
+        Assert.False(registration.IsDisposed);
+    });
+
+    [Fact]
+    public Task EjectRequest_ReleasesTheVideoPlayer_AndACancelledEjectOpensTheVideoAgain() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 1, withVideo: true) { Type = MediaType.Video };
+        bed.Select(0, SelectionGesture.Replace);
+        Pump.Until(() => bed.Players.Players.Count == 1 && bed.Players.Player.Requests.Count > 0);
+        var player = bed.Players.Player;
+        Assert.StartsWith("Open ", player.Requests[0], StringComparison.Ordinal);
+
+        Assert.Single(bed.Ejects.Registrations).RequestEject();
+        Assert.True(player.IsDisposed);
+        Assert.False(bed.Video!.IsActive);
+        Assert.Equal("Showing the thumbnail: the drive of Photos is being ejected.", bed.Panel.PreviewNote);
+
+        bed.Ejects.Registrations[0].CancelEject();
+        Pump.Until(() => bed.Players.Players.Count == 2 && bed.Players.Player.Requests.Count > 0);
+        Assert.StartsWith("Open ", bed.Players.Player.Requests[0], StringComparison.Ordinal);
+        Assert.True(bed.Video.IsActive);
+        Assert.Null(bed.Panel.PreviewNote);
+    });
+
+    [Fact]
+    public Task EjectListening_OnlyForVideosAndAnimations_AndEndsWithTheSelection() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 3);
+
+        // A still image is read whole and closed, so nothing needs to let go of it.
+        bed.Select(0, SelectionGesture.Replace);
+        Assert.Empty(bed.Ejects.Registrations);
+
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+        bed.Select(1, SelectionGesture.Replace);
+        var registration = Assert.Single(bed.Ejects.Registrations);
+
+        // Another animation in the same folder keeps the registration; a still image ends it.
+        bed.Select(2, SelectionGesture.Replace);
+        Assert.Same(registration, Assert.Single(bed.Ejects.Registrations));
+        bed.AnimatedFile = null;
+        bed.Select(0, SelectionGesture.Replace);
+        Assert.True(registration.IsDisposed);
+
+        // A late request of the ended registration changes nothing.
+        registration.RequestEject();
+        Assert.Null(bed.Panel.PreviewNote);
+
+        // An offline animation, and a folder that can't be registered, have nothing to listen to.
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+        bed.Availability = ItemAvailability.Offline;
+        bed.Select(1, SelectionGesture.Replace);
+        bed.Availability = ItemAvailability.Available;
+        bed.Ejects.Unsupported = true;
+        bed.Select(2, SelectionGesture.Replace);
+        Assert.Single(bed.Ejects.Registrations);
+        Assert.NotNull(bed.Panel.Animation);
+
+        bed.Panel.Dispose();
+    });
+
+    [Fact]
+    public Task Dispose_EndsTheEjectRegistration() => TestApp.RunAsync(() =>
+    {
+        var bed = new Bed(this, 1);
+        bed.AnimatedFile = CopySample("gif-variable-delays.gif");
+        bed.Select(0, SelectionGesture.Replace);
+
+        bed.Panel.Dispose();
+        Assert.True(Assert.Single(bed.Ejects.Registrations).IsDisposed);
     });
 
     [Fact]
@@ -768,7 +868,7 @@ public sealed class DetailsPanelTests : IDisposable
         private readonly string original;
         private readonly string corrupt;
 
-        public Bed(DetailsPanelTests test, int count, bool withStrip = false)
+        public Bed(DetailsPanelTests test, int count, bool withStrip = false, bool withVideo = false)
         {
             this.test = test;
             original = test.WriteImage("original.png", 400, 300);
@@ -787,8 +887,9 @@ public sealed class DetailsPanelTests : IDisposable
             var loader = new ThumbnailLoader(new FakeBrowserSession(), thumbnails, new ThumbnailBitmapCache());
             Registry = new CommandRegistry([new MetadataEditorCommands(Selection, () => Panel!)], Localizer.Current, new FakeCapabilityGate());
             Strip = withStrip ? new KeyframeStripViewModel(this, null, null, Localizer.Current) : null;
+            Video = withVideo ? new VideoPlayerViewModel(Players, null, null, Layout, Localizer.Current) : null;
             Panel = new DetailsPanelViewModel(
-                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard, undoStore: Undo, strip: Strip, folderStatus: FolderStatus);
+                Selection, this, Regions, Layout, new PreviewLoader(loader, new FakeFiles(), Decoder), Registry, Localizer.Current, () => throw new NotSupportedException(), guard: Guard, undoStore: Undo, video: Video, strip: Strip, folderStatus: FolderStatus, ejects: Ejects);
             Selection.ConfirmChange = Guard.ConfirmLeaveAsync;
         }
 
@@ -821,6 +922,12 @@ public sealed class DetailsPanelTests : IDisposable
         public KeyframeStripViewModel? Strip { get; }
 
         public FolderStatusChanges FolderStatus { get; } = new();
+
+        public FakeEjectNotifications Ejects { get; } = new();
+
+        public FakePreviewPlayerFactory Players { get; } = new();
+
+        public VideoPlayerViewModel? Video { get; }
 
         public MediaType? Type { get; set; }
 

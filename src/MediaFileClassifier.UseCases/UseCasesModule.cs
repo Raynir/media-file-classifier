@@ -43,6 +43,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Monitoring.ChangeProcessing.ChangeProcessor>();
         services.AddSetting(Monitoring.MonitoringSettings.IgnorePatterns);
         services.TryAddSingleton<Monitoring.QuickSyncStarter>();
+        services.TryAddSingleton<Monitoring.ReconnectCatchUp>();
         services.AddSetting(KnownSettings.QuickSyncOnOpen);
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();

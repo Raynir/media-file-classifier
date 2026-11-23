@@ -20,6 +20,11 @@ public sealed class InMemoryMediaFileSource : IMediaFileSource
     public int Opens { get; private set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the folder can be reached, as for an unplugged drive when it's false.
+    /// </summary>
+    public bool IsAvailable { get; set; } = true;
+
+    /// <summary>
     /// Writes a file, or changes its size and modification time.
     /// </summary>
     /// <param name="relativePath">The path, with <c>/</c> separators.</param>
@@ -133,7 +138,7 @@ public sealed class InMemoryMediaFileSource : IMediaFileSource
     }
 
     /// <inheritdoc />
-    public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) => Task.FromResult(true);
+    public Task<bool> IsAvailableAsync(FolderHandle folder, CancellationToken cancellationToken = default) => Task.FromResult(IsAvailable);
 
     /// <inheritdoc />
     public string? GetPathInside(FolderHandle folder, FolderHandle parent) => null;

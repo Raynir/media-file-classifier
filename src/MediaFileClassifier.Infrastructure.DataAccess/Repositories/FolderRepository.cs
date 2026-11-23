@@ -78,6 +78,7 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                 var status = folder.Status;
                 var changedAt = folder.StatusChangedAt;
                 var label = folder.VolumeLabel;
+                var volumeId = folder.VolumeId;
                 var handle = folder.PlatformHandle;
 
                 // Matched on the root too: a folder relinked while the check probed its old root keeps what the relink stored.
@@ -86,13 +87,53 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                         setters => setters
                             .SetProperty(row => row.Status, status)
                             .SetProperty(row => row.StatusChangedAt, changedAt)
-                            .SetProperty(row => row.VolumeLabel, label),
+                            .SetProperty(row => row.VolumeLabel, label)
+                            .SetProperty(row => row.VolumeId, volumeId),
                         token)
                     .ConfigureAwait(false);
                 return updated > 0 && stored is { } old && old != status;
             },
             cancellationToken).ConfigureAwait(false);
         RaiseIf(statusChanged);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> RelinkAsync(IndexedFolder folder, string oldPlatformHandle, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(oldPlatformHandle);
+
+        var (updated, statusChanged) = await writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var stored = await StoredStatusAsync(db, folder.Id, token).ConfigureAwait(false);
+                var displayPath = folder.DisplayPath;
+                var handle = folder.PlatformHandle;
+                var status = folder.Status;
+                var changedAt = folder.StatusChangedAt;
+                var label = folder.VolumeLabel;
+                var volumeId = folder.VolumeId;
+                var count = await db.Folders.Where(row => row.Id == folder.Id && row.PlatformHandle == oldPlatformHandle)
+                    .ExecuteUpdateAsync(
+                        setters => setters
+                            .SetProperty(row => row.DisplayPath, displayPath)
+                            .SetProperty(row => row.PlatformHandle, handle)
+                            .SetProperty(row => row.Status, status)
+                            .SetProperty(row => row.StatusChangedAt, changedAt)
+                            .SetProperty(row => row.VolumeLabel, label)
+                            .SetProperty(row => row.VolumeId, volumeId),
+                        token)
+                    .ConfigureAwait(false);
+                return (count > 0, count > 0 && stored is { } old && old != status);
+            },
+            cancellationToken).ConfigureAwait(false);
+        RaiseIf(statusChanged);
+        if (updated)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        return updated;
     }
 
     /// <inheritdoc />

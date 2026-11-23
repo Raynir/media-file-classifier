@@ -77,7 +77,7 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
             Chip("Rescans", [ActivityEventType.Rescan]),
             Chip("Analysis", [ActivityEventType.Analysis]),
             Chip("Edits", [ActivityEventType.BulkEdit]),
-            Chip("Folders", [ActivityEventType.FolderAdded, ActivityEventType.FolderRemoved, ActivityEventType.FolderMonitoring]),
+            Chip("Folders", [ActivityEventType.FolderAdded, ActivityEventType.FolderRemoved, ActivityEventType.FolderMonitoring, ActivityEventType.FolderRelinked]),
             Chip("Duplicates", [ActivityEventType.DuplicateResolution]),
             Chip("Exports", [ActivityEventType.Export, ActivityEventType.LibraryImport]),
             new ActivityChipViewModel("Errors", localizer.Get("Activity_Chip_Errors"), new ActivityFilter(null, ActivitySeverity.Warning)),

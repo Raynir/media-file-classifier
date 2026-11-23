@@ -7,6 +7,8 @@ using CommunityToolkit.Mvvm.Input;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Ui.Browser;
 using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Details;
@@ -64,6 +66,9 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private bool wasExpanded;
     private readonly TimeProvider clock;
     private bool restoringPanel;
+    private readonly IEjectNotifications? ejects;
+    private IEjectRegistration? ejectRegistration;
+    private FolderHandle? ejectFolder;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DetailsPanelViewModel"/> class.
@@ -84,6 +89,8 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     /// <param name="strip">The keyframe strip under the preview (E14-S13), or <see langword="null"/> for none.</param>
     /// <param name="folderStatus">Tells when a folder went Offline or came back, so the shown item reloads
     /// (E14-S07-T04), or <see langword="null"/>.</param>
+    /// <param name="ejects">Tells when the drive of a shown video or animation is being ejected, so the preview lets go
+    /// of the file (MFC-138), or <see langword="null"/> on platforms without eject requests.</param>
     public DetailsPanelViewModel(
         SelectionModel selection,
         ISender sender,
@@ -99,9 +106,11 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         VideoPlayerViewModel? video = null,
         TimeProvider? clock = null,
         KeyframeStripViewModel? strip = null,
-        FolderStatusChanges? folderStatus = null)
+        FolderStatusChanges? folderStatus = null,
+        IEjectNotifications? ejects = null)
     {
         this.clock = clock ?? TimeProvider.System;
+        this.ejects = ejects;
         layout.Details.PropertyChanged += OnDetailsVisibilityChanged;
         this.selection = selection;
         this.sender = sender;
@@ -478,6 +487,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         loading?.Cancel();
         loading?.Dispose();
         CancelPreview();
+        StopListeningForEject();
         SetAnimation(null);
         SetPreview(null);
         if (Video is not null)
@@ -816,6 +826,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
     private async Task LoadPreviewAsync(ItemDetails item)
     {
         CancelPreview();
+        ListenForEject(item);
         Video?.Show(item);
         Strip?.Show(item);
         UpdateFallback();
@@ -961,6 +972,73 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         previewLoading = null;
     }
 
+    // A video or a playing animation keeps its file open, which makes Windows refuse to eject its drive (MFC-138), so
+    // the panel listens for eject requests of the folder while it shows one. Still images are read whole and closed.
+    private void ListenForEject(ItemDetails item)
+    {
+        var folder = ejects is not null
+            && item is { MediaType: MediaType.Video or MediaType.AnimatedImage, Location.Availability: ItemAvailability.Available }
+            ? item.Location.Location.Folder
+            : null;
+        if (folder is not null && ejectRegistration is not null && folder == ejectFolder)
+        {
+            return;
+        }
+
+        StopListeningForEject();
+        if (folder is null || ejects!.Register(folder) is not { } registration)
+        {
+            return;
+        }
+
+        registration.EjectRequested += OnEjectRequested;
+        registration.EjectCancelled += OnEjectCancelled;
+        ejectRegistration = registration;
+        ejectFolder = folder;
+    }
+
+    private void StopListeningForEject()
+    {
+        if (ejectRegistration is { } registration)
+        {
+            registration.EjectRequested -= OnEjectRequested;
+            registration.EjectCancelled -= OnEjectCancelled;
+            registration.Dispose();
+        }
+
+        ejectRegistration = null;
+        ejectFolder = null;
+    }
+
+    // Raised on the UI thread by the window's message hook. The file must be closed before it returns: Windows checks
+    // for open handles right after every app has answered.
+    private void OnEjectRequested(object? sender, EventArgs e)
+    {
+        if (disposed || previewFor is not { } item)
+        {
+            return;
+        }
+
+        CancelPreview();
+        ++previewLoads;
+        SetAnimation(null);
+        Video?.Release();
+        UpdateFallback();
+        PreviewNote = localizer.Format("Details_Preview_Thumbnail_Ejecting", item.Location.FolderName);
+    }
+
+    // The eject was refused, e.g. another app holds the drive: the preview shows the file again.
+    private void OnEjectCancelled(object? sender, EventArgs e)
+    {
+        if (disposed || previewFor is not { } item)
+        {
+            return;
+        }
+
+        PreviewNote = null;
+        Loading = LoadPreviewAsync(item);
+    }
+
     private static bool SamePreview(ItemDetails shown, ItemDetails item) =>
         shown.Id == item.Id && shown.FileModifiedAt == item.FileModifiedAt && shown.Location.Availability == item.Location.Availability;
 
@@ -970,6 +1048,7 @@ public sealed partial class DetailsPanelViewModel : ViewModelBase, IItemOpener, 
         {
             loading?.Cancel();
             CancelPreview();
+            StopListeningForEject();
             ++previewLoads;
             previewFor = null;
             SetAnimation(null);

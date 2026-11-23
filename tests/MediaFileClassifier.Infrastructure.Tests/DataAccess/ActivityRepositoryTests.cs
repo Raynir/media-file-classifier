@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.DataAccess.Database;
@@ -142,20 +143,22 @@ public sealed class ActivityRepositoryTests
     }
 
     [Fact]
-    public async Task UpgradeFrom16_ExistingLibraries_GetAnEmptyLog_AtSchema17()
+    public async Task UpgradeFrom16_ExistingLibraries_GetAnEmptyLog_AtTheCurrentSchema()
     {
         await using var bed = await LibraryTestBed.CreateAsync();
         await bed.Library.DisposeAsync();
         await using (var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token))
         {
             var migrations = db.Database.GetMigrations().ToList();
-            await db.GetService<IMigrator>().MigrateAsync(migrations[^2], cancellationToken: Token);
+            // Schema 16 is the migration before the activity log's; later migrations come after it.
+            var activityLog = migrations.FindIndex(migration => migration.EndsWith("_ActivityLog", StringComparison.Ordinal));
+            await db.GetService<IMigrator>().MigrateAsync(migrations[activityLog - 1], cancellationToken: Token);
         }
 
         SqliteConnection.ClearAllPools();
         await bed.OpenAgainAsync();
 
-        Assert.Equal(17, bed.Library.Library.SchemaVersion);
+        Assert.Equal(Library.CurrentSchemaVersion, bed.Library.Library.SchemaVersion);
         Assert.Equal(0, await bed.Library.Activity.CountAsync(ActivityFilter.All, Token));
     }
 

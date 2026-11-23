@@ -12,6 +12,13 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Drive connect and disconnect (MFC-138): ejecting a drive from the tray is no longer refused as "in use" by the folder watchers; they let go of the drive and watch again if the eject is cancelled. A drive that goes away makes its folders Offline without marking any item Missing, also when the watcher or a rescan notices it first. When it comes back, its folders are Online again and caught up with a quick sync, whatever the "Check for changes when the library opens" setting says. Each folder now remembers its drive's volume serial number: plugged back in under another letter, the folder follows it (its paths change, items are kept, and the activity log says "Folder moved to a new drive letter"), while another drive that takes the folder's letter is never scanned as the folder. The library schema is now 18. Details: `docs/indexed-folders.md`.
 - Pause and resume (MFC-194): background processing can be paused as a whole, per kind of work (disk, processor, AI analysis) and per job, from the processing queue and from a pause button next to the processing indicator in the status bar. Work already running gets 2 seconds to finish, then goes back in the queue, so nothing is lost. A new setting, "Keep processing paused after a restart" (on by default), keeps the pause when the library opens again; the global and per-kind pause is stored in the library settings (no schema change).
 
+## 1.0.1 — 2026-11-22
+
+### Fixed
+
+- Analysis on the GPU (MFC-1038): with AI analysis set to run more than one item at a time, the app could close with a Windows error (0xC0000005) while reading text with in-process OCR on DirectML, because two items ran the same model at once and DirectML allows only one run at a time. Runs of a model on the GPU now wait for each other; other work still runs in parallel. If the GPU device is lost during analysis (driver reset or hang), the model moves to the CPU and analysis goes on, slower, instead of failing every later item until restart. The log now names each item and analyzer before it starts, so a native crash shows the last item. `docs/development.md` explains how to turn on Windows crash dumps.
+- Processing queue (MFC-1039): a job's stage is named in words ("Analyzing", "Checking changed files") instead of by its internal key ("analysis.item: 208 of 237"). The analysis, rescan and folder-removal stages were missing their names. A stage that still has no name shows its job's description, in the progress text and in the failure list, and logs a warning once; a test fails when a stage has no name.
+
 ## 1.0.0 — 2026-11-22
 
 ### Added

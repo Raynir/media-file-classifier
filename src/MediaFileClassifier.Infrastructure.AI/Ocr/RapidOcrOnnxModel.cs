@@ -142,7 +142,8 @@ internal sealed class RapidOcrOnnxModel : OnnxModelProvider, IOcrProvider
         {
             using var results = session.Run([NamedOnnxValue.CreateFromTensor(session.InputMetadata.Keys.First(), input)]);
             return results[0].AsTensor<float>().ToArray();
-        });
+        },
+        $"{picture.Width} x {picture.Height} picture as {width} x {height}");
 
         if (map.Length != width * height)
         {
@@ -225,7 +226,8 @@ internal sealed class RapidOcrOnnxModel : OnnxModelProvider, IOcrProvider
             using var results = session.Run([NamedOnnxValue.CreateFromTensor(session.InputMetadata.Keys.First(), input)]);
             var tensor = results[0].AsTensor<float>();
             return (tensor.ToArray(), tensor.Dimensions[1], tensor.Dimensions[2]);
-        });
+        },
+        $"{crops.Count} lines as {width} x {RecognitionHeight}");
 
         if (classes != ctc.ClassCount)
         {

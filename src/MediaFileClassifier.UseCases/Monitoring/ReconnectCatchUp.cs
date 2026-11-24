@@ -29,6 +29,7 @@ public sealed class ReconnectCatchUp : IDisposable
     private readonly ISender sender;
     private readonly TimeProvider clock;
     private readonly ILogger<ReconnectCatchUp> logger;
+    private readonly MonitoringPause? pause;
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Cancelled by Dispose; a sync already under way may still read its token. It has no timer or wait handle.")]
     private readonly CancellationTokenSource stopping = new();
     private readonly Lock syncRoot = new();
@@ -44,13 +45,16 @@ public sealed class ReconnectCatchUp : IDisposable
     /// <param name="sender">Starts the syncs.</param>
     /// <param name="clock">Times the retries.</param>
     /// <param name="logger">Logger.</param>
+    /// <param name="pause">Holds the catch-ups while monitoring is paused (E04-S06-T02), or <see langword="null"/> for no pause.</param>
     public ReconnectCatchUp(
         ILibrarySession session,
         FolderWatchManager watchers,
         ISender sender,
         TimeProvider clock,
-        ILogger<ReconnectCatchUp> logger)
+        ILogger<ReconnectCatchUp> logger,
+        MonitoringPause? pause = null)
     {
+        this.pause = pause;
         this.session = session;
         this.watchers = watchers;
         this.sender = sender;
@@ -163,6 +167,11 @@ public sealed class ReconnectCatchUp : IDisposable
             await watchers.EnsureWatchingAsync().ConfigureAwait(false);
             while (await StillWantedAsync(library, folderId, token).ConfigureAwait(false))
             {
+                if (pause is not null)
+                {
+                    await pause.WaitWhilePausedAsync(token).ConfigureAwait(false);
+                }
+
                 var result = await sender.Send(new StartRescanCommand(folderId, Quick: true), token).ConfigureAwait(false);
                 if (result.Outcome != StartRescanOutcome.Busy)
                 {

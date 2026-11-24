@@ -6,6 +6,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Settings;
@@ -134,6 +135,76 @@ public sealed class FolderWatchManagerTests
         await bed.StartAsync();
 
         Assert.Equal([other.Id], bed.Manager.WatchedFolders);
+    }
+
+    [Fact]
+    public async Task State_OfAnOnlineFolder_IsWatching_Paused_OrError()
+    {
+        var bed = new Bed();
+        var watched = await bed.AddFolderAsync(@"E:\Photos");
+        var broken = await bed.AddFolderAsync(@"E:\Broken");
+        bed.Factory.Failing.Add(@"E:\Broken");
+        await bed.StartAsync();
+
+        Assert.Equal(FolderMonitoringState.Watching, bed.Manager.GetState(watched.Id));
+        Assert.Equal(FolderMonitoringState.Error, bed.Manager.GetState(broken.Id));
+
+        bed.Pause.Pause();
+        Assert.Equal(FolderMonitoringState.Paused, bed.Manager.GetState(watched.Id));
+
+        bed.Pause.Resume();
+        Assert.Equal(FolderMonitoringState.Watching, bed.Manager.GetState(watched.Id));
+    }
+
+    [Fact]
+    public async Task State_OfAnOfflineOrUnknownFolder_IsOff()
+    {
+        var bed = new Bed();
+        var offline = await bed.AddFolderAsync(@"E:\Offline");
+        offline.MarkOffline(Now);
+        await bed.StartAsync();
+
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(offline.Id));
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(Id<IndexedFolder>.New()));
+    }
+
+    [Fact]
+    public async Task MonitoringTurnedOff_StopsEveryWatcher_AndTurnedOnWatchesAgainWithAQuickSync()
+    {
+        var bed = new Bed();
+        bed.Settings.IsLibraryOpen = true;
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        var states = 0;
+        bed.Manager.StateChanged += (_, _) => states++;
+
+        bed.Settings.SetValue(KnownSettings.MonitoringEnabled, false);
+        await bed.Manager.RefreshAsync();
+        Assert.Empty(bed.Manager.WatchedFolders);
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(folder.Id));
+        Assert.True(states > 0);
+
+        bed.Settings.SetValue(KnownSettings.MonitoringEnabled, true);
+        await bed.Manager.WaitForRecoveryAsync();
+        Assert.Equal([folder.Id], bed.Manager.WatchedFolders);
+        Assert.Contains(bed.Sender.Rescans, rescan => rescan.Quick && rescan.FolderId is null);
+    }
+
+    [Fact]
+    public async Task Overflow_WhileMonitoringIsPaused_RescansOnlyOnceResumed()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Pause.Pause();
+
+        bed.Factory.Fail(@"E:\Photos", overflow: true);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.Empty(bed.Sender.Rescans);
+
+        bed.Pause.Resume();
+        await bed.Manager.WaitForRecoveryAsync();
+        Assert.Equal([folder.Id], bed.Sender.Rescans.Select(rescan => rescan.FolderId));
     }
 
     [Fact]
@@ -562,12 +633,14 @@ public sealed class FolderWatchManagerTests
         public Bed()
         {
             Library = new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "watching"), "watching");
-            Manager = new FolderWatchManager(Session, Files, Publisher, Sender, Settings, new MediaExtensions(), Clock, NullLogger<FolderWatchManager>.Instance, Factory);
+            Manager = new FolderWatchManager(Session, Files, Publisher, Sender, Settings, new MediaExtensions(), Clock, NullLogger<FolderWatchManager>.Instance, Factory, Pause);
         }
 
         public FakeLibrarySession Session { get; } = new();
 
         public ManualClock Clock { get; } = new();
+
+        public MonitoringPause Pause { get; } = new();
 
         public InMemoryMediaFileSource Files { get; } = new();
 

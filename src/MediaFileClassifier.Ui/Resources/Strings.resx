@@ -1821,6 +1821,39 @@
   <data name="Setting_QuickSyncOnOpen_Help" xml:space="preserve">
     <value>Looks for files added, changed or removed while the app was closed. It runs in the background. Turn it off for very large or slow drives; the Rescan command still works.</value>
   </data>
+  <data name="Setting_MonitoringEnabled" xml:space="preserve">
+    <value>Monitor folders for changes</value>
+  </data>
+  <data name="Setting_MonitoringEnabled_Help" xml:space="preserve">
+    <value>Watches this library's folders and imports new and changed files as they appear. Turn it off to change the library only when you rescan.</value>
+  </data>
+  <data name="Monitoring_PausedStatus" xml:space="preserve">
+    <value>Monitoring paused</value>
+  </data>
+  <data name="Monitoring_ResumeTip" xml:space="preserve">
+    <value>Resume monitoring: changes found while paused are imported</value>
+  </data>
+  <data name="Monitoring_Pause" xml:space="preserve">
+    <value>Pause monitoring</value>
+  </data>
+  <data name="Monitoring_Resume" xml:space="preserve">
+    <value>Resume monitoring</value>
+  </data>
+  <data name="Folders_Monitoring_Watching" xml:space="preserve">
+    <value>Watching</value>
+  </data>
+  <data name="Folders_Monitoring_Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Folders_Monitoring_Error" xml:space="preserve">
+    <value>Can't watch</value>
+  </data>
+  <data name="Folders_Monitoring_Off" xml:space="preserve">
+    <value>Not monitored</value>
+  </data>
+  <data name="Folders_Monitoring_Error_Tip" xml:space="preserve">
+    <value>The folder is reachable but changes in it can't be watched. The app tries again by itself; Rescan still finds changes.</value>
+  </data>
   <data name="Notification_QuickSyncDone" xml:space="preserve">
     <value>Library updated: {0} new, {1} moved, {2} missing, {3} changed</value>
   </data>

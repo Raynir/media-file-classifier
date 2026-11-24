@@ -108,6 +108,12 @@ public sealed record LibrarySettings
     public bool QuickSyncOnOpen { get; init; } = true;
 
     /// <summary>
+    /// Gets a value indicating whether the library's folders are monitored for changes (E04-S06). It's stored only when
+    /// turned off.
+    /// </summary>
+    public bool MonitoringEnabled { get; init; } = true;
+
+    /// <summary>
     /// Gets whether all processing was paused when the library was last used (E05-S05-T03). It's restored when the
     /// library opens if the app setting to keep processing paused after a restart is on.
     /// </summary>

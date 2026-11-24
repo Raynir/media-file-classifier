@@ -16,6 +16,7 @@ using MediaFileClassifier.UseCases.Libraries.CheckFolderOverlap;
 using MediaFileClassifier.UseCases.Libraries.GetIndexedFolders;
 using MediaFileClassifier.UseCases.Libraries.IndexWholeFolder;
 using MediaFileClassifier.UseCases.Libraries.RemoveFolder;
+using MediaFileClassifier.UseCases.Monitoring;
 using MediatR;
 
 namespace MediaFileClassifier.Ui.ViewModels.Libraries;
@@ -32,6 +33,8 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     private readonly Localizer localizer;
     private readonly RescanRunner? rescan;
     private readonly AnalysisRunner? analysis;
+    private readonly FolderWatchManager? watchers;
+    private readonly MonitoringPause? monitoringPause;
     private Func<Task>? confirmed;
     private bool refreshing;
 
@@ -44,8 +47,12 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// <param name="localizer">UI strings.</param>
     /// <param name="rescan">Starts the rescan of the selected folder, or <c>null</c> where there's none.</param>
     /// <param name="analysis">Starts the analysis of the selected folder, or <c>null</c> where there's none.</param>
-    public IndexedFoldersViewModel(ISender sender, IPlatformServices platform, IMediaFileSource files, Localizer localizer, RescanRunner? rescan = null, AnalysisRunner? analysis = null)
+    /// <param name="watchers">Tells how each folder is monitored, or <c>null</c> where folders aren't monitored.</param>
+    /// <param name="monitoringPause">Pauses monitoring for the whole app, or <c>null</c> where there's none.</param>
+    public IndexedFoldersViewModel(ISender sender, IPlatformServices platform, IMediaFileSource files, Localizer localizer, RescanRunner? rescan = null, AnalysisRunner? analysis = null, FolderWatchManager? watchers = null, MonitoringPause? monitoringPause = null)
     {
+        this.watchers = watchers;
+        this.monitoringPause = monitoringPause;
         this.rescan = rescan;
         this.analysis = analysis;
         this.sender = sender;
@@ -65,6 +72,16 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// Raised when the dialog should close.
     /// </summary>
     public event EventHandler? CloseRequested;
+
+    /// <summary>
+    /// Gets a value indicating whether the dialog can pause monitoring (E04-S06-T02).
+    /// </summary>
+    public bool CanPauseMonitoring => monitoringPause is not null;
+
+    /// <summary>
+    /// Gets the label of the pause button: "Pause monitoring", or "Resume monitoring" while it's paused.
+    /// </summary>
+    public string MonitoringPauseLabel => localizer.Get(monitoringPause?.IsPaused == true ? "Monitoring_Resume" : "Monitoring_Pause");
 
     /// <summary>
     /// Gets the folders.
@@ -179,7 +196,41 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
             SelectedFolder = null;
         }
 
+        ShowMonitoring();
         OnPropertyChanged(nameof(IsEmpty));
+    }
+
+    private void ShowMonitoring()
+    {
+        foreach (var row in Folders)
+        {
+            row.MonitoringState = watchers?.GetState(row.Folder.Id) ?? FolderMonitoringState.Off;
+        }
+
+        OnPropertyChanged(nameof(MonitoringPauseLabel));
+    }
+
+    /// <summary>
+    /// Pauses monitoring, or resumes it when it's paused (E04-S06-T02).
+    /// </summary>
+    [RelayCommand]
+    private void ToggleMonitoringPause()
+    {
+        if (monitoringPause is null)
+        {
+            return;
+        }
+
+        if (monitoringPause.IsPaused)
+        {
+            monitoringPause.Resume();
+        }
+        else
+        {
+            monitoringPause.Pause();
+        }
+
+        ShowMonitoring();
     }
 
     /// <summary>

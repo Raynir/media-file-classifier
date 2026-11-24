@@ -34,6 +34,7 @@ internal static class DesktopPlatformModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, SkiaSharpProbe>());
         services.TryAddSingleton<IKeyboardLayout, WindowsKeyboardLayout>();
         services.TryAddSingleton<IVolumeLocator, WindowsVolumeLocator>();
+        services.TryAddSingleton<IFolderLocationProbe, WindowsFolderLocationProbe>();
         services.TryAddSingleton<WindowsVolumeWatcher>();
         services.TryAddSingleton<IVolumeWatcher>(provider => provider.GetRequiredService<WindowsVolumeWatcher>());
         return services;

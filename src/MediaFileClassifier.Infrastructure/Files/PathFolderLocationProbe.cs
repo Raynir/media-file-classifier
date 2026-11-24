@@ -6,9 +6,9 @@ namespace MediaFileClassifier.Infrastructure.Files;
 /// <summary>
 /// The portable <see cref="IFolderLocationProbe"/> (E04-S05-T02): a UNC path (<c>\\server\share</c>, or
 /// <c>\\?\UNC\server\share</c>) is a network share. It can't see mapped drives or cloud clients, so everything else is
-/// local; the Windows head replaces it.
+/// local; the Windows head replaces it and reuses <see cref="IsUncPath"/>.
 /// </summary>
-internal sealed class PathFolderLocationProbe : IFolderLocationProbe
+public sealed class PathFolderLocationProbe : IFolderLocationProbe
 {
     /// <inheritdoc />
     public Task<FolderLocation> ProbeAsync(FolderHandle folder, CancellationToken cancellationToken = default)
@@ -23,7 +23,7 @@ internal sealed class PathFolderLocationProbe : IFolderLocationProbe
     /// </summary>
     /// <param name="path">The path.</param>
     /// <returns><see langword="true"/> for a UNC path.</returns>
-    internal static bool IsUncPath(string path)
+    public static bool IsUncPath(string path)
     {
         var normalized = path.Replace('/', '\\');
         if (normalized.StartsWith(@"\\?\", StringComparison.Ordinal) || normalized.StartsWith(@"\\.\", StringComparison.Ordinal))

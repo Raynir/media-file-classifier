@@ -30,6 +30,23 @@ internal static class FolderReachability
     }
 
     /// <summary>
+    /// Reads and records the identity of the volume a new folder is on (MFC-1045), so a drive that's unplugged or swapped
+    /// before the first availability check is still told apart. A folder whose identity can't be read gets none, as
+    /// before, and the next check while it's Online stores it.
+    /// </summary>
+    /// <param name="volumes">Reads the identity, or <see langword="null"/> where the platform has none.</param>
+    /// <param name="folder">The new folder, not stored yet.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the identity is read.</returns>
+    public static async Task RecordVolumeIdAsync(IVolumeLocator? volumes, IndexedFolder folder, CancellationToken cancellationToken)
+    {
+        if (volumes is not null)
+        {
+            folder.ChangeVolumeId(await ReadVolumeIdAsync(volumes, folder, cancellationToken).ConfigureAwait(false));
+        }
+    }
+
+    /// <summary>
     /// Reads the identity of the volume a folder's root is on.
     /// </summary>
     /// <param name="volumes">Reads the identity.</param>

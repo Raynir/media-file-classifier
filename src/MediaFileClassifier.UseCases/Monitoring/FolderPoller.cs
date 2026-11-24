@@ -18,7 +18,9 @@ namespace MediaFileClassifier.UseCases.Monitoring;
 /// A folder's first poll comes one interval after it starts being polled, because opening the library and reconnecting a
 /// drive sync it already. A poll refused because the folder's import, rescan or removal work is unfinished waits for the
 /// next interval: that work lists the folder itself. Polls follow the library opening and closing, folders being added,
-/// changed or removed, going Offline and coming back, and the interval changing.
+/// changed or removed, going Offline and coming back, and the interval changing. Nothing is polled while monitoring is
+/// off for the library (<see cref="KnownSettings.MonitoringEnabled"/>); while monitoring is paused, a due poll waits and
+/// runs once on resume (E04-S05, like the watchers). Pausing all processing holds the quick syncs already queued (D536).
 /// </summary>
 public sealed class FolderPoller : IDisposable
 {
@@ -29,6 +31,7 @@ public sealed class FolderPoller : IDisposable
     private readonly ISettingsStore settings;
     private readonly TimeProvider clock;
     private readonly ILogger<FolderPoller> logger;
+    private readonly MonitoringPause? pause;
     private readonly Lock syncRoot = new();
     private readonly Dictionary<Id<IndexedFolder>, DateTimeOffset> due = [];
     private readonly ITimer timer;
@@ -55,6 +58,7 @@ public sealed class FolderPoller : IDisposable
     /// <param name="settings">Holds the poll interval.</param>
     /// <param name="clock">Times the polls.</param>
     /// <param name="logger">Logger.</param>
+    /// <param name="pause">Pauses monitoring for the whole app, or <see langword="null"/> for no pause.</param>
     public FolderPoller(
         ILibrarySession session,
         FolderLocations locations,
@@ -62,7 +66,8 @@ public sealed class FolderPoller : IDisposable
         IPublisher publisher,
         ISettingsStore settings,
         TimeProvider clock,
-        ILogger<FolderPoller> logger)
+        ILogger<FolderPoller> logger,
+        MonitoringPause? pause = null)
     {
         this.session = session;
         this.locations = locations;
@@ -71,6 +76,7 @@ public sealed class FolderPoller : IDisposable
         this.settings = settings;
         this.clock = clock;
         this.logger = logger;
+        this.pause = pause;
         timer = clock.CreateTimer(_ => OnTimer(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
@@ -165,7 +171,7 @@ public sealed class FolderPoller : IDisposable
         {
             var current = session.Current;
             var changed = Follow(current);
-            if (current is not null)
+            if (current is not null && settings.Get(KnownSettings.MonitoringEnabled))
             {
                 var polled = new List<Id<IndexedFolder>>();
                 foreach (var folder in await IndexedFolders.GetActiveAsync(current, token).ConfigureAwait(false))
@@ -178,6 +184,11 @@ public sealed class FolderPoller : IDisposable
                 }
 
                 changed |= Apply(current, polled);
+            }
+            else if (current is not null)
+            {
+                // Monitoring is off for the library: no folder is polled.
+                changed |= Apply(current, []);
             }
 
             if (changed)
@@ -240,6 +251,12 @@ public sealed class FolderPoller : IDisposable
 
     private void OnSettingChanged(object? sender, SettingChangedEventArgs e)
     {
+        if (e.Setting.Key == KnownSettings.MonitoringEnabled.Key)
+        {
+            RequestRefresh();
+            return;
+        }
+
         if (e.Setting.Key != MonitoringSettings.PollIntervalMinutes.Key)
         {
             return;
@@ -259,6 +276,8 @@ public sealed class FolderPoller : IDisposable
 
             Reschedule();
         }
+
+        PublishChanged();
     }
 
     private void OnFoldersChanged(object? sender, EventArgs e)
@@ -384,20 +403,28 @@ public sealed class FolderPoller : IDisposable
     private async Task PollDueAsync()
     {
         var token = stopping.Token;
-        List<Id<IndexedFolder>> folders;
-        lock (syncRoot)
-        {
-            var now = clock.GetUtcNow();
-            var next = now + Interval;
-            folders = [.. due.Where(entry => entry.Value <= now).Select(entry => entry.Key)];
-            foreach (var folderId in folders)
-            {
-                due[folderId] = next;
-            }
-        }
-
+        List<Id<IndexedFolder>> folders = [];
         try
         {
+            // While monitoring is paused the due polls wait, and run once on resume. The timer stays off meanwhile: this
+            // round is under way, and it reschedules when it ends.
+            if (pause is not null)
+            {
+                await pause.WaitWhilePausedAsync(token).ConfigureAwait(false);
+            }
+
+            // Read after the wait: folders that stopped being polled meanwhile, e.g. monitoring was turned off, are gone.
+            lock (syncRoot)
+            {
+                var now = clock.GetUtcNow();
+                var next = now + Interval;
+                folders = [.. due.Where(entry => entry.Value <= now).Select(entry => entry.Key)];
+                foreach (var folderId in folders)
+                {
+                    due[folderId] = next;
+                }
+            }
+
             foreach (var folderId in folders)
             {
                 await PollAsync(folderId, token).ConfigureAwait(false);
@@ -412,6 +439,12 @@ public sealed class FolderPoller : IDisposable
             lock (syncRoot)
             {
                 Reschedule();
+            }
+
+            // Their next poll moved.
+            if (folders.Count > 0)
+            {
+                PublishChanged();
             }
         }
     }

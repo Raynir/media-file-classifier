@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Testing.Timing;
@@ -121,6 +122,62 @@ public sealed class FolderPollerTests
     }
 
     [Fact]
+    public async Task MonitoringTurnedOff_StopsThePolls_AndTurnedOnPollsAgain()
+    {
+        using var bed = new Bed();
+        bed.Settings.IsLibraryOpen = true;
+        var folder = await bed.AddFolderAsync(@"E:\Polled", MonitoringMode.Poll);
+        await bed.StartAsync();
+        var published = bed.Publisher.Of<FolderMonitoringChanged>().Count;
+
+        bed.Settings.SetValue(KnownSettings.MonitoringEnabled, false);
+        await bed.Poller.RefreshAsync();
+        Assert.Empty(bed.Poller.PolledFolders);
+        await bed.AdvanceAsync(2 * Interval);
+        Assert.Empty(bed.Sender.Polls);
+        await WaitForAsync(() => bed.Publisher.Of<FolderMonitoringChanged>().Count > published);
+
+        bed.Settings.SetValue(KnownSettings.MonitoringEnabled, true);
+        await bed.Poller.RefreshAsync();
+        Assert.Equal([folder.Id], bed.Poller.PolledFolders);
+        await bed.AdvanceAsync(Interval);
+        Assert.Single(bed.Sender.Polls);
+    }
+
+    [Fact]
+    public async Task Poll_DueWhileMonitoringIsPaused_WaitsAndRunsOnceOnResume()
+    {
+        using var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Polled", MonitoringMode.Poll);
+        await bed.StartAsync();
+
+        bed.Pause.Pause();
+        bed.Clock.Advance(Interval);
+        bed.Clock.Advance(Interval);
+        bed.Clock.Advance(Interval);
+        Assert.False(bed.Poller.WaitForPollsAsync().IsCompleted);
+        Assert.Empty(bed.Sender.Polls);
+
+        bed.Pause.Resume();
+        await bed.Poller.WaitForPollsAsync();
+        Assert.Equal([new StartRescanCommand(folder.Id, Quick: true)], bed.Sender.Polls);
+        Assert.Equal(Now + (4 * Interval), bed.Poller.NextPollOf(folder.Id));
+    }
+
+    [Fact]
+    public async Task Round_OfPolls_PublishesTheChange_SoTheNextPollShownMoves()
+    {
+        using var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Polled", MonitoringMode.Poll);
+        await bed.StartAsync();
+        var published = bed.Publisher.Of<FolderMonitoringChanged>().Count;
+
+        await bed.AdvanceAsync(Interval);
+
+        await WaitForAsync(() => bed.Publisher.Of<FolderMonitoringChanged>().Count > published);
+    }
+
+    [Fact]
     public async Task Library_Closing_StopsThePolls()
     {
         using var bed = new Bed();
@@ -189,8 +246,11 @@ public sealed class FolderPollerTests
                 Publisher,
                 Settings,
                 Clock,
-                NullLogger<FolderPoller>.Instance);
+                NullLogger<FolderPoller>.Instance,
+                Pause);
         }
+
+        public MonitoringPause Pause { get; } = new();
 
         public FakeLibrarySession Session { get; } = new();
 

@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.UseCases.Libraries;
 using MediatR;
 
@@ -39,11 +40,15 @@ public sealed record FolderMonitoringInfo(
 /// <param name="locations">Tells where each folder is.</param>
 /// <param name="watchers">Tells which folders are watched.</param>
 /// <param name="poller">Tells which folders are polled.</param>
+/// <param name="settings">Tells whether monitoring is on for the library.</param>
+/// <param name="pause">Tells whether monitoring is paused, or <see langword="null"/> for no pause.</param>
 public sealed class GetFolderMonitoringQueryHandler(
     ILibrarySession session,
     FolderLocations locations,
     FolderWatchManager watchers,
-    FolderPoller poller) : IRequestHandler<GetFolderMonitoringQuery, IReadOnlyList<FolderMonitoringInfo>>
+    FolderPoller poller,
+    ISettingsStore settings,
+    MonitoringPause? pause = null) : IRequestHandler<GetFolderMonitoringQuery, IReadOnlyList<FolderMonitoringInfo>>
 {
     /// <inheritdoc />
     public async Task<IReadOnlyList<FolderMonitoringInfo>> Handle(GetFolderMonitoringQuery request, CancellationToken cancellationToken)
@@ -54,6 +59,8 @@ public sealed class GetFolderMonitoringQueryHandler(
         }
 
         var watched = watchers.WatchedFolders.ToHashSet();
+        var enabled = settings.Get(KnownSettings.MonitoringEnabled);
+        var paused = pause?.IsPaused == true;
         var result = new List<FolderMonitoringInfo>();
         foreach (var folder in await IndexedFolders.GetActiveAsync(library, cancellationToken).ConfigureAwait(false))
         {
@@ -62,9 +69,11 @@ public sealed class GetFolderMonitoringQueryHandler(
             var state = (folder.Status, effective) switch
             {
                 (FolderStatus.Offline, _) => FolderMonitoringState.Offline,
+                _ when !enabled => FolderMonitoringState.Off,
                 (_, MonitoringMode.Watch) when !watchers.IsWatching => FolderMonitoringState.Manual,
-                (_, MonitoringMode.Watch) => watched.Contains(folder.Id) ? FolderMonitoringState.Watching : FolderMonitoringState.Error,
-                (_, MonitoringMode.Poll) when poller.IsPolling => FolderMonitoringState.Polling,
+                (_, MonitoringMode.Watch) when watched.Contains(folder.Id) => paused ? FolderMonitoringState.Paused : FolderMonitoringState.Watching,
+                (_, MonitoringMode.Watch) => FolderMonitoringState.Error,
+                (_, MonitoringMode.Poll) when poller.IsPolling => paused ? FolderMonitoringState.Paused : FolderMonitoringState.Polling,
                 _ => FolderMonitoringState.Manual,
             };
             result.Add(new FolderMonitoringInfo(
@@ -74,7 +83,7 @@ public sealed class GetFolderMonitoringQueryHandler(
                 state,
                 location.IsNetwork,
                 location.CloudProvider,
-                state == FolderMonitoringState.Polling ? poller.NextPollOf(folder.Id) : null));
+                state is FolderMonitoringState.Polling or FolderMonitoringState.Paused ? poller.NextPollOf(folder.Id) : null));
         }
 
         return result;

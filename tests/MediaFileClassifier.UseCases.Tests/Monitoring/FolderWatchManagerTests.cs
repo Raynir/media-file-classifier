@@ -203,6 +203,30 @@ public sealed class FolderWatchManagerTests
     }
 
     [Fact]
+    public async Task State_OfAPollOrManualFolder_IsPolling_OrManual_PausedWhilePolledAndPaused_AndOffWhileMonitoringIsOff()
+    {
+        var bed = new Bed();
+        bed.Settings.IsLibraryOpen = true;
+        var polled = await bed.AddFolderAsync(@"E:\Polled", MonitoringMode.Poll);
+        var manual = await bed.AddFolderAsync(@"E:\Manual", MonitoringMode.Manual);
+        await bed.StartAsync();
+
+        Assert.Empty(bed.Manager.WatchedFolders);
+        Assert.Equal(FolderMonitoringState.Polling, bed.Manager.GetState(polled.Id));
+        Assert.Equal(FolderMonitoringState.Manual, bed.Manager.GetState(manual.Id));
+
+        bed.Pause.Pause();
+        Assert.Equal(FolderMonitoringState.Paused, bed.Manager.GetState(polled.Id));
+        Assert.Equal(FolderMonitoringState.Manual, bed.Manager.GetState(manual.Id));
+        bed.Pause.Resume();
+
+        bed.Settings.SetValue(KnownSettings.MonitoringEnabled, false);
+        await bed.Manager.RefreshAsync();
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(polled.Id));
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(manual.Id));
+    }
+
+    [Fact]
     public async Task State_OfAnOfflineOrUnknownFolder_IsOff()
     {
         var bed = new Bed();
@@ -808,9 +832,10 @@ public sealed class FolderWatchManagerTests
 
         public FolderWatchManager Manager { get; }
 
-        public async Task<IndexedFolder> AddFolderAsync(string path)
+        public async Task<IndexedFolder> AddFolderAsync(string path, MonitoringMode mode = MonitoringMode.Auto)
         {
             var folder = IndexedFolder.Create(Library.Library.Id, path, path, Now);
+            folder.ChangeMonitoringMode(mode);
             await Library.FolderList.AddAsync(folder, TestContext.Current.CancellationToken);
             return folder;
         }

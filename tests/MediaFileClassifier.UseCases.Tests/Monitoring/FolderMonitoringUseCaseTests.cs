@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Testing.Files;
@@ -103,6 +104,36 @@ public sealed class FolderMonitoringUseCaseTests
     }
 
     [Fact]
+    public async Task Query_WhilePaused_IsPausedForWatchedAndPolledFolders_AndOffWhileMonitoringIsOff()
+    {
+        using var bed = new Bed();
+        bed.Settings.IsLibraryOpen = true;
+        bed.Probe.Network(Share);
+        var watched = await bed.AddFolderAsync(@"E:\Watched");
+        var share = await bed.AddFolderAsync(Share);
+        var manual = await bed.AddFolderAsync(@"E:\Manual", MonitoringMode.Manual);
+        var offline = await bed.AddFolderAsync(@"F:\Offline");
+        offline.MarkOffline(Now);
+        await bed.StartAsync();
+
+        bed.Pause.Pause();
+        var states = (await bed.QueryAsync()).ToDictionary(info => info.FolderId);
+        Assert.Equal(FolderMonitoringState.Paused, states[watched.Id].State);
+        Assert.Equal(FolderMonitoringState.Paused, states[share.Id].State);
+        Assert.NotNull(states[share.Id].NextPoll);
+        Assert.Equal(FolderMonitoringState.Manual, states[manual.Id].State);
+        bed.Pause.Resume();
+
+        bed.Settings.SetValue(KnownSettings.MonitoringEnabled, false);
+        states = (await bed.QueryAsync()).ToDictionary(info => info.FolderId);
+        Assert.Equal(FolderMonitoringState.Off, states[watched.Id].State);
+        Assert.Equal(FolderMonitoringState.Off, states[share.Id].State);
+        Assert.Null(states[share.Id].NextPoll);
+        Assert.Equal(FolderMonitoringState.Off, states[manual.Id].State);
+        Assert.Equal(FolderMonitoringState.Offline, states[offline.Id].State);
+    }
+
+    [Fact]
     public async Task Query_WithNoLibrary_IsEmpty()
     {
         using var bed = new Bed();
@@ -142,6 +173,8 @@ public sealed class FolderMonitoringUseCaseTests
 
         public InMemorySettingsStore Settings { get; } = new();
 
+        public MonitoringPause Pause { get; } = new();
+
         public FailingWatcherFactory Factory { get; } = new();
 
         public FakeOpenLibrary Library { get; }
@@ -172,7 +205,7 @@ public sealed class FolderMonitoringUseCaseTests
             new ChangeMonitoringModeCommandHandler(Session, Locations, Sender, NullLogger<ChangeMonitoringModeCommandHandler>.Instance).Handle(command, Token);
 
         public Task<IReadOnlyList<FolderMonitoringInfo>> QueryAsync() =>
-            new GetFolderMonitoringQueryHandler(Session, Locations, Watchers, Poller).Handle(new GetFolderMonitoringQuery(), Token);
+            new GetFolderMonitoringQueryHandler(Session, Locations, Watchers, Poller, Settings, Pause).Handle(new GetFolderMonitoringQuery(), Token);
 
         public void Dispose()
         {

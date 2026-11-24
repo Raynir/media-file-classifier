@@ -67,6 +67,7 @@ public sealed class FolderWatchManager : IDisposable
     private readonly HashSet<Task> recoveries = [];
     private readonly Dictionary<Id<IndexedFolder>, Failures> failures = [];
     private readonly HashSet<Id<IndexedFolder>> online = [];
+    private readonly Dictionary<Id<IndexedFolder>, MonitoringMode> notWatched = [];
     private readonly MonitoringPause? pause;
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "A refresh already under way may still use it after Dispose; it holds no OS handle unless its wait handle is read.")]
@@ -134,14 +135,28 @@ public sealed class FolderWatchManager : IDisposable
     /// Gets how an Online folder of the open library is monitored now (E04-S06-T01).
     /// </summary>
     /// <param name="folderId">The folder.</param>
-    /// <returns>The state; <see cref="FolderMonitoringState.Off"/> for a folder that isn't Online.</returns>
+    /// <returns>
+    /// The state: <see cref="FolderMonitoringState.Polling"/> or <see cref="FolderMonitoringState.Manual"/> for a folder
+    /// that runs in that mode (E04-S05); <see cref="FolderMonitoringState.Off"/> for a folder that isn't Online or while
+    /// monitoring is off for the library.
+    /// </returns>
     public FolderMonitoringState GetState(Id<IndexedFolder> folderId)
     {
         lock (syncRoot)
         {
+            var paused = pause?.IsPaused == true;
             if (watched.ContainsKey(folderId))
             {
-                return pause?.IsPaused == true ? FolderMonitoringState.Paused : FolderMonitoringState.Watching;
+                return paused ? FolderMonitoringState.Paused : FolderMonitoringState.Watching;
+            }
+
+            if (notWatched.TryGetValue(folderId, out var mode))
+            {
+                return mode switch
+                {
+                    MonitoringMode.Poll => paused ? FolderMonitoringState.Paused : FolderMonitoringState.Polling,
+                    _ => FolderMonitoringState.Manual,
+                };
             }
 
             return online.Contains(folderId) ? FolderMonitoringState.Error : FolderMonitoringState.Off;
@@ -214,19 +229,31 @@ public sealed class FolderWatchManager : IDisposable
             }
 
             // Only folders that run in Watch mode get a watcher (E04-S05); none while monitoring is off for the library.
+            // The others keep their mode, so GetState shows them as Polling or Manual.
             var folders = new List<IndexedFolder>();
+            var others = new Dictionary<Id<IndexedFolder>, MonitoringMode>();
             if (settings.Get(KnownSettings.MonitoringEnabled))
             {
                 foreach (var folder in await IndexedFolders.GetActiveAsync(current, token).ConfigureAwait(false))
                 {
-                    if (folder.Status == FolderStatus.Online && await RunsInWatchModeAsync(folder, token).ConfigureAwait(false))
+                    if (folder.Status != FolderStatus.Online)
+                    {
+                        continue;
+                    }
+
+                    var mode = await EffectiveModeAsync(folder, token).ConfigureAwait(false);
+                    if (mode == MonitoringMode.Watch)
                     {
                         folders.Add(folder);
+                    }
+                    else
+                    {
+                        others[folder.Id] = mode;
                     }
                 }
             }
 
-            if (Apply(current, folders))
+            if (Apply(current, folders, others))
             {
                 PublishMonitoringChanged();
             }
@@ -438,6 +465,7 @@ public sealed class FolderWatchManager : IDisposable
 
             watched.Clear();
             online.Clear();
+            notWatched.Clear();
             library = current;
             folderEvents = current?.Folders;
             if (folderEvents is not null)
@@ -449,7 +477,8 @@ public sealed class FolderWatchManager : IDisposable
     }
 
     // Returns whether the set of watched folders changed.
-    private bool Apply(IOpenLibrary current, IReadOnlyList<IndexedFolder> folders)
+    private bool Apply(
+        IOpenLibrary current, IReadOnlyList<IndexedFolder> folders, IReadOnlyDictionary<Id<IndexedFolder>, MonitoringMode> others)
     {
         lock (syncRoot)
         {
@@ -464,6 +493,11 @@ public sealed class FolderWatchManager : IDisposable
             var wanted = folders.ToDictionary(folder => folder.Id);
             online.Clear();
             online.UnionWith(wanted.Keys);
+            notWatched.Clear();
+            foreach (var (id, mode) in others)
+            {
+                notWatched[id] = mode;
+            }
 
             // A folder that went Offline or away starts its failure count again when it's back.
             foreach (var id in failures.Keys.Where(id => !wanted.ContainsKey(id)).ToList())
@@ -512,10 +546,10 @@ public sealed class FolderWatchManager : IDisposable
         }
     }
 
-    private async Task<bool> RunsInWatchModeAsync(IndexedFolder folder, CancellationToken cancellationToken) =>
+    private async Task<MonitoringMode> EffectiveModeAsync(IndexedFolder folder, CancellationToken cancellationToken) =>
         locations is null
-            ? folder.MonitoringMode is MonitoringMode.Auto or MonitoringMode.Watch
-            : await locations.GetEffectiveModeAsync(folder, cancellationToken).ConfigureAwait(false) == MonitoringMode.Watch;
+            ? folder.MonitoringMode == MonitoringMode.Auto ? MonitoringMode.Watch : folder.MonitoringMode
+            : await locations.GetEffectiveModeAsync(folder, cancellationToken).ConfigureAwait(false);
 
     /// <summary>
     /// Tells listeners that the watched folders changed (E04-S05). A failing listener doesn't stop the watchers.

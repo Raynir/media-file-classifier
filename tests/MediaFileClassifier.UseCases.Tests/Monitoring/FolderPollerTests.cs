@@ -165,6 +165,26 @@ public sealed class FolderPollerTests
     }
 
     [Fact]
+    public async Task Pause_DuringARoundOfPolls_HoldsTheRestOfTheRound_UntilResume()
+    {
+        using var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\First", MonitoringMode.Poll);
+        await bed.AddFolderAsync(@"E:\Second", MonitoringMode.Poll);
+        await bed.StartAsync();
+        bed.Sender.OnPoll = () => bed.Pause.Pause();
+
+        bed.Clock.Advance(Interval);
+        await WaitForAsync(() => bed.Sender.Polls.Any());
+        Assert.False(bed.Poller.WaitForPollsAsync().IsCompleted);
+        Assert.Single(bed.Sender.Polls);
+
+        bed.Sender.OnPoll = null;
+        bed.Pause.Resume();
+        await bed.Poller.WaitForPollsAsync();
+        Assert.Equal(2, bed.Sender.Polls.Count());
+    }
+
+    [Fact]
     public async Task Round_OfPolls_PublishesTheChange_SoTheNextPollShownMoves()
     {
         using var bed = new Bed();
@@ -300,6 +320,8 @@ public sealed class FolderPollerTests
 
         public HashSet<Id<IndexedFolder>> FailFor { get; } = [];
 
+        public Action? OnPoll { get; set; }
+
         public IEnumerable<StartRescanCommand> Polls => polls;
 
         protected override object? Handle(object request)
@@ -310,6 +332,7 @@ public sealed class FolderPollerTests
             }
 
             polls.Enqueue(rescan);
+            OnPoll?.Invoke();
             if (rescan.FolderId is { } folderId && FailFor.Contains(folderId))
             {
                 throw new InvalidOperationException("The library closed.");

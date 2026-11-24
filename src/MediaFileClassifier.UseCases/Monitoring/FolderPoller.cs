@@ -408,10 +408,7 @@ public sealed class FolderPoller : IDisposable
         {
             // While monitoring is paused the due polls wait, and run once on resume. The timer stays off meanwhile: this
             // round is under way, and it reschedules when it ends.
-            if (pause is not null)
-            {
-                await pause.WaitWhilePausedAsync(token).ConfigureAwait(false);
-            }
+            await WaitWhilePausedAsync(token).ConfigureAwait(false);
 
             // Read after the wait: folders that stopped being polled meanwhile, e.g. monitoring was turned off, are gone.
             lock (syncRoot)
@@ -427,6 +424,17 @@ public sealed class FolderPoller : IDisposable
 
             foreach (var folderId in folders)
             {
+                // Paused during the round: the rest of it waits too.
+                await WaitWhilePausedAsync(token).ConfigureAwait(false);
+                lock (syncRoot)
+                {
+                    // Stopped being polled while the round waited, e.g. monitoring was turned off.
+                    if (!due.ContainsKey(folderId))
+                    {
+                        continue;
+                    }
+                }
+
                 await PollAsync(folderId, token).ConfigureAwait(false);
             }
         }
@@ -446,6 +454,17 @@ public sealed class FolderPoller : IDisposable
             {
                 PublishChanged();
             }
+        }
+    }
+
+    /// <summary>
+    /// Waits while monitoring is paused. Paused again right after a resume, it waits again.
+    /// </summary>
+    private async Task WaitWhilePausedAsync(CancellationToken cancellationToken)
+    {
+        while (pause?.IsPaused == true)
+        {
+            await pause.WaitWhilePausedAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 

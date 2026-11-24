@@ -5,6 +5,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Testing.Files;
+using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.Testing.UseCases;
@@ -74,6 +75,21 @@ public sealed class ReconnectCatchUpTests
 
         Assert.Single(bed.Sender.Syncs);
         Assert.True(bed.WatchedAtSync);
+    }
+
+    [Fact]
+    public async Task Reconnected_WithWatchers_PolledFoldersAreSyncedThoughNotWatched()
+    {
+        using var bed = await Bed.CreateAsync(watched: true);
+        bed.Probe.Network(@"\\nas\photos");
+        var share = await bed.AddFolderAsync(@"\\nas\photos");
+        var polled = await bed.AddFolderAsync(@"E:\Polled");
+        polled.ChangeMonitoringMode(MonitoringMode.Poll);
+
+        await bed.ReconnectAsync(share, polled);
+
+        Assert.Empty(bed.Manager.WatchedFolders);
+        Assert.Equivalent(new[] { share.Id, polled.Id }, bed.Sender.Syncs.Select(sync => sync.FolderId!.Value).ToArray(), strict: true);
     }
 
     [Fact]
@@ -198,12 +214,15 @@ public sealed class ReconnectCatchUpTests
         private Bed(bool watched)
         {
             Library = new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "reconnect"), "reconnect");
-            Manager = new FolderWatchManager(Session, new InMemoryMediaFileSource(), new FakePublisher(), Sender, Settings, new NoFormats(), Clock, NullLogger<FolderWatchManager>.Instance, watched ? new QuietWatcherFactory() : null);
-            CatchUp = new ReconnectCatchUp(Session, Manager, Sender, Clock, NullLogger<ReconnectCatchUp>.Instance);
+            var locations = new FolderLocations(NullLogger<FolderLocations>.Instance, Probe);
+            Manager = new FolderWatchManager(Session, new InMemoryMediaFileSource(), new FakePublisher(), Sender, Settings, new NoFormats(), Clock, NullLogger<FolderWatchManager>.Instance, watched ? new QuietWatcherFactory() : null, locations);
+            CatchUp = new ReconnectCatchUp(Session, Manager, Sender, Clock, NullLogger<ReconnectCatchUp>.Instance, locations);
             Handler = new FoldersReconnectedHandler(CatchUp);
         }
 
         public FakeLibrarySession Session { get; } = new();
+
+        public FakeFolderLocationProbe Probe { get; } = new();
 
         public FakeOpenLibrary Library { get; }
 

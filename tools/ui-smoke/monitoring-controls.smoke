@@ -1,0 +1,20 @@
+# Monitoring controls and status (MFC-140): the monitoring switch and folder states on Settings > Library, and the
+# pause button with the status-bar notice.
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/monitoring-controls.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+start tools.settings
+wait-for dialog
+dialog-size 1000x1500
+dialog-select Library
+wait 2500ms
+dialog-shot 01-folders-watching
+
+dialog-click MonitoringPauseButton
+wait 2500ms
+dialog-shot 02-folders-paused
+dialog-click MonitoringPauseButton

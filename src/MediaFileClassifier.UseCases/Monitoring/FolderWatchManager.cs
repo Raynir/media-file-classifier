@@ -64,6 +64,8 @@ public sealed class FolderWatchManager : IDisposable
     private readonly HashSet<Id<IndexedFolder>> rescansWanted = [];
     private readonly HashSet<Task> recoveries = [];
     private readonly Dictionary<Id<IndexedFolder>, Failures> failures = [];
+    private readonly HashSet<Id<IndexedFolder>> online = [];
+    private readonly MonitoringPause? pause;
 
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "A refresh already under way may still use it after Dispose; it holds no OS handle unless its wait handle is read.")]
     private readonly SemaphoreSlim refreshGate = new(1, 1);
@@ -89,6 +91,7 @@ public sealed class FolderWatchManager : IDisposable
     /// <param name="clock">Times the debounce, the stability checks and the rescan retries.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="factory">Starts the watchers, or <see langword="null"/> where the platform can't watch folders.</param>
+    /// <param name="pause">Pauses monitoring for the whole app, or <see langword="null"/> for no pause.</param>
     public FolderWatchManager(
         ILibrarySession session,
         IMediaFileSource files,
@@ -98,8 +101,10 @@ public sealed class FolderWatchManager : IDisposable
         IMediaFormatRegistry formats,
         TimeProvider clock,
         ILogger<FolderWatchManager> logger,
-        IFolderWatcherFactory? factory = null)
+        IFolderWatcherFactory? factory = null,
+        MonitoringPause? pause = null)
     {
+        this.pause = pause;
         this.session = session;
         this.files = files;
         this.publisher = publisher;
@@ -111,6 +116,30 @@ public sealed class FolderWatchManager : IDisposable
         this.logger = logger;
         this.factory = factory;
         buffer = new FolderChangeBuffer(files, clock, logger, PublishAsync, IncludesFile);
+    }
+
+    /// <summary>
+    /// Raised after the state of some folder may have changed: watchers started or stopped, monitoring was turned on or
+    /// off or paused or resumed. It can be raised from any thread.
+    /// </summary>
+    public event EventHandler? StateChanged;
+
+    /// <summary>
+    /// Gets how an Online folder of the open library is monitored now (E04-S06-T01).
+    /// </summary>
+    /// <param name="folderId">The folder.</param>
+    /// <returns>The state; <see cref="FolderMonitoringState.Off"/> for a folder that isn't Online.</returns>
+    public FolderMonitoringState GetState(Id<IndexedFolder> folderId)
+    {
+        lock (syncRoot)
+        {
+            if (watched.ContainsKey(folderId))
+            {
+                return pause?.IsPaused == true ? FolderMonitoringState.Paused : FolderMonitoringState.Watching;
+            }
+
+            return online.Contains(folderId) ? FolderMonitoringState.Error : FolderMonitoringState.Off;
+        }
     }
 
     /// <summary>
@@ -143,6 +172,10 @@ public sealed class FolderWatchManager : IDisposable
             started = true;
             session.CurrentChanged += OnLibraryChanged;
             settings.Changed += OnSettingChanged;
+            if (pause is not null)
+            {
+                pause.Changed += OnPauseChanged;
+            }
         }
 
         RequestRefresh();
@@ -174,10 +207,13 @@ public sealed class FolderWatchManager : IDisposable
                 return;
             }
 
-            var folders = (await IndexedFolders.GetActiveAsync(current, token).ConfigureAwait(false))
-                .Where(folder => folder.Status == FolderStatus.Online)
-                .ToList();
+            var folders = settings.Get(KnownSettings.MonitoringEnabled)
+                ? (await IndexedFolders.GetActiveAsync(current, token).ConfigureAwait(false))
+                    .Where(folder => folder.Status == FolderStatus.Online)
+                    .ToList()
+                : [];
             Apply(current, folders);
+            StateChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -266,6 +302,10 @@ public sealed class FolderWatchManager : IDisposable
             disposed = true;
             session.CurrentChanged -= OnLibraryChanged;
             settings.Changed -= OnSettingChanged;
+            if (pause is not null)
+            {
+                pause.Changed -= OnPauseChanged;
+            }
         }
 
         Follow(null);
@@ -285,6 +325,53 @@ public sealed class FolderWatchManager : IDisposable
         if (e.Setting.Key == MonitoringSettings.IgnorePatterns.Key)
         {
             ignore = new IgnoreList(settings.Get(MonitoringSettings.IgnorePatterns));
+        }
+        else if (e.Setting.Key == KnownSettings.MonitoringEnabled.Key)
+        {
+            RequestRefresh();
+            if (settings.Get(KnownSettings.MonitoringEnabled))
+            {
+                // Turned on again: what changed while it was off is found by a quick sync, once the watchers run.
+                Track(CatchUpAsync(session.Current));
+            }
+        }
+    }
+
+    private void OnPauseChanged(object? sender, EventArgs e) => StateChanged?.Invoke(this, EventArgs.Empty);
+
+    private async Task CatchUpAsync(IOpenLibrary? current)
+    {
+        var token = stopping.Token;
+        try
+        {
+            await RefreshAsync().ConfigureAwait(false);
+            while (ReferenceEquals(session.Current, current) && settings.Get(KnownSettings.MonitoringEnabled))
+            {
+                if (pause is not null)
+                {
+                    await pause.WaitWhilePausedAsync(token).ConfigureAwait(false);
+                    if (!ReferenceEquals(session.Current, current) || !settings.Get(KnownSettings.MonitoringEnabled))
+                    {
+                        return;
+                    }
+                }
+
+                var result = await sender.Send(new StartRescanCommand(Quick: true), token).ConfigureAwait(false);
+                if (result.Outcome != StartRescanOutcome.Busy)
+                {
+                    return;
+                }
+
+                await Task.Delay(BusyRetry, clock, token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Shutting down.
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Couldn't catch up after monitoring was turned on");
         }
     }
 
@@ -332,6 +419,7 @@ public sealed class FolderWatchManager : IDisposable
             }
 
             watched.Clear();
+            online.Clear();
             library = current;
             folderEvents = current?.Folders;
             if (folderEvents is not null)
@@ -353,6 +441,8 @@ public sealed class FolderWatchManager : IDisposable
             }
 
             var wanted = folders.ToDictionary(folder => folder.Id);
+            online.Clear();
+            online.UnionWith(wanted.Keys);
 
             // A folder that went Offline or away starts its failure count again when it's back.
             foreach (var id in failures.Keys.Where(id => !wanted.ContainsKey(id)).ToList())
@@ -454,6 +544,8 @@ public sealed class FolderWatchManager : IDisposable
             retryAt = CountFailure(folder.Id);
         }
 
+        StateChanged?.Invoke(this, EventArgs.Empty);
+
         logger.LogWarning(error.Exception, "The watcher of {Folder} failed; checking the folder", folder.DisplayPath);
         Track(RecoverAsync(folder.Id, retryAt));
     }
@@ -546,6 +638,15 @@ public sealed class FolderWatchManager : IDisposable
         {
             while (IsWatched(folderId))
             {
+                if (pause is not null)
+                {
+                    await pause.WaitWhilePausedAsync(token).ConfigureAwait(false);
+                    if (!IsWatched(folderId))
+                    {
+                        return;
+                    }
+                }
+
                 var result = await sender.Send(new StartRescanCommand(folderId), token).ConfigureAwait(false);
                 if (result.Outcome != StartRescanOutcome.Busy)
                 {

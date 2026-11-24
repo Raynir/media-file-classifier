@@ -1,6 +1,7 @@
 using MediaFileClassifier.Infrastructure;
 using MediaFileClassifier.Infrastructure.AI;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Paths;
@@ -10,6 +11,7 @@ using MediaFileClassifier.Infrastructure.DataAccess;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Infrastructure.Jobs;
 using MediaFileClassifier.Infrastructure.Media;
+using MediaFileClassifier.Infrastructure.Media.Formats;
 using MediaFileClassifier.Infrastructure.Paths;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Ui.Platform;
@@ -40,6 +42,9 @@ internal sealed class TestServices : IAsyncDisposable
         if (!fullStack)
         {
             collection.AddSingleton<IThumbnailCache, NoThumbnails>();
+
+            // The folder watchers (E04) read it; with no handlers nothing is a candidate.
+            collection.AddSingleton<IMediaFormatRegistry>(new MediaFormatRegistry([]));
         }
 
         collection

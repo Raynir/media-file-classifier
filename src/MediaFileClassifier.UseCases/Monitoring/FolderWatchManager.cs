@@ -500,12 +500,17 @@ public sealed class FolderWatchManager : IDisposable
         }
     }
 
-    private async Task CheckAvailabilityAsync(Id<IndexedFolder> folderId)
+    /// <summary>
+    /// Checks a folder's availability.
+    /// </summary>
+    /// <returns>Whether the check changed the folder's status or relinked it.</returns>
+    private async Task<bool> CheckAvailabilityAsync(Id<IndexedFolder> folderId)
     {
         var token = stopping.Token;
         try
         {
-            await sender.Send(new CheckFolderAvailabilityCommand([folderId]), token).ConfigureAwait(false);
+            var changed = await sender.Send(new CheckFolderAvailabilityCommand([folderId]), token).ConfigureAwait(false);
+            return changed.Any(folder => folder.Id == folderId);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -516,15 +521,22 @@ public sealed class FolderWatchManager : IDisposable
             // E.g. the library closed during the check.
             logger.LogWarning(exception, "Couldn't check folder {Folder} after its watcher failed", folderId);
         }
+
+        return false;
     }
 
     /// <summary>
     /// Checks a folder whose changes were dropped because its root couldn't be reached. A folder the check finds Online
-    /// changes no status, so no catch-up runs for it, and it's rescanned to find the dropped changes (MFC-1047).
+    /// changes no status, so no catch-up runs for it, and it's rescanned to find the dropped changes (MFC-1047). One the
+    /// check made Offline is caught up when it's back, and one it relinked or brought back Online is caught up now.
     /// </summary>
     private async Task CheckThenRescanAsync(Id<IndexedFolder> folderId)
     {
-        await CheckAvailabilityAsync(folderId).ConfigureAwait(false);
+        if (await CheckAvailabilityAsync(folderId).ConfigureAwait(false))
+        {
+            return;
+        }
+
         await RefreshAsync().ConfigureAwait(false);
         if (IsWatched(folderId))
         {

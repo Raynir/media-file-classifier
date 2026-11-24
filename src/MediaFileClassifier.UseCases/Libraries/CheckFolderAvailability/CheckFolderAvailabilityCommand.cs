@@ -21,7 +21,7 @@ namespace MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 /// (E14-S07-T04, <see cref="FolderAvailabilityMonitor"/>); when a status changes, the folder repository's
 /// <c>StatusChanged</c> tells the browser through <see cref="FolderStatusChanges"/>. Only the availability columns are
 /// stored, so a relink or rule change made while the probes run isn't undone. The identity of an Online folder's volume
-/// is stored too (E04-S04-T03): a folder whose drive letter now leads to another drive is Offline, and one whose drive
+/// is stored too (E04-S04-T03; a new folder's is stored when it's added, MFC-1045): a folder whose drive letter now leads to another drive is Offline, and one whose drive
 /// came back under another letter follows it there. Folders that came back are announced with
 /// <see cref="FoldersReconnected"/> (E04-S04-T02).
 /// </summary>
@@ -229,7 +229,9 @@ public sealed class CheckFolderAvailabilityCommandHandler(
 
         if (!await library.Folders.RelinkAsync(folder, oldHandle, CancellationToken.None).ConfigureAwait(false))
         {
-            // Relinked or removed meanwhile. This copy now holds the new root, so it must not be stored as anything.
+            // Relinked or removed meanwhile. The copy goes back to its old root, which the later folders' overlap tests
+            // compare with, and must not be stored as anything.
+            folder.Relink(oldPath, oldHandle, folder.StatusChangedAt);
             logger.LogInformation("Folder {OldPath} was relinked or removed meanwhile, so this check leaves it as it is", oldPath);
             return RelinkOutcome.Superseded;
         }

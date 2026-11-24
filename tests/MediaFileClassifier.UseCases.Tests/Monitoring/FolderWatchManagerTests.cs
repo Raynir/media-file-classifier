@@ -568,7 +568,7 @@ public sealed class FolderWatchManagerTests
     }
 
     [Fact]
-    public async Task CloudPlaceholder_IsNotReported_UntilItIsMadeLocal()
+    public async Task CloudPlaceholder_IsNeitherOpenedNorReported_UntilItIsMadeLocal()
     {
         var bed = new Bed();
         await bed.AddFolderAsync(@"E:\OneDrive");
@@ -579,6 +579,7 @@ public sealed class FolderWatchManagerTests
         bed.Factory.Raise(@"E:\OneDrive", new FolderWatchEvent(FolderWatchEventKind.Created, "cloud.jpg"));
         bed.Settle();
         Assert.Empty(bed.Published);
+        Assert.Equal(0, bed.Files.Opens);
 
         // "Always keep on this device": only the attributes change.
         bed.Files.Write("cloud.jpg", 10, modified);

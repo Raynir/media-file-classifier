@@ -79,3 +79,22 @@ Each folder stores the label of the volume it's on (`IndexedFolder.VolumeLabel`,
 - **New drive letter:** an Offline folder whose volume is mounted under exactly one other drive root, with the folder present there, follows it: its paths are rewritten (items keep their relative paths), it's Online, and the activity log records "Folder moved to a new drive letter" (`ActivityEventType.FolderRelinked`). Not when the new root is another folder of the library or overlaps one; then it stays Offline. `IFolderRepository.RelinkAsync` stores only the paths, availability and volume, and only if the folder still has its old root.
 
 Work queued for an item in an Offline folder (import stages, rescan checks, analysis) doesn't run against the missing file (MFC-1004). The stage throws `FolderOfflineException` before it touches the file, and the scheduler parks the work item without using a retry or marking the item failed. When a stage finds a file's directory gone, it checks the folder's root: if the root can't be listed, the folder is marked Offline and the work is parked the same way; if it can, the file is gone and the work fails at once as a permanent failure. Parked work is released when a check or a rescan finds a folder Online again, and when the library opens; work whose folder is still Offline parks again.
+
+## Monitoring modes (E04-S05)
+
+Each folder has a monitoring mode (`IndexedFolder.MonitoringMode`, column `indexed_folder.monitoring_mode`, schema 19):
+
+| Mode | What keeps the folder up to date |
+| --- | --- |
+| **Auto** (default) | Poll on a network share (a UNC path or a mapped network drive), Watch otherwise. Resolved at run time, so a remapped drive follows. |
+| **Watch** | A live `FileSystemWatcher` (E04-S01). |
+| **Poll** | A quick sync (`StartRescanCommand(folderId, Quick: true)`) every poll interval. For shares whose change notifications are unreliable. |
+| **Manual** | Nothing runs on its own: no watcher, no poll, left out of the quick sync on open and of the reconnect catch-up. Only a rescan the user starts lists it. Leaving Manual for another mode queues one catch-up quick sync. |
+
+- **Poll interval:** one app-wide setting, "Minutes between checks of polled folders" (`monitoring.pollIntervalMinutes`, General, 1–1440 minutes, default 15). `FolderPoller` keeps one timer for the earliest due folder; a folder is first polled one interval after it starts being polled. A poll refused as `Busy` (the folder's import or rescan runs) waits for the next interval. A shorter interval applies at once, a longer one from the next poll.
+- **Where a folder is:** `IFolderLocationProbe` (`Infrastructure.Abstractions/Platform`) tells network and cloud without opening anything; `FolderLocations` caches the answer per Online folder. On Windows, `WindowsFolderLocationProbe` (Desktop) treats UNC paths and drives `GetDriveType` reports as remote as network; a folder under a sync root registered with the Windows cloud files API (`CfGetSyncRootInfoByPath`: OneDrive, Dropbox, iCloud, ...) is cloud-synced and named by its provider, and Google Drive for desktop is recognised by its volume label or file system name. Elsewhere `PathFolderLocationProbe` knows UNC paths only.
+- **State for the UI:** `GetFolderMonitoringQuery` returns a `FolderMonitoringInfo` per folder: its `Mode`, the `EffectiveMode` it runs in, its `State` (Watching, Polling, Manual, Offline, or Error when it should be watched but its watcher failed), `IsNetwork`, `CloudProvider` and `NextPoll`. Query again on the `FolderMonitoringChanged` notification. `ChangeMonitoringModeCommand` sets a mode (`Changed`, `Unchanged` or `NotFound`); watchers and polls follow on their own.
+
+### Cloud placeholders (E04-S05-T03, E03-S02-T04)
+
+A cloud-only file (attributes `Offline`, `RecallOnOpen` or `RecallOnDataAccess`) is recognised from its directory entry without being opened. Unless the folder's "cloud placeholders" rule is on, it's never fingerprinted or read for metadata: discovery skips and counts it (`DiscoveryResult.CloudPlaceholdersSkipped`, and the import's log line), a rescan leaves a known item's placeholder alone, and the watcher drops its changes. When the file is made local ("Always keep on this device"), only its attributes change: the watcher listens for attribute changes (`NotifyFilters.Attributes`), so the file is imported then; a polled folder imports it at its next poll.

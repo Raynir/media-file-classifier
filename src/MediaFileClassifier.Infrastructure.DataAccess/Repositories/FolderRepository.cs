@@ -82,13 +82,14 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                 var handle = folder.PlatformHandle;
 
                 // Matched on the root too: a folder relinked while the check probed its old root keeps what the relink stored.
+                // A copy read before its volume ID was stored has none, so a missing ID keeps the stored one (MFC-1046).
                 var updated = await db.Folders.Where(row => row.Id == folder.Id && row.PlatformHandle == handle)
                     .ExecuteUpdateAsync(
                         setters => setters
                             .SetProperty(row => row.Status, status)
                             .SetProperty(row => row.StatusChangedAt, changedAt)
                             .SetProperty(row => row.VolumeLabel, label)
-                            .SetProperty(row => row.VolumeId, volumeId),
+                            .SetProperty(row => row.VolumeId, row => volumeId ?? row.VolumeId),
                         token)
                     .ConfigureAwait(false);
                 return updated > 0 && stored is { } old && old != status;

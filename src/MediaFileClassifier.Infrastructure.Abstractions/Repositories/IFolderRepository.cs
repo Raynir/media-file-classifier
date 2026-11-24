@@ -62,7 +62,8 @@ public interface IFolderRepository
     /// writer that only changes a folder's status uses it (availability checks, discovery, rescans, imports), because
     /// each holds the folder for as long as its probes or scan take, so storing the whole row could undo a relink or a
     /// rule change made meanwhile. Nothing is stored if the folder was relinked to another root since it was read: what
-    /// was found applies to the old root.
+    /// was found applies to the old root. A folder without a volume ID keeps the stored one, so a copy read before the ID
+    /// was stored can't erase it.
     /// </summary>
     /// <param name="folder">The folder, with its new status and label.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

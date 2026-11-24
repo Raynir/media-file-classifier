@@ -48,6 +48,22 @@ public sealed class VolumeIdSchemaTests
     }
 
     [Fact]
+    public async Task Availability_FromACopyWithoutAVolumeId_KeepsTheStoredOne()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        var stale = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        bed.Folder.ChangeVolumeId("1A2B-3C4D");
+        await bed.Library.Folders.UpdateAvailabilityAsync(bed.Folder, Token);
+
+        stale.MarkOffline(DateTimeOffset.UnixEpoch.AddDays(1));
+        await bed.Library.Folders.UpdateAvailabilityAsync(stale, Token);
+        await bed.ReopenAsync();
+
+        var folder = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        Assert.Equal((FolderStatus.Offline, "1A2B-3C4D"), (folder.Status, folder.VolumeId));
+    }
+
+    [Fact]
     public async Task Relink_StoresTheNewRoot_KeepsTheRules_AndRaisesTheEvents()
     {
         await using var bed = await LibraryTestBed.CreateAsync();

@@ -164,7 +164,7 @@ public sealed partial class ChangeProcessor : IDisposable
             if (pause?.IsPaused == true)
             {
                 // Everything waits; resuming schedules it again.
-                timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                SetTimer(Timeout.InfiniteTimeSpan);
                 return;
             }
 
@@ -177,7 +177,20 @@ public sealed partial class ChangeProcessor : IDisposable
                 }
             }
 
-            timer.Change(next is { } due ? TimeSpan.FromTicks(Math.Max(0, (due - clock.GetUtcNow()).Ticks)) : Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            SetTimer(next is { } due ? TimeSpan.FromTicks(Math.Max(0, (due - clock.GetUtcNow()).Ticks)) : Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    // A pause or resume may reach the timer while the processor is being disposed.
+    private void SetTimer(TimeSpan dueTime)
+    {
+        try
+        {
+            timer.Change(dueTime, Timeout.InfiniteTimeSpan);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Shutting down.
         }
     }
 

@@ -170,6 +170,10 @@ public sealed class ReconnectCatchUp : IDisposable
                 if (pause is not null)
                 {
                     await pause.WaitWhilePausedAsync(token).ConfigureAwait(false);
+                    if (!await StillWantedAsync(library, folderId, token).ConfigureAwait(false))
+                    {
+                        return;
+                    }
                 }
 
                 var result = await sender.Send(new StartRescanCommand(folderId, Quick: true), token).ConfigureAwait(false);

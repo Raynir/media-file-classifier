@@ -107,8 +107,8 @@ public sealed class JobNotifications(
     private Notification? DescribeMonitoring(JobFinishedEventArgs finished, MonitoringCounts changes)
     {
         var threshold = settings?.Get(MonitoringSettings.NotifyThreshold) ?? (int)MonitoringSettings.NotifyThreshold.DefaultValue;
-        var failed = finished.Progress.Failed;
-        if (finished.State != ProcessingJobState.Completed || changes.Total < threshold)
+        var failed = Math.Min(changes.Total, finished.Progress.Failed);
+        if (finished.State is not (ProcessingJobState.Completed or ProcessingJobState.Failed) || changes.Total < threshold)
         {
             return null;
         }

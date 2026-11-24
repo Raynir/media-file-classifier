@@ -53,6 +53,26 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     {
         this.watchers = watchers;
         this.monitoringPause = monitoringPause;
+
+        // Weak, so a dialog that closed isn't kept alive by the app-wide singletons.
+        var self = new WeakReference<IndexedFoldersViewModel>(this);
+        void Changed(object? sender, EventArgs e)
+        {
+            if (self.TryGetTarget(out var target))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(target.ShowMonitoring);
+            }
+        }
+
+        if (watchers is not null)
+        {
+            watchers.StateChanged += Changed;
+        }
+
+        if (monitoringPause is not null)
+        {
+            monitoringPause.Changed += Changed;
+        }
         this.rescan = rescan;
         this.analysis = analysis;
         this.sender = sender;

@@ -350,6 +350,10 @@ public sealed class FolderWatchManager : IDisposable
                 if (pause is not null)
                 {
                     await pause.WaitWhilePausedAsync(token).ConfigureAwait(false);
+                    if (!ReferenceEquals(session.Current, current) || !settings.Get(KnownSettings.MonitoringEnabled))
+                    {
+                        return;
+                    }
                 }
 
                 var result = await sender.Send(new StartRescanCommand(Quick: true), token).ConfigureAwait(false);
@@ -415,6 +419,7 @@ public sealed class FolderWatchManager : IDisposable
             }
 
             watched.Clear();
+            online.Clear();
             library = current;
             folderEvents = current?.Folders;
             if (folderEvents is not null)
@@ -636,6 +641,10 @@ public sealed class FolderWatchManager : IDisposable
                 if (pause is not null)
                 {
                     await pause.WaitWhilePausedAsync(token).ConfigureAwait(false);
+                    if (!IsWatched(folderId))
+                    {
+                        return;
+                    }
                 }
 
                 var result = await sender.Send(new StartRescanCommand(folderId), token).ConfigureAwait(false);

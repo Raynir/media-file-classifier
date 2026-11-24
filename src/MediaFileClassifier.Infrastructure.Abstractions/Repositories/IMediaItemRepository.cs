@@ -60,6 +60,16 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItem>> FindByFingerprintAsync(UInt128 fingerprint, long sizeBytes, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the items registered since a time with one of the given sizes, e.g. the copy a move between drives made
+    /// just before its original went (MFC-1052). Missing and excluded items aren't included.
+    /// </summary>
+    /// <param name="since">The earliest <see cref="MediaItem.ImportedAt"/>.</param>
+    /// <param name="sizes">The file sizes in bytes.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The items, in ID order.</returns>
+    Task<IReadOnlyList<MediaItem>> GetImportedSinceAsync(DateTimeOffset since, IReadOnlyCollection<long> sizes, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the identity facts of every item, for file matching to compare in memory (E01-S06-T05).
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -334,6 +344,17 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><c>true</c> if the item existed.</returns>
     Task<bool> DeleteAsync(Id<MediaItem> id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a duplicate item, as <see cref="DeleteAsync"/> does, and stores a Missing item moved to its file, in one
+    /// write: a file moved between drives keeps its old item, and the copy's item goes (MFC-1052). Nothing is written
+    /// unless the duplicate is still at the moved item's new path and the moved item is still Missing.
+    /// </summary>
+    /// <param name="moved">The moved item, already relocated to the duplicate's folder and path.</param>
+    /// <param name="duplicateId">The duplicate item.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><c>true</c> if both were written.</returns>
+    Task<bool> ReplaceWithMovedAsync(MediaItem moved, Id<MediaItem> duplicateId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes up to <paramref name="limit"/> items of a folder, as <see cref="DeleteAsync"/> does, in one short write.

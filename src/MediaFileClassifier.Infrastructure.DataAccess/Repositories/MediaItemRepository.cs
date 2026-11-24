@@ -83,6 +83,36 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> GetImportedSinceAsync(DateTimeOffset since, IReadOnlyCollection<long> sizes, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sizes);
+
+        if (sizes.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyList<MediaItem>>([]);
+        }
+
+        return connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) =>
+            {
+                var found = new List<MediaItem>();
+                foreach (var chunk in sizes.Distinct().Chunk(ReadChunkSize))
+                {
+                    found.AddRange(await db.MediaItems
+                        .Where(item => item.ImportedAt >= since
+                            && chunk.Contains(item.SizeBytes)
+                            && item.Status != MediaItemStatus.Missing
+                            && item.Status != MediaItemStatus.Excluded)
+                        .ToListAsync(token)
+                        .ConfigureAwait(false));
+                }
+
+                return [.. found.OrderBy(item => item.Id)];
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<MediaItemIdentity>> GetIdentitiesAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync<IReadOnlyList<MediaItemIdentity>>(
             async (db, token) =>
@@ -667,6 +697,39 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
         }
 
         return deleted;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> ReplaceWithMovedAsync(MediaItem moved, Id<MediaItem> duplicateId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(moved);
+
+        var written = await writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var movedId = moved.Id;
+                var folderId = moved.FolderId;
+                var path = moved.Path;
+                var isMissing = await db.MediaItems.AsNoTracking()
+                    .AnyAsync(item => item.Id == movedId && item.Status == MediaItemStatus.Missing, token).ConfigureAwait(false);
+                if (!isMissing
+                    || await db.MediaItems.Where(item => item.Id == duplicateId && item.FolderId == folderId && item.Path == path)
+                        .ExecuteDeleteAsync(token).ConfigureAwait(false) == 0)
+                {
+                    return false;
+                }
+
+                db.MediaItems.Update(moved);
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return true;
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (written)
+        {
+            RaiseChanged();
+        }
+
+        return written;
     }
 
     // Listeners run on the writing thread, often a job's. The items are written by now, so a listener that fails is

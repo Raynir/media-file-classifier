@@ -29,6 +29,9 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
     /// </summary>
     public const int BatchSize = 100;
 
+    // IDs per query when items are read by ID, well under SQLite's limit of parameters.
+    private const int ReadChunkSize = 500;
+
     // Listeners that failed already: a later failure of the same one is logged at debug level.
     private readonly ConcurrentDictionary<MethodInfo, byte> failedListeners = new();
 
@@ -524,6 +527,62 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
                 cancellationToken).ConfigureAwait(false);
             RaiseChanged();
         }
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateMovedAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        if (items.Count == 0)
+        {
+            return;
+        }
+
+        var written = await writer.ExecuteAsync<IReadOnlySet<Id<MediaItem>>>(
+            async (db, token) =>
+            {
+                var byId = items.ToDictionary(item => item.Id);
+                var stored = new List<(Id<MediaItem> Id, Id<IndexedFolder> FolderId, RelativePath Path)>(byId.Count);
+                foreach (var chunk in byId.Keys.Chunk(ReadChunkSize))
+                {
+                    var rows = await db.MediaItems.AsNoTracking().Where(item => chunk.Contains(item.Id))
+                        .Select(item => new { item.Id, item.FolderId, item.Path }).ToListAsync(token).ConfigureAwait(false);
+                    stored.AddRange(rows.Select(row => (row.Id, row.FolderId, row.Path)));
+                }
+
+                // An item that moves away from a path another of the items takes is parked on a path of its own first,
+                // so the unique (folder, path) index holds after every statement.
+                var targets = items.ToLookup(item => (item.FolderId, item.Path));
+                var parked = stored.Where(row => (byId[row.Id].FolderId, byId[row.Id].Path) != (row.FolderId, row.Path)
+                        && targets[(row.FolderId, row.Path)].Any(other => other.Id != row.Id))
+                    .ToList();
+                if (parked.Count == 0)
+                {
+                    return new HashSet<Id<MediaItem>>();
+                }
+
+                foreach (var (id, _, _) in parked)
+                {
+                    var temporary = RelativePath.From($".mfc-relink/{id}");
+                    await db.MediaItems.Where(item => item.Id == id)
+                        .ExecuteUpdateAsync(set => set.SetProperty(item => item.Path, temporary), token).ConfigureAwait(false);
+                }
+
+                var together = parked.SelectMany(row => targets[(row.FolderId, row.Path)].Select(item => item.Id))
+                    .Concat(parked.Select(row => row.Id))
+                    .ToHashSet();
+                db.MediaItems.UpdateRange(together.Select(id => byId[id]));
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return together;
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (written.Count > 0)
+        {
+            RaiseChanged();
+        }
+
+        await UpdateRangeAsync([.. items.Where(item => !written.Contains(item.Id))], cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

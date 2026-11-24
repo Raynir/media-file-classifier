@@ -1197,6 +1197,9 @@
   <data name="Stage_rescan.media" xml:space="preserve">
     <value>Refreshing metadata and thumbnails</value>
   </data>
+  <data name="Stage_monitor.apply" xml:space="preserve">
+    <value>Applying folder changes</value>
+  </data>
   <data name="Stage_folder.remove" xml:space="preserve">
     <value>Removing the folder</value>
   </data>

@@ -39,6 +39,8 @@ public static class UseCasesModule
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderStatusChanges>();
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderAvailabilityMonitor>();
         services.TryAddSingleton<Monitoring.FolderWatchManager>();
+        services.TryAddSingleton<Monitoring.ChangeProcessing.HeldDeletes>();
+        services.TryAddSingleton<Monitoring.ChangeProcessing.ChangeProcessor>();
         services.AddSetting(Monitoring.MonitoringSettings.IgnorePatterns);
         services.TryAddSingleton<Monitoring.QuickSyncStarter>();
         services.TryAddSingleton<Monitoring.ReconnectCatchUp>();
@@ -72,6 +74,7 @@ public static class UseCasesModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RescanCheckStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RefreshMediaStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Monitoring.ChangeProcessing.ApplyChangesStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Maintenance.RegenerateThumbnails.RegenerateThumbnailStage>());
         services.TryAddSingleton<Tags.TagNormalizer>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Analysis.Pipeline.AnalysisStage>());

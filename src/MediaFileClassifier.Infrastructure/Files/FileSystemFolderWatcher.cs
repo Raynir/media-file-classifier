@@ -36,7 +36,9 @@ internal sealed class FileSystemFolderWatcher : IFolderWatcher
         {
             IncludeSubdirectories = true,
             InternalBufferSize = BufferSize,
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
+            // Attributes: a cloud placeholder made local ("Always keep on this device") changes only its attributes, and
+            // must still be imported (E04-S05-T03).
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.Attributes,
         };
         watcher.Created += (_, e) => Raise(FolderWatchEventKind.Created, e.FullPath, null);
         watcher.Changed += (_, e) => Raise(FolderWatchEventKind.Changed, e.FullPath, null);

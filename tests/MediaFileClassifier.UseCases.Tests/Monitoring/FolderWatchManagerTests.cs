@@ -568,6 +568,27 @@ public sealed class FolderWatchManagerTests
     }
 
     [Fact]
+    public async Task CloudPlaceholder_IsNotReported_UntilItIsMadeLocal()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\OneDrive");
+        await bed.StartAsync();
+        var modified = bed.Clock.GetUtcNow();
+
+        bed.Files.Write("cloud.jpg", 10, modified, isCloudPlaceholder: true);
+        bed.Factory.Raise(@"E:\OneDrive", new FolderWatchEvent(FolderWatchEventKind.Created, "cloud.jpg"));
+        bed.Settle();
+        Assert.Empty(bed.Published);
+
+        // "Always keep on this device": only the attributes change.
+        bed.Files.Write("cloud.jpg", 10, modified);
+        bed.Factory.Raise(@"E:\OneDrive", new FolderWatchEvent(FolderWatchEventKind.Changed, "cloud.jpg"));
+        bed.Settle();
+
+        Assert.Equal([(FolderChangeKind.Changed, "cloud.jpg")], bed.Published.Select(change => (change.Kind, change.RelativePath)));
+    }
+
+    [Fact]
     public async Task PartialFolder_ReportsOnlyItsTrackedFiles()
     {
         var bed = new Bed();

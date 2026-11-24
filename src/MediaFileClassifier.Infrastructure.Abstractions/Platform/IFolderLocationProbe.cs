@@ -14,6 +14,10 @@ public interface IFolderLocationProbe
     /// <param name="folder">The folder. It needn't be reachable.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Where it is; <see cref="FolderLocation.Local"/> when the platform can't tell.</returns>
+    /// <exception cref="IOException">
+    /// The folder's drive isn't there now, so where it is can't be told yet, e.g. a mapped drive not reconnected. Callers
+    /// take it as local for now and ask again later.
+    /// </exception>
     Task<FolderLocation> ProbeAsync(FolderHandle folder, CancellationToken cancellationToken = default);
 }
 

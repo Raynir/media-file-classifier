@@ -20,6 +20,8 @@ namespace MediaFileClassifier.Desktop.Platform;
 /// <param name="logger">Logger.</param>
 internal sealed partial class WindowsFolderLocationProbe(ILogger<WindowsFolderLocationProbe> logger) : IFolderLocationProbe
 {
+    private const uint DriveUnknown = 0;
+    private const uint DriveNoRootDir = 1;
     private const uint DriveRemote = 4;
     private const int SyncRootInfoProvider = 2;
     private const int MaxNameLength = 255;
@@ -57,9 +59,13 @@ internal sealed partial class WindowsFolderLocationProbe(ILogger<WindowsFolderLo
         }
 
         root = Path.EndsInDirectorySeparator(root) ? root : root + Path.DirectorySeparatorChar;
-        if (GetDriveType(root) == DriveRemote)
+        switch (GetDriveType(root))
         {
-            return new FolderLocation(IsNetwork: true);
+            case DriveRemote:
+                return new FolderLocation(IsNetwork: true);
+            case DriveUnknown or DriveNoRootDir:
+                // E.g. a mapped drive not reconnected yet: it may well be a share, so this answer mustn't be kept.
+                throw new DriveNotFoundException($"Drive {root} isn't there now.");
         }
 
         return new FolderLocation(IsNetwork: false, SyncRootProvider(path) ?? GoogleDriveVolume(root));

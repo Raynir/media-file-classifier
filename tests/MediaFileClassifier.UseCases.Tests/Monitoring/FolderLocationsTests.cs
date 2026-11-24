@@ -58,15 +58,19 @@ public sealed class FolderLocationsTests
     }
 
     [Fact]
-    public async Task GetAsync_WhenTheProbeFails_TakesTheFolderAsLocal()
+    public async Task GetAsync_WhenTheProbeFails_TakesTheFolderAsLocalForNow_AndAsksAgain()
     {
-        var probe = new FakeFolderLocationProbe { Error = new IOException("The network name is no longer available.") };
+        var probe = new FakeFolderLocationProbe { Error = new DriveNotFoundException("Drive Z: isn't there now.") };
         var locations = new FolderLocations(NullLogger<FolderLocations>.Instance, probe);
+        var folder = Folder(@"Z:\Photos");
 
-        var location = await locations.GetAsync(Folder(Share), Token);
+        Assert.Equal(FolderLocation.Local, await locations.GetAsync(folder, Token));
+        Assert.Equal(MonitoringMode.Watch, await locations.GetEffectiveModeAsync(folder, Token));
 
-        Assert.Equal(FolderLocation.Local, location);
-        Assert.Equal(MonitoringMode.Watch, await locations.GetEffectiveModeAsync(Folder(Share), Token));
+        // The mapped drive is reconnected.
+        probe.Error = null;
+        probe.Network(@"Z:\Photos");
+        Assert.Equal(MonitoringMode.Poll, await locations.GetEffectiveModeAsync(folder, Token));
     }
 
     [Fact]

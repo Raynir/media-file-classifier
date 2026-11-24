@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
+using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,6 +68,50 @@ public sealed class IndexedFoldersFlowTests : IAsyncDisposable
         await viewModel.ConfirmCommand.ExecuteAsync(null);
         Assert.True(viewModel.IsEmpty);
         Assert.True(Directory.Exists(photos));
+    }
+
+    [Fact]
+    public async Task Dialog_ShowsEachMonitoringState_OnlyForAnOnlineFolder()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(app.Root, "photos")).FullName;
+        var library = app.Services.GetRequiredService<ILibrarySession>().Current!;
+        await library.Folders.AddAsync(IndexedFolder.Create(library.Library.Id, photos, photos, DateTimeOffset.UtcNow), Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.OpenAsync();
+        var row = Assert.Single(viewModel.Folders);
+
+        // Nothing watches in the test app, so the folder isn't monitored.
+        Assert.True(row.ShowsNotMonitored);
+        Assert.Equal("Not monitored", row.MonitoringText);
+
+        row.MonitoringState = FolderMonitoringState.Watching;
+        Assert.Equal(("Watching", true, false), (row.MonitoringText, row.ShowsWatching, row.ShowsNotMonitored));
+
+        row.MonitoringState = FolderMonitoringState.Paused;
+        Assert.Equal(("Paused", true, false), (row.MonitoringText, row.ShowsPaused, row.ShowsWatching));
+
+        row.MonitoringState = FolderMonitoringState.Error;
+        Assert.Equal(("Can't watch", true), (row.MonitoringText, row.ShowsMonitoringError));
+    }
+
+    [Fact]
+    public async Task Dialog_PausesAndResumesMonitoring_WithItsButtonLabel()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        var pause = app.Services.GetRequiredService<MonitoringPause>();
+        await viewModel.OpenAsync();
+        Assert.True(viewModel.CanPauseMonitoring);
+        Assert.Equal("Pause monitoring", viewModel.MonitoringPauseLabel);
+
+        viewModel.ToggleMonitoringPauseCommand.Execute(null);
+        Assert.True(pause.IsPaused);
+        Assert.Equal("Resume monitoring", viewModel.MonitoringPauseLabel);
+
+        viewModel.ToggleMonitoringPauseCommand.Execute(null);
+        Assert.False(pause.IsPaused);
+        Assert.Equal("Pause monitoring", viewModel.MonitoringPauseLabel);
     }
 
     [Fact]

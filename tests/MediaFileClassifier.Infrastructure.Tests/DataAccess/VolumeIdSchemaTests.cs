@@ -41,7 +41,7 @@ public sealed class VolumeIdSchemaTests
         await using var bed = await LibraryTestBed.CreateAsync();
 
         bed.Folder.ChangeVolumeId("1A2B-3C4D");
-        await bed.Library.Folders.UpdateAvailabilityAsync(bed.Folder, Token);
+        await bed.Library.Folders.UpdateAvailabilityAndVolumeAsync(bed.Folder, Token);
         await bed.ReopenAsync();
 
         Assert.Equal("1A2B-3C4D", (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.VolumeId);
@@ -53,14 +53,64 @@ public sealed class VolumeIdSchemaTests
         await using var bed = await LibraryTestBed.CreateAsync();
         var stale = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
         bed.Folder.ChangeVolumeId("1A2B-3C4D");
-        await bed.Library.Folders.UpdateAvailabilityAsync(bed.Folder, Token);
+        await bed.Library.Folders.UpdateAvailabilityAndVolumeAsync(bed.Folder, Token);
 
+        stale.MarkOffline(DateTimeOffset.UnixEpoch.AddDays(1));
+        await bed.Library.Folders.UpdateAvailabilityAndVolumeAsync(stale, Token);
+        await bed.ReopenAsync();
+
+        var folder = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        Assert.Equal((FolderStatus.Offline, "1A2B-3C4D"), (folder.Status, folder.VolumeId));
+    }
+
+    [Fact]
+    public async Task StatusOnlyAvailability_FromAStaleCopy_KeepsTheStoredVolume()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        var stale = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        bed.Folder.ChangeVolumeId("1A2B-3C4D");
+        bed.Folder.ChangeVolumeLabel("Backup-2TB");
+        await bed.Library.Folders.UpdateAvailabilityAndVolumeAsync(bed.Folder, Token);
+
+        stale.ChangeVolumeLabel("Old label");
         stale.MarkOffline(DateTimeOffset.UnixEpoch.AddDays(1));
         await bed.Library.Folders.UpdateAvailabilityAsync(stale, Token);
         await bed.ReopenAsync();
 
         var folder = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
-        Assert.Equal((FolderStatus.Offline, "1A2B-3C4D"), (folder.Status, folder.VolumeId));
+        Assert.Equal((FolderStatus.Offline, "1A2B-3C4D", "Backup-2TB"), (folder.Status, folder.VolumeId, folder.VolumeLabel));
+    }
+
+    [Fact]
+    public async Task AvailabilityAndVolume_OfADriveWithoutALabel_ClearsTheStoredLabel()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        bed.Folder.ChangeVolumeLabel("Backup-2TB");
+        await bed.Library.Folders.UpdateAvailabilityAndVolumeAsync(bed.Folder, Token);
+
+        bed.Folder.ChangeVolumeLabel(null);
+        await bed.Library.Folders.UpdateAvailabilityAndVolumeAsync(bed.Folder, Token);
+        await bed.ReopenAsync();
+
+        Assert.Null((await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!.VolumeLabel);
+    }
+
+    [Fact]
+    public async Task WholeRowUpdate_FromACopyWithoutVolumeData_KeepsTheStoredOnes()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        var stale = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        bed.Folder.ChangeVolumeId("1A2B-3C4D");
+        bed.Folder.ChangeVolumeLabel("Backup-2TB");
+        await bed.Library.Folders.UpdateAvailabilityAndVolumeAsync(bed.Folder, Token);
+
+        stale.ChangeRules(new FolderRules { IncludeHidden = true });
+        await bed.Library.Folders.UpdateAsync(stale, Token);
+        await bed.ReopenAsync();
+
+        var folder = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
+        Assert.True(folder.Rules.IncludeHidden);
+        Assert.Equal(("1A2B-3C4D", "Backup-2TB"), (folder.VolumeId, folder.VolumeLabel));
     }
 
     [Fact]
@@ -69,7 +119,7 @@ public sealed class VolumeIdSchemaTests
         await using var bed = await LibraryTestBed.CreateAsync();
         var oldHandle = bed.Folder.PlatformHandle;
         bed.Folder.MarkOffline(DateTimeOffset.UnixEpoch);
-        await bed.Library.Folders.UpdateAvailabilityAsync(bed.Folder, Token);
+        await bed.Library.Folders.UpdateAvailabilityAndVolumeAsync(bed.Folder, Token);
         var rules = new FolderRules { IncludeHidden = true };
         var stored = await bed.Library.Folders.GetAsync(bed.Folder.Id, Token);
         stored!.ChangeRules(rules);

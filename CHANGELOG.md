@@ -16,6 +16,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 ### Fixed
 
 - Drive letters (MFC-1046): a folder could forget its drive's serial number when an availability check and a rescan or import wrote the folder at about the same time, so it no longer followed its drive to a new letter and another drive under its letter was taken for it.
+- Drive names (MFC-1055): an Offline folder could lose its drive's name or serial number when a rescan, an import, a rule change or "Index whole folder" stored the folder at about the same time as an availability check.
 - Drive letters (MFC-1045): a folder now remembers its drive's serial number as soon as it's added, not only after the next availability check, so a drive unplugged or swapped right after adding a folder is recognised.
 - Drive letters (MFC-1044): a folder that followed its drive to a new letter could be stored Offline by a second availability check running at the same time, which stopped its watching and its catch-up.
 - Folder watching (MFC-1047): changes seen while a watched folder's drive was briefly unreachable were dropped until the next rescan when the folder turned out to be still Online; the folder is now rescanned right away.

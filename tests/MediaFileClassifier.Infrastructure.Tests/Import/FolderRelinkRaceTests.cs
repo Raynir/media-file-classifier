@@ -39,7 +39,7 @@ public sealed class FolderRelinkRaceTests : IAsyncLifetime
     {
         var folder = (await bed.Library.Folders.GetAsync(bed.Folder.Id, Token))!;
         folder.ChangeVolumeId(Serial);
-        await bed.Library.Folders.UpdateAvailabilityAsync(folder, Token);
+        await bed.Library.Folders.UpdateAvailabilityAndVolumeAsync(folder, Token);
         Directory.Move(OldRoot, NewRoot);
         volumes.Moved = new FolderHandle(NewRoot, NewRoot);
 

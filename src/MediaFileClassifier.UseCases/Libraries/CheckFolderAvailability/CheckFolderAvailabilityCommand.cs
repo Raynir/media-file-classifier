@@ -109,7 +109,7 @@ public sealed class CheckFolderAvailabilityCommandHandler(
             {
                 if (relabelled)
                 {
-                    await library.Folders.UpdateAvailabilityAsync(folder, CancellationToken.None).ConfigureAwait(false);
+                    await library.Folders.UpdateAvailabilityAndVolumeAsync(folder, CancellationToken.None).ConfigureAwait(false);
                 }
 
                 continue;
@@ -125,7 +125,7 @@ public sealed class CheckFolderAvailabilityCommandHandler(
                 folder.MarkOffline(clock.GetUtcNow());
             }
 
-            await library.Folders.UpdateAvailabilityAsync(folder, CancellationToken.None).ConfigureAwait(false);
+            await library.Folders.UpdateAvailabilityAndVolumeAsync(folder, CancellationToken.None).ConfigureAwait(false);
             logger.LogInformation("Folder {Folder} is {Status} now", folder.DisplayPath, status);
             changed.Add(folder);
         }

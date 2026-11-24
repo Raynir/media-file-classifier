@@ -55,7 +55,7 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
             async (db, token) =>
             {
                 var stored = await StoredStatusAsync(db, folder.Id, token).ConfigureAwait(false);
-                db.Folders.Update(folder);
+                UpdateKeepingVolume(db, folder);
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
                 return stored is { } status && status != folder.Status;
             },
@@ -67,36 +67,12 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
     }
 
     /// <inheritdoc />
-    public async Task UpdateAvailabilityAsync(IndexedFolder folder, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(folder);
+    public Task UpdateAvailabilityAsync(IndexedFolder folder, CancellationToken cancellationToken = default) =>
+        UpdateAvailabilityAsync(folder, includeVolume: false, cancellationToken);
 
-        var statusChanged = await writer.ExecuteAsync(
-            async (db, token) =>
-            {
-                var stored = await StoredStatusAsync(db, folder.Id, token).ConfigureAwait(false);
-                var status = folder.Status;
-                var changedAt = folder.StatusChangedAt;
-                var label = folder.VolumeLabel;
-                var volumeId = folder.VolumeId;
-                var handle = folder.PlatformHandle;
-
-                // Matched on the root too: a folder relinked while the check probed its old root keeps what the relink stored.
-                // A copy read before its volume ID was stored has none, so a missing ID keeps the stored one (MFC-1046).
-                var updated = await db.Folders.Where(row => row.Id == folder.Id && row.PlatformHandle == handle)
-                    .ExecuteUpdateAsync(
-                        setters => setters
-                            .SetProperty(row => row.Status, status)
-                            .SetProperty(row => row.StatusChangedAt, changedAt)
-                            .SetProperty(row => row.VolumeLabel, label)
-                            .SetProperty(row => row.VolumeId, row => volumeId ?? row.VolumeId),
-                        token)
-                    .ConfigureAwait(false);
-                return updated > 0 && stored is { } old && old != status;
-            },
-            cancellationToken).ConfigureAwait(false);
-        RaiseIf(statusChanged);
-    }
+    /// <inheritdoc />
+    public Task UpdateAvailabilityAndVolumeAsync(IndexedFolder folder, CancellationToken cancellationToken = default) =>
+        UpdateAvailabilityAsync(folder, includeVolume: true, cancellationToken);
 
     /// <inheritdoc />
     public async Task<bool> RelinkAsync(IndexedFolder folder, string oldPlatformHandle, CancellationToken cancellationToken = default)
@@ -152,7 +128,7 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
                     item.Relocate(parent.Id, RelativePath.From(relativePath + "/" + item.Path.Value));
                 }
 
-                db.Folders.Update(parent);
+                UpdateKeepingVolume(db, parent);
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
                 await db.Folders.Where(folder => folder.Id == childId).ExecuteDeleteAsync(token).ConfigureAwait(false);
                 return items.Count;
@@ -203,6 +179,56 @@ internal sealed class FolderRepository(LibraryConnectionFactory connections, Lib
         }
 
         return deleted;
+    }
+
+    private async Task UpdateAvailabilityAsync(IndexedFolder folder, bool includeVolume, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+
+        var statusChanged = await writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var stored = await StoredStatusAsync(db, folder.Id, token).ConfigureAwait(false);
+                var status = folder.Status;
+                var changedAt = folder.StatusChangedAt;
+                var label = folder.VolumeLabel;
+                var volumeId = folder.VolumeId;
+                var handle = folder.PlatformHandle;
+
+                // Matched on the root too: a folder relinked while the check probed its old root keeps what the relink stored.
+                // Only the availability check reads the volume; other writers' copies may hold stale volume data (MFC-1055).
+                // A copy read before its volume ID was stored has none, so a missing ID keeps the stored one (MFC-1046).
+                var updated = await db.Folders.Where(row => row.Id == folder.Id && row.PlatformHandle == handle)
+                    .ExecuteUpdateAsync(
+                        setters => setters
+                            .SetProperty(row => row.Status, status)
+                            .SetProperty(row => row.StatusChangedAt, changedAt)
+                            .SetProperty(row => row.VolumeLabel, row => includeVolume ? label : row.VolumeLabel)
+                            .SetProperty(row => row.VolumeId, row => includeVolume && volumeId != null ? volumeId : row.VolumeId),
+                        token)
+                    .ConfigureAwait(false);
+                return updated > 0 && stored is { } old && old != status;
+            },
+            cancellationToken).ConfigureAwait(false);
+        RaiseIf(statusChanged);
+    }
+
+    /// <summary>
+    /// Stores the whole folder, but keeps the stored volume ID and label when the copy has none: it may have been read
+    /// before an availability check stored them (MFC-1055).
+    /// </summary>
+    private static void UpdateKeepingVolume(LibraryDbContext db, IndexedFolder folder)
+    {
+        var entry = db.Folders.Update(folder);
+        if (folder.VolumeId is null)
+        {
+            entry.Property(row => row.VolumeId).IsModified = false;
+        }
+
+        if (folder.VolumeLabel is null)
+        {
+            entry.Property(row => row.VolumeLabel).IsModified = false;
+        }
     }
 
     private static async Task<FolderStatus?> StoredStatusAsync(LibraryDbContext db, Id<IndexedFolder> id, CancellationToken cancellationToken) =>

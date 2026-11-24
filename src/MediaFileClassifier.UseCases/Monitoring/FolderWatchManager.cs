@@ -17,7 +17,8 @@ using Microsoft.Extensions.Logging;
 namespace MediaFileClassifier.UseCases.Monitoring;
 
 /// <summary>
-/// Keeps one recursive watcher on each Online folder of the open library (E04-S01-T01). The watchers follow the
+/// Keeps one recursive watcher on each Online folder of the open library that runs in Watch mode (E04-S01-T01,
+/// E04-S05-T01; see <see cref="FolderLocations"/>); folders in Poll or Manual mode aren't watched. The watchers follow the
 /// library opening and closing, folders being added, changed, merged or removed, and folders going Offline and coming
 /// back. A folder being removed isn't watched. Where the platform can't watch folders (no
 /// <see cref="IFolderWatcherFactory"/>), it does nothing. Raw events go through a <see cref="FolderChangeBuffer"/>, and
@@ -52,6 +53,7 @@ public sealed class FolderWatchManager : IDisposable
     private readonly ILibrarySession session;
     private readonly IMediaFileSource files;
     private readonly IFolderWatcherFactory? factory;
+    private readonly FolderLocations? locations;
     private readonly IPublisher publisher;
     private readonly ISender sender;
     private readonly TimeProvider clock;
@@ -89,6 +91,8 @@ public sealed class FolderWatchManager : IDisposable
     /// <param name="clock">Times the debounce, the stability checks and the rescan retries.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="factory">Starts the watchers, or <see langword="null"/> where the platform can't watch folders.</param>
+    /// <param name="locations">Tells each folder's monitoring mode; without it, every folder whose own mode isn't Poll or
+    /// Manual is watched.</param>
     public FolderWatchManager(
         ILibrarySession session,
         IMediaFileSource files,
@@ -98,7 +102,8 @@ public sealed class FolderWatchManager : IDisposable
         IMediaFormatRegistry formats,
         TimeProvider clock,
         ILogger<FolderWatchManager> logger,
-        IFolderWatcherFactory? factory = null)
+        IFolderWatcherFactory? factory = null,
+        FolderLocations? locations = null)
     {
         this.session = session;
         this.files = files;
@@ -110,6 +115,7 @@ public sealed class FolderWatchManager : IDisposable
         ignore = new IgnoreList(settings.Get(MonitoringSettings.IgnorePatterns));
         this.logger = logger;
         this.factory = factory;
+        this.locations = locations;
         buffer = new FolderChangeBuffer(files, clock, logger, PublishAsync, IncludesFile);
     }
 
@@ -174,10 +180,19 @@ public sealed class FolderWatchManager : IDisposable
                 return;
             }
 
-            var folders = (await IndexedFolders.GetActiveAsync(current, token).ConfigureAwait(false))
-                .Where(folder => folder.Status == FolderStatus.Online)
-                .ToList();
-            Apply(current, folders);
+            var folders = new List<IndexedFolder>();
+            foreach (var folder in await IndexedFolders.GetActiveAsync(current, token).ConfigureAwait(false))
+            {
+                if (folder.Status == FolderStatus.Online && await RunsInWatchModeAsync(folder, token).ConfigureAwait(false))
+                {
+                    folders.Add(folder);
+                }
+            }
+
+            if (Apply(current, folders))
+            {
+                PublishMonitoringChanged();
+            }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -342,15 +357,18 @@ public sealed class FolderWatchManager : IDisposable
         }
     }
 
-    private void Apply(IOpenLibrary current, IReadOnlyList<IndexedFolder> folders)
+    // Returns whether the set of watched folders changed.
+    private bool Apply(IOpenLibrary current, IReadOnlyList<IndexedFolder> folders)
     {
         lock (syncRoot)
         {
             // Another library opened during the read; its own refresh is queued.
             if (disposed || !ReferenceEquals(current, library))
             {
-                return;
+                return false;
             }
+
+            var before = watched.Keys.ToHashSet();
 
             var wanted = folders.ToDictionary(folder => folder.Id);
 
@@ -396,8 +414,34 @@ public sealed class FolderWatchManager : IDisposable
                     watched[folder.Id] = started;
                 }
             }
+
+            return !before.SetEquals(watched.Keys);
         }
     }
+
+    private async Task<bool> RunsInWatchModeAsync(IndexedFolder folder, CancellationToken cancellationToken) =>
+        locations is null
+            ? folder.MonitoringMode is MonitoringMode.Auto or MonitoringMode.Watch
+            : await locations.GetEffectiveModeAsync(folder, cancellationToken).ConfigureAwait(false) == MonitoringMode.Watch;
+
+    /// <summary>
+    /// Tells listeners that the watched folders changed (E04-S05). A failing listener doesn't stop the watchers.
+    /// </summary>
+    private void PublishMonitoringChanged() => _ = Task.Run(async () =>
+    {
+        try
+        {
+            await publisher.Publish(new FolderMonitoringChanged(), stopping.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stopping.IsCancellationRequested)
+        {
+            // Shutting down.
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Couldn't report the change of the watched folders");
+        }
+    });
 
     private WatchedFolder? StartWatching(IndexedFolder folder)
     {
@@ -453,6 +497,8 @@ public sealed class FolderWatchManager : IDisposable
             buffer.Forget(folder.Id);
             retryAt = CountFailure(folder.Id);
         }
+
+        PublishMonitoringChanged();
 
         logger.LogWarning(error.Exception, "The watcher of {Folder} failed; checking the folder", folder.DisplayPath);
         Track(RecoverAsync(folder.Id, retryAt));

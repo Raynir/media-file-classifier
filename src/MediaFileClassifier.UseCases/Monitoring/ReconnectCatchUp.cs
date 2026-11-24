@@ -12,7 +12,7 @@ namespace MediaFileClassifier.UseCases.Monitoring;
 /// <summary>
 /// Catches up with what changed on folders while their drive was away (E04-S04-T02): each folder that comes back Online
 /// gets the quick sync of E04-S03 (<see cref="StartRescanCommand"/> with <c>Quick</c>), whatever the library's "quick
-/// sync on open" switch says. The sync starts once the folder watchers run, so a file that changes while it lists is seen
+/// sync on open" switch says, unless the folder is in Manual mode (E04-S05-T01). The sync starts once the folder watchers run, so a file that changes while it lists is seen
 /// by the watcher as well. A start refused because the folder's import or rescan work is running is asked for again every
 /// <see cref="BusyRetry"/> while the folder is still Online, its library still open and, where folders are watched, the
 /// folder still watched (as <see cref="FolderWatchManager"/> does for lost events, D517).
@@ -150,7 +150,7 @@ public sealed class ReconnectCatchUp : IDisposable
         }
 
         var folders = await IndexedFolders.GetActiveAsync(library, cancellationToken).ConfigureAwait(false);
-        return folders.Any(folder => folder.Id == folderId && folder.Status == FolderStatus.Online);
+        return folders.Any(folder => folder.Id == folderId && folder.Status == FolderStatus.Online && folder.MonitoringMode != MonitoringMode.Manual);
     }
 
     private async Task RunAsync(IOpenLibrary library, Id<IndexedFolder> folderId)

@@ -42,6 +42,9 @@ public static class UseCasesModule
         services.TryAddSingleton<Monitoring.ChangeProcessing.HeldDeletes>();
         services.TryAddSingleton<Monitoring.ChangeProcessing.ChangeProcessor>();
         services.AddSetting(Monitoring.MonitoringSettings.IgnorePatterns);
+        services.AddSetting(Monitoring.MonitoringSettings.PollIntervalMinutes);
+        services.TryAddSingleton<Monitoring.FolderLocations>();
+        services.TryAddSingleton<Monitoring.FolderPoller>();
         services.TryAddSingleton<Monitoring.QuickSyncStarter>();
         services.TryAddSingleton<Monitoring.ReconnectCatchUp>();
         services.AddSetting(KnownSettings.QuickSyncOnOpen);

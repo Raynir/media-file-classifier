@@ -42,8 +42,9 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         var folders = await GetFoldersAsync(library, job, cancellationToken).ConfigureAwait(false);
         if (job.Type == RescanStages.QuickSyncJob)
         {
-            // Offline folders are the availability monitor's to bring back; listing a dead share would stall startup.
-            folders = [.. folders.Where(folder => folder.Status == FolderStatus.Online)];
+            // Offline folders are the availability monitor's to bring back; listing a dead share would stall startup. A folder
+            // put in Manual mode since the sync was queued is left alone (E04-S05-T01).
+            folders = [.. folders.Where(folder => folder.Status == FolderStatus.Online && folder.MonitoringMode != MonitoringMode.Manual)];
         }
 
         var result = await reconciler.ReconcileAsync(library, folders, cancellationToken).ConfigureAwait(false);

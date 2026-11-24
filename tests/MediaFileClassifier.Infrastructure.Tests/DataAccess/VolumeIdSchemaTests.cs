@@ -25,7 +25,7 @@ public sealed class VolumeIdSchemaTests
         await using (var db = await new LibraryConnectionFactory(bed.Temporary.DatabasePath).CreateContextAsync(cancellationToken: Token))
         {
             var migrations = db.Database.GetMigrations().ToList();
-            await db.GetService<IMigrator>().MigrateAsync(migrations[^2], cancellationToken: Token);
+            await db.GetService<IMigrator>().MigrateAsync(migrations[migrations.FindIndex(name => name.EndsWith("_VolumeIds", StringComparison.Ordinal)) - 1], cancellationToken: Token);
         }
 
         SqliteConnection.ClearAllPools();

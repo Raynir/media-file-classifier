@@ -519,6 +519,21 @@ public sealed class FolderWatchManager : IDisposable
     }
 
     /// <summary>
+    /// Checks a folder whose changes were dropped because its root couldn't be reached. A folder the check finds Online
+    /// changes no status, so no catch-up runs for it, and it's rescanned to find the dropped changes (MFC-1047).
+    /// </summary>
+    private async Task CheckThenRescanAsync(Id<IndexedFolder> folderId)
+    {
+        await CheckAvailabilityAsync(folderId).ConfigureAwait(false);
+        await RefreshAsync().ConfigureAwait(false);
+        if (IsWatched(folderId))
+        {
+            logger.LogInformation("Watched folder {Folder} is reachable again; rescanning it for its dropped changes", folderId);
+            RequestRescan(folderId);
+        }
+    }
+
+    /// <summary>
     /// Asks for a rescan of the folder, unless one is asked for already.
     /// </summary>
     private void RequestRescan(Id<IndexedFolder> folderId)
@@ -782,12 +797,13 @@ public sealed class FolderWatchManager : IDisposable
         }
 
         // A file on a drive just unplugged looks deleted. Its folder is checked instead, which marks it Offline, so no
-        // item is lost (E04-S04-T02); its changes are found by the catch-up when it's back.
+        // item is lost (E04-S04-T02); its changes are found by the catch-up when it's back, or by a rescan if the check
+        // finds it Online after all (MFC-1047).
         if (changes.Any(change => change.Kind == FolderChangeKind.Deleted)
             && !await files.IsAvailableAsync(folder.ToHandle(), cancellationToken).ConfigureAwait(false))
         {
             logger.LogInformation("Watched folder {Folder} can't be reached: its {Count} changes are dropped and it's checked", folderId, changes.Count);
-            Track(CheckAvailabilityAsync(folderId));
+            Track(CheckThenRescanAsync(folderId));
             return;
         }
 

@@ -14,6 +14,14 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Pause and resume (MFC-194): background processing can be paused as a whole, per kind of work (disk, processor, AI analysis) and per job, from the processing queue and from a pause button next to the processing indicator in the status bar. Work already running gets 2 seconds to finish, then goes back in the queue, so nothing is lost. A new setting, "Keep processing paused after a restart" (on by default), keeps the pause when the library opens again; the global and per-kind pause is stored in the library settings (no schema change).
 - Monitoring controls and status (MFC-140): Settings > Library has a "Monitor folders for changes" switch (stored in the library; off stops every watcher, on again runs a quick sync) and a threshold for notifications. The indexed folders list shows each Online folder's state next to its count: Watching, Paused, Can't watch or Not monitored. "Pause monitoring" in that dialog holds all folder monitoring for this session, and a "Monitoring paused" notice in the status bar resumes it; changes found meanwhile are imported on resume. A monitored burst is one "folder monitoring" event in the activity log and, when it has at least 10 changes (setting), one notification such as "12 new items imported from Camera Uploads". Per-folder Watch / Poll / Manual modes follow with MFC-139.
 
+### Fixed
+
+- Drive letters (MFC-1046): a folder could forget its drive's serial number when an availability check and a rescan or import wrote the folder at about the same time, so it no longer followed its drive to a new letter and another drive under its letter was taken for it.
+- Drive names (MFC-1055): an Offline folder could lose its drive's name or serial number when a rescan, an import, a rule change or "Index whole folder" stored the folder at about the same time as an availability check.
+- Drive letters (MFC-1045): a folder now remembers its drive's serial number as soon as it's added, not only after the next availability check, so a drive unplugged or swapped right after adding a folder is recognised.
+- Drive letters (MFC-1044): a folder that followed its drive to a new letter could be stored Offline by a second availability check running at the same time, which stopped its watching and its catch-up.
+- Folder watching (MFC-1047): changes seen while a watched folder's drive was briefly unreachable were dropped until the next rescan when the folder turned out to be still Online; the folder is now rescanned right away.
+
 ## 1.0.1 — 2026-11-22
 
 ### Fixed

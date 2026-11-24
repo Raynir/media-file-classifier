@@ -483,6 +483,64 @@ public sealed class FolderWatchManagerTests
     }
 
     [Fact]
+    public async Task Deletions_InAFolderBrieflyUnreachable_ThatTheCheckFindsOnline_RescanTheFolder()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Files.IsAvailable = false;
+        bed.Sender.OnCheck = _ =>
+        {
+            bed.Files.IsAvailable = true;
+            return Task.CompletedTask;
+        };
+
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Created, "new.jpg"));
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Deleted, "a.jpg"));
+        bed.Settle();
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Empty(bed.Publisher.Published);
+        Assert.Equal(folder.Id, Assert.Single(bed.Sender.Rescans).FolderId);
+    }
+
+    [Fact]
+    public async Task Deletions_InAFolderThatTheCheckRelinks_AreLeftToItsCatchUp()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Files.IsAvailable = false;
+        bed.Sender.CheckChanged = [folder];
+
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Deleted, "a.jpg"));
+        bed.Settle();
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Empty(bed.Sender.Rescans);
+    }
+
+    [Fact]
+    public async Task Deletions_InAFolderThatTheCheckFindsOffline_DontRescanIt()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Files.IsAvailable = false;
+        bed.Sender.OnCheck = async _ =>
+        {
+            folder.MarkOffline(Now);
+            await bed.Library.FolderList.UpdateAvailabilityAsync(folder, TestContext.Current.CancellationToken);
+        };
+
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Deleted, "a.jpg"));
+        bed.Settle();
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Empty(bed.Sender.Rescans);
+    }
+
+    [Fact]
     public async Task Deletions_InAFolderThatCanBeReached_ArePublished()
     {
         var bed = new Bed();
@@ -746,6 +804,8 @@ public sealed class FolderWatchManagerTests
 
         public Func<CheckFolderAvailabilityCommand, Task>? OnCheck { get; set; }
 
+        public IReadOnlyList<IndexedFolder> CheckChanged { get; set; } = [];
+
         public IEnumerable<StartRescanCommand> Rescans => Requests.OfType<StartRescanCommand>();
 
         public override async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
@@ -762,7 +822,7 @@ public sealed class FolderWatchManagerTests
                         await OnCheck(check);
                     }
 
-                    return (TResponse)(object)Array.Empty<IndexedFolder>();
+                    return (TResponse)(object)CheckChanged;
                 default:
                     throw new NotSupportedException(request.GetType().Name);
             }

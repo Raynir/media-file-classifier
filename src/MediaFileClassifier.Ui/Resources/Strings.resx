@@ -1857,6 +1857,18 @@
   <data name="Folders_Monitoring_Off" xml:space="preserve">
     <value>Not monitored</value>
   </data>
+  <data name="Folders_Monitoring_Polling" xml:space="preserve">
+    <value>Polling</value>
+  </data>
+  <data name="Folders_Monitoring_Polling_Tip" xml:space="preserve">
+    <value>The folder is on a network share or set to Poll, so it's checked for changes at the poll interval instead of being watched.</value>
+  </data>
+  <data name="Folders_Monitoring_Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Folders_Monitoring_Manual_Tip" xml:space="preserve">
+    <value>The folder is set to Manual: changes in it are found only when you rescan it.</value>
+  </data>
   <data name="Folders_Monitoring_Error_Tip" xml:space="preserve">
     <value>The folder is reachable but changes in it can't be watched. The app tries again by itself; Rescan still finds changes.</value>
   </data>

@@ -33,7 +33,7 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     /// Gets the folder as last listed.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Path), nameof(Name), nameof(StateText), nameof(IsOffline), nameof(IsScanning), nameof(CountText), nameof(IsPartial), nameof(ShowsWatching), nameof(ShowsPaused), nameof(ShowsMonitoringError), nameof(ShowsNotMonitored))]
+    [NotifyPropertyChangedFor(nameof(Path), nameof(Name), nameof(StateText), nameof(IsOffline), nameof(IsScanning), nameof(CountText), nameof(IsPartial), nameof(ShowsWatching), nameof(ShowsPaused), nameof(ShowsMonitoringError), nameof(ShowsNotMonitored), nameof(ShowsPolling), nameof(ShowsManual))]
     public partial IndexedFolderSummary Summary { get; private set; }
 
     /// <summary>
@@ -60,7 +60,7 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     /// Gets or sets how the folder is monitored (E04-S06-T01). It only means something for a folder that's Online.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsWatching), nameof(ShowsPaused), nameof(ShowsMonitoringError), nameof(ShowsNotMonitored), nameof(MonitoringText))]
+    [NotifyPropertyChangedFor(nameof(ShowsWatching), nameof(ShowsPaused), nameof(ShowsMonitoringError), nameof(ShowsNotMonitored), nameof(ShowsPolling), nameof(ShowsManual), nameof(MonitoringText))]
     public partial FolderMonitoringState MonitoringState { get; set; }
 
     /// <summary>
@@ -84,7 +84,17 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     public bool ShowsNotMonitored => !IsOffline && MonitoringState == FolderMonitoringState.Off;
 
     /// <summary>
-    /// Gets the monitoring state in words: Watching, Paused, Can't watch or Not monitored.
+    /// Gets a value indicating whether the folder is Online and polled (E04-S05).
+    /// </summary>
+    public bool ShowsPolling => !IsOffline && MonitoringState == FolderMonitoringState.Polling;
+
+    /// <summary>
+    /// Gets a value indicating whether the folder is Online and in Manual mode: only a rescan finds its changes (E04-S05).
+    /// </summary>
+    public bool ShowsManual => !IsOffline && MonitoringState == FolderMonitoringState.Manual;
+
+    /// <summary>
+    /// Gets the monitoring state in words: Watching, Paused, Can't watch, Not monitored, Polling or Manual.
     /// </summary>
     public string MonitoringText => localizer.Get("Folders_Monitoring_" + MonitoringState);
 
@@ -92,6 +102,16 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     /// Gets the explanation shown with the "Can't watch" state.
     /// </summary>
     public string MonitoringErrorTip => localizer.Get("Folders_Monitoring_Error_Tip");
+
+    /// <summary>
+    /// Gets the explanation shown with the "Polling" state.
+    /// </summary>
+    public string PollingTip => localizer.Get("Folders_Monitoring_Polling_Tip");
+
+    /// <summary>
+    /// Gets the explanation shown with the "Manual" state.
+    /// </summary>
+    public string ManualTip => localizer.Get("Folders_Monitoring_Manual_Tip");
 
     /// <summary>
     /// Gets a value indicating whether the folder can't be reached.

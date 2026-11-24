@@ -83,36 +83,6 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             cancellationToken);
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<MediaItem>> GetImportedSinceAsync(DateTimeOffset since, IReadOnlyCollection<long> sizes, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(sizes);
-
-        if (sizes.Count == 0)
-        {
-            return Task.FromResult<IReadOnlyList<MediaItem>>([]);
-        }
-
-        return connections.ReadAsync<IReadOnlyList<MediaItem>>(
-            async (db, token) =>
-            {
-                var found = new List<MediaItem>();
-                foreach (var chunk in sizes.Distinct().Chunk(ReadChunkSize))
-                {
-                    found.AddRange(await db.MediaItems
-                        .Where(item => item.ImportedAt >= since
-                            && chunk.Contains(item.SizeBytes)
-                            && item.Status != MediaItemStatus.Missing
-                            && item.Status != MediaItemStatus.Excluded)
-                        .ToListAsync(token)
-                        .ConfigureAwait(false));
-                }
-
-                return [.. found.OrderBy(item => item.Id)];
-            },
-            cancellationToken);
-    }
-
-    /// <inheritdoc />
     public Task<IReadOnlyList<MediaItemIdentity>> GetIdentitiesAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync<IReadOnlyList<MediaItemIdentity>>(
             async (db, token) =>

@@ -74,9 +74,6 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
         return Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. due.Select(item => item.Id)]);
     }
 
-    public Task<IReadOnlyList<MediaItem>> GetImportedSinceAsync(DateTimeOffset since, IReadOnlyCollection<long> sizes, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
-
     public Task<bool> ReplaceWithMovedAsync(MediaItem moved, Id<MediaItem> duplicateId, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 

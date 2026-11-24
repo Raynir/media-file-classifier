@@ -60,16 +60,6 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItem>> FindByFingerprintAsync(UInt128 fingerprint, long sizeBytes, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the items registered since a time with one of the given sizes, e.g. the copy a move between drives made
-    /// just before its original went (MFC-1052). Missing and excluded items aren't included.
-    /// </summary>
-    /// <param name="since">The earliest <see cref="MediaItem.ImportedAt"/>.</param>
-    /// <param name="sizes">The file sizes in bytes.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The items, in ID order.</returns>
-    Task<IReadOnlyList<MediaItem>> GetImportedSinceAsync(DateTimeOffset since, IReadOnlyCollection<long> sizes, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Gets the identity facts of every item, for file matching to compare in memory (E01-S06-T05).
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

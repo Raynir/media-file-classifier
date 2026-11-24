@@ -26,7 +26,7 @@ namespace MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
 /// keeps the user's metadata and queues re-analysis when the content changed.</item>
 /// <item>A renamed or moved file relinks its item, which keeps its ID and metadata (E02-S04-T02).</item>
 /// <item>A deleted file's item is marked Missing with everything kept (E02-S04-T04), if the file is still gone. When an
-/// item registered in the last <see cref="CopyWindow"/> has its content, the deletion ends a move between drives, which
+/// item registered for a new file in the last <see cref="CopyWindow"/> has its content, the deletion ends a move between drives, which
 /// Windows does as a copy, then a delete: the old item takes the copy's file and keeps its ID and metadata, and the
 /// copy's item is deleted with its thumbnails, embeddings and AI results (MFC-1052).</item>
 /// </list>
@@ -63,6 +63,11 @@ public sealed partial class ApplyChangesStage(
     public static readonly TimeSpan CopyWindow = TimeSpan.FromMinutes(5);
 
     private readonly SemaphoreSlim gate = new(1, 1);
+
+    // The items registered for new files in the last CopyWindow, with when: the only items a deletion can pair with as
+    // a copy, so a duplicate an import or rescan found is never taken for one. Used under the gate only; item IDs are
+    // unique across libraries, so another library's entries just aren't found.
+    private readonly Dictionary<Id<MediaItem>, (DateTimeOffset At, long SizeBytes)> recentlyRegistered = [];
 
     /// <inheritdoc />
     public string Stage => ChangeProcessingStages.Apply;
@@ -171,6 +176,11 @@ public sealed partial class ApplyChangesStage(
         var missing = gone.Count - copied;
         var registered = await RegisterAsync(library, folder, batch.New, cancellationToken).ConfigureAwait(false);
         var moved = await PairMovesAsync(context, folder, folders, registered, batch.Now, cancellationToken).ConfigureAwait(false);
+        foreach (var item in registered.Where(item => !moved.Contains(item.Id)))
+        {
+            recentlyRegistered[item.Id] = (batch.Now, item.SizeBytes);
+        }
+
         await EnqueueAsync(context, ImportStages.Fingerprint, registered.Select(item => item.Id).Where(itemId => !moved.Contains(itemId)), cancellationToken)
             .ConfigureAwait(false);
 
@@ -295,11 +305,11 @@ public sealed partial class ApplyChangesStage(
         return missing;
     }
 
-    // The items just marked Missing whose content an item registered in the copy window has, in any folder that can be
-    // reached: that item is a copy a move between drives made before deleting the file (MFC-1052). The pairs follow
-    // the rescan's move rules (MoveDetector), which also fingerprint a copy the import hasn't reached yet. The old item
-    // keeps its ID and metadata and takes the copy's file; the copy's item goes with all it has, and edits made on it
-    // in the window go with it. Returns how many items were relinked.
+    // The items just marked Missing whose content an item the watcher registered in the copy window has, in any folder
+    // that can be reached: that item is a copy a move between drives made before deleting the file (MFC-1052). The
+    // pairs follow the rescan's move rules (MoveDetector), which also fingerprint a copy the import hasn't reached yet.
+    // The old item keeps its ID and metadata and takes the copy's file; the copy's item goes with all it has, and edits
+    // made on it in the window go with it. Returns how many items were relinked.
     private async Task<int> PairCopiesAsync(
         WorkItemContext context,
         IReadOnlyList<IndexedFolder> folders,
@@ -307,18 +317,25 @@ public sealed partial class ApplyChangesStage(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
+        foreach (var (itemId, _) in recentlyRegistered.Where(entry => entry.Value.At < now - CopyWindow).ToList())
+        {
+            recentlyRegistered.Remove(itemId);
+        }
+
         var sizes = missing.Where(item => item.Hashes.Fingerprint is not null).Select(item => item.SizeBytes).ToHashSet();
-        if (sizes.Count == 0)
+        Id<MediaItem>[] candidates = [.. recentlyRegistered.Where(entry => sizes.Contains(entry.Value.SizeBytes)).Select(entry => entry.Key)];
+        if (candidates.Length == 0)
         {
             return 0;
         }
 
         var library = context.Library;
-        var missingIds = missing.Select(item => item.Id).ToHashSet();
         var online = folders.Where(other => other.Status == FolderStatus.Online).ToDictionary(other => other.Id);
-        var recent = await library.Items.GetImportedSinceAsync(now - CopyWindow, sizes, cancellationToken).ConfigureAwait(false);
+        var recent = await library.Items.GetByIdsAsync(candidates, cancellationToken).ConfigureAwait(false);
         (IndexedFolder Folder, MediaItem File)[] copies = [.. recent
-            .Where(item => !missingIds.Contains(item.Id) && online.ContainsKey(item.FolderId))
+            .Where(item => item.Status is not (MediaItemStatus.Missing or MediaItemStatus.Excluded)
+                && sizes.Contains(item.SizeBytes)
+                && online.ContainsKey(item.FolderId))
             .Select(item => (online[item.FolderId], item))];
         if (copies.Length == 0)
         {
@@ -339,6 +356,7 @@ public sealed partial class ApplyChangesStage(
             item.ChangeStatus(MediaItemStatus.Pending, now);
             if (await library.Items.ReplaceWithMovedAsync(item, copy.Id, cancellationToken).ConfigureAwait(false))
             {
+                recentlyRegistered.Remove(copy.Id);
                 check.Add(item.Id);
                 LogCopyPaired(item.Id, copy.Id);
             }

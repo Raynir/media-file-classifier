@@ -6,6 +6,7 @@ using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Platform;
@@ -180,6 +181,76 @@ public sealed class FolderWatchManagerTests
         await bed.StartAsync();
 
         Assert.Equal([other.Id], bed.Manager.WatchedFolders);
+    }
+
+    [Fact]
+    public async Task State_OfAnOnlineFolder_IsWatching_Paused_OrError()
+    {
+        var bed = new Bed();
+        var watched = await bed.AddFolderAsync(@"E:\Photos");
+        var broken = await bed.AddFolderAsync(@"E:\Broken");
+        bed.Factory.Failing.Add(@"E:\Broken");
+        await bed.StartAsync();
+
+        Assert.Equal(FolderMonitoringState.Watching, bed.Manager.GetState(watched.Id));
+        Assert.Equal(FolderMonitoringState.Error, bed.Manager.GetState(broken.Id));
+
+        bed.Pause.Pause();
+        Assert.Equal(FolderMonitoringState.Paused, bed.Manager.GetState(watched.Id));
+
+        bed.Pause.Resume();
+        Assert.Equal(FolderMonitoringState.Watching, bed.Manager.GetState(watched.Id));
+    }
+
+    [Fact]
+    public async Task State_OfAnOfflineOrUnknownFolder_IsOff()
+    {
+        var bed = new Bed();
+        var offline = await bed.AddFolderAsync(@"E:\Offline");
+        offline.MarkOffline(Now);
+        await bed.StartAsync();
+
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(offline.Id));
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(Id<IndexedFolder>.New()));
+    }
+
+    [Fact]
+    public async Task MonitoringTurnedOff_StopsEveryWatcher_AndTurnedOnWatchesAgainWithAQuickSync()
+    {
+        var bed = new Bed();
+        bed.Settings.IsLibraryOpen = true;
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        var states = 0;
+        bed.Manager.StateChanged += (_, _) => states++;
+
+        bed.Settings.SetValue(KnownSettings.MonitoringEnabled, false);
+        await bed.Manager.RefreshAsync();
+        Assert.Empty(bed.Manager.WatchedFolders);
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(folder.Id));
+        Assert.True(states > 0);
+
+        bed.Settings.SetValue(KnownSettings.MonitoringEnabled, true);
+        await bed.Manager.WaitForRecoveryAsync();
+        Assert.Equal([folder.Id], bed.Manager.WatchedFolders);
+        Assert.Contains(bed.Sender.Rescans, rescan => rescan.Quick && rescan.FolderId is null);
+    }
+
+    [Fact]
+    public async Task Overflow_WhileMonitoringIsPaused_RescansOnlyOnceResumed()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Pause.Pause();
+
+        bed.Factory.Fail(@"E:\Photos", overflow: true);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.Empty(bed.Sender.Rescans);
+
+        bed.Pause.Resume();
+        await bed.Manager.WaitForRecoveryAsync();
+        Assert.Equal([folder.Id], bed.Sender.Rescans.Select(rescan => rescan.FolderId));
     }
 
     [Fact]
@@ -458,6 +529,64 @@ public sealed class FolderWatchManagerTests
     }
 
     [Fact]
+    public async Task Deletions_InAFolderBrieflyUnreachable_ThatTheCheckFindsOnline_RescanTheFolder()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Files.IsAvailable = false;
+        bed.Sender.OnCheck = _ =>
+        {
+            bed.Files.IsAvailable = true;
+            return Task.CompletedTask;
+        };
+
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Created, "new.jpg"));
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Deleted, "a.jpg"));
+        bed.Settle();
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Empty(bed.Publisher.Published);
+        Assert.Equal(folder.Id, Assert.Single(bed.Sender.Rescans).FolderId);
+    }
+
+    [Fact]
+    public async Task Deletions_InAFolderThatTheCheckRelinks_AreLeftToItsCatchUp()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Files.IsAvailable = false;
+        bed.Sender.CheckChanged = [folder];
+
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Deleted, "a.jpg"));
+        bed.Settle();
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Empty(bed.Sender.Rescans);
+    }
+
+    [Fact]
+    public async Task Deletions_InAFolderThatTheCheckFindsOffline_DontRescanIt()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        bed.Files.IsAvailable = false;
+        bed.Sender.OnCheck = async _ =>
+        {
+            folder.MarkOffline(Now);
+            await bed.Library.FolderList.UpdateAvailabilityAsync(folder, TestContext.Current.CancellationToken);
+        };
+
+        bed.Factory.Raise(@"E:\Photos", new FolderWatchEvent(FolderWatchEventKind.Deleted, "a.jpg"));
+        bed.Settle();
+        await bed.Manager.WaitForRecoveryAsync();
+
+        Assert.Empty(bed.Sender.Rescans);
+    }
+
+    [Fact]
     public async Task Deletions_InAFolderThatCanBeReached_ArePublished()
     {
         var bed = new Bed();
@@ -640,12 +769,15 @@ public sealed class FolderWatchManagerTests
                 Clock,
                 NullLogger<FolderWatchManager>.Instance,
                 Factory,
+                Pause,
                 new FolderLocations(NullLogger<FolderLocations>.Instance, Probe));
         }
 
         public FakeLibrarySession Session { get; } = new();
 
         public ManualClock Clock { get; } = new();
+
+        public MonitoringPause Pause { get; } = new();
 
         public InMemoryMediaFileSource Files { get; } = new();
 
@@ -753,6 +885,8 @@ public sealed class FolderWatchManagerTests
 
         public Func<CheckFolderAvailabilityCommand, Task>? OnCheck { get; set; }
 
+        public IReadOnlyList<IndexedFolder> CheckChanged { get; set; } = [];
+
         public IEnumerable<StartRescanCommand> Rescans => Requests.OfType<StartRescanCommand>();
 
         public override async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
@@ -769,7 +903,7 @@ public sealed class FolderWatchManagerTests
                         await OnCheck(check);
                     }
 
-                    return (TResponse)(object)Array.Empty<IndexedFolder>();
+                    return (TResponse)(object)CheckChanged;
                 default:
                     throw new NotSupportedException(request.GetType().Name);
             }

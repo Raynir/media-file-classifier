@@ -5,6 +5,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Activity.RecordActivity;
+using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Monitoring;
 using MediatR;
@@ -36,6 +37,34 @@ public sealed class VolumeIdentityTests
 
         Assert.Empty(changed);
         Assert.Equal((Serial, 1), (folder.VolumeId, bed.Library.FolderList.Updates));
+    }
+
+    [Fact]
+    public async Task AddedFolder_GetsItsVolumeId_RightAway()
+    {
+        var bed = await Bed.CreateAsync();
+        bed.Volumes.Volumes[@"E:\"] = Serial;
+        var handler = new AddLibraryFoldersCommandHandler(
+            bed.Session, bed.Files, TimeProvider.System, NullLogger<AddLibraryFoldersCommandHandler>.Instance, volumes: bed.Volumes);
+
+        await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(Folder, "Photos")]), Token);
+
+        Assert.Equal(Serial, Assert.Single(bed.Library.FolderList.Folders).VolumeId);
+    }
+
+    [Fact]
+    public async Task AddedFolder_ThenItsLetterTakenByAnotherDrive_IsOffline()
+    {
+        var bed = await Bed.CreateAsync();
+        bed.Volumes.Volumes[@"E:\"] = Serial;
+        var handler = new AddLibraryFoldersCommandHandler(
+            bed.Session, bed.Files, TimeProvider.System, NullLogger<AddLibraryFoldersCommandHandler>.Instance, volumes: bed.Volumes);
+        await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(Folder, "Photos")]), Token);
+
+        bed.Volumes.Volumes[@"E:\"] = "9999-0000";
+        var changed = await bed.CheckAsync();
+
+        Assert.Equal(FolderStatus.Offline, Assert.Single(changed).Status);
     }
 
     [Fact]

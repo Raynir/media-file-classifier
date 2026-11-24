@@ -1,10 +1,13 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Media;
+using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.UseCases.Exclusions.ExcludeItems;
 using MediaFileClassifier.UseCases.Import.ImportFiles;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Import;
 
@@ -53,6 +56,21 @@ public sealed class ImportFilesTests : IAsyncLifetime
             Assert.Equal(MediaItemStatus.Pending, item.Status);
             Assert.NotNull(item.Hashes.ContentHash);
         });
+    }
+
+    [Fact]
+    public async Task Import_NewPartialFolder_GetsItsVolumeId_RightAway()
+    {
+        var volumes = new FakeVolumeLocator();
+        volumes.Volumes[Path.GetPathRoot(downloads.Path)!] = "1A2B-3C4D";
+        await using var own = await ImportTestBed.CreateAsync(configure: services => services.AddSingleton<IVolumeLocator>(volumes));
+        var file = Copy(downloads, SampleMedia.PngWithAlpha, "a.png");
+
+        var result = await own.Sender.Send(new ImportFilesCommand([LocalFolder.ToLocation(file)]), Token);
+        await own.WaitUntilIdleAsync();
+
+        Assert.Equal("1A2B-3C4D", Assert.Single(result.AddedFolders).VolumeId);
+        Assert.Equal("1A2B-3C4D", (await own.Library.Folders.GetAsync(result.AddedFolders[0].Id, Token))!.VolumeId);
     }
 
     [Fact]

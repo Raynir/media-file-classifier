@@ -21,7 +21,7 @@ namespace MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 /// (E14-S07-T04, <see cref="FolderAvailabilityMonitor"/>); when a status changes, the folder repository's
 /// <c>StatusChanged</c> tells the browser through <see cref="FolderStatusChanges"/>. Only the availability columns are
 /// stored, so a relink or rule change made while the probes run isn't undone. The identity of an Online folder's volume
-/// is stored too (E04-S04-T03): a folder whose drive letter now leads to another drive is Offline, and one whose drive
+/// is stored too (E04-S04-T03; a new folder's is stored when it's added, MFC-1045): a folder whose drive letter now leads to another drive is Offline, and one whose drive
 /// came back under another letter follows it there. Folders that came back are announced with
 /// <see cref="FoldersReconnected"/> (E04-S04-T02).
 /// </summary>
@@ -82,11 +82,22 @@ public sealed class CheckFolderAvailabilityCommandHandler(
         {
             var folder = folders[i];
             var probe = probes[i];
-            if (probe.MovedTo is { } movedTo && await RelinkAsync(library, all, folder, movedTo, probe.Label).ConfigureAwait(false))
+            if (probe.MovedTo is { } movedTo)
             {
-                changed.Add(folder);
-                reconnected.Add(folder.Id);
-                continue;
+                var relink = await RelinkAsync(library, all, folder, movedTo, probe.Label).ConfigureAwait(false);
+                if (relink == RelinkOutcome.Relinked)
+                {
+                    changed.Add(folder);
+                    reconnected.Add(folder.Id);
+                    continue;
+                }
+
+                // Relinked or removed meanwhile, e.g. by a parallel check (MFC-1044): the newer state wins, and nothing
+                // this probe found about the old root applies to it.
+                if (relink == RelinkOutcome.Superseded)
+                {
+                    continue;
+                }
             }
 
             var status = probe.Available ? FolderStatus.Online : FolderStatus.Offline;
@@ -98,7 +109,7 @@ public sealed class CheckFolderAvailabilityCommandHandler(
             {
                 if (relabelled)
                 {
-                    await library.Folders.UpdateAvailabilityAsync(folder, CancellationToken.None).ConfigureAwait(false);
+                    await library.Folders.UpdateAvailabilityAndVolumeAsync(folder, CancellationToken.None).ConfigureAwait(false);
                 }
 
                 continue;
@@ -114,7 +125,7 @@ public sealed class CheckFolderAvailabilityCommandHandler(
                 folder.MarkOffline(clock.GetUtcNow());
             }
 
-            await library.Folders.UpdateAvailabilityAsync(folder, CancellationToken.None).ConfigureAwait(false);
+            await library.Folders.UpdateAvailabilityAndVolumeAsync(folder, CancellationToken.None).ConfigureAwait(false);
             logger.LogInformation("Folder {Folder} is {Status} now", folder.DisplayPath, status);
             changed.Add(folder);
         }
@@ -195,8 +206,8 @@ public sealed class CheckFolderAvailabilityCommandHandler(
     /// Points a folder at the root its volume is mounted under now, unless that root is another folder of the library or
     /// overlaps one, so two folders never index the same files.
     /// </summary>
-    /// <returns>Whether the folder was relinked.</returns>
-    private async Task<bool> RelinkAsync(IOpenLibrary library, IReadOnlyList<IndexedFolder> all, IndexedFolder folder, FolderHandle movedTo, (bool Read, string? Label) label)
+    /// <returns>Whether the folder was relinked, or why not.</returns>
+    private async Task<RelinkOutcome> RelinkAsync(IOpenLibrary library, IReadOnlyList<IndexedFolder> all, IndexedFolder folder, FolderHandle movedTo, (bool Read, string? Label) label)
     {
         var overlapping = all.FirstOrDefault(other => other.Id != folder.Id
             && (string.Equals(other.PlatformHandle, movedTo.Id, StringComparison.OrdinalIgnoreCase)
@@ -205,7 +216,7 @@ public sealed class CheckFolderAvailabilityCommandHandler(
         if (overlapping is not null)
         {
             logger.LogWarning("The drive of {Folder} is back at {NewPath}, which overlaps {Other}, so the folder stays where it was", folder.DisplayPath, movedTo.DisplayName, overlapping.DisplayPath);
-            return false;
+            return RelinkOutcome.Overlaps;
         }
 
         var oldPath = folder.DisplayPath;
@@ -218,8 +229,11 @@ public sealed class CheckFolderAvailabilityCommandHandler(
 
         if (!await library.Folders.RelinkAsync(folder, oldHandle, CancellationToken.None).ConfigureAwait(false))
         {
-            // Relinked or removed meanwhile: the newer state wins.
-            return false;
+            // Relinked or removed meanwhile. The copy goes back to its old root, which the later folders' overlap tests
+            // compare with, and must not be stored as anything.
+            folder.Relink(oldPath, oldHandle, folder.StatusChangedAt);
+            logger.LogInformation("Folder {OldPath} was relinked or removed meanwhile, so this check leaves it as it is", oldPath);
+            return RelinkOutcome.Superseded;
         }
 
         logger.LogInformation("Folder {OldPath} followed its drive to {NewPath}", oldPath, folder.DisplayPath);
@@ -230,7 +244,7 @@ public sealed class CheckFolderAvailabilityCommandHandler(
                 CancellationToken.None).ConfigureAwait(false);
         }
 
-        return true;
+        return RelinkOutcome.Relinked;
     }
 
     /// <summary>
@@ -241,4 +255,19 @@ public sealed class CheckFolderAvailabilityCommandHandler(
     /// <param name="VolumeId">Its volume's identity, if read while reachable.</param>
     /// <param name="MovedTo">Its root on its volume under another drive letter, if found.</param>
     private sealed record Probe(bool Available, (bool Read, string? Label) Label, string? VolumeId, FolderHandle? MovedTo);
+
+    /// <summary>
+    /// What became of a relink.
+    /// </summary>
+    private enum RelinkOutcome
+    {
+        /// <summary>The folder was stored at its new root.</summary>
+        Relinked,
+
+        /// <summary>The new root overlaps another folder, so the folder stays where it was.</summary>
+        Overlaps,
+
+        /// <summary>The folder was relinked or removed since it was read; the stored state wins.</summary>
+        Superseded,
+    }
 }

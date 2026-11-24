@@ -209,6 +209,9 @@ internal sealed class FakeFolderRepository : IFolderRepository
         return Task.CompletedTask;
     }
 
+    public Task UpdateAvailabilityAndVolumeAsync(IndexedFolder folder, CancellationToken cancellationToken = default) =>
+        UpdateAvailabilityAsync(folder, cancellationToken);
+
     public Task<bool> RelinkAsync(IndexedFolder folder, string oldPlatformHandle, CancellationToken cancellationToken = default)
     {
         Relinks++;

@@ -30,6 +30,7 @@ public sealed class ReconnectCatchUp : IDisposable
     private readonly ISender sender;
     private readonly TimeProvider clock;
     private readonly ILogger<ReconnectCatchUp> logger;
+    private readonly MonitoringPause? pause;
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Cancelled by Dispose; a sync already under way may still read its token. It has no timer or wait handle.")]
     private readonly CancellationTokenSource stopping = new();
     private readonly Lock syncRoot = new();
@@ -45,6 +46,7 @@ public sealed class ReconnectCatchUp : IDisposable
     /// <param name="sender">Starts the syncs.</param>
     /// <param name="clock">Times the retries.</param>
     /// <param name="logger">Logger.</param>
+    /// <param name="pause">Holds the catch-ups while monitoring is paused (E04-S06-T02), or <see langword="null"/> for no pause.</param>
     /// <param name="locations">
     /// Tells the mode each folder runs in: a polled folder isn't watched, and is still caught up. Without it every folder
     /// counts as watched.
@@ -55,8 +57,10 @@ public sealed class ReconnectCatchUp : IDisposable
         ISender sender,
         TimeProvider clock,
         ILogger<ReconnectCatchUp> logger,
+        MonitoringPause? pause = null,
         FolderLocations? locations = null)
     {
+        this.pause = pause;
         this.session = session;
         this.watchers = watchers;
         this.locations = locations;
@@ -179,6 +183,15 @@ public sealed class ReconnectCatchUp : IDisposable
             await watchers.EnsureWatchingAsync().ConfigureAwait(false);
             while (await StillWantedAsync(library, folderId, token).ConfigureAwait(false))
             {
+                if (pause is not null)
+                {
+                    await pause.WaitWhilePausedAsync(token).ConfigureAwait(false);
+                    if (!await StillWantedAsync(library, folderId, token).ConfigureAwait(false))
+                    {
+                        return;
+                    }
+                }
+
                 var result = await sender.Send(new StartRescanCommand(folderId, Quick: true), token).ConfigureAwait(false);
                 if (result.Outcome != StartRescanOutcome.Busy)
                 {

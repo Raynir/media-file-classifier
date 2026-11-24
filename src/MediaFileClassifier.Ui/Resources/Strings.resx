@@ -1827,6 +1827,69 @@
   <data name="Setting_QuickSyncOnOpen_Help" xml:space="preserve">
     <value>Looks for files added, changed or removed while the app was closed. It runs in the background. Turn it off for very large or slow drives; the Rescan command still works.</value>
   </data>
+  <data name="Setting_MonitoringEnabled" xml:space="preserve">
+    <value>Monitor folders for changes</value>
+  </data>
+  <data name="Setting_MonitoringEnabled_Help" xml:space="preserve">
+    <value>Watches this library's folders and imports new and changed files as they appear. Turn it off to change the library only when you rescan.</value>
+  </data>
+  <data name="Monitoring_PausedStatus" xml:space="preserve">
+    <value>Monitoring paused</value>
+  </data>
+  <data name="Monitoring_ResumeTip" xml:space="preserve">
+    <value>Resume monitoring: changes found while paused are imported</value>
+  </data>
+  <data name="Monitoring_Pause" xml:space="preserve">
+    <value>Pause monitoring</value>
+  </data>
+  <data name="Monitoring_Resume" xml:space="preserve">
+    <value>Resume monitoring</value>
+  </data>
+  <data name="Folders_Monitoring_Watching" xml:space="preserve">
+    <value>Watching</value>
+  </data>
+  <data name="Folders_Monitoring_Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Folders_Monitoring_Error" xml:space="preserve">
+    <value>Can't watch</value>
+  </data>
+  <data name="Folders_Monitoring_Off" xml:space="preserve">
+    <value>Not monitored</value>
+  </data>
+  <data name="Folders_Monitoring_Error_Tip" xml:space="preserve">
+    <value>The folder is reachable but changes in it can't be watched. The app tries again by itself; Rescan still finds changes.</value>
+  </data>
+  <data name="Setting_MonitoringNotifyThreshold" xml:space="preserve">
+    <value>Notify when a monitored folder gets at least this many changes</value>
+  </data>
+  <data name="Setting_MonitoringNotifyThreshold_Help" xml:space="preserve">
+    <value>Smaller batches of new, changed, moved or removed files are not announced; the activity log lists every batch.</value>
+  </data>
+  <data name="Notification_MonitoringNew_One" xml:space="preserve">
+    <value>{0} new item imported from {1}</value>
+  </data>
+  <data name="Notification_MonitoringNew_Other" xml:space="preserve">
+    <value>{0} new items imported from {1}</value>
+  </data>
+  <data name="Notification_MonitoringMixed" xml:space="preserve">
+    <value>{0} changes in {1}: {2}</value>
+  </data>
+  <data name="Notification_MonitoringFailed" xml:space="preserve">
+    <value>{0} failed.</value>
+  </data>
+  <data name="Notification_MonitoringPart_New" xml:space="preserve">
+    <value>{0} new</value>
+  </data>
+  <data name="Notification_MonitoringPart_Updated" xml:space="preserve">
+    <value>{0} updated</value>
+  </data>
+  <data name="Notification_MonitoringPart_Moved" xml:space="preserve">
+    <value>{0} moved</value>
+  </data>
+  <data name="Notification_MonitoringPart_Missing" xml:space="preserve">
+    <value>{0} missing</value>
+  </data>
   <data name="Notification_QuickSyncDone" xml:space="preserve">
     <value>Library updated: {0} new, {1} moved, {2} missing, {3} changed</value>
   </data>

@@ -35,13 +35,15 @@ namespace MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
 /// <param name="held">The deletions still held.</param>
 /// <param name="clock">Clock for status changes.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="tally">Remembers what the job changed, for the activity log and the notification, or <see langword="null"/> for none.</param>
 public sealed partial class ApplyChangesStage(
     IMediaFileSource files,
     IFolderDiscovery discovery,
     MoveDetector moves,
     HeldDeletes held,
     TimeProvider clock,
-    ILogger<ApplyChangesStage> logger) : IStageHandler, IDisposable
+    ILogger<ApplyChangesStage> logger,
+    MonitoringTally? tally = null) : IStageHandler, IDisposable
 {
     /// <summary>
     /// The most changes applied in one step, so a renamed folder of many files is read and written in a few steps.
@@ -158,6 +160,7 @@ public sealed partial class ApplyChangesStage(
         await EnqueueAsync(context, ImportStages.Fingerprint, registered.Select(item => item.Id).Where(itemId => !moved.Contains(itemId)), cancellationToken)
             .ConfigureAwait(false);
 
+        tally?.Add(context.WorkItem.JobId, new MonitoringCounts(registered.Count - moved.Count, batch.Check.Count, batch.Relinked + moved.Count, missing, folder.DisplayPath));
         LogApplied(folder.Id, registered.Count - moved.Count, batch.Check.Count, batch.Relinked + moved.Count, missing);
     }
 

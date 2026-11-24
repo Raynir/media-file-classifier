@@ -127,7 +127,7 @@ public sealed class FolderMonitoringUseCaseTests
                 Clock,
                 NullLogger<FolderWatchManager>.Instance,
                 Factory,
-                Locations);
+                locations: Locations);
             Poller = new FolderPoller(Session, Locations, Sender, new FakePublisher(), Settings, Clock, NullLogger<FolderPoller>.Instance);
             Session.SetCurrentAsync(Library).GetAwaiter().GetResult();
         }

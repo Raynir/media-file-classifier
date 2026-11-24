@@ -49,6 +49,7 @@ public sealed partial class ChangeProcessor : IDisposable
     private readonly TimeProvider clock;
     private readonly ILogger<ChangeProcessor> logger;
     private readonly IJobSystem? jobs;
+    private readonly MonitoringPause? pause;
     private readonly ITimer timer;
     private readonly Lock syncRoot = new();
     private readonly SemaphoreSlim enqueueing = new(1, 1);
@@ -65,13 +66,19 @@ public sealed partial class ChangeProcessor : IDisposable
     /// <param name="clock">Times the delete grace period and the gathering.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="jobs">Runs the jobs of the open library, if the platform has background processing.</param>
-    public ChangeProcessor(HeldDeletes held, TimeProvider clock, ILogger<ChangeProcessor> logger, IJobSystem? jobs = null)
+    /// <param name="pause">Holds the changes while monitoring is paused (E04-S06-T02), or <see langword="null"/> for no pause.</param>
+    public ChangeProcessor(HeldDeletes held, TimeProvider clock, ILogger<ChangeProcessor> logger, IJobSystem? jobs = null, MonitoringPause? pause = null)
     {
+        this.pause = pause;
         this.held = held;
         this.clock = clock;
         this.logger = logger;
         this.jobs = jobs;
         timer = clock.CreateTimer(_ => _ = ReleaseDueAsync(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        if (pause is not null)
+        {
+            pause.Changed += OnPauseChanged;
+        }
     }
 
     /// <summary>
@@ -126,9 +133,17 @@ public sealed partial class ChangeProcessor : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        if (pause is not null)
+        {
+            pause.Changed -= OnPauseChanged;
+        }
+
         timer.Dispose();
         enqueueing.Dispose();
     }
+
+    // Resuming releases what came due while monitoring was paused; pausing stops the timer.
+    private void OnPauseChanged(object? sender, EventArgs e) => Schedule();
 
     // Forgets what belongs to another library.
     private void Own(IJobScheduler scheduler)
@@ -146,6 +161,13 @@ public sealed partial class ChangeProcessor : IDisposable
     {
         lock (syncRoot)
         {
+            if (pause?.IsPaused == true)
+            {
+                // Everything waits; resuming schedules it again.
+                SetTimer(Timeout.InfiniteTimeSpan);
+                return;
+            }
+
             var next = held.NextDue();
             foreach (var gathering in gathered.Values)
             {
@@ -155,12 +177,30 @@ public sealed partial class ChangeProcessor : IDisposable
                 }
             }
 
-            timer.Change(next is { } due ? TimeSpan.FromTicks(Math.Max(0, (due - clock.GetUtcNow()).Ticks)) : Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            SetTimer(next is { } due ? TimeSpan.FromTicks(Math.Max(0, (due - clock.GetUtcNow()).Ticks)) : Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    // A pause or resume may reach the timer while the processor is being disposed.
+    private void SetTimer(TimeSpan dueTime)
+    {
+        try
+        {
+            timer.Change(dueTime, Timeout.InfiniteTimeSpan);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Shutting down.
         }
     }
 
     private async Task ReleaseDueAsync()
     {
+        if (pause?.IsPaused == true)
+        {
+            return;
+        }
+
         // The library closed or changed meanwhile: the next startup sync finds those changes.
         var scheduler = jobs?.Current;
         var now = clock.GetUtcNow();

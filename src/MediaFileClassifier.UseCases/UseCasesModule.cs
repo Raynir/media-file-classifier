@@ -38,6 +38,9 @@ public static class UseCasesModule
         services.AddSetting(Search.Filters.FilterSettings.RestoreOnStart);
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderStatusChanges>();
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderAvailabilityMonitor>();
+        services.TryAddSingleton<Monitoring.MonitoringPause>();
+        services.TryAddSingleton<Monitoring.MonitoringTally>();
+        services.AddSetting(Monitoring.MonitoringSettings.NotifyThreshold);
         services.TryAddSingleton<Monitoring.FolderWatchManager>();
         services.TryAddSingleton<Monitoring.ChangeProcessing.HeldDeletes>();
         services.TryAddSingleton<Monitoring.ChangeProcessing.ChangeProcessor>();
@@ -48,6 +51,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Monitoring.QuickSyncStarter>();
         services.TryAddSingleton<Monitoring.ReconnectCatchUp>();
         services.AddSetting(KnownSettings.QuickSyncOnOpen);
+        services.AddSetting(KnownSettings.MonitoringEnabled);
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();
         services.TryAddSingleton<Activity.ActivityChanges>();

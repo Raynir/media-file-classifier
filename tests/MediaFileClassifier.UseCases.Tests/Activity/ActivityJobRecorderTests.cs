@@ -10,6 +10,7 @@ using MediaFileClassifier.UseCases.Activity.RecordActivity;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Maintenance;
+using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Tests.Libraries;
 using MediatR;
@@ -55,6 +56,43 @@ public sealed class ActivityJobRecorderTests
         var command = Assert.Single(bed.Sender.Commands);
         Assert.Equal((type, expected), (command.Type, command.Severity));
         Assert.Equal((long)failed, command.Counts![ActivityCounts.Failed]);
+    }
+
+    [Fact]
+    public async Task MonitoringImport_RecordsAFolderMonitoringEvent_WithWhatTheBatchesChanged()
+    {
+        var bed = await CreateAsync();
+        var folder = bed.AddFolder();
+        bed.Store(ImportStages.ImportJob, folder.Id);
+        bed.Tally.Add(bed.JobId, new MonitoringCounts(10, 1, 0, 0, @"D:\Photos"));
+        bed.Tally.Add(bed.JobId, new MonitoringCounts(2, 0, 3, 1, @"D:\Photos"));
+
+        await bed.Recorder.RecordAsync(Finished(ImportStages.ImportJob, bed.JobId, items: 12, failed: 0), Token);
+
+        var command = Assert.Single(bed.Sender.Commands);
+        Assert.Equal((ActivityEventType.FolderMonitoring, ActivitySeverity.Info, folder.Id), (command.Type, command.Severity, command.FolderId));
+        Assert.Equal(
+            new Dictionary<string, long>
+            {
+                [ActivityCounts.Added] = 12,
+                [ActivityCounts.Modified] = 1,
+                [ActivityCounts.Moved] = 3,
+                [ActivityCounts.Missing] = 1,
+                [ActivityCounts.Failed] = 0,
+            },
+            command.Counts);
+    }
+
+    [Fact]
+    public async Task MonitoringImport_ThatChangedNothing_RecordsNothing()
+    {
+        var bed = await CreateAsync();
+        bed.Store(ImportStages.ImportJob, folderId: null);
+        bed.Tally.Add(bed.JobId, new MonitoringCounts(0, 0, 0, 0));
+
+        await bed.Recorder.RecordAsync(Finished(ImportStages.ImportJob, bed.JobId, items: 0, failed: 0), Token);
+
+        Assert.Empty(bed.Sender.Commands);
     }
 
     [Fact]
@@ -185,7 +223,7 @@ public sealed class ActivityJobRecorderTests
         {
             Session = session;
             Library = library;
-            Recorder = new ActivityJobRecorder(Progress, session, Sender, NullLogger<ActivityJobRecorder>.Instance);
+            Recorder = new ActivityJobRecorder(Progress, session, Sender, NullLogger<ActivityJobRecorder>.Instance, Tally);
         }
 
         public FakeLibrarySession Session { get; }
@@ -195,6 +233,8 @@ public sealed class ActivityJobRecorderTests
         public Id<ProcessingJob> JobId { get; } = Id<ProcessingJob>.New();
 
         public StubJobProgress Progress { get; } = new();
+
+        public MonitoringTally Tally { get; } = new();
 
         public RecordingSender Sender { get; } = new();
 

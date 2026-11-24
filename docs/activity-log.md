@@ -12,7 +12,7 @@ One event per finished operation, written to the library (table `activity_event`
 | `FolderAdded`, `FolderRemoved` | A folder is added or removed (also with the items that went with it). | The folder, while it exists |
 | `BulkEdit` | An edit of more than one item, and its undo. | None |
 | `DuplicateResolution`, `Export`, `LibraryImport` | Defined, not recorded yet: those features do not exist. | |
-| `FolderMonitoring` | Defined for folder monitoring (MFC-140) to record. | |
+| `FolderMonitoring` | A monitoring import job finishes (`ActivityJobRecorder`, counts from `MonitoringTally`). | Its folder |
 
 A feature records an event with `RecordActivityCommand`. It never throws: a log that cannot be written must not fail the work it describes.
 

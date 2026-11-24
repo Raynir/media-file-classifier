@@ -14,6 +14,7 @@
         <Button Content="{l:Loc Folders_Remove}" Command="{Binding RemoveCommand}" />
         <Button Content="{l:Loc Folders_Rescan}" Command="{Binding RescanCommand}" />
         <Button Content="{l:Loc Folders_Analyze}" Command="{Binding AnalyzeCommand}" />
+        <Button x:Name="MonitoringPauseButton" Content="{Binding MonitoringPauseLabel}" Command="{Binding ToggleMonitoringPauseCommand}" IsVisible="{Binding CanPauseMonitoring}" />
       </StackPanel>
 
       <!-- Merge and remove are confirmed here, not in another window. -->
@@ -50,6 +51,24 @@
                     <PathIcon Data="{StaticResource Icon.Status.Offline}" />
                     <TextBlock Text="{Binding StateText}" />
                   </StackPanel>
+                </Border>
+                <Border Classes="StatusBadge Excluded" IsVisible="{Binding ShowsWatching}">
+                  <TextBlock Text="{Binding MonitoringText}" />
+                </Border>
+                <Border Classes="StatusBadge Missing" IsVisible="{Binding ShowsPaused}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                    <PathIcon Data="{StaticResource Icon.Pause}" />
+                    <TextBlock Text="{Binding MonitoringText}" />
+                  </StackPanel>
+                </Border>
+                <Border Classes="StatusBadge Error" IsVisible="{Binding ShowsMonitoringError}" ToolTip.Tip="{Binding MonitoringErrorTip}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                    <PathIcon Data="{StaticResource Icon.Status.Error}" />
+                    <TextBlock Text="{Binding MonitoringText}" />
+                  </StackPanel>
+                </Border>
+                <Border Classes="StatusBadge Excluded" IsVisible="{Binding ShowsNotMonitored}">
+                  <TextBlock Text="{Binding MonitoringText}" />
                 </Border>
                 <Border Classes="StatusBadge Pending" IsVisible="{Binding IsScanning}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">

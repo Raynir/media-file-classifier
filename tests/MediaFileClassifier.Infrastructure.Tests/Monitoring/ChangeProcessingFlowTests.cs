@@ -24,12 +24,13 @@ namespace MediaFileClassifier.Infrastructure.Tests.Monitoring;
 public sealed class ChangeProcessingFlowTests : IAsyncLifetime
 {
     private readonly ManualClock clock = new(DateTimeOffset.UtcNow);
+    private readonly MonitoringPause monitoringPause = new();
     private ImportTestBed bed = null!;
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync() => bed = await ImportTestBed.CreateAsync(configure: services =>
-        services.AddSingleton(provider => new ChangeProcessor(provider.GetRequiredService<HeldDeletes>(), clock, NullLogger<ChangeProcessor>.Instance, provider.GetRequiredService<IJobSystem>())));
+        services.AddSingleton(provider => new ChangeProcessor(provider.GetRequiredService<HeldDeletes>(), clock, NullLogger<ChangeProcessor>.Instance, provider.GetRequiredService<IJobSystem>(), monitoringPause)));
 
     public async ValueTask DisposeAsync() => await bed.DisposeAsync();
 
@@ -410,6 +411,25 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         Assert.Empty(await bed.ItemsAsync());
 
         scheduler.Resume();
+        await bed.WaitUntilIdleAsync();
+        Assert.Single(await bed.ItemsAsync());
+    }
+
+    [Fact]
+    public async Task Changes_WhileMonitoringIsPaused_AreNotQueuedUntilResumed()
+    {
+        await ImportAsync();
+        monitoringPause.Pause();
+        bed.Copy(SampleMedia.JpegWithExif, "photo.jpg");
+
+        await bed.Get<ChangeProcessor>().SubmitAsync(bed.Folder.Id, [await ChangedAsync("photo.jpg")], Token);
+        clock.Advance(ChangeProcessor.GatherMax);
+        await Task.Delay(500, Token);
+        Assert.Empty(await ChangeJobsAsync());
+        Assert.Empty(await bed.ItemsAsync());
+
+        monitoringPause.Resume();
+        await AdvanceUntilQueuedAsync(TimeSpan.FromSeconds(1));
         await bed.WaitUntilIdleAsync();
         Assert.Single(await bed.ItemsAsync());
     }

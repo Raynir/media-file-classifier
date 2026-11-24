@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.UseCases.Exclusions;
 using MediaFileClassifier.UseCases.Exclusions.RestoreExcludedItems;
 using MediaFileClassifier.UseCases.Libraries;
@@ -36,6 +37,7 @@ namespace MediaFileClassifier.UseCases.Import.ImportFiles;
 /// <param name="logger">Logger.</param>
 /// <param name="sender">Restores files the user had removed, or <c>null</c> to leave them removed.</param>
 /// <param name="jobs">Runs the import, if the platform has background processing.</param>
+/// <param name="volumes">Reads the identity of each new folder's volume, where the platform has one.</param>
 public sealed class ImportFilesCommandHandler(
     ILibrarySession session,
     IMediaFileSource files,
@@ -43,7 +45,8 @@ public sealed class ImportFilesCommandHandler(
     TimeProvider clock,
     ILogger<ImportFilesCommandHandler> logger,
     ISender? sender = null,
-    IJobSystem? jobs = null) : IRequestHandler<ImportFilesCommand, ImportFilesResult>
+    IJobSystem? jobs = null,
+    IVolumeLocator? volumes = null) : IRequestHandler<ImportFilesCommand, ImportFilesResult>
 {
     /// <inheritdoc />
     public async Task<ImportFilesResult> Handle(ImportFilesCommand request, CancellationToken cancellationToken)
@@ -63,6 +66,7 @@ public sealed class ImportFilesCommandHandler(
                 var displayPath = Path.IsPathFullyQualified(file.Folder.Id) ? file.Folder.Id : file.Folder.DisplayName;
                 folder = IndexedFolder.CreateForSelectedFiles(library.Library.Id, displayPath, file.Folder.Id, clock.GetUtcNow());
                 folder.ChangeVolumeLabel((await VolumeLabels.TryReadAsync(files, file.Folder, logger, cancellationToken).ConfigureAwait(false)).Label);
+                await FolderReachability.RecordVolumeIdAsync(volumes, folder, cancellationToken).ConfigureAwait(false);
                 await library.Folders.AddAsync(folder, cancellationToken).ConfigureAwait(false);
                 indexed.Add(folder);
                 added.Add(folder);

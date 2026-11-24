@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases.Libraries.GetIndexedFolders;
+using MediaFileClassifier.UseCases.Monitoring;
 
 namespace MediaFileClassifier.Ui.ViewModels.Libraries;
 
@@ -32,7 +33,7 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     /// Gets the folder as last listed.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Path), nameof(Name), nameof(StateText), nameof(IsOffline), nameof(IsScanning), nameof(CountText), nameof(IsPartial))]
+    [NotifyPropertyChangedFor(nameof(Path), nameof(Name), nameof(StateText), nameof(IsOffline), nameof(IsScanning), nameof(CountText), nameof(IsPartial), nameof(ShowsWatching), nameof(ShowsPaused), nameof(ShowsMonitoringError), nameof(ShowsNotMonitored))]
     public partial IndexedFolderSummary Summary { get; private set; }
 
     /// <summary>
@@ -54,6 +55,43 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     /// Gets Online, Offline or Scanning.
     /// </summary>
     public string StateText => localizer.Get("Folders_State_" + Summary.State);
+
+    /// <summary>
+    /// Gets or sets how the folder is monitored (E04-S06-T01). It only means something for a folder that's Online.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsWatching), nameof(ShowsPaused), nameof(ShowsMonitoringError), nameof(ShowsNotMonitored), nameof(MonitoringText))]
+    public partial FolderMonitoringState MonitoringState { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the folder is Online and watched.
+    /// </summary>
+    public bool ShowsWatching => !IsOffline && MonitoringState == FolderMonitoringState.Watching;
+
+    /// <summary>
+    /// Gets a value indicating whether the folder is Online and watched, but monitoring is paused.
+    /// </summary>
+    public bool ShowsPaused => !IsOffline && MonitoringState == FolderMonitoringState.Paused;
+
+    /// <summary>
+    /// Gets a value indicating whether the folder is Online but its changes can't be watched.
+    /// </summary>
+    public bool ShowsMonitoringError => !IsOffline && MonitoringState == FolderMonitoringState.Error;
+
+    /// <summary>
+    /// Gets a value indicating whether the folder is Online and not monitored.
+    /// </summary>
+    public bool ShowsNotMonitored => !IsOffline && MonitoringState == FolderMonitoringState.Off;
+
+    /// <summary>
+    /// Gets the monitoring state in words: Watching, Paused, Can't watch or Not monitored.
+    /// </summary>
+    public string MonitoringText => localizer.Get("Folders_Monitoring_" + MonitoringState);
+
+    /// <summary>
+    /// Gets the explanation shown with the "Can't watch" state.
+    /// </summary>
+    public string MonitoringErrorTip => localizer.Get("Folders_Monitoring_Error_Tip");
 
     /// <summary>
     /// Gets a value indicating whether the folder can't be reached.

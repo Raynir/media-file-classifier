@@ -215,8 +215,8 @@ public sealed class ReconnectCatchUpTests
         {
             Library = new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "reconnect"), "reconnect");
             var locations = new FolderLocations(NullLogger<FolderLocations>.Instance, Probe);
-            Manager = new FolderWatchManager(Session, new InMemoryMediaFileSource(), new FakePublisher(), Sender, Settings, new NoFormats(), Clock, NullLogger<FolderWatchManager>.Instance, watched ? new QuietWatcherFactory() : null, locations);
-            CatchUp = new ReconnectCatchUp(Session, Manager, Sender, Clock, NullLogger<ReconnectCatchUp>.Instance, locations);
+            Manager = new FolderWatchManager(Session, new InMemoryMediaFileSource(), new FakePublisher(), Sender, Settings, new NoFormats(), Clock, NullLogger<FolderWatchManager>.Instance, watched ? new QuietWatcherFactory() : null, locations: locations);
+            CatchUp = new ReconnectCatchUp(Session, Manager, Sender, Clock, NullLogger<ReconnectCatchUp>.Instance, locations: locations);
             Handler = new FoldersReconnectedHandler(CatchUp);
         }
 

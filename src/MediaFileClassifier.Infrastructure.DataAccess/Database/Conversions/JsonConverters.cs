@@ -85,7 +85,8 @@ internal sealed class LibrarySettingsConverter()
             settings.LastFilters.Length > 0 ? settings.LastFilters : null,
             settings.ProcessingPaused ? true : null,
             settings.PausedPools.Count > 0 ? [.. settings.PausedPools.Select(pool => pool.ToString())] : null,
-            settings.QuickSyncOnOpen ? null : false),
+            settings.QuickSyncOnOpen ? null : false,
+            settings.MonitoringEnabled ? null : false),
         DataAccessJsonContext.Default.LibrarySettingsJson);
 
     private static LibrarySettings FromJson(string json)
@@ -105,6 +106,7 @@ internal sealed class LibrarySettingsConverter()
             LastFilters = stored.LastFilters ?? string.Empty,
             ProcessingPaused = stored.ProcessingPaused ?? false,
             QuickSyncOnOpen = stored.QuickSyncOnOpen ?? true,
+            MonitoringEnabled = stored.MonitoringEnabled ?? true,
 
             // A pool name this version doesn't know is dropped, so the library still opens.
             PausedPools = stored.PausedPools is { } pools
@@ -210,7 +212,8 @@ internal sealed record LibrarySettingsJson(
     string? LastFilters = null,
     bool? ProcessingPaused = null,
     string[]? PausedPools = null,
-    bool? QuickSyncOnOpen = null);
+    bool? QuickSyncOnOpen = null,
+    bool? MonitoringEnabled = null);
 
 /// <summary>
 /// Stored shape of <see cref="AnalysisProfile"/>. Libraries stored before it read as <see cref="AnalysisProfile.Default"/>.

@@ -14,29 +14,6 @@ namespace MediaFileClassifier.UseCases.Monitoring.GetFolderMonitoring;
 public sealed record GetFolderMonitoringQuery : IRequest<IReadOnlyList<FolderMonitoringInfo>>;
 
 /// <summary>
-/// What keeps a folder up to date now (E04-S05).
-/// </summary>
-public enum FolderMonitoringState
-{
-    /// <summary>A live watcher reports its changes.</summary>
-    Watching,
-
-    /// <summary>A quick sync runs at the poll interval.</summary>
-    Polling,
-
-    /// <summary>Nothing runs on its own: the folder is in Manual mode, or the platform can't watch or poll it.</summary>
-    Manual,
-
-    /// <summary>The folder can't be reached; it's caught up when it's back.</summary>
-    Offline,
-
-    /// <summary>
-    /// The folder should be watched but isn't: its watcher failed and waits to start again, or couldn't start.
-    /// </summary>
-    Error,
-}
-
-/// <summary>
 /// How a folder is kept up to date.
 /// </summary>
 /// <param name="FolderId">The folder.</param>

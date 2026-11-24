@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.UseCases.Activity.RecordActivity;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.ImportFolders;
@@ -48,6 +49,7 @@ public sealed record AddLibraryFoldersResult(
 /// <param name="sender">Starts the import of the added folders, or <c>null</c> to only add them.</param>
 /// <param name="jobs">Cancels the work of merged folders and queues their full hashes, if the platform has background processing.</param>
 /// <param name="hashJobs">Queues full hashes.</param>
+/// <param name="volumes">Reads the identity of each new folder's volume, where the platform has one.</param>
 public sealed class AddLibraryFoldersCommandHandler(
     ILibrarySession session,
     IMediaFileSource files,
@@ -55,7 +57,8 @@ public sealed class AddLibraryFoldersCommandHandler(
     ILogger<AddLibraryFoldersCommandHandler> logger,
     ISender? sender = null,
     IJobSystem? jobs = null,
-    FullHashJobs? hashJobs = null) : IRequestHandler<AddLibraryFoldersCommand, AddLibraryFoldersResult>
+    FullHashJobs? hashJobs = null,
+    IVolumeLocator? volumes = null) : IRequestHandler<AddLibraryFoldersCommand, AddLibraryFoldersResult>
 {
     /// <inheritdoc />
     public async Task<AddLibraryFoldersResult> Handle(AddLibraryFoldersCommand request, CancellationToken cancellationToken)
@@ -105,6 +108,7 @@ public sealed class AddLibraryFoldersCommandHandler(
             var displayPath = Path.IsPathFullyQualified(handle.Id) ? handle.Id : handle.DisplayName;
             var folder = IndexedFolder.Create(library.Library.Id, displayPath, handle.Id, timeProvider.GetUtcNow());
             folder.ChangeVolumeLabel((await VolumeLabels.TryReadAsync(files, handle, logger, cancellationToken).ConfigureAwait(false)).Label);
+            await FolderReachability.RecordVolumeIdAsync(volumes, folder, cancellationToken).ConfigureAwait(false);
             await library.Folders.AddAsync(folder, cancellationToken).ConfigureAwait(false);
             foreach (var partial in partials)
             {

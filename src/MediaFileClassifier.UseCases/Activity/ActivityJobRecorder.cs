@@ -6,6 +6,7 @@ using MediaFileClassifier.UseCases.Activity.RecordActivity;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Maintenance;
+using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Rescan;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -22,11 +23,13 @@ namespace MediaFileClassifier.UseCases.Activity;
 /// <param name="session">The open library.</param>
 /// <param name="sender">Records the events.</param>
 /// <param name="logger">Logs a job that could not be recorded.</param>
+/// <param name="tally">Tells which import jobs are monitoring jobs, or <see langword="null"/> for none.</param>
 public sealed partial class ActivityJobRecorder(
     IJobProgress progress,
     ILibrarySession session,
     ISender sender,
-    ILogger<ActivityJobRecorder> logger)
+    ILogger<ActivityJobRecorder> logger,
+    MonitoringTally? tally = null)
 {
     private int started;
 
@@ -81,7 +84,22 @@ public sealed partial class ActivityJobRecorder(
         var items = job.Stages.Where(stage => !stage.IsWholeTarget).Select(stage => stage.Total).DefaultIfEmpty(0).Max();
         var failed = Math.Min(items, job.Failed);
         var counts = new Dictionary<string, long>();
-        if (type == ActivityEventType.Rescan)
+        if (type == ActivityEventType.Import && tally?.Get(job.JobId) is { } changed)
+        {
+            // Changes found by folder monitoring (E04-S06-T03): one event for the burst, with what it did.
+            type = ActivityEventType.FolderMonitoring;
+            if (changed.Total == 0 && failed == 0)
+            {
+                return;
+            }
+
+            counts[ActivityCounts.Added] = changed.Added;
+            counts[ActivityCounts.Modified] = changed.Modified;
+            counts[ActivityCounts.Moved] = changed.Moved;
+            counts[ActivityCounts.Missing] = changed.Missing;
+            counts[ActivityCounts.Failed] = failed;
+        }
+        else if (type == ActivityEventType.Rescan)
         {
             if (RescanCounts.FromJson(stored.Result) is { } rescan)
             {

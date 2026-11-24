@@ -1854,6 +1854,36 @@
   <data name="Folders_Monitoring_Error_Tip" xml:space="preserve">
     <value>The folder is reachable but changes in it can't be watched. The app tries again by itself; Rescan still finds changes.</value>
   </data>
+  <data name="Setting_MonitoringNotifyThreshold" xml:space="preserve">
+    <value>Notify when a monitored folder gets at least this many changes</value>
+  </data>
+  <data name="Setting_MonitoringNotifyThreshold_Help" xml:space="preserve">
+    <value>Smaller batches of new, changed, moved or removed files are not announced; the activity log lists every batch.</value>
+  </data>
+  <data name="Notification_MonitoringNew_One" xml:space="preserve">
+    <value>{0} new item imported from {1}</value>
+  </data>
+  <data name="Notification_MonitoringNew_Other" xml:space="preserve">
+    <value>{0} new items imported from {1}</value>
+  </data>
+  <data name="Notification_MonitoringMixed" xml:space="preserve">
+    <value>{0} changes in {1}: {2}</value>
+  </data>
+  <data name="Notification_MonitoringFailed" xml:space="preserve">
+    <value>{0} failed.</value>
+  </data>
+  <data name="Notification_MonitoringPart_New" xml:space="preserve">
+    <value>{0} new</value>
+  </data>
+  <data name="Notification_MonitoringPart_Updated" xml:space="preserve">
+    <value>{0} updated</value>
+  </data>
+  <data name="Notification_MonitoringPart_Moved" xml:space="preserve">
+    <value>{0} moved</value>
+  </data>
+  <data name="Notification_MonitoringPart_Missing" xml:space="preserve">
+    <value>{0} missing</value>
+  </data>
   <data name="Notification_QuickSyncDone" xml:space="preserve">
     <value>Library updated: {0} new, {1} moved, {2} missing, {3} changed</value>
   </data>

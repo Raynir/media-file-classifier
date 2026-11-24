@@ -5,7 +5,9 @@ using MediaFileClassifier.Ui.Navigation;
 using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Common.Notifications;
+using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.UseCases.Import;
+using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Rescan.GetRescanSummary;
 using MediatR;
@@ -24,7 +26,16 @@ namespace MediaFileClassifier.Ui.Notifications;
 /// <param name="localizer">UI strings.</param>
 /// <param name="summaries">Reads a quick sync's summary, or <see langword="null"/> to leave quick syncs silent.</param>
 /// <param name="logger">Logs a quick sync summary that couldn't be made, or <see langword="null"/> for none.</param>
-public sealed class JobNotifications(IJobProgress progress, INotificationService notifications, Localizer localizer, ISender? summaries = null, ILogger<JobNotifications>? logger = null)
+/// <param name="tally">Tells which import jobs are folder monitoring's (E04-S06-T03), or <see langword="null"/> for none.</param>
+/// <param name="settings">Holds the size a monitored batch must have to be notified, or <see langword="null"/> for the default.</param>
+public sealed class JobNotifications(
+    IJobProgress progress,
+    INotificationService notifications,
+    Localizer localizer,
+    ISender? summaries = null,
+    ILogger<JobNotifications>? logger = null,
+    MonitoringTally? tally = null,
+    ISettingsStore? settings = null)
 {
     private const int QuickSyncSummaryAttempts = 5;
     private static readonly TimeSpan QuickSyncSummaryWait = TimeSpan.FromMilliseconds(200);
@@ -52,6 +63,11 @@ public sealed class JobNotifications(IJobProgress progress, INotificationService
 
         var job = finished.Progress;
         var isImport = job.Type == ImportStages.ImportJob;
+        if (isImport && tally?.Get(job.JobId) is { } monitored)
+        {
+            return DescribeMonitoring(finished, monitored);
+        }
+
         if (!isImport && job.Type != AnalysisStages.AnalysisJob)
         {
             return null;
@@ -83,6 +99,44 @@ public sealed class JobNotifications(IJobProgress progress, INotificationService
             ? new Notification(localizer.Format($"Notification_{kind}Failed", Format.Number(failed)), NotificationSeverity.Error, viewFailed)
             : new Notification(localizer.Format($"Notification_{kind}Partial", Format.Number(done), Format.Number(failed)), NotificationSeverity.Warning, viewFailed);
     }
+
+    /// <summary>
+    /// Makes the notification for a finished monitoring job (E04-S06-T03): what the changes of a watched folder did, or
+    /// nothing when they number fewer than the setting's threshold (they're in the activity log either way).
+    /// </summary>
+    private Notification? DescribeMonitoring(JobFinishedEventArgs finished, MonitoringCounts changes)
+    {
+        var threshold = settings?.Get(MonitoringSettings.NotifyThreshold) ?? (int)MonitoringSettings.NotifyThreshold.DefaultValue;
+        var failed = finished.Progress.Failed;
+        if (finished.State != ProcessingJobState.Completed || changes.Total < threshold)
+        {
+            return null;
+        }
+
+        var folder = Path.GetFileName(Path.TrimEndingDirectorySeparator(changes.Folder)) is { Length: > 0 } name ? name : changes.Folder;
+        var text = changes is { Modified: 0, Moved: 0, Missing: 0 }
+            ? localizer.Format(changes.Added == 1 ? "Notification_MonitoringNew_One" : "Notification_MonitoringNew_Other", Format.Number(changes.Added), folder)
+            : localizer.Format("Notification_MonitoringMixed", Format.Number(changes.Total), folder, MonitoringDetails(changes));
+        if (failed == 0)
+        {
+            return new Notification(text, NotificationSeverity.Info, new NotificationAction(localizer.Get("Notification_ShowImported"), ImportedItemsCommand));
+        }
+
+        return new Notification(
+            text + " " + localizer.Format("Notification_MonitoringFailed", Format.Number(failed)),
+            NotificationSeverity.Warning,
+            new NotificationAction(localizer.Get("Notification_ViewFailed"), ProcessingCommands.OpenQueue));
+    }
+
+    private string MonitoringDetails(MonitoringCounts changes) => string.Join(
+        ", ",
+        new[]
+        {
+            (changes.Added, "Notification_MonitoringPart_New"),
+            (changes.Modified, "Notification_MonitoringPart_Updated"),
+            (changes.Moved, "Notification_MonitoringPart_Moved"),
+            (changes.Missing, "Notification_MonitoringPart_Missing"),
+        }.Where(part => part.Item1 > 0).Select(part => localizer.Format(part.Item2, Format.Number(part.Item1))));
 
     /// <summary>
     /// The ID of the command that shows the items imported last (Recently imported), which the import notification's

@@ -25,17 +25,18 @@ internal sealed class ActivityRepository(LibraryConnectionFactory connections, L
                 db.ActivityEvents.Add(activity);
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
 
-                // The newest MaxEntries stay. The oldest beyond them are found through the time index, not by counting
-                // the whole table, and are normally none or one.
-                var oldest = await db.ActivityEvents
-                    .OrderByDescending(row => row.OccurredAt).ThenByDescending(row => row.Id)
-                    .Skip(ActivityRetention.MaxEntries)
-                    .Select(row => row.Id)
-                    .ToListAsync(token)
+                // The newest MaxEntries stay. The last of them is found through the time index, and everything strictly
+                // older goes in one statement, with no list of IDs to carry. Events of the same millisecond as that last
+                // one all stay, so the log can hold a few more than MaxEntries until the next write trims them.
+                var cutoff = await db.ActivityEvents
+                    .OrderByDescending(row => row.OccurredAt)
+                    .Skip(ActivityRetention.MaxEntries - 1)
+                    .Select(row => (DateTimeOffset?)row.OccurredAt)
+                    .FirstOrDefaultAsync(token)
                     .ConfigureAwait(false);
-                if (oldest.Count > 0)
+                if (cutoff is { } oldestKept)
                 {
-                    await db.ActivityEvents.Where(row => oldest.Contains(row.Id)).ExecuteDeleteAsync(token).ConfigureAwait(false);
+                    await db.ActivityEvents.Where(row => row.OccurredAt < oldestKept).ExecuteDeleteAsync(token).ConfigureAwait(false);
                 }
             },
             cancellationToken);
@@ -72,6 +73,34 @@ internal sealed class ActivityRepository(LibraryConnectionFactory connections, L
 
         return connections.ReadAsync(
             async (db, token) => await Filtered(db, filter).CountAsync(token).ConfigureAwait(false),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<ActivityPageResult> GetPageWithTotalAsync(
+        ActivityFilter filter,
+        int skip,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+
+        return connections.ReadAsync(
+            async (db, token) =>
+            {
+                // One read transaction, so a write between the two queries can't show in only one of them.
+                await using var transaction = await db.Database.BeginTransactionAsync(token).ConfigureAwait(false);
+                var events = await Filtered(db, filter)
+                    .OrderByDescending(row => row.OccurredAt).ThenByDescending(row => row.Id)
+                    .Skip(skip)
+                    .Take(pageSize)
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                var total = await Filtered(db, filter).CountAsync(token).ConfigureAwait(false);
+                return new ActivityPageResult(events, total);
+            },
             cancellationToken);
     }
 

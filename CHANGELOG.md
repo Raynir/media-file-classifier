@@ -19,6 +19,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Folder removal (MFC-1037): when a folder's removal is interrupted and carries on later, the "Folder removed" entry in the activity log now names the folder and counts all the items removed, not only those of the last run, and the removal no longer fails if the folder was already gone. No schema change.
+- Activity log (MFC-1036): the log is now trimmed to the newest 5,000 events with one delete instead of a list of IDs, the list of events and its total come from one read so they always agree, and the note on how same-millisecond events are ordered is corrected. No schema change.
 - Drive letters (MFC-1048): looking for a moved folder's drive could show Windows' "No disk in drive" dialog for an empty card reader or DVD drive; drives that aren't ready are now skipped.
 - Moves between drives (MFC-1052): a file moved between watched folders on different drives, which Windows does as a copy, then a delete, keeps its item, ID and metadata. When the original's deletion is applied, an item the watcher registered for a copy with the same content in the last 5 minutes is deleted with its thumbnails, embeddings and AI results, and the old item takes its file, in one write. Duplicates an import or rescan found are never paired. No schema change.
 - Folder monitoring (MFC-1058): pausing or resuming monitoring now tells the screens that show folder states, a polled folder's next check is no longer shown while monitoring is paused (it could be in the past), and the monitoring query says Not monitored, like the watchers, where watching isn't available.

@@ -36,7 +36,29 @@ public interface IActivityRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of events.</returns>
     Task<int> CountAsync(ActivityFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a page of events, newest first, together with the number of events the filter matches. Both come from one
+    /// snapshot, so the total always agrees with the page, which two separate calls can't promise while events are added.
+    /// </summary>
+    /// <param name="filter">Which events.</param>
+    /// <param name="skip">How many matching events to skip, the events of the pages before.</param>
+    /// <param name="pageSize">How many events at most.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The events, newest first, and how many events match in all.</returns>
+    Task<ActivityPageResult> GetPageWithTotalAsync(
+        ActivityFilter filter,
+        int skip,
+        int pageSize,
+        CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// A page of the activity log with the number of events the filter matches in all.
+/// </summary>
+/// <param name="Events">The events of the page, newest first.</param>
+/// <param name="Total">How many events match the filter in all.</param>
+public sealed record ActivityPageResult(IReadOnlyList<ActivityEvent> Events, int Total);
 
 /// <summary>
 /// Which activity events to list.

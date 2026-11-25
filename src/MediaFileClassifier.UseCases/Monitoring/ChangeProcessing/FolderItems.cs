@@ -15,12 +15,19 @@ internal sealed class FolderItems
     /// </summary>
     public const int ReadAllFrom = 50;
 
+    /// <summary>
+    /// How many paths are looked under one by one before the folder's items are read at once: each look scans the
+    /// folder's rows in the database.
+    /// </summary>
+    public const int ReadUnderLimit = 3;
+
     private readonly IOpenLibrary library;
     private readonly IndexedFolder folder;
 
     // A null value is a path known to have no item, e.g. one an item moved away from.
     private readonly Dictionary<string, MediaItem?> byPath = new(StringComparer.Ordinal);
     private bool readAll;
+    private int readsUnder;
 
     private FolderItems(IOpenLibrary library, IndexedFolder folder)
     {
@@ -80,6 +87,11 @@ internal sealed class FolderItems
         }
 
         var prefix = path.Value + "/";
+        if (!readAll && ++readsUnder > ReadUnderLimit)
+        {
+            await ReadAllAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         if (!readAll)
         {
             // What the batch made of a path wins over the stored item: one moved during the batch is known by its ID.

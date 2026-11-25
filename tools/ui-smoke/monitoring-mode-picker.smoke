@@ -1,0 +1,25 @@
+# Monitoring mode picker in the folders dialog (MFC-1057): the selected folder's panel names its mode, what it does,
+# and follows a mode change. Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/monitoring-mode-picker.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+start tools.settings
+wait-for dialog
+dialog-size 1000x1500
+dialog-select Library
+wait 2500ms
+dialog-select media
+wait 500ms
+dialog-shot 01-picker-auto
+
+folder-mode Poll
+wait 2500ms
+dialog-shot 02-picker-poll
+
+folder-mode Manual
+wait 2500ms
+dialog-shot 03-picker-manual
+folder-mode Auto

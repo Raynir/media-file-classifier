@@ -382,7 +382,11 @@ public sealed class FolderWatchManager : IDisposable
         }
     }
 
-    private void OnPauseChanged(object? sender, EventArgs e) => StateChanged?.Invoke(this, EventArgs.Empty);
+    private void OnPauseChanged(object? sender, EventArgs e)
+    {
+        StateChanged?.Invoke(this, EventArgs.Empty);
+        PublishMonitoringChanged();
+    }
 
     private async Task CatchUpAsync(IOpenLibrary? current)
     {

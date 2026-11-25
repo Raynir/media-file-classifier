@@ -17,7 +17,7 @@ public sealed class LibraryFoldersSectionViewModel : LibraryEmbeddedSectionViewM
     /// <param name="folders">The folders view model.</param>
     /// <param name="post">Runs an action on the UI thread, or <see langword="null"/> for the Avalonia dispatcher.</param>
     public LibraryFoldersSectionViewModel(ILibrarySession session, IndexedFoldersViewModel folders, Action<Action>? post = null)
-        : base(session, folders, 360, post)
+        : base(session, folders, 560, post)
     {
         this.folders = folders;
         folders.IsEmbedded = true;

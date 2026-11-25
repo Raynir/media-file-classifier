@@ -41,7 +41,7 @@ public sealed class VolumeLabelTests
 
         // Only the status changes are reported; the label is saved quietly, once.
         Assert.Empty(changed);
-        Assert.Equal(("Backup-2TB", 1), (folder.VolumeLabel, library.FolderList.Updates));
+        Assert.Equal(("Backup-2TB", 1), (library.FolderList.Stored(folder.Id).VolumeLabel, library.FolderList.Updates));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class VolumeLabelTests
         var changed = await Handler(session, files).Handle(new CheckFolderAvailabilityCommand(), TestContext.Current.CancellationToken);
 
         Assert.Equal(FolderStatus.Offline, Assert.Single(changed).Status);
-        Assert.Equal("Backup-2TB", folder.VolumeLabel);
+        Assert.Equal("Backup-2TB", library.FolderList.Stored(folder.Id).VolumeLabel);
     }
 
     [Fact]
@@ -70,11 +70,11 @@ public sealed class VolumeLabelTests
 
         files.UnreadableLabels.Add(Folder);
         await handler.Handle(new CheckFolderAvailabilityCommand(), TestContext.Current.CancellationToken);
-        Assert.Equal(("Backup-2TB", 0), (folder.VolumeLabel, library.FolderList.Updates));
+        Assert.Equal(("Backup-2TB", 0), (library.FolderList.Stored(folder.Id).VolumeLabel, library.FolderList.Updates));
 
         files.UnreadableLabels.Remove(Folder);
         await handler.Handle(new CheckFolderAvailabilityCommand(), TestContext.Current.CancellationToken);
-        Assert.Equal((null, 1), (folder.VolumeLabel, library.FolderList.Updates));
+        Assert.Equal((null, 1), (library.FolderList.Stored(folder.Id).VolumeLabel, library.FolderList.Updates));
     }
 
     [Fact]

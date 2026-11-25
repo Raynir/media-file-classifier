@@ -38,6 +38,7 @@ public sealed class FolderWatchManagerTests
         var online = await bed.AddFolderAsync(@"E:\Online");
         var offline = await bed.AddFolderAsync(@"E:\Offline");
         offline.MarkOffline(Now);
+        bed.Library.FolderList.Seed(offline);
         var removing = await bed.AddFolderAsync(@"E:\Removing");
         bed.Library.JobList.Unfinished.Add(new ProcessingJob
         {
@@ -64,10 +65,13 @@ public sealed class FolderWatchManagerTests
         await bed.AddFolderAsync(@"\\nas\photos");
         var watchedShare = await bed.AddFolderAsync(@"\\nas\watched");
         watchedShare.ChangeMonitoringMode(MonitoringMode.Watch);
+        bed.Library.FolderList.Seed(watchedShare);
         var polled = await bed.AddFolderAsync(@"E:\Polled");
         polled.ChangeMonitoringMode(MonitoringMode.Poll);
+        bed.Library.FolderList.Seed(polled);
         var manual = await bed.AddFolderAsync(@"E:\Manual");
         manual.ChangeMonitoringMode(MonitoringMode.Manual);
+        bed.Library.FolderList.Seed(manual);
 
         await bed.StartAsync();
 
@@ -255,6 +259,7 @@ public sealed class FolderWatchManagerTests
         var bed = new Bed();
         var offline = await bed.AddFolderAsync(@"E:\Offline");
         offline.MarkOffline(Now);
+        bed.Library.FolderList.Seed(offline);
         await bed.StartAsync();
 
         Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(offline.Id));
@@ -496,6 +501,7 @@ public sealed class FolderWatchManagerTests
         var bed = new Bed();
         var folder = await bed.AddFolderAsync(@"E:\Photos");
         folder.ChangeRules(new FolderRules { ExcludePatterns = ["raw"] });
+        bed.Library.FolderList.Seed(folder);
         await bed.StartAsync();
         foreach (var path in new[] { "new/a.jpg", "new/notes.txt", "new/raw/b.jpg", "new/c.jpg.part", "2025/d.jpg", "2025/notes.txt" })
         {
@@ -755,6 +761,7 @@ public sealed class FolderWatchManagerTests
         var bed = new Bed();
         var folder = await bed.AddFolderAsync(@"E:\Photos");
         folder.ChangeRules(new FolderRules { ExcludePatterns = [FolderRules.ForSubfolder("raw")] });
+        bed.Library.FolderList.Seed(folder);
         await bed.StartAsync();
 
         bed.Write(@"E:\Photos", "raw/a.jpg");

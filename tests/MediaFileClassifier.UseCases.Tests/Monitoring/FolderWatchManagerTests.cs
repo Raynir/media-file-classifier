@@ -100,6 +100,29 @@ public sealed class FolderWatchManagerTests
     }
 
     [Fact]
+    public async Task Pause_AndResume_PublishTheMonitoringChange()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+        var before = bed.Publisher.Of<FolderMonitoringChanged>().Count;
+
+        bed.Pause.Pause();
+        await WaitForAsync(() => bed.Publisher.Of<FolderMonitoringChanged>().Count >= before + 1);
+        bed.Pause.Resume();
+        await WaitForAsync(() => bed.Publisher.Of<FolderMonitoringChanged>().Count >= before + 2);
+    }
+
+    private static async Task WaitForAsync(Func<bool> done)
+    {
+        for (var tries = 0; !done(); tries++)
+        {
+            Assert.True(tries < 500, "The change wasn't published.");
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
     public async Task Library_ClosingStopsEveryWatcher_AndOpeningWatchesItsFolders()
     {
         var bed = new Bed();

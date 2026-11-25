@@ -120,7 +120,7 @@ public sealed class FolderMonitoringUseCaseTests
         var states = (await bed.QueryAsync()).ToDictionary(info => info.FolderId);
         Assert.Equal(FolderMonitoringState.Paused, states[watched.Id].State);
         Assert.Equal(FolderMonitoringState.Paused, states[share.Id].State);
-        Assert.NotNull(states[share.Id].NextPoll);
+        Assert.Null(states[share.Id].NextPoll);
         Assert.Equal(FolderMonitoringState.Manual, states[manual.Id].State);
         bed.Pause.Resume();
 
@@ -131,6 +131,18 @@ public sealed class FolderMonitoringUseCaseTests
         Assert.Null(states[share.Id].NextPoll);
         Assert.Equal(FolderMonitoringState.Off, states[manual.Id].State);
         Assert.Equal(FolderMonitoringState.Offline, states[offline.Id].State);
+    }
+
+    [Fact]
+    public async Task Query_OfAWatchedFolder_WhenTheWatchersDontRun_IsOff_LikeGetState()
+    {
+        using var bed = new Bed();
+        bed.Settings.IsLibraryOpen = true;
+        var folder = await bed.AddFolderAsync(@"E:\Watched");
+
+        var info = Assert.Single(await bed.QueryAsync());
+        Assert.Equal(FolderMonitoringState.Off, info.State);
+        Assert.Equal(bed.Watchers.GetState(folder.Id), info.State);
     }
 
     [Fact]

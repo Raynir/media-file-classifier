@@ -669,6 +669,58 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
         return deleted;
     }
 
+    /// <inheritdoc />
+    public async Task<bool> ReplaceWithMovedAsync(MediaItem moved, Id<MediaItem> duplicateId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(moved);
+
+        var written = await writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var movedId = moved.Id;
+                var folderId = moved.FolderId;
+                var path = moved.Path;
+                var isMissing = await db.MediaItems.AsNoTracking()
+                    .AnyAsync(item => item.Id == movedId && item.Status == MediaItemStatus.Missing, token).ConfigureAwait(false);
+                if (!isMissing
+                    || await db.MediaItems.Where(item => item.Id == duplicateId && item.FolderId == folderId && item.Path == path)
+                        .ExecuteDeleteAsync(token).ConfigureAwait(false) == 0)
+                {
+                    return false;
+                }
+
+                // Only what the move changes: a favourite, review or hash change made meanwhile isn't overwritten. The
+                // item is Missing, so it has no error to clear, and its hashes stay.
+                var size = moved.SizeBytes;
+                var created = moved.FileCreatedAt;
+                var modified = moved.FileModifiedAt;
+                var status = moved.Status;
+                var reason = moved.StatusReason;
+                var statusChangedAt = moved.StatusChangedAt;
+                await db.MediaItems.Where(item => item.Id == movedId)
+                    .ExecuteUpdateAsync(
+                        setters => setters
+                            .SetProperty(item => item.FolderId, folderId)
+                            .SetProperty(item => item.Path, path)
+                            .SetProperty(item => item.SizeBytes, size)
+                            .SetProperty(item => item.FileCreatedAt, created)
+                            .SetProperty(item => item.FileModifiedAt, modified)
+                            .SetProperty(item => item.Status, status)
+                            .SetProperty(item => item.StatusReason, reason)
+                            .SetProperty(item => item.StatusChangedAt, statusChangedAt),
+                        token)
+                    .ConfigureAwait(false);
+                return true;
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (written)
+        {
+            RaiseChanged();
+        }
+
+        return written;
+    }
+
     // Listeners run on the writing thread, often a job's. The items are written by now, so a listener that fails is
     // logged and the others still hear the change: one listener mustn't fail the import or rescan that wrote them
     // (MFC-1002).

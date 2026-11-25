@@ -336,6 +336,17 @@ public interface IMediaItemRepository
     Task<bool> DeleteAsync(Id<MediaItem> id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Deletes a duplicate item, as <see cref="DeleteAsync"/> does, and stores a Missing item moved to its file, in one
+    /// write: a file moved between drives keeps its old item, and the copy's item goes (MFC-1052). Nothing is written
+    /// unless the duplicate is still at the moved item's new path and the moved item is still Missing.
+    /// </summary>
+    /// <param name="moved">The moved item, already relocated to the duplicate's folder and path.</param>
+    /// <param name="duplicateId">The duplicate item.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><c>true</c> if both were written.</returns>
+    Task<bool> ReplaceWithMovedAsync(MediaItem moved, Id<MediaItem> duplicateId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Deletes up to <paramref name="limit"/> items of a folder, as <see cref="DeleteAsync"/> does, in one short write.
     /// Removing a folder calls it until nothing is left (E02-S03-T04).
     /// </summary>

@@ -840,6 +840,10 @@ public sealed class FolderWatchManager : IDisposable
     /// Drops what the ignore list, the folder's rules or the supported formats leave out. A rename between a path that's
     /// left out and one that isn't is a new file or a deletion.
     /// </summary>
+    /// <remarks>
+    /// A rename whose path was gone when it was seen, between names that aren't media files, is kept as a folder rename
+    /// (MFC-1032): a folder renamed twice at once is gone by its first event, and the buffer joins the two renames.
+    /// </remarks>
     private FolderWatchEvent? Filter(IndexedFolder folder, FolderWatchEvent change)
     {
         var included = Includes(folder, change.RelativePath, change.IsDirectory, isDeletion: change.Kind == FolderWatchEventKind.Deleted);
@@ -848,13 +852,20 @@ public sealed class FolderWatchManager : IDisposable
             return included ? change : null;
         }
 
-        return (Includes(folder, oldPath, change.IsDirectory), included) switch
+        var result = (Includes(folder, oldPath, change.IsDirectory), included) switch
         {
             (true, true) => change,
             (false, true) => change with { Kind = FolderWatchEventKind.Created, OldRelativePath = null },
             (true, false) => new FolderWatchEvent(FolderWatchEventKind.Deleted, oldPath),
             _ => null,
         };
+        if (result is null && change is { IsGone: true, IsDirectory: false })
+        {
+            var asFolder = change with { IsDirectory = true, IsGone = false };
+            return Filter(folder, asFolder) is { Kind: FolderWatchEventKind.Renamed } kept ? kept : null;
+        }
+
+        return result;
     }
 
     /// <summary>

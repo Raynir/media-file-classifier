@@ -517,6 +517,36 @@ public sealed class FolderWatchManagerTests
             bed.Published.Select(change => (change.Kind, change.RelativePath, change.OldRelativePath)).OrderBy(change => change.Kind));
     }
 
+    [Fact]
+    public async Task Folder_RenamedTwiceAtOnce_IsOneRenameFromItsFirstName()
+    {
+        // MFC-1032: by the first event, Photos2 was renamed again, so the watcher can't tell it was a folder.
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Library");
+        await bed.StartAsync();
+        bed.Files.Write("Photos3/a.jpg", 10, bed.Clock.GetUtcNow());
+
+        bed.Factory.Raise(@"E:\Library", new FolderWatchEvent(FolderWatchEventKind.Renamed, "Photos2", "Photos") { IsGone = true });
+        bed.Factory.Raise(@"E:\Library", new FolderWatchEvent(FolderWatchEventKind.Renamed, "Photos3", "Photos2", IsDirectory: true));
+        bed.Settle();
+
+        var change = Assert.Single(bed.Published);
+        Assert.Equal((FolderChangeKind.Renamed, "Photos3/a.jpg", "Photos/a.jpg"), (change.Kind, change.RelativePath, change.OldRelativePath));
+    }
+
+    [Fact]
+    public async Task GoneRename_ThatWasNoFolder_ReportsNothing()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Library");
+        await bed.StartAsync();
+
+        bed.Factory.Raise(@"E:\Library", new FolderWatchEvent(FolderWatchEventKind.Renamed, "notes.bak", "notes.txt") { IsGone = true });
+        bed.Settle();
+
+        Assert.Empty(bed.Published);
+    }
+
     /// <summary>
     /// Moves the clock on by the retry wait until the condition holds; a retry's wait starts on a thread-pool thread.
     /// </summary>

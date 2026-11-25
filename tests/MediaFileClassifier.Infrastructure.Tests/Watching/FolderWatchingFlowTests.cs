@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.UseCases.Monitoring;
@@ -62,5 +63,36 @@ public sealed class FolderWatchingFlowTests
         Assert.Equal((FolderChangeKind.Changed, "clip.mp4", 40L << 20), (change.Kind, change.RelativePath, change.Stat!.Length));
         Assert.True(at >= copied, "The file was reported before the copy completed.");
         Assert.Equal(0, buffer.PendingCount);
+    }
+
+    [Fact]
+    public async Task RenamedFolder_ThatIsGoneWhenChecked_IsDropped()
+    {
+        // MFC-1032: a gone rename taken for a folder, or a folder renamed again, has nothing left to list.
+        var token = TestContext.Current.CancellationToken;
+        using var folder = new TemporaryFolder();
+        var handle = LocalFolder.ToHandle(folder.Path);
+        var reported = new ConcurrentQueue<FolderChange>();
+        using var buffer = new FolderChangeBuffer(new FileSystemMediaFileSource(), TimeProvider.System, NullLogger.Instance, (_, changes, _) =>
+        {
+            foreach (var change in changes)
+            {
+                reported.Enqueue(change);
+            }
+
+            return Task.CompletedTask;
+        });
+
+        buffer.Record(Id<IndexedFolder>.New(), handle, new FolderWatchEvent(FolderWatchEventKind.Renamed, "Photos2", "Photos", IsDirectory: true));
+
+        // It's checked again twice first, in case its next rename comes late.
+        var end = DateTime.UtcNow + TimeSpan.FromSeconds(60);
+        while (buffer.PendingCount > 0 && DateTime.UtcNow < end)
+        {
+            await Task.Delay(50, token);
+        }
+
+        Assert.Equal(0, buffer.PendingCount);
+        Assert.Empty(reported);
     }
 }

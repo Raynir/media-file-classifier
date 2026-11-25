@@ -9,7 +9,8 @@ namespace MediaFileClassifier.Desktop.Platform;
 /// Identifies volumes on Windows by their file system's serial number (E04-S04-T03), e.g. <c>1A2B-3C4D</c> as
 /// <c>vol</c> shows it. The serial travels with the drive to another PC and survives a relabel; it changes when the drive
 /// is formatted. A folder is found on another drive letter only when exactly one other mounted local volume has the
-/// serial and the folder exists on it, so a cloned drive with the same serial is never guessed at.
+/// serial and the folder exists on it, so a cloned drive with the same serial is never guessed at. Mapped network drives
+/// have no identity here, as shares opened by their UNC path don't (MFC-1051).
 /// </summary>
 internal sealed partial class WindowsVolumeLocator : IVolumeLocator
 {
@@ -20,7 +21,9 @@ internal sealed partial class WindowsVolumeLocator : IVolumeLocator
     {
         ArgumentNullException.ThrowIfNull(folder);
 
-        return Task.Run(() => LocalRoot(folder.Id) is { } root ? ReadSerial(root) : null, cancellationToken);
+        // A mapped network drive has no identity of its own, like a share opened by its UNC path: the serial is the
+        // server's, which a failover or a new server changes while the folder is still there (MFC-1051).
+        return Task.Run(() => LocalRoot(folder.Id) is { } root && new DriveInfo(root).DriveType != DriveType.Network ? ReadSerial(root) : null, cancellationToken);
     }
 
     /// <inheritdoc />

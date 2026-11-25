@@ -27,6 +27,7 @@ using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.UseCases.Activity;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.Desktop.Platform;
+using MediaFileClassifier.UseCases.Libraries;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
@@ -347,10 +348,20 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
     {
         var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
         var sender = services.GetRequiredService<ISender>();
-        var folders = await library.Folders.GetAllAsync();
+        var folders = await IndexedFolders.GetActiveAsync(library, CancellationToken.None);
+        var failed = new List<string>();
         foreach (var folder in folders)
         {
-            await sender.Send(new ChangeMonitoringModeCommand(folder.Id, mode));
+            var result = await sender.Send(new ChangeMonitoringModeCommand(folder.Id, mode));
+            if (result == ChangeMonitoringModeResult.NotFound)
+            {
+                failed.Add(folder.DisplayPath);
+            }
+        }
+
+        if (failed.Count > 0)
+        {
+            throw new SmokeStepException($"couldn't set {mode} on {string.Join(", ", failed)}");
         }
 
         return $"{folders.Count} folder(s) set to {mode}";

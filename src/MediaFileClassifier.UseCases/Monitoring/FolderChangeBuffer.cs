@@ -350,13 +350,27 @@ public sealed class FolderChangeBuffer : IDisposable
             if (entry.IsDirectory)
             {
                 var inside = new List<MediaFileStat>();
-                await foreach (var file in files.EnumerateFilesAsync(entry.Folder, path, token).ConfigureAwait(false))
+                try
                 {
-                    // A renamed folder's files are filtered with their old paths when they're published.
-                    if (entry.Kind == FolderChangeKind.Renamed || includes(folderId, file.RelativePath))
+                    await foreach (var file in files.EnumerateFilesAsync(entry.Folder, path, token).ConfigureAwait(false))
                     {
-                        inside.Add(file);
+                        // A renamed folder's files are filtered with their old paths when they're published.
+                        if (entry.Kind == FolderChangeKind.Renamed || includes(folderId, file.RelativePath))
+                        {
+                            inside.Add(file);
+                        }
                     }
+                }
+                catch (DirectoryNotFoundException) when (!token.IsCancellationRequested)
+                {
+                    if (!await files.IsAvailableAsync(entry.Folder, token).ConfigureAwait(false))
+                    {
+                        throw;
+                    }
+
+                    // Renamed again or deleted since, which its own events report; or a gone file taken for a folder
+                    // (MFC-1032). Nothing's left to list.
+                    return Complete(folderId, path, entry, null);
                 }
 
                 return CompleteDirectory(folderId, path, entry, inside);

@@ -51,6 +51,24 @@ public sealed class FileSystemFolderWatcherTests
     }
 
     [Fact]
+    public async Task Watch_AFolderRenamedTwiceAtOnce_ReportsItsFirstRenameAsAFolderOrGone()
+    {
+        // MFC-1032: the first event may come after the second rename, when its new name is gone.
+        using var folder = new TemporaryFolder();
+        Directory.CreateDirectory(folder.Combine("Photos"));
+        using var watcher = new FileSystemFolderWatcherFactory().Watch(LocalFolder.ToHandle(folder.Path));
+        var events = new ConcurrentQueue<FolderWatchEvent>();
+        watcher.Changed += (_, change) => events.Enqueue(change);
+
+        Directory.Move(folder.Combine("Photos"), folder.Combine("Photos2"));
+        Directory.Move(folder.Combine("Photos2"), folder.Combine("Photos3"));
+        await WaitForAsync(() => events.Any(change => change is { Kind: FolderWatchEventKind.Renamed, RelativePath: "Photos3" }));
+
+        var first = Assert.Single(events, change => change is { Kind: FolderWatchEventKind.Renamed, RelativePath: "Photos2", OldRelativePath: "Photos" });
+        Assert.True(first.IsDirectory || first.IsGone);
+    }
+
+    [Fact]
     public void Watch_AMissingFolder_Throws()
     {
         using var folder = new TemporaryFolder();

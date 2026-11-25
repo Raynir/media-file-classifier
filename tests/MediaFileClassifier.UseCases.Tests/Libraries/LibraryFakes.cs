@@ -307,6 +307,8 @@ internal sealed class FakeJobRepository : IJobRepository
 {
     public Task<bool> SetResultAsync(Id<ProcessingJob> jobId, string result, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+    public Task<bool> SetWorkItemPayloadAsync(Id<WorkItem> workItemId, string payload, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
     public Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, Action<IReadOnlyCollection<WorkItem>>? stored, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, Action<IReadOnlyCollection<WorkItem>>? stored, CancellationToken cancellationToken = default) => throw new NotSupportedException();

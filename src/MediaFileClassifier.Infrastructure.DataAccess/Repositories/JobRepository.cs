@@ -354,6 +354,17 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
     }
 
     /// <inheritdoc />
+    public async Task<bool> SetWorkItemPayloadAsync(Id<WorkItem> workItemId, string payload, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(payload);
+
+        return await writer.ExecuteAsync(
+            async (db, token) => await db.WorkItems.Where(item => item.Id == workItemId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.Payload, payload), token).ConfigureAwait(false) > 0,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, DateTimeOffset now, CancellationToken cancellationToken = default) =>
         writer.ExecuteAsync(
             async (db, token) =>

@@ -85,7 +85,8 @@ public sealed class FolderWatchingFlowTests
 
         buffer.Record(Id<IndexedFolder>.New(), handle, new FolderWatchEvent(FolderWatchEventKind.Renamed, "Photos2", "Photos", IsDirectory: true));
 
-        var end = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        // It's checked again twice first, in case its next rename comes late.
+        var end = DateTime.UtcNow + TimeSpan.FromSeconds(60);
         while (buffer.PendingCount > 0 && DateTime.UtcNow < end)
         {
             await Task.Delay(50, token);

@@ -21,6 +21,12 @@ namespace MediaFileClassifier.UseCases.Monitoring;
 public sealed class FolderChangeBuffer : IDisposable
 {
     /// <summary>
+    /// How many times a folder that's gone is checked again before it's dropped: a folder renamed twice is gone by its
+    /// first event, and the second may come late, e.g. on a network share (MFC-1032).
+    /// </summary>
+    private const int GoneFolderRetries = 2;
+
+    /// <summary>
     /// How long a path's events must be quiet before it's checked.
     /// </summary>
     public static readonly TimeSpan Quiet = TimeSpan.FromSeconds(2);
@@ -361,15 +367,15 @@ public sealed class FolderChangeBuffer : IDisposable
                         }
                     }
                 }
-                catch (DirectoryNotFoundException) when (!token.IsCancellationRequested)
+                catch (DirectoryNotFoundException) when (!token.IsCancellationRequested && entry.Attempts >= GoneFolderRetries)
                 {
                     if (!await files.IsAvailableAsync(entry.Folder, token).ConfigureAwait(false))
                     {
                         throw;
                     }
 
-                    // Renamed again or deleted since, which its own events report; or a gone file taken for a folder
-                    // (MFC-1032). Nothing's left to list.
+                    // Renamed again or deleted since, and its later event never came; or a gone file taken for a folder
+                    // (MFC-1032). Nothing's left to list. Before that, the IOException path waits for the event.
                     return Complete(folderId, path, entry, null);
                 }
 

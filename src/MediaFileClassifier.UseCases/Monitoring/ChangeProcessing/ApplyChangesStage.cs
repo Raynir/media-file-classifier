@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Discovery;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.Stages;
 using MediaFileClassifier.UseCases.Libraries;
@@ -24,7 +25,10 @@ namespace MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
 /// <item>A changed file, or a Missing item's file that's back, goes to the rescan's check stage (E02-S04-T03), which
 /// keeps the user's metadata and queues re-analysis when the content changed.</item>
 /// <item>A renamed or moved file relinks its item, which keeps its ID and metadata (E02-S04-T02).</item>
-/// <item>A deleted file's item is marked Missing with everything kept (E02-S04-T04), if the file is still gone.</item>
+/// <item>A deleted file's item is marked Missing with everything kept (E02-S04-T04), if the file is still gone. When an
+/// item registered for a new file in the last <see cref="CopyWindow"/> has its content, the deletion ends a move between drives, which
+/// Windows does as a copy, then a delete: the old item takes the copy's file and keeps its ID and metadata, and the
+/// copy's item is deleted with its thumbnails, embeddings and AI results (MFC-1052).</item>
 /// </list>
 /// Batches are applied one at a time, in steps of <see cref="ChangesPerStep"/>, and <see cref="ChangeProcessor"/> queues one
 /// batch of a folder at a time, so the changes of one folder are applied in order.
@@ -33,6 +37,7 @@ namespace MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
 /// <param name="discovery">Registers new files.</param>
 /// <param name="moves">Pairs new files with items whose file is gone.</param>
 /// <param name="held">The deletions still held.</param>
+/// <param name="thumbnails">Deletes the thumbnails of a copy's item that goes.</param>
 /// <param name="clock">Clock for status changes.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="tally">Remembers what the job changed, for the activity log and the notification, or <see langword="null"/> for none.</param>
@@ -41,6 +46,7 @@ public sealed partial class ApplyChangesStage(
     IFolderDiscovery discovery,
     MoveDetector moves,
     HeldDeletes held,
+    IThumbnailCache thumbnails,
     TimeProvider clock,
     ILogger<ApplyChangesStage> logger,
     MonitoringTally? tally = null) : IStageHandler, IDisposable
@@ -50,7 +56,20 @@ public sealed partial class ApplyChangesStage(
     /// </summary>
     public const int ChangesPerStep = 1000;
 
+    /// <summary>
+    /// How long before a deletion an item registered for a copy of the deleted file can be (MFC-1052). A move between
+    /// drives copies the whole file before the delete. The time counts from when the watcher registered the copy, which
+    /// is after the file became stable. The registrations are kept in memory only, so a restart between the copy and
+    /// the delete leaves the copy as a new item.
+    /// </summary>
+    public static readonly TimeSpan CopyWindow = TimeSpan.FromMinutes(5);
+
     private readonly SemaphoreSlim gate = new(1, 1);
+
+    // The items registered for new files in the last CopyWindow, with when: the only items a deletion can pair with as
+    // a copy, so a duplicate an import or rescan found is never taken for one. Used under the gate only; item IDs are
+    // unique across libraries, so another library's entries just aren't found.
+    private readonly Dictionary<Id<MediaItem>, (DateTimeOffset At, long SizeBytes)> recentlyRegistered = [];
 
     /// <inheritdoc />
     public string Stage => ChangeProcessingStages.Apply;
@@ -154,14 +173,21 @@ public sealed partial class ApplyChangesStage(
         await library.Items.UpdateMovedAsync(batch.Written.Values, cancellationToken).ConfigureAwait(false);
 
         await EnqueueAsync(context, RescanStages.Check, batch.Check, cancellationToken).ConfigureAwait(false);
-        var missing = await MarkMissingAsync(library, folder, items, batch, cancellationToken).ConfigureAwait(false);
+        var gone = await MarkMissingAsync(library, folder, items, batch, cancellationToken).ConfigureAwait(false);
+        var copied = await PairCopiesAsync(context, folders, gone, batch.Now, cancellationToken).ConfigureAwait(false);
+        var missing = gone.Count - copied;
         var registered = await RegisterAsync(library, folder, batch.New, cancellationToken).ConfigureAwait(false);
         var moved = await PairMovesAsync(context, folder, folders, registered, batch.Now, cancellationToken).ConfigureAwait(false);
+        foreach (var item in registered.Where(item => !moved.Contains(item.Id)))
+        {
+            recentlyRegistered[item.Id] = (batch.Now, item.SizeBytes);
+        }
+
         await EnqueueAsync(context, ImportStages.Fingerprint, registered.Select(item => item.Id).Where(itemId => !moved.Contains(itemId)), cancellationToken)
             .ConfigureAwait(false);
 
-        tally?.Add(context.WorkItem.JobId, new MonitoringCounts(registered.Count - moved.Count, batch.Check.Count, batch.Relinked + moved.Count, missing, folder.DisplayPath));
-        LogApplied(folder.Id, registered.Count - moved.Count, batch.Check.Count, batch.Relinked + moved.Count, missing);
+        tally?.Add(context.WorkItem.JobId, new MonitoringCounts(registered.Count - moved.Count, batch.Check.Count, batch.Relinked + moved.Count + copied, missing, folder.DisplayPath));
+        LogApplied(folder.Id, registered.Count - moved.Count, batch.Check.Count, batch.Relinked + moved.Count + copied, missing);
     }
 
     // A renamed file whose item isn't known is handled as a new file at its new path. An excluded item moves and stays
@@ -242,17 +268,17 @@ public sealed partial class ApplyChangesStage(
 
     // Only items whose file is still gone, and never while the folder can't be reached: an unplugged drive isn't a
     // deletion (D188).
-    private async Task<int> MarkMissingAsync(IOpenLibrary library, IndexedFolder folder, FolderItems items, Batch batch, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<MediaItem>> MarkMissingAsync(IOpenLibrary library, IndexedFolder folder, FolderItems items, Batch batch, CancellationToken cancellationToken)
     {
         if (batch.Gone.Count == 0)
         {
-            return 0;
+            return [];
         }
 
         if (folder.Status == FolderStatus.Offline || !await files.IsAvailableAsync(folder.ToHandle(), cancellationToken).ConfigureAwait(false))
         {
             LogFolderUnreachable(batch.Gone.Count, folder.Id);
-            return 0;
+            return [];
         }
 
         var missing = new List<MediaItem>();
@@ -278,7 +304,87 @@ public sealed partial class ApplyChangesStage(
             await library.Items.UpdateRangeAsync(written, cancellationToken).ConfigureAwait(false);
         }
 
-        return missing.Count;
+        return missing;
+    }
+
+    // The items just marked Missing whose content an item the watcher registered in the copy window has, in any folder
+    // that can be reached: that item is a copy a move between drives made before deleting the file (MFC-1052). The
+    // pairs follow the rescan's move rules (MoveDetector), which also fingerprint a copy the import hasn't reached yet.
+    // The old item keeps its ID and metadata and takes the copy's file; the copy's item goes with all it has, and edits
+    // made on it in the window go with it. Returns how many items were relinked.
+    private async Task<int> PairCopiesAsync(
+        WorkItemContext context,
+        IReadOnlyList<IndexedFolder> folders,
+        IReadOnlyList<MediaItem> missing,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        foreach (var (itemId, _) in recentlyRegistered.Where(entry => entry.Value.At < now - CopyWindow).ToList())
+        {
+            recentlyRegistered.Remove(itemId);
+        }
+
+        var sizes = missing.Where(item => item.Hashes.Fingerprint is not null).Select(item => item.SizeBytes).ToHashSet();
+        Id<MediaItem>[] candidates = [.. recentlyRegistered.Where(entry => sizes.Contains(entry.Value.SizeBytes)).Select(entry => entry.Key)];
+        if (candidates.Length == 0)
+        {
+            return 0;
+        }
+
+        var library = context.Library;
+        var online = folders.Where(other => other.Status == FolderStatus.Online).ToDictionary(other => other.Id);
+        var recent = await library.Items.GetByIdsAsync(candidates, cancellationToken).ConfigureAwait(false);
+        (IndexedFolder Folder, MediaItem File)[] copies = [.. recent
+            .Where(item => item.Status is not (MediaItemStatus.Missing or MediaItemStatus.Excluded)
+                && sizes.Contains(item.SizeBytes)
+                && online.ContainsKey(item.FolderId))
+            .Select(item => (online[item.FolderId], item))];
+        if (copies.Length == 0)
+        {
+            return 0;
+        }
+
+        var pairs = await moves.PairAsync(copies, missing, cancellationToken).ConfigureAwait(false);
+        var check = new List<Id<MediaItem>>();
+        var paired = 0;
+        foreach (var (item, folder, copy) in pairs)
+        {
+            // The copy's derived data goes first: its vectors leave the search index only while their rows are there.
+            thumbnails.Invalidate(library.Layout, copy.Id);
+            await library.Embeddings.RemoveForItemsAsync([copy.Id], cancellationToken).ConfigureAwait(false);
+            await library.Metadata.RemoveAiResultsAsync([copy.Id], cancellationToken).ConfigureAwait(false);
+
+            item.Relocate(folder.Id, copy.Path);
+            item.UpdateFile(copy.SizeBytes, copy.FileCreatedAt, copy.FileModifiedAt, item.Hashes);
+            item.ChangeStatus(MediaItemStatus.Pending, now);
+            if (await library.Items.ReplaceWithMovedAsync(item, copy.Id, cancellationToken).ConfigureAwait(false))
+            {
+                recentlyRegistered.Remove(copy.Id);
+                check.Add(item.Id);
+                paired++;
+
+                // The copy's import may still have been running: a thumbnail it wrote after the first call is dropped too.
+                // Its other stages find no item and end (or fail on the missing row and are not recorded).
+                thumbnails.Invalidate(library.Layout, copy.Id);
+                LogCopyPaired(item.Id, copy.Id);
+            }
+            else
+            {
+                // Changed meanwhile, e.g. the copy was removed or the old file came back: the old item stays as stored.
+                // The copy, if it's still there, lost its derived data, so it goes through the import again.
+                LogCopyNotPaired(item.Id, copy.Id);
+                if (await library.Items.GetAsync(copy.Id, cancellationToken).ConfigureAwait(false) is { } survivor
+                    && survivor.Status is MediaItemStatus.Indexed or MediaItemStatus.Error)
+                {
+                    survivor.ChangeStatus(MediaItemStatus.Pending, now);
+                    await library.Items.UpdateAsync(survivor, cancellationToken).ConfigureAwait(false);
+                    check.Add(survivor.Id);
+                }
+            }
+        }
+
+        await EnqueueAsync(context, RescanStages.Check, check, cancellationToken).ConfigureAwait(false);
+        return paired;
     }
 
     private async Task<IReadOnlyList<MediaItem>> RegisterAsync(IOpenLibrary library, IndexedFolder folder, List<RelativePath> paths, CancellationToken cancellationToken)
@@ -383,6 +489,12 @@ public sealed partial class ApplyChangesStage(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Count} deleted paths aren't marked: folder {Folder} can't be reached")]
     private partial void LogFolderUnreachable(int count, Id<IndexedFolder> folder);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Item {Item} was moved between drives: it takes the file of item {Copy}, which is deleted")]
+    private partial void LogCopyPaired(Id<MediaItem> item, Id<MediaItem> copy);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Item {Item} isn't paired with the copy {Copy}: one of them changed meanwhile")]
+    private partial void LogCopyNotPaired(Id<MediaItem> item, Id<MediaItem> copy);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A change to {Path} is skipped: the library can't store the path")]
     private partial void LogUnusablePath(string path);

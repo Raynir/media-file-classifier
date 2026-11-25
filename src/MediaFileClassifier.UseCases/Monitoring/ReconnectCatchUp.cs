@@ -12,10 +12,10 @@ namespace MediaFileClassifier.UseCases.Monitoring;
 /// <summary>
 /// Catches up with what changed on folders while their drive was away (E04-S04-T02): each folder that comes back Online
 /// gets the quick sync of E04-S03 (<see cref="StartRescanCommand"/> with <c>Quick</c>), whatever the library's "quick
-/// sync on open" switch says. The sync starts once the folder watchers run, so a file that changes while it lists is seen
+/// sync on open" switch says, unless the folder is in Manual mode (E04-S05-T01). The sync starts once the folder watchers run, so a file that changes while it lists is seen
 /// by the watcher as well. A start refused because the folder's import or rescan work is running is asked for again every
-/// <see cref="BusyRetry"/> while the folder is still Online, its library still open and, where folders are watched, the
-/// folder still watched (as <see cref="FolderWatchManager"/> does for lost events, D517).
+/// <see cref="BusyRetry"/> while the folder is still Online, its library still open and, where folders are watched and it
+/// runs in Watch mode, the folder still watched (as <see cref="FolderWatchManager"/> does for lost events, D517).
 /// </summary>
 public sealed class ReconnectCatchUp : IDisposable
 {
@@ -26,6 +26,7 @@ public sealed class ReconnectCatchUp : IDisposable
 
     private readonly ILibrarySession session;
     private readonly FolderWatchManager watchers;
+    private readonly FolderLocations? locations;
     private readonly ISender sender;
     private readonly TimeProvider clock;
     private readonly ILogger<ReconnectCatchUp> logger;
@@ -46,17 +47,23 @@ public sealed class ReconnectCatchUp : IDisposable
     /// <param name="clock">Times the retries.</param>
     /// <param name="logger">Logger.</param>
     /// <param name="pause">Holds the catch-ups while monitoring is paused (E04-S06-T02), or <see langword="null"/> for no pause.</param>
+    /// <param name="locations">
+    /// Tells the mode each folder runs in: a polled folder isn't watched, and is still caught up. Without it every folder
+    /// counts as watched.
+    /// </param>
     public ReconnectCatchUp(
         ILibrarySession session,
         FolderWatchManager watchers,
         ISender sender,
         TimeProvider clock,
         ILogger<ReconnectCatchUp> logger,
-        MonitoringPause? pause = null)
+        MonitoringPause? pause = null,
+        FolderLocations? locations = null)
     {
         this.pause = pause;
         this.session = session;
         this.watchers = watchers;
+        this.locations = locations;
         this.sender = sender;
         this.clock = clock;
         this.logger = logger;
@@ -146,15 +153,24 @@ public sealed class ReconnectCatchUp : IDisposable
             return false;
         }
 
-        // Where folders are watched, an Online folder that isn't watched has lost its watcher or is being removed: the
-        // watcher's own recovery rescans it.
-        if (watchers.IsWatching && !watchers.WatchedFolders.Contains(folderId))
+        var folders = await IndexedFolders.GetActiveAsync(library, cancellationToken).ConfigureAwait(false);
+        if (folders.FirstOrDefault(folder => folder.Id == folderId) is not { Status: FolderStatus.Online } folder
+            || folder.MonitoringMode == MonitoringMode.Manual)
         {
             return false;
         }
 
-        var folders = await IndexedFolders.GetActiveAsync(library, cancellationToken).ConfigureAwait(false);
-        return folders.Any(folder => folder.Id == folderId && folder.Status == FolderStatus.Online);
+        // Where folders are watched, an Online folder in Watch mode that isn't watched has lost its watcher or is being
+        // removed: the watcher's own recovery rescans it. A polled folder is never watched (E04-S05).
+        if (watchers.IsWatching && !watchers.WatchedFolders.Contains(folderId))
+        {
+            var mode = locations is null
+                ? MonitoringMode.Watch
+                : await locations.GetEffectiveModeAsync(folder, cancellationToken).ConfigureAwait(false);
+            return mode != MonitoringMode.Watch;
+        }
+
+        return true;
     }
 
     private async Task RunAsync(IOpenLibrary library, Id<IndexedFolder> folderId)

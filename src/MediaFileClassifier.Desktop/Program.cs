@@ -109,6 +109,9 @@ internal static partial class Program
             // New and changed files in the Online folders are noticed while the app runs (E04-S01).
             host.Services.GetRequiredService<FolderWatchManager>().Start();
 
+            // Folders in Poll mode, such as network shares, get a quick sync at the poll interval (E04-S05-T02).
+            host.Services.GetRequiredService<MediaFileClassifier.UseCases.Monitoring.FolderPoller>().Start();
+
             // Changes made while the app was closed are picked up once the watchers run (E04-S03).
             host.Services.GetRequiredService<MediaFileClassifier.UseCases.Monitoring.QuickSyncStarter>().Start();
 

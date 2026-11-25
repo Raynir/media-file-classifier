@@ -93,6 +93,12 @@ public sealed class IndexedFoldersFlowTests : IAsyncDisposable
 
         row.MonitoringState = FolderMonitoringState.Error;
         Assert.Equal(("Can't watch", true), (row.MonitoringText, row.ShowsMonitoringError));
+
+        row.MonitoringState = FolderMonitoringState.Polling;
+        Assert.Equal(("Polling", true, false, false), (row.MonitoringText, row.ShowsPolling, row.ShowsNotMonitored, row.ShowsManual));
+
+        row.MonitoringState = FolderMonitoringState.Manual;
+        Assert.Equal(("Manual", true, false, false), (row.MonitoringText, row.ShowsManual, row.ShowsNotMonitored, row.ShowsPolling));
     }
 
     [Fact]

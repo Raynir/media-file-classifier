@@ -70,6 +70,12 @@
                 <Border Classes="StatusBadge Excluded" IsVisible="{Binding ShowsNotMonitored}">
                   <TextBlock Text="{Binding MonitoringText}" />
                 </Border>
+                <Border Classes="StatusBadge Excluded" IsVisible="{Binding ShowsPolling}" ToolTip.Tip="{Binding PollingTip}">
+                  <TextBlock Text="{Binding MonitoringText}" />
+                </Border>
+                <Border Classes="StatusBadge Excluded" IsVisible="{Binding ShowsManual}" ToolTip.Tip="{Binding ManualTip}">
+                  <TextBlock Text="{Binding MonitoringText}" />
+                </Border>
                 <Border Classes="StatusBadge Pending" IsVisible="{Binding IsScanning}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
                     <PathIcon Data="{StaticResource Icon.Status.Pending}" />

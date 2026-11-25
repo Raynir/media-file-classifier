@@ -470,6 +470,10 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("library_id");
 
+                    b.Property<int>("MonitoringMode")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("monitoring_mode");
+
                     b.Property<string>("PlatformHandle")
                         .IsRequired()
                         .HasColumnType("TEXT")

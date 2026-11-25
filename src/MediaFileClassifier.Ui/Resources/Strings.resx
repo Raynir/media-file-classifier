@@ -1815,6 +1815,12 @@
   <data name="Setting_MonitoringIgnorePatterns_Help" xml:space="preserve">
     <value>Temporary and partly written files, such as downloads in progress and Office lock files, separated by semicolons. * matches any characters. A name matches files only; use **/name to ignore a folder.</value>
   </data>
+  <data name="Setting_MonitoringPollInterval" xml:space="preserve">
+    <value>Minutes between checks of polled folders</value>
+  </data>
+  <data name="Setting_MonitoringPollInterval_Help" xml:space="preserve">
+    <value>Folders in Poll mode, such as network shares, are checked for new, changed and deleted files this often.</value>
+  </data>
   <data name="Setting_QuickSyncOnOpen" xml:space="preserve">
     <value>Check for changes when the library opens</value>
   </data>
@@ -1850,6 +1856,18 @@
   </data>
   <data name="Folders_Monitoring_Off" xml:space="preserve">
     <value>Not monitored</value>
+  </data>
+  <data name="Folders_Monitoring_Polling" xml:space="preserve">
+    <value>Polling</value>
+  </data>
+  <data name="Folders_Monitoring_Polling_Tip" xml:space="preserve">
+    <value>The folder is on a network share or set to Poll, so it's checked for changes at the poll interval instead of being watched.</value>
+  </data>
+  <data name="Folders_Monitoring_Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Folders_Monitoring_Manual_Tip" xml:space="preserve">
+    <value>The folder is set to Manual: changes in it are found only when you rescan it.</value>
   </data>
   <data name="Folders_Monitoring_Error_Tip" xml:space="preserve">
     <value>The folder is reachable but changes in it can't be watched. The app tries again by itself; Rescan still finds changes.</value>

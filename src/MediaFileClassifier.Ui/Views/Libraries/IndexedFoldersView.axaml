@@ -21,7 +21,7 @@
       <Border Classes="Panel" Padding="{DynamicResource Padding.Control}" IsVisible="{Binding IsConfirming}">
         <DockPanel>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
-            <Button Classes="accent" Content="{Binding ConfirmLabel}" Command="{Binding ConfirmCommand}" />
+            <Button x:Name="ConfirmButton" Classes="accent" Content="{Binding ConfirmLabel}" Command="{Binding ConfirmCommand}" />
             <Button Content="{l:Loc Settings_Cancel}" Command="{Binding CancelConfirmationCommand}" />
           </StackPanel>
           <TextBlock Text="{Binding Confirmation}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
@@ -101,6 +101,14 @@
         <Panel IsVisible="{Binding HasSelection}">
           <StackPanel Spacing="{DynamicResource Space.S}" DataContext="{Binding SelectedFolder}" x:DataType="vm:IndexedFolderViewModel">
             <TextBlock Classes="Subtitle" Text="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).RulesTitle}" TextTrimming="CharacterEllipsis" />
+            <!-- An Offline folder whose root leads to another drive can take that drive as its own (MFC-1051). -->
+            <StackPanel Spacing="{DynamicResource Space.S}" IsVisible="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).HasOtherDrive}">
+              <TextBlock Classes="Secondary" Text="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).OtherDriveNote}" TextWrapping="Wrap" />
+              <Button x:Name="UseThisDriveButton"
+                      Classes="accent"
+                      Content="{l:Loc Folders_UseThisDrive}"
+                      Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).UseThisDriveCommand}" />
+            </StackPanel>
             <!-- A partial folder has no rules until it's indexed whole (E03-S05). -->
             <StackPanel Spacing="{DynamicResource Space.S}" IsVisible="{Binding IsPartial}">
               <TextBlock Classes="Secondary" Text="{l:Loc Folders_PartialNote}" TextWrapping="Wrap" />

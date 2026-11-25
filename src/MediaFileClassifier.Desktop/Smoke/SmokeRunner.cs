@@ -279,6 +279,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return await UnplugFolderAsync();
             case "plug-folder":
                 return PlugFolder();
+            case "swap-drive":
+                return await SwapDriveAsync();
             case "folder-mode":
                 return await SetFolderModeAsync(Enum.Parse<MonitoringMode>(step.Argument));
             case "allow-error":
@@ -333,6 +335,24 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 // A file in it may still be open for a moment, e.g. a video the player just closed.
                 await Task.Delay(250);
             }
+        }
+
+        var changed = await services.GetRequiredService<ISender>().Send(new CheckFolderAvailabilityCommand());
+        return $"{changed.Count} folder(s) offline";
+    }
+
+    /// <summary>
+    /// Makes every folder of the open library look as if its drive was swapped for one with a new identity, e.g. a clone
+    /// on a new disk (MFC-1051): it stores another volume identity for each, then checks the folders, which finds the
+    /// real drive at their roots and shows them Offline, so the folders dialog offers "Use this drive".
+    /// </summary>
+    private async Task<string> SwapDriveAsync()
+    {
+        var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
+        foreach (var folder in await library.Folders.GetAllAsync())
+        {
+            folder.ChangeVolumeId("0000-0001");
+            await library.Folders.UpdateAvailabilityAndVolumeAsync(folder);
         }
 
         var changed = await services.GetRequiredService<ISender>().Send(new CheckFolderAvailabilityCommand());

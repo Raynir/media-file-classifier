@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
@@ -16,6 +17,7 @@ using MediaFileClassifier.UseCases.Libraries.CheckFolderOverlap;
 using MediaFileClassifier.UseCases.Libraries.GetIndexedFolders;
 using MediaFileClassifier.UseCases.Libraries.IndexWholeFolder;
 using MediaFileClassifier.UseCases.Libraries.RemoveFolder;
+using MediaFileClassifier.UseCases.Libraries.UseThisDrive;
 using MediaFileClassifier.UseCases.Monitoring;
 using MediatR;
 
@@ -37,6 +39,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     private readonly MonitoringPause? monitoringPause;
     private Func<Task>? confirmed;
     private bool refreshing;
+    private (Id<IndexedFolder> Id, bool Offline) otherDriveProbe;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IndexedFoldersViewModel"/> class.
@@ -156,6 +159,19 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     public bool IsConfirming => Confirmation is not null;
 
     /// <summary>
+    /// Gets the note shown when the selected Offline folder's root leads to another drive (MFC-1051), or <c>null</c>.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOtherDrive))]
+    [NotifyCanExecuteChangedFor(nameof(UseThisDriveCommand))]
+    public partial string? OtherDriveNote { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether "Use this drive" is offered for the selected folder.
+    /// </summary>
+    public bool HasOtherDrive => OtherDriveNote is not null;
+
+    /// <summary>
     /// Checks the folders and lists them. The dialog calls it when it opens.
     /// </summary>
     /// <returns>A task that completes when the list is shown.</returns>
@@ -214,6 +230,11 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         if (SelectedFolder is not null && !Folders.Contains(SelectedFolder))
         {
             SelectedFolder = null;
+        }
+        else if (SelectedFolder is { } selected && (selected.Folder.Id, selected.IsOffline) != otherDriveProbe)
+        {
+            // Read again only when the selected folder goes Offline or Online, not on every refresh.
+            _ = FindOtherDriveAsync(selected);
         }
 
         ShowMonitoring();
@@ -443,6 +464,58 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         Ask(localizer.Format("Folders_IndexWholeConfirm", row.Path, count), localizer.Get("Folders_IndexWhole"), async () =>
         {
             await sender.Send(new IndexWholeFolderCommand(row.Folder.Id));
+            await RefreshAsync();
+        });
+    }
+
+    partial void OnSelectedFolderChanged(IndexedFolderViewModel? value)
+    {
+        OtherDriveNote = null;
+        otherDriveProbe = default;
+        if (value is not null)
+        {
+            _ = FindOtherDriveAsync(value);
+        }
+    }
+
+    /// <summary>
+    /// Finds whether the selected Offline folder's root leads to another drive, to offer "Use this drive" (MFC-1051).
+    /// </summary>
+    private async Task FindOtherDriveAsync(IndexedFolderViewModel row)
+    {
+        otherDriveProbe = (row.Folder.Id, row.IsOffline);
+        var drive = row.IsOffline ? await sender.Send(new FindOtherDriveQuery(row.Folder.Id)) : null;
+
+        // A selection changed while the drive was read has its own answer coming.
+        if (!ReferenceEquals(SelectedFolder, row))
+        {
+            return;
+        }
+
+        OtherDriveNote = drive switch
+        {
+            null => null,
+            { Label: { Read: true, Label: { } label } } => localizer.Format("Folders_OtherDriveNote", row.Path, label),
+            _ => localizer.Format("Folders_OtherDriveNoteNoLabel", row.Path),
+        };
+    }
+
+    [RelayCommand(CanExecute = nameof(HasOtherDrive))]
+    private void UseThisDrive()
+    {
+        if (SelectedFolder is not { } row)
+        {
+            return;
+        }
+
+        var count = IndexedFolderViewModel.ItemCountText(localizer, row.Summary.ItemCount + row.Summary.ExcludedCount);
+        Ask(localizer.Format("Folders_UseThisDriveConfirm", row.Path, count), localizer.Get("Folders_UseThisDrive"), async () =>
+        {
+            var outcome = await sender.Send(new UseThisDriveCommand(row.Folder.Id));
+            Message = localizer.Format(outcome == UseThisDriveOutcome.Done ? "Folders_UsingThisDrive" : "Folders_NoOtherDrive", row.Path);
+
+            // The refresh reads the selected folder's drive again, whether or not its status changed.
+            otherDriveProbe = default;
             await RefreshAsync();
         });
     }

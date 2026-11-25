@@ -39,6 +39,7 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     private readonly SemaphoreSlim loading = new(1, 1);
     private readonly ILibrarySession? session;
     private bool attached;
+    private ITimer? midnight;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ActivityLogViewModel"/> class.
@@ -131,7 +132,11 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     public partial string CountText { get; private set; } = string.Empty;
 
     /// <inheritdoc />
-    public void Dispose() => loading.Dispose();
+    public void Dispose()
+    {
+        midnight?.Dispose();
+        loading.Dispose();
+    }
 
     /// <summary>
     /// Starts following new events; call it when the window opens.
@@ -142,6 +147,7 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
         {
             attached = true;
             changes.Changed += OnChanged;
+            ArmMidnight();
             if (session is not null)
             {
                 session.CurrentChanged += OnLibraryChanged;
@@ -166,6 +172,8 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     public void Detach()
     {
         attached = false;
+        midnight?.Dispose();
+        midnight = null;
         changes.Changed -= OnChanged;
         if (session is not null)
         {
@@ -333,6 +341,12 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
         {
             if (i < Rows.Count && Rows[i].Key == rows[i].Key)
             {
+                // A day header's text changes at midnight: "Today" becomes "Yesterday" (MFC-1034).
+                if (Rows[i].Header != rows[i].Header)
+                {
+                    Rows[i] = rows[i];
+                }
+
                 continue;
             }
 
@@ -350,6 +364,27 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
         {
             Rows.RemoveAt(Rows.Count - 1);
         }
+    }
+
+    // The day headers are relative to today, so the list is refreshed when the day changes (MFC-1034).
+    private void ArmMidnight()
+    {
+        midnight?.Dispose();
+        var now = clock.GetLocalNow();
+        var tomorrow = now.Date.AddDays(1);
+        var next = new DateTimeOffset(tomorrow, clock.LocalTimeZone.GetUtcOffset(tomorrow));
+        midnight = clock.CreateTimer(_ => post(OnMidnight), null, next - now + TimeSpan.FromSeconds(1), Timeout.InfiniteTimeSpan);
+    }
+
+    private void OnMidnight()
+    {
+        if (!attached)
+        {
+            return;
+        }
+
+        ArmMidnight();
+        _ = RefreshAsync();
     }
 
     private string DayText(DateOnly date, DateOnly today) =>

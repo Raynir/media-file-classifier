@@ -6,9 +6,11 @@ namespace MediaFileClassifier.UseCases.Import;
 /// different folders still run side by side; a reconcile takes it alone, and waits for the registrations to finish.
 /// </summary>
 /// <remarks>
-/// A reconcile that's waiting goes first: registrations that ask after it wait for it, so it isn't starved.
+/// A reconcile that's waiting goes first: registrations that ask after it wait for it, so it isn't starved. It isn't
+/// disposable: a hold let go while the app shuts down must still release it.
 /// </remarks>
-public sealed class FolderScanGate : IDisposable
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA1001", Justification = "Lives as long as the app; a hold let go while it shuts down must still release it.")]
+public sealed class FolderScanGate
 {
     // Taken by both kinds while they queue up, so a waiting reconcile holds new registrations back.
     private readonly SemaphoreSlim turnstile = new(1, 1);
@@ -72,14 +74,6 @@ public sealed class FolderScanGate : IDisposable
             empty.Release();
             turnstile.Release();
         });
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        turnstile.Dispose();
-        empty.Dispose();
-        counter.Dispose();
     }
 
     private void ExitShared()

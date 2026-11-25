@@ -5,15 +5,13 @@ namespace MediaFileClassifier.UseCases.Tests.Import;
 /// <summary>
 /// The gate that keeps a rescan's reconcile apart from imports registering files (MFC-1040).
 /// </summary>
-public sealed class FolderScanGateTests : IDisposable
+public sealed class FolderScanGateTests
 {
     private static readonly TimeSpan Short = TimeSpan.FromMilliseconds(100);
 
     private readonly FolderScanGate gate = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
-
-    public void Dispose() => gate.Dispose();
 
     [Fact]
     public async Task Shared_HoldsAtTheSameTime()

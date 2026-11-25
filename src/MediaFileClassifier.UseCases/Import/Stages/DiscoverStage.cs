@@ -46,7 +46,7 @@ public sealed partial class DiscoverStage(IFolderDiscovery discovery, TimeProvid
             ?? throw new InvalidOperationException("The import's folder isn't in the library any more.");
 
         // A rescan reconciling the library meanwhile would register the same paths (MFC-1040): discovery waits for it,
-        // and a rescan that starts later skips this folder until discovery is done.
+        // and a rescan that starts later waits for discovery.
         DiscoveryResult result;
         using (await gate.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -87,7 +87,7 @@ public sealed partial class DiscoverStage(IFolderDiscovery discovery, TimeProvid
         LogDiscovered(folder.DisplayPath, result.FilesFound, result.ItemsRegistered, leftOver.Count, result.CloudPlaceholdersSkipped, result.Unsupported, result.UnreadableFiles);
     }
 
-    // The items with work in this job, or in an unfinished rescan of the folder that registered them first (MFC-1040).
+    // The items with work in this job, or with work still to do in a rescan that registered them first (MFC-1040).
     private static async Task<HashSet<Id<MediaItem>>> GetQueuedItemsAsync(IOpenLibrary library, Id<ProcessingJob> jobId, Id<IndexedFolder> folderId, CancellationToken cancellationToken)
     {
         var rescans = (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false))
@@ -98,7 +98,8 @@ public sealed partial class DiscoverStage(IFolderDiscovery discovery, TimeProvid
         {
             foreach (var workItem in await library.Jobs.GetWorkItemsAsync(id, cancellationToken).ConfigureAwait(false))
             {
-                if (workItem.ItemId is { } itemId)
+                // A rescan's failed or cancelled work leaves the item to this import.
+                if (workItem.ItemId is { } itemId && (id == jobId || workItem.State is WorkItemState.Queued or WorkItemState.Running))
                 {
                     queued.Add(itemId);
                 }

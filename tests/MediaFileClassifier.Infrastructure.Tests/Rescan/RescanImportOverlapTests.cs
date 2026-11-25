@@ -8,7 +8,6 @@ using MediaFileClassifier.Testing.Media;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Import.ImportFolders;
 using MediaFileClassifier.UseCases.Rescan;
-using MediaFileClassifier.UseCases.Rescan.GetRescanSummary;
 using MediaFileClassifier.UseCases.Rescan.StartRescan;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Rescan;
@@ -41,7 +40,7 @@ public sealed class RescanImportOverlapTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task FolderImportedWhileALibraryRescanIsQueued_IsLeftToTheImport()
+    public async Task FolderImportedWhileALibraryRescanIsQueued_RegistersEachFileOnce()
     {
         Scheduler.Pause();
         var rescan = await bed.Sender.Send(new StartRescanCommand(), Token);
@@ -53,8 +52,6 @@ public sealed class RescanImportOverlapTests : IAsyncLifetime
 
         Assert.Equal(ProcessingJobState.Completed, (await bed.Library.Jobs.GetJobAsync(rescan.JobId!.Value, Token))!.State);
         Assert.Equal(ProcessingJobState.Completed, (await bed.Library.Jobs.GetJobAsync(import, Token))!.State);
-        var summary = await bed.Sender.Send(new GetRescanSummaryQuery(rescan.JobId!.Value), Token);
-        Assert.Equal(0, summary!.Counts!.New);
         await AssertEachFileOnceAsync(added);
     }
 

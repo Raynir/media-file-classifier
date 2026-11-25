@@ -45,7 +45,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         int newlyMissing;
 
         // No import registers files while the folders are listed and the result is written, so both never insert the
-        // same path (MFC-1040). One that's still discovering its folder had the gate first, and that folder is skipped.
+        // same path (MFC-1040). An import that discovers a folder later leaves the files registered here to this job.
         using (await gate.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false))
         {
             folders = await GetFoldersAsync(library, job, cancellationToken).ConfigureAwait(false);
@@ -73,24 +73,13 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         LogReconciled(folders.Count, result.Offline.Count, result.New.Count, result.Modified.Count, result.Moved.Count, result.Missing.Count, result.Unchanged.Count);
     }
 
-    // The job's folder, or all of them. A folder that's being removed isn't rescanned, nor one whose import hasn't
-    // finished discovering it: the import registers its files (MFC-1040).
+    // The job's folder, or all of them; a folder that's being removed isn't rescanned.
     private static async Task<IReadOnlyList<IndexedFolder>> GetFoldersAsync(IOpenLibrary library, ProcessingJob job, CancellationToken cancellationToken)
     {
-        var unfinished = await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false);
-        var skipped = unfinished
+        var skipped = (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false))
             .Where(other => other.Type == IndexedFolders.RemoveJob && other.FolderId is not null)
             .Select(other => other.FolderId!.Value)
             .ToHashSet();
-        foreach (var import in unfinished.Where(other => other.Type == ImportStages.ImportJob && other.FolderId is { } id && !skipped.Contains(id)))
-        {
-            var work = await library.Jobs.GetWorkItemsAsync(import.Id, cancellationToken).ConfigureAwait(false);
-            if (work.Any(workItem => workItem.Stage == ImportStages.Discover && workItem.State is WorkItemState.Queued or WorkItemState.Running))
-            {
-                skipped.Add(import.FolderId!.Value);
-            }
-        }
-
         IReadOnlyList<IndexedFolder> folders = job.FolderId is { } folderId
             ? [.. new[] { await library.Folders.GetAsync(folderId, cancellationToken).ConfigureAwait(false) }.OfType<IndexedFolder>()]
             : await library.Folders.GetAllAsync(cancellationToken).ConfigureAwait(false);

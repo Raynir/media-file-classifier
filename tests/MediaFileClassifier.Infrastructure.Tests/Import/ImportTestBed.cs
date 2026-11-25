@@ -124,6 +124,7 @@ internal sealed class ImportTestBed : IAsyncDisposable
         collection.TryAddSingleton(processing);
         collection.TryAddSingleton(TimeProvider.System);
         collection.TryAddSingleton<IFileHasher, XxHashFileHasher>();
+        collection.TryAddSingleton<IFolderDiscovery, FolderDiscovery>();
         collection.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, AiExceptionClassifier>());
         var services = collection
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
@@ -131,7 +132,6 @@ internal sealed class ImportTestBed : IAsyncDisposable
             .AddSingleton<ISettingsService>(settings)
             .AddSingleton<IHardwareInfo>(new FakeHardwareInfo(memoryBytes: 8L << 30))
             .AddSingleton<IMediaFileSource, FileSystemMediaFileSource>()
-            .AddSingleton<IFolderDiscovery, FolderDiscovery>()
             .AddSingleton<IPerceptualHasher, SkiaPerceptualHasher>()
             .AddSingleton<IMediaHasher, MediaHasher>()
             .AddSingleton<ILibrarySession>(new BedSession(library))

@@ -37,7 +37,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UpdateMovedAsync_ItemsThatSwapPaths_AreStoredAtTheirNewPaths()
+    public async Task UpdateFilesAsync_ItemsThatSwapPaths_AreStoredAtTheirNewPaths()
     {
         var (a, b, c) = (bed.NewItem(1), bed.NewItem(2), bed.NewItem(3));
         await bed.Library.Items.AddRangeAsync([a, b, c], Token);
@@ -47,17 +47,54 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
         a.Relocate(a.FolderId, pathB);
         b.Relocate(b.FolderId, pathA);
         c.Relocate(c.FolderId, RelativePath.From("other/IMG_00003.jpg"));
-        b.SetFavorite(true, DateTimeOffset.UtcNow);
-        await bed.Library.Items.UpdateMovedAsync([a, b, c], Token);
+        await bed.Library.Items.UpdateFilesAsync([a, b, c], Token);
 
         Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathA, Token))?.Id);
         Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
-        Assert.True((await bed.Library.Items.GetAsync(b.Id, Token))!.IsFavorite);
         Assert.Equal("other/IMG_00003.jpg", (await bed.Library.Items.GetAsync(c.Id, Token))!.Path.Value);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UpdateFilesAsync_UserEditMadeAfterTheRead_IsKept(bool swap)
+    {
+        // A stage read the items, then the user marked them (MFC-1053); the swap goes through the parked-path write.
+        var (a, b) = (bed.NewItem(1), bed.NewItem(2));
+        await bed.Library.Items.AddRangeAsync([a, b], Token);
+        var (pathA, pathB) = (a.Path, b.Path);
+        await bed.Library.Items.SetFavoriteAsync([a.Id, b.Id], true, LibraryTestBed.Start, Token);
+
+        a.Relocate(a.FolderId, swap ? pathB : RelativePath.From("moved/a.jpg"));
+        b.Relocate(b.FolderId, swap ? pathA : RelativePath.From("moved/b.jpg"));
+        a.ChangeStatus(MediaItemStatus.Missing, LibraryTestBed.Start);
+        await bed.Library.Items.UpdateFilesAsync([a, b], Token);
+
+        var (storedA, storedB) = ((await bed.Library.Items.GetAsync(a.Id, Token))!, (await bed.Library.Items.GetAsync(b.Id, Token))!);
+        Assert.True(storedA.IsFavorite && storedB.IsFavorite);
+        Assert.Equal(LibraryTestBed.Start, storedA.FavoriteChangedAt);
+        Assert.Equal(MediaItemStatus.Missing, storedA.Status);
+        Assert.Equal(swap ? pathB : RelativePath.From("moved/a.jpg"), storedA.Path);
+    }
+
     [Fact]
-    public async Task UpdateMovedAsync_ChainOfMovesWrittenFirstToLast_IsStored()
+    public async Task UpdateFilesAsync_ItemExcludedAfterTheRead_StaysExcludedAndFollowsItsFile()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+        await bed.Library.Items.ExcludeAsync([item.Id], "Removed by the user", LibraryTestBed.Start, Token);
+
+        item.Relocate(item.FolderId, RelativePath.From("moved/a.jpg"));
+        item.ChangeStatus(MediaItemStatus.Missing, LibraryTestBed.Start);
+        await bed.Library.Items.UpdateFilesAsync([item], Token);
+
+        var stored = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        Assert.Equal((MediaItemStatus.Excluded, "Removed by the user"), (stored.Status, stored.StatusReason));
+        Assert.Equal("moved/a.jpg", stored.Path.Value);
+    }
+
+    [Fact]
+    public async Task UpdateFilesAsync_ChainOfMovesWrittenFirstToLast_IsStored()
     {
         var (a, b, c) = (bed.NewItem(1), bed.NewItem(2), bed.NewItem(3));
         await bed.Library.Items.AddRangeAsync([a, b, c], Token);
@@ -67,7 +104,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
         a.Relocate(a.FolderId, pathB);
         b.Relocate(b.FolderId, pathC);
         c.Relocate(c.FolderId, RelativePath.From("free.jpg"));
-        await bed.Library.Items.UpdateMovedAsync([a, b, c], Token);
+        await bed.Library.Items.UpdateFilesAsync([a, b, c], Token);
 
         Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
         Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathC, Token))?.Id);
@@ -76,7 +113,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UpdateMovedAsync_PathOfAnItemThatStays_FailsWithoutMovingAnything()
+    public async Task UpdateFilesAsync_PathOfAnItemThatStays_FailsWithoutMovingAnything()
     {
         var (a, b) = (bed.NewItem(1), bed.NewItem(2));
         await bed.Library.Items.AddRangeAsync([a, b], Token);
@@ -84,7 +121,7 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
 
         b.Relocate(b.FolderId, pathA);
 
-        await Assert.ThrowsAsync<DbUpdateException>(() => bed.Library.Items.UpdateMovedAsync([b], Token));
+        await Assert.ThrowsAsync<DbUpdateException>(() => bed.Library.Items.UpdateFilesAsync([b], Token));
         Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathA, Token))?.Id);
         Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
     }

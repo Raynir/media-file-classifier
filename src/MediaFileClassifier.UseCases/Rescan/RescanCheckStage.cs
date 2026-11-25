@@ -71,7 +71,7 @@ public sealed class RescanCheckStage(
             item.UpdateFile(stat.Length, created, stat.LastModifiedUtc, new FileHashes { Fingerprint = fingerprint });
             item.ChangeStatus(MediaItemStatus.Pending, Clock.GetUtcNow());
             thumbnails.Invalidate(library.Layout, item.Id);
-            await library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
+            await library.Items.UpdateFilesAsync([item], cancellationToken).ConfigureAwait(false);
             await context.Scheduler.EnqueueWorkAsync(context.WorkItem.JobId, [new WorkItemRequest(RescanStages.Media, item.Id)], cancellationToken)
                 .ConfigureAwait(false);
             return;
@@ -99,7 +99,7 @@ public sealed class RescanCheckStage(
             }
         }
 
-        await library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
+        await library.Items.UpdateFilesAsync([item], cancellationToken).ConfigureAwait(false);
         if (refresh)
         {
             await context.Scheduler.EnqueueWorkAsync(context.WorkItem.JobId, [new WorkItemRequest(RescanStages.Media, item.Id)], cancellationToken)

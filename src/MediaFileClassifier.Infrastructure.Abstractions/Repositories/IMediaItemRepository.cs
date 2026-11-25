@@ -307,14 +307,17 @@ public interface IMediaItemRepository
     Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Stores the changes made to many items, some of which moved with <see cref="MediaItem.Relocate"/>. An item may
-    /// take a path that another of the items leaves, as when two files swap names: those items are written together in
-    /// one transaction, the others in batches like <see cref="AddRangeAsync"/>.
+    /// Stores what a rescan or a watched change found out about items' files (MFC-1053): their location (moved with
+    /// <see cref="MediaItem.Relocate"/>), file facts, hashes and status. The user's favourite and review mark are kept
+    /// as stored, so an edit made while the items were being checked isn't lost; an item the user removed meanwhile
+    /// keeps its Excluded status. An item may take a path that another of the items leaves, as when two files swap
+    /// names: those items are written together in one transaction, the others in batches like
+    /// <see cref="AddRangeAsync"/>.
     /// </summary>
     /// <param name="items">The changed items.</param>
     /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>
     /// <returns>A task that completes when every change is stored.</returns>
-    Task UpdateMovedAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default);
+    Task UpdateFilesAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Stores the changes made to an item together with its technical metadata, in one transaction, replacing any

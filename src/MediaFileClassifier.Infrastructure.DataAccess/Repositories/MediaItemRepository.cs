@@ -530,7 +530,7 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
     }
 
     /// <inheritdoc />
-    public async Task UpdateMovedAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default)
+    public async Task UpdateFilesAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(items);
 
@@ -572,7 +572,7 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
                 var together = parked.SelectMany(row => targets[(row.FolderId, row.Path)].Select(item => item.Id))
                     .Concat(parked.Select(row => row.Id))
                     .ToHashSet();
-                db.MediaItems.UpdateRange(together.Select(id => byId[id]));
+                await AttachFileChangesAsync(db, [.. together.Select(id => byId[id])], token).ConfigureAwait(false);
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
                 return together;
             },
@@ -582,7 +582,17 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             RaiseChanged();
         }
 
-        await UpdateRangeAsync([.. items.Where(item => !written.Contains(item.Id))], cancellationToken).ConfigureAwait(false);
+        foreach (var batch in items.Where(item => !written.Contains(item.Id)).Chunk(BatchSize))
+        {
+            await writer.ExecuteAsync(
+                async (db, token) =>
+                {
+                    await AttachFileChangesAsync(db, batch, token).ConfigureAwait(false);
+                    return await db.SaveChangesAsync(token).ConfigureAwait(false);
+                },
+                cancellationToken).ConfigureAwait(false);
+            RaiseChanged();
+        }
     }
 
     /// <inheritdoc />
@@ -719,6 +729,36 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
         }
 
         return written;
+    }
+
+    // Marks only what a file change sets as modified (MFC-1053): location, file facts, hashes and status. The user's
+    // favourite and review mark are never written, so an edit made while a rescan or a watched change read the item
+    // stays. An item the user removed meanwhile stays Excluded and only follows its file (E02-S10-T02). Runs inside the
+    // writer, so nothing changes between the check and the write.
+    private static async Task AttachFileChangesAsync(LibraryDbContext db, IReadOnlyCollection<MediaItem> items, CancellationToken token)
+    {
+        var ids = items.Select(item => item.Id).ToList();
+        var excluded = (await db.MediaItems.AsNoTracking()
+                .Where(item => ids.Contains(item.Id) && item.Status == MediaItemStatus.Excluded)
+                .Select(item => item.Id)
+                .ToListAsync(token)
+                .ConfigureAwait(false))
+            .ToHashSet();
+        foreach (var item in items)
+        {
+            var entry = db.MediaItems.Update(item);
+            entry.Property(stored => stored.ReviewStatus).IsModified = false;
+            entry.Property(stored => stored.ReviewStatusChangedAt).IsModified = false;
+            entry.Property(stored => stored.IsFavorite).IsModified = false;
+            entry.Property(stored => stored.FavoriteChangedAt).IsModified = false;
+            if (excluded.Contains(item.Id) && item.Status != MediaItemStatus.Excluded)
+            {
+                entry.Property(stored => stored.Status).IsModified = false;
+                entry.Property(stored => stored.StatusReason).IsModified = false;
+                entry.Property(stored => stored.StatusChangedAt).IsModified = false;
+                entry.ComplexProperty(stored => stored.Error).IsModified = false;
+            }
+        }
     }
 
     // Listeners run on the writing thread, often a job's. The items are written by now, so a listener that fails is

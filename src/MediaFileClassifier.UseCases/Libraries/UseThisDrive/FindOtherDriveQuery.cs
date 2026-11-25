@@ -10,7 +10,8 @@ namespace MediaFileClassifier.UseCases.Libraries.UseThisDrive;
 
 /// <summary>
 /// Tells whether an Offline folder's root leads to another drive (MFC-1051), so the folders dialog can offer
-/// <see cref="UseThisDriveCommand"/>. It reads the drive, so it's asked when a folder is selected, not on every refresh.
+/// <see cref="UseThisDriveCommand"/>, and how many other Offline folders from the same old drive would come with it. It
+/// reads the drives, so the dialog asks it when a folder is selected and now and then while it stays Offline.
 /// </summary>
 /// <param name="FolderId">The folder.</param>
 public sealed record FindOtherDriveQuery(Id<IndexedFolder> FolderId) : IRequest<OtherDrive?>;
@@ -35,12 +36,17 @@ public sealed class FindOtherDriveQueryHandler(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (session.Current is not { } library
-            || await library.Folders.GetAsync(request.FolderId, cancellationToken).ConfigureAwait(false) is not { } folder)
+        if (session.Current is not { } library)
         {
             return null;
         }
 
-        return await OtherDrive.FindAsync(files, volumes, folder, logger, cancellationToken).ConfigureAwait(false);
+        var all = await library.Folders.GetAllAsync(cancellationToken).ConfigureAwait(false);
+        if (all.FirstOrDefault(folder => folder.Id == request.FolderId) is not { } folder)
+        {
+            return null;
+        }
+
+        return (await OtherDrive.FindWithOthersAsync(files, volumes, folder, all, logger, cancellationToken).ConfigureAwait(false))?.Drive;
     }
 }

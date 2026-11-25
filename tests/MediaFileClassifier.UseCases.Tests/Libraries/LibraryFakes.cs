@@ -212,8 +212,18 @@ internal sealed class FakeFolderRepository : IFolderRepository
     public Task UpdateAvailabilityAndVolumeAsync(IndexedFolder folder, CancellationToken cancellationToken = default) =>
         UpdateAvailabilityAsync(folder, cancellationToken);
 
+    /// <summary>
+    /// Gets the folders whose relink is refused, as if another write relinked or removed them since they were read.
+    /// </summary>
+    public HashSet<Id<IndexedFolder>> RefusedRelinks { get; } = [];
+
     public Task<bool> RelinkAsync(IndexedFolder folder, string oldPlatformHandle, CancellationToken cancellationToken = default)
     {
+        if (RefusedRelinks.Contains(folder.Id))
+        {
+            return Task.FromResult(false);
+        }
+
         Relinks++;
         Updates++;
         Store(folder);

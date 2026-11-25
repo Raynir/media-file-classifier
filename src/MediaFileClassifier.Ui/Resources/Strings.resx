@@ -1028,6 +1028,14 @@
     <value>Use the drive now at {0} as this folder's drive? The {1} keep their metadata, and the folder is synced with the drive: files that aren't on it are marked Missing.</value>
     <comment>{0} = folder path, {1} = item count, e.g. "4 items".</comment>
   </data>
+  <data name="Folders_UseThisDriveConfirmMany" xml:space="preserve">
+    <value>Use the drive now at {0} as the drive of this folder and {1} other Offline folders from the same old drive? Their items keep their metadata, and the folders are synced with the drive: files that aren't on it are marked Missing.</value>
+    <comment>{0} = folder path, {1} = number of other folders. MFC-1051.</comment>
+  </data>
+  <data name="Folders_UsingThisDriveMany" xml:space="preserve">
+    <value>{0} and {1} other folders are Online on their new drive and are being synced.</value>
+    <comment>{0} = folder path, {1} = number of other folders.</comment>
+  </data>
   <data name="Folders_UsingThisDrive" xml:space="preserve">
     <value>{0} is Online on its new drive and is being synced.</value>
     <comment>{0} = folder path.</comment>

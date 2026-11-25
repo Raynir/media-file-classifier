@@ -29,6 +29,11 @@ namespace MediaFileClassifier.Ui.ViewModels.Libraries;
 /// </summary>
 public sealed partial class IndexedFoldersViewModel : ViewModelBase
 {
+    /// <summary>
+    /// How often, in milliseconds, the selected Offline folder's drive is read again while the dialog refreshes.
+    /// </summary>
+    private const long OtherDriveProbeInterval = 10_000;
+
     private readonly ISender sender;
     private readonly IPlatformServices platform;
     private readonly IMediaFileSource files;
@@ -40,6 +45,10 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     private Func<Task>? confirmed;
     private bool refreshing;
     private (Id<IndexedFolder> Id, bool Offline) otherDriveProbe;
+    private long otherDriveProbedAt;
+    private int otherDriveGeneration;
+    private bool otherDriveProbing;
+    private OtherDrive? otherDrive;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IndexedFoldersViewModel"/> class.
@@ -231,9 +240,12 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         {
             SelectedFolder = null;
         }
-        else if (SelectedFolder is { } selected && (selected.Folder.Id, selected.IsOffline) != otherDriveProbe)
+        else if (SelectedFolder is { } selected
+            && ((selected.Folder.Id, selected.IsOffline) != otherDriveProbe
+                || (selected.IsOffline && !otherDriveProbing && Environment.TickCount64 - otherDriveProbedAt >= OtherDriveProbeInterval)))
         {
-            // Read again only when the selected folder goes Offline or Online, not on every refresh.
+            // Read again when the selected folder goes Offline or Online, and now and then while it stays Offline, as a
+            // cloned drive plugged in meanwhile leaves it Offline; not on every refresh.
             _ = FindOtherDriveAsync(selected);
         }
 
@@ -470,6 +482,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
 
     partial void OnSelectedFolderChanged(IndexedFolderViewModel? value)
     {
+        otherDrive = null;
         OtherDriveNote = null;
         otherDriveProbe = default;
         if (value is not null)
@@ -483,15 +496,38 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// </summary>
     private async Task FindOtherDriveAsync(IndexedFolderViewModel row)
     {
+        var generation = ++otherDriveGeneration;
         otherDriveProbe = (row.Folder.Id, row.IsOffline);
-        var drive = row.IsOffline ? await sender.Send(new FindOtherDriveQuery(row.Folder.Id)) : null;
+        otherDriveProbedAt = Environment.TickCount64;
+        OtherDrive? drive = null;
+        if (row.IsOffline)
+        {
+            otherDriveProbing = true;
+            try
+            {
+                drive = await sender.Send(new FindOtherDriveQuery(row.Folder.Id));
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ObjectDisposedException or OperationCanceledException)
+            {
+                // E.g. the library closed meanwhile: no drive is offered, and the next probe asks again.
+            }
+            finally
+            {
+                if (generation == otherDriveGeneration)
+                {
+                    otherDriveProbing = false;
+                }
+            }
+        }
 
-        // A selection changed while the drive was read has its own answer coming.
-        if (!ReferenceEquals(SelectedFolder, row))
+        // A newer probe, or a selection changed while the drive was read, has its own answer coming.
+        if (generation != otherDriveGeneration || !ReferenceEquals(SelectedFolder, row))
         {
             return;
         }
 
+        otherDriveProbing = false;
+        otherDrive = drive;
         OtherDriveNote = drive switch
         {
             null => null,
@@ -503,16 +539,25 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(HasOtherDrive))]
     private void UseThisDrive()
     {
-        if (SelectedFolder is not { } row)
+        if (SelectedFolder is not { } row || otherDrive is not { } drive)
         {
             return;
         }
 
         var count = IndexedFolderViewModel.ItemCountText(localizer, row.Summary.ItemCount + row.Summary.ExcludedCount);
-        Ask(localizer.Format("Folders_UseThisDriveConfirm", row.Path, count), localizer.Get("Folders_UseThisDrive"), async () =>
+        var question = drive.OtherFolders > 0
+            ? localizer.Format("Folders_UseThisDriveConfirmMany", row.Path, Format.Number(drive.OtherFolders))
+            : localizer.Format("Folders_UseThisDriveConfirm", row.Path, count);
+        Ask(question, localizer.Get("Folders_UseThisDrive"), async () =>
         {
-            var outcome = await sender.Send(new UseThisDriveCommand(row.Folder.Id));
-            Message = localizer.Format(outcome == UseThisDriveOutcome.Done ? "Folders_UsingThisDrive" : "Folders_NoOtherDrive", row.Path);
+            var result = await sender.Send(new UseThisDriveCommand(row.Folder.Id));
+            Message = result switch
+            {
+                { Outcome: UseThisDriveOutcome.Done, OtherFolders: > 0 } => localizer.Format("Folders_UsingThisDriveMany", row.Path, Format.Number(result.OtherFolders)),
+                { Outcome: UseThisDriveOutcome.Done } => localizer.Format("Folders_UsingThisDrive", row.Path),
+                { Outcome: UseThisDriveOutcome.NoOtherDrive } => localizer.Format("Folders_NoOtherDrive", row.Path),
+                _ => null,
+            };
 
             // The refresh reads the selected folder's drive again, whether or not its status changed.
             otherDriveProbe = default;

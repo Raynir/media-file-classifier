@@ -192,25 +192,32 @@ public sealed class IndexedFoldersFlowTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Dialog_OfflineFolderOnItsOwnDrive_OffersNoOtherDrive()
+    public async Task Dialog_OfflineFolderOnItsOwnDrive_OffersNothing_UntilAnotherDriveIsThere()
     {
         var volumes = new FakeVolumeLocator();
         await using var services = TestServices.Build(configure: collection => collection.AddSingleton<IVolumeLocator>(volumes));
         await services.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", services.Root), Token);
-        var photos = Path.Combine(services.Root, "gone");
+        var photos = Directory.CreateDirectory(Path.Combine(services.Root, "photos")).FullName;
         var library = services.Services.GetRequiredService<ILibrarySession>().Current!;
         await library.Folders.AddAsync(
             new IndexedFolder(Id<IndexedFolder>.New(), library.Library.Id, photos, photos, new FolderRules(), FolderStatus.Offline, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, volumeId: "1A2B-3C4D"),
             Token);
-        volumes.Volumes[Path.GetPathRoot(photos)!] = "5E6F-7A8B";
+        volumes.Volumes[Path.GetPathRoot(photos)!] = "1A2B-3C4D";
         var viewModel = services.Services.GetRequiredService<IndexedFoldersViewModel>();
         await viewModel.RefreshAsync();
 
-        viewModel.SelectedFolder = Assert.Single(viewModel.Folders);
-        await Task.Delay(200, Token);
-
+        // Its own drive is at its root: nothing to offer.
+        var row = Assert.Single(viewModel.Folders);
+        viewModel.SelectedFolder = row;
+        await Task.Delay(500, Token);
         Assert.False(viewModel.HasOtherDrive);
         Assert.False(viewModel.UseThisDriveCommand.CanExecute(null));
+
+        // The same probe offers the drive once another one is there, so the wait above was long enough.
+        volumes.Volumes[Path.GetPathRoot(photos)!] = "5E6F-7A8B";
+        viewModel.SelectedFolder = null;
+        viewModel.SelectedFolder = row;
+        await WaitUntilAsync(() => viewModel.HasOtherDrive);
     }
 
     public ValueTask DisposeAsync() => app.DisposeAsync();

@@ -50,10 +50,48 @@ public sealed class UseThisDriveTests
 
         Assert.Equal(UseThisDriveOutcome.Done, outcome);
         Assert.Equal((FolderStatus.Online, NewSerial, "NewDisk", Folder), (folder.Status, folder.VolumeId, folder.VolumeLabel, folder.PlatformHandle));
-        Assert.Equal(1, bed.Library.FolderList.Updates);
+        Assert.Equal(1, bed.Library.FolderList.Relinks);
         Assert.Equal([folder.Id], Assert.Single(bed.Publisher.Of<FoldersReconnected>()).FolderIds);
         var activity = Assert.Single(bed.Sender.Activities);
         Assert.Equal((ActivityEventType.FolderDriveReplaced, folder.Id, Folder), (activity.Type, activity.FolderId, activity.Subject));
+    }
+
+    [Fact]
+    public async Task Use_OtherFoldersFromTheSameOldDrive_TakeTheDriveToo()
+    {
+        var bed = await Bed.CreateAsync();
+        var folder = await bed.AddFolderAsync();
+        var videos = await bed.AddFolderAsync(path: @"E:\Videos");
+        var elsewhere = await bed.AddFolderAsync(path: @"G:\Music");
+        var otherOldDrive = await bed.AddFolderAsync(path: @"E:\Docs", volumeId: "9999-0000");
+        bed.Volumes.Volumes[@"E:\"] = NewSerial;
+        bed.Volumes.Volumes[@"G:\"] = "7777-0000";
+
+        var drive = await bed.FindAsync(folder);
+        var result = await bed.Use.Handle(new UseThisDriveCommand(folder.Id), Token);
+
+        Assert.Equal(1, drive!.OtherFolders);
+        Assert.Equal(new UseThisDriveResult(UseThisDriveOutcome.Done, 1), result);
+        Assert.Equal((NewSerial, FolderStatus.Online), (videos.VolumeId, videos.Status));
+        Assert.Equal((Serial, FolderStatus.Offline), (elsewhere.VolumeId, elsewhere.Status));
+        Assert.Equal(("9999-0000", FolderStatus.Offline), (otherOldDrive.VolumeId, otherOldDrive.Status));
+        Assert.Equal([folder.Id, videos.Id], Assert.Single(bed.Publisher.Of<FoldersReconnected>()).FolderIds);
+        Assert.Equal(2, bed.Sender.Activities.Count);
+    }
+
+    [Fact]
+    public async Task Use_FolderRelinkedMeanwhile_IsNotFound_AndAnnouncesNothing()
+    {
+        var bed = await Bed.CreateAsync();
+        var folder = await bed.AddFolderAsync();
+        bed.Volumes.Volumes[@"E:\"] = NewSerial;
+        bed.Library.FolderList.RefusedRelinks.Add(folder.Id);
+
+        var outcome = await bed.UseAsync(folder);
+
+        Assert.Equal(UseThisDriveOutcome.NotFound, outcome);
+        Assert.Empty(bed.Publisher.Of<FoldersReconnected>());
+        Assert.Empty(bed.Sender.Activities);
     }
 
     [Fact]
@@ -113,7 +151,7 @@ public sealed class UseThisDriveTests
 
         var outcome = await handler.Handle(new UseThisDriveCommand(folder.Id), Token);
 
-        Assert.Equal((UseThisDriveOutcome.NoOtherDrive, FolderStatus.Offline), (outcome, folder.Status));
+        Assert.Equal((UseThisDriveOutcome.NoOtherDrive, FolderStatus.Offline), (outcome.Outcome, folder.Status));
     }
 
     [Fact]
@@ -123,7 +161,7 @@ public sealed class UseThisDriveTests
 
         var outcome = await bed.Use.Handle(new UseThisDriveCommand(Id<IndexedFolder>.New()), Token);
 
-        Assert.Equal(UseThisDriveOutcome.NotFound, outcome);
+        Assert.Equal(UseThisDriveOutcome.NotFound, outcome.Outcome);
     }
 
     [Fact]
@@ -176,13 +214,13 @@ public sealed class UseThisDriveTests
             return new Bed(session, library);
         }
 
-        public async Task<IndexedFolder> AddFolderAsync(string? volumeId = Serial, bool offline = true)
+        public async Task<IndexedFolder> AddFolderAsync(string? volumeId = Serial, bool offline = true, string path = Folder)
         {
             var folder = new IndexedFolder(
                 Id<IndexedFolder>.New(),
                 Library.Library.Id,
-                Folder,
-                Folder,
+                path,
+                path,
                 new FolderRules(),
                 offline ? FolderStatus.Offline : FolderStatus.Online,
                 DateTimeOffset.UnixEpoch,
@@ -195,7 +233,7 @@ public sealed class UseThisDriveTests
 
         public Task<OtherDrive?> FindAsync(IndexedFolder folder) => Find.Handle(new FindOtherDriveQuery(folder.Id), Token);
 
-        public Task<UseThisDriveOutcome> UseAsync(IndexedFolder folder) => Use.Handle(new UseThisDriveCommand(folder.Id), Token);
+        public async Task<UseThisDriveOutcome> UseAsync(IndexedFolder folder) => (await Use.Handle(new UseThisDriveCommand(folder.Id), Token)).Outcome;
     }
 
     private sealed class ActivitySender : FakeSender

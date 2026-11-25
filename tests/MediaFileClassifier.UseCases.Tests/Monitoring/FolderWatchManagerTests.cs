@@ -38,6 +38,7 @@ public sealed class FolderWatchManagerTests
         var online = await bed.AddFolderAsync(@"E:\Online");
         var offline = await bed.AddFolderAsync(@"E:\Offline");
         offline.MarkOffline(Now);
+        bed.Library.FolderList.Seed(offline);
         var removing = await bed.AddFolderAsync(@"E:\Removing");
         bed.Library.JobList.Unfinished.Add(new ProcessingJob
         {
@@ -64,10 +65,13 @@ public sealed class FolderWatchManagerTests
         await bed.AddFolderAsync(@"\\nas\photos");
         var watchedShare = await bed.AddFolderAsync(@"\\nas\watched");
         watchedShare.ChangeMonitoringMode(MonitoringMode.Watch);
+        bed.Library.FolderList.Seed(watchedShare);
         var polled = await bed.AddFolderAsync(@"E:\Polled");
         polled.ChangeMonitoringMode(MonitoringMode.Poll);
+        bed.Library.FolderList.Seed(polled);
         var manual = await bed.AddFolderAsync(@"E:\Manual");
         manual.ChangeMonitoringMode(MonitoringMode.Manual);
+        bed.Library.FolderList.Seed(manual);
 
         await bed.StartAsync();
 
@@ -255,6 +259,7 @@ public sealed class FolderWatchManagerTests
         var bed = new Bed();
         var offline = await bed.AddFolderAsync(@"E:\Offline");
         offline.MarkOffline(Now);
+        bed.Library.FolderList.Seed(offline);
         await bed.StartAsync();
 
         Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(offline.Id));
@@ -496,6 +501,7 @@ public sealed class FolderWatchManagerTests
         var bed = new Bed();
         var folder = await bed.AddFolderAsync(@"E:\Photos");
         folder.ChangeRules(new FolderRules { ExcludePatterns = ["raw"] });
+        bed.Library.FolderList.Seed(folder);
         await bed.StartAsync();
         foreach (var path in new[] { "new/a.jpg", "new/notes.txt", "new/raw/b.jpg", "new/c.jpg.part", "2025/d.jpg", "2025/notes.txt" })
         {
@@ -509,6 +515,36 @@ public sealed class FolderWatchManagerTests
         Assert.Equal(
             [(FolderChangeKind.Changed, "new/a.jpg", null), (FolderChangeKind.Renamed, "2025/d.jpg", "2024/d.jpg")],
             bed.Published.Select(change => (change.Kind, change.RelativePath, change.OldRelativePath)).OrderBy(change => change.Kind));
+    }
+
+    [Fact]
+    public async Task Folder_RenamedTwiceAtOnce_IsOneRenameFromItsFirstName()
+    {
+        // MFC-1032: by the first event, Photos2 was renamed again, so the watcher can't tell it was a folder.
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Library");
+        await bed.StartAsync();
+        bed.Files.Write("Photos3/a.jpg", 10, bed.Clock.GetUtcNow());
+
+        bed.Factory.Raise(@"E:\Library", new FolderWatchEvent(FolderWatchEventKind.Renamed, "Photos2", "Photos") { IsGone = true });
+        bed.Factory.Raise(@"E:\Library", new FolderWatchEvent(FolderWatchEventKind.Renamed, "Photos3", "Photos2", IsDirectory: true));
+        bed.Settle();
+
+        var change = Assert.Single(bed.Published);
+        Assert.Equal((FolderChangeKind.Renamed, "Photos3/a.jpg", "Photos/a.jpg"), (change.Kind, change.RelativePath, change.OldRelativePath));
+    }
+
+    [Fact]
+    public async Task GoneRename_ThatWasNoFolder_ReportsNothing()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\Library");
+        await bed.StartAsync();
+
+        bed.Factory.Raise(@"E:\Library", new FolderWatchEvent(FolderWatchEventKind.Renamed, "notes.bak", "notes.txt") { IsGone = true });
+        bed.Settle();
+
+        Assert.Empty(bed.Published);
     }
 
     /// <summary>
@@ -725,6 +761,7 @@ public sealed class FolderWatchManagerTests
         var bed = new Bed();
         var folder = await bed.AddFolderAsync(@"E:\Photos");
         folder.ChangeRules(new FolderRules { ExcludePatterns = [FolderRules.ForSubfolder("raw")] });
+        bed.Library.FolderList.Seed(folder);
         await bed.StartAsync();
 
         bed.Write(@"E:\Photos", "raw/a.jpg");

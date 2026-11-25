@@ -11,4 +11,11 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Watching;
 /// Whether the path was a folder when the event was seen. Always <see langword="false"/> for a deletion, which leaves
 /// nothing to look at.
 /// </param>
-public sealed record FolderWatchEvent(FolderWatchEventKind Kind, string RelativePath, string? OldRelativePath = null, bool IsDirectory = false);
+public sealed record FolderWatchEvent(FolderWatchEventKind Kind, string RelativePath, string? OldRelativePath = null, bool IsDirectory = false)
+{
+    /// <summary>
+    /// Gets a value indicating whether a renamed path was already gone when the event was seen, e.g. renamed again at
+    /// once, so it may have been a folder (MFC-1032). <see cref="IsDirectory"/> is <see langword="false"/> then.
+    /// </summary>
+    public bool IsGone { get; init; }
+}

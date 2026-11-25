@@ -38,6 +38,7 @@ public sealed class FolderPollerTests
         await bed.AddFolderAsync(@"\\nas\watched", MonitoringMode.Watch);
         var offline = await bed.AddFolderAsync(@"E:\Offline", MonitoringMode.Poll);
         offline.MarkOffline(Now);
+        bed.Library.FolderList.Seed(offline);
 
         await bed.StartAsync();
 

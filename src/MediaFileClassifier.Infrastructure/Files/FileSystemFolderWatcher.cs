@@ -84,7 +84,10 @@ internal sealed class FileSystemFolderWatcher : IFolderWatcher
         }
 
         var isDirectory = kind != FolderWatchEventKind.Deleted && Directory.Exists(fullPath);
-        Changed?.Invoke(this, new FolderWatchEvent(kind, relative, oldFullPath is null ? null : ToRelative(oldFullPath), isDirectory));
+
+        // Renamed again before this event was raised: it may have been a folder (MFC-1032).
+        var isGone = kind == FolderWatchEventKind.Renamed && !isDirectory && !File.Exists(fullPath);
+        Changed?.Invoke(this, new FolderWatchEvent(kind, relative, oldFullPath is null ? null : ToRelative(oldFullPath), isDirectory) { IsGone = isGone });
     }
 
     private void OnError(object sender, ErrorEventArgs e)

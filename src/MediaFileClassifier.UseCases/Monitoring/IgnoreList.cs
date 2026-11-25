@@ -1,3 +1,4 @@
+using System.Text;
 using MediaFileClassifier.Domain.Libraries;
 
 namespace MediaFileClassifier.UseCases.Monitoring;
@@ -16,12 +17,14 @@ public sealed class IgnoreList
     /// <summary>
     /// Initializes a new instance of the <see cref="IgnoreList"/> class.
     /// </summary>
-    /// <param name="patterns">Globs separated by <c>;</c> or line breaks. Blank entries are skipped.</param>
+    /// <param name="patterns">
+    /// Globs separated by <c>;</c> or line breaks; <c>\;</c> is a <c>;</c> in a name (MFC-1033). Blank entries are skipped.
+    /// </param>
     public IgnoreList(string patterns)
     {
         ArgumentNullException.ThrowIfNull(patterns);
 
-        var list = patterns.Split([';', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var list = Split(patterns);
         names = Matcher([.. list.Where(pattern => !pattern.Contains('/', StringComparison.Ordinal))]);
         paths = Matcher([.. list.Where(pattern => pattern.Contains('/', StringComparison.Ordinal))]);
     }
@@ -37,6 +40,44 @@ public sealed class IgnoreList
 
         var name = relativePath[(relativePath.LastIndexOf('/') + 1)..];
         return (names is not null && !names.IsIncluded(name)) || (paths is not null && !paths.IsIncluded(relativePath));
+    }
+
+    // Splits on line breaks and on each ';' that isn't written as '\;'.
+    private static List<string> Split(string patterns)
+    {
+        var list = new List<string>();
+        var current = new StringBuilder();
+        for (var index = 0; index < patterns.Length; index++)
+        {
+            var character = patterns[index];
+            if (character == '\\' && index + 1 < patterns.Length && patterns[index + 1] == ';')
+            {
+                current.Append(';');
+                index++;
+            }
+            else if (character is ';' or '\r' or '\n')
+            {
+                Add();
+            }
+            else
+            {
+                current.Append(character);
+            }
+        }
+
+        Add();
+        return list;
+
+        void Add()
+        {
+            var pattern = current.ToString().Trim();
+            if (pattern.Length > 0)
+            {
+                list.Add(pattern);
+            }
+
+            current.Clear();
+        }
     }
 
     private static FolderRuleMatcher? Matcher(string[] patterns) =>

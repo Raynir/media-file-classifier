@@ -49,6 +49,7 @@ public sealed class UseThisDriveTests
         var outcome = await bed.UseAsync(folder);
 
         Assert.Equal(UseThisDriveOutcome.Done, outcome);
+        folder = bed.Library.FolderList.Stored(folder.Id);
         Assert.Equal((FolderStatus.Online, NewSerial, "NewDisk", Folder), (folder.Status, folder.VolumeId, folder.VolumeLabel, folder.PlatformHandle));
         Assert.Equal(1, bed.Library.FolderList.Relinks);
         Assert.Equal([folder.Id], Assert.Single(bed.Publisher.Of<FoldersReconnected>()).FolderIds);
@@ -72,6 +73,9 @@ public sealed class UseThisDriveTests
 
         Assert.Equal(1, drive!.OtherFolders);
         Assert.Equal(new UseThisDriveResult(UseThisDriveOutcome.Done, 1), result);
+        videos = bed.Library.FolderList.Stored(videos.Id);
+        elsewhere = bed.Library.FolderList.Stored(elsewhere.Id);
+        otherOldDrive = bed.Library.FolderList.Stored(otherOldDrive.Id);
         Assert.Equal((NewSerial, FolderStatus.Online), (videos.VolumeId, videos.Status));
         Assert.Equal((Serial, FolderStatus.Offline), (elsewhere.VolumeId, elsewhere.Status));
         Assert.Equal(("9999-0000", FolderStatus.Offline), (otherOldDrive.VolumeId, otherOldDrive.Status));
@@ -107,7 +111,7 @@ public sealed class UseThisDriveTests
         var changed = await check.Handle(new CheckFolderAvailabilityCommand(), Token);
 
         Assert.Empty(changed);
-        Assert.Equal(FolderStatus.Online, folder.Status);
+        Assert.Equal(FolderStatus.Online, bed.Library.FolderList.Stored(folder.Id).Status);
     }
 
     [Theory]
@@ -176,6 +180,7 @@ public sealed class UseThisDriveTests
         await bed.UseAsync(folder);
 
         Assert.Equal((false, (string?)null), drive!.Label);
+        folder = bed.Library.FolderList.Stored(folder.Id);
         Assert.Equal(("Backup-2TB", NewSerial), (folder.VolumeLabel, folder.VolumeId));
     }
 

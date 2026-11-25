@@ -70,6 +70,7 @@ public static class UseCasesModule
         services.AddSetting(Libraries.OpenLibrary.LibraryStartupSettings.OpenLastLibrary);
 
         services.TryAddSingleton<FullHashJobs>();
+        services.TryAddSingleton<FolderScanGate>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, DiscoverStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, FingerprintStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, MediaStage>());

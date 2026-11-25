@@ -20,4 +20,27 @@ internal static class LibraryWideSync
         (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false)).Any(job =>
             job is { FolderId: null, Type: RescanStages.RescanJob or RescanStages.QuickSyncJob }
             && job.State != ProcessingJobState.WaitingForModel);
+
+    /// <summary>
+    /// Tells whether a library-wide rescan or quick sync is yet to list the folders: its comparison with the library is
+    /// still queued, so it reads the folders, with their statuses, when it starts (MFC-1049). Once that has run, a
+    /// folder that came back Online since isn't in its listing.
+    /// </summary>
+    /// <param name="library">The open library.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="true"/> if one will list the folders.</returns>
+    public static async Task<bool> WillListAsync(IOpenLibrary library, CancellationToken cancellationToken)
+    {
+        foreach (var job in (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false))
+            .Where(job => job is { FolderId: null, Type: RescanStages.RescanJob or RescanStages.QuickSyncJob }))
+        {
+            if ((await library.Jobs.GetWorkItemsAsync(job.Id, cancellationToken).ConfigureAwait(false))
+                .Any(item => item.Stage == RescanStages.Reconcile && item.State == WorkItemState.Queued))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

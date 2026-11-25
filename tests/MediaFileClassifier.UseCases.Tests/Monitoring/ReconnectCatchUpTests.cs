@@ -121,15 +121,19 @@ public sealed class ReconnectCatchUpTests
     }
 
     [Theory]
-    [InlineData(RescanStages.QuickSyncJob, ProcessingJobState.Running, 1)]
-    [InlineData(RescanStages.RescanJob, ProcessingJobState.Queued, 1)]
-    [InlineData(RescanStages.QuickSyncJob, ProcessingJobState.WaitingForModel, 2)]
-    public async Task Reconnected_BusyBehindALibraryWideSync_GivesUpUnlessItsListingIsDone(string type, ProcessingJobState state, int syncs)
+    [InlineData(RescanStages.QuickSyncJob, WorkItemState.Queued, 1)]
+    [InlineData(RescanStages.RescanJob, WorkItemState.Queued, 1)]
+    [InlineData(RescanStages.QuickSyncJob, WorkItemState.Running, 2)]
+    [InlineData(RescanStages.QuickSyncJob, WorkItemState.Completed, 2)]
+    public async Task Reconnected_BusyBehindALibraryWideSync_GivesUpOnlyIfItsListingIsToCome(string type, WorkItemState listing, int syncs)
     {
-        // As when a library opens: its quick sync lists the folder that came back, so the catch-up doesn't (MFC-1049).
+        // As when a library opens: a sync yet to list the folders lists the one that came back, so the catch-up doesn't
+        // (MFC-1049); once the listing ran, the folder may not be in it, and the catch-up retries.
         using var bed = await Bed.CreateAsync();
         var folder = await bed.AddFolderAsync(@"E:\Photos");
-        bed.Library.JobList.Unfinished.Add(new ProcessingJob { Id = Id<ProcessingJob>.New(), Type = type, Description = "Sync", State = state, CreatedAt = Now });
+        var job = new ProcessingJob { Id = Id<ProcessingJob>.New(), Type = type, Description = "Sync", State = ProcessingJobState.Running, CreatedAt = Now };
+        bed.Library.JobList.Unfinished.Add(job);
+        bed.Library.JobList.Work.Add(WorkItem.Create(job.Id, null, RescanStages.Reconcile, ResourcePool.Io, 0, null, Now) with { State = listing });
         bed.Sender.Outcomes.Enqueue(StartRescanOutcome.Busy);
 
         await bed.Handler.Handle(new FoldersReconnected([folder.Id]), Token);

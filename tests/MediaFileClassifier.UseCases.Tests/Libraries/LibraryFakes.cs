@@ -452,7 +452,13 @@ internal sealed class FakeJobRepository : IJobRepository
 
     public Task<IReadOnlyList<WorkItem>> GetQueuedForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    /// <summary>
+    /// Gets the work items <see cref="GetWorkItemsAsync"/> returns, by job.
+    /// </summary>
+    public List<WorkItem> Work { get; } = [];
+
+    public Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<WorkItem>>([.. Work.Where(item => item.JobId == jobId)]);
 
     public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
 

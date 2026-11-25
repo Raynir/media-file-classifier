@@ -92,6 +92,16 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItem>> GetByFolderAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the items under a path of a folder, whatever their status, e.g. for a deleted path that may have been a
+    /// folder (MFC-1054). Folder names ignore case, as in the browser (D310).
+    /// </summary>
+    /// <param name="folderId">The folder.</param>
+    /// <param name="path">The path; the items whose path starts with it and a <c>/</c> are returned.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The items, in ID order.</returns>
+    Task<IReadOnlyList<MediaItem>> GetUnderAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Counts the items of each folder by status (E02-S03-T06). Folders without items aren't listed.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

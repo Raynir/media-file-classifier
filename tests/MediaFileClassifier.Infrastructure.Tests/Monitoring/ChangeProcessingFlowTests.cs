@@ -525,6 +525,33 @@ public sealed class ChangeProcessingFlowTests : IAsyncLifetime
         Assert.Equal(first.FinishedAt, jobs.Single(job => job.Id == first.Id).FinishedAt);
     }
 
+    [Fact]
+    public async Task Changes_AfterARestart_WaitForTheFoldersUnfinishedBatch()
+    {
+        await ImportAsync();
+        var scheduler = bed.Jobs.Current!;
+        scheduler.Pause();
+        bed.Copy(SampleMedia.JpegWithExif, "a.jpg");
+        bed.Copy(SampleMedia.PngWithAlpha, "b.png");
+        await bed.Get<ChangeProcessor>().SubmitAsync(bed.Folder.Id, [await ChangedAsync("a.jpg")], Token);
+        await AdvanceUntilQueuedAsync(ChangeProcessor.GatherQuiet);
+        var first = Assert.Single(await ChangeJobsAsync());
+
+        // A new processor knows nothing of the batch in memory, as after a restart (MFC-1054).
+        using var restarted = new ChangeProcessor(bed.Get<HeldDeletes>(), clock, NullLogger<ChangeProcessor>.Instance, bed.Jobs, monitoringPause);
+        await restarted.SubmitAsync(bed.Folder.Id, [await ChangedAsync("b.png")], Token);
+        clock.Advance(ChangeProcessor.GatherQuiet);
+        await Task.Delay(500, Token);
+        Assert.Equal(first.Id, Assert.Single(await ChangeJobsAsync()).Id);
+
+        scheduler.Resume();
+        await bed.WaitUntilIdleAsync();
+        clock.Advance(ChangeProcessor.GatherQuiet);
+        await WaitForAsync(async () => (await bed.ItemsAsync()).Count == 2);
+        await bed.WaitUntilIdleAsync();
+        Assert.Equal(["a.jpg", "b.png"], (await bed.ItemsAsync()).Select(item => item.Path.Value).Order(StringComparer.Ordinal));
+    }
+
     // Submits a deletion and lets its grace period pass.
     private async Task DeleteAsync(string path)
     {

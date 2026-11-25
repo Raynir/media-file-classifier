@@ -298,10 +298,9 @@ public sealed partial class ChangeProcessor : IDisposable
 
             WorkItemRequest[] work = [new(ChangeProcessingStages.Apply, Payload: ChangePayload.Serialize(changes))];
 
-            // Only to a job that's waiting or running: adding work to a finished job would revive it, and a job the
-            // user paused holds only what it had.
-            if (job?.State is ProcessingJobState.Queued or ProcessingJobState.Running or ProcessingJobState.WaitingForModel
-                && await scheduler.EnqueueWorkAsync(job.Id, work, cancellationToken).ConfigureAwait(false))
+            // Only to a job that's waiting or running, checked in the same write (MFC-1054): adding work to a finished
+            // job would revive it and announce its end twice, and a job the user paused holds only what it had.
+            if (job is not null && await scheduler.AppendWorkAsync(job.Id, work, cancellationToken).ConfigureAwait(false))
             {
                 LogAppended(changes.Count, folderId);
                 return true;
@@ -327,16 +326,44 @@ public sealed partial class ChangeProcessor : IDisposable
 
     private async Task<ProcessingJob?> GetLastJobAsync(IJobScheduler scheduler, Id<IndexedFolder> folderId, CancellationToken cancellationToken)
     {
-        Id<ProcessingJob> jobId;
+        Id<ProcessingJob>? known;
         lock (syncRoot)
         {
-            if (!ReferenceEquals(owner, scheduler) || !lastJobs.TryGetValue(folderId, out jobId))
+            if (!ReferenceEquals(owner, scheduler))
             {
                 return null;
             }
+
+            known = lastJobs.TryGetValue(folderId, out var jobId) ? jobId : null;
         }
 
-        return await scheduler.Library.Jobs.GetJobAsync(jobId, cancellationToken).ConfigureAwait(false);
+        if (known is { } id)
+        {
+            return await scheduler.Library.Jobs.GetJobAsync(id, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Not known in memory, e.g. after a restart (MFC-1054): the folder's newest unfinished job that applies watched
+        // changes, so a new batch waits for its batches or joins it rather than running beside them.
+        var jobs = scheduler.Library.Jobs;
+        foreach (var job in (await jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false))
+            .Where(job => job.FolderId == folderId && job.Type == ImportStages.ImportJob)
+            .OrderByDescending(job => job.CreatedAt))
+        {
+            if ((await jobs.GetWorkItemsAsync(job.Id, cancellationToken).ConfigureAwait(false)).Any(item => item.Stage == ChangeProcessingStages.Apply))
+            {
+                lock (syncRoot)
+                {
+                    if (ReferenceEquals(owner, scheduler))
+                    {
+                        lastJobs.TryAdd(folderId, job.Id);
+                    }
+                }
+
+                return job;
+            }
+        }
+
+        return null;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Count} changes of watched folder {Folder} aren't processed: no library is open or there's no job system")]

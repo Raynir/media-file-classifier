@@ -111,6 +111,15 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
     public Task<IReadOnlyList<MediaItem>> GetByFolderAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<MediaItem>>([.. Items.Where(item => item.FolderId == folderId)]);
 
+    public int UnderReads { get; private set; }
+
+    public Task<IReadOnlyList<MediaItem>> GetUnderAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default)
+    {
+        UnderReads++;
+        return Task.FromResult<IReadOnlyList<MediaItem>>(
+            [.. Items.Where(item => item.FolderId == folderId && item.Path.Value.StartsWith(path.Value + "/", StringComparison.OrdinalIgnoreCase))]);
+    }
+
     public Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(MediaItemFilter filter, int offset, int limit, CancellationToken cancellationToken = default) =>
         GetSummariesAsync(offset, limit, cancellationToken);
 

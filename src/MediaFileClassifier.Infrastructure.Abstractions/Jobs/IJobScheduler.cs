@@ -49,6 +49,17 @@ public interface IJobScheduler
     Task<bool> EnqueueWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Adds work to a job only while it's queued, running or waiting for a model (MFC-1054). Unlike
+    /// <see cref="EnqueueWorkAsync"/>, a finished or paused job isn't queued again, so its end isn't announced twice.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="workItems">The work.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist or isn't active; nothing is added then.</returns>
+    /// <exception cref="ArgumentException">A work item names a stage with no registered handler.</exception>
+    Task<bool> AppendWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Cancels a job: its queued work items are cancelled, and its running ones are stopped through their
     /// cancellation token. Work items already finished keep their results.
     /// </summary>

@@ -185,6 +185,14 @@ public sealed partial class ApplyChangesStage(
             recentlyRegistered[item.Id] = (batch.Now, item.SizeBytes);
         }
 
+        // Pairing fingerprinted some new files in memory: stored now, the fingerprint stage doesn't hash them again
+        // (MFC-1054).
+        MediaItem[] fingerprinted = [.. registered.Where(item => !moved.Contains(item.Id) && item.Hashes.Fingerprint is not null)];
+        if (fingerprinted.Length > 0)
+        {
+            await library.Items.UpdateFilesAsync(fingerprinted, cancellationToken).ConfigureAwait(false);
+        }
+
         await EnqueueAsync(context, ImportStages.Fingerprint, registered.Select(item => item.Id).Where(itemId => !moved.Contains(itemId)), cancellationToken)
             .ConfigureAwait(false);
 

@@ -130,6 +130,22 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> GetUnderAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        var pattern = SqlLike.SubfolderPattern(path.Value) ?? throw new ArgumentException("The path is empty.", nameof(path));
+        return connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems
+                .Where(item => item.FolderId == folderId
+                    && EF.Functions.Like(LibraryDbContext.FoldCase((string)(object)item.Path), pattern, SqlLike.EscapeCharacter))
+                .OrderBy(item => item.Id)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync<IReadOnlyList<FolderItemCount>>(
             async (db, token) => (await db.MediaItems

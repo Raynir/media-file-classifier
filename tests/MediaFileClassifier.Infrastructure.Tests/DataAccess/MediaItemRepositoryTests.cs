@@ -139,6 +139,25 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetUnderAsync_ReturnsTheItemsUnderThePathIgnoringCase_WhateverTheirStatus()
+    {
+        var items = new[] { "Trip/a.jpg", "trip/sub/b.jpg", "trip.jpg", "trips/c.jpg", "other/trip/d.jpg" }
+            .Select((path, index) =>
+            {
+                var item = bed.NewItem(index + 1);
+                item.Relocate(item.FolderId, RelativePath.From(path));
+                return item;
+            })
+            .ToList();
+        await bed.Library.Items.AddRangeAsync(items, Token);
+        await bed.Library.Items.ExcludeAsync([items[1].Id], "Removed by the user", LibraryTestBed.Start, Token);
+
+        var under = await bed.Library.Items.GetUnderAsync(bed.Folder.Id, RelativePath.From("trip"), Token);
+
+        Assert.Equal(["Trip/a.jpg", "trip/sub/b.jpg"], under.Select(item => item.Path.Value).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
     public async Task UpdateFilesAsync_ChainOfMovesWrittenFirstToLast_IsStored()
     {
         var (a, b, c) = (bed.NewItem(1), bed.NewItem(2), bed.NewItem(3));

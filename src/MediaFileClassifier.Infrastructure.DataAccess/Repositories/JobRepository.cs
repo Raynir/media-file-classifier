@@ -37,7 +37,7 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         // later work, which queues a finished job again.
         if (workItems.Count > first.Count)
         {
-            await AddWorkItemsAsync(job.Id, [.. workItems.Skip(first.Count)], job.CreatedAt, stored, cancellationToken).ConfigureAwait(false);
+            await AddWorkItemsAsync(job.Id, [.. workItems.Skip(first.Count)], job.CreatedAt, stored, onlyWhileActive: false, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -47,6 +47,7 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         IReadOnlyCollection<WorkItem> workItems,
         DateTimeOffset now,
         Action<IReadOnlyCollection<WorkItem>>? stored,
+        bool onlyWhileActive,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workItems);
@@ -57,7 +58,8 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
                 async (db, token) =>
                 {
                     var job = await db.ProcessingJobs.AsTracking().SingleOrDefaultAsync(job => job.Id == jobId, token).ConfigureAwait(false);
-                    if (job is null || job.State == ProcessingJobState.Cancelled)
+                    if (job is null || job.State == ProcessingJobState.Cancelled
+                        || (onlyWhileActive && job.State is not (ProcessingJobState.Queued or ProcessingJobState.Running or ProcessingJobState.WaitingForModel)))
                     {
                         return false;
                     }

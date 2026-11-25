@@ -43,16 +43,21 @@ public sealed record ChangePayload([property: JsonPropertyName("changes")] IRead
     /// <param name="Length">The file's size when it was found stable, if it exists.</param>
     /// <param name="Modified">The file's modification time when it was found stable, if it exists.</param>
     /// <param name="Created">The file's creation time, if known.</param>
+    /// <param name="Placeholder">Whether the file was a cloud placeholder whose content isn't on the disk (MFC-1054).</param>
+    /// <param name="Hidden">Whether the file was hidden or a system file (MFC-1054).</param>
     public sealed record Entry(
         [property: JsonPropertyName("kind")] string Kind,
         [property: JsonPropertyName("path")] string Path,
         [property: JsonPropertyName("oldPath")] string? OldPath = null,
         [property: JsonPropertyName("length")] long? Length = null,
         [property: JsonPropertyName("modified")] DateTimeOffset? Modified = null,
-        [property: JsonPropertyName("created")] DateTimeOffset? Created = null)
+        [property: JsonPropertyName("created")] DateTimeOffset? Created = null,
+        [property: JsonPropertyName("placeholder"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Placeholder = false,
+        [property: JsonPropertyName("hidden"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Hidden = false)
     {
         internal static Entry From(FolderChange change) =>
-            new(change.Kind.ToString(), change.RelativePath, change.OldRelativePath, change.Stat?.Length, change.Stat?.LastModifiedUtc, change.Stat?.CreatedUtc);
+            new(change.Kind.ToString(), change.RelativePath, change.OldRelativePath, change.Stat?.Length, change.Stat?.LastModifiedUtc, change.Stat?.CreatedUtc,
+                change.Stat?.IsCloudPlaceholder ?? false, change.Stat?.IsHidden ?? false);
 
         internal FolderChange ToChange()
         {
@@ -70,7 +75,7 @@ public sealed record ChangePayload([property: JsonPropertyName("changes")] IRead
             var kind = Enum.Parse<FolderChangeKind>(Kind);
 
             var stat = Length is { } length && Modified is { } modified
-                ? new MediaFileStat(Path, length, modified) { CreatedUtc = Created }
+                ? new MediaFileStat(Path, length, modified) { CreatedUtc = Created, IsCloudPlaceholder = Placeholder, IsHidden = Hidden }
                 : null;
             return new FolderChange(kind, Path, OldPath, stat);
         }

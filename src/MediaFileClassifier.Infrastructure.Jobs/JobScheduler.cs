@@ -232,12 +232,21 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public async Task<bool> EnqueueWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default)
+    public Task<bool> EnqueueWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) =>
+        AddWorkAsync(jobId, workItems, onlyWhileActive: false, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<bool> AppendWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) =>
+        AddWorkAsync(jobId, workItems, onlyWhileActive: true, cancellationToken);
+
+    // The repository checks the job's state again in the write, so a job that finishes meanwhile isn't revived.
+    private async Task<bool> AddWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, bool onlyWhileActive, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(workItems);
 
         var job = await Library.Jobs.GetJobAsync(jobId, cancellationToken).ConfigureAwait(false);
-        if (job is null)
+        if (job is null
+            || (onlyWhileActive && job.State is not (ProcessingJobState.Queued or ProcessingJobState.Running or ProcessingJobState.WaitingForModel)))
         {
             return false;
         }
@@ -249,7 +258,7 @@ internal sealed partial class JobScheduler : IJobScheduler, IAsyncDisposable
         var added = false;
         try
         {
-            added = await Library.Jobs.AddWorkItemsAsync(jobId, created, now, stored.Add, cancellationToken).ConfigureAwait(false);
+            added = await Library.Jobs.AddWorkItemsAsync(jobId, created, now, stored.Add, onlyWhileActive, cancellationToken).ConfigureAwait(false);
         }
         finally
         {

@@ -66,7 +66,8 @@ internal sealed class FolderItems
     }
 
     /// <summary>
-    /// Finds the items at a path or under it, for a deleted path that may have been a folder.
+    /// Finds the items at a path or under it, for a deleted path that may have been a folder. Unless the folder's items
+    /// were read at once, only the items under the path are read (MFC-1054).
     /// </summary>
     /// <param name="path">The path.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -78,9 +79,21 @@ internal sealed class FolderItems
             return [item];
         }
 
-        await ReadAllAsync(cancellationToken).ConfigureAwait(false);
         var prefix = path.Value + "/";
-        return [.. byPath.Values.OfType<MediaItem>().Where(other => other.Path.Value.StartsWith(prefix, StringComparison.Ordinal))];
+        if (!readAll)
+        {
+            // What the batch made of a path wins over the stored item: one moved during the batch is known by its ID.
+            var known = byPath.Values.OfType<MediaItem>().Select(other => other.Id).ToHashSet();
+            foreach (var stored in await library.Items.GetUnderAsync(folder.Id, path, cancellationToken).ConfigureAwait(false))
+            {
+                if (!known.Contains(stored.Id))
+                {
+                    byPath.TryAdd(stored.Path.Value, stored);
+                }
+            }
+        }
+
+        return [.. byPath.Values.OfType<MediaItem>().Where(other => other.Path.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))];
     }
 
     /// <summary>

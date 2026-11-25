@@ -113,7 +113,7 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     /// <summary>
     /// Gets when the folder is polled next, in words.
     /// </summary>
-    public string NextPollText => NextPoll is { } next ? localizer.Format("Folders_NextPoll", next.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture)) : string.Empty;
+    public string NextPollText => NextPoll is { } next ? localizer.Format("Folders_NextPoll", next.ToLocalTime().ToString(next.ToLocalTime().Date == DateTime.Today ? "t" : "g", System.Globalization.CultureInfo.CurrentCulture)) : string.Empty;
 
     /// <summary>
     /// Shows how the folder is monitored now, as the query tells it (E04-S05).

@@ -31,6 +31,7 @@ namespace MediaFileClassifier.Ui.ViewModels.Libraries;
 public sealed partial class IndexedFoldersViewModel : ViewModelBase
 {
     private readonly ISender sender;
+    private int modePicks;
     private readonly IPlatformServices platform;
     private readonly IMediaFileSource files;
     private readonly Localizer localizer;
@@ -184,8 +185,15 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         refreshing = true;
         try
         {
+            var picks = modePicks;
             var summaries = await sender.Send(new GetIndexedFoldersQuery());
-            Show(summaries, await GetMonitoringAsync());
+            var monitoring = await GetMonitoringAsync();
+
+            // A mode picked while this read ran would be put back by it; the next refresh shows it.
+            if (picks == modePicks)
+            {
+                Show(summaries, monitoring);
+            }
         }
         finally
         {
@@ -258,7 +266,11 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     }
 
     // The user picked a mode in a row. The picker is a view of the folder, so it's shown again from the library after.
-    private void ChooseMode(IndexedFolderViewModel row, MonitoringMode mode) => _ = ChooseModeAsync(row, mode);
+    private void ChooseMode(IndexedFolderViewModel row, MonitoringMode mode)
+    {
+        modePicks++;
+        _ = ChooseModeAsync(row, mode);
+    }
 
     private async Task ChooseModeAsync(IndexedFolderViewModel row, MonitoringMode mode)
     {
@@ -274,6 +286,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             Message = localizer.Format("Folders_Mode_Failed", row.Name);
+            await RefreshMonitoringAsync();
         }
     }
 
@@ -292,7 +305,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// <summary>
     /// Pauses monitoring, or resumes it when it's paused (E04-S06-T02).
     /// </summary>
-    [RelayCommand]
+    [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task ToggleMonitoringPause()
     {
         if (monitoringPause is null)

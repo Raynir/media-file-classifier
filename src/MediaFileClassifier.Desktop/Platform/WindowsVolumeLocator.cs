@@ -13,6 +13,8 @@ namespace MediaFileClassifier.Desktop.Platform;
 /// </summary>
 internal sealed partial class WindowsVolumeLocator : IVolumeLocator
 {
+    private const uint FailCriticalErrors = 0x0001;
+
     /// <inheritdoc />
     public Task<string?> GetVolumeIdAsync(FolderHandle folder, CancellationToken cancellationToken = default)
     {
@@ -39,6 +41,9 @@ internal sealed partial class WindowsVolumeLocator : IVolumeLocator
 
         var matches = DriveInfo.GetDrives()
             .Where(drive => drive.DriveType is not (DriveType.Network or DriveType.NoRootDirectory or DriveType.Unknown))
+
+            // An empty card reader or DVD drive has no volume to read, and asking it could show "No disk" (MFC-1048).
+            .Where(IsReady)
             .Where(drive => !string.Equals(drive.Name, oldRoot, StringComparison.OrdinalIgnoreCase))
             .Where(drive => string.Equals(ReadSerial(drive.Name), volumeId, StringComparison.OrdinalIgnoreCase))
             .ToList();
@@ -79,15 +84,44 @@ internal sealed partial class WindowsVolumeLocator : IVolumeLocator
         return root is { Length: 3 } && root[1] == ':' && root[2] == Path.DirectorySeparatorChar ? root : null;
     }
 
+    private static bool IsReady(DriveInfo drive)
+    {
+        try
+        {
+            return drive.IsReady;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
     private static string? ReadSerial(string root)
     {
-        if (!GetVolumeInformation(root, 0, 0, out var serial, out _, out _, 0, 0))
+        // Windows would show "There is no disk in the drive" for an empty removable drive instead of failing the call
+        // (MFC-1048); with critical errors off for this thread, the call just fails.
+        var changedMode = SetThreadErrorMode(FailCriticalErrors, out var oldMode);
+        try
         {
-            return null;
-        }
+            if (!GetVolumeInformation(root, 0, 0, out var serial, out _, out _, 0, 0))
+            {
+                return null;
+            }
 
-        return string.Create(CultureInfo.InvariantCulture, $"{serial >> 16:X4}-{serial & 0xFFFF:X4}");
+            return string.Create(CultureInfo.InvariantCulture, $"{serial >> 16:X4}-{serial & 0xFFFF:X4}");
+        }
+        finally
+        {
+            if (changedMode)
+            {
+                SetThreadErrorMode(oldMode, out _);
+            }
+        }
     }
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetThreadErrorMode(uint newMode, out uint oldMode);
 
     [LibraryImport("kernel32.dll", EntryPoint = "GetVolumeInformationW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]

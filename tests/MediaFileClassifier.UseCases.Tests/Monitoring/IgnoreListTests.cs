@@ -30,6 +30,16 @@ public sealed class IgnoreListTests
     public void Default_KeepsMediaFiles(string path) =>
         Assert.False(new IgnoreList(MonitoringSettings.DefaultIgnorePatterns).IsIgnored(path));
 
+    [Theory]
+    [InlineData(@"temp\;1.jpg", "temp;1.jpg", true)]
+    [InlineData(@"temp\;1.jpg", "1.jpg", false)]
+    [InlineData(@"temp\;1.jpg", "temp", false)]
+    [InlineData(@"*.bak; a\;b*.jpg", "a;b 2.jpg", true)]
+    [InlineData(@"*.bak; a\;b*.jpg", "x.bak", true)]
+    [InlineData(@"**/odd\;dir", "odd;dir/a.jpg", true)]
+    public void EscapedSemicolon_IsPartOfThePattern(string patterns, string path, bool ignored) =>
+        Assert.Equal(ignored, new IgnoreList(patterns).IsIgnored(path));
+
     [Fact]
     public void Custom_PatternsReplaceTheDefaults_AndBlankEntriesAreSkipped()
     {

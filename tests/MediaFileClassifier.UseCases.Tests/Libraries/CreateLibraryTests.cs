@@ -141,15 +141,16 @@ public sealed class CreateLibraryTests
         var handler = AddFoldersHandler();
         var photos = Assert.Single((await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\Photos", "Photos")]), CancellationToken.None)).Added);
         photos.ChangeRules(new FolderRules { ExcludePatterns = [FolderRules.ForSubfolder("raw"), "*.tmp"] });
+        ((FakeOpenLibrary)session.Current!).FolderList.Seed(photos);
 
         var child = await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\Photos\2024", "2024")]), CancellationToken.None);
         var parent = await handler.Handle(new AddLibraryFoldersCommand([new FolderHandle(@"E:\", "E:")]), CancellationToken.None);
 
         Assert.Empty(child.Added);
-        Assert.Same(photos, Assert.Single(child.Refused).CoveredBy);
-        Assert.Same(photos, Assert.Single(parent.Merged));
+        Assert.Equal(photos.Id, Assert.Single(child.Refused).CoveredBy.Id);
+        Assert.Equal(photos.Id, Assert.Single(parent.Merged).Id);
         var drive = Assert.Single(((FakeOpenLibrary)session.Current!).FolderList.Folders);
-        Assert.Same(Assert.Single(parent.Added), drive);
+        Assert.Equal(Assert.Single(parent.Added).Id, drive.Id);
         Assert.Equal(["/Photos/raw", "/Photos/**/*.tmp"], drive.Rules.ExcludePatterns);
     }
 

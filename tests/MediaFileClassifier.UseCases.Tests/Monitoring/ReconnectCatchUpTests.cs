@@ -58,6 +58,7 @@ public sealed class ReconnectCatchUpTests
         using var bed = await Bed.CreateAsync();
         var folder = await bed.AddFolderAsync(@"E:\Photos");
         folder.MarkOffline(Now);
+        bed.Library.FolderList.Seed(folder);
 
         await bed.ReconnectAsync(folder);
 
@@ -85,6 +86,7 @@ public sealed class ReconnectCatchUpTests
         var share = await bed.AddFolderAsync(@"\\nas\photos");
         var polled = await bed.AddFolderAsync(@"E:\Polled");
         polled.ChangeMonitoringMode(MonitoringMode.Poll);
+        bed.Library.FolderList.Seed(polled);
 
         await bed.ReconnectAsync(share, polled);
 
@@ -125,6 +127,7 @@ public sealed class ReconnectCatchUpTests
         await bed.Handler.Handle(new FoldersReconnected([folder.Id]), Token);
         await WaitUntilAsync(() => bed.Sender.Syncs.Count() == 1);
         folder.MarkOffline(Now);
+        bed.Library.FolderList.Seed(folder);
         bed.Clock.Advance(ReconnectCatchUp.BusyRetry);
         await bed.CatchUp.WaitAsync().WaitAsync(TimeSpan.FromSeconds(10), Token);
 

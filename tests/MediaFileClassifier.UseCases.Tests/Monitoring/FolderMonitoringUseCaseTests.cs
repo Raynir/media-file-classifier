@@ -89,6 +89,7 @@ public sealed class FolderMonitoringUseCaseTests
         var manual = await bed.AddFolderAsync(@"E:\Manual", MonitoringMode.Manual);
         var offline = await bed.AddFolderAsync(@"F:\Offline");
         offline.MarkOffline(Now);
+        bed.Library.FolderList.Seed(offline);
         var failing = await bed.AddFolderAsync(@"G:\Failing");
         bed.Factory.Failing.Add(@"G:\Failing");
         await bed.StartAsync();
@@ -114,6 +115,7 @@ public sealed class FolderMonitoringUseCaseTests
         var manual = await bed.AddFolderAsync(@"E:\Manual", MonitoringMode.Manual);
         var offline = await bed.AddFolderAsync(@"F:\Offline");
         offline.MarkOffline(Now);
+        bed.Library.FolderList.Seed(offline);
         await bed.StartAsync();
 
         bed.Pause.Pause();

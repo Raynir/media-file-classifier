@@ -40,4 +40,7 @@ public enum ActivityEventType
 
     /// <summary>A folder's drive came back under another drive letter and the folder followed it (E04-S04-T03).</summary>
     FolderRelinked = 12,
+
+    /// <summary>The user accepted the drive with a new identity at an Offline folder's root as its drive (MFC-1051).</summary>
+    FolderDriveReplaced = 13,
 }

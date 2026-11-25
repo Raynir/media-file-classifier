@@ -8,6 +8,7 @@ A modal dialog lists the open library's folders with their state (Online, Offlin
 
 - **Add folder…** picks a folder and adds it. Each new folder is imported at once (`docs/import-pipeline.md`).
 - **Remove** removes the selected folder, after a confirmation in the dialog that shows its item count.
+- **Monitoring** of the selected folder (MFC-1057): a drop-down with Auto, Watch, Poll and Manual that sends `ChangeMonitoringModeCommand` at once (no Apply). Below it, a sentence on the mode (for Auto, the mode it resolves to), the next check of a polled folder, the cloud client that syncs it, and, for a network share set to Watch, a hint with a "Use Poll" button. The badges and the picker come from `GetFolderMonitoringQuery`, read on every 2 s refresh, when the watchers' state changes and after a pick.
 - **Rules** of the selected folder: hidden files, cloud placeholders and excluded subfolders, saved with **Apply**.
 - Merging and removing are confirmed in a bar inside the dialog, not in a second window.
 

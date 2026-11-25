@@ -4,6 +4,7 @@ using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases.Libraries.GetIndexedFolders;
 using MediaFileClassifier.UseCases.Monitoring;
+using MediaFileClassifier.UseCases.Monitoring.GetFolderMonitoring;
 
 namespace MediaFileClassifier.Ui.ViewModels.Libraries;
 
@@ -14,19 +15,141 @@ namespace MediaFileClassifier.Ui.ViewModels.Libraries;
 public sealed partial class IndexedFolderViewModel : ViewModelBase
 {
     private readonly Localizer localizer;
+    private readonly Action<IndexedFolderViewModel, MonitoringMode>? modeChosen;
+    private bool showingMode;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IndexedFolderViewModel"/> class.
     /// </summary>
     /// <param name="summary">The folder as listed.</param>
     /// <param name="localizer">UI strings.</param>
-    public IndexedFolderViewModel(IndexedFolderSummary summary, Localizer localizer)
+    /// <param name="modeChosen">Called when the user picks a monitoring mode (E04-S05, MFC-1057), or <see langword="null"/>.</param>
+    public IndexedFolderViewModel(IndexedFolderSummary summary, Localizer localizer, Action<IndexedFolderViewModel, MonitoringMode>? modeChosen = null)
     {
         ArgumentNullException.ThrowIfNull(summary);
 
         this.localizer = localizer;
+        this.modeChosen = modeChosen;
         Summary = summary;
+        ModeOptions =
+        [
+            .. Enum.GetValues<MonitoringMode>().Select(mode => new MonitoringModeOption(mode, localizer.Get("Folders_Mode_" + mode))),
+        ];
+        ShowMode(summary.Folder.MonitoringMode);
         ResetRules();
+    }
+
+    /// <summary>
+    /// Gets the monitoring modes to pick from: Auto, Watch, Poll and Manual.
+    /// </summary>
+    public IReadOnlyList<MonitoringModeOption> ModeOptions { get; }
+
+    /// <summary>
+    /// Gets or sets the monitoring mode picked for the folder. Setting it from the dialog changes the folder's mode.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ModeNote), nameof(SuggestsPoll))]
+    public partial MonitoringModeOption? SelectedMode { get; set; }
+
+    /// <summary>
+    /// Gets the mode the folder runs in: Auto resolves to Poll on a network share and to Watch elsewhere.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ModeNote))]
+    public partial MonitoringMode EffectiveMode { get; private set; } = MonitoringMode.Watch;
+
+    /// <summary>
+    /// Gets a value indicating whether the folder is on a network share.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SuggestsPoll))]
+    public partial bool IsNetwork { get; private set; }
+
+    /// <summary>
+    /// Gets the cloud client that syncs the folder, or <see langword="null"/>.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CloudNote), nameof(HasCloudNote))]
+    public partial string? CloudProvider { get; private set; }
+
+    /// <summary>
+    /// Gets when the folder is polled next, or <see langword="null"/> when it isn't polled now.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NextPollText), nameof(HasNextPoll))]
+    public partial DateTimeOffset? NextPoll { get; private set; }
+
+    /// <summary>
+    /// Gets what the picked mode does for this folder, in a sentence.
+    /// </summary>
+    public string ModeNote => SelectedMode?.Mode switch
+    {
+        MonitoringMode.Auto => localizer.Get("Folders_ModeNote_Auto_" + (EffectiveMode == MonitoringMode.Poll ? "Poll" : "Watch")),
+        { } mode => localizer.Get("Folders_ModeNote_" + mode),
+        null => string.Empty,
+    };
+
+    /// <summary>
+    /// Gets a value indicating whether the folder is on a network share but set to Watch, which such shares often don't
+    /// report reliably: Poll is suggested.
+    /// </summary>
+    public bool SuggestsPoll => IsNetwork && SelectedMode?.Mode == MonitoringMode.Watch;
+
+    /// <summary>
+    /// Gets a value indicating whether a cloud client is named.
+    /// </summary>
+    public bool HasCloudNote => CloudProvider is not null;
+
+    /// <summary>
+    /// Gets the cloud client that syncs the folder, as a sentence.
+    /// </summary>
+    public string CloudNote => CloudProvider is null ? string.Empty : localizer.Format("Folders_CloudNote", CloudProvider);
+
+    /// <summary>
+    /// Gets a value indicating whether the next poll is known.
+    /// </summary>
+    public bool HasNextPoll => NextPoll is not null;
+
+    /// <summary>
+    /// Gets when the folder is polled next, in words.
+    /// </summary>
+    public string NextPollText => NextPoll is { } next ? localizer.Format("Folders_NextPoll", next.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture)) : string.Empty;
+
+    /// <summary>
+    /// Shows how the folder is monitored now, as the query tells it (E04-S05).
+    /// </summary>
+    /// <param name="info">The folder's monitoring.</param>
+    public void ApplyMonitoring(FolderMonitoringInfo info)
+    {
+        ArgumentNullException.ThrowIfNull(info);
+
+        MonitoringState = info.State;
+        EffectiveMode = info.EffectiveMode;
+        IsNetwork = info.IsNetwork;
+        CloudProvider = info.CloudProvider;
+        NextPoll = info.NextPoll;
+        ShowMode(info.Mode);
+    }
+
+    partial void OnSelectedModeChanged(MonitoringModeOption? value)
+    {
+        if (!showingMode && value is not null)
+        {
+            modeChosen?.Invoke(this, value.Mode);
+        }
+    }
+
+    private void ShowMode(MonitoringMode mode)
+    {
+        showingMode = true;
+        try
+        {
+            SelectedMode = ModeOptions.First(option => option.Mode == mode);
+        }
+        finally
+        {
+            showingMode = false;
+        }
     }
 
     /// <summary>
@@ -193,6 +316,7 @@ public sealed partial class IndexedFolderViewModel : ViewModelBase
     {
         var edited = HasRuleChanges;
         Summary = summary;
+        ShowMode(summary.Folder.MonitoringMode);
         if (!edited)
         {
             ResetRules();
@@ -258,3 +382,10 @@ public sealed class ExcludedSubfolderViewModel(string pattern, Localizer localiz
     /// </summary>
     public string RemoveName => localizer.Format("Folders_RemoveExclusion", Text);
 }
+
+/// <summary>
+/// A monitoring mode in the folder's picker.
+/// </summary>
+/// <param name="Mode">The mode.</param>
+/// <param name="Label">Its name as shown.</param>
+public sealed record MonitoringModeOption(MonitoringMode Mode, string Label);

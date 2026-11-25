@@ -201,15 +201,27 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return null;
             case "dialog-select":
                 // Selects a folder in the folders dialog's list by its name, or a category in the settings window's sidebar by its ID, as a click does (MFC-124, MFC-133).
-                var list = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants().OfType<ListBox>().FirstOrDefault()
-                    ?? throw new SmokeStepException("the dialog has no list");
-                list.SelectedItem = list.Items.OfType<object>().FirstOrDefault(row => row switch
+                var lists = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants().OfType<ListBox>().ToList();
+                if (lists.Count == 0)
+                {
+                    throw new SmokeStepException("the dialog has no list");
+                }
+
+                // The settings window has the category list and, on its Library page, the folder list too.
+                var picked = lists
+                    .SelectMany(candidate => candidate.Items.OfType<object>().Select(row => (List: candidate, Row: row)))
+                    .FirstOrDefault(entry => entry.Row switch
                     {
                         Ui.ViewModels.Libraries.IndexedFolderViewModel folder => folder.Name == step.Argument,
                         Ui.ViewModels.Settings.SettingsCategoryViewModel category => category.Category == step.Argument,
                         _ => false,
-                    })
-                    ?? throw new SmokeStepException($"the list has no folder or settings category '{step.Argument}'");
+                    });
+                if (picked.Row is null)
+                {
+                    throw new SmokeStepException($"the list has no folder or settings category '{step.Argument}'");
+                }
+
+                picked.List.SelectedItem = picked.Row;
                 return null;
             case "import-files":
                 return ImportFiles(step.Argument);

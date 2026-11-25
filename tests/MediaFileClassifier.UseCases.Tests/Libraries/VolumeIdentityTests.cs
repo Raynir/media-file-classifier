@@ -36,7 +36,7 @@ public sealed class VolumeIdentityTests
         await bed.CheckAsync();
 
         Assert.Empty(changed);
-        Assert.Equal((Serial, 1), (folder.VolumeId, bed.Library.FolderList.Updates));
+        Assert.Equal((Serial, 1), (bed.Library.FolderList.Stored(folder.Id).VolumeId, bed.Library.FolderList.Updates));
     }
 
     [Fact]
@@ -92,7 +92,8 @@ public sealed class VolumeIdentityTests
 
         var changed = await bed.CheckAsync();
 
-        Assert.Same(folder, Assert.Single(changed));
+        Assert.Equal(folder.Id, Assert.Single(changed).Id);
+        folder = bed.Library.FolderList.Stored(folder.Id);
         Assert.Equal((Moved, Moved, FolderStatus.Online), (folder.DisplayPath, folder.PlatformHandle, folder.Status));
         Assert.Equal(("Backup-2TB", Serial), (folder.VolumeLabel, folder.VolumeId));
         Assert.Equal(1, bed.Library.FolderList.Relinks);
@@ -113,6 +114,7 @@ public sealed class VolumeIdentityTests
 
         await bed.CheckAsync();
 
+        folder = bed.Library.FolderList.Stored(folder.Id);
         Assert.Equal((Folder, FolderStatus.Offline), (folder.PlatformHandle, folder.Status));
         Assert.Equal(0, bed.Library.FolderList.Relinks);
         Assert.Empty(bed.Sender.Activities);
@@ -128,6 +130,7 @@ public sealed class VolumeIdentityTests
 
         await bed.CheckAsync();
 
+        folder = bed.Library.FolderList.Stored(folder.Id);
         Assert.Equal((Folder, FolderStatus.Offline), (folder.PlatformHandle, folder.Status));
         Assert.Equal(0, bed.Volumes.Searches);
     }

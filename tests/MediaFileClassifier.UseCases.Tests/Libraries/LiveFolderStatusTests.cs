@@ -152,8 +152,8 @@ public sealed class LiveFolderStatusTests
         var changed = await handler.Handle(new CheckFolderAvailabilityCommand(OfflineOnly: true), Token);
         clock.Advance(FolderStatusChanges.Quiet);
 
-        Assert.Same(drive, Assert.Single(changed));
-        Assert.Equal(FolderStatus.Online, drive.Status);
+        Assert.Equal(drive.Id, Assert.Single(changed).Id);
+        Assert.Equal(FolderStatus.Online, library.FolderList.Stored(drive.Id).Status);
         Assert.Equal(1, raised);
         Assert.Equal(1, library.FolderList.AvailabilityUpdates);
         Assert.Equal(1, library.FolderList.Updates);

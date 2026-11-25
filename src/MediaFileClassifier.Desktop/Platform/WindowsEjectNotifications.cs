@@ -178,9 +178,11 @@ internal sealed partial class WindowsEjectNotifications(ILogger<WindowsEjectNoti
         private const uint OpenExisting = 3;
         private const uint BackupSemantics = 0x02000000;
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Taken out under the lock and disposed outside it by Release (MFC-1050).")]
         private SafeFileHandle? handle;
         private nint notify;
         private bool disposed;
+        private bool opening;
 
         public event EventHandler? EjectRequested;
 
@@ -188,6 +190,7 @@ internal sealed partial class WindowsEjectNotifications(ILogger<WindowsEjectNoti
 
         public void Dispose()
         {
+            (SafeFileHandle? Handle, nint Notify) taken;
             lock (owner.syncRoot)
             {
                 if (disposed)
@@ -197,25 +200,37 @@ internal sealed partial class WindowsEjectNotifications(ILogger<WindowsEjectNoti
 
                 disposed = true;
                 owner.waiting.Remove(this);
-                Unregister();
-                CloseHandle();
+                taken = Detach();
             }
+
+            Release(taken);
         }
 
+        // Win32 calls (opening, registering, unregistering, closing) never run under syncRoot: the window procedure takes
+        // it on every device message, so a slow drive would freeze the UI thread (MFC-1050). The lock only decides and
+        // publishes; a dispose that comes in between is seen when publishing, and the new resources are released here.
         public void Open()
         {
+            nint window;
             lock (owner.syncRoot)
             {
-                if (disposed || notify != 0)
+                if (disposed || notify != 0 || opening)
                 {
                     return;
                 }
 
-                var opened = CreateFile(path, ReadAttributes, ShareAll, 0, OpenExisting, BackupSemantics, 0);
+                opening = true;
+                window = owner.window;
+            }
+
+            SafeFileHandle? opened = null;
+            nint registeredNotify = 0;
+            try
+            {
+                opened = CreateFile(path, ReadAttributes, ShareAll, 0, OpenExisting, BackupSemantics, 0);
                 if (opened.IsInvalid)
                 {
                     owner.LogNotListening(path, Marshal.GetLastPInvokeError());
-                    opened.Dispose();
                     return;
                 }
 
@@ -225,17 +240,33 @@ internal sealed partial class WindowsEjectNotifications(ILogger<WindowsEjectNoti
                     DeviceType = HandleDeviceType,
                     Handle = opened.DangerousGetHandle(),
                 };
-                var registeredNotify = RegisterDeviceNotification(owner.window, ref filter, 0);
+                registeredNotify = RegisterDeviceNotification(window, ref filter, 0);
                 if (registeredNotify == 0)
                 {
                     owner.LogNotListening(path, Marshal.GetLastPInvokeError());
-                    opened.Dispose();
                     return;
                 }
 
-                handle = opened;
-                notify = registeredNotify;
-                owner.registered[notify] = this;
+                lock (owner.syncRoot)
+                {
+                    if (!disposed)
+                    {
+                        handle = opened;
+                        notify = registeredNotify;
+                        owner.registered[notify] = this;
+                        opened = null;
+                        registeredNotify = 0;
+                    }
+                }
+            }
+            finally
+            {
+                lock (owner.syncRoot)
+                {
+                    opening = false;
+                }
+
+                Release((opened, registeredNotify));
             }
         }
 
@@ -244,21 +275,26 @@ internal sealed partial class WindowsEjectNotifications(ILogger<WindowsEjectNoti
         {
             owner.LogEjectRequested(path);
             EjectRequested?.Invoke(this, EventArgs.Empty);
+            SafeFileHandle? toClose;
             lock (owner.syncRoot)
             {
-                CloseHandle();
+                toClose = handle;
+                handle = null;
             }
+
+            toClose?.Dispose();
         }
 
         // The old notification belongs to the closed handle, so the folder is opened and registered again.
         public void OnQueryRemoveFailed()
         {
+            (SafeFileHandle? Handle, nint Notify) taken;
             lock (owner.syncRoot)
             {
-                Unregister();
-                CloseHandle();
+                taken = Detach();
             }
 
+            Release(taken);
             Open();
             owner.LogEjectCancelled(path);
             EjectCancelled?.Invoke(this, EventArgs.Empty);
@@ -266,29 +302,37 @@ internal sealed partial class WindowsEjectNotifications(ILogger<WindowsEjectNoti
 
         public void OnRemoved()
         {
+            (SafeFileHandle? Handle, nint Notify) taken;
             lock (owner.syncRoot)
             {
-                Unregister();
-                CloseHandle();
+                taken = Detach();
             }
+
+            Release(taken);
         }
 
-        private void Unregister()
+        // Called under syncRoot: only takes the state out; the caller releases it with Release, outside the lock.
+        private (SafeFileHandle? Handle, nint Notify) Detach()
         {
-            if (notify == 0)
+            var taken = (handle, notify);
+            if (notify != 0)
             {
-                return;
+                owner.registered.Remove(notify);
             }
 
-            owner.registered.Remove(notify);
-            UnregisterDeviceNotification(notify);
+            handle = null;
             notify = 0;
+            return taken;
         }
 
-        private void CloseHandle()
+        private static void Release((SafeFileHandle? Handle, nint Notify) taken)
         {
-            handle?.Dispose();
-            handle = null;
+            if (taken.Notify != 0)
+            {
+                UnregisterDeviceNotification(taken.Notify);
+            }
+
+            taken.Handle?.Dispose();
         }
     }
 }

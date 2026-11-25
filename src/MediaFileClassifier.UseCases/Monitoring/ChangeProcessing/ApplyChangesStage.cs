@@ -41,6 +41,7 @@ namespace MediaFileClassifier.UseCases.Monitoring.ChangeProcessing;
 /// <param name="clock">Clock for status changes.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="tally">Remembers what the job changed, for the activity log and the notification, or <see langword="null"/> for none.</param>
+/// <param name="scanGate">Keeps the registration apart from a rescan's reconcile (MFC-1040), or <see langword="null"/> where none runs.</param>
 public sealed partial class ApplyChangesStage(
     IMediaFileSource files,
     IFolderDiscovery discovery,
@@ -49,7 +50,8 @@ public sealed partial class ApplyChangesStage(
     IThumbnailCache thumbnails,
     TimeProvider clock,
     ILogger<ApplyChangesStage> logger,
-    MonitoringTally? tally = null) : IStageHandler, IDisposable
+    MonitoringTally? tally = null,
+    FolderScanGate? scanGate = null) : IStageHandler, IDisposable
 {
     /// <summary>
     /// The most changes applied in one step, so a renamed folder of many files is read and written in a few steps.
@@ -394,8 +396,14 @@ public sealed partial class ApplyChangesStage(
             return [];
         }
 
-        var registrations = await discovery.RegisterFilesAsync(library, folder, [.. paths.Select(path => path.Value).Distinct(StringComparer.Ordinal)], cancellationToken)
-            .ConfigureAwait(false);
+        // A rescan reconciling the library meanwhile would register the same paths (MFC-1040).
+        IReadOnlyList<FileRegistration> registrations;
+        using (scanGate is null ? null : await scanGate.EnterSharedAsync(cancellationToken).ConfigureAwait(false))
+        {
+            registrations = await discovery.RegisterFilesAsync(library, folder, [.. paths.Select(path => path.Value).Distinct(StringComparer.Ordinal)], cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         return [.. registrations.Where(registration => registration.Outcome == FileRegistrationOutcome.Registered).Select(registration => registration.Item!)];
     }
 

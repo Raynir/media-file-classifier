@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Testing.Activity;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Activity;
 using MediaFileClassifier.Ui.ViewModels.Activity;
@@ -249,6 +250,41 @@ public sealed class ActivityLogViewModelTests
         await model.RefreshAsync(Token);
 
         Assert.Contains("Folder added. D:\\Media", model.Rows.Single(row => row.IsEvent).AccessibleName, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DayHeaders_FollowTheDate_AfterMidnightWithTheWindowOpen()
+    {
+        // MFC-1034: 23:00 local time, one event an hour ago, and no new events after midnight.
+        var evening = new DateTime(2026, 11, 22, 23, 0, 0, DateTimeKind.Unspecified);
+        var clock = new ManualClock(new DateTimeOffset(evening, TimeZoneInfo.Local.GetUtcOffset(evening)).ToUniversalTime());
+        Add(ActivityEventType.Import, clock.GetUtcNow().AddHours(-1));
+        var model = new ActivityLogViewModel(new LogSender(log, existing), changes, TestLocalizer.EnUs(), clock, navigator, null, action => action());
+        model.Attach();
+        await model.RefreshAsync(Token);
+        Assert.Equal("Today", model.Rows[0].Header);
+
+        clock.Advance(TimeSpan.FromHours(2));
+
+        await WaitForAsync(() => model.Rows[0].Header == "Yesterday");
+        Assert.Equal(["Yesterday", "Import finished"], model.Rows.Select(row => row.IsHeader ? row.Header : row.Title));
+        model.Detach();
+    }
+
+    [Fact]
+    public async Task DayHeaders_AreNotRefreshedAfterTheWindowCloses()
+    {
+        var evening = new DateTime(2026, 11, 22, 23, 0, 0, DateTimeKind.Unspecified);
+        var clock = new ManualClock(new DateTimeOffset(evening, TimeZoneInfo.Local.GetUtcOffset(evening)).ToUniversalTime());
+        Add(ActivityEventType.Import, clock.GetUtcNow().AddHours(-1));
+        var model = new ActivityLogViewModel(new LogSender(log, existing), changes, TestLocalizer.EnUs(), clock, navigator, null, action => action());
+        model.Attach();
+        await model.RefreshAsync(Token);
+        model.Detach();
+
+        clock.Advance(TimeSpan.FromHours(2));
+
+        Assert.Equal("Today", model.Rows[0].Header);
     }
 
     private static async Task WaitForAsync(Func<bool> condition)

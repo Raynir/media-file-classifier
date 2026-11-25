@@ -193,7 +193,7 @@ public sealed class ReconnectCatchUp : IDisposable
                     }
                 }
 
-                var result = await sender.Send(new StartRescanCommand(folderId, Quick: true), token).ConfigureAwait(false);
+                var result = await sender.Send(new StartRescanCommand(folderId, Quick: true, library), token).ConfigureAwait(false);
                 if (result.Outcome != StartRescanOutcome.Busy)
                 {
                     if (result.Outcome != StartRescanOutcome.Started)

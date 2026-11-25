@@ -2,6 +2,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
+using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.UseCases.Import;
 using MediaFileClassifier.UseCases.Libraries;
 using MediatR;
@@ -19,7 +20,12 @@ namespace MediaFileClassifier.UseCases.Rescan.StartRescan;
 /// priority, whose summary is shown only when something changed. Folders in Manual mode are left out (E04-S05-T01). With a
 /// <paramref name="FolderId"/>, it's the reconnect catch-up (E04-S04-T02) or a poll (E04-S05-T02) of that folder.
 /// </param>
-public sealed record StartRescanCommand(Id<IndexedFolder>? FolderId = null, bool Quick = false) : IRequest<StartRescanResult>;
+/// <param name="Library">
+/// The library the caller means, or <c>null</c> for whichever is open. When another library is open by the time the
+/// command runs, nothing is started and the outcome is <see cref="StartRescanOutcome.Unavailable"/> (MFC-1042), so a
+/// sync meant for a library that was just closed doesn't land on the next one.
+/// </param>
+public sealed record StartRescanCommand(Id<IndexedFolder>? FolderId = null, bool Quick = false, IOpenLibrary? Library = null) : IRequest<StartRescanResult>;
 
 /// <summary>
 /// What <see cref="StartRescanCommand"/> did.
@@ -62,7 +68,8 @@ public sealed class StartRescanCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (jobs?.Current is not { } scheduler)
+        if (jobs?.Current is not { } scheduler
+            || (request.Library is { } expected && !ReferenceEquals(scheduler.Library, expected)))
         {
             return new StartRescanResult(null, StartRescanOutcome.Unavailable);
         }

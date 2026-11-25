@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
+using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.Media;
 using MediaFileClassifier.UseCases.Rescan.GetRescanSummary;
@@ -50,6 +51,18 @@ public sealed class RescanCommandTests : IAsyncLifetime
         Assert.Equal(2, summary.Counts.Unchanged);
         Assert.Equal(0, summary.Counts.Moved);
         Assert.Equal(1, summary.Updated);
+    }
+
+    [Fact]
+    public async Task Rescan_MeantForAnotherLibrary_StartsNothing()
+    {
+        // As when the library was swapped between the caller's check and the command (MFC-1042).
+        await using var other = await LibraryTestBed.CreateAsync();
+
+        var started = await bed.Get<ISender>().Send(new StartRescanCommand(Quick: true, Library: other.Library), Token);
+
+        Assert.Equal(new StartRescanResult(null, StartRescanOutcome.Unavailable), started);
+        Assert.Equal(StartRescanOutcome.Started, (await bed.Get<ISender>().Send(new StartRescanCommand(Quick: true, Library: bed.Library), Token)).Outcome);
     }
 
     [Fact]

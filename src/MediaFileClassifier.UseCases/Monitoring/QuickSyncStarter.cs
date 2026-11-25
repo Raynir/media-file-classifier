@@ -86,7 +86,7 @@ public sealed class QuickSyncStarter : IDisposable
     }
 
     /// <summary>
-    /// Waits until the sync of the library opened last has been queued, or given up.
+    /// Waits until the syncs started so far have been queued, or given up, including one for a library closed since.
     /// </summary>
     /// <returns>A task that completes when the start is done.</returns>
     public Task WaitAsync()
@@ -121,13 +121,23 @@ public sealed class QuickSyncStarter : IDisposable
         lock (syncRoot)
         {
             var library = session.Current;
-            if (disposed || library is null || ReferenceEquals(library, handled))
+            if (library is null)
+            {
+                // Closed: the library isn't held until the next one opens (MFC-1042). Opening it again syncs it.
+                handled = null;
+                return;
+            }
+
+            if (disposed || ReferenceEquals(library, handled))
             {
                 return;
             }
 
             handled = library;
-            running = Task.Run(() => RunAsync(library));
+            var run = Task.Run(() => RunAsync(library));
+
+            // A run for a library closed meanwhile may still be finishing; waiting covers it too.
+            running = running.IsCompleted ? run : Task.WhenAll(running, run);
         }
     }
 
@@ -180,7 +190,7 @@ public sealed class QuickSyncStarter : IDisposable
                     return;
                 }
 
-                var result = await sender.Send(new StartRescanCommand(Quick: true), token).ConfigureAwait(false);
+                var result = await sender.Send(new StartRescanCommand(Quick: true, Library: library), token).ConfigureAwait(false);
                 if (result.Outcome != StartRescanOutcome.Busy)
                 {
                     if (result.Outcome != StartRescanOutcome.Started)

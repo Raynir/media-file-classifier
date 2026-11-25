@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Platform;
 using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.UseCases.Monitoring;
+using MediaFileClassifier.UseCases.Monitoring.GetFolderMonitoring;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -102,6 +103,63 @@ public sealed class IndexedFoldersFlowTests : IAsyncDisposable
 
         row.MonitoringState = FolderMonitoringState.Manual;
         Assert.Equal(("Manual", true, false, false), (row.MonitoringText, row.ShowsManual, row.ShowsNotMonitored, row.ShowsPolling));
+    }
+
+    [Fact]
+    public async Task Dialog_PickingAMode_StoresIt_AndTheBadgeAndNoteFollow()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(app.Root, "photos")).FullName;
+        var library = app.Services.GetRequiredService<ILibrarySession>().Current!;
+        await library.Folders.AddAsync(IndexedFolder.Create(library.Library.Id, photos, photos, DateTimeOffset.UtcNow), Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.OpenAsync();
+        var row = Assert.Single(viewModel.Folders);
+        Assert.Equal(["Auto", "Watch", "Poll", "Manual"], row.ModeOptions.Select(option => option.Label));
+        Assert.Equal(MonitoringMode.Auto, row.SelectedMode!.Mode);
+
+        row.SelectedMode = row.ModeOptions.Single(option => option.Mode == MonitoringMode.Manual);
+        await WaitUntilAsync(async () => (await library.Folders.GetAllAsync(Token)).Single().MonitoringMode == MonitoringMode.Manual);
+        await WaitUntilAsync(() => Task.FromResult(row.ShowsManual));
+        Assert.Equal(MonitoringMode.Manual, row.SelectedMode.Mode);
+        Assert.StartsWith("Nothing runs on its own", row.ModeNote, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Dialog_OnANetworkShareSetToWatch_SuggestsPoll_AndUsePollSetsIt()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(app.Root, "photos")).FullName;
+        var library = app.Services.GetRequiredService<ILibrarySession>().Current!;
+        var folder = IndexedFolder.Create(library.Library.Id, photos, photos, DateTimeOffset.UtcNow);
+        folder.ChangeMonitoringMode(MonitoringMode.Watch);
+        await library.Folders.AddAsync(folder, Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.OpenAsync();
+        var row = Assert.Single(viewModel.Folders);
+        Assert.False(row.SuggestsPoll);
+
+        row.ApplyMonitoring(new FolderMonitoringInfo(folder.Id, MonitoringMode.Watch, MonitoringMode.Watch, FolderMonitoringState.Watching, true, "OneDrive", null));
+        Assert.True(row.SuggestsPoll);
+        Assert.Equal("Synced by OneDrive.", row.CloudNote);
+
+        viewModel.SelectedFolder = row;
+        viewModel.UsePollCommand.Execute(null);
+        await WaitUntilAsync(async () => (await library.Folders.GetAllAsync(Token)).Single().MonitoringMode == MonitoringMode.Poll);
+
+        row.ApplyMonitoring(new FolderMonitoringInfo(folder.Id, MonitoringMode.Poll, MonitoringMode.Poll, FolderMonitoringState.Polling, true, null, DateTimeOffset.UtcNow.AddMinutes(15)));
+        Assert.False(row.SuggestsPoll);
+        Assert.True(row.HasNextPoll);
+        Assert.True(row.ShowsPolling);
+    }
+
+    private static async Task WaitUntilAsync(Func<Task<bool>> done)
+    {
+        for (var tries = 0; !await done(); tries++)
+        {
+            Assert.True(tries < 500, "The condition wasn't met.");
+            await Task.Delay(10, Token);
+        }
     }
 
     [Fact]

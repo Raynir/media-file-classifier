@@ -23,7 +23,8 @@ public sealed record GetFolderMonitoringQuery : IRequest<IReadOnlyList<FolderMon
 /// <param name="State">What keeps it up to date now.</param>
 /// <param name="IsNetwork">Whether it's on a network share, where Poll is suggested.</param>
 /// <param name="CloudProvider">The cloud client that syncs it, e.g. <c>OneDrive</c>, or <see langword="null"/>.</param>
-/// <param name="NextPoll">When it's polled next, while it's polled.</param>
+/// <param name="NextPoll">When it's polled next, while it's polled; <see langword="null"/> while monitoring is paused, as
+/// a due poll waits for the resume.</param>
 public sealed record FolderMonitoringInfo(
     Id<IndexedFolder> FolderId,
     MonitoringMode Mode,
@@ -70,7 +71,7 @@ public sealed class GetFolderMonitoringQueryHandler(
             {
                 (FolderStatus.Offline, _) => FolderMonitoringState.Offline,
                 _ when !enabled => FolderMonitoringState.Off,
-                (_, MonitoringMode.Watch) when !watchers.IsWatching => FolderMonitoringState.Manual,
+                (_, MonitoringMode.Watch) when !watchers.IsWatching => FolderMonitoringState.Off,
                 (_, MonitoringMode.Watch) when watched.Contains(folder.Id) => paused ? FolderMonitoringState.Paused : FolderMonitoringState.Watching,
                 (_, MonitoringMode.Watch) => FolderMonitoringState.Error,
                 (_, MonitoringMode.Poll) when poller.IsPolling => paused ? FolderMonitoringState.Paused : FolderMonitoringState.Polling,
@@ -83,7 +84,7 @@ public sealed class GetFolderMonitoringQueryHandler(
                 state,
                 location.IsNetwork,
                 location.CloudProvider,
-                state is FolderMonitoringState.Polling or FolderMonitoringState.Paused ? poller.NextPollOf(folder.Id) : null));
+                state is FolderMonitoringState.Polling ? poller.NextPollOf(folder.Id) : null));
         }
 
         return result;

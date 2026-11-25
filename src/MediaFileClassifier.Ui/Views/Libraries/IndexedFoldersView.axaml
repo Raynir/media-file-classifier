@@ -147,6 +147,32 @@
                         IsEnabled="{Binding HasRuleChanges}" />
               </StackPanel>
             </StackPanel>
+
+            <!-- How the folder is kept up to date (E04-S05, MFC-1057). -->
+            <StackPanel x:Name="MonitoringMode" Spacing="{DynamicResource Space.XS}">
+              <TextBlock Classes="Label" Text="{l:Loc Folders_Mode_Label}" />
+              <ComboBox x:Name="ModePicker"
+                        ItemsSource="{Binding ModeOptions}"
+                        SelectedItem="{Binding SelectedMode}"
+                        MinWidth="{DynamicResource Size.SettingControl}"
+                        AutomationProperties.Name="{l:Loc Folders_Mode_Label}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MonitoringModeOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <TextBlock Classes="Secondary" Text="{Binding ModeNote}" TextWrapping="Wrap" />
+              <TextBlock Classes="Secondary" Text="{Binding NextPollText}" IsVisible="{Binding HasNextPoll}" />
+              <TextBlock Classes="Secondary" Text="{Binding CloudNote}" IsVisible="{Binding HasCloudNote}" />
+              <StackPanel Spacing="{DynamicResource Space.S}" IsVisible="{Binding SuggestsPoll}">
+                <TextBlock Text="{l:Loc Folders_PollSuggestion}" TextWrapping="Wrap" />
+                <Button x:Name="UsePollButton"
+                        Content="{l:Loc Folders_UsePoll}"
+                        HorizontalAlignment="Left"
+                        Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).UsePollCommand}" />
+              </StackPanel>
+            </StackPanel>
           </StackPanel>
         </Panel>
       </Panel>

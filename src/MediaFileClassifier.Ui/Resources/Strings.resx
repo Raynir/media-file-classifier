@@ -1903,6 +1903,54 @@
   <data name="Folders_Monitoring_Error_Tip" xml:space="preserve">
     <value>The folder is reachable but changes in it can't be watched. The app tries again by itself; Rescan still finds changes.</value>
   </data>
+  <data name="Folders_Mode_Label" xml:space="preserve">
+    <value>Monitoring</value>
+  </data>
+  <data name="Folders_Mode_Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Folders_Mode_Watch" xml:space="preserve">
+    <value>Watch</value>
+  </data>
+  <data name="Folders_Mode_Poll" xml:space="preserve">
+    <value>Poll</value>
+  </data>
+  <data name="Folders_Mode_Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Folders_ModeNote_Auto_Watch" xml:space="preserve">
+    <value>Auto watches this folder, so changes are found as they happen.</value>
+  </data>
+  <data name="Folders_ModeNote_Auto_Poll" xml:space="preserve">
+    <value>Auto checks this network share at the poll interval, as shares often don't report changes.</value>
+  </data>
+  <data name="Folders_ModeNote_Watch" xml:space="preserve">
+    <value>Changes in this folder are found as they happen.</value>
+  </data>
+  <data name="Folders_ModeNote_Poll" xml:space="preserve">
+    <value>This folder is checked for changes at the poll interval (Settings, General).</value>
+  </data>
+  <data name="Folders_ModeNote_Manual" xml:space="preserve">
+    <value>Nothing runs on its own: changes in this folder are found only when you rescan it.</value>
+  </data>
+  <data name="Folders_NextPoll" xml:space="preserve">
+    <value>Next check: {0}</value>
+  </data>
+  <data name="Folders_CloudNote" xml:space="preserve">
+    <value>Synced by {0}.</value>
+  </data>
+  <data name="Folders_PollSuggestion" xml:space="preserve">
+    <value>This folder is on a network share, which often doesn't report changes. Poll is more reliable.</value>
+  </data>
+  <data name="Folders_UsePoll" xml:space="preserve">
+    <value>Use Poll</value>
+  </data>
+  <data name="Folders_Mode_NotFound" xml:space="preserve">
+    <value>Couldn't change how {0} is monitored: it's no longer in the library.</value>
+  </data>
+  <data name="Folders_Mode_Failed" xml:space="preserve">
+    <value>Couldn't change how {0} is monitored.</value>
+  </data>
   <data name="Setting_MonitoringNotifyThreshold" xml:space="preserve">
     <value>Notify when a monitored folder gets at least this many changes</value>
   </data>

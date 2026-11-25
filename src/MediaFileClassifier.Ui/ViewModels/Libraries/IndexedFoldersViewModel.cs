@@ -19,6 +19,8 @@ using MediaFileClassifier.UseCases.Libraries.IndexWholeFolder;
 using MediaFileClassifier.UseCases.Libraries.RemoveFolder;
 using MediaFileClassifier.UseCases.Libraries.UseThisDrive;
 using MediaFileClassifier.UseCases.Monitoring;
+using MediaFileClassifier.UseCases.Monitoring.ChangeMonitoringMode;
+using MediaFileClassifier.UseCases.Monitoring.GetFolderMonitoring;
 using MediatR;
 
 namespace MediaFileClassifier.Ui.ViewModels.Libraries;
@@ -35,6 +37,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     private const long OtherDriveProbeInterval = 10_000;
 
     private readonly ISender sender;
+    private int modePicks;
     private readonly IPlatformServices platform;
     private readonly IMediaFileSource files;
     private readonly Localizer localizer;
@@ -72,7 +75,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         {
             if (self.TryGetTarget(out var target))
             {
-                Avalonia.Threading.Dispatcher.UIThread.Post(target.ShowMonitoring);
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => _ = target.RefreshMonitoringAsync());
             }
         }
 
@@ -206,7 +209,15 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         refreshing = true;
         try
         {
-            Show(await sender.Send(new GetIndexedFoldersQuery()));
+            var picks = modePicks;
+            var summaries = await sender.Send(new GetIndexedFoldersQuery());
+            var monitoring = await GetMonitoringAsync();
+
+            // A mode picked while this read ran would be put back by it; the next refresh shows it.
+            if (picks == modePicks)
+            {
+                Show(summaries, monitoring);
+            }
         }
         finally
         {
@@ -214,7 +225,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         }
     }
 
-    private void Show(IReadOnlyList<IndexedFolderSummary> summaries)
+    private void Show(IReadOnlyList<IndexedFolderSummary> summaries, IReadOnlyDictionary<Id<IndexedFolder>, FolderMonitoringInfo> monitoring)
     {
         var byId = summaries.ToDictionary(summary => summary.Folder.Id);
         foreach (var gone in Folders.Where(row => !byId.ContainsKey(row.Folder.Id)).ToList())
@@ -228,7 +239,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
             var row = Folders.FirstOrDefault(row => row.Folder.Id == summary.Folder.Id);
             if (row is null)
             {
-                Folders.Insert(index, new IndexedFolderViewModel(summary, localizer));
+                Folders.Insert(index, new IndexedFolderViewModel(summary, localizer, ChooseMode));
             }
             else
             {
@@ -249,25 +260,85 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
             _ = FindOtherDriveAsync(selected);
         }
 
-        ShowMonitoring();
+        ShowMonitoring(monitoring);
         OnPropertyChanged(nameof(IsEmpty));
     }
 
-    private void ShowMonitoring()
+    // Reads how each folder is monitored. Without an answer (no library, a failing query) the rows fall back to the
+    // watchers' own state.
+    private async Task<IReadOnlyDictionary<Id<IndexedFolder>, FolderMonitoringInfo>> GetMonitoringAsync()
+    {
+        try
+        {
+            return (await sender.Send(new GetFolderMonitoringQuery())).ToDictionary(info => info.FolderId);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return new Dictionary<Id<IndexedFolder>, FolderMonitoringInfo>();
+        }
+    }
+
+    private async Task RefreshMonitoringAsync() => ShowMonitoring(await GetMonitoringAsync());
+
+    private void ShowMonitoring(IReadOnlyDictionary<Id<IndexedFolder>, FolderMonitoringInfo> monitoring)
     {
         foreach (var row in Folders)
         {
-            row.MonitoringState = watchers?.GetState(row.Folder.Id) ?? FolderMonitoringState.Off;
+            if (monitoring.TryGetValue(row.Folder.Id, out var info))
+            {
+                row.ApplyMonitoring(info);
+            }
+            else
+            {
+                row.MonitoringState = watchers?.GetState(row.Folder.Id) ?? FolderMonitoringState.Off;
+            }
         }
 
         OnPropertyChanged(nameof(MonitoringPauseLabel));
     }
 
+    // The user picked a mode in a row. The picker is a view of the folder, so it's shown again from the library after.
+    private void ChooseMode(IndexedFolderViewModel row, MonitoringMode mode)
+    {
+        modePicks++;
+        _ = ChooseModeAsync(row, mode);
+    }
+
+    private async Task ChooseModeAsync(IndexedFolderViewModel row, MonitoringMode mode)
+    {
+        try
+        {
+            if (await sender.Send(new ChangeMonitoringModeCommand(row.Folder.Id, mode)) == ChangeMonitoringModeResult.NotFound)
+            {
+                Message = localizer.Format("Folders_Mode_NotFound", row.Name);
+            }
+
+            await RefreshMonitoringAsync();
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            Message = localizer.Format("Folders_Mode_Failed", row.Name);
+            await RefreshMonitoringAsync();
+        }
+    }
+
+    /// <summary>
+    /// Sets the selected folder to Poll, as the hint for a network share suggests.
+    /// </summary>
+    [RelayCommand]
+    private void UsePoll()
+    {
+        if (SelectedFolder is { } row)
+        {
+            row.SelectedMode = row.ModeOptions.First(option => option.Mode == MonitoringMode.Poll);
+        }
+    }
+
     /// <summary>
     /// Pauses monitoring, or resumes it when it's paused (E04-S06-T02).
     /// </summary>
-    [RelayCommand]
-    private void ToggleMonitoringPause()
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private async Task ToggleMonitoringPause()
     {
         if (monitoringPause is null)
         {
@@ -283,7 +354,8 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
             monitoringPause.Pause();
         }
 
-        ShowMonitoring();
+        OnPropertyChanged(nameof(MonitoringPauseLabel));
+        await RefreshMonitoringAsync();
     }
 
     /// <summary>

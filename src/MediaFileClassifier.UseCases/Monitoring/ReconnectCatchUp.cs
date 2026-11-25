@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.UseCases.Libraries;
+using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Rescan.StartRescan;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -200,6 +201,14 @@ public sealed class ReconnectCatchUp : IDisposable
                         logger.LogInformation("No catch-up of reconnected folder {Folder}: {Outcome}", folderId, result.Outcome);
                     }
 
+                    return;
+                }
+
+                // A library-wide rescan or sync that's unfinished, such as the quick sync on open, lists this folder
+                // itself: syncing it again when that ends would list it twice (MFC-1049).
+                if (await LibraryWideSync.IsUnfinishedAsync(library, token).ConfigureAwait(false))
+                {
+                    logger.LogInformation("No catch-up of reconnected folder {Folder}: a library rescan is unfinished", folderId);
                     return;
                 }
 

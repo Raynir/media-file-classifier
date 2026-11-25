@@ -16,7 +16,8 @@ namespace MediaFileClassifier.UseCases.Rescan.StartRescan;
 /// <param name="FolderId">The folder, or <c>null</c> for every folder of the library.</param>
 /// <param name="Quick">
 /// Whether this is the quick sync on library open (E04-S03): a library-wide job over the Online folders at import
-/// priority, whose summary is shown only when something changed. It's meant for <paramref name="FolderId"/> <c>null</c>.
+/// priority, whose summary is shown only when something changed. Folders in Manual mode are left out (E04-S05-T01). With a
+/// <paramref name="FolderId"/>, it's the reconnect catch-up (E04-S04-T02) or a poll (E04-S05-T02) of that folder.
 /// </param>
 public sealed record StartRescanCommand(Id<IndexedFolder>? FolderId = null, bool Quick = false) : IRequest<StartRescanResult>;
 
@@ -71,7 +72,8 @@ public sealed class StartRescanCommandHandler(
         var targets = request.FolderId is { } folderId ? folders.Where(folder => folder.Id == folderId).ToList() : folders.ToList();
         if (request.Quick)
         {
-            targets = [.. targets.Where(folder => folder.Status == FolderStatus.Online)];
+            // A folder in Manual mode is synced only by a rescan the user starts (E04-S05-T01).
+            targets = [.. targets.Where(folder => folder.Status == FolderStatus.Online && folder.MonitoringMode != MonitoringMode.Manual)];
         }
 
         if (targets.Count == 0)

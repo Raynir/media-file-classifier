@@ -9,6 +9,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
 using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Testing.Files;
+using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.Testing.UseCases;
@@ -51,6 +52,51 @@ public sealed class FolderWatchManagerTests
 
         Assert.Equal([online.Id], bed.Manager.WatchedFolders);
         Assert.Equal([@"E:\Online"], bed.Factory.Running);
+    }
+
+    [Fact]
+    public async Task Start_WatchesOnlyTheFoldersInWatchMode_NotPollManualOrNetworkInAuto()
+    {
+        var bed = new Bed();
+        bed.Probe.Network(@"\\nas\photos");
+        bed.Probe.Network(@"\\nas\watched");
+        var local = await bed.AddFolderAsync(@"E:\Local");
+        await bed.AddFolderAsync(@"\\nas\photos");
+        var watchedShare = await bed.AddFolderAsync(@"\\nas\watched");
+        watchedShare.ChangeMonitoringMode(MonitoringMode.Watch);
+        var polled = await bed.AddFolderAsync(@"E:\Polled");
+        polled.ChangeMonitoringMode(MonitoringMode.Poll);
+        var manual = await bed.AddFolderAsync(@"E:\Manual");
+        manual.ChangeMonitoringMode(MonitoringMode.Manual);
+
+        await bed.StartAsync();
+
+        Assert.Equal(new HashSet<Id<IndexedFolder>> { local.Id, watchedShare.Id }, bed.Manager.WatchedFolders.ToHashSet());
+    }
+
+    [Fact]
+    public async Task Folder_ModeChanged_StopsAndStartsItsWatcher_AndPublishesTheChange()
+    {
+        var bed = new Bed();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        await bed.StartAsync();
+
+        folder.ChangeMonitoringMode(MonitoringMode.Manual);
+        await bed.Library.FolderList.UpdateAsync(folder, TestContext.Current.CancellationToken);
+        await bed.Manager.RefreshAsync();
+        Assert.Empty(bed.Manager.WatchedFolders);
+        Assert.Empty(bed.Factory.Running);
+
+        folder.ChangeMonitoringMode(MonitoringMode.Watch);
+        await bed.Library.FolderList.UpdateAsync(folder, TestContext.Current.CancellationToken);
+        await bed.Manager.RefreshAsync();
+        Assert.Equal([folder.Id], bed.Manager.WatchedFolders);
+
+        for (var tries = 0; bed.Publisher.Of<FolderMonitoringChanged>().Count < 3; tries++)
+        {
+            Assert.True(tries < 500, "The changes weren't published.");
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
     }
 
     [Fact]
@@ -154,6 +200,30 @@ public sealed class FolderWatchManagerTests
 
         bed.Pause.Resume();
         Assert.Equal(FolderMonitoringState.Watching, bed.Manager.GetState(watched.Id));
+    }
+
+    [Fact]
+    public async Task State_OfAPollOrManualFolder_IsPolling_OrManual_PausedWhilePolledAndPaused_AndOffWhileMonitoringIsOff()
+    {
+        var bed = new Bed();
+        bed.Settings.IsLibraryOpen = true;
+        var polled = await bed.AddFolderAsync(@"E:\Polled", MonitoringMode.Poll);
+        var manual = await bed.AddFolderAsync(@"E:\Manual", MonitoringMode.Manual);
+        await bed.StartAsync();
+
+        Assert.Empty(bed.Manager.WatchedFolders);
+        Assert.Equal(FolderMonitoringState.Polling, bed.Manager.GetState(polled.Id));
+        Assert.Equal(FolderMonitoringState.Manual, bed.Manager.GetState(manual.Id));
+
+        bed.Pause.Pause();
+        Assert.Equal(FolderMonitoringState.Paused, bed.Manager.GetState(polled.Id));
+        Assert.Equal(FolderMonitoringState.Manual, bed.Manager.GetState(manual.Id));
+        bed.Pause.Resume();
+
+        bed.Settings.SetValue(KnownSettings.MonitoringEnabled, false);
+        await bed.Manager.RefreshAsync();
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(polled.Id));
+        Assert.Equal(FolderMonitoringState.Off, bed.Manager.GetState(manual.Id));
     }
 
     [Fact]
@@ -651,6 +721,28 @@ public sealed class FolderWatchManagerTests
     }
 
     [Fact]
+    public async Task CloudPlaceholder_IsNeitherOpenedNorReported_UntilItIsMadeLocal()
+    {
+        var bed = new Bed();
+        await bed.AddFolderAsync(@"E:\OneDrive");
+        await bed.StartAsync();
+        var modified = bed.Clock.GetUtcNow();
+
+        bed.Files.Write("cloud.jpg", 10, modified, isCloudPlaceholder: true);
+        bed.Factory.Raise(@"E:\OneDrive", new FolderWatchEvent(FolderWatchEventKind.Created, "cloud.jpg"));
+        bed.Settle();
+        Assert.Empty(bed.Published);
+        Assert.Equal(0, bed.Files.Opens);
+
+        // "Always keep on this device": only the attributes change.
+        bed.Files.Write("cloud.jpg", 10, modified);
+        bed.Factory.Raise(@"E:\OneDrive", new FolderWatchEvent(FolderWatchEventKind.Changed, "cloud.jpg"));
+        bed.Settle();
+
+        Assert.Equal([(FolderChangeKind.Changed, "cloud.jpg")], bed.Published.Select(change => (change.Kind, change.RelativePath)));
+    }
+
+    [Fact]
     public async Task PartialFolder_ReportsOnlyItsTrackedFiles()
     {
         var bed = new Bed();
@@ -691,7 +783,18 @@ public sealed class FolderWatchManagerTests
         public Bed()
         {
             Library = new FakeOpenLibrary(LibraryLayout.For(Path.GetTempPath(), "watching"), "watching");
-            Manager = new FolderWatchManager(Session, Files, Publisher, Sender, Settings, new MediaExtensions(), Clock, NullLogger<FolderWatchManager>.Instance, Factory, Pause);
+            Manager = new FolderWatchManager(
+                Session,
+                Files,
+                Publisher,
+                Sender,
+                Settings,
+                new MediaExtensions(),
+                Clock,
+                NullLogger<FolderWatchManager>.Instance,
+                Factory,
+                Pause,
+                new FolderLocations(NullLogger<FolderLocations>.Instance, Probe));
         }
 
         public FakeLibrarySession Session { get; } = new();
@@ -707,6 +810,8 @@ public sealed class FolderWatchManagerTests
         public RecordingSender Sender { get; } = new();
 
         public InMemorySettingsStore Settings { get; } = new();
+
+        public FakeFolderLocationProbe Probe { get; } = new();
 
         public IEnumerable<FolderChange> Published => Publisher.Published.SelectMany(batch => batch.Changes);
 
@@ -727,9 +832,10 @@ public sealed class FolderWatchManagerTests
 
         public FolderWatchManager Manager { get; }
 
-        public async Task<IndexedFolder> AddFolderAsync(string path)
+        public async Task<IndexedFolder> AddFolderAsync(string path, MonitoringMode mode = MonitoringMode.Auto)
         {
             var folder = IndexedFolder.Create(Library.Library.Id, path, path, Now);
+            folder.ChangeMonitoringMode(mode);
             await Library.FolderList.AddAsync(folder, TestContext.Current.CancellationToken);
             return folder;
         }

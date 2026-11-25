@@ -79,7 +79,7 @@ public sealed partial class DiscoverStage(IFolderDiscovery discovery, TimeProvid
             .Where(itemId => !queued.Contains(itemId))];
         await EnqueueAsync(context.Scheduler, jobId, leftOver, cancellationToken).ConfigureAwait(false);
 
-        LogDiscovered(folder.DisplayPath, result.FilesFound, result.ItemsRegistered, leftOver.Count, result.Unsupported, result.UnreadableFiles);
+        LogDiscovered(folder.DisplayPath, result.FilesFound, result.ItemsRegistered, leftOver.Count, result.CloudPlaceholdersSkipped, result.Unsupported, result.UnreadableFiles);
     }
 
     private static async Task EnqueueAsync(IJobScheduler scheduler, Id<ProcessingJob> jobId, IReadOnlyList<Id<MediaItem>> itemIds, CancellationToken cancellationToken)
@@ -92,6 +92,6 @@ public sealed partial class DiscoverStage(IFolderDiscovery discovery, TimeProvid
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Import of {Folder}: {FilesFound} media files, {Registered} new, {LeftOver} left from before queued again, {Unsupported} unsupported, {Unreadable} unreadable")]
-    private partial void LogDiscovered(string folder, int filesFound, int registered, int leftOver, int unsupported, int unreadable);
+        Message = "Import of {Folder}: {FilesFound} media files, {Registered} new, {LeftOver} left from before queued again, {CloudPlaceholdersSkipped} cloud-only files skipped, {Unsupported} unsupported, {Unreadable} unreadable")]
+    private partial void LogDiscovered(string folder, int filesFound, int registered, int leftOver, int cloudPlaceholdersSkipped, int unsupported, int unreadable);
 }

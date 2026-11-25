@@ -35,6 +35,7 @@ public sealed class IndexedFolder
     /// <param name="selectedFilesOnly">Whether the folder tracks only the files the user selected.</param>
     /// <param name="volumeLabel">The label of the volume the folder is on, if the platform gave one.</param>
     /// <param name="volumeId">The identity of the volume the folder is on, if the platform gave one.</param>
+    /// <param name="monitoringMode">How the folder is kept up to date.</param>
     public IndexedFolder(
         Id<IndexedFolder> id,
         Id<Library> libraryId,
@@ -46,7 +47,8 @@ public sealed class IndexedFolder
         DateTimeOffset statusChangedAt,
         bool selectedFilesOnly = false,
         string? volumeLabel = null,
-        string? volumeId = null)
+        string? volumeId = null,
+        MonitoringMode monitoringMode = MonitoringMode.Auto)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(platformHandle);
@@ -63,6 +65,7 @@ public sealed class IndexedFolder
         SelectedFilesOnly = selectedFilesOnly;
         VolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? null : volumeLabel.Trim();
         VolumeId = string.IsNullOrWhiteSpace(volumeId) ? null : volumeId.Trim();
+        MonitoringMode = Enum.IsDefined(monitoringMode) ? monitoringMode : MonitoringMode.Auto;
     }
 
     public Id<IndexedFolder> Id { get; }
@@ -100,6 +103,12 @@ public sealed class IndexedFolder
     /// platform doesn't give one.
     /// </summary>
     public string? VolumeId { get; private set; }
+
+    /// <summary>
+    /// Gets how the folder is kept up to date (E04-S05-T01). <see cref="MonitoringMode.Auto"/> picks Watch or Poll from
+    /// where the folder is, each time the watchers are brought in line.
+    /// </summary>
+    public MonitoringMode MonitoringMode { get; private set; }
 
     /// <summary>
     /// Creates a new, online folder with default rules.
@@ -184,6 +193,28 @@ public sealed class IndexedFolder
         }
 
         VolumeId = volumeId;
+        return true;
+    }
+
+    /// <summary>
+    /// Changes how the folder is kept up to date.
+    /// </summary>
+    /// <param name="mode">The new mode.</param>
+    /// <returns><see langword="true"/> when the mode changed.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="mode"/> isn't a defined mode.</exception>
+    public bool ChangeMonitoringMode(MonitoringMode mode)
+    {
+        if (!Enum.IsDefined(mode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unknown monitoring mode.");
+        }
+
+        if (mode == MonitoringMode)
+        {
+            return false;
+        }
+
+        MonitoringMode = mode;
         return true;
     }
 

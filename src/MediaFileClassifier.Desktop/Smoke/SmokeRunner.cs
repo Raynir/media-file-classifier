@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Domain.Activity;
+using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
@@ -29,6 +30,7 @@ using MediaFileClassifier.Desktop.Platform;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
+using MediaFileClassifier.UseCases.Monitoring.ChangeMonitoringMode;
 using MediaFileClassifier.UseCases.Settings;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -277,6 +279,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return await UnplugFolderAsync();
             case "plug-folder":
                 return PlugFolder();
+            case "folder-mode":
+                return await SetFolderModeAsync(Enum.Parse<MonitoringMode>(step.Argument));
             case "allow-error":
                 log.AllowErrors(step.Argument);
                 return null;
@@ -333,6 +337,23 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
         var changed = await services.GetRequiredService<ISender>().Send(new CheckFolderAvailabilityCommand());
         return $"{changed.Count} folder(s) offline";
+    }
+
+    /// <summary>
+    /// Sets the monitoring mode of every folder of the open library (E04-S05) through
+    /// <see cref="ChangeMonitoringModeCommand"/>, as the mode picker will.
+    /// </summary>
+    private async Task<string> SetFolderModeAsync(MonitoringMode mode)
+    {
+        var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
+        var sender = services.GetRequiredService<ISender>();
+        var folders = await library.Folders.GetAllAsync();
+        foreach (var folder in folders)
+        {
+            await sender.Send(new ChangeMonitoringModeCommand(folder.Id, mode));
+        }
+
+        return $"{folders.Count} folder(s) set to {mode}";
     }
 
     /// <summary>

@@ -33,6 +33,24 @@ public sealed class FileSystemFolderWatcherTests
     }
 
     [Fact]
+    public async Task Watch_ReportsAnAttributeOnlyChange_LikeAPlaceholderMadeLocal()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "File attributes for cloud files exist only on Windows.");
+        using var folder = new TemporaryFolder();
+        var path = folder.Combine("a.jpg");
+        await File.WriteAllBytesAsync(path, [1, 2, 3], TestContext.Current.CancellationToken);
+        File.SetAttributes(path, FileAttributes.Offline);
+        using var watcher = new FileSystemFolderWatcherFactory().Watch(LocalFolder.ToHandle(folder.Path));
+        var events = new ConcurrentQueue<FolderWatchEvent>();
+        watcher.Changed += (_, change) => events.Enqueue(change);
+
+        // Neither the size nor the modification time changes.
+        File.SetAttributes(path, FileAttributes.Normal);
+
+        await WaitForAsync(() => events.Any(change => change is { Kind: FolderWatchEventKind.Changed, RelativePath: "a.jpg" }));
+    }
+
+    [Fact]
     public void Watch_AMissingFolder_Throws()
     {
         using var folder = new TemporaryFolder();

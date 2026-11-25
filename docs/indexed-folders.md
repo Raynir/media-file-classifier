@@ -83,6 +83,26 @@ Work queued for an item in an Offline folder (import stages, rescan checks, anal
 ### Monitoring controls and status (E04-S06)
 
 - **Library switch:** `KnownSettings.MonitoringEnabled` (`monitoring.enabled`, library setting stored in `LibrarySettings`, no schema change). Off, `FolderWatchManager` watches nothing; turning it on again watches and queues a library quick sync.
-- **State:** `FolderWatchManager.GetState` gives an Online folder `FolderMonitoringState` Watching, Paused, Error (Online but not watched) or Off. The folder list adds a badge for it (Offline folders show only Offline). `StateChanged` is raised when it may have changed; the dialog reads it on its 2 s refresh.
+- **State:** `FolderWatchManager.GetState` gives an Online folder one `FolderMonitoringState` (the same enum as `GetFolderMonitoringQuery`): Watching, Polling or Manual by its effective mode (E04-S05), Paused for a watched or polled folder while monitoring is paused, Error (it should be watched but isn't) or Off (monitoring is off for the library). The folder list adds a badge for it: Watching, Paused, Can't watch, Not monitored, Polling or Manual (Offline folders show only Offline). `StateChanged` is raised when it may have changed; the dialog reads it on its 2 s refresh.
 - **Pause:** `MonitoringPause` (singleton, session only, not stored). Paused, watchers keep gathering but `ChangeProcessor` queues nothing (timer stopped, resume reschedules), and the rescans of lost events, library re-enabling and `ReconnectCatchUp` wait. Pausing all processing (E05-S05) is separate and holds the jobs already queued (D536). Buttons: the folders dialog and the status-bar notice.
 - **Activity and notification:** `ApplyChangesStage` adds each batch's counts to `MonitoringTally` by job. `ActivityJobRecorder` records such an import job as one `FolderMonitoring` event; `JobNotifications` notifies only at `monitoring.notifyThreshold` changes (default 10), instead of the generic import notice.
+
+## Monitoring modes (E04-S05)
+
+Each folder has a monitoring mode (`IndexedFolder.MonitoringMode`, column `indexed_folder.monitoring_mode`, schema 19):
+
+| Mode | What keeps the folder up to date |
+| --- | --- |
+| **Auto** (default) | Poll on a network share (a UNC path or a mapped network drive), Watch otherwise. Resolved at run time, so a remapped drive follows. |
+| **Watch** | A live `FileSystemWatcher` (E04-S01). |
+| **Poll** | A quick sync (`StartRescanCommand(folderId, Quick: true)`) every poll interval. For shares whose change notifications are unreliable. |
+| **Manual** | Nothing runs on its own: no watcher, no poll, left out of the quick sync on open and of the reconnect catch-up. Only a rescan the user starts lists it. Leaving Manual for another mode queues one catch-up quick sync. |
+
+- **Poll interval:** one app-wide setting, "Minutes between checks of polled folders" (`monitoring.pollIntervalMinutes`, General, 1–1440 minutes, default 15). `FolderPoller` keeps one timer for the earliest due folder; a folder is first polled one interval after it starts being polled. A poll refused as `Busy` (the folder's import or rescan runs) waits for the next interval. A shorter interval applies at once, a longer one from the next poll.
+- **Where a folder is:** `IFolderLocationProbe` (`Infrastructure.Abstractions/Platform`) tells network and cloud without opening anything; `FolderLocations` caches the answer per Online folder. On Windows, `WindowsFolderLocationProbe` (Desktop) treats UNC paths and drives `GetDriveType` reports as remote as network; a folder under a sync root registered with the Windows cloud files API (`CfGetSyncRootInfoByPath`: OneDrive, Dropbox, iCloud, ...) is cloud-synced and named by its provider, and Google Drive for desktop is recognised by its volume label or file system name. Elsewhere `PathFolderLocationProbe` knows UNC paths only.
+- **State for the UI:** `GetFolderMonitoringQuery` returns a `FolderMonitoringInfo` per folder: its `Mode`, the `EffectiveMode` it runs in, its `State` (the same values as `FolderWatchManager.GetState`, plus Offline), `IsNetwork`, `CloudProvider` and `NextPoll` (while polled, also while paused). Query again on the `FolderMonitoringChanged` notification, raised when the watched or polled folders change, after each round of polls and when the poll interval changes. The folders dialog has no mode picker yet; it comes later.
+- **Switch and pause:** polls obey the library's monitoring switch (`monitoring.enabled`) like the watchers: with it off no folder is polled. While monitoring is paused (E04-S06) a due poll waits and runs once on resume. Pausing all processing (E05-S05) holds the quick syncs polls already queued (D536). `ChangeMonitoringModeCommand` sets a mode (`Changed`, `Unchanged` or `NotFound`); watchers and polls follow on their own.
+
+### Cloud placeholders (E04-S05-T03, E03-S02-T04)
+
+A cloud-only file (attributes `Offline`, `RecallOnOpen` or `RecallOnDataAccess`) is recognised from its directory entry without being opened. Unless the folder's "cloud placeholders" rule is on, it's never fingerprinted or read for metadata: discovery skips and counts it (`DiscoveryResult.CloudPlaceholdersSkipped`, and the import's log line), a rescan leaves a known item's placeholder alone, and the watcher drops its changes. When the file is made local ("Always keep on this device"), only its attributes change: the watcher listens for attribute changes (`NotifyFilters.Attributes`), so the file is imported then; a polled folder imports it at its next poll.

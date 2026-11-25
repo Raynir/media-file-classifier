@@ -383,9 +383,13 @@ public sealed class FolderChangeBuffer : IDisposable
                 return [];
             }
 
-            await using (await files.OpenReadAsync(new FileLocation(entry.Folder, path), token).ConfigureAwait(false))
+            // Opening is the check: a file still being written is locked. A cloud placeholder isn't opened: its content
+            // isn't on the device, and opening it may download it (E03-S02-T04). The folder's rules decide later.
+            if (!stat.IsCloudPlaceholder)
             {
-                // Opening is the check: a file still being written is locked.
+                await using (await files.OpenReadAsync(new FileLocation(entry.Folder, path), token).ConfigureAwait(false))
+                {
+                }
             }
 
             return Complete(folderId, path, entry, new FolderChange(entry.Kind, path, entry.OldPath, stat));

@@ -24,4 +24,20 @@ public enum FolderMonitoringState
     /// The folder is Online but isn't watched: its watcher failed or couldn't start. It's tried again by itself.
     /// </summary>
     Error,
+
+    /// <summary>
+    /// The folder runs in Poll mode (E04-S05): a quick sync runs at the poll interval.
+    /// </summary>
+    Polling,
+
+    /// <summary>
+    /// The folder is in Manual mode (E04-S05): nothing runs on its own.
+    /// </summary>
+    Manual,
+
+    /// <summary>
+    /// The folder can't be reached; it's caught up when it's back. <see cref="FolderWatchManager.GetState"/> doesn't
+    /// return it: the folder list shows Offline from the folder's status.
+    /// </summary>
+    Offline,
 }

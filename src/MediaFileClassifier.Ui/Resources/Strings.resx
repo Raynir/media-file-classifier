@@ -1013,6 +1013,37 @@
     <value>Index everything in {0}? The {1} already in the library keep their metadata.</value>
     <comment>{0} = folder path, {1} = item count, e.g. "4 items".</comment>
   </data>
+  <data name="Folders_OtherDriveNote" xml:space="preserve">
+    <value>{0} leads to another drive now ('{1}'). If that drive holds this folder, e.g. a cloned or restored copy, you can use it as the folder's drive.</value>
+    <comment>{0} = folder path, {1} = drive label. MFC-1051.</comment>
+  </data>
+  <data name="Folders_OtherDriveNoteNoLabel" xml:space="preserve">
+    <value>{0} leads to another drive now. If that drive holds this folder, e.g. a cloned or restored copy, you can use it as the folder's drive.</value>
+    <comment>{0} = folder path. For a drive without a label. MFC-1051.</comment>
+  </data>
+  <data name="Folders_UseThisDrive" xml:space="preserve">
+    <value>Use this drive</value>
+  </data>
+  <data name="Folders_UseThisDriveConfirm" xml:space="preserve">
+    <value>Use the drive now at {0} as this folder's drive? The {1} keep their metadata, and the folder is synced with the drive: files that aren't on it are marked Missing.</value>
+    <comment>{0} = folder path, {1} = item count, e.g. "4 items".</comment>
+  </data>
+  <data name="Folders_UseThisDriveConfirmMany" xml:space="preserve">
+    <value>Use the drive now at {0} as the drive of this folder and {1} other Offline folders from the same old drive? Their items keep their metadata, and the folders are synced with the drive: files that aren't on it are marked Missing.</value>
+    <comment>{0} = folder path, {1} = number of other folders. MFC-1051.</comment>
+  </data>
+  <data name="Folders_UsingThisDriveMany" xml:space="preserve">
+    <value>{0} and {1} other folders are Online on their new drive and are being synced.</value>
+    <comment>{0} = folder path, {1} = number of other folders.</comment>
+  </data>
+  <data name="Folders_UsingThisDrive" xml:space="preserve">
+    <value>{0} is Online on its new drive and is being synced.</value>
+    <comment>{0} = folder path.</comment>
+  </data>
+  <data name="Folders_NoOtherDrive" xml:space="preserve">
+    <value>{0} doesn't lead to another drive any more, so nothing was changed.</value>
+    <comment>{0} = folder path.</comment>
+  </data>
   <data name="Folders_AlreadyIndexed" xml:space="preserve">
     <value>{0} is indexed already.</value>
     <comment>{0} is a folder path.</comment>
@@ -3366,6 +3397,9 @@
   </data>
   <data name="Activity_Title_FolderRelinked" xml:space="preserve">
     <value>Folder moved to a new drive letter</value>
+  </data>
+  <data name="Activity_Title_FolderDriveReplaced" xml:space="preserve">
+    <value>Folder's drive replaced</value>
   </data>
   <data name="Activity_Count_items" xml:space="preserve">
     <value>Items: {0}</value>

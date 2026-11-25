@@ -15,7 +15,7 @@ public interface IVolumeLocator
     /// <param name="folder">The folder, which should be reachable.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The identity, or <see langword="null"/> when it can't be read or the folder isn't on a local volume,
-    /// e.g. a network share.</returns>
+    /// e.g. a network share or a mapped network drive.</returns>
     Task<string?> GetVolumeIdAsync(FolderHandle folder, CancellationToken cancellationToken = default);
 
     /// <summary>

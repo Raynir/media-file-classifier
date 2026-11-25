@@ -1,6 +1,9 @@
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.UseCases.Monitoring;
 using MediaFileClassifier.UseCases.Monitoring.GetFolderMonitoring;
@@ -217,5 +220,72 @@ public sealed class IndexedFoldersFlowTests : IAsyncDisposable
         Assert.Same(viewModel.Folders[0], viewModel.SelectedFolder);
     }
 
+    [Fact]
+    public async Task Dialog_OfflineFolderOnAnotherDrive_OffersAndUsesThatDrive()
+    {
+        var volumes = new FakeVolumeLocator();
+        await using var services = TestServices.Build(configure: collection => collection.AddSingleton<IVolumeLocator>(volumes));
+        await services.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", services.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(services.Root, "photos")).FullName;
+        var library = services.Services.GetRequiredService<ILibrarySession>().Current!;
+        var folder = new IndexedFolder(
+            Id<IndexedFolder>.New(), library.Library.Id, photos, photos, new FolderRules(), FolderStatus.Offline, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, volumeId: "1A2B-3C4D");
+        await library.Folders.AddAsync(folder, Token);
+        volumes.Volumes[Path.GetPathRoot(photos)!] = "5E6F-7A8B";
+        var viewModel = services.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.RefreshAsync();
+
+        viewModel.SelectedFolder = Assert.Single(viewModel.Folders);
+        await WaitUntilAsync(() => viewModel.HasOtherDrive);
+        Assert.StartsWith($"{photos} leads to another drive now", viewModel.OtherDriveNote, StringComparison.Ordinal);
+        viewModel.UseThisDriveCommand.Execute(null);
+        Assert.Equal($"Use the drive now at {photos} as this folder's drive? The 0 items keep their metadata, and the folder is synced with the drive: files that aren't on it are marked Missing.", viewModel.Confirmation);
+        Assert.Equal("Use this drive", viewModel.ConfirmLabel);
+        await viewModel.ConfirmCommand.ExecuteAsync(null);
+
+        var stored = (await library.Folders.GetAsync(folder.Id, Token))!;
+        Assert.Equal((FolderStatus.Online, "5E6F-7A8B"), (stored.Status, stored.VolumeId));
+        Assert.Equal($"{photos} is Online on its new drive and is being synced.", viewModel.Message);
+        await WaitUntilAsync(() => !viewModel.HasOtherDrive);
+    }
+
+    [Fact]
+    public async Task Dialog_OfflineFolderOnItsOwnDrive_OffersNothing_UntilAnotherDriveIsThere()
+    {
+        var volumes = new FakeVolumeLocator();
+        await using var services = TestServices.Build(configure: collection => collection.AddSingleton<IVolumeLocator>(volumes));
+        await services.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", services.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(services.Root, "photos")).FullName;
+        var library = services.Services.GetRequiredService<ILibrarySession>().Current!;
+        await library.Folders.AddAsync(
+            new IndexedFolder(Id<IndexedFolder>.New(), library.Library.Id, photos, photos, new FolderRules(), FolderStatus.Offline, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, volumeId: "1A2B-3C4D"),
+            Token);
+        volumes.Volumes[Path.GetPathRoot(photos)!] = "1A2B-3C4D";
+        var viewModel = services.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.RefreshAsync();
+
+        // Its own drive is at its root: nothing to offer.
+        var row = Assert.Single(viewModel.Folders);
+        viewModel.SelectedFolder = row;
+        await Task.Delay(500, Token);
+        Assert.False(viewModel.HasOtherDrive);
+        Assert.False(viewModel.UseThisDriveCommand.CanExecute(null));
+
+        // The same probe offers the drive once another one is there, so the wait above was long enough.
+        volumes.Volumes[Path.GetPathRoot(photos)!] = "5E6F-7A8B";
+        viewModel.SelectedFolder = null;
+        viewModel.SelectedFolder = row;
+        await WaitUntilAsync(() => viewModel.HasOtherDrive);
+    }
+
     public ValueTask DisposeAsync() => app.DisposeAsync();
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        for (var tries = 0; !condition(); tries++)
+        {
+            Assert.True(tries < 100, "Timed out waiting for the dialog.");
+            await Task.Delay(50, Token);
+        }
+    }
 }

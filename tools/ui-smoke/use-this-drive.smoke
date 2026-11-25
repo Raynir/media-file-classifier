@@ -1,0 +1,23 @@
+# "Use this drive" (MFC-1051): an Offline folder whose root leads to a drive with a new identity takes that drive.
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/use-this-drive.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+# The drive is swapped for a clone: the folder is Offline, and the dialog offers its drive.
+swap-drive
+start library.folders
+wait-for dialog
+dialog-select media
+wait 1000ms
+dialog-shot 01-other-drive
+dialog-click UseThisDriveButton
+wait 300ms
+dialog-shot 02-confirm
+
+# Confirmed: the folder is Online on the new drive and synced, and the offer is gone.
+dialog-click ConfirmButton
+wait 2500ms
+dialog-shot 03-online

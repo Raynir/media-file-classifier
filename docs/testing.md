@@ -155,6 +155,7 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `unplug-folder` | Moves the sample library's folder (`<data folder>\media`) away, as unplugging its drive does, and checks the folders, so its items show Offline (E14-S07). |
 | `plug-folder` | Moves it back and raises a volume event, as plugging the drive in does; the live check brings the items back about 1 s later (E14-S07-T04). |
 | `seed-activity` | Adds six activity events over a few days (a rescan, a bulk edit, a warning, an error, an import, a folder), so the activity log window has something to show (E15-S04). Open the window with `command view.activity-log`, then `dialog-shot`. |
+| `swap-drive` | Stores another volume identity for every folder of the open library and checks the folders, so they're Offline with another drive at their roots, as after cloning a drive to a new disk; the folders dialog offers "Use this drive" (MFC-1051). |
 | `folder-mode <mode>` | Sets every folder of the open library to that monitoring mode (`Auto`, `Watch`, `Poll` or `Manual`) through the mode command, as the mode picker will (MFC-139). |
 | `allow-error <logger>` | Errors logged by that logger (its full type name) no longer fail the run, e.g. the integrity check's report of the damage. |
 

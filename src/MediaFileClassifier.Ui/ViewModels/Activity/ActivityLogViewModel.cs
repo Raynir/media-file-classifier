@@ -27,6 +27,11 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     /// </summary>
     public const int PageSize = 100;
 
+    /// <summary>
+    /// How often the window checks whether the day changed, so "Today" becomes "Yesterday" (MFC-1034).
+    /// </summary>
+    public static readonly TimeSpan DayCheckInterval = TimeSpan.FromMinutes(1);
+
     private readonly ISender sender;
     private readonly ActivityChanges changes;
     private readonly Localizer localizer;
@@ -39,7 +44,8 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     private readonly SemaphoreSlim loading = new(1, 1);
     private readonly ILibrarySession? session;
     private bool attached;
-    private ITimer? midnight;
+    private ITimer? dayCheck;
+    private DateOnly shownDay;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ActivityLogViewModel"/> class.
@@ -134,7 +140,9 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        midnight?.Dispose();
+        attached = false;
+        dayCheck?.Dispose();
+        dayCheck = null;
         loading.Dispose();
     }
 
@@ -147,7 +155,9 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
         {
             attached = true;
             changes.Changed += OnChanged;
-            ArmMidnight();
+            // The day headers are relative to today (MFC-1034). A minute's check, not a timer set for midnight: such a
+            // timer doesn't count the time the PC sleeps, and the clock or the time zone may change.
+            dayCheck ??= clock.CreateTimer(_ => post(OnDayCheck), null, DayCheckInterval, DayCheckInterval);
             if (session is not null)
             {
                 session.CurrentChanged += OnLibraryChanged;
@@ -172,8 +182,8 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     public void Detach()
     {
         attached = false;
-        midnight?.Dispose();
-        midnight = null;
+        dayCheck?.Dispose();
+        dayCheck = null;
         changes.Changed -= OnChanged;
         if (session is not null)
         {
@@ -307,6 +317,7 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     {
         var rows = new List<ActivityRowViewModel>(entries.Count + 8);
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        shownDay = today;
         DateOnly? day = null;
         foreach (var entry in entries)
         {
@@ -366,25 +377,13 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
         }
     }
 
-    // The day headers are relative to today, so the list is refreshed when the day changes (MFC-1034).
-    private void ArmMidnight()
+    // The list is refreshed when the day has changed since its headers were made (MFC-1034).
+    private void OnDayCheck()
     {
-        midnight?.Dispose();
-        var now = clock.GetLocalNow();
-        var tomorrow = now.Date.AddDays(1);
-        var next = new DateTimeOffset(tomorrow, clock.LocalTimeZone.GetUtcOffset(tomorrow));
-        midnight = clock.CreateTimer(_ => post(OnMidnight), null, next - now + TimeSpan.FromSeconds(1), Timeout.InfiniteTimeSpan);
-    }
-
-    private void OnMidnight()
-    {
-        if (!attached)
+        if (attached && Rows.Count > 0 && DateOnly.FromDateTime(clock.GetLocalNow().DateTime) != shownDay)
         {
-            return;
+            _ = RefreshAsync();
         }
-
-        ArmMidnight();
-        _ = RefreshAsync();
     }
 
     private string DayText(DateOnly date, DateOnly today) =>

@@ -284,4 +284,14 @@ public interface IJobRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><see langword="false"/> if the job doesn't exist.</returns>
     Task<bool> SetResultAsync(Id<ProcessingJob> jobId, string result, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores <see cref="WorkItem.Payload"/> of a work item, replacing the earlier one. A stage that runs in several
+    /// steps uses it to remember its progress, which it finds again if the item runs again after an interruption (MFC-1037).
+    /// </summary>
+    /// <param name="workItemId">The work item.</param>
+    /// <param name="payload">The payload, as JSON.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the work item doesn't exist.</returns>
+    Task<bool> SetWorkItemPayloadAsync(Id<WorkItem> workItemId, string payload, CancellationToken cancellationToken = default);
 }

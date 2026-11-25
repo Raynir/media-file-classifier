@@ -51,8 +51,7 @@ public sealed class GetActivityPageQueryHandler(ILibrarySession session) : IRequ
             return ActivityPage.Empty;
         }
 
-        var events = await library.Activity.GetPageAsync(request.Filter, Math.Max(0, request.Skip), Math.Max(1, request.Take), cancellationToken).ConfigureAwait(false);
-        var total = await library.Activity.CountAsync(request.Filter, cancellationToken).ConfigureAwait(false);
+        var (events, total) = await library.Activity.GetPageWithTotalAsync(request.Filter, Math.Max(0, request.Skip), Math.Max(1, request.Take), cancellationToken).ConfigureAwait(false);
         if (events.Count == 0)
         {
             return new ActivityPage([], total);

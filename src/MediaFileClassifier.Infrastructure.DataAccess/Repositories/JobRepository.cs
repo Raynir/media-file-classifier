@@ -318,6 +318,9 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
             {
                 var stored = await db.WorkItems.AsTracking().SingleAsync(item => item.Id == workItem.Id, token).ConfigureAwait(false);
                 db.Entry(stored).CurrentValues.SetValues(workItem);
+
+                // The payload is progress a stage saved while it ran, which the scheduler's copy of the item predates.
+                db.Entry(stored).Property(item => item.Payload).IsModified = false;
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
 
                 var job = await db.ProcessingJobs.AsTracking().SingleAsync(job => job.Id == workItem.JobId, token).ConfigureAwait(false);
@@ -350,6 +353,17 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
         return await writer.ExecuteAsync(
             async (db, token) => await db.ProcessingJobs.Where(job => job.Id == jobId)
                 .ExecuteUpdateAsync(setters => setters.SetProperty(job => job.Result, result), token).ConfigureAwait(false) > 0,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> SetWorkItemPayloadAsync(Id<WorkItem> workItemId, string payload, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(payload);
+
+        return await writer.ExecuteAsync(
+            async (db, token) => await db.WorkItems.Where(item => item.Id == workItemId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.Payload, payload), token).ConfigureAwait(false) > 0,
             cancellationToken).ConfigureAwait(false);
     }
 

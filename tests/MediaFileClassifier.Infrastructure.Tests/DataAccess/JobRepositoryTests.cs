@@ -102,6 +102,21 @@ public sealed class JobRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task FinishAsync_KeepsThePayloadAStageSavedWhileItRan_EvenFromAnOlderCopyOfTheItem()
+    {
+        var (job, items) = NewJob(1);
+        await bed.Library.Jobs.AddJobAsync(job, items, Token);
+        var running = await bed.Library.Jobs.StartAsync(items[0], Now.AddSeconds(1), Token);
+
+        Assert.True(await bed.Library.Jobs.SetWorkItemPayloadAsync(items[0].Id, "{\"removed\":5}", Token));
+        await bed.Library.Jobs.FinishAsync(running!.ChangeState(WorkItemState.Queued, Now.AddSeconds(2)), Now.AddSeconds(2), Token);
+
+        var stored = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token));
+        Assert.Equal("{\"removed\":5}", stored.Payload);
+        Assert.False(await bed.Library.Jobs.SetWorkItemPayloadAsync(Id<WorkItem>.New(), "{}", Token));
+    }
+
+    [Fact]
     public async Task FinishAsync_SomeItemsFailed_CompletesTheJob_AndKeepsTheErrors()
     {
         var (job, items) = NewJob(2);

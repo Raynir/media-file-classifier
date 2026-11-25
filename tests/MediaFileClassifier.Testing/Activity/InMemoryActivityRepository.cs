@@ -48,6 +48,10 @@ public sealed class InMemoryActivityRepository : IActivityRepository
     public Task<int> CountAsync(ActivityFilter filter, CancellationToken cancellationToken = default) =>
         Task.FromResult(Matching(filter).Count());
 
+    /// <inheritdoc />
+    public async Task<ActivityPageResult> GetPageWithTotalAsync(ActivityFilter filter, int skip, int pageSize, CancellationToken cancellationToken = default) =>
+        new(await GetPageAsync(filter, skip, pageSize, cancellationToken), await CountAsync(filter, cancellationToken));
+
     private IEnumerable<ActivityEvent> Matching(ActivityFilter filter) => Events.Where(activity =>
         (filter.Types is null || filter.Types.Contains(activity.Type))
         && (filter.MinimumSeverity is null || activity.Severity >= filter.MinimumSeverity));

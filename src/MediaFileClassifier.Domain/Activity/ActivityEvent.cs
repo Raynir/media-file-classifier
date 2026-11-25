@@ -51,7 +51,9 @@ public sealed class ActivityEvent
     }
 
     /// <summary>
-    /// Gets the ID. IDs are time-ordered, so they break ties between events of the same millisecond.
+    /// Gets the ID. A version 7 GUID is time-ordered by millisecond only, so within one millisecond the order of IDs is
+    /// arbitrary. The log still uses it as the tie-break of its order, because that makes the order of same-millisecond
+    /// events stable between reads and pages, not because it is the order they happened in.
     /// </summary>
     public Id<ActivityEvent> Id { get; }
 

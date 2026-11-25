@@ -129,6 +129,42 @@ public sealed class ActivityRepositoryTests
     }
 
     [Fact]
+    public async Task Add_KeepsEveryEventOfTheLastKeptInstant_AndTrimsThemOnceTheyAreOlderThanTheKept()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        for (var minute = 0; minute < ActivityRetention.MaxEntries - 1; minute++)
+        {
+            await AddAsync(bed, ActivityEventType.Import, minute + 1);
+        }
+
+        // Two events of the oldest instant: the 5,000th newest and one more. Strictly older ones go, same-instant ones stay.
+        await AddAsync(bed, ActivityEventType.Import, 0);
+        await AddAsync(bed, ActivityEventType.Import, 0);
+        Assert.Equal(ActivityRetention.MaxEntries + 1, await bed.Library.Activity.CountAsync(ActivityFilter.All, Token));
+
+        await AddAsync(bed, ActivityEventType.Import, ActivityRetention.MaxEntries + 10);
+
+        Assert.Equal(ActivityRetention.MaxEntries, await bed.Library.Activity.CountAsync(ActivityFilter.All, Token));
+    }
+
+    [Fact]
+    public async Task GetPageWithTotal_ReturnsThePageAndTheMatchCountTogether()
+    {
+        await using var bed = await LibraryTestBed.CreateAsync();
+        for (var minute = 0; minute < 7; minute++)
+        {
+            await AddAsync(bed, minute % 2 == 0 ? ActivityEventType.Import : ActivityEventType.Rescan, minute);
+        }
+
+        var result = await bed.Library.Activity.GetPageWithTotalAsync(new ActivityFilter([ActivityEventType.Import]), 1, 2, Token);
+
+        Assert.Equal(4, result.Total);
+        Assert.Equal(
+            [LibraryTestBed.Start.AddMinutes(4), LibraryTestBed.Start.AddMinutes(2)],
+            result.Events.Select(activity => activity.OccurredAt));
+    }
+
+    [Fact]
     public async Task Event_OutlivesTheFolderAndItemItPointsAt()
     {
         await using var bed = await LibraryTestBed.CreateAsync();

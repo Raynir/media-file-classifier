@@ -1,6 +1,13 @@
+using System.Text.Json;
 using MediaFileClassifier.Domain.Activity;
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Infrastructure.Abstractions.Thumbnails;
+using MediaFileClassifier.UseCases.Libraries;
+using MediaFileClassifier.Infrastructure.Tests.DataAccess;
 using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.Files;
 using MediaFileClassifier.Testing.Media;
@@ -92,6 +99,63 @@ public sealed class ActivityRecordingFlowTests : IAsyncLifetime
         Assert.True(await bed.Sender.Send(new RemoveFolderCommand(bed.Folder.Id), Token));
         await bed.WaitUntilIdleAsync();
 
+        var removed = Assert.Single(await WaitForAsync(ActivityEventType.FolderRemoved, 1));
+        Assert.Equal((path, 2L), (removed.Subject, removed.Count(ActivityCounts.Items)));
+    }
+
+    [Fact]
+    public async Task RemoveFolder_Resumed_RecordsThePathAndTheTotalOfAllRuns_EvenWithTheFolderRowGone()
+    {
+        await bed.ImportAsync();
+        await bed.WaitUntilIdleAsync();
+        var path = bed.Folder.DisplayPath;
+        var stage = new RemoveFolderStage(bed.Get<IThumbnailCache>(), bed.Sender);
+
+        // An earlier run deleted the 2 items and the folder row, then stopped before it recorded the event: the path and
+        // the total are in the payload, and the resumed run itself finds nothing left to delete.
+        var job = new ProcessingJob
+        {
+            Id = Id<ProcessingJob>.New(),
+            Type = IndexedFolders.RemoveJob,
+            Description = "Remove",
+            FolderId = bed.Folder.Id,
+            State = ProcessingJobState.Paused,
+            CreatedAt = LibraryTestBed.Start,
+        };
+        var work = WorkItem.Create(job.Id, null, IndexedFolders.RemoveStage, ResourcePool.Io, 0, JsonSerializer.Serialize(new { folder = bed.Folder.Id.Value, path, removed = 2 }), LibraryTestBed.Start);
+        await bed.Library.Jobs.AddJobAsync(job, [work], Token);
+        await bed.Library.Items.DeleteFromFolderAsync(bed.Folder.Id, 100, Token);
+        await bed.Library.Folders.DeleteAsync(bed.Folder.Id, Token);
+
+        await stage.HandleAsync(new WorkItemContext(work, bed.Jobs.Current!), Token);
+
+        var removed = Assert.Single(await WaitForAsync(ActivityEventType.FolderRemoved, 1));
+        Assert.Equal((path, 2L), (removed.Subject, removed.Count(ActivityCounts.Items)));
+    }
+
+    [Fact]
+    public async Task RemoveFolder_Interrupted_KeepsItsProgressInThePayload_AndCountsTheResumedRunOnTop()
+    {
+        await bed.ImportAsync();
+        await bed.WaitUntilIdleAsync();
+        var path = bed.Folder.DisplayPath;
+        var stage = new RemoveFolderStage(bed.Get<IThumbnailCache>(), bed.Sender);
+        var job = new ProcessingJob
+        {
+            Id = Id<ProcessingJob>.New(),
+            Type = IndexedFolders.RemoveJob,
+            Description = "Remove",
+            FolderId = bed.Folder.Id,
+            State = ProcessingJobState.Paused,
+            CreatedAt = LibraryTestBed.Start,
+        };
+        var work = WorkItem.Create(job.Id, null, IndexedFolders.RemoveStage, ResourcePool.Io, 0, null, LibraryTestBed.Start);
+        await bed.Library.Jobs.AddJobAsync(job, [work], Token);
+
+        await stage.HandleAsync(new WorkItemContext(work, bed.Jobs.Current!), Token);
+
+        var stored = Assert.Single(await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token));
+        Assert.Contains("\"removed\":2", stored.Payload, StringComparison.Ordinal);
         var removed = Assert.Single(await WaitForAsync(ActivityEventType.FolderRemoved, 1));
         Assert.Equal((path, 2L), (removed.Subject, removed.Count(ActivityCounts.Items)));
     }

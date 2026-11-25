@@ -19,6 +19,8 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Fixed
 
+- Folder removal (MFC-1037): when a folder's removal is interrupted and carries on later, the "Folder removed" entry in the activity log now names the folder and counts all the items removed, not only those of the last run, and the removal no longer fails if the folder was already gone. No schema change.
+- Activity log (MFC-1036): the log is now trimmed to the newest 5,000 events with one delete instead of a list of IDs, the list of events and its total come from one read so they always agree, and the note on how same-millisecond events are ordered is corrected. No schema change.
 - Rescans and imports (MFC-1040): a library rescan or the quick sync could fail when a folder was added or imported while it ran, because both registered the same files. A rescan now waits while an import or the folder watcher registers files, and an import waits while a rescan compares the folders with the library, then leaves the files the rescan found to it. No schema change.
 - Folder watching (MFC-1032): a folder renamed twice in quick succession (e.g. by a script or a sync tool) lost its first rename, so its items kept their old paths until the next rescan. They now follow the folder to its final name.
 - Watch ignore list (MFC-1033): a pattern can now match a file name containing `;`: write it as `\;`, e.g. `temp\;1.jpg`.

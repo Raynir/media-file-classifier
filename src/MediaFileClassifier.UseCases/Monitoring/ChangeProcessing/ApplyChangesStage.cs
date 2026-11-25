@@ -58,7 +58,9 @@ public sealed partial class ApplyChangesStage(
 
     /// <summary>
     /// How long before a deletion an item registered for a copy of the deleted file can be (MFC-1052). A move between
-    /// drives copies the whole file before the delete, so a large video needs minutes.
+    /// drives copies the whole file before the delete. The time counts from when the watcher registered the copy, which
+    /// is after the file became stable. The registrations are kept in memory only, so a restart between the copy and
+    /// the delete leaves the copy as a new item.
     /// </summary>
     public static readonly TimeSpan CopyWindow = TimeSpan.FromMinutes(5);
 
@@ -344,6 +346,7 @@ public sealed partial class ApplyChangesStage(
 
         var pairs = await moves.PairAsync(copies, missing, cancellationToken).ConfigureAwait(false);
         var check = new List<Id<MediaItem>>();
+        var paired = 0;
         foreach (var (item, folder, copy) in pairs)
         {
             // The copy's derived data goes first: its vectors leave the search index only while their rows are there.
@@ -358,17 +361,30 @@ public sealed partial class ApplyChangesStage(
             {
                 recentlyRegistered.Remove(copy.Id);
                 check.Add(item.Id);
+                paired++;
+
+                // The copy's import may still have been running: a thumbnail it wrote after the first call is dropped too.
+                // Its other stages find no item and end (or fail on the missing row and are not recorded).
+                thumbnails.Invalidate(library.Layout, copy.Id);
                 LogCopyPaired(item.Id, copy.Id);
             }
             else
             {
                 // Changed meanwhile, e.g. the copy was removed or the old file came back: the old item stays as stored.
+                // The copy, if it's still there, lost its derived data, so it goes through the import again.
                 LogCopyNotPaired(item.Id, copy.Id);
+                if (await library.Items.GetAsync(copy.Id, cancellationToken).ConfigureAwait(false) is { } survivor
+                    && survivor.Status is MediaItemStatus.Indexed or MediaItemStatus.Error)
+                {
+                    survivor.ChangeStatus(MediaItemStatus.Pending, now);
+                    await library.Items.UpdateAsync(survivor, cancellationToken).ConfigureAwait(false);
+                    check.Add(survivor.Id);
+                }
             }
         }
 
         await EnqueueAsync(context, RescanStages.Check, check, cancellationToken).ConfigureAwait(false);
-        return check.Count;
+        return paired;
     }
 
     private async Task<IReadOnlyList<MediaItem>> RegisterAsync(IOpenLibrary library, IndexedFolder folder, List<RelativePath> paths, CancellationToken cancellationToken)

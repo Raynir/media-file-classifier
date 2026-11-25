@@ -209,6 +209,8 @@ internal sealed partial class WindowsEjectNotifications(ILogger<WindowsEjectNoti
         // Win32 calls (opening, registering, unregistering, closing) never run under syncRoot: the window procedure takes
         // it on every device message, so a slow drive would freeze the UI thread (MFC-1050). The lock only decides and
         // publishes; a dispose that comes in between is seen when publishing, and the new resources are released here.
+        // Known gap: a device message for the new notification that arrives before it's published is not found by the
+        // window procedure and is ignored. It needs an eject within microseconds of the registration, on another thread.
         public void Open()
         {
             nint window;

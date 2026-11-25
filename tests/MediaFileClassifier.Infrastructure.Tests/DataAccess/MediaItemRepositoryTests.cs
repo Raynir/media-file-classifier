@@ -94,6 +94,51 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task UpdateFilesAsync_ItemRestoredWhileItsExcludedCopyMoves_KeepsTheRestore()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+        await bed.Library.Items.ExcludeAsync([item.Id], "Removed by the user", LibraryTestBed.Start, Token);
+        var excluded = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        var restored = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        restored.ChangeExclusionReason("Restore requested by the user.");
+        await bed.Library.Items.UpdateRangeAsync([restored], Token);
+
+        excluded.Relocate(excluded.FolderId, RelativePath.From("moved/a.jpg"));
+        await bed.Library.Items.UpdateFilesAsync([excluded], Token);
+
+        var stored = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        Assert.Equal(("Restore requested by the user.", "moved/a.jpg"), (stored.StatusReason, stored.Path.Value));
+    }
+
+    [Fact]
+    public async Task UpdateFilesAsync_ItemDeletedAfterTheRead_IsSkippedAndTheOthersWritten()
+    {
+        var (a, b) = (bed.NewItem(1), bed.NewItem(2));
+        await bed.Library.Items.AddRangeAsync([a, b], Token);
+        await bed.Library.Items.DeleteAsync(a.Id, Token);
+
+        a.ChangeStatus(MediaItemStatus.Missing, LibraryTestBed.Start);
+        b.ChangeStatus(MediaItemStatus.Missing, LibraryTestBed.Start);
+        await bed.Library.Items.UpdateFilesAsync([a, b], Token);
+
+        Assert.Null(await bed.Library.Items.GetAsync(a.Id, Token));
+        Assert.Equal(MediaItemStatus.Missing, (await bed.Library.Items.GetAsync(b.Id, Token))!.Status);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncWithMetadata_FavoriteSetAfterTheRead_IsKept()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+        await bed.Library.Items.SetFavoriteAsync([item.Id], true, LibraryTestBed.Start, Token);
+
+        await bed.Library.Items.UpdateAsync(item, new TechnicalMetadata { ItemId = item.Id, Width = 640, ExtractedAt = LibraryTestBed.Start }, Token);
+
+        Assert.True((await bed.Library.Items.GetAsync(item.Id, Token))!.IsFavorite);
+    }
+
+    [Fact]
     public async Task UpdateFilesAsync_ChainOfMovesWrittenFirstToLast_IsStored()
     {
         var (a, b, c) = (bed.NewItem(1), bed.NewItem(2), bed.NewItem(3));

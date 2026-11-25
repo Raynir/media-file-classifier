@@ -309,8 +309,9 @@ public interface IMediaItemRepository
     /// <summary>
     /// Stores what a rescan or a watched change found out about items' files (MFC-1053): their location (moved with
     /// <see cref="MediaItem.Relocate"/>), file facts, hashes and status. The user's favourite and review mark are kept
-    /// as stored, so an edit made while the items were being checked isn't lost; an item the user removed meanwhile
-    /// keeps its Excluded status. An item may take a path that another of the items leaves, as when two files swap
+    /// as stored, so an edit made while the items were being checked isn't lost. The status isn't written when the
+    /// stored or the given item is Excluded, since only the user removes or restores an item; an item deleted meanwhile
+    /// is skipped. An item may take a path that another of the items leaves, as when two files swap
     /// names: those items are written together in one transaction, the others in batches like
     /// <see cref="AddRangeAsync"/>.
     /// </summary>
@@ -321,7 +322,8 @@ public interface IMediaItemRepository
 
     /// <summary>
     /// Stores the changes made to an item together with its technical metadata, in one transaction, replacing any
-    /// metadata stored before.
+    /// metadata stored before. The user's favourite and review mark are kept as stored (MFC-1053), and an item deleted
+    /// meanwhile is skipped.
     /// </summary>
     /// <param name="item">The changed item.</param>
     /// <param name="metadata">The item's technical metadata.</param>

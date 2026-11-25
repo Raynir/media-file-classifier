@@ -36,7 +36,7 @@ public sealed class RescanUserEditTests : IAsyncLifetime
         hasher.Pause();
 
         await bed.Sender.Send(new StartRescanCommand(bed.Folder.Id), Token);
-        await hasher.Paused.WaitAsync(TimeSpan.FromSeconds(30), Token);
+        Assert.True(await hasher.Paused.WaitAsync(TimeSpan.FromSeconds(30), Token));
         await bed.Library.Items.SetFavoriteAsync([item.Id], true, DateTimeOffset.UtcNow, Token);
         hasher.Resume();
         await bed.WaitUntilIdleAsync();

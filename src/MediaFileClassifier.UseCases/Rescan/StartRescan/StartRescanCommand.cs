@@ -48,7 +48,7 @@ public enum StartRescanOutcome
     /// <summary>The folder (or one of the library's folders) is being imported, rescanned or removed already.</summary>
     Busy,
 
-    /// <summary>The platform has no background processing.</summary>
+    /// <summary>The platform has no background processing, or another library than the one asked for is open.</summary>
     Unavailable,
 }
 

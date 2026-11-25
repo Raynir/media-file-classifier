@@ -405,7 +405,7 @@ public sealed class FolderWatchManager : IDisposable
                     }
                 }
 
-                var result = await sender.Send(new StartRescanCommand(Quick: true), token).ConfigureAwait(false);
+                var result = await sender.Send(new StartRescanCommand(Quick: true, Library: current), token).ConfigureAwait(false);
                 if (result.Outcome != StartRescanOutcome.Busy)
                 {
                     return;

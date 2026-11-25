@@ -318,6 +318,9 @@ internal sealed class JobRepository(LibraryConnectionFactory connections, Librar
             {
                 var stored = await db.WorkItems.AsTracking().SingleAsync(item => item.Id == workItem.Id, token).ConfigureAwait(false);
                 db.Entry(stored).CurrentValues.SetValues(workItem);
+
+                // The payload is progress a stage saved while it ran, which the scheduler's copy of the item predates.
+                db.Entry(stored).Property(item => item.Payload).IsModified = false;
                 await db.SaveChangesAsync(token).ConfigureAwait(false);
 
                 var job = await db.ProcessingJobs.AsTracking().SingleAsync(job => job.Id == workItem.JobId, token).ConfigureAwait(false);

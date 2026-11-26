@@ -37,6 +37,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Drive letters (MFC-1045): a folder now remembers its drive's serial number as soon as it's added, not only after the next availability check, so a drive unplugged or swapped right after adding a folder is recognised.
 - Drive letters (MFC-1044): a folder that followed its drive to a new letter could be stored Offline by a second availability check running at the same time, which stopped its watching and its catch-up.
 - Folder watching (MFC-1047): changes seen while a watched folder's drive was briefly unreachable were dropped until the next rescan when the folder turned out to be still Online; the folder is now rescanned right away.
+- Tests (MFC-1059): `DialogFocusTests` built its controls on the test thread instead of Avalonia's UI thread, so a different test of the class failed each run; the unplugged-folder test of `IndexedFolderManagementTests` ended while the quick sync started by the folder coming back was still running, so the library was deleted under it. Test changes only.
 
 ## 1.0.1 — 2026-11-22
 

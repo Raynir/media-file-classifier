@@ -10,6 +10,7 @@ How tests are written, shared and run. xunit v3 on Microsoft.Testing.Platform (M
 | `UseCases.Tests` | MediatR handlers, against fakes. |
 | `Infrastructure.Tests` | The `Infrastructure.*` implementations, against real SQLite and temp folders. |
 | `Ui.Tests` | View models and views (Avalonia headless), including the full-DI composition tests. |
+| `Desktop.Tests` | The Windows-only services of the Desktop head, against the real OS and temp folders, e.g. the Recycle Bin (`WindowsFileTrash`); a test that trashes a file leaves its few bytes in that machine's Recycle Bin. |
 | `Evaluation.Tests` | The evaluation runner and corpus. |
 | `Testing` | Not a test project: the shared fakes and helpers below. |
 
@@ -28,6 +29,7 @@ How tests are written, shared and run. xunit v3 on Microsoft.Testing.Platform (M
 | `FakeHardwareInfo` | `Testing` | `IHardwareInfo` with a preferred provider, optional GPU, cores, memory and parallelism |
 | `InMemoryModelStore`, `SingleEntryModelCatalog` | `Testing` | `IModelStore` and `IModelCatalog` without files |
 | `InMemorySettingsStore`, the fake AI providers, `SampleMedia` | `Testing` | Settings, AI providers and the sample media |
+| `FakeFileTrash` | `Testing` | `IFileTrash` that touches no file: reports every path as moved unless a result is set for it, and records the calls |
 | `TemporaryFolder`, `TemporaryLibrary` | `Testing` | Disposable temp folder, and a library in one |
 | `TestPerformance` | `Testing` | Whether performance bounds are asserted (`MFC_PERF_TESTS=1`), see [Timing tests](#timing-tests-and-parallelism) |
 | `TestLocalizer.EnUs()`, `FakeModelDialogs`, `TestServices`, `NoThumbnails` | `Ui.Tests` | Need the `Ui` project, so they can't live in `Testing` |

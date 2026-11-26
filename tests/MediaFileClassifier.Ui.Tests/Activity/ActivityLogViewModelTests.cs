@@ -269,6 +269,7 @@ public sealed class ActivityLogViewModelTests
 
         await model.RefreshAsync(Token);
         await model.LoadMoreAsync(Token);
+        Assert.Equal(shown, model.Rows.Count);
         await model.SelectChipAsync(model.Chips[1]);
 
         // The failures didn't escape, and the next successful load carries on.
@@ -276,7 +277,6 @@ public sealed class ActivityLogViewModelTests
         sender.Failure = null;
         await model.RefreshAsync(Token);
         Assert.Single(model.Rows, row => row.IsEvent);
-        Assert.True(shown > 1);
     }
 
     [Fact]

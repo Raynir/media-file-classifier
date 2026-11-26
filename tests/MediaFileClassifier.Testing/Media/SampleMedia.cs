@@ -128,5 +128,12 @@ public static class SampleMedia
     /// </summary>
     public static string RobustnessDirectory => Combine("robustness");
 
+    /// <summary>
+    /// Gets the folder of the visual near-duplicate test set (E12-S02). Its <c>expected.json</c> lists every file with
+    /// the visual group expected at each sensitivity, and <c>vectors.json</c> holds the SigLIP 2 vectors and
+    /// perceptual hashes of the files.
+    /// </summary>
+    public static string NearDuplicatesDirectory => Combine("near-duplicates");
+
     private static string Combine(string fileName) => Path.Combine(Directory, fileName);
 }

@@ -76,6 +76,11 @@ public interface IOpenLibrary : IAsyncDisposable
     IDuplicateGroupRepository Duplicates { get; }
 
     /// <summary>
+    /// Gets the visual near-duplicate queue and groups (E12-S02).
+    /// </summary>
+    IVisualDuplicateRepository VisualDuplicates { get; }
+
+    /// <summary>
     /// Gets the integrity check, backup and optimization services.
     /// </summary>
     ILibraryMaintenance Maintenance { get; }

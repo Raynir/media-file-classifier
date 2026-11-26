@@ -81,6 +81,14 @@ public sealed class DuplicateGroup
         new(Id<DuplicateGroup>.New(), DuplicateGroupType.Exact, DuplicateGroupState.Open, contentHash, now, now);
 
     /// <summary>
+    /// Creates an Open group of visual near-duplicates (E12-S02).
+    /// </summary>
+    /// <param name="now">Current time.</param>
+    /// <returns>The new group.</returns>
+    public static DuplicateGroup CreateVisual(DateTimeOffset now) =>
+        new(Id<DuplicateGroup>.New(), DuplicateGroupType.Visual, DuplicateGroupState.Open, null, now, now);
+
+    /// <summary>
     /// Changes the review state, e.g. when the user ignores or resolves the group.
     /// </summary>
     /// <param name="state">The new state.</param>

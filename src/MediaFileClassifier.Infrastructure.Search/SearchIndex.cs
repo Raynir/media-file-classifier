@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Searches;
@@ -17,7 +18,7 @@ namespace MediaFileClassifier.Infrastructure.Search;
 /// It follows <see cref="ILibrarySession"/>: when a library opens it loads the vectors in the background, and rebuilds
 /// the keyword index if the library asks for it, e.g. after the migration that added the index.
 /// </summary>
-public sealed class SearchIndex : ISearchIndex, IDisposable
+public sealed class SearchIndex : ISearchIndex, IItemVectorSimilarity, IDisposable
 {
     private readonly ILibrarySession session;
     private readonly ILogger<SearchIndex> logger;
@@ -53,6 +54,21 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
     /// keyword index rebuild it needed — is done. For tests and the benchmark.
     /// </summary>
     public Task Ready => current?.Started ?? Task.CompletedTask;
+
+    /// <inheritdoc />
+    public bool IsReady(IOpenLibrary library) => ReadyIndexOf(library) is not null;
+
+    /// <inheritdoc />
+    public IReadOnlyList<ItemSimilarity>? FindNearest(IOpenLibrary library, Id<ModelRegistration> modelId, Id<MediaItem> itemId, int count, float minSimilarity)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
+
+        return ReadyIndexOf(library)?.FindNearest(modelId, itemId, count, minSimilarity);
+    }
+
+    /// <inheritdoc />
+    public float? GetSimilarity(IOpenLibrary library, Id<ModelRegistration> modelId, Id<MediaItem> first, Id<MediaItem> second) =>
+        ReadyIndexOf(library)?.GetSimilarity(modelId, first, second);
 
     /// <inheritdoc />
     public async Task<SearchResults> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default)
@@ -309,6 +325,9 @@ public sealed class SearchIndex : ISearchIndex, IDisposable
     /// A result before it's paged and given its matched fields.
     /// </summary>
     private sealed record Entry(int DocumentId, Id<MediaItem> ItemId, double Score, int? KeywordRank, float? Similarity, bool IsLessRelevant = false);
+
+    private VectorIndex? ReadyIndexOf(IOpenLibrary library) =>
+        current is { } search && ReferenceEquals(search.Library, library) ? search.ReadyIndex : null;
 
     /// <summary>
     /// Maps progress into a sub-range, synchronously.

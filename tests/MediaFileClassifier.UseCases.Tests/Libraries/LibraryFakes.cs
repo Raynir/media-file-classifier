@@ -130,6 +130,8 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IDuplicateGroupRepository Duplicates => DuplicateList ?? throw new NotSupportedException();
 
+    public IVisualDuplicateRepository VisualDuplicates => throw new NotSupportedException();
+
     public IEmbeddingRepository? EmbeddingList { get; set; }
 
     public IEmbeddingRepository Embeddings => EmbeddingList ?? throw new NotSupportedException();

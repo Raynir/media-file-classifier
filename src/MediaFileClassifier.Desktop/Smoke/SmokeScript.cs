@@ -40,7 +40,7 @@ internal static class SmokeScript
     private static readonly HashSet<string> Verbs = new(StringComparer.Ordinal)
     {
         "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-type", "dialog-key", "popup-key", "popup-shot", "dialog-focus", "dialog-shot", "dialog-size",
-        "damage-library", "unplug-folder", "plug-folder", "allow-error", "import-files", "dialog-select", "drag-over", "drop", "seed-activity",
+        "damage-library", "unplug-folder", "plug-folder", "allow-error", "import-files", "dialog-select", "drag-over", "drop", "seed-activity", "seed-duplicates",
         "folder-mode", "swap-drive",
     };
 
@@ -172,7 +172,7 @@ internal static class SmokeScript
             case "key" or "dialog-key" or "popup-key":
                 error = TryParseKey(step.Argument, out _) ? null : "expected a key such as Space, Right, Ctrl+2 or Ctrl+Shift+F";
                 break;
-            case "damage-library" or "unplug-folder" or "plug-folder" or "seed-activity" or "swap-drive":
+            case "damage-library" or "unplug-folder" or "plug-folder" or "seed-activity" or "seed-duplicates" or "swap-drive":
                 error = step.Argument.Length == 0 ? null : "expected no argument";
                 break;
             case "shot" or "dialog-shot":

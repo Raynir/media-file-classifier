@@ -136,6 +136,7 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `wait <duration>` | Waits, e.g. `wait 500ms`, `wait 2s`. |
 | `wait-for <condition> [timeout]` | Waits for `idle` (no pending jobs), `items <n>`, `visible <control>` or `hidden <control>` (by `x:Name` or type name), `dialog`, `no-dialog`, `popup` or `no-popup`; default 30 s. |
 | `shot <name>` | Saves `<name>.png`. |
+| `seed-duplicates` | Gives the first four items two shared content hashes and groups them, so the library has two Open duplicate groups (E12-S05): the library information window shows them, and the Has duplicates filter keeps those four items. |
 | `seed-keyframes <file name>` | Samples the item's video or animation and stores its keyframes and their pictures, as the analysis does (keyframes otherwise need the AI model). The item's details must be reloaded to show them: select another item, then this one. |
 | `choose-keyframe <n>` | Chooses the n-th keyframe in the preview's strip (from 1), as a click does. |
 | `setting <key> <value>` | Sets a registered setting through the settings store, e.g. `setting appearance.showFileNames false`; the value is JSON (`true`, `3`) or plain text for a choice or text setting. Fails for an unknown key or an invalid value. |

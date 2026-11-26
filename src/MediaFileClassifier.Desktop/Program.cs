@@ -22,6 +22,7 @@ using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.UseCases;
 using MediaFileClassifier.UseCases.Embeddings;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
+using MediaFileClassifier.UseCases.Monitoring;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -102,10 +103,23 @@ internal static partial class Program
             // Folder statuses follow drives and shares coming and going (E14-S07-T04).
             host.Services.GetRequiredService<FolderAvailabilityMonitor>().Start();
 
+            // Finished imports, rescans and analysis jobs are recorded in the activity log (E15-S04).
+            host.Services.GetRequiredService<MediaFileClassifier.UseCases.Activity.ActivityJobRecorder>().Start();
+
+            // New and changed files in the Online folders are noticed while the app runs (E04-S01).
+            host.Services.GetRequiredService<FolderWatchManager>().Start();
+
+            // Folders in Poll mode, such as network shares, get a quick sync at the poll interval (E04-S05-T02).
+            host.Services.GetRequiredService<MediaFileClassifier.UseCases.Monitoring.FolderPoller>().Start();
+
             if (args.Contains("--benchmark"))
             {
                 return RunBenchmark(host.Services, logger);
             }
+
+            // Changes made while the app was closed are picked up once the watchers run (E04-S03). Not for a benchmark
+            // run, which only times the analyzers (MFC-1042).
+            host.Services.GetRequiredService<MediaFileClassifier.UseCases.Monitoring.QuickSyncStarter>().Start();
 
             UiCommandLine.Apply(args, host.Services);
 
@@ -115,6 +129,7 @@ internal static partial class Program
                 {
                     SimulateCrashIfRequested(lifetime, args);
                     host.Services.GetRequiredService<WindowsVolumeWatcher>().Attach(lifetime);
+                    host.Services.GetRequiredService<WindowsEjectNotifications>().Attach(lifetime);
                     AttachSmoke(lifetime, host.Services);
                 });
             host.StopAsync().GetAwaiter().GetResult();

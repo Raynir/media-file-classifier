@@ -37,6 +37,160 @@ public sealed class MediaItemRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task UpdateFilesAsync_ItemsThatSwapPaths_AreStoredAtTheirNewPaths()
+    {
+        var (a, b, c) = (bed.NewItem(1), bed.NewItem(2), bed.NewItem(3));
+        await bed.Library.Items.AddRangeAsync([a, b, c], Token);
+        var (pathA, pathB) = (a.Path, b.Path);
+
+        // A and B swap; C moves to a free path and is written on its own.
+        a.Relocate(a.FolderId, pathB);
+        b.Relocate(b.FolderId, pathA);
+        c.Relocate(c.FolderId, RelativePath.From("other/IMG_00003.jpg"));
+        await bed.Library.Items.UpdateFilesAsync([a, b, c], Token);
+
+        Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathA, Token))?.Id);
+        Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
+        Assert.Equal("other/IMG_00003.jpg", (await bed.Library.Items.GetAsync(c.Id, Token))!.Path.Value);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UpdateFilesAsync_UserEditMadeAfterTheRead_IsKept(bool swap)
+    {
+        // A stage read the items, then the user marked them (MFC-1053); the swap goes through the parked-path write.
+        var (a, b) = (bed.NewItem(1), bed.NewItem(2));
+        await bed.Library.Items.AddRangeAsync([a, b], Token);
+        var (pathA, pathB) = (a.Path, b.Path);
+        await bed.Library.Items.SetFavoriteAsync([a.Id, b.Id], true, LibraryTestBed.Start, Token);
+
+        a.Relocate(a.FolderId, swap ? pathB : RelativePath.From("moved/a.jpg"));
+        b.Relocate(b.FolderId, swap ? pathA : RelativePath.From("moved/b.jpg"));
+        a.ChangeStatus(MediaItemStatus.Missing, LibraryTestBed.Start);
+        await bed.Library.Items.UpdateFilesAsync([a, b], Token);
+
+        var (storedA, storedB) = ((await bed.Library.Items.GetAsync(a.Id, Token))!, (await bed.Library.Items.GetAsync(b.Id, Token))!);
+        Assert.True(storedA.IsFavorite && storedB.IsFavorite);
+        Assert.Equal(LibraryTestBed.Start, storedA.FavoriteChangedAt);
+        Assert.Equal(MediaItemStatus.Missing, storedA.Status);
+        Assert.Equal(swap ? pathB : RelativePath.From("moved/a.jpg"), storedA.Path);
+    }
+
+    [Fact]
+    public async Task UpdateFilesAsync_ItemExcludedAfterTheRead_StaysExcludedAndFollowsItsFile()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+        await bed.Library.Items.ExcludeAsync([item.Id], "Removed by the user", LibraryTestBed.Start, Token);
+
+        item.Relocate(item.FolderId, RelativePath.From("moved/a.jpg"));
+        item.ChangeStatus(MediaItemStatus.Missing, LibraryTestBed.Start);
+        await bed.Library.Items.UpdateFilesAsync([item], Token);
+
+        var stored = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        Assert.Equal((MediaItemStatus.Excluded, "Removed by the user"), (stored.Status, stored.StatusReason));
+        Assert.Equal("moved/a.jpg", stored.Path.Value);
+    }
+
+    [Fact]
+    public async Task UpdateFilesAsync_ItemRestoredWhileItsExcludedCopyMoves_KeepsTheRestore()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+        await bed.Library.Items.ExcludeAsync([item.Id], "Removed by the user", LibraryTestBed.Start, Token);
+        var excluded = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        var restored = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        restored.ChangeExclusionReason("Restore requested by the user.");
+        await bed.Library.Items.UpdateRangeAsync([restored], Token);
+
+        excluded.Relocate(excluded.FolderId, RelativePath.From("moved/a.jpg"));
+        await bed.Library.Items.UpdateFilesAsync([excluded], Token);
+
+        var stored = (await bed.Library.Items.GetAsync(item.Id, Token))!;
+        Assert.Equal(("Restore requested by the user.", "moved/a.jpg"), (stored.StatusReason, stored.Path.Value));
+    }
+
+    [Fact]
+    public async Task UpdateFilesAsync_ItemDeletedAfterTheRead_IsSkippedAndTheOthersWritten()
+    {
+        var (a, b) = (bed.NewItem(1), bed.NewItem(2));
+        await bed.Library.Items.AddRangeAsync([a, b], Token);
+        await bed.Library.Items.DeleteAsync(a.Id, Token);
+
+        a.ChangeStatus(MediaItemStatus.Missing, LibraryTestBed.Start);
+        b.ChangeStatus(MediaItemStatus.Missing, LibraryTestBed.Start);
+        await bed.Library.Items.UpdateFilesAsync([a, b], Token);
+
+        Assert.Null(await bed.Library.Items.GetAsync(a.Id, Token));
+        Assert.Equal(MediaItemStatus.Missing, (await bed.Library.Items.GetAsync(b.Id, Token))!.Status);
+    }
+
+    [Fact]
+    public async Task UpdateAsyncWithMetadata_FavoriteSetAfterTheRead_IsKept()
+    {
+        var item = bed.NewItem(1);
+        await bed.Library.Items.AddAsync(item, Token);
+        await bed.Library.Items.SetFavoriteAsync([item.Id], true, LibraryTestBed.Start, Token);
+
+        await bed.Library.Items.UpdateAsync(item, new TechnicalMetadata { ItemId = item.Id, Width = 640, ExtractedAt = LibraryTestBed.Start }, Token);
+
+        Assert.True((await bed.Library.Items.GetAsync(item.Id, Token))!.IsFavorite);
+    }
+
+    [Fact]
+    public async Task GetUnderAsync_ReturnsTheItemsUnderThePathIgnoringCase_WhateverTheirStatus()
+    {
+        var items = new[] { "Trip/a.jpg", "trip/sub/b.jpg", "trip.jpg", "trips/c.jpg", "other/trip/d.jpg" }
+            .Select((path, index) =>
+            {
+                var item = bed.NewItem(index + 1);
+                item.Relocate(item.FolderId, RelativePath.From(path));
+                return item;
+            })
+            .ToList();
+        await bed.Library.Items.AddRangeAsync(items, Token);
+        await bed.Library.Items.ExcludeAsync([items[1].Id], "Removed by the user", LibraryTestBed.Start, Token);
+
+        var under = await bed.Library.Items.GetUnderAsync(bed.Folder.Id, RelativePath.From("trip"), Token);
+
+        Assert.Equal(["Trip/a.jpg", "trip/sub/b.jpg"], under.Select(item => item.Path.Value).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task UpdateFilesAsync_ChainOfMovesWrittenFirstToLast_IsStored()
+    {
+        var (a, b, c) = (bed.NewItem(1), bed.NewItem(2), bed.NewItem(3));
+        await bed.Library.Items.AddRangeAsync([a, b, c], Token);
+        var (pathA, pathB, pathC) = (a.Path, b.Path, c.Path);
+
+        // A takes B's path and B takes C's, while C goes to a free path.
+        a.Relocate(a.FolderId, pathB);
+        b.Relocate(b.FolderId, pathC);
+        c.Relocate(c.FolderId, RelativePath.From("free.jpg"));
+        await bed.Library.Items.UpdateFilesAsync([a, b, c], Token);
+
+        Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
+        Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathC, Token))?.Id);
+        Assert.Equal(c.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, RelativePath.From("free.jpg"), Token))?.Id);
+        Assert.Null(await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathA, Token));
+    }
+
+    [Fact]
+    public async Task UpdateFilesAsync_PathOfAnItemThatStays_FailsWithoutMovingAnything()
+    {
+        var (a, b) = (bed.NewItem(1), bed.NewItem(2));
+        await bed.Library.Items.AddRangeAsync([a, b], Token);
+        var (pathA, pathB) = (a.Path, b.Path);
+
+        b.Relocate(b.FolderId, pathA);
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => bed.Library.Items.UpdateFilesAsync([b], Token));
+        Assert.Equal(a.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathA, Token))?.Id);
+        Assert.Equal(b.Id, (await bed.Library.Items.FindByPathAsync(bed.Folder.Id, pathB, Token))?.Id);
+    }
+
+    [Fact]
     public async Task Changed_ListenerThatThrows_DoesNotFailTheWrite_AndTheOthersStillHearIt()
     {
         // MFC-1002: listeners run on the writing job's thread, so one that threw failed the import that added the items.

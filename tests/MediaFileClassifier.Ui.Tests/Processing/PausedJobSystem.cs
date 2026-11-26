@@ -26,15 +26,64 @@ internal sealed class PausedJobSystem : IJobSystem, IJobScheduler
 
     public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
 
+    public event EventHandler? PauseChanged;
+
     public void Resume()
     {
         IsPaused = false;
         ResumeCount++;
+        PauseChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    public void Pause()
+    {
+        IsPaused = true;
+        PauseChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public bool IsPoolPaused(ResourcePool pool) => PausedPools.Contains(pool);
+
+    public void PausePool(ResourcePool pool)
+    {
+        PausedPools.Add(pool);
+        PauseChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void ResumePool(ResourcePool pool)
+    {
+        PausedPools.Remove(pool);
+        PauseChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default)
+    {
+        PausedJobs.Add(jobId);
+        PauseChanged?.Invoke(this, EventArgs.Empty);
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default)
+    {
+        var resumed = PausedJobs.Remove(jobId);
+        PauseChanged?.Invoke(this, EventArgs.Empty);
+        return Task.FromResult(resumed);
+    }
+
+    /// <summary>
+    /// Gets the pools paused on their own.
+    /// </summary>
+    public HashSet<ResourcePool> PausedPools { get; } = [];
+
+    /// <summary>
+    /// Gets the jobs paused through <see cref="PauseJobAsync"/>.
+    /// </summary>
+    public HashSet<Id<ProcessingJob>> PausedJobs { get; } = [];
 
     public Task<Id<ProcessingJob>> EnqueueJobAsync(JobRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<bool> EnqueueWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+    public Task<bool> AppendWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

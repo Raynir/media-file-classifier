@@ -17,7 +17,8 @@ namespace MediaFileClassifier.UseCases.Rescan;
 /// <param name="reconciler">The reconciliation engine.</param>
 /// <param name="clock">Clock for status changes.</param>
 /// <param name="logger">Logger.</param>
-public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider clock, ILogger<ReconcileStage> logger) : IStageHandler
+/// <param name="gate">Keeps the reconcile apart from imports registering files (MFC-1040).</param>
+public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider clock, ILogger<ReconcileStage> logger, FolderScanGate gate) : IStageHandler
 {
     /// <summary>
     /// Number of items written per transaction, the writer's batch size (D072).
@@ -39,16 +40,31 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
         var jobId = context.WorkItem.JobId;
         var job = await library.Jobs.GetJobAsync(jobId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("The rescan job isn't in the library.");
-        var folders = await GetFoldersAsync(library, job, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<IndexedFolder> folders;
+        Reconciliation result;
+        int newlyMissing;
 
-        var result = await reconciler.ReconcileAsync(library, folders, cancellationToken).ConfigureAwait(false);
-        if (await UpdateFolderStatusAsync(library, result, cancellationToken).ConfigureAwait(false))
+        // No import registers files while the folders are listed and the result is written, so both never insert the
+        // same path (MFC-1040). An import that discovers a folder later leaves the files registered here to this job.
+        using (await gate.EnterExclusiveAsync(cancellationToken).ConfigureAwait(false))
         {
-            // The work parked while those folders were Offline runs now (D025).
-            context.Scheduler.ReleaseParked();
-        }
+            folders = await GetFoldersAsync(library, job, cancellationToken).ConfigureAwait(false);
+            if (job.Type == RescanStages.QuickSyncJob)
+            {
+                // Offline folders are the availability monitor's to bring back; listing a dead share would stall startup. A folder
+                // put in Manual mode since the sync was queued is left alone (E04-S05-T01).
+                folders = [.. folders.Where(folder => folder.Status == FolderStatus.Online && folder.MonitoringMode != MonitoringMode.Manual)];
+            }
 
-        var newlyMissing = await ApplyAsync(context, result, cancellationToken).ConfigureAwait(false);
+            result = await reconciler.ReconcileAsync(library, folders, cancellationToken).ConfigureAwait(false);
+            if (await UpdateFolderStatusAsync(library, result, cancellationToken).ConfigureAwait(false))
+            {
+                // The work parked while those folders were Offline runs now (D025).
+                context.Scheduler.ReleaseParked();
+            }
+
+            newlyMissing = await ApplyAsync(context, result, cancellationToken).ConfigureAwait(false);
+        }
 
         // Stored last: the job can't finish before this work item does, so a finished job always has its counts.
         var counts = new RescanCounts(folders.Count, result.Offline.Count, result.New.Count, result.Moved.Count, newlyMissing, result.Modified.Count, result.Unchanged.Count);
@@ -60,14 +76,14 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
     // The job's folder, or all of them; a folder that's being removed isn't rescanned.
     private static async Task<IReadOnlyList<IndexedFolder>> GetFoldersAsync(IOpenLibrary library, ProcessingJob job, CancellationToken cancellationToken)
     {
-        var removing = (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false))
+        var skipped = (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false))
             .Where(other => other.Type == IndexedFolders.RemoveJob && other.FolderId is not null)
             .Select(other => other.FolderId!.Value)
             .ToHashSet();
         IReadOnlyList<IndexedFolder> folders = job.FolderId is { } folderId
             ? [.. new[] { await library.Folders.GetAsync(folderId, cancellationToken).ConfigureAwait(false) }.OfType<IndexedFolder>()]
             : await library.Folders.GetAllAsync(cancellationToken).ConfigureAwait(false);
-        return [.. folders.Where(folder => !removing.Contains(folder.Id))];
+        return [.. folders.Where(folder => !skipped.Contains(folder.Id))];
     }
 
     private static async Task EnqueueAsync(IJobScheduler scheduler, Id<ProcessingJob> jobId, string stage, IEnumerable<Id<MediaItem>> itemIds, CancellationToken cancellationToken)
@@ -142,7 +158,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
 
         foreach (var batch in moved.Chunk(BatchSize))
         {
-            await library.Items.UpdateRangeAsync(batch, cancellationToken).ConfigureAwait(false);
+            await library.Items.UpdateFilesAsync(batch, cancellationToken).ConfigureAwait(false);
         }
 
         // Changed or back: the check stage fingerprints them (E02-S04-T03). A returning item is Pending meanwhile.
@@ -151,7 +167,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
             if (item.Status == MediaItemStatus.Missing)
             {
                 item.ChangeStatus(MediaItemStatus.Pending, now);
-                await library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
+                await library.Items.UpdateFilesAsync([item], cancellationToken).ConfigureAwait(false);
             }
 
             check.Add(item);
@@ -168,7 +184,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
 
         foreach (var batch in missing.Chunk(BatchSize))
         {
-            await library.Items.UpdateRangeAsync(batch, cancellationToken).ConfigureAwait(false);
+            await library.Items.UpdateFilesAsync(batch, cancellationToken).ConfigureAwait(false);
         }
 
         // New files are imported like any other (E03-S07): the fingerprint stage goes on from what's known.

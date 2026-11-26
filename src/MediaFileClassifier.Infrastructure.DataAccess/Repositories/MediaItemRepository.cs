@@ -29,6 +29,9 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
     /// </summary>
     public const int BatchSize = 100;
 
+    // IDs per query when items are read by ID, well under SQLite's limit of parameters.
+    private const int ReadChunkSize = 500;
+
     // Listeners that failed already: a later failure of the same one is logged at debug level.
     private readonly ConcurrentDictionary<MethodInfo, byte> failedListeners = new();
 
@@ -125,6 +128,22 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
         connections.ReadAsync<IReadOnlyList<MediaItem>>(
             async (db, token) => await db.MediaItems.Where(item => item.FolderId == folderId).OrderBy(item => item.Id).ToListAsync(token).ConfigureAwait(false),
             cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<MediaItem>> GetUnderAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        var pattern = SqlLike.SubfolderPattern(path.Value) ?? throw new ArgumentException("The path is empty.", nameof(path));
+        return connections.ReadAsync<IReadOnlyList<MediaItem>>(
+            async (db, token) => await db.MediaItems
+                .Where(item => item.FolderId == folderId
+                    && EF.Functions.Like(LibraryDbContext.FoldCase((string)(object)item.Path), pattern, SqlLike.EscapeCharacter))
+                .OrderBy(item => item.Id)
+                .ToListAsync(token)
+                .ConfigureAwait(false),
+            cancellationToken);
+    }
 
     /// <inheritdoc />
     public Task<IReadOnlyList<FolderItemCount>> CountByFolderAsync(CancellationToken cancellationToken = default) =>
@@ -527,6 +546,80 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
     }
 
     /// <inheritdoc />
+    public async Task UpdateFilesAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        if (items.Count == 0)
+        {
+            return;
+        }
+
+        var written = await writer.ExecuteAsync<IReadOnlySet<Id<MediaItem>>>(
+            async (db, token) =>
+            {
+                var byId = items.ToDictionary(item => item.Id);
+                var stored = new List<(Id<MediaItem> Id, Id<IndexedFolder> FolderId, RelativePath Path)>(byId.Count);
+                foreach (var chunk in byId.Keys.Chunk(ReadChunkSize))
+                {
+                    var rows = await db.MediaItems.AsNoTracking().Where(item => chunk.Contains(item.Id))
+                        .Select(item => new { item.Id, item.FolderId, item.Path }).ToListAsync(token).ConfigureAwait(false);
+                    stored.AddRange(rows.Select(row => (row.Id, row.FolderId, row.Path)));
+                }
+
+                // An item that moves away from a path another of the items takes is parked on a path of its own first,
+                // so the unique (folder, path) index holds after every statement.
+                var targets = items.ToLookup(item => (item.FolderId, item.Path));
+                var parked = stored.Where(row => (byId[row.Id].FolderId, byId[row.Id].Path) != (row.FolderId, row.Path)
+                        && targets[(row.FolderId, row.Path)].Any(other => other.Id != row.Id))
+                    .ToList();
+                if (parked.Count == 0)
+                {
+                    // Nothing swaps: a small set is written in this same turn of the writer.
+                    if (items.Count > BatchSize)
+                    {
+                        return new HashSet<Id<MediaItem>>();
+                    }
+
+                    await AttachFileChangesAsync(db, items, keepExclusion: true, token).ConfigureAwait(false);
+                    await db.SaveChangesAsync(token).ConfigureAwait(false);
+                    return byId.Keys.ToHashSet();
+                }
+
+                foreach (var (id, _, _) in parked)
+                {
+                    var temporary = RelativePath.From($".mfc-relink/{id}");
+                    await db.MediaItems.Where(item => item.Id == id)
+                        .ExecuteUpdateAsync(set => set.SetProperty(item => item.Path, temporary), token).ConfigureAwait(false);
+                }
+
+                var together = parked.SelectMany(row => targets[(row.FolderId, row.Path)].Select(item => item.Id))
+                    .Concat(parked.Select(row => row.Id))
+                    .ToHashSet();
+                await AttachFileChangesAsync(db, [.. together.Select(id => byId[id])], keepExclusion: true, token).ConfigureAwait(false);
+                await db.SaveChangesAsync(token).ConfigureAwait(false);
+                return together;
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (written.Count > 0)
+        {
+            RaiseChanged();
+        }
+
+        foreach (var batch in items.Where(item => !written.Contains(item.Id)).Chunk(BatchSize))
+        {
+            await writer.ExecuteAsync(
+                async (db, token) =>
+                {
+                    await AttachFileChangesAsync(db, batch, keepExclusion: true, token).ConfigureAwait(false);
+                    return await db.SaveChangesAsync(token).ConfigureAwait(false);
+                },
+                cancellationToken).ConfigureAwait(false);
+            RaiseChanged();
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Id<MediaItem>>> SetFavoriteAsync(IReadOnlyCollection<Id<MediaItem>> ids, bool isFavorite, DateTimeOffset now, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ids);
@@ -580,7 +673,12 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
         await writer.ExecuteAsync(
             async (db, token) =>
             {
-                db.MediaItems.Update(item);
+                // The media stage may run long on an item the user edits meanwhile (MFC-1053).
+                if ((await AttachFileChangesAsync(db, [item], keepExclusion: false, token).ConfigureAwait(false)).Count == 0)
+                {
+                    return;
+                }
+
                 if (await db.TechnicalMetadata.AnyAsync(existing => existing.ItemId == item.Id, token).ConfigureAwait(false))
                 {
                     db.TechnicalMetadata.Update(metadata);
@@ -608,6 +706,99 @@ internal sealed partial class MediaItemRepository(LibraryConnectionFactory conne
         }
 
         return deleted;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> ReplaceWithMovedAsync(MediaItem moved, Id<MediaItem> duplicateId, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(moved);
+
+        var written = await writer.ExecuteAsync(
+            async (db, token) =>
+            {
+                var movedId = moved.Id;
+                var folderId = moved.FolderId;
+                var path = moved.Path;
+                var isMissing = await db.MediaItems.AsNoTracking()
+                    .AnyAsync(item => item.Id == movedId && item.Status == MediaItemStatus.Missing, token).ConfigureAwait(false);
+                if (!isMissing
+                    || await db.MediaItems.Where(item => item.Id == duplicateId && item.FolderId == folderId && item.Path == path)
+                        .ExecuteDeleteAsync(token).ConfigureAwait(false) == 0)
+                {
+                    return false;
+                }
+
+                // Only what the move changes: a favourite, review or hash change made meanwhile isn't overwritten. The
+                // item is Missing, so it has no error to clear, and its hashes stay.
+                var size = moved.SizeBytes;
+                var created = moved.FileCreatedAt;
+                var modified = moved.FileModifiedAt;
+                var status = moved.Status;
+                var reason = moved.StatusReason;
+                var statusChangedAt = moved.StatusChangedAt;
+                await db.MediaItems.Where(item => item.Id == movedId)
+                    .ExecuteUpdateAsync(
+                        setters => setters
+                            .SetProperty(item => item.FolderId, folderId)
+                            .SetProperty(item => item.Path, path)
+                            .SetProperty(item => item.SizeBytes, size)
+                            .SetProperty(item => item.FileCreatedAt, created)
+                            .SetProperty(item => item.FileModifiedAt, modified)
+                            .SetProperty(item => item.Status, status)
+                            .SetProperty(item => item.StatusReason, reason)
+                            .SetProperty(item => item.StatusChangedAt, statusChangedAt),
+                        token)
+                    .ConfigureAwait(false);
+                return true;
+            },
+            cancellationToken).ConfigureAwait(false);
+        if (written)
+        {
+            RaiseChanged();
+        }
+
+        return written;
+    }
+
+    // Marks only what a stage sets as modified (MFC-1053): location, file facts, hashes and status. The user's favourite
+    // and review mark are never written, so an edit made while a rescan, a watched change or the media stage held the
+    // item stays. With keepExclusion, the status is left as stored when either side is Excluded: rescans and watched
+    // changes never exclude or restore an item, so the user removed or restored it meanwhile (E02-S10), and a moved
+    // excluded item only follows its file. The import stages do restore items, so they don't ask for it. An item
+    // deleted meanwhile is skipped. Runs inside the writer, so nothing changes between the check and the write.
+    // Returns the IDs of the items attached.
+    private static async Task<IReadOnlySet<Id<MediaItem>>> AttachFileChangesAsync(LibraryDbContext db, IReadOnlyCollection<MediaItem> items, bool keepExclusion, CancellationToken token)
+    {
+        var ids = items.Select(item => item.Id).ToList();
+        var stored = await db.MediaItems.AsNoTracking()
+            .Where(item => ids.Contains(item.Id))
+            .Select(item => new { item.Id, item.Status })
+            .ToDictionaryAsync(item => item.Id, item => item.Status, token)
+            .ConfigureAwait(false);
+        var attached = new HashSet<Id<MediaItem>>();
+        foreach (var item in items)
+        {
+            if (!stored.TryGetValue(item.Id, out var status))
+            {
+                continue;
+            }
+
+            var entry = db.MediaItems.Update(item);
+            attached.Add(item.Id);
+            entry.Property(row => row.ReviewStatus).IsModified = false;
+            entry.Property(row => row.ReviewStatusChangedAt).IsModified = false;
+            entry.Property(row => row.IsFavorite).IsModified = false;
+            entry.Property(row => row.FavoriteChangedAt).IsModified = false;
+            if (keepExclusion && (status == MediaItemStatus.Excluded || item.Status == MediaItemStatus.Excluded))
+            {
+                entry.Property(row => row.Status).IsModified = false;
+                entry.Property(row => row.StatusReason).IsModified = false;
+                entry.Property(row => row.StatusChangedAt).IsModified = false;
+                entry.ComplexProperty(row => row.Error).IsModified = false;
+            }
+        }
+
+        return attached;
     }
 
     // Listeners run on the writing thread, often a job's. The items are written by now, so a listener that fails is

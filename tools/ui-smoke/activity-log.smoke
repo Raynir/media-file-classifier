@@ -1,0 +1,35 @@
+# Activity log window (E15-S04, MFC-860). Steps are described in docs/testing.md.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/activity-log.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+seed-activity
+
+# The window opens beside the main one: events newest first, grouped by day, with the filter chips above.
+command view.activity-log
+wait 800ms
+dialog-size 760x640
+wait 400ms
+dialog-shot 01-activity-light
+
+# Keyboard: the chips come first, then the list.
+dialog-key Tab
+dialog-key Tab
+dialog-key Right
+dialog-key Space
+wait 500ms
+dialog-shot 02-activity-errors
+
+dialog-click Close
+wait-for no-dialog
+
+# Dark theme, with the window reopened on the same events.
+command view.theme-dark
+command view.activity-log
+wait 800ms
+dialog-size 760x640
+wait 400ms
+dialog-shot 03-activity-dark
+dialog-click Close
+wait-for no-dialog

@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Activity"
+        xmlns:l="using:MediaFileClassifier.Ui.Localization"
+        x:Class="MediaFileClassifier.Ui.Views.Activity.ActivityLogWindow"
+        x:DataType="vm:ActivityLogViewModel"
+        Title="{l:Loc Activity_Title}"
+        Width="720"
+        Height="600"
+        MinWidth="480"
+        MinHeight="340"
+        CanResize="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <!-- Hosts the activity log on the desktop; it is not modal, so work goes on beside it. -->
+  <ContentControl Content="{Binding}" />
+</Window>

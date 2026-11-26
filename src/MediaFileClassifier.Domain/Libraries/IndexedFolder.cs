@@ -34,6 +34,8 @@ public sealed class IndexedFolder
     /// <param name="statusChangedAt">When <paramref name="status"/> last changed.</param>
     /// <param name="selectedFilesOnly">Whether the folder tracks only the files the user selected.</param>
     /// <param name="volumeLabel">The label of the volume the folder is on, if the platform gave one.</param>
+    /// <param name="volumeId">The identity of the volume the folder is on, if the platform gave one.</param>
+    /// <param name="monitoringMode">How the folder is kept up to date.</param>
     public IndexedFolder(
         Id<IndexedFolder> id,
         Id<Library> libraryId,
@@ -44,7 +46,9 @@ public sealed class IndexedFolder
         DateTimeOffset addedAt,
         DateTimeOffset statusChangedAt,
         bool selectedFilesOnly = false,
-        string? volumeLabel = null)
+        string? volumeLabel = null,
+        string? volumeId = null,
+        MonitoringMode monitoringMode = MonitoringMode.Auto)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(platformHandle);
@@ -60,6 +64,8 @@ public sealed class IndexedFolder
         StatusChangedAt = statusChangedAt;
         SelectedFilesOnly = selectedFilesOnly;
         VolumeLabel = string.IsNullOrWhiteSpace(volumeLabel) ? null : volumeLabel.Trim();
+        VolumeId = string.IsNullOrWhiteSpace(volumeId) ? null : volumeId.Trim();
+        MonitoringMode = Enum.IsDefined(monitoringMode) ? monitoringMode : MonitoringMode.Auto;
     }
 
     public Id<IndexedFolder> Id { get; }
@@ -89,6 +95,20 @@ public sealed class IndexedFolder
     /// no label or the platform doesn't give one.
     /// </summary>
     public string? VolumeLabel { get; private set; }
+
+    /// <summary>
+    /// Gets the identity of the volume the folder is on, e.g. its file system's serial number, as last read while the
+    /// folder was Online (E04-S04-T03). It finds the folder again when its drive comes back under another drive letter,
+    /// and tells another drive that took the letter apart from it. <see langword="null"/> when not known yet or the
+    /// platform doesn't give one.
+    /// </summary>
+    public string? VolumeId { get; private set; }
+
+    /// <summary>
+    /// Gets how the folder is kept up to date (E04-S05-T01). <see cref="MonitoringMode.Auto"/> picks Watch or Poll from
+    /// where the folder is, each time the watchers are brought in line.
+    /// </summary>
+    public MonitoringMode MonitoringMode { get; private set; }
 
     /// <summary>
     /// Creates a new, online folder with default rules.
@@ -156,6 +176,45 @@ public sealed class IndexedFolder
         }
 
         VolumeLabel = label;
+        return true;
+    }
+
+    /// <summary>
+    /// Records the identity of the volume the folder is on, read while it's Online.
+    /// </summary>
+    /// <param name="volumeId">The identity, or <see langword="null"/> or blank for none.</param>
+    /// <returns><see langword="true"/> when the identity changed.</returns>
+    public bool ChangeVolumeId(string? volumeId)
+    {
+        volumeId = string.IsNullOrWhiteSpace(volumeId) ? null : volumeId.Trim();
+        if (volumeId == VolumeId)
+        {
+            return false;
+        }
+
+        VolumeId = volumeId;
+        return true;
+    }
+
+    /// <summary>
+    /// Changes how the folder is kept up to date.
+    /// </summary>
+    /// <param name="mode">The new mode.</param>
+    /// <returns><see langword="true"/> when the mode changed.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="mode"/> isn't a defined mode.</exception>
+    public bool ChangeMonitoringMode(MonitoringMode mode)
+    {
+        if (!Enum.IsDefined(mode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unknown monitoring mode.");
+        }
+
+        if (mode == MonitoringMode)
+        {
+            return false;
+        }
+
+        MonitoringMode = mode;
         return true;
     }
 

@@ -25,6 +25,8 @@ public sealed class LibrarySettingsPageTests : IDisposable
         .AddSingleton<Infrastructure.Abstractions.Jobs.IJobProgress>(new FakeJobProgress())
         .AddSingleton<ILibrarySession>(new FakeBrowserSession(false))
         .AddSingleton<IMediaFileSource, FileSystemMediaFileSource>()
+        .AddSingleton<Infrastructure.Abstractions.Formats.IMediaFormatRegistry>(new Infrastructure.Media.Formats.MediaFormatRegistry([]))
+        .AddLogging()
         .AddUseCases()
         .AddUi()
         .BuildServiceProvider();

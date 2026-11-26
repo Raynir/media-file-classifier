@@ -12,6 +12,7 @@ using MediaFileClassifier.UseCases.Import.RetryFailedItems;
 using MediaFileClassifier.UseCases.Processing.CancelJob;
 using MediaFileClassifier.UseCases.Processing.GetJobFailures;
 using MediaFileClassifier.UseCases.Processing.GetProcessingQueue;
+using MediaFileClassifier.UseCases.Processing.SetJobPaused;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -28,7 +29,7 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     private readonly ProgressFeed feed;
     private readonly Localizer localizer;
     private readonly IPlatformServices? platform;
-    private readonly IJobSystem? jobs;
+    private readonly ProcessingPause pause;
     private readonly ILogger logger;
     private readonly Dictionary<Id<ProcessingJob>, ProcessingJobViewModel> rows = [];
     private int version;
@@ -42,20 +43,25 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     /// <param name="platform">Shows files in the file manager, or <see langword="null"/> for no Reveal file.</param>
     /// <param name="logger">Logger, or <see langword="null"/> for none.</param>
     /// <param name="jobs">The job system, for Resume when the library opened with processing paused, or <see langword="null"/> for none.</param>
+    /// <param name="pause">Pauses and resumes processing and pools (E05-S05), or <see langword="null"/> for one of the panel's own over <paramref name="jobs"/>.</param>
     public ProcessingPanelViewModel(
         ISender sender,
         ProgressFeed feed,
         Localizer localizer,
         IPlatformServices? platform = null,
         ILogger<ProcessingPanelViewModel>? logger = null,
-        IJobSystem? jobs = null)
+        IJobSystem? jobs = null,
+        ProcessingPause? pause = null)
     {
-        this.jobs = jobs;
+        this.pause = pause ?? new ProcessingPause(feed, jobs, action => action());
+        this.pause.Changed += (_, _) => UpdatePause();
+        localizer.Changed += (_, _) => UpdatePause();
         this.sender = sender;
         this.feed = feed;
         this.localizer = localizer;
         this.platform = platform;
         this.logger = logger ?? NullLogger<ProcessingPanelViewModel>.Instance;
+        UpdatePause();
     }
 
     /// <summary>
@@ -90,11 +96,47 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     public partial bool IsEmpty { get; private set; } = true;
 
     /// <summary>
-    /// Gets a value indicating whether processing waits for Resume, because the library opened with unfinished work and the
-    /// settings say to ask first (E05-S01-T05).
+    /// Gets a value indicating whether all processing waits for Resume: paused by the user (E05-S05), or because the
+    /// library opened with unfinished work and the settings say to ask first (E05-S01-T05).
     /// </summary>
     [ObservableProperty]
     public partial bool IsPaused { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether all processing or any pool is paused, so the banner with Resume shows.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsAnythingPaused { get; private set; }
+
+    /// <summary>
+    /// Gets what the banner says is paused, or <see langword="null"/> when nothing is.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? PausedText { get; private set; }
+
+    /// <summary>
+    /// Gets the text of the header's pause button: Pause all, or Resume all while anything is paused.
+    /// </summary>
+    [ObservableProperty]
+    public partial string PauseAllText { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Gets a value indicating whether disk work (the I/O pool) is paused on its own.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsIoPaused { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether processor work (the CPU pool) is paused on its own.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsCpuPaused { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether AI analysis (the AI pool) is paused on its own.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsAiPaused { get; private set; }
 
     /// <summary>
     /// Starts following the job progress; call it when the panel opens.
@@ -114,7 +156,7 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         var current = ++version;
-        IsPaused = jobs?.Current?.IsPaused == true;
+        UpdatePause();
         ProcessingQueue queue;
         try
         {
@@ -171,14 +213,71 @@ public sealed partial class ProcessingPanelViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Starts the processing that waited for it, and lists the jobs again.
+    /// Pauses or resumes one job (E05-S05-T02) and lists the jobs again.
+    /// </summary>
+    /// <param name="row">The job's row.</param>
+    /// <param name="paused">Whether the job should be paused.</param>
+    /// <returns>A task that completes when the lists are up to date.</returns>
+    internal async Task SetJobPausedAsync(ProcessingJobViewModel row, bool paused)
+    {
+        try
+        {
+            await sender.Send(new SetJobPausedCommand(row.Id, paused));
+        }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException)
+        {
+            LogActionFailed(exception);
+        }
+
+        await RefreshAsync();
+    }
+
+    /// <summary>
+    /// Resumes all processing and every paused pool, and lists the jobs again. Jobs paused one by one stay paused.
     /// </summary>
     /// <returns>A task that completes when the lists are up to date.</returns>
     [RelayCommand]
     private Task ResumeAsync()
     {
-        jobs?.Current?.Resume();
+        pause.ResumeAll();
         return RefreshAsync();
+    }
+
+    /// <summary>
+    /// The header's main pause button: pauses all processing, or resumes everything while anything is paused.
+    /// </summary>
+    [RelayCommand]
+    private void TogglePauseAll()
+    {
+        pause.Toggle();
+        UpdatePause();
+    }
+
+    /// <summary>
+    /// Pauses a pool, or resumes it if it's paused.
+    /// </summary>
+    /// <param name="pool">The pool.</param>
+    [RelayCommand]
+    private void TogglePool(ResourcePool pool)
+    {
+        pause.SetPoolPaused(pool, !pause.IsPoolPaused(pool));
+        UpdatePause();
+    }
+
+    private void UpdatePause()
+    {
+        IsPaused = pause.IsPaused;
+        IsIoPaused = pause.IsPoolPaused(ResourcePool.Io);
+        IsCpuPaused = pause.IsPoolPaused(ResourcePool.Cpu);
+        IsAiPaused = pause.IsPoolPaused(ResourcePool.Ai);
+        IsAnythingPaused = IsPaused || IsIoPaused || IsCpuPaused || IsAiPaused;
+        PauseAllText = localizer.Get(IsAnythingPaused ? "Processing_ResumeAll" : "Processing_PauseAll");
+        var pools = pause.PausedPools;
+        PausedText = IsPaused
+            ? localizer.Get("Processing_Paused")
+            : pools.Count > 0
+                ? localizer.Format("Processing_PoolsPaused", string.Join(", ", pools.Select(pool => localizer.Get("Processing_Pool_" + pool))))
+                : null;
     }
 
     // Moves, adds and removes rows, so the rows that stay keep their place and state in the list.

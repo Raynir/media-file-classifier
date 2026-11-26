@@ -8,6 +8,7 @@ using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.UseCases.Analysis.Pipeline;
 using MediaFileClassifier.UseCases.Common.Notifications;
 using MediaFileClassifier.UseCases.Import;
+using MediaFileClassifier.UseCases.Monitoring;
 
 namespace MediaFileClassifier.Ui.Tests.Notifications;
 
@@ -19,12 +20,13 @@ public sealed class JobNotificationsTests
     private readonly FakeJobProgress progress = new();
     private readonly List<Notification> raised = [];
     private readonly JobNotifications jobs;
+    private readonly MonitoringTally tally = new();
 
     public JobNotificationsTests()
     {
         var service = new NotificationService(new InMemorySettingsStore(), action => action());
         service.Raised += (_, notification) => raised.Add(notification);
-        jobs = new JobNotifications(progress, service, TestLocalizer.EnUs());
+        jobs = new JobNotifications(progress, service, TestLocalizer.EnUs(), tally: tally, settings: new InMemorySettingsStore());
         jobs.Start();
         jobs.Start();
     }
@@ -115,6 +117,38 @@ public sealed class JobNotificationsTests
         progress.Finish(Finished(AnalysisStages.AnalysisJob, ProcessingJobState.Completed, Stage("embedding", 3, 3, 0)));
 
         Assert.Equal(2, raised.Count);
+    }
+
+    [Fact]
+    public void AMonitoredBatchOfNewFiles_NamesTheFolder_AndRaisesOnlyThatNotification()
+    {
+        var finished = Finished(ImportStages.ImportJob, ProcessingJobState.Completed, Stage("fingerprint", 12, 12, 0));
+        tally.Add(finished.Progress.JobId, new MonitoringCounts(12, 0, 0, 0, @"D:\Camera Uploads"));
+        progress.Finish(finished);
+
+        var notification = Assert.Single(raised);
+        Assert.Equal("12 new items imported from Camera Uploads", notification.Message);
+        Assert.Equal(NotificationSeverity.Info, notification.Severity);
+    }
+
+    [Fact]
+    public void AMonitoredBatchOfMixedChanges_ListsEachKind()
+    {
+        var finished = Finished(ImportStages.ImportJob, ProcessingJobState.Completed, Stage("fingerprint", 9, 9, 0));
+        tally.Add(finished.Progress.JobId, new MonitoringCounts(9, 2, 0, 1, @"D:\Camera Uploads"));
+        progress.Finish(finished);
+
+        Assert.Equal("12 changes in Camera Uploads: 9 new, 2 updated, 1 missing", Assert.Single(raised).Message);
+    }
+
+    [Fact]
+    public void AMonitoredBatchBelowTheThreshold_SaysNothing()
+    {
+        var finished = Finished(ImportStages.ImportJob, ProcessingJobState.Completed, Stage("fingerprint", 9, 9, 0));
+        tally.Add(finished.Progress.JobId, new MonitoringCounts(9, 0, 0, 0, @"D:\Camera Uploads"));
+        progress.Finish(finished);
+
+        Assert.Empty(raised);
     }
 
     private static StageProgress Stage(string stage, int total, int done, int failed, bool whole = false) => new(stage, total, done, failed, whole);

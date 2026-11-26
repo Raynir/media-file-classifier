@@ -18,6 +18,7 @@ using MediaFileClassifier.UseCases.Import.RetryFailedItems;
 using MediaFileClassifier.UseCases.Processing.CancelJob;
 using MediaFileClassifier.UseCases.Processing.GetJobFailures;
 using MediaFileClassifier.UseCases.Processing.GetProcessingQueue;
+using MediaFileClassifier.UseCases.Processing.SetJobPaused;
 
 namespace MediaFileClassifier.Ui.Tests.Processing;
 
@@ -77,6 +78,104 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
 
         Assert.Equal(1, jobs.ResumeCount);
         Assert.False(paused.IsPaused);
+    }
+
+    [Fact]
+    public void PauseAll_PausesEverything_ThenResumesEverything_FromTheSameButton()
+    {
+        var jobs = new PausedJobSystem();
+        jobs.Resume();
+        var pausable = new ProcessingPanelViewModel(sender, feed, Localizer.Current, platform, jobs: jobs);
+        Assert.False(pausable.IsAnythingPaused);
+        Assert.Equal("Pause all processing", pausable.PauseAllText);
+
+        pausable.TogglePauseAllCommand.Execute(null);
+
+        Assert.True(jobs.IsPaused);
+        Assert.True(pausable.IsAnythingPaused);
+        Assert.Equal("Processing is paused until you start it.", pausable.PausedText);
+        Assert.Equal("Resume processing", pausable.PauseAllText);
+
+        pausable.TogglePauseAllCommand.Execute(null);
+
+        Assert.False(jobs.IsPaused);
+        Assert.False(pausable.IsAnythingPaused);
+        Assert.Null(pausable.PausedText);
+    }
+
+    [Fact]
+    public async Task TogglePool_PausesOnlyThatPool_AndResumeClearsEveryPool()
+    {
+        var jobs = new PausedJobSystem();
+        jobs.Resume();
+        var pausable = new ProcessingPanelViewModel(sender, feed, Localizer.Current, platform, jobs: jobs);
+
+        pausable.TogglePoolCommand.Execute(ResourcePool.Ai);
+        pausable.TogglePoolCommand.Execute(ResourcePool.Io);
+
+        Assert.True(pausable.IsAiPaused);
+        Assert.True(pausable.IsIoPaused);
+        Assert.False(pausable.IsCpuPaused);
+        Assert.False(pausable.IsPaused);
+        Assert.True(pausable.IsAnythingPaused);
+        Assert.Equal("Paused: Disk work, AI analysis. Other work continues.", pausable.PausedText);
+
+        pausable.TogglePoolCommand.Execute(ResourcePool.Io);
+        Assert.False(pausable.IsIoPaused);
+
+        await pausable.ResumeCommand.ExecuteAsync(null);
+
+        Assert.Empty(jobs.PausedPools);
+        Assert.False(pausable.IsAnythingPaused);
+    }
+
+    [Fact]
+    public void APauseMadeElsewhere_ShowsInThePanel()
+    {
+        var jobs = new PausedJobSystem();
+        jobs.Resume();
+        var pausable = new ProcessingPanelViewModel(sender, feed, Localizer.Current, platform, jobs: jobs);
+
+        // E.g. from the status bar's pause button.
+        jobs.Pause();
+
+        Assert.True(pausable.IsPaused);
+        Assert.True(pausable.IsAnythingPaused);
+    }
+
+    [Fact]
+    public async Task PauseJob_PausesOnlyThatJob_AndAPausedJobOffersResume()
+    {
+        var job = Job("Analyze 5 items", ProcessingJobState.Queued, total: 5, pending: 5);
+        sender.Queue = new ProcessingQueue([job], []);
+        await panel.RefreshAsync(Token);
+        var row = Assert.Single(panel.Queued);
+        Assert.True(row.CanPause);
+        Assert.False(row.IsJobPaused);
+
+        await row.PauseCommand.ExecuteAsync(null);
+        Assert.Equal(new SetJobPausedCommand(job.Id, true), Assert.Single(sender.Commands));
+
+        sender.Queue = new ProcessingQueue([job with { State = ProcessingJobState.Paused }], []);
+        await panel.RefreshAsync(Token);
+
+        Assert.Same(row, Assert.Single(panel.Queued));
+        Assert.True(row.IsJobPaused);
+        Assert.False(row.CanPause);
+        Assert.True(row.CanCancel);
+        Assert.Equal("Paused · 5 items", row.Detail);
+
+        await row.ResumeCommand.ExecuteAsync(null);
+        Assert.Equal(new SetJobPausedCommand(job.Id, false), sender.Commands[^1]);
+    }
+
+    [Fact]
+    public async Task PauseJob_IsNotOfferedForAFinishedJob()
+    {
+        sender.Queue = new ProcessingQueue([], [Job("Rescan", ProcessingJobState.Completed, total: 1, done: 1) with { FinishedAt = Now }]);
+        await panel.RefreshAsync(Token);
+
+        Assert.False(Assert.Single(panel.Recent).CanPause);
     }
 
     [Fact]
@@ -418,9 +517,9 @@ public sealed class ProcessingPanelViewModelTests : IDisposable
                     return (IReadOnlyList<FailedWorkItem>)Failures;
                 case GetItemLocationsQuery query:
                     return (IReadOnlyList<ItemLocation>)[.. query.ItemIds.Select(id => new ItemLocation(id, new FileLocation(new FolderHandle(@"D:\Photos", "Photos"), "broken.jpg"), @"D:\Photos\broken.jpg", "Photos", ItemAvailability.Available))];
-                case CancelJobCommand or RetryFailedItemsCommand:
+                case CancelJobCommand or RetryFailedItemsCommand or SetJobPausedCommand:
                     Commands.Add(request);
-                    return request is CancelJobCommand ? true : new RetryFailedItemsResult(1, 0);
+                    return request is RetryFailedItemsCommand ? new RetryFailedItemsResult(1, 0) : true;
                 default:
                     throw new NotSupportedException();
             }

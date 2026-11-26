@@ -1,7 +1,12 @@
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Testing.Platform;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
+using MediaFileClassifier.UseCases.Monitoring;
+using MediaFileClassifier.UseCases.Monitoring.GetFolderMonitoring;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,6 +75,113 @@ public sealed class IndexedFoldersFlowTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Dialog_ShowsEachMonitoringState_OnlyForAnOnlineFolder()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(app.Root, "photos")).FullName;
+        var library = app.Services.GetRequiredService<ILibrarySession>().Current!;
+        await library.Folders.AddAsync(IndexedFolder.Create(library.Library.Id, photos, photos, DateTimeOffset.UtcNow), Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.OpenAsync();
+        var row = Assert.Single(viewModel.Folders);
+
+        // Nothing watches in the test app, so the folder isn't monitored.
+        Assert.True(row.ShowsNotMonitored);
+        Assert.Equal("Not monitored", row.MonitoringText);
+
+        row.MonitoringState = FolderMonitoringState.Watching;
+        Assert.Equal(("Watching", true, false), (row.MonitoringText, row.ShowsWatching, row.ShowsNotMonitored));
+
+        row.MonitoringState = FolderMonitoringState.Paused;
+        Assert.Equal(("Paused", true, false), (row.MonitoringText, row.ShowsPaused, row.ShowsWatching));
+
+        row.MonitoringState = FolderMonitoringState.Error;
+        Assert.Equal(("Can't watch", true), (row.MonitoringText, row.ShowsMonitoringError));
+
+        row.MonitoringState = FolderMonitoringState.Polling;
+        Assert.Equal(("Polling", true, false, false), (row.MonitoringText, row.ShowsPolling, row.ShowsNotMonitored, row.ShowsManual));
+
+        row.MonitoringState = FolderMonitoringState.Manual;
+        Assert.Equal(("Manual", true, false, false), (row.MonitoringText, row.ShowsManual, row.ShowsNotMonitored, row.ShowsPolling));
+    }
+
+    [Fact]
+    public async Task Dialog_PickingAMode_StoresIt_AndTheBadgeAndNoteFollow()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(app.Root, "photos")).FullName;
+        var library = app.Services.GetRequiredService<ILibrarySession>().Current!;
+        await library.Folders.AddAsync(IndexedFolder.Create(library.Library.Id, photos, photos, DateTimeOffset.UtcNow), Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.OpenAsync();
+        var row = Assert.Single(viewModel.Folders);
+        Assert.Equal(["Auto", "Watch", "Poll", "Manual"], row.ModeOptions.Select(option => option.Label));
+        Assert.Equal(MonitoringMode.Auto, row.SelectedMode!.Mode);
+
+        row.SelectedMode = row.ModeOptions.Single(option => option.Mode == MonitoringMode.Manual);
+        await WaitUntilAsync(async () => (await library.Folders.GetAllAsync(Token)).Single().MonitoringMode == MonitoringMode.Manual);
+        await WaitUntilAsync(() => Task.FromResult(row.ShowsManual));
+        Assert.Equal(MonitoringMode.Manual, row.SelectedMode.Mode);
+        Assert.StartsWith("Nothing runs on its own", row.ModeNote, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Dialog_OnANetworkShareSetToWatch_SuggestsPoll_AndUsePollSetsIt()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(app.Root, "photos")).FullName;
+        var library = app.Services.GetRequiredService<ILibrarySession>().Current!;
+        var folder = IndexedFolder.Create(library.Library.Id, photos, photos, DateTimeOffset.UtcNow);
+        folder.ChangeMonitoringMode(MonitoringMode.Watch);
+        await library.Folders.AddAsync(folder, Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.OpenAsync();
+        var row = Assert.Single(viewModel.Folders);
+        Assert.False(row.SuggestsPoll);
+
+        row.ApplyMonitoring(new FolderMonitoringInfo(folder.Id, MonitoringMode.Watch, MonitoringMode.Watch, FolderMonitoringState.Watching, true, "OneDrive", null));
+        Assert.True(row.SuggestsPoll);
+        Assert.Equal("Synced by OneDrive.", row.CloudNote);
+
+        viewModel.SelectedFolder = row;
+        viewModel.UsePollCommand.Execute(null);
+        await WaitUntilAsync(async () => (await library.Folders.GetAllAsync(Token)).Single().MonitoringMode == MonitoringMode.Poll);
+
+        row.ApplyMonitoring(new FolderMonitoringInfo(folder.Id, MonitoringMode.Poll, MonitoringMode.Poll, FolderMonitoringState.Polling, true, null, DateTimeOffset.UtcNow.AddMinutes(15)));
+        Assert.False(row.SuggestsPoll);
+        Assert.True(row.HasNextPoll);
+        Assert.True(row.ShowsPolling);
+    }
+
+    private static async Task WaitUntilAsync(Func<Task<bool>> done)
+    {
+        for (var tries = 0; !await done(); tries++)
+        {
+            Assert.True(tries < 500, "The condition wasn't met.");
+            await Task.Delay(10, Token);
+        }
+    }
+
+    [Fact]
+    public async Task Dialog_PausesAndResumesMonitoring_WithItsButtonLabel()
+    {
+        await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
+        var viewModel = app.Services.GetRequiredService<IndexedFoldersViewModel>();
+        var pause = app.Services.GetRequiredService<MonitoringPause>();
+        await viewModel.OpenAsync();
+        Assert.True(viewModel.CanPauseMonitoring);
+        Assert.Equal("Pause monitoring", viewModel.MonitoringPauseLabel);
+
+        viewModel.ToggleMonitoringPauseCommand.Execute(null);
+        Assert.True(pause.IsPaused);
+        Assert.Equal("Resume monitoring", viewModel.MonitoringPauseLabel);
+
+        viewModel.ToggleMonitoringPauseCommand.Execute(null);
+        Assert.False(pause.IsPaused);
+        Assert.Equal("Pause monitoring", viewModel.MonitoringPauseLabel);
+    }
+
+    [Fact]
     public async Task Dialog_PartialFolder_IsTaggedAndAsksBeforeIndexingItWhole()
     {
         await app.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", app.Root), Token);
@@ -108,5 +220,72 @@ public sealed class IndexedFoldersFlowTests : IAsyncDisposable
         Assert.Same(viewModel.Folders[0], viewModel.SelectedFolder);
     }
 
+    [Fact]
+    public async Task Dialog_OfflineFolderOnAnotherDrive_OffersAndUsesThatDrive()
+    {
+        var volumes = new FakeVolumeLocator();
+        await using var services = TestServices.Build(configure: collection => collection.AddSingleton<IVolumeLocator>(volumes));
+        await services.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", services.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(services.Root, "photos")).FullName;
+        var library = services.Services.GetRequiredService<ILibrarySession>().Current!;
+        var folder = new IndexedFolder(
+            Id<IndexedFolder>.New(), library.Library.Id, photos, photos, new FolderRules(), FolderStatus.Offline, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, volumeId: "1A2B-3C4D");
+        await library.Folders.AddAsync(folder, Token);
+        volumes.Volumes[Path.GetPathRoot(photos)!] = "5E6F-7A8B";
+        var viewModel = services.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.RefreshAsync();
+
+        viewModel.SelectedFolder = Assert.Single(viewModel.Folders);
+        await WaitUntilAsync(() => viewModel.HasOtherDrive);
+        Assert.StartsWith($"{photos} leads to another drive now", viewModel.OtherDriveNote, StringComparison.Ordinal);
+        viewModel.UseThisDriveCommand.Execute(null);
+        Assert.Equal($"Use the drive now at {photos} as this folder's drive? The 0 items keep their metadata, and the folder is synced with the drive: files that aren't on it are marked Missing.", viewModel.Confirmation);
+        Assert.Equal("Use this drive", viewModel.ConfirmLabel);
+        await viewModel.ConfirmCommand.ExecuteAsync(null);
+
+        var stored = (await library.Folders.GetAsync(folder.Id, Token))!;
+        Assert.Equal((FolderStatus.Online, "5E6F-7A8B"), (stored.Status, stored.VolumeId));
+        Assert.Equal($"{photos} is Online on its new drive and is being synced.", viewModel.Message);
+        await WaitUntilAsync(() => !viewModel.HasOtherDrive);
+    }
+
+    [Fact]
+    public async Task Dialog_OfflineFolderOnItsOwnDrive_OffersNothing_UntilAnotherDriveIsThere()
+    {
+        var volumes = new FakeVolumeLocator();
+        await using var services = TestServices.Build(configure: collection => collection.AddSingleton<IVolumeLocator>(volumes));
+        await services.Services.GetRequiredService<ISender>().Send(new CreateLibraryCommand("Family", services.Root), Token);
+        var photos = Directory.CreateDirectory(Path.Combine(services.Root, "photos")).FullName;
+        var library = services.Services.GetRequiredService<ILibrarySession>().Current!;
+        await library.Folders.AddAsync(
+            new IndexedFolder(Id<IndexedFolder>.New(), library.Library.Id, photos, photos, new FolderRules(), FolderStatus.Offline, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, volumeId: "1A2B-3C4D"),
+            Token);
+        volumes.Volumes[Path.GetPathRoot(photos)!] = "1A2B-3C4D";
+        var viewModel = services.Services.GetRequiredService<IndexedFoldersViewModel>();
+        await viewModel.RefreshAsync();
+
+        // Its own drive is at its root: nothing to offer.
+        var row = Assert.Single(viewModel.Folders);
+        viewModel.SelectedFolder = row;
+        await Task.Delay(500, Token);
+        Assert.False(viewModel.HasOtherDrive);
+        Assert.False(viewModel.UseThisDriveCommand.CanExecute(null));
+
+        // The same probe offers the drive once another one is there, so the wait above was long enough.
+        volumes.Volumes[Path.GetPathRoot(photos)!] = "5E6F-7A8B";
+        viewModel.SelectedFolder = null;
+        viewModel.SelectedFolder = row;
+        await WaitUntilAsync(() => viewModel.HasOtherDrive);
+    }
+
     public ValueTask DisposeAsync() => app.DisposeAsync();
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        for (var tries = 0; !condition(); tries++)
+        {
+            Assert.True(tries < 100, "Timed out waiting for the dialog.");
+            await Task.Delay(50, Token);
+        }
+    }
 }

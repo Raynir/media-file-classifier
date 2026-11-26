@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Domain.Metadata;
@@ -81,7 +82,11 @@ internal sealed class LibrarySettingsConverter()
             settings.ThumbnailTileSize,
             ToJson(settings.AnalysisProfile),
             settings.EmbeddingSwitchThreshold,
-            settings.LastFilters.Length > 0 ? settings.LastFilters : null),
+            settings.LastFilters.Length > 0 ? settings.LastFilters : null,
+            settings.ProcessingPaused ? true : null,
+            settings.PausedPools.Count > 0 ? [.. settings.PausedPools.Select(pool => pool.ToString())] : null,
+            settings.QuickSyncOnOpen ? null : false,
+            settings.MonitoringEnabled ? null : false),
         DataAccessJsonContext.Default.LibrarySettingsJson);
 
     private static LibrarySettings FromJson(string json)
@@ -99,6 +104,14 @@ internal sealed class LibrarySettingsConverter()
                 ? threshold
                 : LibrarySettings.DefaultEmbeddingSwitchThreshold,
             LastFilters = stored.LastFilters ?? string.Empty,
+            ProcessingPaused = stored.ProcessingPaused ?? false,
+            QuickSyncOnOpen = stored.QuickSyncOnOpen ?? true,
+            MonitoringEnabled = stored.MonitoringEnabled ?? true,
+
+            // A pool name this version doesn't know is dropped, so the library still opens.
+            PausedPools = stored.PausedPools is { } pools
+                ? [.. pools.Select(name => Enum.TryParse<ResourcePool>(name, out var pool) ? (ResourcePool?)pool : null).OfType<ResourcePool>().Distinct()]
+                : [],
         };
     }
 
@@ -196,7 +209,11 @@ internal sealed record LibrarySettingsJson(
     int? ThumbnailTileSize = null,
     AnalysisProfileJson? AnalysisProfile = null,
     double? EmbeddingSwitchThreshold = null,
-    string? LastFilters = null);
+    string? LastFilters = null,
+    bool? ProcessingPaused = null,
+    string[]? PausedPools = null,
+    bool? QuickSyncOnOpen = null,
+    bool? MonitoringEnabled = null);
 
 /// <summary>
 /// Stored shape of <see cref="AnalysisProfile"/>. Libraries stored before it read as <see cref="AnalysisProfile.Default"/>.
@@ -232,4 +249,27 @@ internal sealed record FieldTextJson(string Text, string? Other);
 [JsonSerializable(typeof(FolderRulesJson))]
 [JsonSerializable(typeof(LibrarySettingsJson))]
 [JsonSerializable(typeof(FieldTextJson))]
+[JsonSerializable(typeof(Dictionary<string, long>))]
 internal sealed partial class DataAccessJsonContext : JsonSerializerContext;
+
+/// <summary>
+/// Stores the counts of an activity event as a JSON object of numbers.
+/// </summary>
+internal sealed class ActivityCountsConverter()
+    : ValueConverter<IReadOnlyDictionary<string, long>, string>(counts => ToJson(counts), json => FromJson(json))
+{
+    private static string ToJson(IReadOnlyDictionary<string, long> counts) =>
+        JsonSerializer.Serialize(counts.ToDictionary(pair => pair.Key, pair => pair.Value), DataAccessJsonContext.Default.DictionaryStringInt64);
+
+    private static IReadOnlyDictionary<string, long> FromJson(string json) =>
+        JsonSerializer.Deserialize(json, DataAccessJsonContext.Default.DictionaryStringInt64) ?? [];
+}
+
+/// <summary>
+/// Compares the counts of activity events by content.
+/// </summary>
+internal sealed class ActivityCountsComparer()
+    : ValueComparer<IReadOnlyDictionary<string, long>>(
+        (left, right) => left == null ? right == null : right != null && left.Count == right.Count && left.All(pair => right.ContainsKey(pair.Key) && right[pair.Key] == pair.Value),
+        counts => counts.Aggregate(0, (hash, pair) => hash ^ HashCode.Combine(pair.Key, pair.Value)),
+        counts => counts.ToDictionary(pair => pair.Key, pair => pair.Value));

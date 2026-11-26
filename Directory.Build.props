@@ -17,7 +17,7 @@
   <PropertyGroup>
     <Product>Media File Classifier</Product>
     <!-- The SDK appends the commit SHA to InformationalVersion (SourceLink). -->
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

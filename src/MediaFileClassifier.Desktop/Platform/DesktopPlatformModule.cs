@@ -2,6 +2,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Hardware;
 using MediaFileClassifier.Infrastructure.Abstractions.NativeDependencies;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Infrastructure.Abstractions.Watching;
 using MediaFileClassifier.Infrastructure.Files;
 using MediaFileClassifier.Ui.Platform;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,9 +24,17 @@ internal static class DesktopPlatformModule
     {
         services.TryAddSingleton<IPlatformServices, WindowsPlatformServices>();
         services.TryAddSingleton<IMediaFileSource, FileSystemMediaFileSource>();
+        services.TryAddSingleton<WindowsEjectNotifications>();
+        services.TryAddSingleton<IEjectNotifications>(provider => provider.GetRequiredService<WindowsEjectNotifications>());
+
+        // Watchers let go of a folder whose drive is being ejected (E04-S04-T01).
+        services.TryAddSingleton<IFolderWatcherFactory>(provider =>
+            new EjectAwareFolderWatcherFactory(new FileSystemFolderWatcherFactory(), provider.GetRequiredService<IEjectNotifications>()));
         services.TryAddSingleton<IHardwareDetector, WindowsHardwareDetector>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<INativeDependencyProbe, SkiaSharpProbe>());
         services.TryAddSingleton<IKeyboardLayout, WindowsKeyboardLayout>();
+        services.TryAddSingleton<IVolumeLocator, WindowsVolumeLocator>();
+        services.TryAddSingleton<IFolderLocationProbe, WindowsFolderLocationProbe>();
         services.TryAddSingleton<WindowsVolumeWatcher>();
         services.TryAddSingleton<IVolumeWatcher>(provider => provider.GetRequiredService<WindowsVolumeWatcher>());
         return services;

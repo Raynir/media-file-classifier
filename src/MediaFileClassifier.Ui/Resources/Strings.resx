@@ -74,6 +74,9 @@
   <data name="Details_Preview_Thumbnail_Offline" xml:space="preserve">
     <value>Showing the thumbnail: the folder {0} is offline.</value>
   </data>
+  <data name="Details_Preview_Thumbnail_Ejecting" xml:space="preserve">
+    <value>Showing the thumbnail: the drive of {0} is being ejected.</value>
+  </data>
   <data name="Details_Preview_Thumbnail_Missing" xml:space="preserve">
     <value>Showing the thumbnail: the file is missing.</value>
   </data>
@@ -1010,6 +1013,37 @@
     <value>Index everything in {0}? The {1} already in the library keep their metadata.</value>
     <comment>{0} = folder path, {1} = item count, e.g. "4 items".</comment>
   </data>
+  <data name="Folders_OtherDriveNote" xml:space="preserve">
+    <value>{0} leads to another drive now ('{1}'). If that drive holds this folder, e.g. a cloned or restored copy, you can use it as the folder's drive.</value>
+    <comment>{0} = folder path, {1} = drive label. MFC-1051.</comment>
+  </data>
+  <data name="Folders_OtherDriveNoteNoLabel" xml:space="preserve">
+    <value>{0} leads to another drive now. If that drive holds this folder, e.g. a cloned or restored copy, you can use it as the folder's drive.</value>
+    <comment>{0} = folder path. For a drive without a label. MFC-1051.</comment>
+  </data>
+  <data name="Folders_UseThisDrive" xml:space="preserve">
+    <value>Use this drive</value>
+  </data>
+  <data name="Folders_UseThisDriveConfirm" xml:space="preserve">
+    <value>Use the drive now at {0} as this folder's drive? The {1} keep their metadata, and the folder is synced with the drive: files that aren't on it are marked Missing.</value>
+    <comment>{0} = folder path, {1} = item count, e.g. "4 items".</comment>
+  </data>
+  <data name="Folders_UseThisDriveConfirmMany" xml:space="preserve">
+    <value>Use the drive now at {0} as the drive of this folder and {1} other Offline folders from the same old drive? Their items keep their metadata, and the folders are synced with the drive: files that aren't on it are marked Missing.</value>
+    <comment>{0} = folder path, {1} = number of other folders. MFC-1051.</comment>
+  </data>
+  <data name="Folders_UsingThisDriveMany" xml:space="preserve">
+    <value>{0} and {1} other folders are Online on their new drive and are being synced.</value>
+    <comment>{0} = folder path, {1} = number of other folders.</comment>
+  </data>
+  <data name="Folders_UsingThisDrive" xml:space="preserve">
+    <value>{0} is Online on its new drive and is being synced.</value>
+    <comment>{0} = folder path.</comment>
+  </data>
+  <data name="Folders_NoOtherDrive" xml:space="preserve">
+    <value>{0} doesn't lead to another drive any more, so nothing was changed.</value>
+    <comment>{0} = folder path.</comment>
+  </data>
   <data name="Folders_AlreadyIndexed" xml:space="preserve">
     <value>{0} is indexed already.</value>
     <comment>{0} is a folder path.</comment>
@@ -1193,6 +1227,9 @@
   </data>
   <data name="Stage_rescan.media" xml:space="preserve">
     <value>Refreshing metadata and thumbnails</value>
+  </data>
+  <data name="Stage_monitor.apply" xml:space="preserve">
+    <value>Applying folder changes</value>
   </data>
   <data name="Stage_folder.remove" xml:space="preserve">
     <value>Removing the folder</value>
@@ -1779,6 +1816,12 @@
   <data name="Setting_ResumeOnOpen_Ask" xml:space="preserve">
     <value>Wait until I start it</value>
   </data>
+  <data name="Setting_KeepPaused" xml:space="preserve">
+    <value>Keep processing paused after a restart</value>
+  </data>
+  <data name="Setting_KeepPaused_Help" xml:space="preserve">
+    <value>When on, processing, pools and jobs you paused stay paused the next time the library opens. When off, everything starts again.</value>
+  </data>
   <data name="Setting_ConfirmQuit" xml:space="preserve">
     <value>Ask before quitting while processing</value>
   </data>
@@ -1796,6 +1839,150 @@
   </data>
   <data name="Setting_InformationalNotifications_Help" xml:space="preserve">
     <value>Short messages such as "Analysis finished". Errors and warnings always show.</value>
+  </data>
+  <data name="Setting_MonitoringIgnorePatterns" xml:space="preserve">
+    <value>Files to ignore while watching folders</value>
+  </data>
+  <data name="Setting_MonitoringIgnorePatterns_Help" xml:space="preserve">
+    <value>Temporary and partly written files, such as downloads in progress and Office lock files, separated by semicolons. Write \; for a semicolon in a name. * matches any characters. A name matches files only; use **/name to ignore a folder.</value>
+  </data>
+  <data name="Setting_MonitoringPollInterval" xml:space="preserve">
+    <value>Minutes between checks of polled folders</value>
+  </data>
+  <data name="Setting_MonitoringPollInterval_Help" xml:space="preserve">
+    <value>Folders in Poll mode, such as network shares, are checked for new, changed and deleted files this often.</value>
+  </data>
+  <data name="Setting_QuickSyncOnOpen" xml:space="preserve">
+    <value>Check for changes when the library opens</value>
+  </data>
+  <data name="Setting_QuickSyncOnOpen_Help" xml:space="preserve">
+    <value>Looks for files added, changed or removed while the app was closed. It runs in the background. Turn it off for very large or slow drives; the Rescan command still works.</value>
+  </data>
+  <data name="Setting_MonitoringEnabled" xml:space="preserve">
+    <value>Monitor folders for changes</value>
+  </data>
+  <data name="Setting_MonitoringEnabled_Help" xml:space="preserve">
+    <value>Watches this library's folders and imports new and changed files as they appear. Turn it off to change the library only when you rescan.</value>
+  </data>
+  <data name="Monitoring_PausedStatus" xml:space="preserve">
+    <value>Monitoring paused</value>
+  </data>
+  <data name="Monitoring_ResumeTip" xml:space="preserve">
+    <value>Resume monitoring: changes found while paused are imported</value>
+  </data>
+  <data name="Monitoring_Pause" xml:space="preserve">
+    <value>Pause monitoring</value>
+  </data>
+  <data name="Monitoring_Resume" xml:space="preserve">
+    <value>Resume monitoring</value>
+  </data>
+  <data name="Folders_Monitoring_Watching" xml:space="preserve">
+    <value>Watching</value>
+  </data>
+  <data name="Folders_Monitoring_Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Folders_Monitoring_Error" xml:space="preserve">
+    <value>Can't watch</value>
+  </data>
+  <data name="Folders_Monitoring_Off" xml:space="preserve">
+    <value>Not monitored</value>
+  </data>
+  <data name="Folders_Monitoring_Polling" xml:space="preserve">
+    <value>Polling</value>
+  </data>
+  <data name="Folders_Monitoring_Polling_Tip" xml:space="preserve">
+    <value>The folder is on a network share or set to Poll, so it's checked for changes at the poll interval instead of being watched.</value>
+  </data>
+  <data name="Folders_Monitoring_Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Folders_Monitoring_Manual_Tip" xml:space="preserve">
+    <value>The folder is set to Manual: changes in it are found only when you rescan it.</value>
+  </data>
+  <data name="Folders_Monitoring_Error_Tip" xml:space="preserve">
+    <value>The folder is reachable but changes in it can't be watched. The app tries again by itself; Rescan still finds changes.</value>
+  </data>
+  <data name="Folders_Mode_Label" xml:space="preserve">
+    <value>Monitoring</value>
+  </data>
+  <data name="Folders_Mode_Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Folders_Mode_Watch" xml:space="preserve">
+    <value>Watch</value>
+  </data>
+  <data name="Folders_Mode_Poll" xml:space="preserve">
+    <value>Poll</value>
+  </data>
+  <data name="Folders_Mode_Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Folders_ModeNote_Auto_Watch" xml:space="preserve">
+    <value>Auto watches this folder, so changes are found as they happen.</value>
+  </data>
+  <data name="Folders_ModeNote_Auto_Poll" xml:space="preserve">
+    <value>Auto checks this network share at the poll interval, as shares often don't report changes.</value>
+  </data>
+  <data name="Folders_ModeNote_Watch" xml:space="preserve">
+    <value>Changes in this folder are found as they happen.</value>
+  </data>
+  <data name="Folders_ModeNote_Poll" xml:space="preserve">
+    <value>This folder is checked for changes at the poll interval (Settings, General).</value>
+  </data>
+  <data name="Folders_ModeNote_Manual" xml:space="preserve">
+    <value>Nothing runs on its own: changes in this folder are found only when you rescan it.</value>
+  </data>
+  <data name="Folders_NextPoll" xml:space="preserve">
+    <value>Next check: {0}</value>
+  </data>
+  <data name="Folders_CloudNote" xml:space="preserve">
+    <value>Synced by {0}.</value>
+  </data>
+  <data name="Folders_PollSuggestion" xml:space="preserve">
+    <value>This folder is on a network share, which often doesn't report changes. Poll is more reliable.</value>
+  </data>
+  <data name="Folders_UsePoll" xml:space="preserve">
+    <value>Use Poll</value>
+  </data>
+  <data name="Folders_Mode_NotFound" xml:space="preserve">
+    <value>Couldn't change how {0} is monitored: it's no longer in the library.</value>
+  </data>
+  <data name="Folders_Mode_Failed" xml:space="preserve">
+    <value>Couldn't change how {0} is monitored.</value>
+  </data>
+  <data name="Setting_MonitoringNotifyThreshold" xml:space="preserve">
+    <value>Notify when a monitored folder gets at least this many changes</value>
+  </data>
+  <data name="Setting_MonitoringNotifyThreshold_Help" xml:space="preserve">
+    <value>Smaller batches of new, changed, moved or removed files are not announced; the activity log lists every batch.</value>
+  </data>
+  <data name="Notification_MonitoringNew_One" xml:space="preserve">
+    <value>{0} new item imported from {1}</value>
+  </data>
+  <data name="Notification_MonitoringNew_Other" xml:space="preserve">
+    <value>{0} new items imported from {1}</value>
+  </data>
+  <data name="Notification_MonitoringMixed" xml:space="preserve">
+    <value>{0} changes in {1}: {2}</value>
+  </data>
+  <data name="Notification_MonitoringFailed" xml:space="preserve">
+    <value>{0} failed.</value>
+  </data>
+  <data name="Notification_MonitoringPart_New" xml:space="preserve">
+    <value>{0} new</value>
+  </data>
+  <data name="Notification_MonitoringPart_Updated" xml:space="preserve">
+    <value>{0} updated</value>
+  </data>
+  <data name="Notification_MonitoringPart_Moved" xml:space="preserve">
+    <value>{0} moved</value>
+  </data>
+  <data name="Notification_MonitoringPart_Missing" xml:space="preserve">
+    <value>{0} missing</value>
+  </data>
+  <data name="Notification_QuickSyncDone" xml:space="preserve">
+    <value>Library updated: {0} new, {1} moved, {2} missing, {3} changed</value>
   </data>
   <data name="Setting_LastFilters" xml:space="preserve">
     <value>Last filters</value>
@@ -2093,6 +2280,44 @@
   </data>
   <data name="Processing_Resume" xml:space="preserve">
     <value>Resume processing</value>
+  </data>
+  <data name="Processing_PauseAll" xml:space="preserve">
+    <value>Pause all processing</value>
+  </data>
+  <data name="Processing_ResumeAll" xml:space="preserve">
+    <value>Resume processing</value>
+  </data>
+  <data name="Processing_PausePools" xml:space="preserve">
+    <value>Pause only some work</value>
+    <comment>Accessible name of the drop-down part of the Pause all processing button, which lists the pools.</comment>
+  </data>
+  <data name="Processing_PausePool_Io" xml:space="preserve">
+    <value>Pause disk work</value>
+  </data>
+  <data name="Processing_PausePool_Cpu" xml:space="preserve">
+    <value>Pause processor work</value>
+  </data>
+  <data name="Processing_PausePool_Ai" xml:space="preserve">
+    <value>Pause AI analysis</value>
+  </data>
+  <data name="Processing_Pool_Io" xml:space="preserve">
+    <value>Disk work</value>
+  </data>
+  <data name="Processing_Pool_Cpu" xml:space="preserve">
+    <value>Processor work</value>
+  </data>
+  <data name="Processing_Pool_Ai" xml:space="preserve">
+    <value>AI analysis</value>
+  </data>
+  <data name="Processing_PoolsPaused" xml:space="preserve">
+    <value>Paused: {0}. Other work continues.</value>
+    <comment>{0} is a list of pools, e.g. "AI analysis" or "Disk work, AI analysis".</comment>
+  </data>
+  <data name="Processing_PauseJob" xml:space="preserve">
+    <value>Pause job</value>
+  </data>
+  <data name="Processing_ResumeJob" xml:space="preserve">
+    <value>Resume job</value>
   </data>
   <data name="Processing_Title" xml:space="preserve">
     <value>Processing queue</value>
@@ -3054,5 +3279,156 @@
   <data name="DeleteLibrary_ClosedNotDeleted" xml:space="preserve">
     <value>The library was closed, but it couldn't be deleted. {0}</value>
     <comment>{0} is the reason, a full sentence.</comment>
+  </data>
+  <data name="Command_ActivityLog" xml:space="preserve">
+    <value>_Activity log</value>
+    <comment>View menu: opens the window that lists what the app did to the library.</comment>
+  </data>
+  <data name="Activity_Title" xml:space="preserve">
+    <value>Activity log</value>
+  </data>
+  <data name="Activity_Empty" xml:space="preserve">
+    <value>Nothing has happened yet. Imports, rescans, analysis and edits are listed here.</value>
+  </data>
+  <data name="Activity_FilteredEmpty" xml:space="preserve">
+    <value>No events match this filter.</value>
+  </data>
+  <data name="Activity_Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="Activity_Yesterday" xml:space="preserve">
+    <value>Yesterday</value>
+  </data>
+  <data name="Activity_ShowItems" xml:space="preserve">
+    <value>Show items</value>
+  </data>
+  <data name="Activity_LoadMore" xml:space="preserve">
+    <value>Load older events</value>
+  </data>
+  <data name="Activity_Showing" xml:space="preserve">
+    <value>Showing {0} of {1}</value>
+    <comment>{0} is how many events are listed, {1} how many match the filter.</comment>
+  </data>
+  <data name="Activity_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Activity_FiltersLabel" xml:space="preserve">
+    <value>Filter events</value>
+  </data>
+  <data name="Activity_ListLabel" xml:space="preserve">
+    <value>Activity events</value>
+  </data>
+  <data name="Activity_CountSeparator" xml:space="preserve">
+    <value> · </value>
+    <comment>Between the counts of one event.</comment>
+  </data>
+  <data name="Activity_DetailSeparator" xml:space="preserve">
+    <value> · </value>
+    <comment>Between the subject and the counts of one event.</comment>
+  </data>
+  <data name="Activity_NoChanges" xml:space="preserve">
+    <value>No changes</value>
+  </data>
+  <data name="Activity_Chip_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Activity_Chip_Imports" xml:space="preserve">
+    <value>Imports</value>
+  </data>
+  <data name="Activity_Chip_Rescans" xml:space="preserve">
+    <value>Rescans</value>
+  </data>
+  <data name="Activity_Chip_Analysis" xml:space="preserve">
+    <value>Analysis</value>
+  </data>
+  <data name="Activity_Chip_Edits" xml:space="preserve">
+    <value>Edits</value>
+  </data>
+  <data name="Activity_Chip_Folders" xml:space="preserve">
+    <value>Folders</value>
+  </data>
+  <data name="Activity_Chip_Duplicates" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="Activity_Chip_Exports" xml:space="preserve">
+    <value>Exports</value>
+  </data>
+  <data name="Activity_Chip_Errors" xml:space="preserve">
+    <value>Errors</value>
+  </data>
+  <data name="Activity_Title_Other" xml:space="preserve">
+    <value>Activity</value>
+  </data>
+  <data name="Activity_Title_Import" xml:space="preserve">
+    <value>Import finished</value>
+  </data>
+  <data name="Activity_Title_Rescan" xml:space="preserve">
+    <value>Rescan finished</value>
+  </data>
+  <data name="Activity_Title_Analysis" xml:space="preserve">
+    <value>Analysis finished</value>
+  </data>
+  <data name="Activity_Title_BulkEdit" xml:space="preserve">
+    <value>Items edited</value>
+  </data>
+  <data name="Activity_Title_BulkEditUndone" xml:space="preserve">
+    <value>Edit undone</value>
+  </data>
+  <data name="Activity_Title_DuplicateResolution" xml:space="preserve">
+    <value>Duplicates resolved</value>
+  </data>
+  <data name="Activity_Title_FolderAdded" xml:space="preserve">
+    <value>Folder added</value>
+  </data>
+  <data name="Activity_Title_FolderRemoved" xml:space="preserve">
+    <value>Folder removed</value>
+  </data>
+  <data name="Activity_Title_Export" xml:space="preserve">
+    <value>Export finished</value>
+  </data>
+  <data name="Activity_Title_LibraryImport" xml:space="preserve">
+    <value>Library import finished</value>
+  </data>
+  <data name="Activity_Title_Maintenance" xml:space="preserve">
+    <value>Maintenance finished</value>
+  </data>
+  <data name="Activity_Title_FolderMonitoring" xml:space="preserve">
+    <value>Folder monitoring</value>
+  </data>
+  <data name="Activity_Title_FolderRelinked" xml:space="preserve">
+    <value>Folder moved to a new drive letter</value>
+  </data>
+  <data name="Activity_Title_FolderDriveReplaced" xml:space="preserve">
+    <value>Folder's drive replaced</value>
+  </data>
+  <data name="Activity_Count_items" xml:space="preserve">
+    <value>Items: {0}</value>
+  </data>
+  <data name="Activity_Count_added" xml:space="preserve">
+    <value>New: {0}</value>
+  </data>
+  <data name="Activity_Count_modified" xml:space="preserve">
+    <value>Modified: {0}</value>
+  </data>
+  <data name="Activity_Count_moved" xml:space="preserve">
+    <value>Moved: {0}</value>
+  </data>
+  <data name="Activity_Count_missing" xml:space="preserve">
+    <value>Missing: {0}</value>
+  </data>
+  <data name="Activity_Count_folders" xml:space="preserve">
+    <value>Folders: {0}</value>
+  </data>
+  <data name="Activity_Count_offline" xml:space="preserve">
+    <value>Offline: {0}</value>
+  </data>
+  <data name="Activity_Count_edited" xml:space="preserve">
+    <value>Edited: {0}</value>
+  </data>
+  <data name="Activity_Count_restored" xml:space="preserve">
+    <value>Restored: {0}</value>
+  </data>
+  <data name="Activity_Count_failed" xml:space="preserve">
+    <value>Failed: {0}</value>
   </data>
 </root>

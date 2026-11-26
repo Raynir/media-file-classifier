@@ -38,8 +38,24 @@ public static class UseCasesModule
         services.AddSetting(Search.Filters.FilterSettings.RestoreOnStart);
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderStatusChanges>();
         services.TryAddSingleton<Libraries.CheckFolderAvailability.FolderAvailabilityMonitor>();
+        services.TryAddSingleton<Monitoring.MonitoringPause>();
+        services.TryAddSingleton<Monitoring.MonitoringTally>();
+        services.AddSetting(Monitoring.MonitoringSettings.NotifyThreshold);
+        services.TryAddSingleton<Monitoring.FolderWatchManager>();
+        services.TryAddSingleton<Monitoring.ChangeProcessing.HeldDeletes>();
+        services.TryAddSingleton<Monitoring.ChangeProcessing.ChangeProcessor>();
+        services.AddSetting(Monitoring.MonitoringSettings.IgnorePatterns);
+        services.AddSetting(Monitoring.MonitoringSettings.PollIntervalMinutes);
+        services.TryAddSingleton<Monitoring.FolderLocations>();
+        services.TryAddSingleton<Monitoring.FolderPoller>();
+        services.TryAddSingleton<Monitoring.QuickSyncStarter>();
+        services.TryAddSingleton<Monitoring.ReconnectCatchUp>();
+        services.AddSetting(KnownSettings.QuickSyncOnOpen);
+        services.AddSetting(KnownSettings.MonitoringEnabled);
         services.TryAddSingleton<LibraryItemsSource>();
         services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();
+        services.TryAddSingleton<Activity.ActivityChanges>();
+        services.TryAddSingleton<Activity.ActivityJobRecorder>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
         services.TryAddSingleton<Embeddings.EmbeddingModelMigration>();
@@ -54,6 +70,7 @@ public static class UseCasesModule
         services.AddSetting(Libraries.OpenLibrary.LibraryStartupSettings.OpenLastLibrary);
 
         services.TryAddSingleton<FullHashJobs>();
+        services.TryAddSingleton<FolderScanGate>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, DiscoverStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, FingerprintStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, MediaStage>());
@@ -65,6 +82,7 @@ public static class UseCasesModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RescanCheckStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RefreshMediaStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Monitoring.ChangeProcessing.ApplyChangesStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Maintenance.RegenerateThumbnails.RegenerateThumbnailStage>());
         services.TryAddSingleton<Tags.TagNormalizer>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Analysis.Pipeline.AnalysisStage>());

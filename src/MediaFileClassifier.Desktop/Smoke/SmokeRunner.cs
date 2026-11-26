@@ -1,5 +1,6 @@
 ﻿#if DEBUG
 using System.Diagnostics;
+using ActivityEvent = MediaFileClassifier.Domain.Activity.ActivityEvent;
 using System.Globalization;
 using System.Text.Json;
 using Avalonia.Controls;
@@ -7,6 +8,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using MediaFileClassifier.Domain.Activity;
+using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
@@ -21,11 +24,14 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
+using MediaFileClassifier.UseCases.Activity;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.Desktop.Platform;
+using MediaFileClassifier.UseCases.Libraries;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
+using MediaFileClassifier.UseCases.Monitoring.ChangeMonitoringMode;
 using MediaFileClassifier.UseCases.Settings;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -119,6 +125,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return null;
             case "select":
                 return await SelectAsync(step.Argument);
+            case "seed-activity":
+                return await SeedActivityAsync();
             case "seed-keyframes":
                 return await SeedKeyframesAsync(step.Argument);
             case "choose-keyframe":
@@ -193,15 +201,27 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return null;
             case "dialog-select":
                 // Selects a folder in the folders dialog's list by its name, or a category in the settings window's sidebar by its ID, as a click does (MFC-124, MFC-133).
-                var list = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants().OfType<ListBox>().FirstOrDefault()
-                    ?? throw new SmokeStepException("the dialog has no list");
-                list.SelectedItem = list.Items.OfType<object>().FirstOrDefault(row => row switch
+                var lists = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants().OfType<ListBox>().ToList();
+                if (lists.Count == 0)
+                {
+                    throw new SmokeStepException("the dialog has no list");
+                }
+
+                // The settings window has the category list and, on its Library page, the folder list too.
+                var picked = lists
+                    .SelectMany(candidate => candidate.Items.OfType<object>().Select(row => (List: candidate, Row: row)))
+                    .FirstOrDefault(entry => entry.Row switch
                     {
                         Ui.ViewModels.Libraries.IndexedFolderViewModel folder => folder.Name == step.Argument,
                         Ui.ViewModels.Settings.SettingsCategoryViewModel category => category.Category == step.Argument,
                         _ => false,
-                    })
-                    ?? throw new SmokeStepException($"the list has no folder or settings category '{step.Argument}'");
+                    });
+                if (picked.Row is null)
+                {
+                    throw new SmokeStepException($"the list has no folder or settings category '{step.Argument}'");
+                }
+
+                picked.List.SelectedItem = picked.Row;
                 return null;
             case "import-files":
                 return ImportFiles(step.Argument);
@@ -272,6 +292,10 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return await UnplugFolderAsync();
             case "plug-folder":
                 return PlugFolder();
+            case "swap-drive":
+                return await SwapDriveAsync();
+            case "folder-mode":
+                return await SetFolderModeAsync(Enum.Parse<MonitoringMode>(step.Argument));
             case "allow-error":
                 log.AllowErrors(step.Argument);
                 return null;
@@ -328,6 +352,51 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
         var changed = await services.GetRequiredService<ISender>().Send(new CheckFolderAvailabilityCommand());
         return $"{changed.Count} folder(s) offline";
+    }
+
+    /// <summary>
+    /// Makes every folder of the open library look as if its drive was swapped for one with a new identity, e.g. a clone
+    /// on a new disk (MFC-1051): it stores another volume identity for each, then checks the folders, which finds the
+    /// real drive at their roots and shows them Offline, so the folders dialog offers "Use this drive".
+    /// </summary>
+    private async Task<string> SwapDriveAsync()
+    {
+        var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
+        foreach (var folder in await library.Folders.GetAllAsync())
+        {
+            folder.ChangeVolumeId("0000-0001");
+            await library.Folders.UpdateAvailabilityAndVolumeAsync(folder);
+        }
+
+        var changed = await services.GetRequiredService<ISender>().Send(new CheckFolderAvailabilityCommand());
+        return $"{changed.Count} folder(s) offline";
+    }
+
+    /// <summary>
+    /// Sets the monitoring mode of every folder of the open library (E04-S05) through
+    /// <see cref="ChangeMonitoringModeCommand"/>, as the mode picker will.
+    /// </summary>
+    private async Task<string> SetFolderModeAsync(MonitoringMode mode)
+    {
+        var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
+        var sender = services.GetRequiredService<ISender>();
+        var folders = await IndexedFolders.GetActiveAsync(library, CancellationToken.None);
+        var failed = new List<string>();
+        foreach (var folder in folders)
+        {
+            var result = await sender.Send(new ChangeMonitoringModeCommand(folder.Id, mode));
+            if (result == ChangeMonitoringModeResult.NotFound)
+            {
+                failed.Add(folder.DisplayPath);
+            }
+        }
+
+        if (failed.Count > 0)
+        {
+            throw new SmokeStepException($"couldn't set {mode} on {string.Join(", ", failed)}");
+        }
+
+        return $"{folders.Count} folder(s) set to {mode}";
     }
 
     /// <summary>
@@ -439,6 +508,34 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
         _ = services.GetRequiredService<Ui.ViewModels.Libraries.DropImportViewModel>().DropAsync(paths);
         return dropped;
+    }
+
+    // The activity log fills as the app works. This adds a spread of events over a few days, including a warning and
+    // an error, so the window shows its day headers, links and Errors filter (E15-S04).
+    private async Task<string> SeedActivityAsync()
+    {
+        var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
+        var folder = (await library.Folders.GetAllAsync(CancellationToken.None)).FirstOrDefault() ?? throw new SmokeStepException("the library has no folder");
+        var now = DateTimeOffset.UtcNow;
+        ActivityEvent Make(ActivityEventType type, ActivitySeverity severity, TimeSpan ago, string? subject, params (string Name, long Value)[] counts) =>
+            ActivityEvent.Create(type, severity, now - ago, subject, counts.ToDictionary(count => count.Name, count => count.Value), folder.Id);
+
+        ActivityEvent[] events =
+        [
+            Make(ActivityEventType.Rescan, ActivitySeverity.Info, TimeSpan.FromMinutes(20), folder.DisplayPath, (ActivityCounts.Added, 4), (ActivityCounts.Modified, 2), (ActivityCounts.Missing, 1)),
+            Make(ActivityEventType.BulkEdit, ActivitySeverity.Info, TimeSpan.FromHours(1), null, (ActivityCounts.Edited, 12)),
+            Make(ActivityEventType.Analysis, ActivitySeverity.Warning, TimeSpan.FromHours(30), folder.DisplayPath, (ActivityCounts.Items, 40), (ActivityCounts.Failed, 3)),
+            Make(ActivityEventType.Import, ActivitySeverity.Info, TimeSpan.FromHours(31), folder.DisplayPath, (ActivityCounts.Items, 40)),
+            Make(ActivityEventType.Import, ActivitySeverity.Error, TimeSpan.FromDays(4), folder.DisplayPath, (ActivityCounts.Items, 8), (ActivityCounts.Failed, 8)),
+            Make(ActivityEventType.FolderAdded, ActivitySeverity.Info, TimeSpan.FromDays(4.1), folder.DisplayPath),
+        ];
+        foreach (var activity in events)
+        {
+            await library.Activity.AddAsync(activity, CancellationToken.None);
+        }
+
+        services.GetRequiredService<ActivityChanges>().Raise();
+        return $"{events.Length} events";
     }
 
     // Keyframes exist only after AI analysis, which needs the model. This does what the analysis does for them: it

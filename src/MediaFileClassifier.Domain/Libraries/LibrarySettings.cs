@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Jobs;
 
 namespace MediaFileClassifier.Domain.Libraries;
 
@@ -22,6 +23,7 @@ public sealed record LibrarySettings
     private readonly AnalysisProfile analysisProfile = AnalysisProfile.Default;
     private readonly double embeddingSwitchThreshold = DefaultEmbeddingSwitchThreshold;
     private readonly string lastFilters = string.Empty;
+    private readonly IReadOnlyList<ResourcePool> pausedPools = [];
     private readonly int retainedPreviousRuns = 1;
     private readonly int thumbnailTileSize = DefaultThumbnailTileSize;
 
@@ -96,6 +98,38 @@ public sealed record LibrarySettings
         {
             ArgumentNullException.ThrowIfNull(value);
             lastFilters = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether opening the library runs a quick sync of its Online folders (E04-S03). It's stored
+    /// only when turned off.
+    /// </summary>
+    public bool QuickSyncOnOpen { get; init; } = true;
+
+    /// <summary>
+    /// Gets a value indicating whether the library's folders are monitored for changes (E04-S06). It's stored only when
+    /// turned off.
+    /// </summary>
+    public bool MonitoringEnabled { get; init; } = true;
+
+    /// <summary>
+    /// Gets whether all processing was paused when the library was last used (E05-S05-T03). It's restored when the
+    /// library opens if the app setting to keep processing paused after a restart is on.
+    /// </summary>
+    public bool ProcessingPaused { get; init; }
+
+    /// <summary>
+    /// Gets the resource pools paused on their own when the library was last used (E05-S05-T03), restored like
+    /// <see cref="ProcessingPaused"/>.
+    /// </summary>
+    public IReadOnlyList<ResourcePool> PausedPools
+    {
+        get => pausedPools;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            pausedPools = value;
         }
     }
 

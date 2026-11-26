@@ -48,6 +48,7 @@ internal sealed class OpenLibrary : IOpenLibrary
         Jobs = new JobRepository(connections, writer);
         Keyframes = new KeyframeRepository(connections, writer);
         AnalyzerStates = new AnalyzerStateRepository(connections, writer);
+        Activity = new ActivityRepository(connections, writer);
         Embeddings = new EmbeddingRepository(connections, writer);
         Search = new SearchStore(connections, writer);
         Maintenance = new LibraryMaintenance(connections, writer);
@@ -79,6 +80,9 @@ internal sealed class OpenLibrary : IOpenLibrary
 
     /// <inheritdoc />
     public IAnalyzerStateRepository AnalyzerStates { get; }
+
+    /// <inheritdoc />
+    public IActivityRepository Activity { get; }
 
     /// <inheritdoc />
     public IEmbeddingRepository Embeddings { get; }

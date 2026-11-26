@@ -20,6 +20,12 @@ public sealed class OpenLibrarySettingValues : ILibrarySettingValues
         [KnownSettings.RetainedPreviousRuns.Key] = new(
             settings => JsonSerializer.SerializeToElement(settings.RetainedPreviousRuns),
             (settings, json) => settings with { RetainedPreviousRuns = json.GetInt32() }),
+        [KnownSettings.QuickSyncOnOpen.Key] = new(
+            settings => JsonSerializer.SerializeToElement(settings.QuickSyncOnOpen),
+            (settings, json) => settings with { QuickSyncOnOpen = json.GetBoolean() }),
+        [KnownSettings.MonitoringEnabled.Key] = new(
+            settings => JsonSerializer.SerializeToElement(settings.MonitoringEnabled),
+            (settings, json) => settings with { MonitoringEnabled = json.GetBoolean() }),
         [KnownSettings.LastFilters.Key] = new(
             settings => JsonSerializer.SerializeToElement(settings.LastFilters),
             (settings, json) => settings with { LastFilters = json.GetString() ?? string.Empty }),

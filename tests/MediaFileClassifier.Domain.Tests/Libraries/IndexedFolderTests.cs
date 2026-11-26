@@ -58,6 +58,27 @@ public sealed class IndexedFolderTests
     }
 
     [Fact]
+    public void ChangeMonitoringMode_IsAutoByDefault_AndTellsWhetherItChanged()
+    {
+        var folder = IndexedFolder.Create(Id<Library>.New(), @"E:\Photos", @"E:\Photos", Start);
+
+        Assert.Equal(MonitoringMode.Auto, folder.MonitoringMode);
+        Assert.True(folder.ChangeMonitoringMode(MonitoringMode.Poll));
+        Assert.False(folder.ChangeMonitoringMode(MonitoringMode.Poll));
+        Assert.Equal(MonitoringMode.Poll, folder.MonitoringMode);
+    }
+
+    [Fact]
+    public void ChangeMonitoringMode_ToAnUndefinedMode_Throws_AndAStoredOneReadsAsAuto()
+    {
+        var folder = new IndexedFolder(
+            Id<IndexedFolder>.New(), Id<Library>.New(), @"E:\Photos", @"E:\Photos", new FolderRules(), FolderStatus.Online, Start, Start, monitoringMode: (MonitoringMode)42);
+
+        Assert.Equal(MonitoringMode.Auto, folder.MonitoringMode);
+        Assert.Throws<ArgumentOutOfRangeException>(() => folder.ChangeMonitoringMode((MonitoringMode)42));
+    }
+
+    [Fact]
     public void Library_RenameRejectsBlankName()
     {
         var library = Library.Create("Photos", Start);

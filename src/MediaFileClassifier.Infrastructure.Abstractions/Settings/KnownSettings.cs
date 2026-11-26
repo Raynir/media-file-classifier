@@ -50,6 +50,28 @@ public static class KnownSettings
     };
 
     /// <summary>
+    /// Whether opening a library runs a quick sync of its Online folders (E04-S03-T01): it picks up the changes made
+    /// while the app was closed. Off for very large or slow drives. It's stored in the library.
+    /// </summary>
+    public static readonly BooleanSetting QuickSyncOnOpen = new(
+        "monitoring.quickSyncOnOpen", SettingScope.Library, SettingCategories.Library, "Setting_QuickSyncOnOpen", defaultValue: true)
+    {
+        HelpKey = "Setting_QuickSyncOnOpen_Help",
+        Order = 300,
+    };
+
+    /// <summary>
+    /// Whether the library's folders are monitored for changes (E04-S06-T01): turned off, no folder is watched, and the
+    /// library only changes through rescans. It's stored in the library; each folder's own mode comes on top.
+    /// </summary>
+    public static readonly BooleanSetting MonitoringEnabled = new(
+        "monitoring.enabled", SettingScope.Library, SettingCategories.Library, "Setting_MonitoringEnabled", defaultValue: true)
+    {
+        HelpKey = "Setting_MonitoringEnabled_Help",
+        Order = 290,
+    };
+
+    /// <summary>
     /// The filters in force when the library was last used, as the search's filter-state JSON (D314). Mirrors
     /// <c>LibrarySettings.LastFilters</c>. It isn't registered, so the settings window doesn't list it.
     /// </summary>

@@ -1,0 +1,550 @@
+using System.Diagnostics.CodeAnalysis;
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Files;
+using MediaFileClassifier.Infrastructure.Abstractions.Watching;
+using Microsoft.Extensions.Logging;
+
+namespace MediaFileClassifier.UseCases.Monitoring;
+
+/// <summary>
+/// Turns raw watcher events into stable changes (E04-S01-T02, DNEW-3). A path is checked once its events have been quiet
+/// for <see cref="Quiet"/>. A file is ready when its size and modification time are the same as at a check
+/// <see cref="StableFor"/> earlier and it opens for reading; until then it's checked every <see cref="StableFor"/>, and
+/// while it stays locked the wait doubles up to <see cref="MaxWait"/>. An empty file isn't reported (a browser's
+/// placeholder while it downloads); the event that fills it is. A new folder is listed and its files are checked like
+/// new files; a renamed folder is reported as a rename of each of its files. A path that's still settling when it's
+/// renamed, or renamed over a path deleted just before (a safe save), is reported as a deletion of where the library may
+/// know it and a change at its new path, never as a rename from a path the library doesn't know. Checks run one at a time
+/// on the clock's timer, so a burst of events gives one change per file.
+/// </summary>
+public sealed class FolderChangeBuffer : IDisposable
+{
+    /// <summary>
+    /// How many times a folder that's gone is checked again before it's dropped: a folder renamed twice is gone by its
+    /// first event, and the second may come late, e.g. on a network share (MFC-1032).
+    /// </summary>
+    private const int GoneFolderRetries = 2;
+
+    /// <summary>
+    /// How long a path's events must be quiet before it's checked.
+    /// </summary>
+    public static readonly TimeSpan Quiet = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// How long a file's size and modification time must stay the same.
+    /// </summary>
+    public static readonly TimeSpan StableFor = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// The longest wait between checks of a file that stays locked.
+    /// </summary>
+    public static readonly TimeSpan MaxWait = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// How often due paths are looked for while any are waiting.
+    /// </summary>
+    public static readonly TimeSpan Tick = TimeSpan.FromMilliseconds(500);
+
+    private readonly IMediaFileSource files;
+    private readonly TimeProvider clock;
+    private readonly ILogger logger;
+    private readonly Func<Id<IndexedFolder>, IReadOnlyList<FolderChange>, CancellationToken, Task> ready;
+    private readonly Func<Id<IndexedFolder>, string, bool> includes;
+    private readonly Lock syncRoot = new();
+    private readonly Dictionary<Id<IndexedFolder>, Dictionary<string, Pending>> pending = [];
+    private readonly ITimer timer;
+
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Cancelled by Dispose; a check already under way may still read its token. It has no timer or wait handle.")]
+    private readonly CancellationTokenSource stopping = new();
+
+    private bool ticking;
+    private int processing;
+    private bool disposed;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FolderChangeBuffer"/> class.
+    /// </summary>
+    /// <param name="files">Checks the files.</param>
+    /// <param name="clock">Times the waits.</param>
+    /// <param name="logger">Logger.</param>
+    /// <param name="ready">Receives each folder's changes that became stable at one check.</param>
+    /// <param name="includes">Tells whether a file found in a new folder is checked at all; every file by default.</param>
+    public FolderChangeBuffer(
+        IMediaFileSource files,
+        TimeProvider clock,
+        ILogger logger,
+        Func<Id<IndexedFolder>, IReadOnlyList<FolderChange>, CancellationToken, Task> ready,
+        Func<Id<IndexedFolder>, string, bool>? includes = null)
+    {
+        this.files = files;
+        this.clock = clock;
+        this.logger = logger;
+        this.ready = ready;
+        this.includes = includes ?? ((_, _) => true);
+        timer = clock.CreateTimer(_ => _ = ProcessAsync(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+    }
+
+    /// <summary>
+    /// Gets how many paths are waiting.
+    /// </summary>
+    public int PendingCount
+    {
+        get
+        {
+            lock (syncRoot)
+            {
+                return pending.Values.Sum(paths => paths.Count);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Records a raw event. Each event for a path starts its quiet wait again.
+    /// </summary>
+    /// <param name="folderId">The watched folder.</param>
+    /// <param name="folder">Its handle, to check the files through.</param>
+    /// <param name="change">The event.</param>
+    public void Record(Id<IndexedFolder> folderId, FolderHandle folder, FolderWatchEvent change)
+    {
+        ArgumentNullException.ThrowIfNull(folder);
+        ArgumentNullException.ThrowIfNull(change);
+
+        lock (syncRoot)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (!pending.TryGetValue(folderId, out var paths))
+            {
+                paths = new Dictionary<string, Pending>(StringComparer.OrdinalIgnoreCase);
+                pending[folderId] = paths;
+            }
+
+            var due = clock.GetUtcNow() + Quiet;
+            paths.TryGetValue(change.RelativePath, out var existing);
+            switch (change.Kind)
+            {
+                case FolderWatchEventKind.Created or FolderWatchEventKind.Changed when change.IsDirectory:
+                    // A folder's own write time changes with its content; only a new folder needs listing.
+                    if (change.Kind == FolderWatchEventKind.Created)
+                    {
+                        paths[change.RelativePath] = new Pending(folder, FolderChangeKind.Changed, null, isDirectory: true, due);
+                    }
+
+                    break;
+
+                case FolderWatchEventKind.Created or FolderWatchEventKind.Changed:
+                    // A file renamed and then written is still the renamed file.
+                    paths[change.RelativePath] = existing is { Kind: FolderChangeKind.Renamed, IsDirectory: false }
+                        ? new Pending(folder, FolderChangeKind.Renamed, existing.OldPath, isDirectory: false, due)
+                        : new Pending(folder, FolderChangeKind.Changed, null, isDirectory: false, due) { OldPathDeleted = existing?.OldPathDeleted ?? false };
+                    break;
+
+                case FolderWatchEventKind.Deleted:
+                    paths[change.RelativePath] = new Pending(folder, FolderChangeKind.Deleted, null, isDirectory: false, due);
+                    if (existing is { Kind: FolderChangeKind.Renamed, OldPath: { } renamedFrom })
+                    {
+                        // Moved and then deleted: the file at the old path is gone too.
+                        paths[renamedFrom] = new Pending(folder, FolderChangeKind.Deleted, null, isDirectory: false, due);
+                    }
+
+                    break;
+
+                case FolderWatchEventKind.Renamed:
+                    var oldPath = change.OldRelativePath ?? change.RelativePath;
+                    paths.Remove(oldPath, out var moved);
+                    if (moved is { Kind: FolderChangeKind.Renamed, OldPath: { } earlier })
+                    {
+                        // Renamed twice before it settled: one rename from where it was first.
+                        oldPath = earlier;
+                    }
+
+                    if (change.IsDirectory)
+                    {
+                        MoveUnder(paths, folder, change.OldRelativePath ?? change.RelativePath, change.RelativePath, due);
+                        paths[change.RelativePath] = moved is { Kind: FolderChangeKind.Changed }
+
+                            // A new folder renamed before it was listed is still a new folder.
+                            ? new Pending(folder, FolderChangeKind.Changed, null, isDirectory: true, due)
+                            : new Pending(folder, FolderChangeKind.Renamed, oldPath, isDirectory: true, due);
+                    }
+                    else if (moved is { Kind: FolderChangeKind.Changed } || existing is { Kind: FolderChangeKind.Deleted })
+                    {
+                        // Not settled yet, or moved over a file deleted just before (a safe save): whatever the library
+                        // knows at the old path is gone, and the new path has new content.
+                        paths[oldPath] = new Pending(folder, FolderChangeKind.Deleted, null, isDirectory: false, due);
+                        paths[change.RelativePath] = new Pending(folder, FolderChangeKind.Changed, null, isDirectory: false, due);
+                    }
+                    else
+                    {
+                        paths[change.RelativePath] = new Pending(folder, FolderChangeKind.Renamed, oldPath, isDirectory: false, due);
+                    }
+
+                    break;
+            }
+
+            if (paths.Count == 0)
+            {
+                pending.Remove(folderId);
+            }
+
+            Arm();
+        }
+    }
+
+    /// <summary>
+    /// Drops what's waiting for a folder, e.g. when it stops being watched.
+    /// </summary>
+    /// <param name="folderId">The folder.</param>
+    public void Forget(Id<IndexedFolder> folderId)
+    {
+        lock (syncRoot)
+        {
+            pending.Remove(folderId);
+            Arm();
+        }
+    }
+
+    /// <summary>
+    /// Stops the checks and drops everything waiting.
+    /// </summary>
+    public void Dispose()
+    {
+        lock (syncRoot)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            disposed = true;
+            pending.Clear();
+        }
+
+        timer.Dispose();
+        stopping.Cancel();
+    }
+
+    /// <summary>
+    /// Moves what's still settling under a renamed folder to its new path, so it's checked there. Each file is reported as
+    /// a deletion of its old path, which the library may know, and a change at the new one; one already moved keeps where
+    /// it came from, and a new subfolder is still listed. Deletions stay where they were.
+    /// </summary>
+    // Called under the lock.
+    private static void MoveUnder(Dictionary<string, Pending> paths, FolderHandle folder, string oldFolder, string newFolder, DateTimeOffset due)
+    {
+        var prefix = oldFolder + "/";
+        var settling = paths
+            .Where(path => path.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) && path.Value.Kind != FolderChangeKind.Deleted)
+            .ToList();
+        foreach (var (path, entry) in settling)
+        {
+            paths.Remove(path);
+            var target = newFolder + "/" + path[prefix.Length..];
+            if (entry.Kind == FolderChangeKind.Renamed || entry.IsDirectory)
+            {
+                paths[target] = new Pending(folder, entry.Kind, entry.OldPath, entry.IsDirectory, due);
+            }
+            else
+            {
+                paths[path] = new Pending(folder, FolderChangeKind.Deleted, null, isDirectory: false, due);
+                paths[target] = new Pending(folder, FolderChangeKind.Changed, null, isDirectory: false, due) { OldPathDeleted = true };
+            }
+        }
+    }
+
+    private static TimeSpan Backoff(int attempts) =>
+        TimeSpan.FromTicks(Math.Min(MaxWait.Ticks, StableFor.Ticks << Math.Min(attempts, 8)));
+
+    // Called under the lock.
+    private void Arm()
+    {
+        var any = pending.Count > 0;
+        if (any != ticking && !disposed)
+        {
+            ticking = any;
+            timer.Change(any ? Tick : Timeout.InfiniteTimeSpan, any ? Tick : Timeout.InfiniteTimeSpan);
+        }
+    }
+
+    private async Task ProcessAsync()
+    {
+        // A slow check (a network share) makes later ticks skip, not pile up.
+        if (Interlocked.Exchange(ref processing, 1) == 1)
+        {
+            return;
+        }
+
+        var token = stopping.Token;
+        try
+        {
+            List<(Id<IndexedFolder> FolderId, string Path, Pending Entry)> due;
+            lock (syncRoot)
+            {
+                var now = clock.GetUtcNow();
+                due = [.. pending.SelectMany(folder => folder.Value
+                    .Where(path => path.Value.DueAt <= now)
+                    .Select(path => (folder.Key, path.Key, path.Value)))];
+            }
+
+            var found = new Dictionary<Id<IndexedFolder>, List<FolderChange>>();
+            foreach (var (folderId, path, entry) in due)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                IReadOnlyList<FolderChange> changes;
+                try
+                {
+                    changes = await CheckAsync(folderId, path, entry, token).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException || !token.IsCancellationRequested)
+                {
+                    // Not a locked or unreachable file; checking again would fail the same way. A rescan finds it.
+                    logger.LogWarning(exception, "Couldn't check a changed path in a watched folder; it's dropped");
+                    _ = Complete(folderId, path, entry, null);
+                    continue;
+                }
+
+                if (changes.Count > 0)
+                {
+                    if (!found.TryGetValue(folderId, out var list))
+                    {
+                        list = [];
+                        found[folderId] = list;
+                    }
+
+                    list.AddRange(changes);
+                }
+            }
+
+            foreach (var (folderId, changes) in found)
+            {
+                try
+                {
+                    await ready(folderId, changes, token).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException || !token.IsCancellationRequested)
+                {
+                    logger.LogWarning(exception, "Couldn't hand over {Count} folder changes", changes.Count);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // Stopping.
+        }
+        finally
+        {
+            Volatile.Write(ref processing, 0);
+        }
+    }
+
+    /// <summary>
+    /// Checks one due path. It returns the changes that are ready, and either drops the path or sets its next check.
+    /// A path whose events arrived during the check is left to its newer entry.
+    /// </summary>
+    private async Task<IReadOnlyList<FolderChange>> CheckAsync(Id<IndexedFolder> folderId, string path, Pending entry, CancellationToken token)
+    {
+        try
+        {
+            if (entry.IsDirectory)
+            {
+                var inside = new List<MediaFileStat>();
+                try
+                {
+                    await foreach (var file in files.EnumerateFilesAsync(entry.Folder, path, token).ConfigureAwait(false))
+                    {
+                        // A renamed folder's files are filtered with their old paths when they're published.
+                        if (entry.Kind == FolderChangeKind.Renamed || includes(folderId, file.RelativePath))
+                        {
+                            inside.Add(file);
+                        }
+                    }
+                }
+                catch (DirectoryNotFoundException) when (!token.IsCancellationRequested && entry.Attempts >= GoneFolderRetries)
+                {
+                    if (!await files.IsAvailableAsync(entry.Folder, token).ConfigureAwait(false))
+                    {
+                        throw;
+                    }
+
+                    // Renamed again or deleted since, and its later event never came; or a gone file taken for a folder
+                    // (MFC-1032). Nothing's left to list. Before that, the IOException path waits for the event.
+                    return Complete(folderId, path, entry, null);
+                }
+
+                return CompleteDirectory(folderId, path, entry, inside);
+            }
+
+            var stat = await files.GetStatAsync(new FileLocation(entry.Folder, path), token).ConfigureAwait(false);
+            if (stat is null)
+            {
+                // Gone: a deletion, or a new file deleted again (the library has nothing to drop then).
+                var gone = new FolderChange(FolderChangeKind.Deleted, entry.Kind == FolderChangeKind.Renamed ? entry.OldPath! : path);
+                return Complete(folderId, path, entry, gone);
+            }
+
+            if (stat.Length == 0)
+            {
+                return Complete(folderId, path, entry, null);
+            }
+
+            if (entry.LastStat is not { } last || last.Length != stat.Length || last.LastModifiedUtc != stat.LastModifiedUtc)
+            {
+                // A deletion whose path is back (a safe save) is a change of the file.
+                var kind = entry.Kind == FolderChangeKind.Deleted ? FolderChangeKind.Changed : entry.Kind;
+                Reschedule(folderId, path, entry, entry.With(kind, stat, entry.Attempts, clock.GetUtcNow() + StableFor));
+                return [];
+            }
+
+            // Opening is the check: a file still being written is locked. A cloud placeholder isn't opened: its content
+            // isn't on the device, and opening it may download it (E03-S02-T04). The folder's rules decide later.
+            if (!stat.IsCloudPlaceholder)
+            {
+                await using (await files.OpenReadAsync(new FileLocation(entry.Folder, path), token).ConfigureAwait(false))
+                {
+                }
+            }
+
+            return Complete(folderId, path, entry, new FolderChange(entry.Kind, path, entry.OldPath, stat));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // Locked or briefly unreachable: wait longer each time. A folder that's gone raises a watcher error.
+            Reschedule(folderId, path, entry, entry.With(entry.Kind, entry.LastStat, entry.Attempts + 1, clock.GetUtcNow() + Backoff(entry.Attempts + 1)));
+            return [];
+        }
+    }
+
+    private IReadOnlyList<FolderChange> CompleteDirectory(Id<IndexedFolder> folderId, string path, Pending entry, List<MediaFileStat> inside)
+    {
+        if (entry.Kind == FolderChangeKind.Renamed)
+        {
+            // A rename is instant, so the files are as stable as they were before it. A file still settling, or changed
+            // since, is reported by its own entry, and the library may know it at its old path.
+            var prefix = entry.OldPath + "/";
+            lock (syncRoot)
+            {
+                if (!IsCurrent(folderId, path, entry))
+                {
+                    return [];
+                }
+
+                var paths = pending[folderId];
+                paths.Remove(path);
+                var renames = new List<FolderChange>(inside.Count);
+                foreach (var file in inside)
+                {
+                    var oldPath = prefix + file.RelativePath[(path.Length + 1)..];
+                    if (!paths.TryGetValue(file.RelativePath, out var own))
+                    {
+                        renames.Add(new FolderChange(FolderChangeKind.Renamed, file.RelativePath, oldPath, file));
+                    }
+                    else if (own is { Kind: FolderChangeKind.Changed, IsDirectory: false, OldPathDeleted: false })
+                    {
+                        paths.TryAdd(oldPath, new Pending(entry.Folder, FolderChangeKind.Deleted, null, isDirectory: false, own.DueAt));
+                    }
+                }
+
+                RemoveIfEmpty(folderId);
+                return renames;
+            }
+        }
+
+        // A new folder, e.g. moved in from elsewhere: its files are checked like new files.
+        lock (syncRoot)
+        {
+            if (!IsCurrent(folderId, path, entry))
+            {
+                return [];
+            }
+
+            var paths = pending[folderId];
+            paths.Remove(path);
+            var due = clock.GetUtcNow() + Quiet;
+            foreach (var file in inside)
+            {
+                paths.TryAdd(file.RelativePath, new Pending(entry.Folder, FolderChangeKind.Changed, null, isDirectory: false, due));
+            }
+
+            RemoveIfEmpty(folderId);
+            return [];
+        }
+    }
+
+    private IReadOnlyList<FolderChange> Complete(Id<IndexedFolder> folderId, string path, Pending entry, FolderChange? change)
+    {
+        lock (syncRoot)
+        {
+            if (!IsCurrent(folderId, path, entry))
+            {
+                return [];
+            }
+
+            pending[folderId].Remove(path);
+            RemoveIfEmpty(folderId);
+        }
+
+        return change is null ? [] : [change];
+    }
+
+    private void Reschedule(Id<IndexedFolder> folderId, string path, Pending entry, Pending next)
+    {
+        lock (syncRoot)
+        {
+            if (IsCurrent(folderId, path, entry))
+            {
+                pending[folderId][path] = next;
+            }
+        }
+    }
+
+    // Called under the lock.
+    private bool IsCurrent(Id<IndexedFolder> folderId, string path, Pending entry) =>
+        pending.TryGetValue(folderId, out var paths) && paths.TryGetValue(path, out var current) && ReferenceEquals(current, entry);
+
+    // Called under the lock.
+    private void RemoveIfEmpty(Id<IndexedFolder> folderId)
+    {
+        if (pending.TryGetValue(folderId, out var paths) && paths.Count == 0)
+        {
+            pending.Remove(folderId);
+        }
+
+        Arm();
+    }
+
+    /// <summary>
+    /// A path waiting to be checked. It's replaced, never changed, so a check can tell whether events arrived meanwhile.
+    /// </summary>
+    private sealed class Pending(FolderHandle folder, FolderChangeKind kind, string? oldPath, bool isDirectory, DateTimeOffset dueAt)
+    {
+        public FolderHandle Folder { get; } = folder;
+
+        public FolderChangeKind Kind { get; } = kind;
+
+        public string? OldPath { get; } = oldPath;
+
+        public bool IsDirectory { get; } = isDirectory;
+
+        public DateTimeOffset DueAt { get; } = dueAt;
+
+        public MediaFileStat? LastStat { get; private init; }
+
+        public int Attempts { get; private init; }
+
+        /// <summary>
+        /// Gets a value indicating whether the path it had before its folder was renamed is reported as deleted already.
+        /// </summary>
+        public bool OldPathDeleted { get; init; }
+
+        public Pending With(FolderChangeKind kind, MediaFileStat? stat, int attempts, DateTimeOffset dueAt) =>
+            new(Folder, kind, OldPath, IsDirectory, dueAt) { LastStat = stat, Attempts = attempts, OldPathDeleted = OldPathDeleted };
+    }
+}

@@ -1,0 +1,42 @@
+# Pausing and resuming processing (MFC-194): all of it, a pool, and one job. Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/pause-resume.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+# The processing panel with nothing paused: Pause all processing in its header.
+command view.processing-queue
+wait-for dialog
+dialog-size 760x560
+wait 300ms
+dialog-shot 01-panel-running
+
+# Pause everything: the banner says so. The analysis queued by the import waits (it needs a model anyway).
+dialog-click Pause all processing
+wait 1000ms
+dialog-shot 02-panel-paused
+shot 03-main-paused
+
+# The drop-down that pauses single pools is a popup of the panel window, which the tool can't capture; the view
+# model tests cover it.
+
+# Pause the queued job on its own; resuming everything leaves it paused.
+dialog-click Pause job
+wait 500ms
+dialog-click Resume processing
+wait 1000ms
+dialog-shot 05-job-paused
+
+# Resume the job.
+dialog-click Resume job
+wait 1000ms
+dialog-shot 06-resumed
+
+# Dark theme, paused.
+command view.theme-dark
+dialog-click Pause all processing
+wait 500ms
+dialog-shot 07-panel-paused-dark
+dialog-click Resume processing
+wait-for idle

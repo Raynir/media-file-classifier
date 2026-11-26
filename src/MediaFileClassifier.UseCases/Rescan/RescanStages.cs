@@ -12,6 +12,12 @@ public static class RescanStages
     public const string RescanJob = "rescan";
 
     /// <summary>
+    /// The quick sync that runs when a library opens (E04-S03): a library-wide rescan of the Online folders, with the
+    /// same stages as <see cref="RescanJob"/>. It's its own type so its summary is shown only when something changed.
+    /// </summary>
+    public const string QuickSyncJob = "rescan.quick";
+
+    /// <summary>
     /// Lists the folders, reconciles them with the library, and applies the result.
     /// </summary>
     public const string Reconcile = "rescan.reconcile";

@@ -74,7 +74,11 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
         return Task.FromResult<IReadOnlyList<Id<MediaItem>>>([.. due.Select(item => item.Id)]);
     }
 
-    public Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<bool> ReplaceWithMovedAsync(MediaItem moved, Id<MediaItem> duplicateId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<MediaItem?> FindByPathAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Items.FirstOrDefault(item => item.FolderId == folderId && string.Equals(item.Path.Value, path.Value, StringComparison.OrdinalIgnoreCase)));
 
     public Task<IReadOnlyList<MediaItemFileState>> GetFileStatesAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
@@ -106,6 +110,15 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
 
     public Task<IReadOnlyList<MediaItem>> GetByFolderAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<MediaItem>>([.. Items.Where(item => item.FolderId == folderId)]);
+
+    public int UnderReads { get; private set; }
+
+    public Task<IReadOnlyList<MediaItem>> GetUnderAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default)
+    {
+        UnderReads++;
+        return Task.FromResult<IReadOnlyList<MediaItem>>(
+            [.. Items.Where(item => item.FolderId == folderId && item.Path.Value.StartsWith(path.Value + "/", StringComparison.OrdinalIgnoreCase))]);
+    }
 
     public Task<IReadOnlyList<MediaItemSummary>> GetSummariesAsync(MediaItemFilter filter, int offset, int limit, CancellationToken cancellationToken = default) =>
         GetSummariesAsync(offset, limit, cancellationToken);
@@ -145,6 +158,9 @@ internal sealed class FakeMediaItemRepository : IMediaItemRepository
         RaiseChanged();
         return Task.CompletedTask;
     }
+
+    public Task UpdateFilesAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default) =>
+        UpdateRangeAsync(items, cancellationToken);
 
     public Task<IReadOnlyList<Id<MediaItem>>> DeleteFromFolderAsync(Id<IndexedFolder> folderId, int limit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 

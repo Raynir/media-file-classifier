@@ -16,6 +16,17 @@ public interface IFolderRepository
     event EventHandler? StatusChanged;
 
     /// <summary>
+    /// Raised after a write added, changed, merged, split or deleted folders (E04-S01-T01), so folder watching follows
+    /// the folder list. Status changes raise <see cref="StatusChanged"/> instead. It's raised on the writing thread, after
+    /// the write is stored. A repository that never raises it may leave it as this no-op.
+    /// </summary>
+    event EventHandler? Changed
+    {
+        add { }
+        remove { }
+    }
+
+    /// <summary>
     /// Gets a folder.
     /// </summary>
     /// <param name="id">Folder ID.</param>
@@ -39,7 +50,8 @@ public interface IFolderRepository
     Task AddAsync(IndexedFolder folder, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Stores the changes made to a folder, e.g. by <see cref="IndexedFolder.Relink"/>.
+    /// Stores the changes made to a folder, e.g. by <see cref="IndexedFolder.Relink"/>. A folder without a volume ID or
+    /// label keeps the stored ones, which an availability check may have stored since the folder was read (MFC-1055).
     /// </summary>
     /// <param name="folder">The changed folder.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -47,16 +59,38 @@ public interface IFolderRepository
     Task UpdateAsync(IndexedFolder folder, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Stores only a folder's availability: its status, when that changed and its volume label (E14-S07-T04). Every
-    /// writer that only changes a folder's status uses it (availability checks, discovery, rescans, imports), because
-    /// each holds the folder for as long as its probes or scan take, so storing the whole row could undo a relink or a
-    /// rule change made meanwhile. Nothing is stored if the folder was relinked to another root since it was read: what
-    /// was found applies to the old root.
+    /// Stores only a folder's availability: its status and when that changed (E14-S07-T04). Every writer that only
+    /// changes a folder's status uses it (discovery, rescans, imports), because each holds the folder for as long as its
+    /// scan takes, so storing the whole row could undo a relink, a rule change or a volume read made meanwhile
+    /// (MFC-1055). Nothing is stored if the folder was relinked to another root since it was read: what was found
+    /// applies to the old root.
     /// </summary>
-    /// <param name="folder">The folder, with its new status and label.</param>
+    /// <param name="folder">The folder, with its new status.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task that completes when the availability is stored.</returns>
     Task UpdateAvailabilityAsync(IndexedFolder folder, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores a folder's availability as <see cref="UpdateAvailabilityAsync"/> does, and its volume label and identity,
+    /// for the availability check, which reads them. A folder without a volume ID keeps the stored one, so a copy read
+    /// before the ID was stored can't erase it (MFC-1046); a label of <see langword="null"/> is stored, since a drive may
+    /// have none.
+    /// </summary>
+    /// <param name="folder">The folder, with its new status, label and identity.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task that completes when the availability is stored.</returns>
+    Task UpdateAvailabilityAndVolumeAsync(IndexedFolder folder, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stores a folder found under another root on its own volume (E04-S04-T03): its paths, availability, volume label
+    /// and volume identity, not its rules. Nothing is stored if the folder was relinked or moved since it was read, so
+    /// the newer root wins.
+    /// </summary>
+    /// <param name="folder">The relinked folder.</param>
+    /// <param name="oldPlatformHandle">The root it had when it was read.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="true"/> when the relink was stored.</returns>
+    Task<bool> RelinkAsync(IndexedFolder folder, string oldPlatformHandle, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Merges a folder into a parent folder that contains it (E02-S03-T02), in one transaction: the child's items move

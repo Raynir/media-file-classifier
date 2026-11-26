@@ -83,6 +83,8 @@ public sealed class CancelJobTests : IDisposable
 
         public Task<bool> EnqueueWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<bool> AppendWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public void Boost(IReadOnlyCollection<Id<MediaItem>> itemIds) => throw new NotSupportedException();
 
         public int GetPoolLimit(ResourcePool pool) => 1;
@@ -94,6 +96,30 @@ public sealed class CancelJobTests : IDisposable
         public void Resume()
         {
         }
+
+        public event EventHandler? PauseChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public void Pause()
+        {
+        }
+
+        public bool IsPoolPaused(ResourcePool pool) => false;
+
+        public void PausePool(ResourcePool pool)
+        {
+        }
+
+        public void ResumePool(ResourcePool pool)
+        {
+        }
+
+        public Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+
+        public Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(false);
 
         public void ReleaseParked()
         {

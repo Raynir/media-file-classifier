@@ -40,6 +40,8 @@ public static class InfrastructureModule
         services.TryAddSingleton<IHardwareOverrides>(provider => new SettingsHardwareOverrides(provider));
         services.TryAddSingleton<ILibrarySession, LibrarySession>();
         services.TryAddSingleton<Abstractions.Platform.IVolumeWatcher, Files.NoVolumeWatcher>();
+        services.TryAddSingleton<Abstractions.Platform.IVolumeLocator, Files.NoVolumeLocator>();
+        services.TryAddSingleton<Abstractions.Platform.IFolderLocationProbe, Files.PathFolderLocationProbe>();
         services.TryAddSingleton<ILibraryLocations, LibraryLocations>();
         services.TryAddSingleton<ILibraryDiskUsage, LibraryDiskUsageMeter>();
         services.TryAddSingleton<IHardwareDetector, PortableHardwareDetector>();

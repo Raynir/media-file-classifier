@@ -14,13 +14,14 @@
         <Button Content="{l:Loc Folders_Remove}" Command="{Binding RemoveCommand}" />
         <Button Content="{l:Loc Folders_Rescan}" Command="{Binding RescanCommand}" />
         <Button Content="{l:Loc Folders_Analyze}" Command="{Binding AnalyzeCommand}" />
+        <Button x:Name="MonitoringPauseButton" Content="{Binding MonitoringPauseLabel}" Command="{Binding ToggleMonitoringPauseCommand}" IsVisible="{Binding CanPauseMonitoring}" />
       </StackPanel>
 
       <!-- Merge and remove are confirmed here, not in another window. -->
       <Border Classes="Panel" Padding="{DynamicResource Padding.Control}" IsVisible="{Binding IsConfirming}">
         <DockPanel>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" VerticalAlignment="Center">
-            <Button Classes="accent" Content="{Binding ConfirmLabel}" Command="{Binding ConfirmCommand}" />
+            <Button x:Name="ConfirmButton" Classes="accent" Content="{Binding ConfirmLabel}" Command="{Binding ConfirmCommand}" />
             <Button Content="{l:Loc Settings_Cancel}" Command="{Binding CancelConfirmationCommand}" />
           </StackPanel>
           <TextBlock Text="{Binding Confirmation}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="{DynamicResource Padding.Compact}" />
@@ -51,6 +52,30 @@
                     <TextBlock Text="{Binding StateText}" />
                   </StackPanel>
                 </Border>
+                <Border Classes="StatusBadge Excluded" IsVisible="{Binding ShowsWatching}">
+                  <TextBlock Text="{Binding MonitoringText}" />
+                </Border>
+                <Border Classes="StatusBadge Missing" IsVisible="{Binding ShowsPaused}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                    <PathIcon Data="{StaticResource Icon.Pause}" />
+                    <TextBlock Text="{Binding MonitoringText}" />
+                  </StackPanel>
+                </Border>
+                <Border Classes="StatusBadge Error" IsVisible="{Binding ShowsMonitoringError}" ToolTip.Tip="{Binding MonitoringErrorTip}">
+                  <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
+                    <PathIcon Data="{StaticResource Icon.Status.Error}" />
+                    <TextBlock Text="{Binding MonitoringText}" />
+                  </StackPanel>
+                </Border>
+                <Border Classes="StatusBadge Excluded" IsVisible="{Binding ShowsNotMonitored}">
+                  <TextBlock Text="{Binding MonitoringText}" />
+                </Border>
+                <Border Classes="StatusBadge Excluded" IsVisible="{Binding ShowsPolling}" ToolTip.Tip="{Binding PollingTip}">
+                  <TextBlock Text="{Binding MonitoringText}" />
+                </Border>
+                <Border Classes="StatusBadge Excluded" IsVisible="{Binding ShowsManual}" ToolTip.Tip="{Binding ManualTip}">
+                  <TextBlock Text="{Binding MonitoringText}" />
+                </Border>
                 <Border Classes="StatusBadge Pending" IsVisible="{Binding IsScanning}">
                   <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}">
                     <PathIcon Data="{StaticResource Icon.Status.Pending}" />
@@ -76,6 +101,14 @@
         <Panel IsVisible="{Binding HasSelection}">
           <StackPanel Spacing="{DynamicResource Space.S}" DataContext="{Binding SelectedFolder}" x:DataType="vm:IndexedFolderViewModel">
             <TextBlock Classes="Subtitle" Text="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).RulesTitle}" TextTrimming="CharacterEllipsis" />
+            <!-- An Offline folder whose root leads to another drive can take that drive as its own (MFC-1051). -->
+            <StackPanel Spacing="{DynamicResource Space.S}" IsVisible="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).HasOtherDrive}">
+              <TextBlock Classes="Secondary" Text="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).OtherDriveNote}" TextWrapping="Wrap" />
+              <Button x:Name="UseThisDriveButton"
+                      Classes="accent"
+                      Content="{l:Loc Folders_UseThisDrive}"
+                      Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).UseThisDriveCommand}" />
+            </StackPanel>
             <!-- A partial folder has no rules until it's indexed whole (E03-S05). -->
             <StackPanel Spacing="{DynamicResource Space.S}" IsVisible="{Binding IsPartial}">
               <TextBlock Classes="Secondary" Text="{l:Loc Folders_PartialNote}" TextWrapping="Wrap" />
@@ -112,6 +145,32 @@
                         Content="{l:Loc Folders_Apply}"
                         Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).ApplyRulesCommand}"
                         IsEnabled="{Binding HasRuleChanges}" />
+              </StackPanel>
+            </StackPanel>
+
+            <!-- How the folder is kept up to date (E04-S05, MFC-1057). -->
+            <StackPanel x:Name="MonitoringMode" Spacing="{DynamicResource Space.XS}">
+              <TextBlock Classes="Label" Text="{l:Loc Folders_Mode_Label}" />
+              <ComboBox x:Name="ModePicker"
+                        ItemsSource="{Binding ModeOptions}"
+                        SelectedItem="{Binding SelectedMode}"
+                        MinWidth="{DynamicResource Size.SettingControl}"
+                        AutomationProperties.Name="{l:Loc Folders_Mode_Label}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MonitoringModeOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <TextBlock Classes="Secondary" Text="{Binding ModeNote}" TextWrapping="Wrap" />
+              <TextBlock Classes="Secondary" Text="{Binding NextPollText}" IsVisible="{Binding HasNextPoll}" />
+              <TextBlock Classes="Secondary" Text="{Binding CloudNote}" IsVisible="{Binding HasCloudNote}" />
+              <StackPanel Spacing="{DynamicResource Space.S}" IsVisible="{Binding SuggestsPoll}">
+                <TextBlock Text="{l:Loc Folders_PollSuggestion}" TextWrapping="Wrap" />
+                <Button x:Name="UsePollButton"
+                        Content="{l:Loc Folders_UsePoll}"
+                        HorizontalAlignment="Left"
+                        Command="{Binding $parent[UserControl].((vm:IndexedFoldersViewModel)DataContext).UsePollCommand}" />
               </StackPanel>
             </StackPanel>
           </StackPanel>

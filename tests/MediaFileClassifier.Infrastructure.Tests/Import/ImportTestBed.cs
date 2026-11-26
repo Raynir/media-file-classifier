@@ -123,6 +123,8 @@ internal sealed class ImportTestBed : IAsyncDisposable
         collection.TryAddSingleton<ISettingsStore>(analysisSettings);
         collection.TryAddSingleton(processing);
         collection.TryAddSingleton(TimeProvider.System);
+        collection.TryAddSingleton<IFileHasher, XxHashFileHasher>();
+        collection.TryAddSingleton<IFolderDiscovery, FolderDiscovery>();
         collection.TryAddEnumerable(ServiceDescriptor.Singleton<IExceptionClassifier, AiExceptionClassifier>());
         var services = collection
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
@@ -130,8 +132,6 @@ internal sealed class ImportTestBed : IAsyncDisposable
             .AddSingleton<ISettingsService>(settings)
             .AddSingleton<IHardwareInfo>(new FakeHardwareInfo(memoryBytes: 8L << 30))
             .AddSingleton<IMediaFileSource, FileSystemMediaFileSource>()
-            .AddSingleton<IFolderDiscovery, FolderDiscovery>()
-            .AddSingleton<IFileHasher, XxHashFileHasher>()
             .AddSingleton<IPerceptualHasher, SkiaPerceptualHasher>()
             .AddSingleton<IMediaHasher, MediaHasher>()
             .AddSingleton<ILibrarySession>(new BedSession(library))
@@ -177,29 +177,35 @@ internal sealed class ImportTestBed : IAsyncDisposable
     }
 
     /// <summary>
-    /// Waits until no work is pending. The wait fails when the pending count hasn't dropped for <paramref name="stallTimeout"/>
+    /// Waits until no work is pending. The wait fails when the pending count hasn't changed for <paramref name="stallTimeout"/>
     /// (a stuck queue), so a slow machine running the whole solution's tests doesn't fail a queue that is still draining.
     /// </summary>
-    public async Task WaitUntilIdleAsync(TimeSpan? stallTimeout = null)
+    public Task WaitUntilIdleAsync(TimeSpan? stallTimeout = null) =>
+        WaitUntilDrainedAsync(token => Library.Jobs.CountPendingAsync(token), stallTimeout ?? TimeSpan.FromSeconds(60));
+
+    /// <summary>
+    /// Polls the pending count until it's zero. Any change of the count is progress: an import starts with only its
+    /// discovery pending, and the count then grows while discovery queues the files before it drains (MFC-1069).
+    /// </summary>
+    internal static async Task WaitUntilDrainedAsync(Func<CancellationToken, Task<int>> countPending, TimeSpan stallTimeout)
     {
-        var limit = stallTimeout ?? TimeSpan.FromSeconds(60);
-        var lastProgress = Stopwatch.StartNew();
-        var lowest = int.MaxValue;
+        var sinceChange = Stopwatch.StartNew();
+        int? last = null;
         while (true)
         {
-            var pending = await Library.Jobs.CountPendingAsync(Token);
+            var pending = await countPending(Token);
             if (pending == 0)
             {
                 return;
             }
 
-            if (pending < lowest)
+            if (pending != last)
             {
-                lowest = pending;
-                lastProgress.Restart();
+                last = pending;
+                sinceChange.Restart();
             }
 
-            Assert.True(lastProgress.Elapsed < limit, $"Timed out waiting for the import: {pending} work items still pending, none finished for {limit.TotalSeconds:0} s.");
+            Assert.True(sinceChange.Elapsed < stallTimeout, $"Timed out waiting for the import: {pending} work items still pending, the count unchanged for {stallTimeout.TotalSeconds:0.#} s.");
             await Task.Delay(20, Token);
         }
     }

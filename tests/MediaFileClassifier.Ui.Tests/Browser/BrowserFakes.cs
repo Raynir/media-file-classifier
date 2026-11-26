@@ -160,6 +160,8 @@ internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
 
         public IAnalyzerStateRepository AnalyzerStates => throw new NotSupportedException();
 
+        public IActivityRepository Activity { get; } = new MediaFileClassifier.Testing.Activity.InMemoryActivityRepository();
+
         public MediaFileClassifier.Infrastructure.Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
 
         public MediaFileClassifier.Infrastructure.Abstractions.Search.ISearchStore Search => throw new NotSupportedException();
@@ -209,6 +211,8 @@ internal sealed class FakeJobSystem : IJobSystem
 
         public Task<bool> EnqueueWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<bool> AppendWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public int GetPoolLimit(ResourcePool pool) => 1;
@@ -220,6 +224,30 @@ internal sealed class FakeJobSystem : IJobSystem
         public void Resume()
         {
         }
+
+        public event EventHandler? PauseChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public void Pause()
+        {
+        }
+
+        public bool IsPoolPaused(ResourcePool pool) => false;
+
+        public void PausePool(ResourcePool pool)
+        {
+        }
+
+        public void ResumePool(ResourcePool pool)
+        {
+        }
+
+        public Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+
+        public Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(false);
 
         public void ReleaseParked()
         {

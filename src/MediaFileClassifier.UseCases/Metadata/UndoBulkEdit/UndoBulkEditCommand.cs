@@ -1,6 +1,8 @@
+using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.UseCases.Activity.RecordActivity;
 using MediatR;
 
 namespace MediaFileClassifier.UseCases.Metadata.UndoBulkEdit;
@@ -24,7 +26,8 @@ public sealed record UndoBulkEditResult(IReadOnlyList<Id<MediaItem>> RestoredIte
 /// <param name="session">Holds the open library.</param>
 /// <param name="store">The stored operation.</param>
 /// <param name="publisher">Publishes the change.</param>
-public sealed class UndoBulkEditCommandHandler(ILibrarySession session, BulkUndoStore store, IPublisher publisher)
+/// <param name="sender">Records the event in the activity log, or <see langword="null"/> for none.</param>
+public sealed class UndoBulkEditCommandHandler(ILibrarySession session, BulkUndoStore store, IPublisher publisher, ISender? sender = null)
     : IRequestHandler<UndoBulkEditCommand, UndoBulkEditResult>
 {
     /// <inheritdoc />
@@ -72,6 +75,14 @@ public sealed class UndoBulkEditCommandHandler(ILibrarySession session, BulkUndo
                         Fields = Enum.GetValues<Domain.Metadata.DescriptiveField>().ToHashSet(),
                     },
                     CancellationToken.None).ConfigureAwait(false);
+                if (sender is not null)
+                {
+                    await sender.Send(
+                        new RecordActivityCommand(
+                            ActivityEventType.BulkEdit,
+                            Counts: new Dictionary<string, long> { [ActivityCounts.Restored] = written.Count }),
+                        CancellationToken.None).ConfigureAwait(false);
+                }
             }
         }
 

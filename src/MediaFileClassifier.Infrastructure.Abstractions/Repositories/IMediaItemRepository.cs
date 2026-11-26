@@ -92,6 +92,16 @@ public interface IMediaItemRepository
     Task<IReadOnlyList<MediaItem>> GetByFolderAsync(Id<IndexedFolder> folderId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the items under a path of a folder, whatever their status, e.g. for a deleted path that may have been a
+    /// folder (MFC-1054). Folder names ignore case, as in the browser (D310).
+    /// </summary>
+    /// <param name="folderId">The folder.</param>
+    /// <param name="path">The path; the items whose path starts with it and a <c>/</c> are returned.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The items, in ID order.</returns>
+    Task<IReadOnlyList<MediaItem>> GetUnderAsync(Id<IndexedFolder> folderId, RelativePath path, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Counts the items of each folder by status (E02-S03-T06). Folders without items aren't listed.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -307,8 +317,23 @@ public interface IMediaItemRepository
     Task UpdateRangeAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Stores what a rescan or a watched change found out about items' files (MFC-1053): their location (moved with
+    /// <see cref="MediaItem.Relocate"/>), file facts, hashes and status. The user's favourite and review mark are kept
+    /// as stored, so an edit made while the items were being checked isn't lost. The status isn't written when the
+    /// stored or the given item is Excluded, since only the user removes or restores an item; an item deleted meanwhile
+    /// is skipped. An item may take a path that another of the items leaves, as when two files swap
+    /// names: those items are written together in one transaction, the others in batches like
+    /// <see cref="AddRangeAsync"/>.
+    /// </summary>
+    /// <param name="items">The changed items.</param>
+    /// <param name="cancellationToken">Cancellation token. Batches already written stay written.</param>
+    /// <returns>A task that completes when every change is stored.</returns>
+    Task UpdateFilesAsync(IReadOnlyCollection<MediaItem> items, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Stores the changes made to an item together with its technical metadata, in one transaction, replacing any
-    /// metadata stored before.
+    /// metadata stored before. The user's favourite and review mark are kept as stored (MFC-1053), and an item deleted
+    /// meanwhile is skipped.
     /// </summary>
     /// <param name="item">The changed item.</param>
     /// <param name="metadata">The item's technical metadata.</param>
@@ -324,6 +349,17 @@ public interface IMediaItemRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><c>true</c> if the item existed.</returns>
     Task<bool> DeleteAsync(Id<MediaItem> id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a duplicate item, as <see cref="DeleteAsync"/> does, and stores a Missing item moved to its file, in one
+    /// write: a file moved between drives keeps its old item, and the copy's item goes (MFC-1052). Nothing is written
+    /// unless the duplicate is still at the moved item's new path and the moved item is still Missing.
+    /// </summary>
+    /// <param name="moved">The moved item, already relocated to the duplicate's folder and path.</param>
+    /// <param name="duplicateId">The duplicate item.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><c>true</c> if both were written.</returns>
+    Task<bool> ReplaceWithMovedAsync(MediaItem moved, Id<MediaItem> duplicateId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes up to <paramref name="limit"/> items of a folder, as <see cref="DeleteAsync"/> does, in one short write.

@@ -263,6 +263,27 @@ public sealed partial class VideoPlayerViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
+    /// Closes the shown video and lets go of its file before it returns, e.g. when its drive is being ejected (MFC-138):
+    /// the player is disposed, which waits for it to stop, and the next video makes a new one.
+    /// </summary>
+    public void Release()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        Show(null);
+        if (player is not null)
+        {
+            player.StateChanged -= OnPlayerChanged;
+            player.PositionChanged -= OnPlayerChanged;
+            player.Dispose();
+            player = null;
+        }
+    }
+
+    /// <summary>
     /// Opens the shown video at a time and keeps whether it plays ("jump to the moment"); for MFC-119's keyframe
     /// strip and search matches.
     /// </summary>

@@ -7,7 +7,7 @@ Guidance for working in this repository.
 This is Media File Classifier: a Windows 11 desktop app (C#, .NET 10, Avalonia 12) that indexes local media with local AI and lets the user search by description. An Android head comes later and reuses the shared projects, so only `Desktop` may use Windows-only APIs.
 
 Sources of truth:
-- **Backlog:** Jira project MFC on raynir.atlassian.net. Each Story has sub-tasks with a **Done when** line.
+- **Backlog:** Jira project MFC on raynir.atlassian.net, read and changed through `mfcj` (see "Jira" below). Each Story has sub-tasks with a **Done when** line.
 - **Decisions:** `DECISIONS.md` in https://github.com/Raynir/mfc-development-plan. Cite decisions as D-numbers. Don't invent product decisions: ask, then record a new D-number there.
 
 ## Commands (from the repository root)
@@ -21,6 +21,15 @@ dotnet build src/MediaFileClassifier.App.Android -t:Run  # Android head: needs t
 
 - **Logs:** `%LOCALAPPDATA%\MediaFileClassifier\logs`.
 - **Settings:** `%LOCALAPPDATA%\MediaFileClassifier\settings.json`.
+
+## Jira (`mfcj`, not the Atlassian MCP)
+
+Use the local Jira mirror for routine Jira work. The Atlassian MCP returns whole issues, about 3k tokens per call. Run `D:\Development\GitHub\mfc-notes\jira\mfcj.cmd <command>` from any folder. Reads are local, and writes go to Jira at once and update the mirror. Usage and options: `mfc-notes\jira\README.md`.
+
+- `sync` first if the mirror may be stale (takes seconds).
+- Reads: `ls version=1.1.0 status!=Done`, `tree MFC-140` (sub-tasks with their Done-when lines), `show MFC-140 [--full]`.
+- Writes: `done K...`, `status K "In Progress"`, `version K... 1.1.0|none`, `new bug|task|subtask --title ... [--labels] [--version] [--parent K] [--relates K] [--body-file x.md]`, `link A blocks|relates B`, `edit K ...`.
+- Never open `index.txt` (~26k tokens). Use the MCP only for comments, history and releasing versions.
 
 ## Layers (D062)
 

@@ -1,9 +1,11 @@
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
+using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
 using MediaFileClassifier.UseCases.Libraries.CheckFolderAvailability;
+using MediaFileClassifier.UseCases.Monitoring;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MediaFileClassifier.UseCases.Tests.Libraries;
@@ -150,11 +152,32 @@ public sealed class LiveFolderStatusTests
         var changed = await handler.Handle(new CheckFolderAvailabilityCommand(OfflineOnly: true), Token);
         clock.Advance(FolderStatusChanges.Quiet);
 
-        Assert.Same(drive, Assert.Single(changed));
-        Assert.Equal(FolderStatus.Online, drive.Status);
+        Assert.Equal(drive.Id, Assert.Single(changed).Id);
+        Assert.Equal(FolderStatus.Online, library.FolderList.Stored(drive.Id).Status);
         Assert.Equal(1, raised);
         Assert.Equal(1, library.FolderList.AvailabilityUpdates);
         Assert.Equal(1, library.FolderList.Updates);
+    }
+
+    [Fact]
+    public async Task Check_AnnouncesTheFoldersThatCameBackOnline_Only()
+    {
+        var (session, library, files) = await CreateLibraryAsync();
+        var drive = await AddFolderAsync(library, Drive, offline: true);
+        await AddFolderAsync(library, Card, offline: false);
+        var publisher = new FakePublisher();
+        var handler = Handler(session, files, publisher);
+
+        // The card goes away, which is no reconnect; then the drive comes back.
+        files.Unavailable.Add(Drive);
+        files.Unavailable.Add(Card);
+        await handler.Handle(new CheckFolderAvailabilityCommand(), Token);
+        files.Unavailable.Remove(Drive);
+        await handler.Handle(new CheckFolderAvailabilityCommand(), Token);
+        await handler.Handle(new CheckFolderAvailabilityCommand(), Token);
+
+        var reconnected = Assert.Single(publisher.Of<FoldersReconnected>());
+        Assert.Equal([drive.Id], reconnected.FolderIds);
     }
 
     [Fact]
@@ -315,8 +338,8 @@ public sealed class LiveFolderStatusTests
         return (new FolderAvailabilityMonitor(volumes, sender, clock, NullLogger<FolderAvailabilityMonitor>.Instance), clock, volumes, sender);
     }
 
-    private static CheckFolderAvailabilityCommandHandler Handler(FakeLibrarySession session, FakeFolderSource files) =>
-        new(session, files, TimeProvider.System, NullLogger<CheckFolderAvailabilityCommandHandler>.Instance);
+    private static CheckFolderAvailabilityCommandHandler Handler(FakeLibrarySession session, FakeFolderSource files, FakePublisher? publisher = null) =>
+        new(session, files, TimeProvider.System, NullLogger<CheckFolderAvailabilityCommandHandler>.Instance, publisher: publisher);
 
     private static async Task<IndexedFolder> AddFolderAsync(FakeOpenLibrary library, string path, bool offline)
     {
@@ -421,63 +444,6 @@ public sealed class LiveFolderStatusTests
                 var waiter = new TaskCompletionSource<CheckFolderAvailabilityCommand>(TaskCreationOptions.RunContinuationsAsynchronously);
                 waiting.Enqueue(waiter);
                 return waiter.Task.WaitAsync(TimeSpan.FromSeconds(10), Token);
-            }
-        }
-    }
-
-    /// <summary>
-    /// A clock whose one-shot and periodic timers fire only when the test advances it.
-    /// </summary>
-    private sealed class ManualClock : TimeProvider
-    {
-        private readonly List<ManualTimer> timers = [];
-        private TimeSpan now;
-
-        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
-        {
-            var timer = new ManualTimer(this, callback, state);
-            timer.Change(dueTime, period);
-            timers.Add(timer);
-            return timer;
-        }
-
-        public void Advance(TimeSpan time)
-        {
-            var end = now + time;
-            while (timers.Where(timer => timer.DueAt <= end).MinBy(timer => timer.DueAt) is { } next)
-            {
-                now = next.DueAt!.Value;
-                next.Fire();
-            }
-
-            now = end;
-        }
-
-        private sealed class ManualTimer(ManualClock clock, TimerCallback callback, object? state) : ITimer
-        {
-            private TimeSpan period = Timeout.InfiniteTimeSpan;
-
-            public TimeSpan? DueAt { get; private set; }
-
-            public bool Change(TimeSpan dueTime, TimeSpan period)
-            {
-                this.period = period;
-                DueAt = dueTime == Timeout.InfiniteTimeSpan ? null : clock.now + dueTime;
-                return true;
-            }
-
-            public void Fire()
-            {
-                DueAt = period == Timeout.InfiniteTimeSpan ? null : clock.now + period;
-                callback(state);
-            }
-
-            public void Dispose() => DueAt = null;
-
-            public ValueTask DisposeAsync()
-            {
-                Dispose();
-                return ValueTask.CompletedTask;
             }
         }
     }

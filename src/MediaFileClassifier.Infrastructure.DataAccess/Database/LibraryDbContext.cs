@@ -1,4 +1,5 @@
 using System.Text;
+using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Collections;
 using MediaFileClassifier.Domain.Embeddings;
@@ -69,6 +70,11 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
     public DbSet<WorkItem> WorkItems => Set<WorkItem>();
 
     /// <summary>
+    /// Gets the activity log (E15-S04).
+    /// </summary>
+    public DbSet<ActivityEvent> ActivityEvents => Set<ActivityEvent>();
+
+    /// <summary>
     /// Converts a PascalCase name to snake_case, e.g. <c>AcceptedFrom_RunId</c> to <c>accepted_from_run_id</c>.
     /// </summary>
     /// <param name="name">The name.</param>
@@ -105,6 +111,7 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
         configurationBuilder.Properties<Id<SavedSearch>>().HaveConversion<IdConverter<SavedSearch>>();
         configurationBuilder.Properties<Id<ProcessingJob>>().HaveConversion<IdConverter<ProcessingJob>>();
         configurationBuilder.Properties<Id<WorkItem>>().HaveConversion<IdConverter<WorkItem>>();
+        configurationBuilder.Properties<Id<ActivityEvent>>().HaveConversion<IdConverter<ActivityEvent>>();
 
         configurationBuilder.Properties<DateTimeOffset>().HaveConversion<UnixMillisecondsConverter>();
         configurationBuilder.Properties<DateTime>().HaveConversion<WallClockMillisecondsConverter>();

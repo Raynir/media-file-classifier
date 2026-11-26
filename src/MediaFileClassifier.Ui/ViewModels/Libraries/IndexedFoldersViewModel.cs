@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Platform;
@@ -16,6 +17,10 @@ using MediaFileClassifier.UseCases.Libraries.CheckFolderOverlap;
 using MediaFileClassifier.UseCases.Libraries.GetIndexedFolders;
 using MediaFileClassifier.UseCases.Libraries.IndexWholeFolder;
 using MediaFileClassifier.UseCases.Libraries.RemoveFolder;
+using MediaFileClassifier.UseCases.Libraries.UseThisDrive;
+using MediaFileClassifier.UseCases.Monitoring;
+using MediaFileClassifier.UseCases.Monitoring.ChangeMonitoringMode;
+using MediaFileClassifier.UseCases.Monitoring.GetFolderMonitoring;
 using MediatR;
 
 namespace MediaFileClassifier.Ui.ViewModels.Libraries;
@@ -26,14 +31,27 @@ namespace MediaFileClassifier.Ui.ViewModels.Libraries;
 /// </summary>
 public sealed partial class IndexedFoldersViewModel : ViewModelBase
 {
+    /// <summary>
+    /// How often, in milliseconds, the selected Offline folder's drive is read again while the dialog refreshes.
+    /// </summary>
+    private const long OtherDriveProbeInterval = 10_000;
+
     private readonly ISender sender;
+    private int modePicks;
     private readonly IPlatformServices platform;
     private readonly IMediaFileSource files;
     private readonly Localizer localizer;
     private readonly RescanRunner? rescan;
     private readonly AnalysisRunner? analysis;
+    private readonly FolderWatchManager? watchers;
+    private readonly MonitoringPause? monitoringPause;
     private Func<Task>? confirmed;
     private bool refreshing;
+    private (Id<IndexedFolder> Id, bool Offline) otherDriveProbe;
+    private long otherDriveProbedAt;
+    private int otherDriveGeneration;
+    private bool otherDriveProbing;
+    private OtherDrive? otherDrive;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IndexedFoldersViewModel"/> class.
@@ -44,8 +62,32 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// <param name="localizer">UI strings.</param>
     /// <param name="rescan">Starts the rescan of the selected folder, or <c>null</c> where there's none.</param>
     /// <param name="analysis">Starts the analysis of the selected folder, or <c>null</c> where there's none.</param>
-    public IndexedFoldersViewModel(ISender sender, IPlatformServices platform, IMediaFileSource files, Localizer localizer, RescanRunner? rescan = null, AnalysisRunner? analysis = null)
+    /// <param name="watchers">Tells how each folder is monitored, or <c>null</c> where folders aren't monitored.</param>
+    /// <param name="monitoringPause">Pauses monitoring for the whole app, or <c>null</c> where there's none.</param>
+    public IndexedFoldersViewModel(ISender sender, IPlatformServices platform, IMediaFileSource files, Localizer localizer, RescanRunner? rescan = null, AnalysisRunner? analysis = null, FolderWatchManager? watchers = null, MonitoringPause? monitoringPause = null)
     {
+        this.watchers = watchers;
+        this.monitoringPause = monitoringPause;
+
+        // Weak, so a dialog that closed isn't kept alive by the app-wide singletons.
+        var self = new WeakReference<IndexedFoldersViewModel>(this);
+        void Changed(object? sender, EventArgs e)
+        {
+            if (self.TryGetTarget(out var target))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => _ = target.RefreshMonitoringAsync());
+            }
+        }
+
+        if (watchers is not null)
+        {
+            watchers.StateChanged += Changed;
+        }
+
+        if (monitoringPause is not null)
+        {
+            monitoringPause.Changed += Changed;
+        }
         this.rescan = rescan;
         this.analysis = analysis;
         this.sender = sender;
@@ -65,6 +107,16 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     /// Raised when the dialog should close.
     /// </summary>
     public event EventHandler? CloseRequested;
+
+    /// <summary>
+    /// Gets a value indicating whether the dialog can pause monitoring (E04-S06-T02).
+    /// </summary>
+    public bool CanPauseMonitoring => monitoringPause is not null;
+
+    /// <summary>
+    /// Gets the label of the pause button: "Pause monitoring", or "Resume monitoring" while it's paused.
+    /// </summary>
+    public string MonitoringPauseLabel => localizer.Get(monitoringPause?.IsPaused == true ? "Monitoring_Resume" : "Monitoring_Pause");
 
     /// <summary>
     /// Gets the folders.
@@ -119,6 +171,19 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
     public bool IsConfirming => Confirmation is not null;
 
     /// <summary>
+    /// Gets the note shown when the selected Offline folder's root leads to another drive (MFC-1051), or <c>null</c>.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOtherDrive))]
+    [NotifyCanExecuteChangedFor(nameof(UseThisDriveCommand))]
+    public partial string? OtherDriveNote { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether "Use this drive" is offered for the selected folder.
+    /// </summary>
+    public bool HasOtherDrive => OtherDriveNote is not null;
+
+    /// <summary>
     /// Checks the folders and lists them. The dialog calls it when it opens.
     /// </summary>
     /// <returns>A task that completes when the list is shown.</returns>
@@ -144,7 +209,15 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         refreshing = true;
         try
         {
-            Show(await sender.Send(new GetIndexedFoldersQuery()));
+            var picks = modePicks;
+            var summaries = await sender.Send(new GetIndexedFoldersQuery());
+            var monitoring = await GetMonitoringAsync();
+
+            // A mode picked while this read ran would be put back by it; the next refresh shows it.
+            if (picks == modePicks)
+            {
+                Show(summaries, monitoring);
+            }
         }
         finally
         {
@@ -152,7 +225,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         }
     }
 
-    private void Show(IReadOnlyList<IndexedFolderSummary> summaries)
+    private void Show(IReadOnlyList<IndexedFolderSummary> summaries, IReadOnlyDictionary<Id<IndexedFolder>, FolderMonitoringInfo> monitoring)
     {
         var byId = summaries.ToDictionary(summary => summary.Folder.Id);
         foreach (var gone in Folders.Where(row => !byId.ContainsKey(row.Folder.Id)).ToList())
@@ -166,7 +239,7 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
             var row = Folders.FirstOrDefault(row => row.Folder.Id == summary.Folder.Id);
             if (row is null)
             {
-                Folders.Insert(index, new IndexedFolderViewModel(summary, localizer));
+                Folders.Insert(index, new IndexedFolderViewModel(summary, localizer, ChooseMode));
             }
             else
             {
@@ -178,8 +251,111 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         {
             SelectedFolder = null;
         }
+        else if (SelectedFolder is { } selected
+            && ((selected.Folder.Id, selected.IsOffline) != otherDriveProbe
+                || (selected.IsOffline && !otherDriveProbing && Environment.TickCount64 - otherDriveProbedAt >= OtherDriveProbeInterval)))
+        {
+            // Read again when the selected folder goes Offline or Online, and now and then while it stays Offline, as a
+            // cloned drive plugged in meanwhile leaves it Offline; not on every refresh.
+            _ = FindOtherDriveAsync(selected);
+        }
 
+        ShowMonitoring(monitoring);
         OnPropertyChanged(nameof(IsEmpty));
+    }
+
+    // Reads how each folder is monitored. Without an answer (no library, a failing query) the rows fall back to the
+    // watchers' own state.
+    private async Task<IReadOnlyDictionary<Id<IndexedFolder>, FolderMonitoringInfo>> GetMonitoringAsync()
+    {
+        try
+        {
+            return (await sender.Send(new GetFolderMonitoringQuery())).ToDictionary(info => info.FolderId);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return new Dictionary<Id<IndexedFolder>, FolderMonitoringInfo>();
+        }
+    }
+
+    private async Task RefreshMonitoringAsync() => ShowMonitoring(await GetMonitoringAsync());
+
+    private void ShowMonitoring(IReadOnlyDictionary<Id<IndexedFolder>, FolderMonitoringInfo> monitoring)
+    {
+        foreach (var row in Folders)
+        {
+            if (monitoring.TryGetValue(row.Folder.Id, out var info))
+            {
+                row.ApplyMonitoring(info);
+            }
+            else
+            {
+                row.MonitoringState = watchers?.GetState(row.Folder.Id) ?? FolderMonitoringState.Off;
+            }
+        }
+
+        OnPropertyChanged(nameof(MonitoringPauseLabel));
+    }
+
+    // The user picked a mode in a row. The picker is a view of the folder, so it's shown again from the library after.
+    private void ChooseMode(IndexedFolderViewModel row, MonitoringMode mode)
+    {
+        modePicks++;
+        _ = ChooseModeAsync(row, mode);
+    }
+
+    private async Task ChooseModeAsync(IndexedFolderViewModel row, MonitoringMode mode)
+    {
+        try
+        {
+            if (await sender.Send(new ChangeMonitoringModeCommand(row.Folder.Id, mode)) == ChangeMonitoringModeResult.NotFound)
+            {
+                Message = localizer.Format("Folders_Mode_NotFound", row.Name);
+            }
+
+            await RefreshMonitoringAsync();
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            Message = localizer.Format("Folders_Mode_Failed", row.Name);
+            await RefreshMonitoringAsync();
+        }
+    }
+
+    /// <summary>
+    /// Sets the selected folder to Poll, as the hint for a network share suggests.
+    /// </summary>
+    [RelayCommand]
+    private void UsePoll()
+    {
+        if (SelectedFolder is { } row)
+        {
+            row.SelectedMode = row.ModeOptions.First(option => option.Mode == MonitoringMode.Poll);
+        }
+    }
+
+    /// <summary>
+    /// Pauses monitoring, or resumes it when it's paused (E04-S06-T02).
+    /// </summary>
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private async Task ToggleMonitoringPause()
+    {
+        if (monitoringPause is null)
+        {
+            return;
+        }
+
+        if (monitoringPause.IsPaused)
+        {
+            monitoringPause.Resume();
+        }
+        else
+        {
+            monitoringPause.Pause();
+        }
+
+        OnPropertyChanged(nameof(MonitoringPauseLabel));
+        await RefreshMonitoringAsync();
     }
 
     /// <summary>
@@ -372,6 +548,91 @@ public sealed partial class IndexedFoldersViewModel : ViewModelBase
         Ask(localizer.Format("Folders_IndexWholeConfirm", row.Path, count), localizer.Get("Folders_IndexWhole"), async () =>
         {
             await sender.Send(new IndexWholeFolderCommand(row.Folder.Id));
+            await RefreshAsync();
+        });
+    }
+
+    partial void OnSelectedFolderChanged(IndexedFolderViewModel? value)
+    {
+        otherDrive = null;
+        OtherDriveNote = null;
+        otherDriveProbe = default;
+        if (value is not null)
+        {
+            _ = FindOtherDriveAsync(value);
+        }
+    }
+
+    /// <summary>
+    /// Finds whether the selected Offline folder's root leads to another drive, to offer "Use this drive" (MFC-1051).
+    /// </summary>
+    private async Task FindOtherDriveAsync(IndexedFolderViewModel row)
+    {
+        var generation = ++otherDriveGeneration;
+        otherDriveProbe = (row.Folder.Id, row.IsOffline);
+        otherDriveProbedAt = Environment.TickCount64;
+        OtherDrive? drive = null;
+        if (row.IsOffline)
+        {
+            otherDriveProbing = true;
+            try
+            {
+                drive = await sender.Send(new FindOtherDriveQuery(row.Folder.Id));
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ObjectDisposedException or OperationCanceledException)
+            {
+                // E.g. the library closed meanwhile: no drive is offered, and the next probe asks again.
+            }
+            finally
+            {
+                if (generation == otherDriveGeneration)
+                {
+                    otherDriveProbing = false;
+                }
+            }
+        }
+
+        // A newer probe, or a selection changed while the drive was read, has its own answer coming.
+        if (generation != otherDriveGeneration || !ReferenceEquals(SelectedFolder, row))
+        {
+            return;
+        }
+
+        otherDriveProbing = false;
+        otherDrive = drive;
+        OtherDriveNote = drive switch
+        {
+            null => null,
+            { Label: { Read: true, Label: { } label } } => localizer.Format("Folders_OtherDriveNote", row.Path, label),
+            _ => localizer.Format("Folders_OtherDriveNoteNoLabel", row.Path),
+        };
+    }
+
+    [RelayCommand(CanExecute = nameof(HasOtherDrive))]
+    private void UseThisDrive()
+    {
+        if (SelectedFolder is not { } row || otherDrive is not { } drive)
+        {
+            return;
+        }
+
+        var count = IndexedFolderViewModel.ItemCountText(localizer, row.Summary.ItemCount + row.Summary.ExcludedCount);
+        var question = drive.OtherFolders > 0
+            ? localizer.Format("Folders_UseThisDriveConfirmMany", row.Path, Format.Number(drive.OtherFolders))
+            : localizer.Format("Folders_UseThisDriveConfirm", row.Path, count);
+        Ask(question, localizer.Get("Folders_UseThisDrive"), async () =>
+        {
+            var result = await sender.Send(new UseThisDriveCommand(row.Folder.Id));
+            Message = result switch
+            {
+                { Outcome: UseThisDriveOutcome.Done, OtherFolders: > 0 } => localizer.Format("Folders_UsingThisDriveMany", row.Path, Format.Number(result.OtherFolders)),
+                { Outcome: UseThisDriveOutcome.Done } => localizer.Format("Folders_UsingThisDrive", row.Path),
+                { Outcome: UseThisDriveOutcome.NoOtherDrive } => localizer.Format("Folders_NoOtherDrive", row.Path),
+                _ => null,
+            };
+
+            // The refresh reads the selected folder's drive again, whether or not its status changed.
+            otherDriveProbe = default;
             await RefreshAsync();
         });
     }

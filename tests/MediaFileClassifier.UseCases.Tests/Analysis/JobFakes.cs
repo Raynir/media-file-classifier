@@ -40,6 +40,9 @@ internal sealed class RecordingScheduler : IJobScheduler
     public Task<bool> EnqueueWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
+    public Task<bool> AppendWorkAsync(Id<ProcessingJob> jobId, IReadOnlyList<WorkItemRequest> workItems, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
     public Task<bool> CancelJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public void Boost(IReadOnlyCollection<Id<MediaItem>> itemIds)
@@ -55,6 +58,35 @@ internal sealed class RecordingScheduler : IJobScheduler
     public void Resume()
     {
     }
+
+    public event EventHandler? PauseChanged
+    {
+        add { }
+        remove { }
+    }
+
+    public void Pause()
+    {
+    }
+
+    public bool IsPoolPaused(ResourcePool pool) => false;
+
+    public void PausePool(ResourcePool pool)
+    {
+    }
+
+    public void ResumePool(ResourcePool pool)
+    {
+    }
+
+    public Task<bool> PauseJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(PausedJobs.Add(jobId));
+
+    public Task<bool> ResumeJobAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => Task.FromResult(PausedJobs.Remove(jobId));
+
+    /// <summary>
+    /// Gets the jobs paused through <see cref="PauseJobAsync"/>.
+    /// </summary>
+    public HashSet<Id<ProcessingJob>> PausedJobs { get; } = [];
 
     /// <summary>
     /// Gets how often the parked work was released.

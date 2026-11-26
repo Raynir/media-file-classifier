@@ -87,10 +87,11 @@ public sealed class MergeMetadataCommandHandler(ILibrarySession session, TimePro
             },
             cancellationToken).ConfigureAwait(false);
 
+        // Not cancellable from here on: the metadata is written, so the caller must get its undo snapshot.
         var favoriteAdded = false;
         if (!keeper.IsFavorite && memberIds.Any(id => summaries[id].IsFavorite))
         {
-            var changed = await library.Items.SetFavoriteAsync([request.KeeperId], true, now, cancellationToken).ConfigureAwait(false);
+            var changed = await library.Items.SetFavoriteAsync([request.KeeperId], true, now, CancellationToken.None).ConfigureAwait(false);
             favoriteAdded = changed.Count > 0;
         }
 
@@ -101,7 +102,6 @@ public sealed class MergeMetadataCommandHandler(ILibrarySession session, TimePro
         return new MergeMetadataResult(outcome, favoriteAdded, userTags > MetadataLimits.UserTagsPerItem, undo);
     }
 
-    // Not cancellable: what was written must reach the views.
     private async Task PublishAsync(Id<MediaItem> keeperId, MetadataMergeOutcome outcome, bool favoriteAdded)
     {
         var change = (outcome.CopiedFields.Count > 0 ? ItemMetadataChange.Fields : 0) | (outcome.AddedTags.Count > 0 ? ItemMetadataChange.Tags : 0);

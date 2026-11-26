@@ -209,9 +209,9 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
             {
                 page = await sender.Send(new GetActivityPageQuery(chip.Filter, 0, Math.Max(PageSize, entries.Count)), cancellationToken);
             }
-            catch (Exception exception) when (exception is IOException or InvalidOperationException)
+            catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                // The library closed under us; the next change tries again.
+                // The library closed under us or the database was busy; the next change tries again.
                 LogRefreshFailed(exception);
                 return;
             }
@@ -254,7 +254,7 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
             {
                 page = await sender.Send(new GetActivityPageQuery(chip.Filter, entries.Count, PageSize), cancellationToken);
             }
-            catch (Exception exception) when (exception is IOException or InvalidOperationException)
+            catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 LogRefreshFailed(exception);
                 return;
@@ -348,6 +348,8 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     // Inserts and removes only what differs, so a refresh that adds events at the top leaves the scroll position alone.
     private void Sync(List<ActivityRowViewModel> rows)
     {
+        // Rows before i already match, and keys are unique, so a key in this set is still ahead.
+        var wanted = rows.Select(row => row.Key).ToHashSet();
         for (var i = 0; i < rows.Count; i++)
         {
             if (i < Rows.Count && Rows[i].Key == rows[i].Key)
@@ -361,7 +363,7 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
                 continue;
             }
 
-            if (i < Rows.Count && rows.Skip(i).All(row => row.Key != Rows[i].Key))
+            if (i < Rows.Count && !wanted.Contains(Rows[i].Key))
             {
                 // A row that is gone, e.g. trimmed or filtered out.
                 Rows.RemoveAt(i--);
@@ -403,7 +405,7 @@ public sealed partial class ActivityLogViewModel : ViewModelBase, IDisposable
     private void Close() => CloseRequested?.Invoke(this, EventArgs.Empty);
 
     private void LogRefreshFailed(Exception exception) =>
-        logger.LogDebug(exception, "The activity log could not be listed; the next change tries again");
+        logger.LogWarning(exception, "The activity log could not be listed; the next change tries again");
 }
 
 /// <summary>

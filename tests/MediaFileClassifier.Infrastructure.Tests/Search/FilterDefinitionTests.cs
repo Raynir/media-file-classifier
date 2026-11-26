@@ -39,6 +39,7 @@ public sealed class FilterDefinitionTests
                 (StatusFilter.FilterId, FilterValueKind.MultiSelect, typeof(MultiSelectValue)),
                 (OutdatedAnalysisFilter.FilterId, FilterValueKind.Boolean, typeof(BooleanValue)),
                 (NewSuggestionsFilter.FilterId, FilterValueKind.Boolean, typeof(BooleanValue)),
+                (HasDuplicatesFilter.FilterId, FilterValueKind.Boolean, typeof(BooleanValue)),
                 (HideOfflineFilter.FilterId, FilterValueKind.Boolean, typeof(BooleanValue)),
                 (FolderFilter.FilterId, FilterValueKind.Folder, typeof(FolderValue)),
                 (TagsFilter.FilterId, FilterValueKind.IncludeExclude, typeof(IncludeExcludeValue)),

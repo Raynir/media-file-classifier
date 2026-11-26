@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Move-to-trash service (MFC-845, part of MFC-144): a platform service that moves files to the Windows Recycle Bin for duplicate resolution, never deleting one permanently (D024). It reports each file as moved, skipped (not found, not a file, read-only, no trash at its location, cancelled) or failed. Files on network shares and remote drives are refused before the shell is asked, and the shell's own check refuses any file it would otherwise delete permanently, e.g. on a removable drive without a Recycle Bin or a file too big for the bin. Nothing in the app uses it yet; the resolve dialog comes with MFC-144 part B. No schema change.
+
 ## 1.1.0 — 2026-11-27
 
 ### Added

@@ -29,7 +29,8 @@ Use the local Jira mirror for routine Jira work. The Atlassian MCP returns whole
 - `sync` first if the mirror may be stale (takes seconds).
 - Reads: `ls version=1.1.0 status!=Done`, `tree MFC-140` (sub-tasks with their Done-when lines), `show MFC-140 [--full]`.
 - Writes: `done K...`, `status K "In Progress"`, `version K... 1.1.0|none`, `new bug|task|subtask --title ... [--labels] [--version] [--parent K] [--relates K] [--body-file x.md]`, `link A blocks|relates B`, `edit K ...`.
-- Never open `index.txt` (~26k tokens). Use the MCP only for comments, history and releasing versions.
+- Versions: `versions [--all]`, `versions add 1.2.1 [--after 1.2.0]`, `versions release 1.2.0`.
+- Never open `index.txt` (~26k tokens). Use the MCP only for comments and history.
 
 ## Layers (D062)
 

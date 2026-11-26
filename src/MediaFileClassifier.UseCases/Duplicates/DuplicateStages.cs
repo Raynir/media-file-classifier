@@ -14,4 +14,9 @@ public static class DuplicateStages
     /// Reconciles one batch of queued content hashes (<see cref="DuplicateGroupMaintainer.BatchSize"/>).
     /// </summary>
     public const string Reconcile = "duplicates.reconcile";
+
+    /// <summary>
+    /// Checks one batch of items queued for visual near-duplicates (<see cref="Visual.VisualDuplicateDetector.BatchSize"/>, E12-S02).
+    /// </summary>
+    public const string VisualReconcile = "duplicates.visual";
 }

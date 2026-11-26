@@ -22,7 +22,7 @@ public sealed class DuplicateGroupMaintainerTests : IAsyncDisposable
     public DuplicateGroupMaintainerTests()
     {
         library.DuplicateList = queue;
-        maintainer = new DuplicateGroupMaintainer(session, TimeProvider.System, NullLogger<DuplicateGroupMaintainer>.Instance, TimeSpan.Zero);
+        maintainer = new DuplicateGroupMaintainer(session, TimeProvider.System, NullLogger<DuplicateGroupMaintainer>.Instance, delay: TimeSpan.Zero);
     }
 
     [Fact]

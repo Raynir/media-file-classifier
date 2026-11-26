@@ -98,10 +98,11 @@ internal static partial class ShellRecycler
                 return (ShellRecycleOutcome.Failed, "The shell didn't delete the file.");
             }
 
-            // The sink only lets a recycling delete through, so the shell must have put the file in the bin.
-            return sink.Recycled
+            // The sink only lets a recycling delete through, so a file the shell deleted is in the bin, also when the
+            // shell doesn't hand back the bin's item.
+            return sink.Recycled || !File.Exists(path)
                 ? (ShellRecycleOutcome.Recycled, null)
-                : (ShellRecycleOutcome.Failed, "The shell reported no item in the Recycle Bin for the file.");
+                : (ShellRecycleOutcome.Failed, "The shell reported the file deleted, but it's still there.");
         }
         finally
         {

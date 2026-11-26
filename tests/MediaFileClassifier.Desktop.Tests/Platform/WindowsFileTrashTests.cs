@@ -37,7 +37,6 @@ public sealed class WindowsFileTrashTests : IDisposable
 
         Assert.Equal([TrashResult.Skipped(path, TrashSkipReason.ReadOnly)], results);
         Assert.True(File.Exists(path));
-        File.SetAttributes(path, FileAttributes.Normal);
     }
 
     [Fact]
@@ -124,7 +123,16 @@ public sealed class WindowsFileTrashTests : IDisposable
     public void Recycle_OffAnStaThread_Throws() =>
         Assert.Throws<InvalidOperationException>(() => ShellRecycler.Recycle(folder.Combine("any.jpg")));
 
-    public void Dispose() => folder.Dispose();
+    public void Dispose()
+    {
+        // A read-only file would keep the folder from being deleted.
+        foreach (var file in Directory.EnumerateFiles(folder.Path))
+        {
+            File.SetAttributes(file, FileAttributes.Normal);
+        }
+
+        folder.Dispose();
+    }
 
     // The same file seen through the drive's administrative share, e.g. \\localhost\C$\Users\...: a network path.
     private static string AdminSharePath(string path) => $@"\\localhost\{path[0]}${path[2..]}";

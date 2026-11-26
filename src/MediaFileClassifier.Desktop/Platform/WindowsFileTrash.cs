@@ -155,9 +155,19 @@ internal sealed partial class WindowsFileTrash(ILogger<WindowsFileTrash> logger)
         var results = new List<TrashResult>(paths.Count);
         foreach (var path in paths)
         {
-            var result = cancellationToken.IsCancellationRequested
-                ? TrashResult.Skipped(path, TrashSkipReason.Cancelled)
-                : MoveOne(path);
+            TrashResult result;
+            try
+            {
+                result = cancellationToken.IsCancellationRequested
+                    ? TrashResult.Skipped(path, TrashSkipReason.Cancelled)
+                    : MoveOne(path);
+            }
+            catch (Exception exception)
+            {
+                // One file's failure mustn't lose the results of the files already in the bin.
+                result = TrashResult.Failed(path, exception.Message);
+            }
+
             switch (result.Outcome)
             {
                 case TrashOutcome.Moved:
@@ -177,7 +187,7 @@ internal sealed partial class WindowsFileTrash(ILogger<WindowsFileTrash> logger)
         return results;
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Moved {Path} to the Recycle Bin")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Moved {Path} to the Recycle Bin")]
     private partial void LogMoved(string path);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Left {Path} in place, not moved to the Recycle Bin: {Reason}")]

@@ -140,7 +140,10 @@ internal sealed partial class DuplicateGroupRepository(LibraryConnectionFactory 
             return DuplicateReconcileResult.Empty;
         }
 
-        List<UInt128?> hashes = [.. texts.Select(text => (UInt128?)UInt128.Parse(text, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture))];
+        // A row that isn't a hash can't name a group; it's dropped with the others, so it never blocks the queue.
+        List<UInt128?> hashes = [.. texts
+            .Select(text => UInt128.TryParse(text, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var hash) ? hash : (UInt128?)null)
+            .Where(hash => hash is not null)];
 
         // Missing and Excluded items aren't members: the file is gone, or the user removed it from the library.
         var items = await db.MediaItems

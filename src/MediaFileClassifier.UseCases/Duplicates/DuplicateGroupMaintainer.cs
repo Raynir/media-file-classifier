@@ -35,6 +35,7 @@ public sealed partial class DuplicateGroupMaintainer(
     private readonly TimeSpan wait = delay ?? DefaultDelay;
     private Attached? attached;
     private int started;
+    private int failedBefore;
 
     /// <summary>
     /// Starts following the library session. Calling it again does nothing.
@@ -103,8 +104,24 @@ public sealed partial class DuplicateGroupMaintainer(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Updating the duplicate groups failed; the next change of the items tries again")]
+    // A failure that repeats on every change would otherwise log a warning per import batch.
+    private void Failed(Exception exception)
+    {
+        if (Interlocked.Exchange(ref failedBefore, 1) == 0)
+        {
+            LogFailed(exception);
+        }
+        else
+        {
+            LogFailedAgain(exception);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Updating the duplicate groups failed; the next change of the items tries again, and later failures are logged at debug level")]
     private partial void LogFailed(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Updating the duplicate groups failed again")]
+    private partial void LogFailedAgain(Exception exception);
 
     /// <summary>
     /// The maintenance of one open library: at most one reconciling run at a time, and a change during a run makes it
@@ -182,7 +199,8 @@ public sealed partial class DuplicateGroupMaintainer(
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                owner.LogFailed(exception);
+                // A change that arrived during this run is folded into it; the next change starts a new one.
+                owner.Failed(exception);
             }
 
             lock (owner.gate)

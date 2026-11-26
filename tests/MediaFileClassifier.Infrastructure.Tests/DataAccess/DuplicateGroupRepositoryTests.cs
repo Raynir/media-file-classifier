@@ -231,6 +231,18 @@ public sealed class DuplicateGroupRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Reconcile_RowThatIsNotAHash_IsDroppedWithoutBlockingTheQueue()
+    {
+        await AddAsync(10, 10);
+        await RunSqlAsync("""INSERT INTO "duplicate_dirty_hash" ("content_hash") VALUES ('not a hash')""");
+
+        await ReconcileAllAsync();
+
+        Assert.Equal(0, await Duplicates.CountQueuedAsync(Token));
+        Assert.Equal(1, await Duplicates.CountAsync(null, Token));
+    }
+
+    [Fact]
     public async Task ChangeState_NotAllowed_ThrowsAndKeepsTheState()
     {
         await AddAsync(10, 10);

@@ -12,7 +12,7 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 public interface IDuplicateGroupRepository
 {
     /// <summary>
-    /// Raised after groups were created, changed or deleted, on the writing thread, once per write.
+    /// Raised after a write that created, changed or deleted groups has committed, once per write, on a thread-pool thread.
     /// </summary>
     event EventHandler? Changed;
 

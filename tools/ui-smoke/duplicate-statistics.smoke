@@ -1,0 +1,27 @@
+# Duplicate statistics and the Has duplicates filter (MFC-145): the library information window's Duplicates group,
+# and the filter in the Filters flyout.
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/duplicate-statistics.smoke --out artifacts/ui-smoke
+window 1400x900
+command view.theme-light
+library sample
+seed-duplicates
+wait 2s
+start view.library-info
+wait-for dialog
+wait 1s
+dialog-shot 01-info-window
+dialog-click CloseButton
+wait-for no-dialog
+focus FiltersButton
+key Enter
+# Shift+Tab wraps to the end of the flyout, where the status filters are.
+popup-key Shift+Tab
+popup-key Shift+Tab
+popup-key Shift+Tab
+popup-key Shift+Tab
+popup-shot 02-filters-flyout
+popup-key Space
+popup-key Escape
+wait-for no-popup 5s
+wait 1s
+shot 03-has-duplicates

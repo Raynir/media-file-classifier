@@ -3434,4 +3434,73 @@
   <data name="Activity_Count_failed" xml:space="preserve">
     <value>Failed: {0}</value>
   </data>
+  <data name="Duplicates_Title" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="Duplicates_Header" xml:space="preserve">
+    <value>Duplicates · {0} groups · {1} wasted</value>
+  </data>
+  <data name="Duplicates_Find" xml:space="preserve">
+    <value>Find duplicates</value>
+  </data>
+  <data name="Duplicates_Find_Started" xml:space="preserve">
+    <value>Looking for duplicates in the background. The list updates as groups are found.</value>
+  </data>
+  <data name="Duplicates_Find_Busy" xml:space="preserve">
+    <value>A duplicate search is already running.</value>
+  </data>
+  <data name="Duplicates_Find_NothingToDo" xml:space="preserve">
+    <value>No two files share the same content, so there is nothing to find.</value>
+  </data>
+  <data name="Duplicates_Find_Unavailable" xml:space="preserve">
+    <value>Open a library to look for duplicates.</value>
+  </data>
+  <data name="Duplicates_FiltersLabel" xml:space="preserve">
+    <value>Group types</value>
+  </data>
+  <data name="Duplicates_Filter_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Duplicates_Filter_Exact" xml:space="preserve">
+    <value>Exact</value>
+  </data>
+  <data name="Duplicates_Filter_Similar" xml:space="preserve">
+    <value>Similar</value>
+  </data>
+  <data name="Duplicates_Sort" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="Duplicates_Sort_Wasted" xml:space="preserve">
+    <value>Wasted space</value>
+  </data>
+  <data name="Duplicates_Sort_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Duplicates_Sort_Size" xml:space="preserve">
+    <value>Group size</value>
+  </data>
+  <data name="Duplicates_Type_Exact" xml:space="preserve">
+    <value>Exact</value>
+  </data>
+  <data name="Duplicates_Type_Similar" xml:space="preserve">
+    <value>Similar</value>
+  </data>
+  <data name="Duplicates_Files" xml:space="preserve">
+    <value>{0} files</value>
+  </data>
+  <data name="Duplicates_Wasted" xml:space="preserve">
+    <value>{0} wasted</value>
+  </data>
+  <data name="Duplicates_ListLabel" xml:space="preserve">
+    <value>Duplicate groups</value>
+  </data>
+  <data name="Duplicates_Empty" xml:space="preserve">
+    <value>No duplicates found</value>
+  </data>
+  <data name="Duplicates_EmptyHint" xml:space="preserve">
+    <value>Scans find new groups as files are added. Use Find duplicates to check the whole library.</value>
+  </data>
+  <data name="Duplicates_SelectGroup" xml:space="preserve">
+    <value>Select a group</value>
+  </data>
 </root>

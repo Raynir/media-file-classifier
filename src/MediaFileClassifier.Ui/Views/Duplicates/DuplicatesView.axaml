@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Duplicates"
+             xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             x:Class="MediaFileClassifier.Ui.Views.Duplicates.DuplicatesView"
+             x:DataType="vm:DuplicatesViewModel">
+  <!-- Duplicates (E12-S03): the open groups on the left, sortable and filtered by type; the comparison of the selected group on the right. -->
+  <Grid Margin="{DynamicResource Padding.Panel}" RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource Space.S}">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource Space.S}">
+      <StackPanel Grid.Column="0">
+        <TextBlock Classes="Title" Text="{Binding Header}" TextTrimming="CharacterEllipsis" />
+        <TextBlock Classes="Secondary" Text="{Binding Status}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+      <Button Grid.Column="1"
+              x:Name="FindDuplicatesButton"
+              Content="{l:Loc Duplicates_Find}"
+              Command="{Binding FindDuplicatesCommand}"
+              VerticalAlignment="Center"
+              AutomationProperties.Name="{l:Loc Duplicates_Find}" />
+    </Grid>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="{DynamicResource Space.S}" IsVisible="{Binding HasGroups}">
+      <ItemsControl ItemsSource="{Binding TypeFilters}" AutomationProperties.Name="{l:Loc Duplicates_FiltersLabel}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:DuplicateTypeChip">
+            <ToggleButton Classes="FilterChip"
+                          Content="{Binding Label}"
+                          IsChecked="{Binding IsSelected, Mode=OneWay}"
+                          Command="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).SelectTypeCommand}"
+                          CommandParameter="{Binding}"
+                          AutomationProperties.Name="{Binding Label}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Classes="Secondary" Text="{l:Loc Duplicates_Sort}" VerticalAlignment="Center" />
+      <ComboBox x:Name="SortBox"
+                ItemsSource="{Binding SortOptions}"
+                SelectedItem="{Binding SelectedSort}"
+                AutomationProperties.Name="{l:Loc Duplicates_Sort}" />
+    </StackPanel>
+
+    <Panel Grid.Row="2">
+      <!-- Nothing to review. -->
+      <StackPanel x:Name="EmptyState"
+                  IsVisible="{Binding IsEmpty}"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Spacing="{DynamicResource Space.XS}">
+        <TextBlock Text="{l:Loc Duplicates_Empty}" HorizontalAlignment="Center" FontWeight="{DynamicResource FontWeight.Title}" />
+        <TextBlock Classes="Secondary" Text="{l:Loc Duplicates_EmptyHint}" HorizontalAlignment="Center" TextWrapping="Wrap" />
+      </StackPanel>
+
+      <Grid ColumnDefinitions="300,*" ColumnSpacing="{DynamicResource Space.M}" IsVisible="{Binding HasGroups}">
+        <ListBox x:Name="GroupList"
+                 Grid.Column="0"
+                 ItemsSource="{Binding Groups}"
+                 SelectedItem="{Binding SelectedGroup}"
+                 Background="Transparent"
+                 AutomationProperties.Name="{l:Loc Duplicates_ListLabel}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:DuplicateGroupRowViewModel">
+              <StackPanel Margin="{DynamicResource Padding.Control}" AutomationProperties.Name="{Binding AccessibleName}">
+                <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+                  <Border Classes="Badge" Padding="6,1" CornerRadius="{DynamicResource Radius.Pill}" Background="{DynamicResource Brush.State.Hover}">
+                    <TextBlock Text="{Binding TypeText}" />
+                  </Border>
+                  <TextBlock Text="{Binding FilesText}" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock Classes="Secondary" Text="{Binding WastedText}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Panel Grid.Column="1">
+          <TextBlock x:Name="NoSelection"
+                     Classes="Secondary"
+                     Text="{l:Loc Duplicates_SelectGroup}"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     IsVisible="{Binding !HasSelection}" />
+        </Panel>
+      </Grid>
+    </Panel>
+  </Grid>
+</UserControl>

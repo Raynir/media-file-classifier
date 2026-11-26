@@ -7,9 +7,9 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
     /// <summary>
     /// Library schema 20: duplicate groups (MFC-825, E12-S01-T01). Adds <c>duplicate_group</c> (type, state, the shared
     /// content hash of an exact group) and <c>duplicate_group_member</c>. Hand-written part: triggers on
-    /// <c>media_item</c> record in <c>duplicate_dirty_hash</c> every content hash whose items changed (added, hash
-    /// changed, Missing or Excluded or back, deleted), in the same transaction, and the duplicate maintenance
-    /// reconciles the groups of those hashes (E12-S01-T02). The hashes that existing items already share are marked
+    /// <c>media_item</c> record in <c>duplicate_dirty_hash</c>, in the same transaction, each content hash whose items
+    /// changed (added, hash changed, Missing or Excluded or back, deleted) when another item has it or an exact group
+    /// does, and the duplicate maintenance reconciles the groups of those hashes (E12-S01-T02). The hashes that existing items already share are marked
     /// too, so an upgraded library gets its groups on first open.
     /// </summary>
     public partial class DuplicateGroups : Migration
@@ -76,8 +76,11 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 column: "item_id");
 
             migrationBuilder.Sql("""CREATE TABLE "duplicate_dirty_hash" ("content_hash" TEXT NOT NULL PRIMARY KEY) WITHOUT ROWID;""");
+            // A hash is queued only when it can change a group: another item has it, or a group has it.
             migrationBuilder.Sql("""
-                CREATE TRIGGER "duplicate_item_insert" AFTER INSERT ON "media_item" WHEN new."hashes_content_hash" IS NOT NULL
+                CREATE TRIGGER "duplicate_item_insert" AFTER INSERT ON "media_item"
+                WHEN new."hashes_content_hash" IS NOT NULL
+                    AND EXISTS (SELECT 1 FROM "media_item" WHERE "hashes_content_hash" = new."hashes_content_hash" AND "id" <> new."id")
                 BEGIN
                     INSERT OR IGNORE INTO "duplicate_dirty_hash" ("content_hash") VALUES (new."hashes_content_hash");
                 END;
@@ -86,12 +89,18 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 CREATE TRIGGER "duplicate_item_update" AFTER UPDATE OF "hashes_content_hash", "status" ON "media_item"
                 WHEN new."hashes_content_hash" IS NOT old."hashes_content_hash" OR (new."status" IN (4, 5)) IS NOT (old."status" IN (4, 5))
                 BEGIN
-                    INSERT OR IGNORE INTO "duplicate_dirty_hash" ("content_hash") SELECT old."hashes_content_hash" WHERE old."hashes_content_hash" IS NOT NULL;
-                    INSERT OR IGNORE INTO "duplicate_dirty_hash" ("content_hash") SELECT new."hashes_content_hash" WHERE new."hashes_content_hash" IS NOT NULL;
+                    INSERT OR IGNORE INTO "duplicate_dirty_hash" ("content_hash")
+                    SELECT old."hashes_content_hash"
+                    WHERE EXISTS (SELECT 1 FROM "duplicate_group" WHERE "type" = 0 AND "content_hash" = old."hashes_content_hash");
+                    INSERT OR IGNORE INTO "duplicate_dirty_hash" ("content_hash")
+                    SELECT new."hashes_content_hash"
+                    WHERE EXISTS (SELECT 1 FROM "media_item" WHERE "hashes_content_hash" = new."hashes_content_hash" AND "id" <> new."id")
+                        OR EXISTS (SELECT 1 FROM "duplicate_group" WHERE "type" = 0 AND "content_hash" = new."hashes_content_hash");
                 END;
                 """);
             migrationBuilder.Sql("""
-                CREATE TRIGGER "duplicate_item_delete" AFTER DELETE ON "media_item" WHEN old."hashes_content_hash" IS NOT NULL
+                CREATE TRIGGER "duplicate_item_delete" AFTER DELETE ON "media_item"
+                WHEN EXISTS (SELECT 1 FROM "duplicate_group" WHERE "type" = 0 AND "content_hash" = old."hashes_content_hash")
                 BEGIN
                     INSERT OR IGNORE INTO "duplicate_dirty_hash" ("content_hash") VALUES (old."hashes_content_hash");
                 END;

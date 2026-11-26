@@ -166,6 +166,16 @@ public sealed class DuplicateGroupRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Add_ItemsWithUniqueHashes_QueuesNothing()
+    {
+        var items = await AddAsync(10, 20, null);
+        items[2].SetHashes(items[2].Hashes with { ContentHash = 30 });
+        await bed.Library.Items.UpdateAsync(items[2], Token);
+
+        Assert.Equal(0, await Duplicates.CountQueuedAsync(Token));
+    }
+
+    [Fact]
     public async Task Reconcile_StatusChangeThatKeepsMembership_QueuesNothing()
     {
         var items = await AddAsync(10, 10);

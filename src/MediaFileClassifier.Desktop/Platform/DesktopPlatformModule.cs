@@ -35,6 +35,7 @@ internal static class DesktopPlatformModule
         services.TryAddSingleton<IKeyboardLayout, WindowsKeyboardLayout>();
         services.TryAddSingleton<IVolumeLocator, WindowsVolumeLocator>();
         services.TryAddSingleton<IFolderLocationProbe, WindowsFolderLocationProbe>();
+        services.TryAddSingleton<IFileTrash, WindowsFileTrash>();
         services.TryAddSingleton<WindowsVolumeWatcher>();
         services.TryAddSingleton<IVolumeWatcher>(provider => provider.GetRequiredService<WindowsVolumeWatcher>());
         return services;

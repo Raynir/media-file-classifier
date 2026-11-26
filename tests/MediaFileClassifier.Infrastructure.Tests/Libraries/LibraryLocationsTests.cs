@@ -127,6 +127,8 @@ public sealed class LibraryLocationsTests : IDisposable
 
         public Abstractions.Repositories.IActivityRepository Activity => throw new NotSupportedException();
 
+        public Abstractions.Repositories.IDuplicateGroupRepository Duplicates => throw new NotSupportedException();
+
         public Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
 
         public Abstractions.Search.ISearchStore Search => throw new NotSupportedException();

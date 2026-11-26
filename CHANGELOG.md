@@ -4,6 +4,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ## Unreleased
 
+### Added
+
+- Exact duplicate groups (MFC-141): items with the same full content hash now form a managed duplicate group of type Exact, with a state of Open, Resolved or Ignored; an Ignored or Resolved group opens again only when a new copy joins it. Groups follow the library by themselves, about a second after items are imported, get their full hash, change, go Missing, are removed from the library or deleted; Missing and removed items aren't members, and a group left with one item goes away. A full detection pass runs as a low-priority background job ("Find duplicates") and takes about 1–3 s for 100,000 items. Existing copies are grouped the first time an upgraded library opens. The review screen comes with MFC-143. The library schema is now 20. Details: `docs/library-storage.md`.
+
 ## 1.1.0 — 2026-11-27
 
 ### Added

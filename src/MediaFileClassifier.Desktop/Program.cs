@@ -106,6 +106,9 @@ internal static partial class Program
             // Finished imports, rescans and analysis jobs are recorded in the activity log (E15-S04).
             host.Services.GetRequiredService<MediaFileClassifier.UseCases.Activity.ActivityJobRecorder>().Start();
 
+            // Exact duplicate groups follow the items as they are imported, changed and removed (E12-S01-T02).
+            host.Services.GetRequiredService<MediaFileClassifier.UseCases.Duplicates.DuplicateGroupMaintainer>().Start();
+
             // New and changed files in the Online folders are noticed while the app runs (E04-S01).
             host.Services.GetRequiredService<FolderWatchManager>().Start();
 

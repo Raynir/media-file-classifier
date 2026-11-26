@@ -292,7 +292,7 @@ Extended filters (E10-S05) can use duration, camera, location and codecs, which 
 | E09 Search | Effective values and tags for text search, embeddings for similarity, `SavedSearch` (S09) | Search history (S08, Later) |
 | E10 Filtering and sorting | See the table above | — |
 | E11 Collections and favorites | `IsFavorite`, `Collection` with reserved `ParentId`, `CollectionMembership` | — |
-| E12 Duplicate detection | Fingerprint, content hash and perceptual hash on `MediaItem` | Duplicate groups and ignored pairs (S03, S04, Later) |
+| E12 Duplicate detection | Fingerprint, content hash and perceptual hash on `MediaItem`; `DuplicateGroup` (type, state Open / Resolved / Ignored) and `DuplicateGroupMember` (E12-S01) | Visual groups (S02), per-member resolution and its log (S04) |
 | E13 App shell | No domain data | — |
 | E14 Media browser and preview | Item fields, `Keyframe` timestamps, offline and missing status (S07) | — |
 | E15 Dashboard and notifications | Counts come from item and job states | Notification history and activity log (S02, S04, Later) |

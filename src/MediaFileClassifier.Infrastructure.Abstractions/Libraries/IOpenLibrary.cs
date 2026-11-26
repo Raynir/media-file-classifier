@@ -71,6 +71,11 @@ public interface IOpenLibrary : IAsyncDisposable
     IActivityRepository Activity { get; }
 
     /// <summary>
+    /// Gets the duplicate groups (E12-S01).
+    /// </summary>
+    IDuplicateGroupRepository Duplicates { get; }
+
+    /// <summary>
     /// Gets the integrity check, backup and optimization services.
     /// </summary>
     ILibraryMaintenance Maintenance { get; }

@@ -2876,6 +2876,9 @@
   <data name="Maintenance_ThumbnailsImportRunning" xml:space="preserve">
     <value>Thumbnails can be regenerated when the import has finished.</value>
   </data>
+  <data name="Stage_duplicates.reconcile" xml:space="preserve">
+    <value>Finding duplicates</value>
+  </data>
   <data name="Stage_thumbnails.regenerate" xml:space="preserve">
     <value>Regenerating thumbnails</value>
   </data>

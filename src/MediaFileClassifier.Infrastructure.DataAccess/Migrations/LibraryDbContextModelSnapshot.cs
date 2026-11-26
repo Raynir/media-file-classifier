@@ -257,6 +257,64 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.ToTable("collection_membership");
                 });
 
+            modelBuilder.Entity("MediaFileClassifier.Domain.Duplicates.DuplicateGroup", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ContentHash")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("content_hash");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("State")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("state");
+
+                    b.Property<long>("StateChangedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("state_changed_at");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("State");
+
+                    b.HasIndex("Type", "ContentHash")
+                        .IsUnique()
+                        .HasFilter("\"content_hash\" IS NOT NULL");
+
+                    b.ToTable("duplicate_group");
+                });
+
+            modelBuilder.Entity("MediaFileClassifier.Domain.Duplicates.DuplicateGroupMember", b =>
+                {
+                    b.Property<string>("GroupId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("group_id");
+
+                    b.Property<string>("ItemId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("item_id");
+
+                    b.Property<long>("JoinedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("joined_at");
+
+                    b.HasKey("GroupId", "ItemId");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("duplicate_group_member");
+                });
+
             modelBuilder.Entity("MediaFileClassifier.Domain.Embeddings.Embedding", b =>
                 {
                     b.Property<string>("Id")
@@ -1179,6 +1237,21 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.HasOne("MediaFileClassifier.Domain.Collections.Collection", null)
                         .WithMany()
                         .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MediaFileClassifier.Domain.Media.MediaItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MediaFileClassifier.Domain.Duplicates.DuplicateGroupMember", b =>
+                {
+                    b.HasOne("MediaFileClassifier.Domain.Duplicates.DuplicateGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

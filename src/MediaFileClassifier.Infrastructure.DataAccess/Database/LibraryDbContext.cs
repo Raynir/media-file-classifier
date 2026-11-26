@@ -2,6 +2,7 @@ using System.Text;
 using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Collections;
+using MediaFileClassifier.Domain.Duplicates;
 using MediaFileClassifier.Domain.Embeddings;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
@@ -75,6 +76,16 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
     public DbSet<ActivityEvent> ActivityEvents => Set<ActivityEvent>();
 
     /// <summary>
+    /// Gets the duplicate groups (E12-S01).
+    /// </summary>
+    public DbSet<DuplicateGroup> DuplicateGroups => Set<DuplicateGroup>();
+
+    /// <summary>
+    /// Gets the members of the duplicate groups.
+    /// </summary>
+    public DbSet<DuplicateGroupMember> DuplicateGroupMembers => Set<DuplicateGroupMember>();
+
+    /// <summary>
     /// Converts a PascalCase name to snake_case, e.g. <c>AcceptedFrom_RunId</c> to <c>accepted_from_run_id</c>.
     /// </summary>
     /// <param name="name">The name.</param>
@@ -112,6 +123,7 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
         configurationBuilder.Properties<Id<ProcessingJob>>().HaveConversion<IdConverter<ProcessingJob>>();
         configurationBuilder.Properties<Id<WorkItem>>().HaveConversion<IdConverter<WorkItem>>();
         configurationBuilder.Properties<Id<ActivityEvent>>().HaveConversion<IdConverter<ActivityEvent>>();
+        configurationBuilder.Properties<Id<DuplicateGroup>>().HaveConversion<IdConverter<DuplicateGroup>>();
 
         configurationBuilder.Properties<DateTimeOffset>().HaveConversion<UnixMillisecondsConverter>();
         configurationBuilder.Properties<DateTime>().HaveConversion<WallClockMillisecondsConverter>();

@@ -14,32 +14,35 @@ public sealed class DialogFocusTests
 {
     [Fact]
     public Task RemoveItems_FocusesTheSafeDefaultButton_Cancel() => RunAsync(
-        new RemoveItemsConfirmationView { DataContext = new RemoveItemsConfirmationViewModel(2, TestLocalizer.EnUs()) },
+        () => new RemoveItemsConfirmationView { DataContext = new RemoveItemsConfirmationViewModel(2, TestLocalizer.EnUs()) },
         focused => Assert.Equal("CancelButton", focused.Name));
 
     [Fact]
     public Task QuitConfirmation_FocusesTheDefaultButton() => RunAsync(
-        new QuitConfirmationView { DataContext = new QuitConfirmationViewModel(1, TestLocalizer.EnUs()) },
+        () => new QuitConfirmationView { DataContext = new QuitConfirmationViewModel(1, TestLocalizer.EnUs()) },
         focused => Assert.True(Assert.IsType<Button>(focused).IsDefault));
 
     [Fact]
     public Task UnsavedChanges_FocusesTheDefaultButton() => RunAsync(
-        new UnsavedChangesView { DataContext = new UnsavedChangesViewModel("one item", TestLocalizer.EnUs()) },
+        () => new UnsavedChangesView { DataContext = new UnsavedChangesViewModel("one item", TestLocalizer.EnUs()) },
         focused => Assert.True(Assert.IsType<Button>(focused).IsDefault));
 
     [Fact]
     public Task AnInput_WinsOverTheDefaultButton() => RunAsync(
-        new StackPanel { Children = { new Button { Content = "OK", IsDefault = true }, new TextBox { Name = "Box" } } },
+        () => new StackPanel { Children = { new Button { Content = "OK", IsDefault = true }, new TextBox { Name = "Box" } } },
         focused => Assert.Equal("Box", focused.Name));
 
     [Fact]
     public Task AControlThatAlreadyHasTheFocus_Keeps_It() => RunAsync(
-        new StackPanel { Children = { new TextBox { Name = "First" }, new TextBox { Name = "Second" } } },
+        () => new StackPanel { Children = { new TextBox { Name = "First" }, new TextBox { Name = "Second" } } },
         focused => Assert.Equal("Second", focused.Name),
         beforehand: content => ((StackPanel)content).Children[1].Focus());
 
-    private static Task RunAsync(Control content, Action<Control> assert, Action<Control>? beforehand = null) => TestApp.RunAsync(() =>
+    private static Task RunAsync(Func<Control> createContent, Action<Control> assert, Action<Control>? beforehand = null) => TestApp.RunAsync(() =>
     {
+        // Avalonia objects belong to the thread that creates them, so the content is built here on the UI thread,
+        // not on the xUnit thread that calls RunAsync (MFC-1059).
+        var content = createContent();
         var window = new Window { Content = content, Width = 400, Height = 300 };
         window.Show();
         beforehand?.Invoke(content);

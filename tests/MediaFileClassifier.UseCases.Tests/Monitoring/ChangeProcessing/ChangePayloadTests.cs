@@ -15,6 +15,7 @@ public sealed class ChangePayloadTests
         [
             new(FolderChangeKind.Changed, "a/new.jpg", Stat: new MediaFileStat("a/new.jpg", 1234, modified) { CreatedUtc = modified.AddDays(-1) }),
             new(FolderChangeKind.Renamed, "b/moved.png", "a/moved.png", new MediaFileStat("b/moved.png", 99, modified)),
+            new(FolderChangeKind.Changed, "c/cloud.jpg", Stat: new MediaFileStat("c/cloud.jpg", 5, modified) { IsCloudPlaceholder = true, IsHidden = true }),
             new(FolderChangeKind.Deleted, "a/gone"),
         ];
 

@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Settings;
@@ -87,7 +86,7 @@ public sealed class QuickSyncStarter : IDisposable
     }
 
     /// <summary>
-    /// Waits until the sync of the library opened last has been queued, or given up.
+    /// Waits until the syncs started so far have been queued, or given up, including one for a library closed since.
     /// </summary>
     /// <returns>A task that completes when the start is done.</returns>
     public Task WaitAsync()
@@ -122,13 +121,23 @@ public sealed class QuickSyncStarter : IDisposable
         lock (syncRoot)
         {
             var library = session.Current;
-            if (disposed || library is null || ReferenceEquals(library, handled))
+            if (library is null)
+            {
+                // Closed: the library isn't held until the next one opens (MFC-1042). Opening it again syncs it.
+                handled = null;
+                return;
+            }
+
+            if (disposed || ReferenceEquals(library, handled))
             {
                 return;
             }
 
             handled = library;
-            running = Task.Run(() => RunAsync(library));
+            var run = Task.Run(() => RunAsync(library));
+
+            // A run for a library closed meanwhile may still be finishing; waiting covers it too.
+            running = running.IsCompleted ? run : Task.WhenAll(running, run);
         }
     }
 
@@ -142,13 +151,6 @@ public sealed class QuickSyncStarter : IDisposable
         logger.LogInformation("The quick sync on open is turned off for this library");
         return false;
     }
-
-    private static async Task<bool> LibraryWideSyncUnfinishedAsync(IOpenLibrary library, CancellationToken cancellationToken) =>
-        (await library.Jobs.GetUnfinishedJobsAsync(cancellationToken).ConfigureAwait(false)).Any(job =>
-            job is { FolderId: null, Type: RescanStages.RescanJob or RescanStages.QuickSyncJob }
-
-            // Waiting for a model means its listing is done, as for StartRescanCommandHandler.
-            && job.State != ProcessingJobState.WaitingForModel);
 
     // The refresh doesn't tell when it couldn't watch a folder (it failed, or the folder waits after repeated failures);
     // the sync goes on, but the gap is worth a line in the log.
@@ -188,7 +190,7 @@ public sealed class QuickSyncStarter : IDisposable
                     return;
                 }
 
-                var result = await sender.Send(new StartRescanCommand(Quick: true), token).ConfigureAwait(false);
+                var result = await sender.Send(new StartRescanCommand(Quick: true, Library: library), token).ConfigureAwait(false);
                 if (result.Outcome != StartRescanOutcome.Busy)
                 {
                     if (result.Outcome != StartRescanOutcome.Started)
@@ -201,7 +203,7 @@ public sealed class QuickSyncStarter : IDisposable
 
                 // A library-wide rescan or sync that's unfinished lists every folder itself, e.g. one resumed from the
                 // last session or a manual rescan: queueing another when it ends would list everything twice.
-                if (await LibraryWideSyncUnfinishedAsync(library, token).ConfigureAwait(false))
+                if (await LibraryWideSync.IsUnfinishedAsync(library, token).ConfigureAwait(false))
                 {
                     logger.LogInformation("No quick sync on open: a library rescan is unfinished");
                     return;

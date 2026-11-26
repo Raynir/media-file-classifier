@@ -158,7 +158,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
 
         foreach (var batch in moved.Chunk(BatchSize))
         {
-            await library.Items.UpdateRangeAsync(batch, cancellationToken).ConfigureAwait(false);
+            await library.Items.UpdateFilesAsync(batch, cancellationToken).ConfigureAwait(false);
         }
 
         // Changed or back: the check stage fingerprints them (E02-S04-T03). A returning item is Pending meanwhile.
@@ -167,7 +167,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
             if (item.Status == MediaItemStatus.Missing)
             {
                 item.ChangeStatus(MediaItemStatus.Pending, now);
-                await library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
+                await library.Items.UpdateFilesAsync([item], cancellationToken).ConfigureAwait(false);
             }
 
             check.Add(item);
@@ -184,7 +184,7 @@ public sealed partial class ReconcileStage(Reconciler reconciler, TimeProvider c
 
         foreach (var batch in missing.Chunk(BatchSize))
         {
-            await library.Items.UpdateRangeAsync(batch, cancellationToken).ConfigureAwait(false);
+            await library.Items.UpdateFilesAsync(batch, cancellationToken).ConfigureAwait(false);
         }
 
         // New files are imported like any other (E03-S07): the fingerprint stage goes on from what's known.

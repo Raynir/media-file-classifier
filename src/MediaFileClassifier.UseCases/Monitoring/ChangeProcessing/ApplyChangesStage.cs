@@ -172,7 +172,7 @@ public sealed partial class ApplyChangesStage(
         }
 
         // Relinked first, so the paths they left are free for new items. Files may have swapped names in the batch.
-        await library.Items.UpdateMovedAsync(batch.Written.Values, cancellationToken).ConfigureAwait(false);
+        await library.Items.UpdateFilesAsync(batch.Written.Values, cancellationToken).ConfigureAwait(false);
 
         await EnqueueAsync(context, RescanStages.Check, batch.Check, cancellationToken).ConfigureAwait(false);
         var gone = await MarkMissingAsync(library, folder, items, batch, cancellationToken).ConfigureAwait(false);
@@ -183,6 +183,14 @@ public sealed partial class ApplyChangesStage(
         foreach (var item in registered.Where(item => !moved.Contains(item.Id)))
         {
             recentlyRegistered[item.Id] = (batch.Now, item.SizeBytes);
+        }
+
+        // Pairing fingerprinted some new files in memory: stored now, the fingerprint stage doesn't hash them again
+        // (MFC-1054).
+        MediaItem[] fingerprinted = [.. registered.Where(item => !moved.Contains(item.Id) && item.Hashes.Fingerprint is not null)];
+        if (fingerprinted.Length > 0)
+        {
+            await library.Items.UpdateFilesAsync(fingerprinted, cancellationToken).ConfigureAwait(false);
         }
 
         await EnqueueAsync(context, ImportStages.Fingerprint, registered.Select(item => item.Id).Where(itemId => !moved.Contains(itemId)), cancellationToken)
@@ -303,7 +311,7 @@ public sealed partial class ApplyChangesStage(
 
         foreach (var written in missing.Chunk(ReconcileStage.BatchSize))
         {
-            await library.Items.UpdateRangeAsync(written, cancellationToken).ConfigureAwait(false);
+            await library.Items.UpdateFilesAsync(written, cancellationToken).ConfigureAwait(false);
         }
 
         return missing;
@@ -379,7 +387,7 @@ public sealed partial class ApplyChangesStage(
                     && survivor.Status is MediaItemStatus.Indexed or MediaItemStatus.Error)
                 {
                     survivor.ChangeStatus(MediaItemStatus.Pending, now);
-                    await library.Items.UpdateAsync(survivor, cancellationToken).ConfigureAwait(false);
+                    await library.Items.UpdateFilesAsync([survivor], cancellationToken).ConfigureAwait(false);
                     check.Add(survivor.Id);
                 }
             }
@@ -445,7 +453,7 @@ public sealed partial class ApplyChangesStage(
                 check.Add(item.Id);
             }
 
-            await library.Items.UpdateAsync(item, cancellationToken).ConfigureAwait(false);
+            await library.Items.UpdateFilesAsync([item], cancellationToken).ConfigureAwait(false);
         }
 
         await EnqueueAsync(context, RescanStages.Check, check, cancellationToken).ConfigureAwait(false);

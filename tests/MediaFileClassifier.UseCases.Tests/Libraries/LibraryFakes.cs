@@ -397,7 +397,7 @@ internal sealed class FakeJobRepository : IJobRepository
 
     public Task AddJobAsync(ProcessingJob job, IReadOnlyCollection<WorkItem> workItems, Action<IReadOnlyCollection<WorkItem>>? stored, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, Action<IReadOnlyCollection<WorkItem>>? stored, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    public Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, Action<IReadOnlyCollection<WorkItem>>? stored, bool onlyWhileActive, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     /// <summary>
     /// Gets or sets the state every job is in, for <see cref="GetJobAsync"/>; <see langword="null"/> for no jobs.
@@ -454,7 +454,13 @@ internal sealed class FakeJobRepository : IJobRepository
 
     public Task<IReadOnlyList<WorkItem>> GetQueuedForItemsAsync(IReadOnlyCollection<Id<MediaItem>> itemIds, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-    public Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    /// <summary>
+    /// Gets the work items <see cref="GetWorkItemsAsync"/> returns, by job.
+    /// </summary>
+    public List<WorkItem> Work { get; } = [];
+
+    public Task<IReadOnlyList<WorkItem>> GetWorkItemsAsync(Id<ProcessingJob> jobId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<WorkItem>>([.. Work.Where(item => item.JobId == jobId)]);
 
     public Task<int> CountPendingAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
 

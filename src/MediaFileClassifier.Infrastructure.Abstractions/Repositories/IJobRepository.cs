@@ -56,7 +56,23 @@ public interface IJobRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><see langword="false"/> if the job doesn't exist or is cancelled; the batches from then on aren't
     /// added.</returns>
-    Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, Action<IReadOnlyCollection<WorkItem>>? stored, CancellationToken cancellationToken = default);
+    Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, Action<IReadOnlyCollection<WorkItem>>? stored, CancellationToken cancellationToken = default) =>
+        AddWorkItemsAsync(jobId, workItems, now, stored, onlyWhileActive: false, cancellationToken);
+
+    /// <summary>
+    /// Adds work items to an existing job, and tells which batches are stored. With <paramref name="onlyWhileActive"/>,
+    /// only a job that's queued, running or waiting for a model takes the work (MFC-1054): the check and the write are
+    /// one transaction, so a job that finishes meanwhile isn't revived.
+    /// </summary>
+    /// <param name="jobId">The job.</param>
+    /// <param name="workItems">The new work items.</param>
+    /// <param name="now">Current time.</param>
+    /// <param name="stored">Called with each batch once it's stored, or <see langword="null"/>.</param>
+    /// <param name="onlyWhileActive">Whether a finished or paused job refuses the work instead of being queued again.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="false"/> if the job doesn't exist, is cancelled, or isn't active when that's asked; the
+    /// batches from then on aren't added.</returns>
+    Task<bool> AddWorkItemsAsync(Id<ProcessingJob> jobId, IReadOnlyCollection<WorkItem> workItems, DateTimeOffset now, Action<IReadOnlyCollection<WorkItem>>? stored, bool onlyWhileActive, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a job.

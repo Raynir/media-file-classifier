@@ -192,6 +192,25 @@ public sealed class JobRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AddWorkItemsAsync_OnlyWhileActive_LeavesAFinishedJobFinished()
+    {
+        var (job, items) = NewJob(1);
+        await bed.Library.Jobs.AddJobAsync(job, items, Token);
+        var next = WorkItem.Create(job.Id, null, "next", ResourcePool.Cpu, (int)JobPriority.Import, null, Now);
+        Assert.True(await bed.Library.Jobs.AddWorkItemsAsync(job.Id, [next], Now, null, onlyWhileActive: true, Token));
+
+        var running = await bed.Library.Jobs.StartAsync(items[0], Now, Token);
+        await bed.Library.Jobs.FinishAsync(running!.ChangeState(WorkItemState.Completed, Now), Now, Token);
+        var other = await bed.Library.Jobs.StartAsync(next, Now, Token);
+        await bed.Library.Jobs.FinishAsync(other!.ChangeState(WorkItemState.Completed, Now), Now, Token);
+        var late = WorkItem.Create(job.Id, null, "late", ResourcePool.Cpu, (int)JobPriority.Import, null, Now);
+
+        Assert.False(await bed.Library.Jobs.AddWorkItemsAsync(job.Id, [late], Now, null, onlyWhileActive: true, Token));
+        Assert.Equal(ProcessingJobState.Completed, (await bed.Library.Jobs.GetJobAsync(job.Id, Token))!.State);
+        Assert.DoesNotContain(late.Id, (await bed.Library.Jobs.GetWorkItemsAsync(job.Id, Token)).Select(item => item.Id));
+    }
+
+    [Fact]
     public async Task RequeueRunningAsync_PutsInterruptedWorkBackInTheQueue()
     {
         var (job, items) = NewJob(2);

@@ -171,6 +171,9 @@ public sealed class SearchFilterTests(SearchFilterTests.Library library) : IClas
             photo.SetFavorite(true, Start);
             photo.MarkReviewed(Start);
             await Bed.Library.Library.Items.UpdateAsync(photo, Metadata(photo, 4000, 3000, new DateTime(2020, 6, 1, 12, 0, 0), null), Token);
+
+            // The metadata write keeps the user's marks as stored (MFC-1053), so they're stored on their own.
+            await Bed.Library.Library.Items.UpdateAsync(photo, Token);
             await Bed.Library.Library.Metadata.AddTagAsync([photo.Id], TagName.From("trip"), Token);
             await Bed.Library.Library.Metadata.AddTagAsync([photo.Id], TagName.From("beach"), Token);
 

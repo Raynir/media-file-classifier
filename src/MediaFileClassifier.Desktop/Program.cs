@@ -112,13 +112,14 @@ internal static partial class Program
             // Folders in Poll mode, such as network shares, get a quick sync at the poll interval (E04-S05-T02).
             host.Services.GetRequiredService<MediaFileClassifier.UseCases.Monitoring.FolderPoller>().Start();
 
-            // Changes made while the app was closed are picked up once the watchers run (E04-S03).
-            host.Services.GetRequiredService<MediaFileClassifier.UseCases.Monitoring.QuickSyncStarter>().Start();
-
             if (args.Contains("--benchmark"))
             {
                 return RunBenchmark(host.Services, logger);
             }
+
+            // Changes made while the app was closed are picked up once the watchers run (E04-S03). Not for a benchmark
+            // run, which only times the analyzers (MFC-1042).
+            host.Services.GetRequiredService<MediaFileClassifier.UseCases.Monitoring.QuickSyncStarter>().Start();
 
             UiCommandLine.Apply(args, host.Services);
 

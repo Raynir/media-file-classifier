@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
@@ -10,6 +12,7 @@ using MediaFileClassifier.Testing.Settings;
 using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.UseCases.Monitoring;
+using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Rescan.StartRescan;
 using MediaFileClassifier.UseCases.Tests.Libraries;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -115,6 +118,35 @@ public sealed class ReconnectCatchUpTests
         await bed.CatchUp.WaitAsync();
 
         Assert.Equal(3, bed.Sender.Syncs.Count());
+    }
+
+    [Theory]
+    [InlineData(RescanStages.QuickSyncJob, WorkItemState.Queued, 1)]
+    [InlineData(RescanStages.RescanJob, WorkItemState.Queued, 1)]
+    [InlineData(RescanStages.QuickSyncJob, WorkItemState.Running, 2)]
+    [InlineData(RescanStages.QuickSyncJob, WorkItemState.Completed, 2)]
+    public async Task Reconnected_BusyBehindALibraryWideSync_GivesUpOnlyIfItsListingIsToCome(string type, WorkItemState listing, int syncs)
+    {
+        // As when a library opens: a sync yet to list the folders lists the one that came back, so the catch-up doesn't
+        // (MFC-1049); once the listing ran, the folder may not be in it, and the catch-up retries.
+        using var bed = await Bed.CreateAsync();
+        var folder = await bed.AddFolderAsync(@"E:\Photos");
+        var job = new ProcessingJob { Id = Id<ProcessingJob>.New(), Type = type, Description = "Sync", State = ProcessingJobState.Running, CreatedAt = Now };
+        bed.Library.JobList.Unfinished.Add(job);
+        bed.Library.JobList.Work.Add(WorkItem.Create(job.Id, null, RescanStages.Reconcile, ResourcePool.Io, 0, null, Now) with { State = listing });
+        bed.Sender.Outcomes.Enqueue(StartRescanOutcome.Busy);
+
+        await bed.Handler.Handle(new FoldersReconnected([folder.Id]), Token);
+        await WaitUntilAsync(() => bed.Sender.Syncs.Count() == 1);
+        if (syncs > 1)
+        {
+            await AdvanceUntilAsync(bed, () => bed.Sender.Syncs.Count() == syncs);
+        }
+
+        await bed.CatchUp.WaitAsync().WaitAsync(TimeSpan.FromSeconds(10), Token);
+        bed.Clock.Advance(ReconnectCatchUp.BusyRetry);
+        await Task.Delay(50, Token);
+        Assert.Equal(syncs, bed.Sender.Syncs.Count());
     }
 
     [Fact]

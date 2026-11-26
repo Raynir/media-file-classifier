@@ -3,6 +3,7 @@ using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.UseCases.Libraries;
+using MediaFileClassifier.UseCases.Rescan;
 using MediaFileClassifier.UseCases.Rescan.StartRescan;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,9 @@ namespace MediaFileClassifier.UseCases.Monitoring;
 /// sync on open" switch says, unless the folder is in Manual mode (E04-S05-T01). The sync starts once the folder watchers run, so a file that changes while it lists is seen
 /// by the watcher as well. A start refused because the folder's import or rescan work is running is asked for again every
 /// <see cref="BusyRetry"/> while the folder is still Online, its library still open and, where folders are watched and it
-/// runs in Watch mode, the folder still watched (as <see cref="FolderWatchManager"/> does for lost events, D517).
+/// runs in Watch mode, the folder still watched (as <see cref="FolderWatchManager"/> does for lost events, D517). It
+/// gives up instead while a library-wide rescan or quick sync is yet to list the folders, since that one lists this
+/// folder too (MFC-1049).
 /// </summary>
 public sealed class ReconnectCatchUp : IDisposable
 {
@@ -192,7 +195,7 @@ public sealed class ReconnectCatchUp : IDisposable
                     }
                 }
 
-                var result = await sender.Send(new StartRescanCommand(folderId, Quick: true), token).ConfigureAwait(false);
+                var result = await sender.Send(new StartRescanCommand(folderId, Quick: true, library), token).ConfigureAwait(false);
                 if (result.Outcome != StartRescanOutcome.Busy)
                 {
                     if (result.Outcome != StartRescanOutcome.Started)
@@ -200,6 +203,15 @@ public sealed class ReconnectCatchUp : IDisposable
                         logger.LogInformation("No catch-up of reconnected folder {Folder}: {Outcome}", folderId, result.Outcome);
                     }
 
+                    return;
+                }
+
+                // A library-wide rescan or sync that's yet to list the folders, such as the quick sync on open, lists this
+                // one too: syncing it again when that ends would list it twice (MFC-1049). Once its listing has run,
+                // the folder may not be in it, so the catch-up waits its turn.
+                if (await LibraryWideSync.WillListAsync(library, token).ConfigureAwait(false))
+                {
+                    logger.LogInformation("No catch-up of reconnected folder {Folder}: a library rescan will list it", folderId);
                     return;
                 }
 

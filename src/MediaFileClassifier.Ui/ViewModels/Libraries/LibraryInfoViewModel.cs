@@ -36,6 +36,8 @@ public sealed partial class LibraryInfoViewModel : ViewModelBase, IDisposable
     private readonly LibraryInfoRow pending = new("LibraryInfo_Pending");
     private readonly LibraryInfoRow errors = new("LibraryInfo_Errors");
     private readonly LibraryInfoRow missing = new("LibraryInfo_Missing");
+    private readonly LibraryInfoRow openDuplicateGroups = new("LibraryInfo_OpenDuplicateGroups");
+    private readonly LibraryInfoRow wastedSpace = new("LibraryInfo_WastedSpace");
     private readonly LibraryInfoRow mediaSize = new("LibraryInfo_MediaFiles");
     private readonly LibraryInfoRow database = new("LibraryInfo_Database");
     private readonly LibraryInfoRow thumbnails = new("LibraryInfo_Thumbnails");
@@ -76,13 +78,14 @@ public sealed partial class LibraryInfoViewModel : ViewModelBase, IDisposable
         [
             new LibraryInfoGroup("LibraryInfo_Items", [total, images, animatedImages, videos]),
             new LibraryInfoGroup("LibraryInfo_Status", [indexed, pending, errors, missing]),
+            new LibraryInfoGroup("LibraryInfo_Duplicates", [openDuplicateGroups, wastedSpace]),
             new LibraryInfoGroup("LibraryInfo_DiskUsage", [mediaSize, database, thumbnails, backups, libraryTotal]),
         ];
         Show();
     }
 
     /// <summary>
-    /// Gets the groups of rows: Items, Status and Disk usage.
+    /// Gets the groups of rows: Items, Status, Duplicates and Disk usage.
     /// </summary>
     public IReadOnlyList<LibraryInfoGroup> Groups { get; }
 
@@ -203,6 +206,8 @@ public sealed partial class LibraryInfoViewModel : ViewModelBase, IDisposable
         pending.Value = Format.Number(statistics.Pending);
         errors.Value = Format.Number(statistics.Errors);
         missing.Value = Format.Number(statistics.Missing);
+        openDuplicateGroups.Value = Format.Number(monitor.Duplicates.OpenGroups);
+        wastedSpace.Value = Format.FileSize(monitor.Duplicates.WastedBytes);
         mediaSize.Value = Format.FileSize(statistics.MediaSizeBytes);
         var calculating = localizer.Get("LibraryInfo_Calculating");
         var usage = ReferenceEquals(measuredLibrary, session.Current) ? diskUsage : null;

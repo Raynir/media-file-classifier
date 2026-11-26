@@ -43,6 +43,13 @@ public interface IDuplicateGroupRepository
     Task<int> CountAsync(DuplicateGroupState? state, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the figures of the Open groups, of every type, in one aggregate query (E12-S05-T01).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of Open groups and the space their extra copies take.</returns>
+    Task<DuplicateStatistics> GetOpenStatisticsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the members of a group.
     /// </summary>
     /// <param name="groupId">The group.</param>

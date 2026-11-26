@@ -40,6 +40,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Serilog.Extensions.Hosting" />
     <PackageReference Include="Serilog.Sinks.File" />
+    <InternalsVisibleTo Include="MediaFileClassifier.Desktop.Tests" />
   </ItemGroup>
 
   <!-- The native LibVLC, trimmed to win-x64 and the playback plugins (D070). -->

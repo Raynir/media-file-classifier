@@ -56,6 +56,7 @@ public static class UseCasesModule
         services.TryAddSingleton<Metadata.UndoBulkEdit.BulkUndoStore>();
         services.TryAddSingleton<Activity.ActivityChanges>();
         services.TryAddSingleton<Activity.ActivityJobRecorder>();
+        services.TryAddSingleton<Duplicates.DuplicateGroupMaintainer>();
         services.TryAddSingleton<Embeddings.ItemEmbeddingAnalyzer>();
         services.TryAddSingleton<Embeddings.SemanticQueryEncoder>();
         services.TryAddSingleton<Embeddings.EmbeddingModelMigration>();
@@ -77,6 +78,7 @@ public static class UseCasesModule
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ContentHashStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, RemoveFolderStage>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Exclusions.ExclusionCleanupStage>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, Duplicates.DetectDuplicates.DuplicateReconcileStage>());
         services.TryAddSingleton<MoveDetector>();
         services.TryAddSingleton<Reconciler>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStageHandler, ReconcileStage>());

@@ -196,7 +196,7 @@ public sealed class IndexedFolderManagementTests : IAsyncLifetime
 
         // Back Online, the folder gets a quick sync that starts in the background (E04-S04-T02). Ending the test while
         // it runs would close and delete the library under it (MFC-1059).
-        await bed.Get<ReconnectCatchUp>().WaitAsync();
+        await bed.Get<ReconnectCatchUp>().WaitAsync().WaitAsync(TimeSpan.FromSeconds(60), Token);
         await bed.WaitUntilIdleAsync();
 
         Assert.Equal(FolderStatus.Online, Assert.Single(online).Status);

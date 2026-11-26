@@ -223,6 +223,73 @@ public sealed class ActivityLogViewModelTests
     }
 
     [Fact]
+    public async Task ABigList_SyncsRowsToTheLog_WhenTheFrontIsTrimmedAndNewEventsArrive()
+    {
+        const int Count = 5000;
+        for (var i = 0; i < Count; i++)
+        {
+            Add(ActivityEventType.Import, Now.AddSeconds(-i - 10));
+        }
+
+        var model = CreateModel();
+        await model.RefreshAsync(Token);
+        while (model.HasMore)
+        {
+            await model.LoadMoreAsync(Token);
+        }
+
+        Assert.Equal(Count, model.Rows.Count(row => row.IsEvent));
+
+        // The newest 1,000 are gone and two new ones came in: every row at the front changes.
+        log.Events.RemoveAll(activity => activity.OccurredAt > Now.AddSeconds(-1010));
+        Add(ActivityEventType.Rescan, Now);
+        Add(ActivityEventType.Rescan, Now.AddSeconds(-1));
+        await model.RefreshAsync(Token);
+
+        var keys = model.Rows.Where(row => row.IsEvent).Select(row => row.Key).ToList();
+        var expected = log.Events.OrderByDescending(activity => activity.OccurredAt).Take(keys.Count).Select(activity => $"event:{activity.Id}").ToList();
+        Assert.Equal(expected, keys);
+        Assert.Equal(keys.Count, keys.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task ARepositoryFailure_IsLogged_AndKeepsTheRowsShown()
+    {
+        Add(ActivityEventType.Import, Now);
+        for (var i = 0; i < ActivityLogViewModel.PageSize; i++)
+        {
+            Add(ActivityEventType.Rescan, Now.AddSeconds(-i - 10));
+        }
+
+        var sender = new LogSender(log, existing);
+        var model = new ActivityLogViewModel(sender, changes, TestLocalizer.EnUs(), new FixedClock(Now), navigator, null, action => action());
+        await model.RefreshAsync(Token);
+        var shown = model.Rows.Count;
+        sender.Failure = new InvalidDataException("database is locked");
+
+        await model.RefreshAsync(Token);
+        await model.LoadMoreAsync(Token);
+        await model.SelectChipAsync(model.Chips[1]);
+
+        // The failures didn't escape, and the next successful load carries on.
+        Assert.Equal(model.Chips[1], model.SelectedChip);
+        sender.Failure = null;
+        await model.RefreshAsync(Token);
+        Assert.Single(model.Rows, row => row.IsEvent);
+        Assert.True(shown > 1);
+    }
+
+    [Fact]
+    public async Task ACancelledLoad_StillCancels()
+    {
+        Add(ActivityEventType.Import, Now);
+        var sender = new LogSender(log, existing) { Failure = new OperationCanceledException() };
+        var model = new ActivityLogViewModel(sender, changes, TestLocalizer.EnUs(), new FixedClock(Now), navigator, null, action => action());
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => model.RefreshAsync(Token));
+    }
+
+    [Fact]
     public async Task ALibraryChange_EmptiesTheListAtOnce_AndListsTheNewLibrary()
     {
         Add(ActivityEventType.Import, Now);
@@ -338,6 +405,8 @@ public sealed class ActivityLogViewModelTests
     {
         public TaskCompletionSource? Gate { get; set; }
 
+        public Exception? Failure { get; set; }
+
         public override async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
             if (Gate is { } gate)
@@ -350,6 +419,11 @@ public sealed class ActivityLogViewModelTests
 
         protected override object? Handle(object request)
         {
+            if (Failure is { } failure)
+            {
+                throw failure;
+            }
+
             var query = (GetActivityPageQuery)request;
             var page = log.GetPageAsync(query.Filter, query.Skip, query.Take).Result;
             var total = log.CountAsync(query.Filter).Result;

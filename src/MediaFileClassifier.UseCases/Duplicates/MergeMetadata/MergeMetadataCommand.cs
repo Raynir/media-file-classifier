@@ -17,7 +17,11 @@ namespace MediaFileClassifier.UseCases.Duplicates.MergeMetadata;
 /// </summary>
 /// <param name="KeeperId">The item kept.</param>
 /// <param name="MemberIds">The other members, in order of preference. The keeper and unknown items are ignored.</param>
-public sealed record MergeMetadataCommand(Id<MediaItem> KeeperId, IReadOnlyList<Id<MediaItem>> MemberIds) : IRequest<MergeMetadataResult>;
+/// <param name="Choices">The value the user picked per conflicting field (E12-S04 resolve dialog); none keeps the keeper's values.</param>
+public sealed record MergeMetadataCommand(
+    Id<MediaItem> KeeperId,
+    IReadOnlyList<Id<MediaItem>> MemberIds,
+    IReadOnlyDictionary<DescriptiveField, FieldValue>? Choices = null) : IRequest<MergeMetadataResult>;
 
 /// <summary>
 /// The outcome of <see cref="MergeMetadataCommand"/>.
@@ -33,6 +37,12 @@ public sealed record MergeMetadataResult(MetadataMergeOutcome Outcome, bool Favo
     /// Gets the result of a merge that changed nothing: no library, no keeper or no member.
     /// </summary>
     public static MergeMetadataResult None { get; } = new(new MetadataMergeOutcome([], [], []), false, false, null);
+
+    /// <summary>
+    /// Gets exactly what the merge changed on the keeper, so an undo reverts only that (E12-S04-T06), or
+    /// <see langword="null"/> if nothing changed.
+    /// </summary>
+    public MetadataMergeRecord? Record { get; init; }
 }
 
 /// <summary>
@@ -83,7 +93,7 @@ public sealed class MergeMetadataCommandHandler(ILibrarySession session, TimePro
             keeperMetadata =>
             {
                 before = keeperMetadata.CaptureUserLayer();
-                return MetadataMerge.Apply(keeperMetadata, members, now);
+                return MetadataMerge.Apply(keeperMetadata, members, request.Choices, now);
             },
             cancellationToken).ConfigureAwait(false);
 
@@ -99,7 +109,11 @@ public sealed class MergeMetadataCommandHandler(ILibrarySession session, TimePro
 
         var userTags = metadata.Tags.Where(tag => tag.Source == MetadataSource.User).Select(tag => tag.Tag).Distinct().Count();
         var undo = outcome.Changed || favoriteAdded ? new MetadataMergeUndo(request.KeeperId, before!, keeper.IsFavorite) : null;
-        return new MergeMetadataResult(outcome, favoriteAdded, userTags > MetadataLimits.UserTagsPerItem, undo);
+        var record = MetadataMergeRecord.From(before!, metadata, outcome, favoriteAdded);
+        return new MergeMetadataResult(outcome, favoriteAdded, userTags > MetadataLimits.UserTagsPerItem, undo)
+        {
+            Record = record.IsEmpty ? null : record,
+        };
     }
 
     private async Task PublishAsync(Id<MediaItem> keeperId, MetadataMergeOutcome outcome, bool favoriteAdded)

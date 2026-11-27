@@ -1,5 +1,6 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.DataAccess.Libraries;
+using Microsoft.Data.Sqlite;
 
 namespace MediaFileClassifier.Infrastructure.Tests.DataAccess;
 
@@ -98,6 +99,69 @@ public sealed class LibraryMaintenanceTests : IAsyncLifetime
 
         var after = OnDisk(path);
         Assert.True(after < before / 2, $"On disk {before} -> {after} bytes.");
+    }
+
+    [Fact]
+    public async Task TruncateWalAsync_BusyAtFirst_TriesAgainAndTruncatesTheWal()
+    {
+        // A checkpoint that can't run isn't an error: it reports busy in its result. A reader on an old snapshot makes
+        // it busy here; the passive checkpointer holding the checkpoint lock does under load (MFC-1071).
+        await bed.Library.Items.AddRangeAsync([.. Enumerable.Range(1, 500).Select(bed.NewItem)], Token);
+        var path = bed.Library.Layout.DatabasePath;
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Mode = SqliteOpenMode.ReadWrite, Pooling = false }.ToString();
+        await using var checker = new SqliteConnection(connectionString);
+        await checker.OpenAsync(Token);
+        await using var reader = new SqliteConnection(connectionString);
+        await reader.OpenAsync(Token);
+        await using var begin = reader.CreateCommand();
+        begin.CommandText = "BEGIN; SELECT count(*) FROM sqlite_master;";
+        await begin.ExecuteNonQueryAsync(Token);
+        await bed.Library.Items.AddRangeAsync([.. Enumerable.Range(1_000, 500).Select(bed.NewItem)], Token);
+        var waits = 0;
+
+        var truncated = await LibraryMaintenance.TruncateWalAsync(
+            checker,
+            attempts: 50,
+            async (_, token) =>
+            {
+                waits++;
+                await using var end = reader.CreateCommand();
+                end.CommandText = "COMMIT;";
+                try
+                {
+                    await end.ExecuteNonQueryAsync(token);
+                }
+                catch (SqliteException)
+                {
+                    // Already ended: a later wait is for the checkpointer's own lock.
+                }
+            },
+            Token);
+
+        Assert.True(truncated);
+        Assert.True(waits >= 1, "The first try should have been busy.");
+        Assert.Equal(0, new FileInfo(path + "-wal").Length);
+    }
+
+    [Fact]
+    public async Task TruncateWalAsync_AlwaysBusy_GivesUpAfterTheAttempts()
+    {
+        await bed.Library.Items.AddRangeAsync([.. Enumerable.Range(1, 500).Select(bed.NewItem)], Token);
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = bed.Library.Layout.DatabasePath, Mode = SqliteOpenMode.ReadWrite, Pooling = false }.ToString();
+        await using var checker = new SqliteConnection(connectionString);
+        await checker.OpenAsync(Token);
+        await using var reader = new SqliteConnection(connectionString);
+        await reader.OpenAsync(Token);
+        await using var begin = reader.CreateCommand();
+        begin.CommandText = "BEGIN; SELECT count(*) FROM sqlite_master;";
+        await begin.ExecuteNonQueryAsync(Token);
+        await bed.Library.Items.AddRangeAsync([.. Enumerable.Range(1_000, 500).Select(bed.NewItem)], Token);
+        var waits = 0;
+
+        var truncated = await LibraryMaintenance.TruncateWalAsync(checker, attempts: 3, (_, _) => Task.FromResult(++waits), Token);
+
+        Assert.False(truncated);
+        Assert.Equal(2, waits);
     }
 
     [Fact]

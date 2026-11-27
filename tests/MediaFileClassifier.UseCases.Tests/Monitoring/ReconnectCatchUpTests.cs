@@ -160,8 +160,9 @@ public sealed class ReconnectCatchUpTests
         await WaitUntilAsync(() => bed.Sender.Syncs.Count() == 1);
         folder.MarkOffline(Now);
         bed.Library.FolderList.Seed(folder);
-        bed.Clock.Advance(ReconnectCatchUp.BusyRetry);
-        await bed.CatchUp.WaitAsync().WaitAsync(TimeSpan.FromSeconds(10), Token);
+
+        // The retry's timer isn't there yet when the first sync is seen, so one advance may come too early.
+        await AdvanceUntilAsync(bed, () => bed.CatchUp.WaitAsync().IsCompleted);
 
         Assert.Single(bed.Sender.Syncs);
     }
@@ -176,8 +177,9 @@ public sealed class ReconnectCatchUpTests
         await bed.Handler.Handle(new FoldersReconnected([folder.Id]), Token);
         await WaitUntilAsync(() => bed.Sender.Syncs.Count() == 1);
         await bed.Session.SetCurrentAsync(null);
-        bed.Clock.Advance(ReconnectCatchUp.BusyRetry);
-        await bed.CatchUp.WaitAsync().WaitAsync(TimeSpan.FromSeconds(10), Token);
+
+        // The retry's timer isn't there yet when the first sync is seen, so one advance may come too early.
+        await AdvanceUntilAsync(bed, () => bed.CatchUp.WaitAsync().IsCompleted);
 
         Assert.Single(bed.Sender.Syncs);
     }

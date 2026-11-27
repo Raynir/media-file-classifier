@@ -14,7 +14,7 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 
 ### Changed
 
-- Smaller build output (MFC-1076): Desktop and the test projects copy only the win-x64 native libraries into `bin`, and no native `.pdb` files, so one worktree's build output shrinks from about 3.3 GB to about 0.6 GB. Output paths are unchanged, and publishing is not affected.
+- Smaller build output (MFC-1076): Desktop and the test projects copy only the win-x64 native libraries into `bin`, and no native `.pdb` files under `runtimes`, so one worktree's build output shrinks from about 3.3 GB to about 0.6 GB. Output paths are unchanged, and a publish with `-r win-x64` is not affected.
 
 ## 1.1.0 — 2026-11-27
 

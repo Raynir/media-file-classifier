@@ -1,13 +1,14 @@
 <Project>
   <!-- Windows heads (Desktop and the test projects) run on win-x64 only, but NuGet packages such as SkiaSharp, HarfBuzz
        and ONNX Runtime bring natives for every platform (about 600 MB per project, MFC-1076). Leave out of the build
-       output everything under runtimes\ that is not win-x64, and native .pdb symbols. Publishing (-r win-x64) already
-       picks one platform, so it is left alone. -->
+       output the natives under runtimes\<rid>\native\ of every other platform, and native .pdb symbols there. Managed
+       assets (runtimes\win\lib, runtimes\unix\lib) stay. Publishing with -r win-x64 already picks one platform, so it
+       is left alone. -->
   <Target Name="PruneNonWinX64Natives" BeforeTargets="_CopyFilesMarkedCopyLocal" Condition="'$(RuntimeIdentifier)' == ''">
     <ItemGroup>
       <_OtherPlatformNative Include="@(ReferenceCopyLocalPaths)"
-                            Condition="$([System.String]::Copy('%(ReferenceCopyLocalPaths.DestinationSubDirectory)').Replace('\', '/').StartsWith('runtimes/'))
-                                       And ( !$([System.String]::Copy('%(ReferenceCopyLocalPaths.DestinationSubDirectory)').Replace('\', '/').StartsWith('runtimes/win-x64/'))
+                            Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(ReferenceCopyLocalPaths.DestinationSubDirectory)', '^runtimes[\\/][^\\/]+[\\/]native[\\/]'))
+                                       And ( !$([System.Text.RegularExpressions.Regex]::IsMatch('%(ReferenceCopyLocalPaths.DestinationSubDirectory)', '^runtimes[\\/]win\d*-x64[\\/]'))
                                              Or '%(ReferenceCopyLocalPaths.Extension)' == '.pdb' )" />
       <ReferenceCopyLocalPaths Remove="@(_OtherPlatformNative)" />
     </ItemGroup>

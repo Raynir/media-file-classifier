@@ -13,6 +13,9 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Libraries;
 /// <param name="writer">Writer of the library.</param>
 internal sealed class LibraryMaintenance(LibraryConnectionFactory connections, LibraryWriter writer) : ILibraryMaintenance
 {
+    private const int TruncateAttempts = 30;
+    private static readonly TimeSpan TruncateRetryDelay = TimeSpan.FromMilliseconds(100);
+
     /// <inheritdoc />
     public Task<IntegrityCheckResult> CheckIntegrityAsync(CancellationToken cancellationToken = default) =>
         Task.Run(
@@ -73,15 +76,66 @@ internal sealed class LibraryMaintenance(LibraryConnectionFactory connections, L
                     await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
 
                     // VACUUM goes through the WAL, so the file only shrinks once the WAL is written back and truncated.
-                    // A reader that holds it up makes this a no-op, not an error; the checkpointer finishes it later.
-                    command.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+                    // The tries wait between them, so the busy timeout doesn't: a reader that holds the WAL up would
+                    // otherwise hold the writer for the timeout on every try.
+                    command.CommandText = "PRAGMA busy_timeout = 0;";
                     await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                    try
+                    {
+                        await TruncateWalAsync(connection, TruncateAttempts, (_, delayToken) => Task.Delay(TruncateRetryDelay, delayToken), token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        command.CommandText = "PRAGMA busy_timeout = 5000;"; // As LibraryConnectionFactory.BusyTimeoutMilliseconds.
+                        await command.ExecuteNonQueryAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
                 }
 
                 command.CommandText = "ANALYZE;";
                 await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             },
             cancellationToken);
+
+    /// <summary>
+    /// Runs <c>wal_checkpoint(TRUNCATE)</c> until it isn't busy, or the attempts run out. A busy checkpoint isn't an
+    /// error: it reports it in its result. It's busy while the checkpointer's passive checkpoint holds the checkpoint
+    /// lock, which doesn't wait for the busy timeout, and then a single try leaves the WAL, and so the files on disk, as
+    /// they were. The passive checkpoint doesn't truncate the WAL file later, so the retry is what does (MFC-1071).
+    /// </summary>
+    /// <param name="connection">The writer's connection.</param>
+    /// <param name="attempts">How many times to try.</param>
+    /// <param name="waitBeforeRetry">Waits before the next try; given the number of the try that was busy.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Whether the WAL was truncated.</returns>
+    internal static async Task<bool> TruncateWalAsync(
+        SqliteConnection connection,
+        int attempts,
+        Func<int, CancellationToken, Task> waitBeforeRetry,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+            bool busy;
+            await using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+            {
+                busy = !await reader.ReadAsync(cancellationToken).ConfigureAwait(false) || reader.GetInt32(0) != 0;
+            }
+
+            if (!busy)
+            {
+                return true;
+            }
+
+            if (attempt < attempts)
+            {
+                await waitBeforeRetry(attempt, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        return false;
+    }
 
     private static long? AvailableDiskBytes(string databasePath)
     {

@@ -1,0 +1,37 @@
+# UI smoke script for the Duplicates view (MFC-143, MFC-849): the navigation entry, the group list, the comparison.
+# Zoom compare is for visual groups only (MFC-142), so exact groups never show it.
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/duplicates.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-dark
+
+library sample
+seed-duplicates
+wait 1500ms
+shot 01-browse-with-entry
+
+# The entry opens the view in place of the browser.
+nav duplicates
+wait-for visible ComparisonPane
+wait 1000ms
+shot 02-duplicates-comparison
+
+# The keeper rules popover.
+focus KeeperRulesButton
+key Space
+wait-for popup
+popup-shot 03-keeper-rules
+popup-key Escape
+wait-for no-popup
+
+# Next group with the keyboard, set the keeper on the second card, then back to the media with another entry.
+focus GroupList
+key Down
+key Right
+key Space
+wait 500ms
+shot 04-second-group
+
+nav all
+wait-for hidden ComparisonPane

@@ -24,6 +24,7 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
+using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.UseCases.Activity;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.Desktop.Platform;
@@ -298,6 +299,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return await SwapDriveAsync();
             case "folder-mode":
                 return await SetFolderModeAsync(Enum.Parse<MonitoringMode>(step.Argument));
+            case "nav":
+                return SelectNavigationEntry(step.Argument);
             case "allow-error":
                 log.AllowErrors(step.Argument);
                 return null;
@@ -542,6 +545,16 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
     // The sample files are all different. This gives the first four items two shared content hashes and groups them, so
     // the library has two Open duplicate groups (E12-S05).
+    // Picks a navigation entry by its key, as a click does (E12-S05-T03).
+    private string SelectNavigationEntry(string key)
+    {
+        var navigation = services.GetRequiredService<NavigationPanelViewModel>();
+        var entry = navigation.Sections.SelectMany(section => section.Entries).Select(candidate => candidate.Find(found => found.Key == key)).FirstOrDefault(found => found is not null)
+            ?? throw new SmokeStepException($"no navigation entry has the key '{key}'");
+        navigation.Select(entry);
+        return entry.Label;
+    }
+
     private async Task<string> SeedDuplicatesAsync()
     {
         var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");

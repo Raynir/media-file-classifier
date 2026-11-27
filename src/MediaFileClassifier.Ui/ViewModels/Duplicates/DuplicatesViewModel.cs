@@ -22,6 +22,7 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
     private readonly Localizer localizer;
     private IDuplicateGroupRepository? watched;
     private int generation;
+    private bool constructed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DuplicatesViewModel"/> class.
@@ -48,12 +49,13 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
         SelectedSort = SortOptions[0];
         TypeFilters =
         [
-            new(DuplicateTypeFilter.All, localizer.Get("Duplicates_Filter_All")) { IsSelected = true },
-            new(DuplicateTypeFilter.Exact, localizer.Get("Duplicates_Filter_Exact")),
-            new(DuplicateTypeFilter.Similar, localizer.Get("Duplicates_Filter_Similar")),
+            new(DuplicateTypeFilter.All, localizer.Get("Duplicates_Filter_All"), SelectTypeAsync) { IsSelected = true },
+            new(DuplicateTypeFilter.Exact, localizer.Get("Duplicates_Filter_Exact"), SelectTypeAsync),
+            new(DuplicateTypeFilter.Similar, localizer.Get("Duplicates_Filter_Similar"), SelectTypeAsync),
         ];
         Header = localizer.Get("Duplicates_Title");
         Status = string.Empty;
+        constructed = true;
     }
 
     /// <summary>
@@ -227,7 +229,14 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
     [RelayCommand]
     public void SelectPrevious() => Step(-1);
 
-    partial void OnSelectedSortChanged(DuplicateSortOption value) => _ = RefreshAsync();
+    // Choosing the first order in the constructor must not load: the type chips aren't there yet.
+    partial void OnSelectedSortChanged(DuplicateSortOption value)
+    {
+        if (constructed)
+        {
+            _ = RefreshAsync();
+        }
+    }
 
     partial void OnSelectedGroupChanged(DuplicateGroupRowViewModel? value) => _ = Comparison.ShowAsync(value?.Summary.Id);
 
@@ -283,11 +292,18 @@ public sealed partial class DuplicateTypeChip : ObservableObject
     /// </summary>
     /// <param name="value">The filter.</param>
     /// <param name="label">The chip's text.</param>
-    public DuplicateTypeChip(DuplicateTypeFilter value, string label)
+    /// <param name="select">What picking the chip does.</param>
+    public DuplicateTypeChip(DuplicateTypeFilter value, string label, Func<DuplicateTypeChip?, Task> select)
     {
         Value = value;
         Label = label;
+        SelectCommand = new AsyncRelayCommand(() => select(this));
     }
+
+    /// <summary>
+    /// Gets the command that picks the chip.
+    /// </summary>
+    public IAsyncRelayCommand SelectCommand { get; }
 
     /// <summary>
     /// Gets the filter.

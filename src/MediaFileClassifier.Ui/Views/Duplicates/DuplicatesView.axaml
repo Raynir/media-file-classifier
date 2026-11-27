@@ -43,8 +43,7 @@
             <ToggleButton Classes="FilterChip"
                           Content="{Binding Label}"
                           IsChecked="{Binding IsSelected, Mode=OneWay}"
-                          Command="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).SelectTypeCommand}"
-                          CommandParameter="{Binding}"
+                          Command="{Binding SelectCommand}"
                           AutomationProperties.Name="{Binding Label}" />
           </DataTemplate>
         </ItemsControl.ItemTemplate>
@@ -70,6 +69,7 @@
       <Grid ColumnDefinitions="300,*" ColumnSpacing="{DynamicResource Space.M}" IsVisible="{Binding HasGroups}">
         <ListBox x:Name="GroupList"
                  Grid.Column="0"
+                 Focusable="True"
                  ItemsSource="{Binding Groups}"
                  SelectedItem="{Binding SelectedGroup}"
                  Background="Transparent"
@@ -102,19 +102,18 @@
           <Grid x:Name="ComparisonPane"
                 RowDefinitions="Auto,*,Auto"
                 RowSpacing="{DynamicResource Space.S}"
-                IsVisible="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).HasSelection}"
-                DataContext="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).Comparison}"
-                x:DataType="vm:DuplicateComparisonViewModel"
+                IsVisible="{Binding HasSelection}"
                 AutomationProperties.Name="{l:Loc Duplicates_ComparisonLabel}">
             <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
               <Button x:Name="PreviousButton"
                       Content="{l:Loc Duplicates_Prev}"
-                      Command="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).SelectPreviousCommand}"
+                      Command="{Binding SelectPreviousCommand}"
                       AutomationProperties.Name="{l:Loc Duplicates_Prev}" />
               <Button x:Name="NextButton"
                       Content="{l:Loc Duplicates_Next}"
-                      Command="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).SelectNextCommand}"
+                      Command="{Binding SelectNextCommand}"
                       AutomationProperties.Name="{l:Loc Duplicates_Next}" />
+              <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" DataContext="{Binding Comparison}" x:DataType="vm:DuplicateComparisonViewModel">
               <Button x:Name="ZoomButton"
                       Content="{l:Loc Duplicates_Zoom}"
                       Command="{Binding ToggleZoomCommand}"
@@ -159,10 +158,11 @@
                   </Flyout>
                 </Button.Flyout>
               </Button>
+              </StackPanel>
             </StackPanel>
 
             <!-- Details: one card per member with aligned attribute rows; the cards scroll sideways. -->
-            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" IsVisible="{Binding IsDetailsMode}">
+            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" DataContext="{Binding Comparison}" x:DataType="vm:DuplicateComparisonViewModel" IsVisible="{Binding IsDetailsMode}">
               <ItemsControl x:Name="Cards" ItemsSource="{Binding Members}" AutomationProperties.Name="{l:Loc Duplicates_CardsLabel}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
@@ -222,7 +222,7 @@
             </ScrollViewer>
 
             <!-- Zoom compare: large previews that zoom and pan together, with a compact keeper strip. -->
-            <Grid Grid.Row="1" RowDefinitions="*,Auto" IsVisible="{Binding IsZoomMode}">
+            <Grid Grid.Row="1" RowDefinitions="*,Auto" DataContext="{Binding Comparison}" x:DataType="vm:DuplicateComparisonViewModel" IsVisible="{Binding IsZoomMode}">
               <ItemsControl x:Name="ZoomCards" Grid.Row="0" ItemsSource="{Binding Members}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
@@ -250,7 +250,7 @@
               <TextBlock Grid.Row="1" Classes="Secondary" Text="{l:Loc Duplicates_ZoomHint}" />
             </Grid>
 
-            <TextBlock Grid.Row="2" x:Name="SuggestionLabel" Classes="Secondary" Text="{Binding SuggestionText}" />
+            <TextBlock Grid.Row="2" x:Name="SuggestionLabel" Classes="Secondary" DataContext="{Binding Comparison}" x:DataType="vm:DuplicateComparisonViewModel" Text="{Binding SuggestionText}" />
           </Grid>
         </Panel>
       </Grid>

@@ -79,7 +79,7 @@
             <DataTemplate x:DataType="vm:DuplicateGroupRowViewModel">
               <StackPanel Margin="{DynamicResource Padding.Control}" AutomationProperties.Name="{Binding AccessibleName}">
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
-                  <Border Classes="Badge" Padding="6,1" CornerRadius="{DynamicResource Radius.Pill}" Background="{DynamicResource Brush.State.Hover}">
+                  <Border Classes="Badge" Padding="{DynamicResource Padding.Badge}" CornerRadius="{DynamicResource Radius.Pill}" Background="{DynamicResource Brush.State.Hover}">
                     <TextBlock Text="{Binding TypeText}" />
                   </Border>
                   <TextBlock Text="{Binding FilesText}" VerticalAlignment="Center" />
@@ -135,7 +135,7 @@
                       <ItemsControl x:Name="RuleList" ItemsSource="{Binding Rules}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="vm:KeeperRuleItem">
-                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource Space.XS}" Margin="0,2">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource Space.XS}" Margin="{DynamicResource Padding.Row}">
                               <TextBlock Grid.Column="0" Text="{Binding Position}" VerticalAlignment="Center" />
                               <TextBlock Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                               <Button Grid.Column="2"
@@ -192,7 +192,7 @@
                                      AutomationProperties.Name="{l:Loc Duplicates_Keep}" />
                         <Border Classes="Badge"
                                 HorizontalAlignment="Left"
-                                Padding="6,1"
+                                Padding="{DynamicResource Padding.Badge}"
                                 CornerRadius="{DynamicResource Radius.Pill}"
                                 Background="{DynamicResource Brush.State.Hover}"
                                 IsVisible="{Binding IsSuggested}">
@@ -203,11 +203,11 @@
                           <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ComparisonCell">
                               <Border Height="44"
-                                      Padding="4,2"
+                                      Padding="{DynamicResource Padding.Compact}"
                                       Classes.Differs="{Binding Differs}"
                                       CornerRadius="{DynamicResource Radius.Control}">
                                 <StackPanel VerticalAlignment="Center">
-                                  <TextBlock Classes="Secondary" FontSize="11" Text="{Binding Label}" />
+                                  <TextBlock Classes="Secondary" FontSize="{DynamicResource FontSize.Caption}" Text="{Binding Label}" />
                                   <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}" />
                                 </StackPanel>
                               </Border>
@@ -231,7 +231,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:DuplicateMemberViewModel">
-                    <Border Margin="2" ClipToBounds="True" Background="{DynamicResource Brush.Surface.Tile}">
+                    <Border Margin="{DynamicResource Padding.Compact}" ClipToBounds="True" Background="{DynamicResource Brush.Surface.Tile}">
                       <Panel>
                         <controls:ZoomImage Source="{Binding Preview}"
                                             Zoom="{Binding $parent[ItemsControl].((vm:DuplicateComparisonViewModel)DataContext).Zoom}" />

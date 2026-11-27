@@ -47,6 +47,22 @@ public sealed partial class NavigationEntry : NavigationNode
     /// <summary>
     /// Gets the entry shown while children load.
     /// </summary>
+    /// <summary>
+    /// Gets or sets what picking the entry does instead of scoping the media browser, e.g. opening a page in its
+    /// place (E12-S05-T03). An entry with an action needs no scope.
+    /// </summary>
+    public Action? Open { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether picking the entry selects it: it has a scope or an action.
+    /// </summary>
+    public bool IsSelectable => Scope is not null || Open is not null;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the count is hidden while it is 0.
+    /// </summary>
+    public bool HidesZeroCount { get; init; }
+
     public static NavigationEntry Placeholder { get; } = new(string.Empty, string.Empty, string.Empty, scope: null);
 
     /// <summary>
@@ -96,7 +112,7 @@ public sealed partial class NavigationEntry : NavigationNode
     /// <summary>
     /// Gets the count as shown.
     /// </summary>
-    public string? CountText => Count is { } count ? Format.Number(count) : null;
+    public string? CountText => Count is { } count && !(count == 0 && HidesZeroCount) ? Format.Number(count) : null;
 
     /// <summary>
     /// Gets or sets a value indicating whether the entry's folder can't be reached (D025).

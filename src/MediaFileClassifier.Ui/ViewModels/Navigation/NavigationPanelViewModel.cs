@@ -30,7 +30,9 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
     private readonly LibraryItemsSource source;
     private readonly ILibrarySession session;
     private readonly ShellLayout layout;
+    private readonly BrowserPages? pages;
     private IMediaItemRepository? watched;
+    private IDuplicateGroupRepository? watchedDuplicates;
     private DispatcherTimer? refreshTimer;
     private bool refreshPending;
     private NavigationEntry? selected;
@@ -43,12 +45,14 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
     /// <param name="session">Holds the open library.</param>
     /// <param name="layout">The panel's collapsed state and the collapsed sections.</param>
     /// <param name="dialogs">Raises when the folders dialog closes.</param>
+    /// <param name="pages">Swaps pages such as Duplicates with the media browser, or <c>null</c> for none.</param>
     public NavigationPanelViewModel(
         IEnumerable<INavigationContributor> contributors,
         LibraryItemsSource source,
         ILibrarySession session,
         ShellLayout layout,
-        LibraryDialogs dialogs)
+        LibraryDialogs dialogs,
+        BrowserPages? pages = null)
     {
         ArgumentNullException.ThrowIfNull(contributors);
         ArgumentNullException.ThrowIfNull(dialogs);
@@ -57,6 +61,7 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
         this.source = source;
         this.session = session;
         this.layout = layout;
+        this.pages = pages;
         Sections = [.. this.contributors.Select(contributor => contributor.Section)];
         foreach (var section in Sections)
         {
@@ -174,7 +179,7 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
     [RelayCommand]
     public void Select(NavigationEntry? entry)
     {
-        if (entry?.Scope is not { } scope)
+        if (entry is not { IsSelectable: true })
         {
             return;
         }
@@ -186,7 +191,18 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
 
         selected = entry;
         entry.IsSelected = true;
-        source.Scope = scope;
+        if (entry.Open is { } open)
+        {
+            // A page takes the browser's place; the browser keeps its scope for when the user comes back.
+            open();
+            layout.Navigation.IsDrawerOpen = false;
+        }
+        else
+        {
+            pages?.ShowBrowser();
+            source.Scope = entry.Scope!;
+        }
+
         if (!ReferenceEquals(SelectedItem, entry))
         {
             SelectedItem = entry;
@@ -210,13 +226,13 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
     // A section header or a placeholder leaves the browser's scope as it is, so the keyboard can move across headers.
     partial void OnSelectedItemChanged(object? value)
     {
-        if (value is NavigationEntry { Scope: not null } entry)
+        if (value is NavigationEntry { IsSelectable: true } entry)
         {
             Select(entry);
         }
     }
 
-    private NavigationEntry? FirstSelectable() => Sections.SelectMany(section => section.Entries).FirstOrDefault(entry => entry.Scope is not null);
+    private NavigationEntry? FirstSelectable() => Sections.SelectMany(section => section.Entries).FirstOrDefault(entry => entry.IsSelectable);
 
     private NavigationEntry? Find(Func<NavigationEntry, bool> match) =>
         Sections.SelectMany(section => section.Entries).Select(entry => entry.Find(match)).FirstOrDefault(found => found is not null);
@@ -258,6 +274,18 @@ public sealed partial class NavigationPanelViewModel : ViewModelBase
         if (watched is not null)
         {
             watched.Changed += OnItemsChanged;
+        }
+
+        // Reconciling groups changes the Duplicates count.
+        if (watchedDuplicates is not null)
+        {
+            watchedDuplicates.Changed -= OnItemsChanged;
+        }
+
+        watchedDuplicates = session.Current?.Duplicates;
+        if (watchedDuplicates is not null)
+        {
+            watchedDuplicates.Changed += OnItemsChanged;
         }
     }
 

@@ -7,6 +7,7 @@ using MediaFileClassifier.Ui.Notifications;
 using MediaFileClassifier.Ui.Processing;
 using MediaFileClassifier.Ui.Settings;
 using MediaFileClassifier.Ui.Shell;
+using MediaFileClassifier.Ui.ViewModels.Duplicates;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.UseCases.Browsing.LibraryItems;
@@ -40,8 +41,9 @@ public sealed class NavigationPanelTests : IAsyncDisposable
 
         Assert.Equal(["Library", "Folders"], panel.Sections.Select(section => section.Title));
         var library = panel.Sections[0];
-        Assert.Equal(["All media", "Recently imported", "Favorites"], library.Entries.Select(entry => entry.Label));
-        Assert.Equal([6, 5, 0], library.Entries.Select(entry => entry.Count));
+        Assert.Equal(["All media", "Recently imported", "Favorites", "Duplicates"], library.Entries.Select(entry => entry.Label));
+        Assert.Equal([6, 5, 0, 0], library.Entries.Select(entry => entry.Count));
+        Assert.Null(library.Entries[3].CountText);
         Assert.Same(library.Entries[0], panel.SelectedEntry);
         Assert.Equal(6, await Source.CountAsync(Token));
 
@@ -152,7 +154,7 @@ public sealed class NavigationPanelTests : IAsyncDisposable
         await app.Services.GetRequiredService<ISender>().Send(new RemoveFolderCommand(videos.Id), Token);
         await panel.RefreshAsync();
 
-        Assert.Equal([6, 5, 0], panel.Sections[0].Entries.Select(entry => entry.Count));
+        Assert.Equal([6, 5, 0, 0], panel.Sections[0].Entries.Select(entry => entry.Count));
         var entry = Assert.Single(panel.Sections[1].Entries);
         Assert.Same(photosEntry, entry);
         Assert.Equal(6, entry.Count);
@@ -210,6 +212,44 @@ public sealed class NavigationPanelTests : IAsyncDisposable
         Assert.Equal(1, Assert.Single(panel.Sections[1].Entries).Count);
     }
 
+    [Fact]
+    public async Task DuplicatesEntry_ShowsTheOpenGroupCount_AndSwapsTheBrowserForTheView()
+    {
+        await CreateLibraryAsync();
+        var items = await Library.Items.GetSummariesAsync(0, 10, Token);
+        var twins = await Library.Items.GetByIdsAsync([items[0].Id, items[1].Id], Token);
+        foreach (var twin in twins)
+        {
+            twin.SetHashes(twin.Hashes with { ContentHash = 42 });
+            await Library.Items.UpdateAsync(twin, Token);
+        }
+
+        while (await Library.Duplicates.ReconcileAsync(100, DateTimeOffset.UtcNow, Token) is { Hashes: > 0 })
+        {
+        }
+
+        var panel = app.Services.GetRequiredService<NavigationPanelViewModel>();
+        var regions = app.Services.GetRequiredService<ShellRegions>();
+        var grid = new StubPage();
+        regions.Browser = grid;
+        await panel.ActivateAsync();
+        var entry = panel.Sections[0].Entries.Single(candidate => candidate.Key == LibraryNavigation.DuplicatesKey);
+
+        Assert.Equal(1, entry.Count);
+        Assert.Equal("1", entry.CountText);
+
+        panel.Select(entry);
+        Assert.Same(app.Services.GetRequiredService<DuplicatesViewModel>(), regions.Browser);
+        Assert.True(entry.IsSelected);
+        Assert.False(panel.Sections[0].Entries[0].IsSelected);
+
+        // Picking a scope entry brings the browser back, and leaving the page doesn't reset the browser's scope.
+        panel.Select(panel.Sections[0].Entries[2]);
+        Assert.Same(grid, regions.Browser);
+        Assert.Equal(BrowseScope.Favorites, Source.Scope);
+        Assert.False(entry.IsSelected);
+    }
+
     public ValueTask DisposeAsync() => app.DisposeAsync();
 
     private static NavigationEntry Entry(NavigationPanelViewModel panel, string label) =>
@@ -245,6 +285,8 @@ public sealed class NavigationPanelTests : IAsyncDisposable
             Token);
         return (photos, videos);
     }
+
+    private sealed class StubPage : Ui.ViewModels.ViewModelBase;
 
     private sealed class TestContributor : INavigationContributor
     {

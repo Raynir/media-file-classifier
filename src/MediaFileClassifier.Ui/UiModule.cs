@@ -297,6 +297,7 @@ public static class UiModule
         services.AddSingleton<KeeperRuleSettings>();
         services.AddSingleton<DuplicateComparisonViewModel>();
         services.AddSingleton<DuplicatesViewModel>();
+        services.AddSingleton<BrowserPages>();
 
         // Activity log (E15-S04).
         services.AddSingleton<IActivityNavigator, ActivityNavigator>();

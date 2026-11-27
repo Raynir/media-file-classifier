@@ -1243,6 +1243,9 @@
   <data name="Navigation_AllMedia" xml:space="preserve">
     <value>All media</value>
   </data>
+  <data name="Navigation_Duplicates" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
   <data name="Navigation_Favorites" xml:space="preserve">
     <value>Favorites</value>
   </data>

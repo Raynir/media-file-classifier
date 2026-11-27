@@ -49,7 +49,9 @@ internal sealed class OpenLibrary : IOpenLibrary
         Keyframes = new KeyframeRepository(connections, writer);
         AnalyzerStates = new AnalyzerStateRepository(connections, writer);
         Activity = new ActivityRepository(connections, writer);
-        Duplicates = new DuplicateGroupRepository(connections, writer, loggerFactory.CreateLogger<DuplicateGroupRepository>());
+        var duplicates = new DuplicateGroupRepository(connections, writer, loggerFactory.CreateLogger<DuplicateGroupRepository>());
+        Duplicates = duplicates;
+        VisualDuplicates = new VisualDuplicateRepository(connections, writer, duplicates);
         Embeddings = new EmbeddingRepository(connections, writer);
         Search = new SearchStore(connections, writer);
         Maintenance = new LibraryMaintenance(connections, writer);
@@ -87,6 +89,9 @@ internal sealed class OpenLibrary : IOpenLibrary
 
     /// <inheritdoc />
     public IDuplicateGroupRepository Duplicates { get; }
+
+    /// <inheritdoc />
+    public IVisualDuplicateRepository VisualDuplicates { get; }
 
     /// <inheritdoc />
     public IEmbeddingRepository Embeddings { get; }

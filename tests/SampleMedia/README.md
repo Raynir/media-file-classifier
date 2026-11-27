@@ -47,6 +47,26 @@ Two more copies are `photo-a-exif-rotated.jpg` (pixels stored rotated, with EXIF
 
 `expected.json` lists every copy with its original and the expected match. On this set, perceptual copies are 0 to 2 bits from their original, and screenshots 32 to 34. That's what the threshold of 8 bits in `PerceptualHash.SamePictureThreshold` is based on.
 
+## Visual near-duplicate test set
+
+`near-duplicates/` checks visual near-duplicate detection (E12-S02); `SampleMedia.NearDuplicatesDirectory` points to it. It holds no photos: `features.json` lists, for each item, what matching reads of it, captured with the real SigLIP 2 model, so CI compares real similarities without the model:
+
+- the perceptual hash (stills) or keyframe hashes and duration (videos), and the whole-item vector as little-endian half-precision base64 (D067);
+- which items are exact copies (`content`), and the visual group expected at the strict and the loose sensitivity.
+
+The stills are evaluation corpus photos (E01-S10) and copies made of them in memory: re-encoded at quality 30, half size, a 320-pixel thumbnail, a brightness and contrast edit, 4 % and 8 % crops, and four burst-like shots (an 88 % window drifting across one photo). Different photos of the same subject (St Basil's Cathedral, squirrels, tulips) must stay apart. The videos are `video-short.mp4` with `near-duplicates/video-short-reencoded.mp4`, which must group, and `video-action.mp4` with `video-static-camera.mp4`, which must not; their vectors are the mean of five frames. The animated images are `gif-animated.gif` with its WebP conversion `robustness/gif-animated.webp`, which must group, and `webp-animated.webp`, another synthetic animation that the model finds alike (cosine 0.96 to 0.98), so only the loose sensitivity groups it with them; their frames are decoded with SkiaSharp at the same five positions.
+
+To capture it again (needs the model, see `tools/embedding-reference/README.md`, the corpus folder, and ffmpeg):
+
+```powershell
+$env:MFC_SIGLIP2_DIR = "$env:LOCALAPPDATA\MediaFileClassifier\models\siglip2-base-patch16-256\1.0\standard"
+$env:MFC_NEAR_DUPLICATE_CORPUS = "<corpus folder>"
+$env:MFC_WRITE_NEAR_DUPLICATE_FEATURES = "$PWD\tests\SampleMedia\near-duplicates\features.json"
+dotnet test --project tests/MediaFileClassifier.Infrastructure.Tests -- --filter-method "*Capture_WritesFeatures"
+```
+
+The re-encoded video comes from `python tools/sample-media/generate_near_duplicate_set.py tests/SampleMedia/near-duplicates` (ffmpeg).
+
 ## Regenerating
 
 The files come from `tools/sample-media/generate_sample_media.py`, which needs Python 3, Pillow and ffmpeg on `PATH`. The output is deterministic on the same tool versions.

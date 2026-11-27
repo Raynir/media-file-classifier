@@ -1,4 +1,7 @@
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.Infrastructure.Abstractions.Search;
+using MediaFileClassifier.UseCases.Duplicates.Visual;
 using Microsoft.Extensions.Logging;
 
 namespace MediaFileClassifier.UseCases.Duplicates;
@@ -9,16 +12,22 @@ namespace MediaFileClassifier.UseCases.Duplicates;
 /// or Excluded or comes back. After items change, this waits <see cref="DefaultDelay"/> so an import's batches are
 /// taken together, then reconciles the queue in short writes of <see cref="BatchSize"/> hashes until it's empty. Each
 /// write runs on the library's writer, between the import's own writes (D072). It also works off what's queued when
-/// a library opens, such as the hashes an upgrade to schema 20 queued.
+/// a library opens, such as the hashes an upgrade to schema 20 queued. Then it checks the items queued for visual
+/// near-duplicates (E12-S02-T04) the same way, in batches of <see cref="VisualDuplicateDetector.BatchSize"/>: after
+/// item changes and embedding writes, i.e. after analysis, and once the vector index is ready.
 /// </summary>
 /// <param name="session">The library session.</param>
 /// <param name="clock">The clock.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="visual">Visual near-duplicate detection; without it, only exact groups are kept.</param>
+/// <param name="search">The search index, whose vector index visual detection waits for.</param>
 /// <param name="delay">How long to wait after a change; <see cref="DefaultDelay"/> when <c>null</c>.</param>
 public sealed partial class DuplicateGroupMaintainer(
     ILibrarySession session,
     TimeProvider clock,
     ILogger<DuplicateGroupMaintainer> logger,
+    VisualDuplicateDetector? visual = null,
+    ISearchIndex? search = null,
     TimeSpan? delay = null) : IDisposable
 {
     /// <summary>
@@ -45,8 +54,28 @@ public sealed partial class DuplicateGroupMaintainer(
         if (Interlocked.Exchange(ref started, 1) == 0)
         {
             session.CurrentChanged += OnCurrentChanged;
+            if (search is not null)
+            {
+                search.VectorStateChanged += OnVectorStateChanged;
+            }
+
             Attach(session.Current);
         }
+    }
+
+    /// <summary>
+    /// Checks the open library's queues soon, as after an item change: for queue entries made without one, such as a
+    /// sensitivity change (E12-S02-T03).
+    /// </summary>
+    public void Request()
+    {
+        Attached? current;
+        lock (gate)
+        {
+            current = attached;
+        }
+
+        current?.Request();
     }
 
     /// <summary>
@@ -76,12 +105,29 @@ public sealed partial class DuplicateGroupMaintainer(
     public void Dispose()
     {
         session.CurrentChanged -= OnCurrentChanged;
+        if (search is not null)
+        {
+            search.VectorStateChanged -= OnVectorStateChanged;
+        }
+
         Attach(null);
     }
 
     private TimeProvider Clock => clock;
 
+    private VisualDuplicateDetector? Visual => visual;
+
     private void OnCurrentChanged(object? sender, EventArgs e) => Attach(session.Current);
+
+    // Visual checks wait while the vector index loads; once it's ready, or loading failed (then they match without
+    // embeddings), what's queued meanwhile is checked.
+    private void OnVectorStateChanged(object? sender, EventArgs e)
+    {
+        if (search?.VectorState is VectorIndexState.Ready or VectorIndexState.Failed)
+        {
+            Request();
+        }
+    }
 
     private void Attach(IOpenLibrary? library)
     {
@@ -139,12 +185,21 @@ public sealed partial class DuplicateGroupMaintainer(
         public void Start()
         {
             library.Items.Changed += OnItemsChanged;
+            if (owner.Visual is not null)
+            {
+                library.Embeddings.Changed += OnEmbeddingsChanged;
+            }
+
             Request();
         }
 
         public void Dispose()
         {
             library.Items.Changed -= OnItemsChanged;
+            if (owner.Visual is not null)
+            {
+                library.Embeddings.Changed -= OnEmbeddingsChanged;
+            }
 
             // Under the lock, so no run starts with a disposed token; a run still going sees the cancellation.
             lock (owner.gate)
@@ -157,7 +212,9 @@ public sealed partial class DuplicateGroupMaintainer(
         // Raised on the writer's thread: only flag the request; the run starts on the thread pool.
         private void OnItemsChanged(object? sender, EventArgs e) => Request();
 
-        private void Request()
+        private void OnEmbeddingsChanged(object? sender, EmbeddingsChangedEventArgs e) => Request();
+
+        public void Request()
         {
             lock (owner.gate)
             {
@@ -189,6 +246,12 @@ public sealed partial class DuplicateGroupMaintainer(
 
                     await Task.Delay(owner.wait, owner.Clock, token).ConfigureAwait(false);
                     while ((await library.Duplicates.ReconcileAsync(BatchSize, owner.Clock.GetUtcNow(), token).ConfigureAwait(false)).Hashes > 0)
+                    {
+                    }
+
+                    // Null: the vector index isn't ready, and its state change asks again.
+                    while (owner.Visual is { } detector
+                        && await detector.ReconcileAsync(library, VisualDuplicateDetector.BatchSize, token).ConfigureAwait(false) is { Items: > 0 })
                     {
                     }
                 }

@@ -19,6 +19,7 @@ public static class SearchModule
     {
         services.TryAddSingleton<SearchIndex>();
         services.TryAddSingleton<ISearchIndex>(provider => provider.GetRequiredService<SearchIndex>());
+        services.TryAddSingleton<IItemVectorSimilarity>(provider => provider.GetRequiredService<SearchIndex>());
         return services;
     }
 }

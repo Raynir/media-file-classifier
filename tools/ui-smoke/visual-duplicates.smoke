@@ -1,0 +1,19 @@
+# A visual near-duplicate group (MFC-142) in the Duplicates view (MFC-143): the "Similar" type and zoom compare.
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/visual-duplicates.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+
+library sample
+seed-visual-duplicates
+wait 1500ms
+
+nav duplicates
+wait-for visible ComparisonPane
+wait 1500ms
+shot 01-visual-group
+
+command view.theme-dark
+wait 1000ms
+shot 02-visual-group-dark

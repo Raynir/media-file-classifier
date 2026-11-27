@@ -140,17 +140,19 @@ A script has one step per line; `#` starts a comment line. Paths are relative to
 | `shot <name>` | Saves `<name>.png`. |
 | `seed-duplicates` | Gives the first four items two shared content hashes and groups them, so the library has two Open duplicate groups (E12-S05): the library information window shows them, and the Has duplicates filter keeps those four items. |
 | `nav <key>` | Picks a navigation entry by its key, as a click does, e.g. `nav duplicates` or `nav favorites` (E12-S05-T03). Fails for an unknown key. |
+| `seed-visual-duplicates` | Gives the first two images perceptual hashes two bits apart and checks them, so the library has a visual near-duplicate group (E12-S02) for the Duplicates view. |
 | `seed-keyframes <file name>` | Samples the item's video or animation and stores its keyframes and their pictures, as the analysis does (keyframes otherwise need the AI model). The item's details must be reloaded to show them: select another item, then this one. |
 | `choose-keyframe <n>` | Chooses the n-th keyframe in the preview's strip (from 1), as a click does. |
 | `setting <key> <value>` | Sets a registered setting through the settings store, e.g. `setting appearance.showFileNames false`; the value is JSON (`true`, `3`) or plain text for a choice or text setting. Fails for an unknown key or an invalid value. |
 | `start <id>` | Runs an app command without waiting for it, for a command that opens a modal dialog, e.g. `start item.remove`. |
-| `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`. Fails if it's disabled. |
+| `dialog-click <button>` | Clicks a button of the open dialog, by its `x:Name` or its text, e.g. `dialog-click Remove`; a radio button is checked (MFC-830). Fails if it's disabled. |
 | `dialog-key <gesture>` | Presses a key on the open dialog's focused control, e.g. `dialog-key Tab`; the report names the control that had the focus (MFC-131). |
 | `dialog-focus <control>` | Fails unless the open dialog's focus is on the control with that `x:Name` or type name, e.g. `dialog-focus CancelButton`: a dialog focuses its first input or default button when it opens (MFC-1012). |
 | `popup-key <gesture>` | Presses a key on the focused control of the open popup (a flyout, a context menu or a combo drop-down), e.g. `popup-key Tab`; the report names the control that had the focus. `key` goes to the main window's focused control, which is not in the popup (MFC-1013). |
 | `popup-shot <name>` | Saves `<name>.png` of the open popup. |
 | `dialog-type <text>` | Types text into the open dialog's focused text box, e.g. a typed confirmation (MFC-122). |
 | `dialog-size <w>x<h>` | Sizes the open dialog or settings window, e.g. to show a long page whole (MFC-133). |
+| `dialog-scroll <control>` | Scrolls the open dialog until the control with that `x:Name` is in view, for a page longer than the window, e.g. `dialog-scroll FindDuplicatesButton` (MFC-830). |
 | `dialog-shot <name>` | Saves `<name>.png` of the open dialog. |
 | `dialog-select <folder>` | Selects the folder with that name in the open folders dialog's list, as a click does (MFC-124). In the settings window it selects a sidebar category by its ID, e.g. `dialog-select Library` (MFC-133). |
 | `drag-over on|off` | Shows or hides the drop overlay as dragging over the window does (MFC-125). |

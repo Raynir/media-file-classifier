@@ -128,5 +128,12 @@ public static class SampleMedia
     /// </summary>
     public static string RobustnessDirectory => Combine("robustness");
 
+    /// <summary>
+    /// Gets the folder of the visual near-duplicate test set (E12-S02). Its <c>features.json</c> lists every item with
+    /// its perceptual hash, keyframe hashes, duration and SigLIP 2 vector, and the visual group expected at each
+    /// sensitivity.
+    /// </summary>
+    public static string NearDuplicatesDirectory => Combine("near-duplicates");
+
     private static string Combine(string fileName) => Path.Combine(Directory, fileName);
 }

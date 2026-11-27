@@ -1,4 +1,5 @@
 using MediaFileClassifier.Domain.Analysis;
+using MediaFileClassifier.Domain.Duplicates;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Libraries;
 
@@ -107,5 +108,16 @@ public sealed class LibrarySettingsUpdateTests : IAsyncLifetime
         Assert.Equal(before, bed.Library.Library.Settings);
         await bed.Library.UpdateSettingsAsync(s => s with { ThumbnailTileSize = 322 }, Token);
         Assert.Equal(322, bed.Library.Library.Settings.ThumbnailTileSize);
+    }
+
+    [Fact]
+    public async Task VisualDuplicateSensitivity_StrictByDefault_LooseSurvivesAReopen()
+    {
+        Assert.Equal(VisualDuplicateSensitivity.Strict, bed.Library.Library.Settings.VisualDuplicateSensitivity);
+
+        await bed.Library.UpdateSettingsAsync(settings => settings with { VisualDuplicateSensitivity = VisualDuplicateSensitivity.Loose }, Token);
+        await bed.ReopenAsync();
+
+        Assert.Equal(VisualDuplicateSensitivity.Loose, bed.Library.Library.Settings.VisualDuplicateSensitivity);
     }
 }

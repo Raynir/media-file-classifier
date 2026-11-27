@@ -272,7 +272,10 @@ internal sealed partial class DuplicateGroupRepository(LibraryConnectionFactory 
         return new DuplicateReconcileResult(texts.Count, created, changed, reopened, deleted);
     }
 
-    private void RaiseChanged()
+    /// <summary>
+    /// Raises <see cref="Changed"/>, also for the visual groups <see cref="VisualDuplicateRepository"/> writes.
+    /// </summary>
+    internal void RaiseChanged()
     {
         try
         {

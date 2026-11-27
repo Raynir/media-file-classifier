@@ -19,7 +19,7 @@ public sealed class DuplicateGroupImportTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         bed = await ImportTestBed.CreateAsync();
-        maintainer = new DuplicateGroupMaintainer(bed.Get<ILibrarySession>(), TimeProvider.System, NullLogger<DuplicateGroupMaintainer>.Instance, TimeSpan.FromMilliseconds(20));
+        maintainer = new DuplicateGroupMaintainer(bed.Get<ILibrarySession>(), TimeProvider.System, NullLogger<DuplicateGroupMaintainer>.Instance, delay: TimeSpan.FromMilliseconds(20));
         maintainer.Start();
     }
 

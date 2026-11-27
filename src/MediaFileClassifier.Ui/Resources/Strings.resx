@@ -2882,6 +2882,9 @@
   <data name="Maintenance_ThumbnailsImportRunning" xml:space="preserve">
     <value>Thumbnails can be regenerated when the import has finished.</value>
   </data>
+  <data name="Stage_duplicates.visual" xml:space="preserve">
+    <value>Finding near-duplicates</value>
+  </data>
   <data name="Stage_duplicates.reconcile" xml:space="preserve">
     <value>Finding duplicates</value>
   </data>
@@ -3199,6 +3202,45 @@
   </data>
   <data name="LibrarySection_CheckIntegrityHint" xml:space="preserve">
     <value>Checks the library database for damage.</value>
+  </data>
+  <data name="LibrarySection_DuplicatesHeading" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="LibrarySection_Sensitivity" xml:space="preserve">
+    <value>Near-duplicate sensitivity</value>
+  </data>
+  <data name="LibrarySection_SensitivityStrict" xml:space="preserve">
+    <value>Strict</value>
+  </data>
+  <data name="LibrarySection_SensitivityLoose" xml:space="preserve">
+    <value>Loose</value>
+  </data>
+  <data name="LibrarySection_SensitivityHint" xml:space="preserve">
+    <value>Strict groups copies saved differently: re-encoded, resized, converted or thumbnails. Loose also groups crops, edits and burst shots. A change checks every item again.</value>
+  </data>
+  <data name="LibrarySection_Sensitivity_Changed" xml:space="preserve">
+    <value>Sensitivity changed. Every item is being checked again.</value>
+  </data>
+  <data name="LibrarySection_Sensitivity_Failed" xml:space="preserve">
+    <value>The sensitivity couldn't be changed.</value>
+  </data>
+  <data name="LibrarySection_FindDuplicates" xml:space="preserve">
+    <value>Find duplicates now</value>
+  </data>
+  <data name="LibrarySection_FindDuplicatesHint" xml:space="preserve">
+    <value>Checks every item for exact and visual duplicates in the background.</value>
+  </data>
+  <data name="LibrarySection_FindDuplicates_Started" xml:space="preserve">
+    <value>Finding duplicates in the background.</value>
+  </data>
+  <data name="LibrarySection_FindDuplicates_Busy" xml:space="preserve">
+    <value>Duplicates are already being found.</value>
+  </data>
+  <data name="LibrarySection_FindDuplicates_NothingToDo" xml:space="preserve">
+    <value>There's nothing to check yet.</value>
+  </data>
+  <data name="LibrarySection_FindDuplicates_Unavailable" xml:space="preserve">
+    <value>Open a library first.</value>
   </data>
   <data name="DropImport_Title" xml:space="preserve">
     <value>Drop to import</value>

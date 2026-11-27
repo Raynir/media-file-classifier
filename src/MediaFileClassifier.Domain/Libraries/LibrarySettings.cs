@@ -1,4 +1,5 @@
 using MediaFileClassifier.Domain.Analysis;
+using MediaFileClassifier.Domain.Duplicates;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Jobs;
 
@@ -100,6 +101,12 @@ public sealed record LibrarySettings
             lastFilters = value;
         }
     }
+
+    /// <summary>
+    /// Gets how alike items must look to be grouped as visual near-duplicates (E12-S02-T03). It's stored only when
+    /// loose.
+    /// </summary>
+    public VisualDuplicateSensitivity VisualDuplicateSensitivity { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether opening the library runs a quick sync of its Online folders (E04-S03). It's stored

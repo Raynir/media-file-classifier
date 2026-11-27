@@ -8,6 +8,7 @@ using MediaFileClassifier.Infrastructure.Tests.Import;
 using MediaFileClassifier.Testing.Timing;
 using MediaFileClassifier.UseCases.Duplicates;
 using MediaFileClassifier.UseCases.Duplicates.DetectDuplicates;
+using MediaFileClassifier.UseCases.Duplicates.VisualSensitivity;
 using Microsoft.EntityFrameworkCore;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Duplicates;
@@ -105,12 +106,43 @@ public sealed class DetectDuplicatesCommandTests : IAsyncLifetime
         Assert.Equal(DetectDuplicatesOutcome.Busy, result.Outcome);
     }
 
-    private async Task AddItemsAsync(int count, Func<int, UInt128> hash)
+    [Fact]
+    public async Task SensitivityChange_StoresItAndStartsAFullPass()
+    {
+        await AddItemsAsync(3, i => (UInt128)i + 1, perceptual: true);
+        await RunSqlAsync("""DELETE FROM "duplicate_dirty_item" """);
+
+        var result = await bed.Sender.Send(new SetVisualDuplicateSensitivityCommand(VisualDuplicateSensitivity.Loose), Token);
+        var again = await bed.Sender.Send(new SetVisualDuplicateSensitivityCommand(VisualDuplicateSensitivity.Loose), Token);
+
+        Assert.Equal(new SetVisualDuplicateSensitivityResult(true, DetectDuplicatesOutcome.Started), result);
+        Assert.Equal(new SetVisualDuplicateSensitivityResult(false), again);
+        Assert.Equal(VisualDuplicateSensitivity.Loose, await bed.Sender.Send(new GetVisualDuplicateSensitivityQuery(), Token));
+        await bed.WaitUntilIdleAsync();
+    }
+
+    [Fact]
+    public async Task SensitivityChange_WhileAPassIsUnfinished_QueuesEveryItem()
+    {
+        await AddItemsAsync(3, i => (UInt128)i + 1, perceptual: true);
+        await RunSqlAsync("""DELETE FROM "duplicate_dirty_item" """);
+        await bed.Library.Jobs.AddJobAsync(
+            new ProcessingJob { Id = Id<ProcessingJob>.New(), Type = DuplicateStages.DetectJob, Description = "Find duplicates", CreatedAt = DateTimeOffset.UtcNow },
+            [],
+            Token);
+
+        var result = await bed.Sender.Send(new SetVisualDuplicateSensitivityCommand(VisualDuplicateSensitivity.Loose), Token);
+
+        Assert.Equal(new SetVisualDuplicateSensitivityResult(true, DetectDuplicatesOutcome.Busy), result);
+        Assert.Equal(3, await bed.Library.VisualDuplicates.CountQueuedAsync(Token));
+    }
+
+    private async Task AddItemsAsync(int count, Func<int, UInt128> hash, bool perceptual = false)
     {
         var items = Enumerable.Range(0, count).Select(i =>
         {
             var item = bed.LibraryBed.NewItem(i + 1);
-            item.SetHashes(new FileHashes { ContentHash = hash(i) });
+            item.SetHashes(new FileHashes { ContentHash = hash(i), PerceptualHash = perceptual ? (ulong)i * 0x0101010101010101UL : null });
             return item;
         }).ToList();
         await bed.Library.Items.AddRangeAsync(items, Token);

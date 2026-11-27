@@ -165,6 +165,8 @@ internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
         // LibraryStatisticsMonitor reads this to watch for group changes; nothing here changes.
         public IDuplicateGroupRepository Duplicates => null!;
 
+        public IVisualDuplicateRepository VisualDuplicates => throw new NotSupportedException();
+
         public MediaFileClassifier.Infrastructure.Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
 
         public MediaFileClassifier.Infrastructure.Abstractions.Search.ISearchStore Search => throw new NotSupportedException();

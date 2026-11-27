@@ -1,5 +1,7 @@
+using System.Numerics.Tensors;
 using MediaFileClassifier.Domain.Analysis;
 using MediaFileClassifier.Domain.Identity;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Infrastructure.Abstractions.Search;
 
@@ -203,6 +205,58 @@ internal sealed class VectorIndex : IDisposable
             }
 
             return model.MeanSimilarity(query.Vector.Span);
+        }
+        finally
+        {
+            gate.ExitReadLock();
+        }
+    }
+
+    /// <summary>
+    /// Finds the items whose best vector is most similar to an item's first vector (E12-S02).
+    /// </summary>
+    /// <param name="modelId">The model.</param>
+    /// <param name="itemId">The item.</param>
+    /// <param name="count">Most items to return.</param>
+    /// <param name="minSimilarity">Smallest similarity to return.</param>
+    /// <returns>The items, most similar first; empty if the item has no vector of the model.</returns>
+    public IReadOnlyList<ItemSimilarity> FindNearest(Id<ModelRegistration> modelId, Id<MediaItem> itemId, int count, float minSimilarity)
+    {
+        gate.EnterReadLock();
+        try
+        {
+            if (!models.TryGetValue(modelId, out var model) || model.GetFirstVector(itemId, out var document) is not { } vector)
+            {
+                return [];
+            }
+
+            return [.. model.Search(vector, count, null, document, Environment.ProcessorCount)
+                .Where(hit => hit.Similarity >= minSimilarity)
+                .Select(hit => new ItemSimilarity(hit.ItemId, hit.Similarity))];
+        }
+        finally
+        {
+            gate.ExitReadLock();
+        }
+    }
+
+    /// <summary>
+    /// Gets the cosine similarity of two items' first vectors (E12-S02). The vectors are L2-normalised (D067).
+    /// </summary>
+    /// <param name="modelId">The model.</param>
+    /// <param name="first">One item.</param>
+    /// <param name="second">The other item.</param>
+    /// <returns>The similarity, or <see cref="float.NaN"/> when either item has no vector of the model.</returns>
+    public float GetSimilarity(Id<ModelRegistration> modelId, Id<MediaItem> first, Id<MediaItem> second)
+    {
+        gate.EnterReadLock();
+        try
+        {
+            return models.TryGetValue(modelId, out var model)
+                && model.GetFirstVector(first, out _) is { } a
+                && model.GetFirstVector(second, out _) is { } b
+                ? TensorPrimitives.Dot(a, b)
+                : float.NaN;
         }
         finally
         {

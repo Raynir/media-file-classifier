@@ -281,6 +281,42 @@ public sealed class DuplicateGroupRepositoryTests : IAsyncLifetime
     private async Task<IEnumerable<string>> MemberIdsAsync(DuplicateGroup group) =>
         (await Duplicates.GetMembersAsync(group.Id, Token)).Select(member => member.ItemId.ToString()).Order(StringComparer.Ordinal);
 
+    [Fact]
+    public async Task GetSummaries_ForOpenGroups_CountMembersAndWastedSpace()
+    {
+        // The test bed sizes item n at 1000 + n bytes.
+        await AddAsync(10, 10, 10, 20, 20);
+        await ReconcileAllAsync();
+
+        var summaries = await Duplicates.GetSummariesAsync(DuplicateGroupState.Open, Token);
+
+        Assert.Equal(2, summaries.Count);
+        var three = Assert.Single(summaries, summary => summary.MemberCount == 3);
+        Assert.Equal(1001 + 1002, three.WastedBytes);
+        var two = Assert.Single(summaries, summary => summary.MemberCount == 2);
+        Assert.Equal(1004, two.WastedBytes);
+        Assert.All(summaries, summary => Assert.Equal(DuplicateGroupType.Exact, summary.Type));
+    }
+
+    [Fact]
+    public async Task GetSummaries_OnlyListsGroupsInTheRequestedState()
+    {
+        await AddAsync(10, 10, 20, 20);
+        await ReconcileAllAsync();
+        var ignored = (await Duplicates.GetGroupsAsync(null, 0, 10, Token))[0];
+        await Duplicates.ChangeStateAsync(ignored.Id, DuplicateGroupState.Ignored, bed.Clock.Tick(), Token);
+
+        var open = await Duplicates.GetSummariesAsync(DuplicateGroupState.Open, Token);
+        var closed = await Duplicates.GetSummariesAsync(DuplicateGroupState.Ignored, Token);
+
+        Assert.DoesNotContain(open, summary => summary.Id == ignored.Id);
+        Assert.Equal(ignored.Id, Assert.Single(closed).Id);
+    }
+
+    [Fact]
+    public async Task GetSummaries_WithoutGroups_IsEmpty() =>
+        Assert.Empty(await Duplicates.GetSummariesAsync(DuplicateGroupState.Open, Token));
+
     private async Task<List<MediaItem>> AddAsync(params UInt128?[] hashes)
     {
         var offset = await bed.Library.Items.CountAsync(Token);

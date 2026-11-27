@@ -41,7 +41,7 @@ internal static class SmokeScript
     {
         "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-type", "dialog-key", "popup-key", "popup-shot", "dialog-focus", "dialog-shot", "dialog-size",
         "damage-library", "unplug-folder", "plug-folder", "allow-error", "import-files", "dialog-select", "drag-over", "drop", "seed-activity", "seed-duplicates",
-        "folder-mode", "swap-drive",
+        "folder-mode", "swap-drive", "nav",
     };
 
     /// <summary>
@@ -168,6 +168,9 @@ internal static class SmokeScript
                 break;
             case "dialog-focus":
                 error = step.Argument.Length > 0 ? null : "expected a control name";
+                break;
+            case "nav":
+                error = step.Argument.Length > 0 ? null : "expected a navigation entry key, e.g. duplicates";
                 break;
             case "key" or "dialog-key" or "popup-key":
                 error = TryParseKey(step.Argument, out _) ? null : "expected a key such as Space, Right, Ctrl+2 or Ctrl+Shift+F";

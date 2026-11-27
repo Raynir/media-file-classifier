@@ -48,6 +48,34 @@ internal sealed partial class DuplicateGroupRepository(LibraryConnectionFactory 
         connections.ReadAsync((db, token) => Filtered(db, state).CountAsync(token), cancellationToken);
 
     /// <inheritdoc />
+    public Task<IReadOnlyList<DuplicateGroupSummary>> GetSummariesAsync(DuplicateGroupState state, CancellationToken cancellationToken = default) =>
+        connections.ReadAsync<IReadOnlyList<DuplicateGroupSummary>>(
+            async (db, token) =>
+            {
+                var groups = await db.DuplicateGroups
+                    .Where(group => group.State == state)
+                    .Select(group => new { group.Id, group.Type, group.CreatedAt })
+                    .ToListAsync(token)
+                    .ConfigureAwait(false);
+                var sizes = await (
+                        from member in db.DuplicateGroupMembers
+                        join owner in db.DuplicateGroups on member.GroupId equals owner.Id
+                        join item in db.MediaItems on member.ItemId equals item.Id
+                        where owner.State == state
+                        group item.SizeBytes by member.GroupId into perGroup
+                        select new { GroupId = perGroup.Key, Count = perGroup.Count(), Total = perGroup.Sum(), Largest = perGroup.Max() })
+                    .ToDictionaryAsync(row => row.GroupId, token)
+                    .ConfigureAwait(false);
+                return
+                [
+                    .. groups.Select(group => sizes.TryGetValue(group.Id, out var row)
+                        ? new DuplicateGroupSummary(group.Id, group.Type, row.Count, row.Total - row.Largest, group.CreatedAt)
+                        : new DuplicateGroupSummary(group.Id, group.Type, 0, 0, group.CreatedAt)),
+                ];
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
     public Task<DuplicateStatistics> GetOpenStatisticsAsync(CancellationToken cancellationToken = default) =>
         connections.ReadAsync(
             async (db, token) =>

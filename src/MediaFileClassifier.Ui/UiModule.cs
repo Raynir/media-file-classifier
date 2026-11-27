@@ -31,6 +31,7 @@ using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Models;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.Ui.ViewModels.Activity;
+using MediaFileClassifier.Ui.ViewModels.Duplicates;
 using MediaFileClassifier.Ui.ViewModels.Processing;
 using MediaFileClassifier.Ui.ViewModels.Settings;
 using MediaFileClassifier.Ui.Views;
@@ -42,6 +43,7 @@ using MediaFileClassifier.Ui.Views.Libraries;
 using MediaFileClassifier.Ui.Views.Models;
 using MediaFileClassifier.Ui.Views.Navigation;
 using MediaFileClassifier.Ui.Views.Activity;
+using MediaFileClassifier.Ui.Views.Duplicates;
 using MediaFileClassifier.Ui.Views.Processing;
 using MediaFileClassifier.Ui.Views.Search;
 using MediaFileClassifier.Ui.Views.Settings;
@@ -88,6 +90,7 @@ public static class UiModule
             .Register<LibraryInfoViewModel, LibraryInfoView>()
             .Register<ProcessingPanelViewModel, ProcessingPanelView>()
             .Register<ActivityLogViewModel, ActivityLogView>()
+            .Register<DuplicatesViewModel, DuplicatesView>()
             .Register<NavigationPanelViewModel, NavigationPanelView>()
             .Register<DetailsPanelViewModel, DetailsPanelView>()
             .Register<ToolbarViewModel, ToolbarView>()
@@ -289,6 +292,12 @@ public static class UiModule
         services.AddSingleton<ProcessingPause>();
         services.AddSingleton<ProcessingPanelViewModel>();
         services.AddSingleton<ProcessingPanelPresenter>();
+
+        // Duplicates view (E12-S03).
+        services.AddSingleton<KeeperRuleSettings>();
+        services.AddSingleton<DuplicateComparisonViewModel>();
+        services.AddSingleton<DuplicatesViewModel>();
+        services.AddSingleton<BrowserPages>();
 
         // Activity log (E15-S04).
         services.AddSingleton<IActivityNavigator, ActivityNavigator>();

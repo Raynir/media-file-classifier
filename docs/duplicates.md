@@ -48,3 +48,15 @@ SigLIP 2 base on the evaluation corpus (212 photos, 60 documents and screenshots
 - Unrelated photos are never closer than 16 bits, and documents 12. Different photos of one subject (four of St Basil's Cathedral) reach a cosine of 0.938, which is why the embedding tier starts at 0.95.
 - Strict also groups light tonal edits: neither the hash nor the embedding tells them from the original.
 - The test set in `tests/SampleMedia/near-duplicates` holds features of some of these photos (see its README).
+
+### Full pass speed (2026-11-27)
+
+`VisualFullPassBenchmarkTests` times a full pass on synthetic items (random perceptual hashes and 768-value vectors, every tenth item a near copy). Set `MFC_VISUAL_BENCHMARK_ITEMS` to the size, and `MFC_DUPLICATES_BENCHMARK_RESULTS` to a file for the results; the suite runs 2,000 items.
+
+| Items | Strict | Loose |
+|---|---|---|
+| 20,000 | 2.9 s | 109 s |
+| 50,000 | | 332 s |
+| 100,000 | 98 s | about 13 to 22 min (estimated) |
+
+Both grow about quadratically: each item scans every perceptual hash, the hash indexes are rebuilt for each batch of 200, and loose runs a vector search over every item for each item. The pass is a cancellable background job that runs only when the sensitivity changes or on **Find duplicates now**, and checking a batch after changes takes about 0.2 s (strict) or 2 s (loose) at 100,000 items, so this was accepted for 1.2.0. Speeding it up is MFC-1077.

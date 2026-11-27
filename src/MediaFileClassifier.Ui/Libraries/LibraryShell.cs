@@ -22,6 +22,7 @@ public sealed class LibraryShell
     private readonly Func<ThumbnailGridViewModel> grid;
     private readonly NavigationPanelViewModel? navigation;
     private readonly ToolbarViewModel? toolbar;
+    private readonly BrowserPages? pages;
     private ThumbnailGridViewModel? shownGrid;
 
     /// <summary>
@@ -34,8 +35,10 @@ public sealed class LibraryShell
     /// <param name="grid">Gets the thumbnail grid, once a library opens.</param>
     /// <param name="navigation">The navigation panel, shown while a library is open, or <c>null</c> for none.</param>
     /// <param name="toolbar">The toolbar, shown while a library is open, or <c>null</c> for none.</param>
-    public LibraryShell(ILibrarySession session, ShellRegions regions, WelcomeViewModel welcome, LibraryOpener opener, Func<ThumbnailGridViewModel> grid, NavigationPanelViewModel? navigation = null, ToolbarViewModel? toolbar = null)
+    /// <param name="pages">Swaps pages such as Duplicates with the media browser, or <c>null</c> for none.</param>
+    public LibraryShell(ILibrarySession session, ShellRegions regions, WelcomeViewModel welcome, LibraryOpener opener, Func<ThumbnailGridViewModel> grid, NavigationPanelViewModel? navigation = null, ToolbarViewModel? toolbar = null, BrowserPages? pages = null)
     {
+        this.pages = pages;
         this.toolbar = toolbar;
         this.grid = grid;
         this.navigation = navigation;
@@ -66,6 +69,8 @@ public sealed class LibraryShell
 
     private void Update()
     {
+        // A library change shows the media browser again, so a page of the old library never stays.
+        pages?.ShowBrowser();
         if (session.Current is null)
         {
             shownGrid?.Deactivate();

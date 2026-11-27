@@ -43,6 +43,14 @@ public interface IDuplicateGroupRepository
     Task<int> CountAsync(DuplicateGroupState? state, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets every group in a state with its member count and wasted space, for the review list (E12-S03).
+    /// </summary>
+    /// <param name="state">The state to list.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>One summary per group, in no particular order.</returns>
+    Task<IReadOnlyList<DuplicateGroupSummary>> GetSummariesAsync(DuplicateGroupState state, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the figures of the Open groups, of every type, in one aggregate query (E12-S05-T01).
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>

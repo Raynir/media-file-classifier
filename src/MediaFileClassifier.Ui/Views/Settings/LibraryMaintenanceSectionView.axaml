@@ -4,7 +4,9 @@
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
              x:Class="MediaFileClassifier.Ui.Views.Settings.LibraryMaintenanceSectionView"
              x:DataType="vm:LibraryMaintenanceSectionViewModel">
-  <!-- The maintenance commands of the Library menu (E02-S06) as buttons, each with what it does. -->
+  <!-- The maintenance commands of the Library menu (E02-S06) as buttons, each with what it does; below them, the
+       visual near-duplicate sensitivity and "Find duplicates now" (E12-S02-T03). -->
+  <StackPanel Spacing="{DynamicResource Space.L}">
   <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource Space.M}" RowSpacing="{DynamicResource Space.S}">
     <Button x:Name="RefreshIndexButton" Grid.Row="0" MinWidth="220" Content="{Binding RefreshIndex.PlainLabel}" Command="{Binding RefreshIndex}" ToolTip.Tip="{Binding RefreshIndex.ToolTip}" />
     <TextBlock Grid.Row="0" Grid.Column="1" Classes="Secondary" Text="{l:Loc LibrarySection_RefreshIndexHint}" VerticalAlignment="Center" TextWrapping="Wrap" />
@@ -13,4 +15,21 @@
     <Button x:Name="CheckIntegrityButton" Grid.Row="2" MinWidth="220" Content="{Binding CheckIntegrity.PlainLabel}" Command="{Binding CheckIntegrity}" ToolTip.Tip="{Binding CheckIntegrity.ToolTip}" />
     <TextBlock Grid.Row="2" Grid.Column="1" Classes="Secondary" Text="{l:Loc LibrarySection_CheckIntegrityHint}" VerticalAlignment="Center" TextWrapping="Wrap" />
   </Grid>
+  <StackPanel Spacing="{DynamicResource Space.S}">
+    <TextBlock Classes="Label" Text="{l:Loc LibrarySection_DuplicatesHeading}" />
+    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.M}">
+      <TextBlock Text="{l:Loc LibrarySection_Sensitivity}" VerticalAlignment="Center" />
+      <RadioButton x:Name="StrictSensitivityOption" GroupName="VisualSensitivity" Content="{l:Loc LibrarySection_SensitivityStrict}"
+                   IsChecked="{Binding IsStrict}" IsEnabled="{Binding HasLibrary}" />
+      <RadioButton x:Name="LooseSensitivityOption" GroupName="VisualSensitivity" Content="{l:Loc LibrarySection_SensitivityLoose}"
+                   IsChecked="{Binding IsLoose}" IsEnabled="{Binding HasLibrary}" />
+    </StackPanel>
+    <TextBlock Classes="Secondary" Text="{l:Loc LibrarySection_SensitivityHint}" TextWrapping="Wrap" />
+    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource Space.M}">
+      <Button x:Name="FindDuplicatesButton" MinWidth="220" Content="{l:Loc LibrarySection_FindDuplicates}" Command="{Binding FindDuplicatesCommand}" />
+      <TextBlock Grid.Column="1" Classes="Secondary" Text="{l:Loc LibrarySection_FindDuplicatesHint}" VerticalAlignment="Center" TextWrapping="Wrap" />
+    </Grid>
+    <TextBlock x:Name="DuplicatesStatus" Text="{Binding Status}" IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" />
+  </StackPanel>
+  </StackPanel>
 </UserControl>

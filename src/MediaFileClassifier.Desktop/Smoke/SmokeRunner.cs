@@ -197,6 +197,13 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                     throw new SmokeStepException($"the button '{step.Argument}' is disabled");
                 }
 
+                // Raising Click doesn't check a radio button; clicking it does (MFC-830).
+                if (button is RadioButton radio)
+                {
+                    radio.IsChecked = true;
+                    return null;
+                }
+
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 return null;
             case "dialog-select":
@@ -265,6 +272,14 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                     throw new SmokeStepException($"the focus is on {focusedIn?.GetType().Name ?? "nothing"} '{focusedIn?.Name}', not '{step.Argument}'");
                 }
 
+                return null;
+            case "dialog-scroll":
+                // Scrolls the open dialog until the control with this x:Name is in view, for a long page (MFC-830).
+                var scrollTarget = (Dialog() ?? throw new SmokeStepException("no dialog is open")).GetVisualDescendants()
+                    .OfType<Control>()
+                    .FirstOrDefault(candidate => candidate.Name == step.Argument && candidate.IsEffectivelyVisible)
+                    ?? throw new SmokeStepException($"the dialog has no visible control '{step.Argument}'");
+                scrollTarget.BringIntoView();
                 return null;
             case "popup-key":
                 // Presses a key in the open popup (flyout, context menu or combo drop-down), on its focused control (MFC-1013).

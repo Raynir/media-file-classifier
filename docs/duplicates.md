@@ -25,6 +25,12 @@ The same picture saved differently: re-encoded, resized, converted, a thumbnail,
 - **Groups** are connected sets of matching items, so they don't depend on the order items are checked in, and the incremental and full paths give the same groups (E12-S02-T04).
 - **Exact copies** count as one item, shown by the copy with the lowest ID; the others stay only in their exact group. So exact copies are never visual duplicates of each other.
 
+### Sensitivity (E12-S02-T03)
+
+Each library stores its sensitivity in `LibrarySettings.VisualDuplicateSensitivity` (settings JSON, written only when loose; strict is the default). Settings › Library › Maintenance shows Strict and Loose and **Find duplicates now**. A change checks every item again: it starts the full pass (`DetectDuplicatesCommand`); if one is already running, every item is queued and `DuplicateGroupMaintainer` works off what that pass leaves. Groups both sensitivities find keep their ID and review state (D578).
+
+Synthetic animations of one generator look alike to the model (the `gif-animated` and `webp-animated` samples have a cosine of 0.96 to 0.98), so loose groups them, as it groups other different items that look this alike.
+
 ### Measurements (2026-11-27)
 
 SigLIP 2 base on the evaluation corpus (212 photos, 60 documents and screenshots), with copies made in memory. Recall is the share of copies matched with their original; false positives are pairs of different originals.

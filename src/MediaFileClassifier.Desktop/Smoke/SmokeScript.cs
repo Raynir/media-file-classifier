@@ -41,7 +41,7 @@ internal static class SmokeScript
     {
         "library", "window", "select", "command", "focus", "key", "type", "wait", "wait-for", "shot", "seed-keyframes", "choose-keyframe", "capability", "setting", "start", "dialog-click", "dialog-type", "dialog-key", "popup-key", "popup-shot", "dialog-focus", "dialog-shot", "dialog-size",
         "damage-library", "unplug-folder", "plug-folder", "allow-error", "import-files", "dialog-select", "drag-over", "drop", "seed-activity",
-        "folder-mode", "swap-drive",
+        "folder-mode", "swap-drive", "dialog-scroll",
     };
 
     /// <summary>

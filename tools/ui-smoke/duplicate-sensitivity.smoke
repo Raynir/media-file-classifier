@@ -1,0 +1,40 @@
+# Settings > Library > Maintenance (MFC-830): the visual near-duplicate sensitivity and "Find duplicates now".
+# Run from the repository root:
+#   dotnet run --project src/MediaFileClassifier.Desktop -- --smoke tools/ui-smoke/duplicate-sensitivity.smoke --out artifacts/ui-smoke
+
+window 1400x900
+command view.theme-light
+library sample
+
+start tools.settings
+wait-for dialog
+dialog-size 1000x900
+dialog-select Library
+wait 1500ms
+dialog-scroll FindDuplicatesButton
+wait 300ms
+dialog-shot 01-sensitivity-strict
+
+# Loose stores the setting and checks every item again.
+dialog-click LooseSensitivityOption
+wait-for idle
+wait 500ms
+dialog-scroll DuplicatesStatus
+wait 300ms
+dialog-shot 02-sensitivity-loose
+
+dialog-click FindDuplicatesButton
+wait-for idle
+wait 500ms
+dialog-scroll DuplicatesStatus
+wait 300ms
+dialog-shot 03-find-duplicates
+
+# Back to strict.
+dialog-click StrictSensitivityOption
+wait-for idle
+command view.theme-dark
+wait 500ms
+dialog-scroll DuplicatesStatus
+wait 300ms
+dialog-shot 04-sensitivity-strict-dark

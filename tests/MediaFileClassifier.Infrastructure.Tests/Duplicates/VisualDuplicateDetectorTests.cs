@@ -31,6 +31,55 @@ public sealed class VisualDuplicateDetectorTests : IAsyncLifetime
         Assert.Equal(0, await bed.Library.Library.VisualDuplicates.CountQueuedAsync(Token));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TestSet_EachSensitivity_GivesItsExpectedGroups(bool loose)
+    {
+        await SetSensitivityAsync(loose ? VisualDuplicateSensitivity.Loose : VisualDuplicateSensitivity.Strict);
+        await bed.AddAsync(Features);
+
+        await bed.ReconcileAllAsync();
+
+        Assert.Equal(VisualDuplicateTestBed.Expected(Features, loose), await bed.GroupsAsync());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BurstShots_OnlyLooseGroupsThem(bool loose)
+    {
+        await SetSensitivityAsync(loose ? VisualDuplicateSensitivity.Loose : VisualDuplicateSensitivity.Strict);
+        await bed.AddAsync(Features.Where(feature => feature.Name.StartsWith("football-burst-", StringComparison.Ordinal)));
+
+        await bed.ReconcileAllAsync();
+
+        Assert.Equal(loose ? ["football-burst-1, football-burst-2, football-burst-3, football-burst-4"] : [], await bed.GroupsAsync());
+    }
+
+    [Fact]
+    public async Task SensitivityChange_FullPass_RegroupsEveryItem()
+    {
+        var images = Features.Where(feature => feature.MediaType == "Image").ToList();
+        await bed.AddAsync(images);
+        await bed.ReconcileAllAsync();
+        var strictGroups = await bed.Library.Library.Duplicates.GetGroupsAsync(null, 0, 1000, Token);
+
+        await SetSensitivityAsync(VisualDuplicateSensitivity.Loose);
+        await bed.Library.Library.VisualDuplicates.QueueAllAsync(Token);
+        await bed.ReconcileAllAsync();
+        Assert.Equal(VisualDuplicateTestBed.Expected(images, loose: true), await bed.GroupsAsync());
+
+        await SetSensitivityAsync(VisualDuplicateSensitivity.Strict);
+        await bed.Library.Library.VisualDuplicates.QueueAllAsync(Token);
+        await bed.ReconcileAllAsync();
+        Assert.Equal(VisualDuplicateTestBed.Expected(images, loose: false), await bed.GroupsAsync());
+
+        // The groups both sensitivities find keep their IDs, so a review state survives the round trip (D578).
+        var groups = await bed.Library.Library.Duplicates.GetGroupsAsync(null, 0, 1000, Token);
+        Assert.Equal(strictGroups.Select(group => group.Id.Value).Order(), groups.Select(group => group.Id.Value).Order());
+    }
+
     [Fact]
     public async Task Videos_ReencodedCopyIsGroupedWithTheOriginal()
     {
@@ -157,6 +206,9 @@ public sealed class VisualDuplicateDetectorTests : IAsyncLifetime
 
         Assert.Equal(["cat, cat-thumb"], await bed.GroupsAsync());
     }
+
+    private Task SetSensitivityAsync(VisualDuplicateSensitivity sensitivity) =>
+        bed.Library.Library.UpdateSettingsAsync(settings => settings with { VisualDuplicateSensitivity = sensitivity }, Token);
 
     private sealed class NotReadyVectors : Abstractions.Search.IItemVectorSimilarity
     {

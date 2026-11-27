@@ -64,6 +64,21 @@ public sealed partial class DuplicateGroupMaintainer(
     }
 
     /// <summary>
+    /// Checks the open library's queues soon, as after an item change: for queue entries made without one, such as a
+    /// sensitivity change (E12-S02-T03).
+    /// </summary>
+    public void Request()
+    {
+        Attached? current;
+        lock (gate)
+        {
+            current = attached;
+        }
+
+        current?.Request();
+    }
+
+    /// <summary>
     /// Waits until the open library's queue is worked off: for tests and the full detection job's callers.
     /// </summary>
     /// <returns>A task that completes when no reconciling is running or requested.</returns>
@@ -109,13 +124,7 @@ public sealed partial class DuplicateGroupMaintainer(
     {
         if (search?.VectorState == VectorIndexState.Ready)
         {
-            Attached? current;
-            lock (gate)
-            {
-                current = attached;
-            }
-
-            current?.Request();
+            Request();
         }
     }
 

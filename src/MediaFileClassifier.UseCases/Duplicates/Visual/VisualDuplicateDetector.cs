@@ -1,4 +1,5 @@
 using MediaFileClassifier.Domain.Analysis;
+using MediaFileClassifier.Domain.Duplicates;
 using MediaFileClassifier.Domain.Identity;
 using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Hashing;
@@ -65,7 +66,7 @@ public sealed class VisualDuplicateDetector(TimeProvider clock, IItemVectorSimil
             }
 
             var current = await RefreshAsync(library, batch.Items, cancellationToken).ConfigureAwait(false);
-            var rules = VisualMatchRules.Strict;
+            var rules = library.Library.Settings.VisualDuplicateSensitivity == VisualDuplicateSensitivity.Loose ? VisualMatchRules.Loose : VisualMatchRules.Strict;
             var check = new Check(current, rules, model is { } id ? (a, b) => vectors!.GetSimilarity(library, id, a, b) ?? float.NaN : (_, _) => float.NaN);
             if (model is { } modelId && rules.UsesEmbeddingCandidates)
             {

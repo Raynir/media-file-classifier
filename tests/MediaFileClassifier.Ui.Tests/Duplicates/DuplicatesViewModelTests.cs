@@ -115,7 +115,7 @@ public sealed class DuplicatesViewModelTests
     }
 
     private static DuplicatesViewModel Create(ListSender sender) =>
-        new(sender, new FakeBrowserSession(open: false), TestLocalizer.EnUs());
+        new(sender, new FakeBrowserSession(open: false), TestLocalizer.EnUs(), DuplicateTestBed.Comparison(sender));
 
     private static DuplicateGroupSummary Group(int members, long wasted) =>
         new(Id<DuplicateGroup>.New(), DuplicateGroupType.Exact, members, wasted, Start);

@@ -294,6 +294,8 @@ public static class UiModule
         services.AddSingleton<ProcessingPanelPresenter>();
 
         // Duplicates view (E12-S03).
+        services.AddSingleton<KeeperRuleSettings>();
+        services.AddSingleton<DuplicateComparisonViewModel>();
         services.AddSingleton<DuplicatesViewModel>();
 
         // Activity log (E15-S04).

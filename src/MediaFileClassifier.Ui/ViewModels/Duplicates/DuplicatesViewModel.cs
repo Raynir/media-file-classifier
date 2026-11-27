@@ -29,10 +29,13 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
     /// <param name="sender">Sends the queries and commands.</param>
     /// <param name="session">Holds the open library.</param>
     /// <param name="localizer">UI strings.</param>
-    public DuplicatesViewModel(ISender sender, ILibrarySession session, Localizer localizer)
+    /// <param name="comparison">The comparison of the selected group.</param>
+    public DuplicatesViewModel(ISender sender, ILibrarySession session, Localizer localizer, DuplicateComparisonViewModel comparison)
     {
         ArgumentNullException.ThrowIfNull(localizer);
+        ArgumentNullException.ThrowIfNull(comparison);
 
+        Comparison = comparison;
         this.sender = sender;
         this.session = session;
         this.localizer = localizer;
@@ -62,6 +65,11 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
     /// Gets the type chips: All, Exact and Similar.
     /// </summary>
     public IReadOnlyList<DuplicateTypeChip> TypeFilters { get; }
+
+    /// <summary>
+    /// Gets the comparison of the selected group.
+    /// </summary>
+    public DuplicateComparisonViewModel Comparison { get; }
 
     /// <summary>
     /// Gets the groups shown, in the chosen order.
@@ -123,6 +131,7 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
     public Task ActivateAsync()
     {
         Watch();
+        Comparison.ReloadRules();
         return RefreshAsync();
     }
 
@@ -206,7 +215,32 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
         IsLoading = false;
     }
 
+    /// <summary>
+    /// Selects the next group in the list (Down).
+    /// </summary>
+    [RelayCommand]
+    public void SelectNext() => Step(1);
+
+    /// <summary>
+    /// Selects the previous group in the list (Up).
+    /// </summary>
+    [RelayCommand]
+    public void SelectPrevious() => Step(-1);
+
     partial void OnSelectedSortChanged(DuplicateSortOption value) => _ = RefreshAsync();
+
+    partial void OnSelectedGroupChanged(DuplicateGroupRowViewModel? value) => _ = Comparison.ShowAsync(value?.Summary.Id);
+
+    private void Step(int step)
+    {
+        if (Groups.Count == 0)
+        {
+            return;
+        }
+
+        var index = SelectedGroup is null ? 0 : Groups.IndexOf(SelectedGroup) + step;
+        SelectedGroup = Groups[Math.Clamp(index, 0, Groups.Count - 1)];
+    }
 
     private void Watch()
     {

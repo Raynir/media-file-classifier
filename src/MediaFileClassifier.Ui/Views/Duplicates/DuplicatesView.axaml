@@ -2,8 +2,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MediaFileClassifier.Ui.ViewModels.Duplicates"
              xmlns:l="using:MediaFileClassifier.Ui.Localization"
+             xmlns:controls="using:MediaFileClassifier.Ui.Controls"
              x:Class="MediaFileClassifier.Ui.Views.Duplicates.DuplicatesView"
              x:DataType="vm:DuplicatesViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.Card.Current">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.State.Focus}" />
+    </Style>
+    <Style Selector="Border.Card.Unavailable">
+      <Setter Property="Opacity" Value="0.5" />
+    </Style>
+    <Style Selector="Border.Differs">
+      <Setter Property="Background" Value="{DynamicResource Brush.State.Selected}" />
+    </Style>
+  </UserControl.Styles>
   <!-- Duplicates (E12-S03): the open groups on the left, sortable and filtered by type; the comparison of the selected group on the right. -->
   <Grid Margin="{DynamicResource Padding.Panel}" RowDefinitions="Auto,Auto,*" RowSpacing="{DynamicResource Space.S}">
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource Space.S}">
@@ -85,6 +97,161 @@
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"
                      IsVisible="{Binding !HasSelection}" />
+
+          <!-- Comparison of the selected group (E12-S03-T02, T04). -->
+          <Grid x:Name="ComparisonPane"
+                RowDefinitions="Auto,*,Auto"
+                RowSpacing="{DynamicResource Space.S}"
+                IsVisible="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).HasSelection}"
+                DataContext="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).Comparison}"
+                x:DataType="vm:DuplicateComparisonViewModel"
+                AutomationProperties.Name="{l:Loc Duplicates_ComparisonLabel}">
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+              <Button x:Name="PreviousButton"
+                      Content="{l:Loc Duplicates_Prev}"
+                      Command="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).SelectPreviousCommand}"
+                      AutomationProperties.Name="{l:Loc Duplicates_Prev}" />
+              <Button x:Name="NextButton"
+                      Content="{l:Loc Duplicates_Next}"
+                      Command="{Binding $parent[UserControl].((vm:DuplicatesViewModel)DataContext).SelectNextCommand}"
+                      AutomationProperties.Name="{l:Loc Duplicates_Next}" />
+              <Button x:Name="ZoomButton"
+                      Content="{l:Loc Duplicates_Zoom}"
+                      Command="{Binding ToggleZoomCommand}"
+                      IsVisible="{Binding CanZoom}"
+                      AutomationProperties.Name="{l:Loc Duplicates_Zoom}" />
+              <Button x:Name="ZoomExitButton"
+                      Content="{l:Loc Duplicates_ZoomExit}"
+                      Command="{Binding LeaveZoomCommand}"
+                      IsVisible="{Binding IsZoomMode}"
+                      AutomationProperties.Name="{l:Loc Duplicates_ZoomExit}" />
+              <Button x:Name="KeeperRulesButton"
+                      Content="{l:Loc Duplicates_KeeperRules}"
+                      AutomationProperties.Name="{l:Loc Duplicates_KeeperRules}">
+                <Button.Flyout>
+                  <Flyout>
+                    <StackPanel Width="300" Spacing="{DynamicResource Space.S}">
+                      <TextBlock Classes="Secondary" Text="{l:Loc Duplicates_KeeperRulesHint}" TextWrapping="Wrap" />
+                      <ItemsControl x:Name="RuleList" ItemsSource="{Binding Rules}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:KeeperRuleItem">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource Space.XS}" Margin="0,2">
+                              <TextBlock Grid.Column="0" Text="{Binding Position}" VerticalAlignment="Center" />
+                              <TextBlock Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                              <Button Grid.Column="2"
+                                      Content="▲"
+                                      Command="{Binding $parent[ItemsControl].((vm:DuplicateComparisonViewModel)DataContext).MoveRuleUpCommand}"
+                                      CommandParameter="{Binding}"
+                                      AutomationProperties.Name="{l:Loc Duplicates_MoveUp}" />
+                              <Button Grid.Column="3"
+                                      Content="▼"
+                                      Command="{Binding $parent[ItemsControl].((vm:DuplicateComparisonViewModel)DataContext).MoveRuleDownCommand}"
+                                      CommandParameter="{Binding}"
+                                      AutomationProperties.Name="{l:Loc Duplicates_MoveDown}" />
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Button Content="{l:Loc Duplicates_KeeperRulesReset}"
+                              Command="{Binding ResetRulesCommand}"
+                              AutomationProperties.Name="{l:Loc Duplicates_KeeperRulesReset}" />
+                    </StackPanel>
+                  </Flyout>
+                </Button.Flyout>
+              </Button>
+            </StackPanel>
+
+            <!-- Details: one card per member with aligned attribute rows; the cards scroll sideways. -->
+            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" IsVisible="{Binding IsDetailsMode}">
+              <ItemsControl x:Name="Cards" ItemsSource="{Binding Members}" AutomationProperties.Name="{l:Loc Duplicates_CardsLabel}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DuplicateMemberViewModel">
+                    <Border Classes="Card"
+                            Width="240"
+                            Padding="{DynamicResource Padding.Control}"
+                            Background="{DynamicResource Brush.Surface.Tile}"
+                            BorderBrush="{DynamicResource Brush.Border.Divider}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource Radius.Control}"
+                            Classes.Current="{Binding IsCurrent}"
+                            Classes.Unavailable="{Binding IsUnavailable}"
+                            AutomationProperties.Name="{Binding AccessibleName}">
+                      <StackPanel Spacing="{DynamicResource Space.XS}">
+                        <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" FontWeight="{DynamicResource FontWeight.Title}" ToolTip.Tip="{Binding FileName}" />
+                        <controls:MediaThumbnail Height="180" Source="{Binding Preview}" />
+                        <RadioButton Content="{l:Loc Duplicates_Keep}"
+                                     IsChecked="{Binding IsKeeper, Mode=OneWay}"
+                                     IsEnabled="{Binding !IsUnavailable}"
+                                     Command="{Binding $parent[ItemsControl].((vm:DuplicateComparisonViewModel)DataContext).SetKeeperCommand}"
+                                     CommandParameter="{Binding}"
+                                     AutomationProperties.Name="{l:Loc Duplicates_Keep}" />
+                        <Border Classes="Badge"
+                                HorizontalAlignment="Left"
+                                Padding="6,1"
+                                CornerRadius="{DynamicResource Radius.Pill}"
+                                Background="{DynamicResource Brush.State.Hover}"
+                                IsVisible="{Binding IsSuggested}">
+                          <TextBlock Text="{l:Loc Duplicates_Suggested}" />
+                        </Border>
+                        <TextBlock Classes="Secondary" Text="{Binding StatusText}" IsVisible="{Binding IsUnavailable}" />
+                        <ItemsControl ItemsSource="{Binding Cells}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ComparisonCell">
+                              <Border Height="44"
+                                      Padding="4,2"
+                                      Classes.Differs="{Binding Differs}"
+                                      CornerRadius="{DynamicResource Radius.Control}">
+                                <StackPanel VerticalAlignment="Center">
+                                  <TextBlock Classes="Secondary" FontSize="11" Text="{Binding Label}" />
+                                  <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Text}" />
+                                </StackPanel>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Zoom compare: large previews that zoom and pan together, with a compact keeper strip. -->
+            <Grid Grid.Row="1" RowDefinitions="*,Auto" IsVisible="{Binding IsZoomMode}">
+              <ItemsControl x:Name="ZoomCards" Grid.Row="0" ItemsSource="{Binding Members}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid Rows="1" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DuplicateMemberViewModel">
+                    <Border Margin="2" ClipToBounds="True" Background="{DynamicResource Brush.Surface.Tile}">
+                      <Panel>
+                        <controls:ZoomImage Source="{Binding Preview}"
+                                            Zoom="{Binding $parent[ItemsControl].((vm:DuplicateComparisonViewModel)DataContext).Zoom}" />
+                        <RadioButton Content="{Binding FileName}"
+                                     VerticalAlignment="Bottom"
+                                     HorizontalAlignment="Left"
+                                     IsChecked="{Binding IsKeeper, Mode=OneWay}"
+                                     IsEnabled="{Binding !IsUnavailable}"
+                                     Command="{Binding $parent[ItemsControl].((vm:DuplicateComparisonViewModel)DataContext).SetKeeperCommand}"
+                                     CommandParameter="{Binding}" />
+                      </Panel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Grid.Row="1" Classes="Secondary" Text="{l:Loc Duplicates_ZoomHint}" />
+            </Grid>
+
+            <TextBlock Grid.Row="2" x:Name="SuggestionLabel" Classes="Secondary" Text="{Binding SuggestionText}" />
+          </Grid>
         </Panel>
       </Grid>
     </Panel>

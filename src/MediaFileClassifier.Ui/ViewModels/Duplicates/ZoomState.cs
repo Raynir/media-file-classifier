@@ -17,6 +17,7 @@ public sealed partial class ZoomState : ObservableObject
     /// Gets or sets the zoom factor: 1 shows the whole image.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsChanged))]
     public partial double Scale { get; set; } = 1;
 
     /// <summary>

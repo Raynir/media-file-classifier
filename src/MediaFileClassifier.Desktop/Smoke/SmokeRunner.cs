@@ -543,8 +543,6 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         return $"{events.Length} events";
     }
 
-    // The sample files are all different. This gives the first four items two shared content hashes and groups them, so
-    // the library has two Open duplicate groups (E12-S05).
     // Picks a navigation entry by its key, as a click does (E12-S05-T03).
     private string SelectNavigationEntry(string key)
     {
@@ -555,6 +553,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         return entry.Label;
     }
 
+    // The sample files are all different. This gives the first four items two shared content hashes and groups them, so
+    // the library has two Open duplicate groups (E12-S05).
     private async Task<string> SeedDuplicatesAsync()
     {
         var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");

@@ -23,6 +23,7 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
     private IDuplicateGroupRepository? watched;
     private int generation;
     private bool constructed;
+    private bool reloading;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DuplicatesViewModel"/> class.
@@ -147,6 +148,11 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
             watched.Changed -= OnGroupsChanged;
             watched = null;
         }
+
+        // Nothing of the old library or view stays loaded: no group, no previews.
+        generation++;
+        Groups.Clear();
+        SelectedGroup = null;
     }
 
     /// <summary>
@@ -203,13 +209,28 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
         }
 
         var selected = SelectedGroup?.Summary.Id;
-        Groups.Clear();
-        foreach (var summary in list.Groups)
+        reloading = true;
+        try
         {
-            Groups.Add(new DuplicateGroupRowViewModel(summary, localizer));
+            Groups.Clear();
+            foreach (var summary in list.Groups)
+            {
+                Groups.Add(new DuplicateGroupRowViewModel(summary, localizer));
+            }
+
+            SelectedGroup = Groups.FirstOrDefault(row => row.Summary.Id == selected) ?? Groups.FirstOrDefault();
+        }
+        finally
+        {
+            reloading = false;
         }
 
-        SelectedGroup = Groups.FirstOrDefault(row => row.Summary.Id == selected) ?? Groups.FirstOrDefault();
+        // The comparison is kept, with the user's keeper choice, when the same group is still selected.
+        if (SelectedGroup?.Summary.Id != Comparison.GroupId)
+        {
+            _ = Comparison.ShowAsync(SelectedGroup?.Summary.Id);
+        }
+
         IsEmpty = list.TotalGroups == 0;
         Header = list.TotalGroups == 0
             ? localizer.Get("Duplicates_Title")
@@ -238,7 +259,13 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
         }
     }
 
-    partial void OnSelectedGroupChanged(DuplicateGroupRowViewModel? value) => _ = Comparison.ShowAsync(value?.Summary.Id);
+    partial void OnSelectedGroupChanged(DuplicateGroupRowViewModel? value)
+    {
+        if (!reloading)
+        {
+            _ = Comparison.ShowAsync(value?.Summary.Id);
+        }
+    }
 
     private void Step(int step)
     {

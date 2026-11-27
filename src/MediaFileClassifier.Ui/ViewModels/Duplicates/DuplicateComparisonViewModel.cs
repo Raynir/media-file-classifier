@@ -45,6 +45,11 @@ public sealed partial class DuplicateComparisonViewModel : ViewModelBase, IDispo
     }
 
     /// <summary>
+    /// Gets the group shown, or <see langword="null"/> when none is.
+    /// </summary>
+    public Id<DuplicateGroup>? GroupId => groupId;
+
+    /// <summary>
     /// Gets the cards, one per member.
     /// </summary>
     public ObservableCollection<DuplicateMemberViewModel> Members { get; } = [];
@@ -112,7 +117,17 @@ public sealed partial class DuplicateComparisonViewModel : ViewModelBase, IDispo
         }
 
         IsLoading = Members.Count == 0;
-        var detail = await sender.Send(new GetDuplicateGroupQuery(value, [.. Rules.Select(rule => rule.Rule)])).ConfigureAwait(true);
+        DuplicateGroupDetail? detail;
+        try
+        {
+            detail = await sender.Send(new GetDuplicateGroupQuery(value, [.. Rules.Select(rule => rule.Rule)])).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or ObjectDisposedException)
+        {
+            // E.g. the library closed meanwhile: nothing to compare.
+            detail = null;
+        }
+
         if (mine != generation)
         {
             return;
@@ -184,8 +199,15 @@ public sealed partial class DuplicateComparisonViewModel : ViewModelBase, IDispo
             return;
         }
 
-        var index = FocusedIndex + step;
-        FocusedIndex = Math.Clamp(index, 0, Members.Count - 1);
+        // Cards that can't be kept are skipped; at the end the focus stays where it is.
+        for (var index = FocusedIndex + step; index >= 0 && index < Members.Count; index += step)
+        {
+            if (Members[index].Detail.IsAvailable)
+            {
+                FocusedIndex = index;
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -323,9 +345,9 @@ public sealed partial class DuplicateComparisonViewModel : ViewModelBase, IDispo
 
             member.SetPreview(lease);
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is OperationCanceledException or IOException or UnauthorizedAccessException or ObjectDisposedException)
         {
-            // The group changed: the card is gone.
+            // The group changed, or the file can't be read: the card keeps its placeholder.
         }
     }
 

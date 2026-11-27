@@ -26,20 +26,25 @@ public sealed class ZoomImage : Control
     public static readonly StyledProperty<ZoomState?> ZoomProperty = AvaloniaProperty.Register<ZoomImage, ZoomState?>(nameof(Zoom));
 
     private Point? dragFrom;
+    private bool isAttached;
 
     static ZoomImage()
     {
         AffectsRender<ZoomImage>(SourceProperty);
         ZoomProperty.Changed.AddClassHandler<ZoomImage>((image, args) =>
         {
-            if (args.OldValue is ZoomState old)
+            // Only while attached: the state lives as long as the group's view model, the control doesn't.
+            if (image.isAttached)
             {
-                old.PropertyChanged -= image.OnZoomChanged;
-            }
+                if (args.OldValue is ZoomState old)
+                {
+                    old.PropertyChanged -= image.OnZoomChanged;
+                }
 
-            if (args.NewValue is ZoomState current)
-            {
-                current.PropertyChanged += image.OnZoomChanged;
+                if (args.NewValue is ZoomState current)
+                {
+                    current.PropertyChanged += image.OnZoomChanged;
+                }
             }
 
             image.InvalidateVisual();
@@ -63,6 +68,28 @@ public sealed class ZoomImage : Control
     {
         get => GetValue(ZoomProperty);
         set => SetValue(ZoomProperty, value);
+    }
+
+    /// <inheritdoc />
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        isAttached = true;
+        if (Zoom is { } zoom)
+        {
+            zoom.PropertyChanged += OnZoomChanged;
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        isAttached = false;
+        if (Zoom is { } zoom)
+        {
+            zoom.PropertyChanged -= OnZoomChanged;
+        }
     }
 
     /// <inheritdoc />

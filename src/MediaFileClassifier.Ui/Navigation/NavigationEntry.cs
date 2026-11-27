@@ -45,9 +45,6 @@ public sealed partial class NavigationEntry : NavigationNode
     }
 
     /// <summary>
-    /// Gets the entry shown while children load.
-    /// </summary>
-    /// <summary>
     /// Gets or sets what picking the entry does instead of scoping the media browser, e.g. opening a page in its
     /// place (E12-S05-T03). An entry with an action needs no scope.
     /// </summary>
@@ -63,6 +60,9 @@ public sealed partial class NavigationEntry : NavigationNode
     /// </summary>
     public bool HidesZeroCount { get; init; }
 
+    /// <summary>
+    /// Gets the entry shown while children load.
+    /// </summary>
     public static NavigationEntry Placeholder { get; } = new(string.Empty, string.Empty, string.Empty, scope: null);
 
     /// <summary>

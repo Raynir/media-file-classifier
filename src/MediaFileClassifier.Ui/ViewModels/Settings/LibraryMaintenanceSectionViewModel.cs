@@ -93,8 +93,16 @@ public sealed partial class LibraryMaintenanceSectionViewModel : LibrarySectionV
             return;
         }
 
-        var result = await sender.Send(new DetectDuplicatesCommand()).ConfigureAwait(true);
-        Status = localizer.Get(OutcomeKey(result.Outcome));
+        try
+        {
+            var result = await sender.Send(new DetectDuplicatesCommand()).ConfigureAwait(true);
+            Status = localizer.Get(OutcomeKey(result.Outcome));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            // The library closed meanwhile, or the job couldn't be queued.
+            Status = localizer.Get(OutcomeKey(DetectDuplicatesOutcome.Unavailable));
+        }
     }
 
     /// <inheritdoc />
@@ -181,7 +189,14 @@ public sealed partial class LibraryMaintenanceSectionViewModel : LibrarySectionV
         {
             // The library closed meanwhile or the write failed; show what's stored.
             Status = localizer.Get("LibrarySection_Sensitivity_Failed");
-            await LoadAsync().ConfigureAwait(true);
+            try
+            {
+                await LoadAsync().ConfigureAwait(true);
+            }
+            catch (Exception reloadException) when (reloadException is not OutOfMemoryException)
+            {
+                // The library is gone too; the section reloads when another opens.
+            }
         }
     }
 }

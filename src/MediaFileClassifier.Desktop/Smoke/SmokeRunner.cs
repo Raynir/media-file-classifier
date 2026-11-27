@@ -617,6 +617,12 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
             var result = await detector.ReconcileAsync(library, VisualDuplicateDetector.BatchSize, CancellationToken.None);
             if (result is { Items: 0 })
             {
+                // Strict also needs a cosine of 0.80 when both images have embeddings, so check the group was made.
+                if ((await library.VisualDuplicates.GetGroupsOfAsync([images[0].Id], CancellationToken.None)).Count == 0)
+                {
+                    throw new SmokeStepException("the two images weren't grouped; their embeddings may be too far apart");
+                }
+
                 return $"{await library.Duplicates.CountAsync(null, CancellationToken.None)} groups";
             }
 

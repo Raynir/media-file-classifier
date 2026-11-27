@@ -57,14 +57,24 @@ public sealed class VisualDuplicateSensitivityHandlers(ILibrarySession session, 
         await open.UpdateSettingsAsync(settings => settings with { VisualDuplicateSensitivity = request.Sensitivity }, cancellationToken).ConfigureAwait(false);
 
         // Every group may change, so every item is checked again.
-        var result = await sender.Send(new DetectDuplicatesCommand(), cancellationToken).ConfigureAwait(false);
-        if (result.Outcome is DetectDuplicatesOutcome.Busy or DetectDuplicatesOutcome.Unavailable)
+        DetectDuplicatesOutcome outcome;
+        try
+        {
+            outcome = (await sender.Send(new DetectDuplicatesCommand(), cancellationToken).ConfigureAwait(false)).Outcome;
+        }
+        catch (Exception exception) when (exception is not (OperationCanceledException or OutOfMemoryException))
+        {
+            // The setting is stored, so its change mustn't be lost: the maintainer checks every item instead.
+            outcome = DetectDuplicatesOutcome.Unavailable;
+        }
+
+        if (outcome is DetectDuplicatesOutcome.Busy or DetectDuplicatesOutcome.Unavailable)
         {
             // A running pass has a fixed number of batches, so the maintainer works off what it leaves.
             await open.VisualDuplicates.QueueAllAsync(cancellationToken).ConfigureAwait(false);
             maintainer?.Request();
         }
 
-        return new(true, result.Outcome);
+        return new(true, outcome);
     }
 }

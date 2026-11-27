@@ -11,6 +11,10 @@ Notable changes per release. Each release branch moves the Unreleased entries un
 - Move-to-trash service (MFC-845, part of MFC-144): a platform service that moves files to the Windows Recycle Bin for duplicate resolution, never deleting one permanently (D024). It reports each file as moved, skipped (not found, not a file, read-only, no trash at its location, cancelled) or failed. Files on network shares and remote drives are refused before the shell is asked, and the shell's own check refuses any file it would otherwise delete permanently, e.g. on a removable drive without a Recycle Bin or a file too big for the bin. Nothing in the app uses it yet; the resolve dialog comes with MFC-144 part B. No schema change.
 - Metadata merge for duplicates (MFC-839, part of MFC-144): a use case that merges the user's metadata of duplicates into the item kept: user tags are combined (past the 200-tag limit if need be, which it reports), the keeper becomes a favorite if any member was one, and for user field values (written or accepted) the keeper's value wins, a field only the duplicates have is copied to the keeper, and every other value is reported as a conflict so the user can pick it. AI values are not merged. It returns what the keeper had before, so part B can undo the merge. Collection memberships are merged once collections exist (1.4.0). Nothing in the app uses it yet. No schema change.
 
+### Changed
+
+- Smaller build output (MFC-1076): Desktop and the test projects copy only the win-x64 native libraries into `bin`, and no native `.pdb` files, so one worktree's build output shrinks from about 3.3 GB to about 0.6 GB. Output paths are unchanged, and publishing is not affected.
+
 ## 1.1.0 — 2026-11-27
 
 ### Added

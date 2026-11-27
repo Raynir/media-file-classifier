@@ -46,4 +46,7 @@
   <!-- The native LibVLC, trimmed to win-x64 and the playback plugins (D070). -->
   <Import Project="../MediaFileClassifier.Infrastructure.Playback/build/LibVlcWindows.props" />
 
+  <!-- Build output keeps only the win-x64 natives (MFC-1076). -->
+  <Import Project="../../tools/PruneNativeRuntimes.targets" />
+
 </Project>

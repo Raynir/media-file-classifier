@@ -57,6 +57,8 @@ A scenario-specific fake kept local to one file is a private nested class named 
 
 ## Running and filtering
 
+Build output keeps only the win-x64 natives and no native `.pdb` files (`tools/PruneNativeRuntimes.targets`, imported by Desktop and `tests/Directory.Build.targets`), so a full build leaves about 0.6 GB of `bin` per worktree. Output paths are unchanged (`bin/Debug/<tfm>/`). A new Windows head or test project outside `tests/` imports the same file.
+
 Run from the repository root. Several `--filter-class` and `--filter-method` flags combine in one run:
 
 ```powershell

@@ -70,6 +70,32 @@ public sealed class VisualDuplicateRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Triggers_HashedKeyframesReplacedByUnhashedOnes_QueueTheItem()
+    {
+        var items = await AddAsync((null, 1));
+        await bed.Library.Keyframes.ReplaceAsync(items[0].Id, [new Keyframe(Id<Keyframe>.New(), items[0].Id, 0, TimeSpan.Zero, 0, 0xABCD)], Token);
+        await ClearQueueAsync();
+
+        await bed.Library.Keyframes.ReplaceAsync(items[0].Id, [new Keyframe(Id<Keyframe>.New(), items[0].Id, 0, TimeSpan.Zero, 0, null)], Token);
+
+        Assert.Equal([items[0].Id], (await Visual.PeekQueueAsync(10, Token)).Items);
+    }
+
+    [Fact]
+    public async Task Triggers_DurationStoredThenChanged_QueuesTheItemEachTime()
+    {
+        var items = await AddAsync((0xF0F0, 1));
+        await ClearQueueAsync();
+
+        await bed.Library.Items.UpdateAsync(items[0], new Domain.Metadata.TechnicalMetadata { ItemId = items[0].Id, Duration = TimeSpan.FromSeconds(3), ExtractedAt = bed.Clock.Tick() }, Token);
+        Assert.Equal([items[0].Id], (await Visual.PeekQueueAsync(10, Token)).Items);
+        await ClearQueueAsync();
+
+        await bed.Library.Items.UpdateAsync(items[0], new Domain.Metadata.TechnicalMetadata { ItemId = items[0].Id, Duration = TimeSpan.FromSeconds(4), ExtractedAt = bed.Clock.Tick() }, Token);
+        Assert.Equal([items[0].Id], (await Visual.PeekQueueAsync(10, Token)).Items);
+    }
+
+    [Fact]
     public async Task Triggers_GroupMemberDeleted_QueuesTheOtherMembers()
     {
         var items = await AddAsync((1, 1), (2, 2), (3, 3));

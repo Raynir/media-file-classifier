@@ -8,7 +8,7 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
     /// Library schema 21: the visual near-duplicate queue (MFC-828, E12-S02). Hand-written: <c>duplicate_dirty_item</c>
     /// lists the items whose visual groups must be checked again, and triggers fill it in the same transaction as the
     /// change: an item is added with hashes, its perceptual hash, content hash or Missing/Excluded status changed, its whole-item embedding or
-    /// its keyframes were written or removed, or it's deleted. A change of an item also queues the items with the same
+    /// its keyframes were written or removed, its duration was stored or changed, or it's deleted. A change of an item also queues the items with the same
     /// content hash, because exact copies share one place in a visual group, and a deleted item queues its visual
     /// group's other members. Queuing again moves an item to the end (a new <c>seq</c>), so a check that read it
     /// earlier never takes a later change off the queue. Every item with a perceptual hash or keyframes is queued, so
@@ -83,6 +83,30 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                 END;
                 """);
             migrationBuilder.Sql("""
+                CREATE TRIGGER "visual_duplicate_keyframe_delete" AFTER DELETE ON "keyframe"
+                WHEN old."perceptual_hash" IS NOT NULL
+                    AND EXISTS (SELECT 1 FROM "media_item" WHERE "id" = old."item_id")
+                BEGIN
+                    INSERT OR REPLACE INTO "duplicate_dirty_item" ("item_id") VALUES (old."item_id");
+                END;
+                """);
+
+            // Video and animation matches compare durations, which the metadata stage may store after the hashes.
+            migrationBuilder.Sql("""
+                CREATE TRIGGER "visual_duplicate_duration_insert" AFTER INSERT ON "technical_metadata"
+                WHEN new."duration" IS NOT NULL
+                BEGIN
+                    INSERT OR REPLACE INTO "duplicate_dirty_item" ("item_id") VALUES (new."item_id");
+                END;
+                """);
+            migrationBuilder.Sql("""
+                CREATE TRIGGER "visual_duplicate_duration_update" AFTER UPDATE OF "duration" ON "technical_metadata"
+                WHEN new."duration" IS NOT old."duration"
+                BEGIN
+                    INSERT OR REPLACE INTO "duplicate_dirty_item" ("item_id") VALUES (new."item_id");
+                END;
+                """);
+            migrationBuilder.Sql("""
                 INSERT OR IGNORE INTO "duplicate_dirty_item" ("item_id")
                 SELECT "id" FROM "media_item" WHERE "hashes_perceptual_hash" IS NOT NULL
                 UNION
@@ -99,6 +123,9 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
             migrationBuilder.Sql("""DROP TRIGGER IF EXISTS "visual_duplicate_embedding_insert";""");
             migrationBuilder.Sql("""DROP TRIGGER IF EXISTS "visual_duplicate_embedding_delete";""");
             migrationBuilder.Sql("""DROP TRIGGER IF EXISTS "visual_duplicate_keyframe_insert";""");
+            migrationBuilder.Sql("""DROP TRIGGER IF EXISTS "visual_duplicate_keyframe_delete";""");
+            migrationBuilder.Sql("""DROP TRIGGER IF EXISTS "visual_duplicate_duration_insert";""");
+            migrationBuilder.Sql("""DROP TRIGGER IF EXISTS "visual_duplicate_duration_update";""");
             migrationBuilder.Sql("""DROP TABLE IF EXISTS "duplicate_dirty_item";""");
             migrationBuilder.Sql("""DELETE FROM "duplicate_group" WHERE "type" = 1;""");
         }

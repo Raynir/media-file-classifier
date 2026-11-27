@@ -56,7 +56,8 @@ public sealed class SearchIndex : ISearchIndex, IItemVectorSimilarity, IDisposab
     public Task Ready => current?.Started ?? Task.CompletedTask;
 
     /// <inheritdoc />
-    public bool IsReady(IOpenLibrary library) => ReadyIndexOf(library) is not null;
+    public VectorIndexState GetState(IOpenLibrary library) =>
+        current is { } search && ReferenceEquals(search.Library, library) ? search.State : VectorIndexState.Loading;
 
     /// <inheritdoc />
     public IReadOnlyList<ItemSimilarity>? FindNearest(IOpenLibrary library, Id<ModelRegistration> modelId, Id<MediaItem> itemId, int count, float minSimilarity)

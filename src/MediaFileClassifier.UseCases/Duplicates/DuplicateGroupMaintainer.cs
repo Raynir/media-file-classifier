@@ -119,10 +119,11 @@ public sealed partial class DuplicateGroupMaintainer(
 
     private void OnCurrentChanged(object? sender, EventArgs e) => Attach(session.Current);
 
-    // Visual checks wait for the vector index; once it's ready, what's queued meanwhile is checked.
+    // Visual checks wait while the vector index loads; once it's ready, or loading failed (then they match without
+    // embeddings), what's queued meanwhile is checked.
     private void OnVectorStateChanged(object? sender, EventArgs e)
     {
-        if (search?.VectorState == VectorIndexState.Ready)
+        if (search?.VectorState is VectorIndexState.Ready or VectorIndexState.Failed)
         {
             Request();
         }

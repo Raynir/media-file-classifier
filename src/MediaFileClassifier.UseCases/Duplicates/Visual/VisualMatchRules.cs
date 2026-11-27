@@ -116,16 +116,22 @@ public sealed record VisualMatchRules(int HashDistance, float ConfirmSimilarity,
         ArgumentNullException.ThrowIfNull(first);
         ArgumentNullException.ThrowIfNull(second);
 
-        if (first.FrameHashes.Count > 0 && second.FrameHashes.Count > 0)
+        // An item without keyframes counts its one perceptual hash as its only frame, so an animation that has only
+        // its first frame's hash can still match a video of it. The fewer hashes are looked up in the more, so the
+        // rule is symmetric; two stills simply compare their hashes.
+        var (firstHashes, secondHashes) = (HashesOf(first), HashesOf(second));
+        if (firstHashes.Count == 0 || secondHashes.Count == 0)
         {
-            // The fewer keyframes are looked up in the more, so the rule is symmetric.
-            var (few, many) = first.FrameHashes.Count <= second.FrameHashes.Count ? (first, second) : (second, first);
-            var close = few.FrameHashes.Count(frame => many.FrameHashes.Any(other => PerceptualHash.Distance(frame, other) <= distance));
-            return close >= few.FrameHashes.Count * FrameShare;
+            return false;
         }
 
-        return first.PerceptualHash is { } a && second.PerceptualHash is { } b && PerceptualHash.Distance(a, b) <= distance;
+        var (few, many) = firstHashes.Count <= secondHashes.Count ? (firstHashes, secondHashes) : (secondHashes, firstHashes);
+        var close = few.Count(frame => many.Any(other => PerceptualHash.Distance(frame, other) <= distance));
+        return close >= few.Count * FrameShare;
     }
+
+    private static IReadOnlyList<ulong> HashesOf(VisualCandidate candidate) =>
+        candidate.FrameHashes.Count > 0 ? candidate.FrameHashes : candidate.PerceptualHash is { } hash ? [hash] : [];
 
     private static bool SimilarDuration(VisualCandidate first, VisualCandidate second)
     {

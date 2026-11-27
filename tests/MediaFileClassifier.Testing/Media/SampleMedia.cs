@@ -129,9 +129,9 @@ public static class SampleMedia
     public static string RobustnessDirectory => Combine("robustness");
 
     /// <summary>
-    /// Gets the folder of the visual near-duplicate test set (E12-S02). Its <c>expected.json</c> lists every file with
-    /// the visual group expected at each sensitivity, and <c>vectors.json</c> holds the SigLIP 2 vectors and
-    /// perceptual hashes of the files.
+    /// Gets the folder of the visual near-duplicate test set (E12-S02). Its <c>features.json</c> lists every item with
+    /// its perceptual hash, keyframe hashes, duration and SigLIP 2 vector, and the visual group expected at each
+    /// sensitivity.
     /// </summary>
     public static string NearDuplicatesDirectory => Combine("near-duplicates");
 

@@ -30,8 +30,10 @@ public sealed class VisualDuplicateDetector(TimeProvider clock, IItemVectorSimil
     /// </summary>
     public const int BatchSize = 200;
 
-    // Most items an embedding search returns per item at the loose sensitivity.
-    private const int NeighbourCount = 16;
+    // Most items an embedding search returns per item at the loose sensitivity. It's more than a group needs, because
+    // the search counts exact copies, items that can't be candidates and other media kinds, which are filtered out
+    // after it; the scan costs the same either way.
+    private const int NeighbourCount = 64;
 
     private readonly SemaphoreSlim gate = new(1, 1);
     private Snapshot? snapshot;
@@ -59,10 +61,21 @@ public sealed class VisualDuplicateDetector(TimeProvider clock, IItemVectorSimil
                 return new VisualReconcileResult(0, 0, 0, 0, 0);
             }
 
+            // While the vectors load the queue waits; if loading failed, items are matched without embeddings, as
+            // items that have none are, so detection never stops (a rebuild or "Find duplicates now" regroups).
             var model = vectors is null ? null : await PickModelAsync(library, cancellationToken).ConfigureAwait(false);
-            if (model is not null && !vectors!.IsReady(library))
+            if (model is not null)
             {
-                return null;
+                var state = vectors!.GetState(library);
+                if (state == VectorIndexState.Loading)
+                {
+                    return null;
+                }
+
+                if (state != VectorIndexState.Ready)
+                {
+                    model = null;
+                }
             }
 
             var current = await RefreshAsync(library, batch.Items, cancellationToken).ConfigureAwait(false);

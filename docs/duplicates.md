@@ -21,7 +21,7 @@ The same picture saved differently: re-encoded, resized, converted, a thumbnail,
 | Embedding | any | ≥ 0.95 | no | yes |
 
 - **Stills** compare their perceptual hash. **Videos and animated images** compare keyframe hashes: at least half of one item's keyframes need a keyframe of the other within the distance. Their durations must differ by at most 0.5 s or 2 %. Stills never match videos or animations.
-- **Embeddings:** each item's whole-item vector (a video's mean) of the library's search model, from the in-memory vector index. The loose tier also finds candidates by vector search (16 nearest).
+- **Embeddings:** each item's whole-item vector (a video's mean) of the library's search model, from the in-memory vector index. The loose tier also finds candidates by vector search (64 nearest, so exact copies and other media kinds among them don't crowd out a match). Checks wait while the vectors load; if loading failed, items are matched without embeddings, as items that have none are, until a rebuild (then **Find duplicates now** regroups with them).
 - **Groups** are connected sets of matching items, so they don't depend on the order items are checked in, and the incremental and full paths give the same groups (E12-S02-T04).
 - **Exact copies** count as one item, shown by the copy with the lowest ID; the others stay only in their exact group. So exact copies are never visual duplicates of each other.
 

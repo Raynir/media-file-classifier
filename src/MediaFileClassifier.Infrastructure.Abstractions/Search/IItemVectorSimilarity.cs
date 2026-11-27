@@ -14,11 +14,13 @@ namespace MediaFileClassifier.Infrastructure.Abstractions.Search;
 public interface IItemVectorSimilarity
 {
     /// <summary>
-    /// Gets a value indicating whether the vector index of a library is loaded and kept current.
+    /// Gets the state of a library's vector index.
     /// </summary>
     /// <param name="library">The library the caller works on.</param>
-    /// <returns>Whether the other calls answer for it.</returns>
-    bool IsReady(IOpenLibrary library);
+    /// <returns><see cref="VectorIndexState.Ready"/> when the other calls answer for it;
+    /// <see cref="VectorIndexState.Loading"/> while its vectors load, or the index isn't attached to the library yet;
+    /// <see cref="VectorIndexState.Failed"/> when loading failed, until a rebuild or the library is opened again.</returns>
+    VectorIndexState GetState(IOpenLibrary library);
 
     /// <summary>
     /// Finds the items most similar to an item.

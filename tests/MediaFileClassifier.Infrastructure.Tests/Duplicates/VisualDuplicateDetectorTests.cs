@@ -1,5 +1,6 @@
 using MediaFileClassifier.Domain.Duplicates;
 using MediaFileClassifier.Domain.Media;
+using MediaFileClassifier.Infrastructure.Abstractions.Search;
 using MediaFileClassifier.UseCases.Duplicates.Visual;
 
 namespace MediaFileClassifier.Infrastructure.Tests.Duplicates;
@@ -219,10 +220,61 @@ public sealed class VisualDuplicateDetectorTests : IAsyncLifetime
     public async Task VectorIndexNotReady_LeavesTheQueue()
     {
         await bed.AddAsync(Features.Where(feature => feature.Name is "plaque" or "plaque-q30"));
-        using var detector = new VisualDuplicateDetector(bed.Library.Clock, new NotReadyVectors());
+        using var detector = new VisualDuplicateDetector(bed.Library.Clock, new NotReadyVectors(VectorIndexState.Loading));
 
         Assert.Null(await detector.ReconcileAsync(bed.Library.Library, VisualDuplicateDetector.BatchSize, Token));
         Assert.Equal(2, await bed.Library.Library.VisualDuplicates.CountQueuedAsync(Token));
+    }
+
+    [Fact]
+    public async Task VectorIndexFailed_ChecksWithoutEmbeddings()
+    {
+        await bed.AddAsync(Features.Where(feature => feature.Name is "plaque" or "plaque-q30"));
+        using var detector = new VisualDuplicateDetector(bed.Library.Clock, new NotReadyVectors(VectorIndexState.Failed));
+
+        while (await detector.ReconcileAsync(bed.Library.Library, VisualDuplicateDetector.BatchSize, Token) is { Items: > 0 })
+        {
+        }
+
+        Assert.Equal(["plaque, plaque-q30"], await bed.GroupsAsync());
+        Assert.Equal(0, await bed.Library.Library.VisualDuplicates.CountQueuedAsync(Token));
+    }
+
+    [Fact]
+    public async Task Loose_NearestVectorsCrowdedByOtherKinds_StillFindsTheMatch()
+    {
+        // Twenty videos share the second burst shot's vector exactly, so they're its nearest vectors; they can't match
+        // a still. The shot's hash is inverted, so only the embedding tier (cosine 0.964) links it to the first shot.
+        await SetSensitivityAsync(VisualDuplicateSensitivity.Loose);
+        var first = Features.Single(feature => feature.Name == "football-burst-1");
+        var second = Features.Single(feature => feature.Name == "football-burst-2");
+        var inverted = (~NearDuplicateFeature.ParseHash(second.PerceptualHash!)).ToString("x16", System.Globalization.CultureInfo.InvariantCulture);
+        await bed.AddAsync([first, .. Enumerable.Range(0, 20).Select(i => second with
+        {
+            Name = $"crowd-{i}",
+            MediaType = "Video",
+            Content = $"crowd-{i}",
+            PerceptualHash = null,
+            FrameHashes = [inverted],
+            DurationMs = 1000,
+        })]);
+        await bed.ReconcileAllAsync();
+
+        await bed.AddAsync([second with { PerceptualHash = inverted }]);
+        await bed.ReconcileAllAsync();
+
+        Assert.Contains("football-burst-1, football-burst-2", await bed.GroupsAsync());
+    }
+
+    [Fact]
+    public async Task AnimationWithOnlyItsFirstFrameHash_MatchesAVideoOfIt()
+    {
+        var video = Features.Single(feature => feature.Name == "video-short");
+        await bed.AddAsync([video, video with { Name = "video-short-gif", MediaType = "AnimatedImage", Content = "gif", PerceptualHash = video.FrameHashes[0], FrameHashes = [] }]);
+
+        await bed.ReconcileAllAsync();
+
+        Assert.Equal(["video-short, video-short-gif"], await bed.GroupsAsync());
     }
 
     [Fact]
@@ -248,11 +300,11 @@ public sealed class VisualDuplicateDetectorTests : IAsyncLifetime
     private Task SetSensitivityAsync(VisualDuplicateSensitivity sensitivity) =>
         bed.Library.Library.UpdateSettingsAsync(settings => settings with { VisualDuplicateSensitivity = sensitivity }, Token);
 
-    private sealed class NotReadyVectors : Abstractions.Search.IItemVectorSimilarity
+    private sealed class NotReadyVectors(VectorIndexState state) : IItemVectorSimilarity
     {
-        public bool IsReady(Abstractions.Libraries.IOpenLibrary library) => false;
+        public VectorIndexState GetState(Abstractions.Libraries.IOpenLibrary library) => state;
 
-        public IReadOnlyList<Abstractions.Search.ItemSimilarity>? FindNearest(Abstractions.Libraries.IOpenLibrary library, Domain.Identity.Id<Domain.Analysis.ModelRegistration> modelId, Domain.Identity.Id<MediaItem> itemId, int count, float minSimilarity) => null;
+        public IReadOnlyList<ItemSimilarity>? FindNearest(Abstractions.Libraries.IOpenLibrary library, Domain.Identity.Id<Domain.Analysis.ModelRegistration> modelId, Domain.Identity.Id<MediaItem> itemId, int count, float minSimilarity) => null;
 
         public float? GetSimilarity(Abstractions.Libraries.IOpenLibrary library, Domain.Identity.Id<Domain.Analysis.ModelRegistration> modelId, Domain.Identity.Id<MediaItem> first, Domain.Identity.Id<MediaItem> second) => null;
     }

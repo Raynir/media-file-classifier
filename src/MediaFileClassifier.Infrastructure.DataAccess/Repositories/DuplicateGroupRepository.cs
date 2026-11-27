@@ -76,6 +76,30 @@ internal sealed partial class DuplicateGroupRepository(LibraryConnectionFactory 
             cancellationToken);
 
     /// <inheritdoc />
+    public Task<DuplicateStatistics> GetOpenStatisticsAsync(CancellationToken cancellationToken = default) =>
+        connections.ReadAsync(
+            async (db, token) =>
+            {
+                // State 0 is Open. One pass over the Open groups' members, through the state and member item indexes.
+                var row = await db.Database
+                    .SqlQuery<OpenStatisticsRow>(
+                        $"""
+                        SELECT count(*) AS "OpenGroups", COALESCE(SUM("wasted"), 0) AS "WastedBytes"
+                        FROM (
+                            SELECT SUM(i."size_bytes") - MAX(i."size_bytes") AS "wasted"
+                            FROM "duplicate_group" g
+                            JOIN "duplicate_group_member" m ON m."group_id" = g."id"
+                            JOIN "media_item" i ON i."id" = m."item_id"
+                            WHERE g."state" = 0
+                            GROUP BY g."id")
+                        """)
+                    .SingleAsync(token)
+                    .ConfigureAwait(false);
+                return new DuplicateStatistics(row.OpenGroups, row.WastedBytes);
+            },
+            cancellationToken);
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<DuplicateGroupMember>> GetMembersAsync(Id<DuplicateGroup> groupId, CancellationToken cancellationToken = default) =>
         connections.ReadAsync<IReadOnlyList<DuplicateGroupMember>>(
             async (db, token) => await db.DuplicateGroupMembers
@@ -262,4 +286,6 @@ internal sealed partial class DuplicateGroupRepository(LibraryConnectionFactory 
 
     [LoggerMessage(Level = LogLevel.Error, Message = "A listener of the duplicate group changes failed")]
     private partial void LogListenerFailed(Exception exception);
+
+    private sealed record OpenStatisticsRow(int OpenGroups, long WastedBytes);
 }

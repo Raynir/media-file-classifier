@@ -162,7 +162,8 @@ internal sealed class FakeBrowserSession(bool open = true) : ILibrarySession
 
         public IActivityRepository Activity { get; } = new MediaFileClassifier.Testing.Activity.InMemoryActivityRepository();
 
-        public IDuplicateGroupRepository Duplicates => throw new NotSupportedException();
+        // LibraryStatisticsMonitor reads this to watch for group changes; nothing here changes.
+        public IDuplicateGroupRepository Duplicates => null!;
 
         public MediaFileClassifier.Infrastructure.Abstractions.Repositories.IEmbeddingRepository Embeddings => throw new NotSupportedException();
 

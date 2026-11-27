@@ -2038,6 +2038,9 @@
   <data name="Filter_Favorite" xml:space="preserve">
     <value>Favorites only</value>
   </data>
+  <data name="Filter_HasDuplicates" xml:space="preserve">
+    <value>Has duplicates</value>
+  </data>
   <data name="Filter_Outdated" xml:space="preserve">
     <value>Outdated analysis</value>
   </data>
@@ -3040,6 +3043,15 @@
   </data>
   <data name="LibraryInfo_Status" xml:space="preserve">
     <value>Status</value>
+  </data>
+  <data name="LibraryInfo_Duplicates" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="LibraryInfo_OpenDuplicateGroups" xml:space="preserve">
+    <value>Open duplicate groups</value>
+  </data>
+  <data name="LibraryInfo_WastedSpace" xml:space="preserve">
+    <value>Wasted space</value>
   </data>
   <data name="LibraryInfo_DiskUsage" xml:space="preserve">
     <value>Disk usage</value>

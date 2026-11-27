@@ -13,6 +13,8 @@ using MediaFileClassifier.Ui.Tests.Browser;
 using MediaFileClassifier.Ui.Tests.Shell;
 using MediaFileClassifier.Ui.ViewModels.Libraries;
 using MediaFileClassifier.Ui.Views.Libraries;
+using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.UseCases.Duplicates.GetDuplicateStatistics;
 using MediaFileClassifier.UseCases.Libraries.CreateLibrary;
 using MediaFileClassifier.UseCases.Libraries.GetLibraryDiskUsage;
 using MediaFileClassifier.UseCases.Libraries.GetLibraryStatistics;
@@ -86,6 +88,35 @@ public sealed class LibraryInfoTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task ViewModel_ShowsTheOpenDuplicateGroups_AndFollowsThemAsTheyChange()
+    {
+        var folder = await CreateLibraryAsync();
+        using var monitor = NewMonitor(out _);
+        using var viewModel = new LibraryInfoViewModel(monitor, app.Services.GetRequiredService<ILibrarySession>(), TestLocalizer.EnUs(), app.Services.GetRequiredService<ISender>(), clock, action => action());
+        viewModel.Attach();
+        await WaitUntilAsync(() => viewModel.HasLibrary);
+        var rows = viewModel.Groups[2].Rows;
+        Assert.Equal(["Open duplicate groups: 0", $"Wasted space: {Format.FileSize(0)}"], rows.Select(row => row.AccessibleName));
+
+        // Two copies of 100 bytes form a group: one copy is wasted. Reconciling raises the repository's Changed event.
+        var copies = new[] { Item(folder, "copy1.jpg", MediaType.Image), Item(folder, "copy2.jpg", MediaType.Image) };
+        foreach (var copy in copies)
+        {
+            copy.SetHashes(copy.Hashes with { ContentHash = 42 });
+        }
+
+        await Library.Items.AddRangeAsync(copies, Token);
+        while (await Library.Duplicates.ReconcileAsync(100, DateTimeOffset.UtcNow, Token) is { Hashes: > 0 })
+        {
+        }
+
+        clock.Advance(LibraryStatisticsMonitor.RefreshInterval);
+        await WaitUntilAsync(() => rows[0].Value == "1");
+
+        Assert.Equal(Format.FileSize(100), rows[1].Value);
+    }
+
+    [Fact]
     public async Task ViewModel_ShowsTheGroupsAndRows_AndRefreshesWhileItemsAreImported()
     {
         var folder = await CreateLibraryAsync();
@@ -97,13 +128,13 @@ public sealed class LibraryInfoTests : IAsyncDisposable
         await WaitUntilAsync(() => viewModel.HasLibrary);
 
         Assert.Equal("Family", viewModel.LibraryName);
-        Assert.Equal(["Items", "Status", "Disk usage"], viewModel.Groups.Select(group => group.Header));
+        Assert.Equal(["Items", "Status", "Duplicates", "Disk usage"], viewModel.Groups.Select(group => group.Header));
         Assert.Equal(
-            ["Total: 3", "Images: 2", "Animated images: 0", "Videos: 1", "Indexed: 1", "Pending: 2", "Errors: 0", "Missing: 0", $"Media files: {Format.FileSize(300)}"],
-            viewModel.Groups.SelectMany(group => group.Rows).Take(9).Select(row => row.AccessibleName));
+            ["Total: 3", "Images: 2", "Animated images: 0", "Videos: 1", "Indexed: 1", "Pending: 2", "Errors: 0", "Missing: 0", "Open duplicate groups: 0", $"Wasted space: {Format.FileSize(0)}", $"Media files: {Format.FileSize(300)}"],
+            viewModel.Groups.SelectMany(group => group.Rows).Take(11).Select(row => row.AccessibleName));
 
         // The disk usage is measured in the background, and matches the library's files.
-        var disk = viewModel.Groups[2].Rows;
+        var disk = viewModel.Groups[3].Rows;
         await WaitUntilAsync(() => disk[1].Value != "Calculating…");
         var actual = LibraryDiskUsageMeter.Measure(Library.Layout);
         Assert.True(actual.DatabaseBytes > 0);
@@ -134,7 +165,7 @@ public sealed class LibraryInfoTests : IAsyncDisposable
         Dispatcher.UIThread.RunJobs();
 
         // Disk usage loading: the item rows show at once, the disk rows say so until the sizes are in.
-        var disk = viewModel.Groups[2].Rows;
+        var disk = viewModel.Groups[3].Rows;
         Assert.All(disk.Skip(1), row => Assert.Equal(Localizer.Current.Get("LibraryInfo_Calculating"), row.Value));
         sender.Disk.SetResult(new LibraryDiskUsage(1024, 2048, 0));
         Dispatcher.UIThread.RunJobs();
@@ -154,6 +185,9 @@ public sealed class LibraryInfoTests : IAsyncDisposable
         var texts = window.GetVisualDescendants().OfType<TextBlock>().Where(text => text.IsEffectivelyVisible).Select(text => text.Text).ToList();
         Assert.True(texts.Contains("Animated images"), string.Join("|", texts));
         Assert.Contains(Format.Number(12_345), texts);
+        Assert.Contains("Open duplicate groups", texts);
+        Assert.Contains(Format.Number(128), texts);
+        Assert.Contains(Format.FileSize(14_200_000_000), texts);
         var close = window.FindControl<Button>("CloseButton")!;
         Assert.True(close.IsCancel);
         close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -242,6 +276,7 @@ public sealed class LibraryInfoTests : IAsyncDisposable
         protected override object? Handle(object request) => request switch
         {
             GetLibraryStatisticsQuery => new LibraryStatistics(12_000, 345, 0, 12_345, 0, 0, 0, 1_000_000),
+            GetDuplicateStatisticsQuery => new DuplicateStatistics(128, 14_200_000_000),
             _ => throw new NotSupportedException(),
         };
     }

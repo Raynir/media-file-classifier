@@ -130,6 +130,8 @@ public sealed class DuplicateGroupMaintainerTests : IAsyncDisposable
 
         public Task<IReadOnlyList<DuplicateGroupSummary>> GetSummariesAsync(DuplicateGroupState state, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
+        public Task<DuplicateStatistics> GetOpenStatisticsAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
         public Task<IReadOnlyList<DuplicateGroupMember>> GetMembersAsync(Id<DuplicateGroup> groupId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
         public Task<bool> ChangeStateAsync(Id<DuplicateGroup> id, DuplicateGroupState state, DateTimeOffset now, CancellationToken cancellationToken = default) => throw new NotSupportedException();

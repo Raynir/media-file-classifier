@@ -1,6 +1,7 @@
 using MediaFileClassifier.Domain.Jobs;
 using MediaFileClassifier.Infrastructure.Abstractions.Jobs;
 using MediaFileClassifier.UseCases.Duplicates.Visual;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MediaFileClassifier.UseCases.Duplicates.DetectDuplicates;
 
@@ -10,9 +11,16 @@ namespace MediaFileClassifier.UseCases.Duplicates.DetectDuplicates;
 /// <see cref="DuplicateGroupMaintainer"/> already worked off finds less or nothing to do. While the vector index is
 /// still loading, the batch stays queued, and the maintainer checks it once the index is ready.
 /// </summary>
-/// <param name="detector">Visual near-duplicate detection.</param>
-public sealed class VisualReconcileStage(VisualDuplicateDetector detector) : IStageHandler
+/// <remarks>
+/// The detector is resolved when the first batch runs, not with the stage: it needs the search index, which needs the
+/// library session, which needs the job system and so every stage. Resolving it with the stage was a dependency cycle
+/// that hung the app at startup.
+/// </remarks>
+/// <param name="services">Resolves the <see cref="VisualDuplicateDetector"/>.</param>
+public sealed class VisualReconcileStage(IServiceProvider services) : IStageHandler
 {
+    private VisualDuplicateDetector? detector;
+
     /// <inheritdoc />
     public string Stage => DuplicateStages.VisualReconcile;
 
@@ -24,6 +32,7 @@ public sealed class VisualReconcileStage(VisualDuplicateDetector detector) : ISt
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        detector ??= services.GetRequiredService<VisualDuplicateDetector>();
         await detector.ReconcileAsync(context.Library, VisualDuplicateDetector.BatchSize, cancellationToken).ConfigureAwait(false);
     }
 }

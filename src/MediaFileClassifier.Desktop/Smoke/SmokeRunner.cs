@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MediaFileClassifier.Domain.Activity;
 using MediaFileClassifier.Domain.Libraries;
+using MediaFileClassifier.Domain.Media;
 using MediaFileClassifier.Infrastructure.Abstractions.Capabilities;
 using MediaFileClassifier.Infrastructure.Abstractions.Files;
 using MediaFileClassifier.Infrastructure.Abstractions.Formats;
@@ -27,6 +28,7 @@ using MediaFileClassifier.Ui.ViewModels.Details;
 using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.UseCases.Activity;
 using MediaFileClassifier.UseCases.Browsing;
+using MediaFileClassifier.UseCases.Duplicates.Visual;
 using MediaFileClassifier.Desktop.Platform;
 using MediaFileClassifier.UseCases.Libraries;
 using MediaFileClassifier.UseCases.Libraries.AddLibraryFolders;
@@ -130,6 +132,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return await SeedActivityAsync();
             case "seed-duplicates":
                 return await SeedDuplicatesAsync();
+            case "seed-visual-duplicates":
+                return await SeedVisualDuplicatesAsync();
             case "seed-keyframes":
                 return await SeedKeyframesAsync(step.Argument);
             case "choose-keyframe":
@@ -590,6 +594,40 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
         }
 
         return $"{await library.Duplicates.CountAsync(null, CancellationToken.None)} groups";
+    }
+
+    // Gives the first two sample images perceptual hashes two bits apart and checks them, so the library has a visual
+    // near-duplicate group (E12-S02).
+    private async Task<string> SeedVisualDuplicatesAsync()
+    {
+        var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
+        var images = (await library.Items.GetPageAsync(0, 1000, CancellationToken.None)).Where(item => item.MediaType == MediaType.Image).Take(2).ToList();
+        if (images.Count < 2)
+        {
+            throw new SmokeStepException("the library needs two images");
+        }
+
+        var hash = images[0].Hashes.PerceptualHash ?? 0x0123_4567_89AB_CDEFUL;
+        images[0].SetHashes(images[0].Hashes with { PerceptualHash = hash });
+        images[1].SetHashes(images[1].Hashes with { PerceptualHash = hash ^ 0b101UL });
+        await library.Items.UpdateRangeAsync(images, CancellationToken.None);
+        var detector = services.GetRequiredService<VisualDuplicateDetector>();
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            var result = await detector.ReconcileAsync(library, VisualDuplicateDetector.BatchSize, CancellationToken.None);
+            if (result is { Items: 0 })
+            {
+                return $"{await library.Duplicates.CountAsync(null, CancellationToken.None)} groups";
+            }
+
+            if (result is null)
+            {
+                // The vector index is still loading.
+                await Task.Delay(100);
+            }
+        }
+
+        throw new SmokeStepException("the visual duplicate queue didn't empty");
     }
 
     // Keyframes exist only after AI analysis, which needs the model. This does what the analysis does for them: it

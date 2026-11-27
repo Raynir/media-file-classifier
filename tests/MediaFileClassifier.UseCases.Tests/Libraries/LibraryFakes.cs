@@ -128,7 +128,11 @@ internal sealed class FakeOpenLibrary(LibraryLayout layout, string name) : IOpen
 
     public IDuplicateGroupRepository? DuplicateList { get; set; }
 
+    public IDuplicateResolutionRepository? ResolutionLog { get; set; }
+
     public IDuplicateGroupRepository Duplicates => DuplicateList ?? throw new NotSupportedException();
+
+    public IDuplicateResolutionRepository DuplicateResolutions => ResolutionLog ?? throw new NotSupportedException();
 
     public IEmbeddingRepository? EmbeddingList { get; set; }
 

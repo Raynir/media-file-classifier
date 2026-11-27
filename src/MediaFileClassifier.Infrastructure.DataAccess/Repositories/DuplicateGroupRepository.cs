@@ -272,7 +272,7 @@ internal sealed partial class DuplicateGroupRepository(LibraryConnectionFactory 
         return new DuplicateReconcileResult(texts.Count, created, changed, reopened, deleted);
     }
 
-    private void RaiseChanged()
+    internal void RaiseChanged()
     {
         try
         {

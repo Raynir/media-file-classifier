@@ -76,6 +76,11 @@ public interface IOpenLibrary : IAsyncDisposable
     IDuplicateGroupRepository Duplicates { get; }
 
     /// <summary>
+    /// Gets the duplicate resolution log (E12-S04).
+    /// </summary>
+    IDuplicateResolutionRepository DuplicateResolutions { get; }
+
+    /// <summary>
     /// Gets the integrity check, backup and optimization services.
     /// </summary>
     ILibraryMaintenance Maintenance { get; }

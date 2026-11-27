@@ -5,6 +5,7 @@ using MediaFileClassifier.Testing.UseCases;
 using MediaFileClassifier.Ui.Tests.Browser;
 using MediaFileClassifier.Ui.ViewModels.Duplicates;
 using MediaFileClassifier.UseCases.Duplicates.DetectDuplicates;
+using MediaFileClassifier.UseCases.Duplicates.Resolution.IgnoreDuplicateGroup;
 using MediaFileClassifier.UseCases.Duplicates.Review;
 
 namespace MediaFileClassifier.Ui.Tests.Duplicates;
@@ -114,6 +115,34 @@ public sealed class DuplicatesViewModelTests
         Assert.Contains(expected, model.Status);
     }
 
+    [Theory]
+    [InlineData(true, "Marked as not duplicates")]
+    [InlineData(false, "changed or was resolved")]
+    public async Task IgnoreSelected_SendsTheSelectedGroupAndReports(bool ignored, string expected)
+    {
+        var sender = new ListSender(Group(2, 10), Group(2, 5)) { Ignored = ignored };
+        var model = Create(sender);
+        await model.RefreshAsync();
+        model.SelectedGroup = model.Groups[1];
+
+        await model.IgnoreSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal(model.Groups[1].Summary.Id, sender.LastIgnore?.GroupId);
+        Assert.Contains(expected, model.Status);
+    }
+
+    [Fact]
+    public async Task IgnoreSelected_NothingSelected_SendsNothing()
+    {
+        var sender = new ListSender();
+        var model = Create(sender);
+        await model.RefreshAsync();
+
+        await model.IgnoreSelectedCommand.ExecuteAsync(null);
+
+        Assert.Null(sender.LastIgnore);
+    }
+
     private static DuplicatesViewModel Create(ListSender sender) =>
         new(sender, new FakeBrowserSession(open: false), TestLocalizer.EnUs(), DuplicateTestBed.Comparison(sender));
 
@@ -127,6 +156,10 @@ public sealed class DuplicatesViewModelTests
         public GetDuplicateGroupsQuery? LastQuery { get; private set; }
 
         public DetectDuplicatesResult Detect { get; init; } = new(DetectDuplicatesOutcome.Started);
+
+        public bool Ignored { get; init; } = true;
+
+        public IgnoreDuplicateGroupCommand? LastIgnore { get; private set; }
 
         public async Task WaitForQueryAsync(DuplicateGroupSort sort)
         {
@@ -146,6 +179,9 @@ public sealed class DuplicatesViewModelTests
                     return DuplicateGroupList.Create(groups, query.Sort, query.Filter);
                 case DetectDuplicatesCommand:
                     return Detect;
+                case IgnoreDuplicateGroupCommand ignore:
+                    LastIgnore = ignore;
+                    return Ignored ? Id<DuplicateResolution>.New() : null;
                 default:
                     return base.Handle(request);
             }

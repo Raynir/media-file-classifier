@@ -50,6 +50,7 @@ internal sealed class OpenLibrary : IOpenLibrary
         AnalyzerStates = new AnalyzerStateRepository(connections, writer);
         Activity = new ActivityRepository(connections, writer);
         Duplicates = new DuplicateGroupRepository(connections, writer, loggerFactory.CreateLogger<DuplicateGroupRepository>());
+        DuplicateResolutions = new DuplicateResolutionRepository(connections, writer, (DuplicateGroupRepository)Duplicates, loggerFactory.CreateLogger<DuplicateResolutionRepository>());
         Embeddings = new EmbeddingRepository(connections, writer);
         Search = new SearchStore(connections, writer);
         Maintenance = new LibraryMaintenance(connections, writer);
@@ -87,6 +88,9 @@ internal sealed class OpenLibrary : IOpenLibrary
 
     /// <inheritdoc />
     public IDuplicateGroupRepository Duplicates { get; }
+
+    /// <inheritdoc />
+    public IDuplicateResolutionRepository DuplicateResolutions { get; }
 
     /// <inheritdoc />
     public IEmbeddingRepository Embeddings { get; }

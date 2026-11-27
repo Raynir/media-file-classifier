@@ -73,6 +73,12 @@ public partial class DuplicatesView : UserControl
                     break;
                 }
 
+                if (e.PhysicalKey == PhysicalKey.I && !onButton)
+                {
+                    model.IgnoreSelectedCommand.Execute(null);
+                    break;
+                }
+
                 return;
         }
 

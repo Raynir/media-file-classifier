@@ -3470,6 +3470,18 @@
   <data name="Duplicates_Find_Unavailable" xml:space="preserve">
     <value>Open a library to look for duplicates.</value>
   </data>
+  <data name="Duplicates_NotDuplicates" xml:space="preserve">
+    <value>Not duplicates</value>
+  </data>
+  <data name="Duplicates_NotDuplicatesTip" xml:space="preserve">
+    <value>Mark this group as not duplicates, so it isn't suggested again (I)</value>
+  </data>
+  <data name="Duplicates_Ignore_Done" xml:space="preserve">
+    <value>Marked as not duplicates. You can mark the group as duplicates again from History.</value>
+  </data>
+  <data name="Duplicates_Ignore_Failed" xml:space="preserve">
+    <value>The group has changed or was resolved meanwhile.</value>
+  </data>
   <data name="Duplicates_FiltersLabel" xml:space="preserve">
     <value>Group types</value>
   </data>

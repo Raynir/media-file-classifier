@@ -6,6 +6,7 @@ using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
 using MediaFileClassifier.Ui.Localization;
 using MediaFileClassifier.UseCases.Duplicates.DetectDuplicates;
+using MediaFileClassifier.UseCases.Duplicates.Resolution.IgnoreDuplicateGroup;
 using MediaFileClassifier.UseCases.Duplicates.Review;
 using MediatR;
 
@@ -241,6 +242,23 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
     /// <summary>
     /// Selects the next group in the list (Down).
     /// </summary>
+    /// <summary>
+    /// Marks the selected group as not duplicates (E12-S04-T01, key I): it leaves the list and isn't suggested again.
+    /// </summary>
+    /// <returns>A task.</returns>
+    [RelayCommand]
+    public async Task IgnoreSelectedAsync()
+    {
+        if (SelectedGroup?.Summary.Id is not { } groupId)
+        {
+            return;
+        }
+
+        var ignored = await sender.Send(new IgnoreDuplicateGroupCommand(groupId)).ConfigureAwait(true);
+        Status = localizer.Get(ignored is null ? "Duplicates_Ignore_Failed" : "Duplicates_Ignore_Done");
+        await RefreshAsync().ConfigureAwait(true);
+    }
+
     [RelayCommand]
     public void SelectNext() => Step(1);
 

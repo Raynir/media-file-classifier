@@ -315,6 +315,92 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.ToTable("duplicate_group_member");
                 });
 
+            modelBuilder.Entity("MediaFileClassifier.Domain.Duplicates.DuplicateResolution", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("GroupId")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("group_id");
+
+                    b.Property<int>("GroupType")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("group_type");
+
+                    b.Property<string>("KeeperId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("keeper_id");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Merge")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("merge");
+
+                    b.Property<bool>("MergedMetadata")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("merged_metadata");
+
+                    b.Property<bool>("RemovedFromLibrary")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("removed_from_library");
+
+                    b.Property<bool>("TrashRequested")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("trash_requested");
+
+                    b.Property<long?>("UndoneAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("undone_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("CreatedAt", "Id");
+
+                    b.ToTable("duplicate_resolution");
+                });
+
+            modelBuilder.Entity("MediaFileClassifier.Domain.Duplicates.DuplicateResolutionMember", b =>
+                {
+                    b.Property<string>("ResolutionId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("resolution_id");
+
+                    b.Property<string>("ItemId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("item_id");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("action");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("path");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("reason");
+
+                    b.HasKey("ResolutionId", "ItemId");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("duplicate_resolution_member");
+                });
+
             modelBuilder.Entity("MediaFileClassifier.Domain.Embeddings.Embedding", b =>
                 {
                     b.Property<string>("Id")
@@ -1258,6 +1344,15 @@ namespace MediaFileClassifier.Infrastructure.DataAccess.Migrations
                     b.HasOne("MediaFileClassifier.Domain.Media.MediaItem", null)
                         .WithMany()
                         .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MediaFileClassifier.Domain.Duplicates.DuplicateResolutionMember", b =>
+                {
+                    b.HasOne("MediaFileClassifier.Domain.Duplicates.DuplicateResolution", null)
+                        .WithMany()
+                        .HasForeignKey("ResolutionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

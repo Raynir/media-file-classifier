@@ -265,7 +265,17 @@
               <TextBlock Grid.Row="1" Classes="Secondary" Text="{l:Loc Duplicates_ZoomHint}" />
             </Grid>
 
-            <TextBlock Grid.Row="2" x:Name="SuggestionLabel" Classes="Secondary" DataContext="{Binding Comparison}" x:DataType="vm:DuplicateComparisonViewModel" Text="{Binding SuggestionText}" />
+            <!-- Suggestion and the resolution actions (E12-S04). -->
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource Space.S}">
+              <TextBlock x:Name="SuggestionLabel" Classes="Secondary" VerticalAlignment="Center" TextWrapping="Wrap" DataContext="{Binding Comparison}" x:DataType="vm:DuplicateComparisonViewModel" Text="{Binding SuggestionText}" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
+                <Button x:Name="IgnoreButton"
+                        Content="{l:Loc Duplicates_NotDuplicates}"
+                        Command="{Binding IgnoreSelectedCommand}"
+                        ToolTip.Tip="{l:Loc Duplicates_NotDuplicatesTip}"
+                        AutomationProperties.Name="{l:Loc Duplicates_NotDuplicates}" />
+              </StackPanel>
+            </Grid>
           </Grid>
         </Panel>
       </Grid>

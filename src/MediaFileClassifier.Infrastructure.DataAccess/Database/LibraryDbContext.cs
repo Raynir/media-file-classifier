@@ -86,6 +86,16 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
     public DbSet<DuplicateGroupMember> DuplicateGroupMembers => Set<DuplicateGroupMember>();
 
     /// <summary>
+    /// Gets the duplicate resolution log (E12-S04).
+    /// </summary>
+    public DbSet<DuplicateResolution> DuplicateResolutions => Set<DuplicateResolution>();
+
+    /// <summary>
+    /// Gets the members of the duplicate resolution log's entries.
+    /// </summary>
+    public DbSet<DuplicateResolutionMember> DuplicateResolutionMembers => Set<DuplicateResolutionMember>();
+
+    /// <summary>
     /// Converts a PascalCase name to snake_case, e.g. <c>AcceptedFrom_RunId</c> to <c>accepted_from_run_id</c>.
     /// </summary>
     /// <param name="name">The name.</param>
@@ -124,6 +134,7 @@ internal sealed class LibraryDbContext(DbContextOptions<LibraryDbContext> option
         configurationBuilder.Properties<Id<WorkItem>>().HaveConversion<IdConverter<WorkItem>>();
         configurationBuilder.Properties<Id<ActivityEvent>>().HaveConversion<IdConverter<ActivityEvent>>();
         configurationBuilder.Properties<Id<DuplicateGroup>>().HaveConversion<IdConverter<DuplicateGroup>>();
+        configurationBuilder.Properties<Id<DuplicateResolution>>().HaveConversion<IdConverter<DuplicateResolution>>();
 
         configurationBuilder.Properties<DateTimeOffset>().HaveConversion<UnixMillisecondsConverter>();
         configurationBuilder.Properties<DateTime>().HaveConversion<WallClockMillisecondsConverter>();

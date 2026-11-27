@@ -25,7 +25,24 @@ public static class MetadataMerge
     /// <param name="now">Current time.</param>
     /// <returns>What changed, and the conflicts.</returns>
     /// <exception cref="ArgumentException">A member is the keeper.</exception>
-    public static MetadataMergeOutcome Apply(ItemMetadata keeper, IReadOnlyList<ItemMetadata> members, DateTimeOffset now)
+    public static MetadataMergeOutcome Apply(ItemMetadata keeper, IReadOnlyList<ItemMetadata> members, DateTimeOffset now) =>
+        Apply(keeper, members, null, now);
+
+    /// <summary>
+    /// Merges the members' user layer into the keeper's metadata, taking the value the user picked for a conflict
+    /// (E12-S04 resolve dialog). A choice counts only for a field in conflict and only with one of the members' values.
+    /// </summary>
+    /// <param name="keeper">The keeper's metadata, changed in place.</param>
+    /// <param name="members">The other members' metadata, in order of preference.</param>
+    /// <param name="choices">The value the user picked per conflicting field; none keeps the keeper's values.</param>
+    /// <param name="now">Current time.</param>
+    /// <returns>What changed, and the conflicts as they were before the choices.</returns>
+    /// <exception cref="ArgumentException">A member is the keeper.</exception>
+    public static MetadataMergeOutcome Apply(
+        ItemMetadata keeper,
+        IReadOnlyList<ItemMetadata> members,
+        IReadOnlyDictionary<DescriptiveField, FieldValue>? choices,
+        DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(keeper);
         ArgumentNullException.ThrowIfNull(members);
@@ -34,7 +51,21 @@ public static class MetadataMerge
             throw new ArgumentException("The keeper can't be merged into itself.", nameof(members));
         }
 
-        return new MetadataMergeOutcome(MergeTags(keeper, members, now), MergeFields(keeper, members, now, out var conflicts), conflicts);
+        var added = MergeTags(keeper, members, now);
+        var copied = MergeFields(keeper, members, now, out var conflicts);
+        List<DescriptiveField> chosen = [];
+        foreach (var conflict in conflicts)
+        {
+            if (choices is not null
+                && choices.TryGetValue(conflict.Field, out var choice)
+                && conflict.Alternatives.Any(alternative => alternative.Value == choice))
+            {
+                keeper.EditValue(conflict.Field, choice, now);
+                chosen.Add(conflict.Field);
+            }
+        }
+
+        return new MetadataMergeOutcome(added, copied, conflicts) { ChosenFields = chosen };
     }
 
     private static List<TagName> MergeTags(ItemMetadata keeper, IReadOnlyList<ItemMetadata> members, DateTimeOffset now)
@@ -93,7 +124,7 @@ public static class MetadataMerge
 }
 
 /// <summary>
-/// What <see cref="MetadataMerge.Apply"/> changed on the keeper.
+/// What <see cref="MetadataMerge"/> changed on the keeper.
 /// </summary>
 /// <param name="AddedTags">The user tags the keeper got from members.</param>
 /// <param name="CopiedFields">The fields the keeper had no user value for and took from a member.</param>
@@ -106,7 +137,12 @@ public sealed record MetadataMergeOutcome(
     /// <summary>
     /// Gets a value indicating whether the keeper's metadata changed.
     /// </summary>
-    public bool Changed => AddedTags.Count > 0 || CopiedFields.Count > 0;
+    public bool Changed => AddedTags.Count > 0 || CopiedFields.Count > 0 || ChosenFields.Count > 0;
+
+    /// <summary>
+    /// Gets the conflicting fields where the keeper took the value the user picked instead of keeping its own.
+    /// </summary>
+    public IReadOnlyList<DescriptiveField> ChosenFields { get; init; } = [];
 }
 
 /// <summary>

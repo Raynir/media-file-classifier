@@ -10,7 +10,7 @@ The Duplicates view lists the open duplicate groups and compares the members of 
 
 ## The list
 
-`GetDuplicateGroupsQuery(sort, filter)` returns `DuplicateGroupList` with the open groups from `IDuplicateGroupRepository.GetSummariesAsync` and the totals for the header (all open groups, whatever the filter). Sort: wasted space (default, largest first), type, group size. Filter: All, Exact, Similar; Similar is every type that is not Exact, so MFC-142's Visual groups appear there. Wasted space is the summed size of the members minus the largest one.
+`GetDuplicateGroupsQuery(sort, filter)` returns `DuplicateGroupList` with the open groups from `IDuplicateGroupRepository.GetSummariesAsync` and the totals for the header (all open groups, whatever the filter). Sort: wasted space (default, largest first), type, group size. Filter: All, Exact, Similar; Similar is every type that is not Exact, so MFC-142's Visual groups appear there. Wasted space is the summed size of the members minus the largest one. A row shows a strip of up to four small thumbnails of its first members; it loads them when the row is realised (`DuplicateComparisonViewModel.LoadStripAsync`) and lets go of them when the row scrolls out of view.
 
 ## The comparison
 

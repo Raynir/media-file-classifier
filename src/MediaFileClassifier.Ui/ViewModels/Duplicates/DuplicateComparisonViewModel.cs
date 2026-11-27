@@ -45,6 +45,11 @@ public sealed partial class DuplicateComparisonViewModel : ViewModelBase, IDispo
     }
 
     /// <summary>
+    /// The most thumbnails a list row shows.
+    /// </summary>
+    public const int StripSize = 4;
+
+    /// <summary>
     /// Gets the group shown, or <see langword="null"/> when none is.
     /// </summary>
     public Id<DuplicateGroup>? GroupId => groupId;
@@ -166,6 +171,44 @@ public sealed partial class DuplicateComparisonViewModel : ViewModelBase, IDispo
         loading = new CancellationTokenSource();
         var token = loading.Token;
         await Task.WhenAll(Members.Select(member => LoadPreviewAsync(member, token))).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Loads the thumbnails of the first members of a group, for the strip on its list row (E12-S03-T01).
+    /// </summary>
+    /// <param name="id">The group.</param>
+    /// <param name="cancellationToken">Cancels when the row scrolled away.</param>
+    /// <returns>Leases on the thumbnails, which the caller disposes; members without a thumbnail are left out.</returns>
+    public async Task<IReadOnlyList<ThumbnailLease>> LoadStripAsync(Id<DuplicateGroup> id, CancellationToken cancellationToken)
+    {
+        List<ThumbnailLease> leases = [];
+        try
+        {
+            var detail = await sender.Send(new GetDuplicateGroupQuery(id, [.. Rules.Select(rule => rule.Rule)]), cancellationToken).ConfigureAwait(true);
+            foreach (var member in detail?.Members.Take(StripSize) ?? [])
+            {
+                if (await thumbnails.LoadAsync(member.ItemId, member.FileModifiedAt, ThumbnailSize.Small, cancellationToken).ConfigureAwait(true) is { } lease)
+                {
+                    leases.Add(lease);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or IOException or UnauthorizedAccessException or InvalidOperationException or ObjectDisposedException)
+        {
+            // Scrolled away, or the library closed: the row shows no strip.
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            foreach (var lease in leases)
+            {
+                lease.Dispose();
+            }
+
+            return [];
+        }
+
+        return leases;
     }
 
     /// <summary>

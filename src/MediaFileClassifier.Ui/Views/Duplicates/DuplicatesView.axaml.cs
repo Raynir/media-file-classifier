@@ -17,6 +17,23 @@ public partial class DuplicatesView : UserControl
         InitializeComponent();
     }
 
+    // A realised row loads its thumbnail strip; one that scrolls away lets go of it.
+    private async void OnRowLoaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is DuplicateGroupRowViewModel row)
+        {
+            await row.LoadStripAsync();
+        }
+    }
+
+    private void OnRowUnloaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is DuplicateGroupRowViewModel row)
+        {
+            row.Unload();
+        }
+    }
+
     /// <inheritdoc />
     protected override void OnKeyDown(KeyEventArgs e)
     {

@@ -77,7 +77,22 @@
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:DuplicateGroupRowViewModel">
-              <StackPanel Margin="{DynamicResource Padding.Control}" AutomationProperties.Name="{Binding AccessibleName}">
+              <StackPanel Margin="{DynamicResource Padding.Control}"
+                          AutomationProperties.Name="{Binding AccessibleName}"
+                          Loaded="OnRowLoaded"
+                          Unloaded="OnRowUnloaded">
+                <ItemsControl ItemsSource="{Binding Strip}" MinHeight="48" Margin="{DynamicResource Padding.Row}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.XS}" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Image Source="{Binding}" Width="48" Height="48" Stretch="UniformToFill" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource Space.S}">
                   <Border Classes="Badge" Padding="{DynamicResource Padding.Badge}" CornerRadius="{DynamicResource Radius.Pill}" Background="{DynamicResource Brush.State.Hover}">
                     <TextBlock Text="{Binding TypeText}" />

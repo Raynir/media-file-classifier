@@ -151,7 +151,7 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
 
         // Nothing of the old library or view stays loaded: no group, no previews.
         generation++;
-        Groups.Clear();
+        ClearGroups();
         SelectedGroup = null;
     }
 
@@ -212,10 +212,10 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
         reloading = true;
         try
         {
-            Groups.Clear();
+            ClearGroups();
             foreach (var summary in list.Groups)
             {
-                Groups.Add(new DuplicateGroupRowViewModel(summary, localizer));
+                Groups.Add(new DuplicateGroupRowViewModel(summary, localizer, Comparison.LoadStripAsync));
             }
 
             SelectedGroup = Groups.FirstOrDefault(row => row.Summary.Id == selected) ?? Groups.FirstOrDefault();
@@ -265,6 +265,16 @@ public sealed partial class DuplicatesViewModel : ViewModelBase
         {
             _ = Comparison.ShowAsync(value?.Summary.Id);
         }
+    }
+
+    private void ClearGroups()
+    {
+        foreach (var row in Groups)
+        {
+            row.Dispose();
+        }
+
+        Groups.Clear();
     }
 
     private void Step(int step)

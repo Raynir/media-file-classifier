@@ -174,6 +174,28 @@ public sealed class IntegrityRestoreTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// Writes the WAL back into the database file, so the page overwritten next isn't shadowed by a newer copy in the
+    /// WAL. Closing the library does it too, but not if a connection was still open then (MFC-1066).
+    /// </summary>
+    private async Task CheckpointAsync(string databasePath)
+    {
+        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = databasePath, Mode = SqliteOpenMode.ReadWrite, Pooling = false }.ToString());
+        await connection.OpenAsync(Token);
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+            await using var reader = await command.ExecuteReaderAsync(Token);
+            if (await reader.ReadAsync(Token) && reader.GetInt32(0) == 0)
+            {
+                return;
+            }
+
+            await Task.Delay(100, Token);
+        }
+    }
+
+    /// <summary>
     /// Closes the library, overwrites the root page of an index of the items with garbage, and opens it again. The
     /// header and the schema on page 1 stay intact, so the library still opens; the integrity check finds the damage.
     /// </summary>
@@ -182,6 +204,7 @@ public sealed class IntegrityRestoreTests : IAsyncLifetime
         await session.SetCurrentAsync(null);
         SqliteConnection.ClearAllPools();
         var databasePath = Path.Combine(directory, LibraryLayout.DatabaseFileName);
+        await CheckpointAsync(databasePath);
         Assert.False(File.Exists(databasePath + "-wal") && new FileInfo(databasePath + "-wal").Length > 0, "The WAL wasn't checkpointed.");
         long pageSize;
         long rootPage;

@@ -1243,6 +1243,9 @@
   <data name="Navigation_AllMedia" xml:space="preserve">
     <value>All media</value>
   </data>
+  <data name="Navigation_Duplicates" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
   <data name="Navigation_Favorites" xml:space="preserve">
     <value>Favorites</value>
   </data>
@@ -2037,6 +2040,9 @@
   </data>
   <data name="Filter_Favorite" xml:space="preserve">
     <value>Favorites only</value>
+  </data>
+  <data name="Filter_HasDuplicates" xml:space="preserve">
+    <value>Has duplicates</value>
   </data>
   <data name="Filter_Outdated" xml:space="preserve">
     <value>Outdated analysis</value>
@@ -3044,6 +3050,15 @@
   <data name="LibraryInfo_Status" xml:space="preserve">
     <value>Status</value>
   </data>
+  <data name="LibraryInfo_Duplicates" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="LibraryInfo_OpenDuplicateGroups" xml:space="preserve">
+    <value>Open duplicate groups</value>
+  </data>
+  <data name="LibraryInfo_WastedSpace" xml:space="preserve">
+    <value>Wasted space</value>
+  </data>
   <data name="LibraryInfo_DiskUsage" xml:space="preserve">
     <value>Disk usage</value>
   </data>
@@ -3475,5 +3490,188 @@
   </data>
   <data name="Activity_Count_failed" xml:space="preserve">
     <value>Failed: {0}</value>
+  </data>
+  <data name="Duplicates_Title" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="Duplicates_Header" xml:space="preserve">
+    <value>Duplicates · {0} groups · {1} wasted</value>
+  </data>
+  <data name="Duplicates_Find" xml:space="preserve">
+    <value>Find duplicates</value>
+  </data>
+  <data name="Duplicates_Find_Started" xml:space="preserve">
+    <value>Looking for duplicates in the background. The list updates as groups are found.</value>
+  </data>
+  <data name="Duplicates_Find_Busy" xml:space="preserve">
+    <value>A duplicate search is already running.</value>
+  </data>
+  <data name="Duplicates_Find_NothingToDo" xml:space="preserve">
+    <value>No two files share the same content, so there is nothing to find.</value>
+  </data>
+  <data name="Duplicates_Find_Unavailable" xml:space="preserve">
+    <value>Open a library to look for duplicates.</value>
+  </data>
+  <data name="Duplicates_FiltersLabel" xml:space="preserve">
+    <value>Group types</value>
+  </data>
+  <data name="Duplicates_Filter_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Duplicates_Filter_Exact" xml:space="preserve">
+    <value>Exact</value>
+  </data>
+  <data name="Duplicates_Filter_Similar" xml:space="preserve">
+    <value>Similar</value>
+  </data>
+  <data name="Duplicates_Sort" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="Duplicates_Sort_Wasted" xml:space="preserve">
+    <value>Wasted space</value>
+  </data>
+  <data name="Duplicates_Sort_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Duplicates_Sort_Size" xml:space="preserve">
+    <value>Group size</value>
+  </data>
+  <data name="Duplicates_Type_Exact" xml:space="preserve">
+    <value>Exact</value>
+  </data>
+  <data name="Duplicates_Type_Similar" xml:space="preserve">
+    <value>Similar</value>
+  </data>
+  <data name="Duplicates_Files" xml:space="preserve">
+    <value>{0} files</value>
+  </data>
+  <data name="Duplicates_Wasted" xml:space="preserve">
+    <value>{0} wasted</value>
+  </data>
+  <data name="Duplicates_ListLabel" xml:space="preserve">
+    <value>Duplicate groups</value>
+  </data>
+  <data name="Duplicates_Empty" xml:space="preserve">
+    <value>No duplicates found</value>
+  </data>
+  <data name="Duplicates_EmptyHint" xml:space="preserve">
+    <value>Scans find new groups as files are added. Use Find duplicates to check the whole library.</value>
+  </data>
+  <data name="Duplicates_SelectGroup" xml:space="preserve">
+    <value>Select a group</value>
+  </data>
+  <data name="Duplicates_Attr_Resolution" xml:space="preserve">
+    <value>Resolution</value>
+  </data>
+  <data name="Duplicates_Attr_Size" xml:space="preserve">
+    <value>File size</value>
+  </data>
+  <data name="Duplicates_Attr_Format" xml:space="preserve">
+    <value>Format</value>
+  </data>
+  <data name="Duplicates_Attr_Taken" xml:space="preserve">
+    <value>Date taken</value>
+  </data>
+  <data name="Duplicates_Attr_Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Duplicates_Attr_Metadata" xml:space="preserve">
+    <value>Your metadata</value>
+  </data>
+  <data name="Duplicates_Unknown" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="Duplicates_Keep" xml:space="preserve">
+    <value>Keep this file</value>
+  </data>
+  <data name="Duplicates_Suggested" xml:space="preserve">
+    <value>Suggested</value>
+  </data>
+  <data name="Duplicates_SuggestedBy" xml:space="preserve">
+    <value>Suggested keeper: {0}</value>
+  </data>
+  <data name="Duplicates_SuggestedTie" xml:space="preserve">
+    <value>Suggested keeper: the first file (the rules found no difference)</value>
+  </data>
+  <data name="Duplicates_NoKeeper" xml:space="preserve">
+    <value>No file in this group can be kept.</value>
+  </data>
+  <data name="Duplicates_Rule_MostUserMetadata" xml:space="preserve">
+    <value>Most of your metadata</value>
+  </data>
+  <data name="Duplicates_Rule_HighestResolution" xml:space="preserve">
+    <value>Highest resolution</value>
+  </data>
+  <data name="Duplicates_Rule_LargestFile" xml:space="preserve">
+    <value>Largest file</value>
+  </data>
+  <data name="Duplicates_Rule_OriginalFormat" xml:space="preserve">
+    <value>Original format</value>
+  </data>
+  <data name="Duplicates_Rule_Oldest" xml:space="preserve">
+    <value>Oldest file</value>
+  </data>
+  <data name="Duplicates_Meta_Tags" xml:space="preserve">
+    <value>{0} tags</value>
+  </data>
+  <data name="Duplicates_Meta_Edits" xml:space="preserve">
+    <value>{0} edited</value>
+  </data>
+  <data name="Duplicates_Meta_Favorite" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="Duplicates_Meta_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Duplicates_Prev" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="Duplicates_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Duplicates_Zoom" xml:space="preserve">
+    <value>Zoom compare</value>
+  </data>
+  <data name="Duplicates_ZoomExit" xml:space="preserve">
+    <value>Back to details</value>
+  </data>
+  <data name="Duplicates_ZoomHint" xml:space="preserve">
+    <value>Scroll to zoom, drag to move, double-click to reset.</value>
+  </data>
+  <data name="Duplicates_KeeperRules" xml:space="preserve">
+    <value>Keeper rules</value>
+  </data>
+  <data name="Duplicates_KeeperRulesHint" xml:space="preserve">
+    <value>The first rule that tells the files apart picks the suggested keeper.</value>
+  </data>
+  <data name="Duplicates_KeeperRulesReset" xml:space="preserve">
+    <value>Reset to default</value>
+  </data>
+  <data name="Duplicates_MoveUp" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="Duplicates_MoveDown" xml:space="preserve">
+    <value>Move down</value>
+  </data>
+  <data name="Duplicates_Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Duplicates_Missing" xml:space="preserve">
+    <value>Not available</value>
+  </data>
+  <data name="Duplicates_NoPreview" xml:space="preserve">
+    <value>No preview</value>
+  </data>
+  <data name="Duplicates_Loading" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+  <data name="Duplicates_GroupTitle" xml:space="preserve">
+    <value>{0} · {1} files · {2} wasted</value>
+  </data>
+  <data name="Duplicates_ComparisonLabel" xml:space="preserve">
+    <value>Group comparison</value>
+  </data>
+  <data name="Duplicates_CardsLabel" xml:space="preserve">
+    <value>Files in the group</value>
   </data>
 </root>

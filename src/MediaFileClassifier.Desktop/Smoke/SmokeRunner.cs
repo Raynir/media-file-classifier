@@ -24,6 +24,7 @@ using MediaFileClassifier.Ui.Commands;
 using MediaFileClassifier.Ui.Libraries;
 using MediaFileClassifier.Ui.ViewModels.Browser;
 using MediaFileClassifier.Ui.ViewModels.Details;
+using MediaFileClassifier.Ui.ViewModels.Navigation;
 using MediaFileClassifier.UseCases.Activity;
 using MediaFileClassifier.UseCases.Browsing;
 using MediaFileClassifier.Desktop.Platform;
@@ -127,6 +128,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return await SelectAsync(step.Argument);
             case "seed-activity":
                 return await SeedActivityAsync();
+            case "seed-duplicates":
+                return await SeedDuplicatesAsync();
             case "seed-keyframes":
                 return await SeedKeyframesAsync(step.Argument);
             case "choose-keyframe":
@@ -311,6 +314,8 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
                 return await SwapDriveAsync();
             case "folder-mode":
                 return await SetFolderModeAsync(Enum.Parse<MonitoringMode>(step.Argument));
+            case "nav":
+                return SelectNavigationEntry(step.Argument);
             case "allow-error":
                 log.AllowErrors(step.Argument);
                 return null;
@@ -551,6 +556,40 @@ internal sealed class SmokeRunner(IServiceProvider services, Window window, Smok
 
         services.GetRequiredService<ActivityChanges>().Raise();
         return $"{events.Length} events";
+    }
+
+    // Picks a navigation entry by its key, as a click does (E12-S05-T03).
+    private string SelectNavigationEntry(string key)
+    {
+        var navigation = services.GetRequiredService<NavigationPanelViewModel>();
+        var entry = navigation.Sections.SelectMany(section => section.Entries).Select(candidate => candidate.Find(found => found.Key == key)).FirstOrDefault(found => found is not null)
+            ?? throw new SmokeStepException($"no navigation entry has the key '{key}'");
+        navigation.Select(entry);
+        return entry.Label;
+    }
+
+    // The sample files are all different. This gives the first four items two shared content hashes and groups them, so
+    // the library has two Open duplicate groups (E12-S05).
+    private async Task<string> SeedDuplicatesAsync()
+    {
+        var library = services.GetRequiredService<ILibrarySession>().Current ?? throw new SmokeStepException("no library is open");
+        var items = (await library.Items.GetPageAsync(0, 4, CancellationToken.None)).ToList();
+        if (items.Count < 4)
+        {
+            throw new SmokeStepException("the library needs four items");
+        }
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            items[i].SetHashes(items[i].Hashes with { ContentHash = (UInt128)(i / 2) + 1 });
+        }
+
+        await library.Items.UpdateRangeAsync(items, CancellationToken.None);
+        while (await library.Duplicates.ReconcileAsync(100, DateTimeOffset.UtcNow, CancellationToken.None) is { Hashes: > 0 })
+        {
+        }
+
+        return $"{await library.Duplicates.CountAsync(null, CancellationToken.None)} groups";
     }
 
     // Keyframes exist only after AI analysis, which needs the model. This does what the analysis does for them: it

@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 using MediaFileClassifier.Infrastructure.Abstractions.Libraries;
 using MediaFileClassifier.Infrastructure.Abstractions.Repositories;
+using MediaFileClassifier.UseCases.Duplicates.GetDuplicateStatistics;
 using MediaFileClassifier.UseCases.Libraries.GetLibraryStatistics;
 using MediatR;
 
@@ -24,6 +25,7 @@ public sealed class LibraryStatisticsMonitor : IDisposable
     private readonly Action<Action> post;
     private readonly ITimer timer;
     private IMediaItemRepository? watched;
+    private IDuplicateGroupRepository? watchedDuplicates;
     private bool started;
     private bool refreshPending;
     private int version;
@@ -56,6 +58,12 @@ public sealed class LibraryStatisticsMonitor : IDisposable
     public LibraryStatistics? Current { get; private set; }
 
     /// <summary>
+    /// Gets the latest duplicate figures (E12-S05-T01): Open groups and wasted space. They're refreshed with
+    /// <see cref="Current"/>, and when groups change.
+    /// </summary>
+    public DuplicateStatistics Duplicates { get; private set; } = DuplicateStatistics.None;
+
+    /// <summary>
     /// Starts following the open library, once; later calls do nothing. Call it on the UI thread.
     /// </summary>
     public void Start()
@@ -79,9 +87,11 @@ public sealed class LibraryStatisticsMonitor : IDisposable
     {
         var current = ++version;
         LibraryStatistics? statistics;
+        DuplicateStatistics duplicates;
         try
         {
             statistics = await sender.Send(new GetLibraryStatisticsQuery());
+            duplicates = await sender.Send(new GetDuplicateStatisticsQuery());
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -90,7 +100,7 @@ public sealed class LibraryStatisticsMonitor : IDisposable
         }
 
         // A newer refresh already asked, so this answer may be stale.
-        if (current != version || (Equals(statistics, Current) && !libraryChanged))
+        if (current != version || (Equals(statistics, Current) && Equals(duplicates, Duplicates) && !libraryChanged))
         {
             return;
         }
@@ -98,6 +108,7 @@ public sealed class LibraryStatisticsMonitor : IDisposable
         libraryChanged = false;
 
         Current = statistics;
+        Duplicates = duplicates;
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -108,6 +119,11 @@ public sealed class LibraryStatisticsMonitor : IDisposable
         if (watched is not null)
         {
             watched.Changed -= OnItemsChanged;
+        }
+
+        if (watchedDuplicates is not null)
+        {
+            watchedDuplicates.Changed -= OnItemsChanged;
         }
 
         timer.Dispose();
@@ -125,7 +141,8 @@ public sealed class LibraryStatisticsMonitor : IDisposable
     private void Watch()
     {
         var items = session.Current?.Items;
-        if (ReferenceEquals(items, watched))
+        var duplicates = session.Current?.Duplicates;
+        if (ReferenceEquals(items, watched) && ReferenceEquals(duplicates, watchedDuplicates))
         {
             return;
         }
@@ -135,11 +152,22 @@ public sealed class LibraryStatisticsMonitor : IDisposable
             watched.Changed -= OnItemsChanged;
         }
 
+        if (watchedDuplicates is not null)
+        {
+            watchedDuplicates.Changed -= OnItemsChanged;
+        }
+
         watched = items;
+        watchedDuplicates = duplicates;
         libraryChanged = true;
         if (watched is not null)
         {
             watched.Changed += OnItemsChanged;
+        }
+
+        if (watchedDuplicates is not null)
+        {
+            watchedDuplicates.Changed += OnItemsChanged;
         }
     }
 

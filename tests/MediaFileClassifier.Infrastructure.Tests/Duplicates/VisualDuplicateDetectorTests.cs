@@ -32,6 +32,48 @@ public sealed class VisualDuplicateDetectorTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Videos_ReencodedCopyIsGroupedWithTheOriginal()
+    {
+        await bed.AddAsync(Features.Where(feature => feature.MediaType == "Video"));
+
+        await bed.ReconcileAllAsync();
+
+        Assert.Equal(["video-short, video-short-reencoded"], await bed.GroupsAsync());
+    }
+
+    [Fact]
+    public async Task AnimatedImages_ConvertedCopyIsGroupedWithTheOriginal()
+    {
+        await bed.AddAsync(Features.Where(feature => feature.MediaType == "AnimatedImage"));
+
+        await bed.ReconcileAllAsync();
+
+        Assert.Equal(["gif-animated, gif-animated-webp"], await bed.GroupsAsync());
+    }
+
+    [Fact]
+    public async Task VideoDurationsTooFarApart_AreNotGrouped()
+    {
+        var original = Features.Single(feature => feature.Name == "video-short");
+        await bed.AddAsync([original, original with { Name = "video-short-longer", Content = "longer", DurationMs = original.DurationMs + 600 }]);
+
+        await bed.ReconcileAllAsync();
+
+        Assert.Empty(await bed.GroupsAsync());
+    }
+
+    [Fact]
+    public async Task StillAndAnimation_AreNeverGrouped()
+    {
+        var animation = Features.Single(feature => feature.Name == "gif-animated");
+        await bed.AddAsync([animation, animation with { Name = "gif-still", MediaType = "Image", Content = "still", FrameHashes = [], DurationMs = null }]);
+
+        await bed.ReconcileAllAsync();
+
+        Assert.Empty(await bed.GroupsAsync());
+    }
+
+    [Fact]
     public async Task ExactCopies_AreNeverVisualDuplicatesOfEachOther()
     {
         await bed.AddAsync(Features.Where(feature => feature.Name is "cat" or "cat-copy"));

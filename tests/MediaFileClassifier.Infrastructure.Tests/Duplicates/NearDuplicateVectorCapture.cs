@@ -65,6 +65,14 @@ public sealed class NearDuplicateVectorCapture
         ("video-static-camera", "video-static-camera.mp4", null, null),
     ];
 
+    // Sample animated images, relative to SampleMedia, with the expected groups.
+    private static readonly (string Name, string File, string? Strict, string? Loose)[] Animations =
+    [
+        ("gif-animated", "gif-animated.gif", "g", "g"),
+        ("gif-animated-webp", "robustness/gif-animated.webp", "g", "g"),
+        ("webp-animated", "webp-animated.webp", null, "g"),
+    ];
+
     [Fact]
     public async Task Capture_WritesFeatures()
     {
@@ -105,6 +113,23 @@ public sealed class NearDuplicateVectorCapture
                 strict,
                 loose,
                 $"{file}, {VideoPositions.Length} frames, mean vector"));
+        }
+
+        foreach (var (name, file, strict, loose) in Animations)
+        {
+            var (frames, duration) = DecodeAnimation(Path.Combine(SampleMedia.Directory, file));
+            var vectors = await model.EmbedImagesAsync([.. frames.Select(frame => new AiImage(frame, "image/png", name))], token);
+            items.Add(new NearDuplicateFeature(
+                name,
+                "AnimatedImage",
+                name,
+                Hex(Hash(hasher, frames[0])),
+                [.. frames.Select(frame => Hex(Hash(hasher, frame)))],
+                duration,
+                Encode(KeyframeAggregation.MeanEmbedding(vectors.Value)),
+                strict,
+                loose,
+                $"{file}, {frames.Count} frames, mean vector"));
         }
 
         await File.WriteAllTextAsync(output!, JsonSerializer.Serialize(items, NearDuplicateFeature.JsonOptions) + "\n", token);
@@ -243,6 +268,23 @@ public sealed class NearDuplicateVectorCapture
         }
 
         return frames;
+    }
+
+    // The frames at the video positions, each decoded with the frames it builds on, and the total duration.
+    private static (List<byte[]> Frames, long DurationMs) DecodeAnimation(string path)
+    {
+        using var codec = SKCodec.Create(path);
+        var info = new SKImageInfo(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        var frames = new List<byte[]>();
+        foreach (var index in VideoPositions.Select(position => (int)Math.Round(position * (codec.FrameCount - 1))).Distinct())
+        {
+            using var bitmap = new SKBitmap(info);
+            Assert.Equal(SKCodecResult.Success, codec.GetPixels(info, bitmap.GetPixels(), new SKCodecOptions(index)));
+            using var data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
+            frames.Add(data.ToArray());
+        }
+
+        return (frames, codec.FrameInfo.Sum(frame => (long)frame.Duration));
     }
 
     private static byte[] MakeVariant(SKBitmap bitmap, string variant) => variant switch

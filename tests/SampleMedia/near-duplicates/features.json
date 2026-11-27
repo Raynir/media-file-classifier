@@ -358,5 +358,57 @@
     "strict": null,
     "loose": null,
     "note": "video-static-camera.mp4, 5 frames, mean vector"
+  },
+  {
+    "name": "gif-animated",
+    "mediaType": "AnimatedImage",
+    "content": "gif-animated",
+    "perceptualHash": "7fcc8484ccffc484",
+    "frameHashes": [
+      "7fcc8484ccffc484",
+      "748b8b8b748b7474",
+      "3434cbcb34ef3434",
+      "2121de2323273fde",
+      "2a2ed52ad52ed52a"
+    ],
+    "durationMs": 800,
+    "vector": "AIJFmT6hDKRqIRUfQCJQnSmkbCKdqJoeuKhFE3WgdaP5GyYZGR9vp0uYeqQxnz2gEiYopmaahiVyKE\u002BjH6NAmUYg5p/rokOe6KJRoSUk/KBOphAueKdEqEagPpyenJsjlqRlIjmdTJSSJuWJJaFTHaOmnyWJp7okBaHKJAQYhRlGpnupOKhsi22hxh01pNQpriQOIsSeCJzuIjie75yllwAhQCg7qwAhwJ1LJEeg4CH3EHoeTCp3HIcfwh/REfCkKKsYqC8lGBnnJhUavB2SIKuk\u002BaFEJbilUSU6o5WfliMOJKgYX5bTIpqlIKHaKOGWbhtYIceqXaBfH\u002BehFRzCIVonWiKInbmhAiFMH2ufUqYXn0SRPZjmo3MojyB0o\u002BWbXp49pTIqPRPkI\u002BYpDSCznRmkNKgyGkEZmqTDL5\u002BbtyGjImOfGhV2IMmggSzJpjeo0p5so1ml2qaeJFcENKiwpBMjISfcIkuceKX0mcYeJRZ2KjMkODAIJ4sTUKX0moAbnibJoTEoOCLzIaAk\u002Bh5lJICoM6SPIHOgHiPWngcgsCjzGbAhkCacHEughCdbpA444CEZpGYj8agop9gnbyQ6HrsvACr0JaidOSHJlvccFB7IqUWZWJQwHDoiOiFwJu0obaR2kXQ4OaQiorGk3g0IJdQfuaYZpqMisyivHl2cNZDkIpemN6YpmgOhA6A3GHGleyMyKD0nXyKyqzgTbKS1lBwklxS1meai9aWzoycm4CR4Jq6kfB9CIfIkzqabpY\u002BocByyLSMYoRSApREliKRLnO8oliZzoAop46UPIByo8h\u002Bkp\u002BwcmCTFJnawCgWyIcMmkiWnKFIb16DDGNynRiiwIFqhSqU2pM\u002BdbZ\u002BUmt8hlKavpb\u002BkkKgGIVqlL5k4Hp8mm6XhIyCRchPCpKaXliI4JBMl\u002BCwmHiQZmhmrnyYlHaVjGgCqA5zsJQsnG6saFQoeVSGypkmpRKBLISUf9J95pHuTNSTZpRYk3SXEoK4ZaCUIo4OnFSJiqBssvaT2ntGgB6TcpBCgD6QBEuQoJSdxpNchlCGXpNOfzZMInwWcuKCoHMMox5pEoCCaOqNAJjSh\u002BS7eG12Y7KLmnE4ddI6FJ8SkWqMcpDakzKIpo7UowqAzkoWomKYkGUKf/aMUnkconKOFHkQd7CG/Fgeln6AcGkSlsh/jm\u002BskyqXMoxyl\u002Bpu8IWelUKConRKfFSmqIPojFSQOoMwgzpm\u002BpVQlga02rUIpBoDIFlEZeR3OIT8eLpkPHyYnABKDJLOcWqVjqu0eyqICJB4psiBVIJwogSErJA\u002BlMyi6Hp6q86K9paYfZBUtpLMhhZ17nnkeCqRZpaeiCKkqG54dmh\u002BipPap0CS0kLSnz5ycHySU9hsIqA2YQyBMqgcd0irJKaUOkJUqqJig7CXBIHKibpXmKawddB/4FF4Y5ZyajKga\u002BKfCob2XWyn7IWMlwabjoVYgjikLJp2hJClYJMCiYad2rgIhPJ1IILGaD6aEIyUi6iNrpLeYiCI6pEaaFaEuoyWd0aFKHh6lOSXboGoidBy1nnMM7qM2ItCiIKhtpG0aTaOkH0wkGKSmp8Gigh2mH8gikyH7nAuYSKWUmuwhDyDKnoOX6p2BJHyluyRzkrAhIam0JG\u002BmoxtVIrinhw/nmvqjRKqln9cgZKSRIQMbhaeSKEuR8Cw0qd4WjKYTmLif3CCmJY0fSKcHKH2c1qJhIWWh7CeqoU2lpqV3JJ\u002Bk7Z63qEylRqNAKF6YwaOZnNSfKyG5IT\u002BrtB1/pzwk0yZ9GG8amKIEoxmo7JSIpSSlPCNbJV6goRRgIOaiQh\u002B3oWwqWKCUoCCcqCEpqSAgri6EoIggjZb4K/khIpk2Ia2ItKBvny6iGCaIpuqkOSFPpbujuqBqosAW8qIfozan/Jlji1QpD5xwJl6WaaVhozElqSWuJQUo7B6pIYwi3CZ6KDIcYyPapMAk4Z/JF/WBBqEBJdkgH6SDEiKgACCFnxeotSaupKUmvo2uFTUuP6PDp3QdkybWFB0kA52HpfwhJZ4oHOEXyqDKFWqb",
+    "strict": "g",
+    "loose": "g",
+    "note": "gif-animated.gif, 5 frames, mean vector"
+  },
+  {
+    "name": "gif-animated-webp",
+    "mediaType": "AnimatedImage",
+    "content": "gif-animated-webp",
+    "perceptualHash": "7fce8484ccff8484",
+    "frameHashes": [
+      "7fce8484ccff8484",
+      "748b8b8b748b7474",
+      "3434cfcb34cf3434",
+      "2121de2323273fde",
+      "2a2ad52ad56ed52a"
+    ],
+    "durationMs": 800,
+    "vector": "HJ1JIe2hA6TGG/ohDR6hnSalPRzOplwdrqiom5ihB6DBnPCWxRUcqF2dJqXMoBIdCiTFpg6eaSZ/J8WjjKEio/cdFaVIosiaDJ5bmX8k\u002BqBVo5EtEaVOq9SWM5htnDkgFKeYFM2dL52MKBCd06NpIw6luCZHp90jk56JI9aYzRi/ovSm8aeKm0ui0xojnIgqyiK6JO4RcxYpImOhjpffIvgbnCfDqGYMPZ\u002BPHkqSoh6ZIIAd/CoFJNYUSiOgkKGhF6mxqIsf15jPJtidlQ5DJDSYWqRnIpijvx2Fo0ujvSOQIcsYWaG/Isikk59IJwsdCoCxlF\u002BsL6LrHh6e\u002BhOAIikoeiB0orUMVx45I66ijaNVEziaMpOcn0gl9pf/pEeebRn\u002BpAErDhMTJGYqSB8rnY2nbajsE4\u002BfoqYYLuiYaSOPIcag/Q1nJo6h9ipRpUamSJTvoA6iT6YeIwueYqgKpIEgARvLIQ6YE6RjE8MiGBr0KB4lRDCWKVojQKbAnCEkEyijptglkiQsIrMj9CR/I0Ol8KRgItwazh6Lg30dvylhnoAWDCQXJA\u002BaDisVpzM48SBymswg26iFpGomsCNFJUMwIyexmIOimSBoFHAePZHqpZ\u002BTtJrAGBUOFhxTJVsnV6WtHoc4LKVSoQWh7RhVJJodeaV9olAjYijlHhye\u002B57Qncum8qaioAefgqKmISalyyJHJR4kwhnbrLGdVqRToeQjho6WnJegdahwpb4gZiaZKWSlHB4MmAMiWaYnpOWnBx3kLj0QzZU8pAUkwKIYjMUlviUdm\u002BwoPKcBIqWoMh27ptoZmiSVJpOwepO7H2AlAyT2JQcT4aGGGJCn2yj\u002BKJKkuqlDpjGfUqJFmy0hFqR1pIqm36jcFR6jTBoPIEMkPKatIceceCLVn4qGfSBRI\u002BYjqCteIOOYSBsbomkkrqGWnjerJ6QfJG8lpqtnmuWUniD1pV\u002BnZ6JfIRcdYKKUpEch9SOgpWEftSZmo1Ec8iJlIOikRCK3pwstfqPpCyOT9qZIpZWeSqE5miMlDyeXn0AlUaD3o3of8hJrn2aO06A8JhMmjhU\u002Bm5ybVp0QJ8CjvS0GFmyfXZ0ZmrOeyh0bJyOkoqUzpFmkQqg8og0n7qDClsKpsqQcH2\u002BfRKKKoskoAKOqIdOYliHyBsyjL6A9G/Omgh4PGTsi\u002BJ\u002BfosiidJujI8qkH6EommCceCjDI8YhehxVn/MdB6AhprkiJayJqwMqbJu/FuUiAxRknJEeKh7Pm40lTJ2rJKGcVqFlq4kgX6PAJdcoFiQFngQoXiCGI1\u002BlCCVrHnKq4aCIosYbchz1n3gb9J5Aov\u002BP0aP9opWkcKonJHQg5SAEpaWpICPoHjGkyph1ETWhlyBeqHsRYiBCqqwiWiw8KtUdU6MWqE6huiGzJMqkHpyBJxoieiF9IEMUEJ\u002Bmmasgj6UcnfmfkinAIV8iCyGOohsdkCWKJSuhUCg7lYegwqcTsBIh4p9iIOYZxqTLJFUf9CBKocUgJxt1o42eqqIJpEKh1KEqFeelhCOmnu6ShZfcnhCdA6M7Iw2jyaeNpGIeNqTyHMslOqRSpeCi7pjFGdAabiIZoC2YeaWgkZggjh77nboUVJjlGVWnlySnnFccE6kgHDOn0htWHc6nVJ2ym9ejcadHoDEdZqH3IKobhadZKmYWBS5MqX0WPqYgHcyRnBzQJTiQ9KW0JJQcPaLnJB6lNihWnEKkzafqHZOk3qF\u002BpouljKF/JmAbYaMkHB\u002BgvRk9IpeqIh\u002BxpWgjxiGQmHcY1h3ro5imL5SZor2kLCQSJOoj75gZHYuhKSGToF8mTqdYoZ0aWR53p5YUWy08oiUhNhTPK\u002BIYfZP0H6IhDpWUmbGd0SQ\u002BpwGj2iLTpQagqJ5hndUgfp\u002BwpbylMpneGtclLJ8kJvCei6bDpEoieCiiJP0jTRDnJAoXySVjJrYfwhy7pEAldaIgHQAY3KCrHp4c46AQFpefMx8Moumofid0opEkxJ7lE1ctn6Kdp7UdJCbFFE4lJ6FCofgdZaMwn7EbvJ2ZILmm",
+    "strict": "g",
+    "loose": "g",
+    "note": "robustness/gif-animated.webp, 5 frames, mean vector"
+  },
+  {
+    "name": "webp-animated",
+    "mediaType": "AnimatedImage",
+    "content": "webp-animated",
+    "perceptualHash": "3838e7c7c73c3838",
+    "frameHashes": [
+      "3838e7c7c73c3838",
+      "609f9f60646f6465",
+      "2a2ad52add2ed52a"
+    ],
+    "durationMs": 720,
+    "vector": "O4uzHiqeWaKkIXIhcxg9oa\u002BjsCDNpNAZRqeonyegx5vfHQAkZZxzqceeMKb3nd0UPiDWpQic7iQ9KMemE6OKpAYklKH5nJKTWqBNoKograDCksEr26QdrDKdUaApliYiJagRJXak15nUJ3ulS6H\u002BHAenACU6p6EhjqCpJFSgCiZWo/mqt6hgEhih4hx5HfUpxSBNItYdUo6LIZqdkBQVJAua6Sbqp78Y9ZziIOiXDxx3JbeN\u002BSugIQ\u002Bc7CG2oFGjGqojqzqQXhdZJc0BQCS8JBeflqIXJRKZQyC\u002Bnl6ZsR/jI/6feJ7DHxOj6qBFKRYd6BV9lO6s7KCPIg6dgh3dmE4o1SIGnxCaFh7uIr\u002BkWqK\u002BoiwTCaCamakkIR5YpZ6eQSFRpgYrLRHIJKUq/B1bmFmlhaf1GgOdUJ\u002BALYsYLyJ0JGOhPhqzJuaUjSl8ppmn1Jp6pImi0qS1Hg2hH6i3o2mU8R6nIjmh6qPFnFgirQ4zJTQlJC/6JQ\u002BZ/aWMGAkkjCS6pTok9SAwJF4l4SP8JsOnLKUpIrGY7CHEn7IdOyndFeyYKSJ0I\u002BKbDCj3pjs45yBOFdMjpakfpQIj3iSJIOkvxyV\u002BoCekkxVTnegkXJm\u002Bp0UYtqDcl3CaaiIyIOQn6KflnZA4\u002BqU2okuhd5mRJG4fd6Xum1wkzihXHw\u002BdhJtQolWo9aJ6oMuZoKCGGjilyh\u002BuJbEkpx0BrDOZZ6C9nHokxp1BoEGhIKwmpGmbbyN4Ke2kiRyrHK4flKcopNqn\u002BB9jL58dXyF0pJolW6SqBBImjSVknrUoVKYqI3inYZa2pg\u002BcMyPBJdiwH5joHzIkPyH6I8IZCaQNFS6gDShZKLygC6uOqK6hZ6IvoE8eD6gBpFamjagbmKelKp4/H5kiLKR\u002BH3ahiiSfn/ueBKCdIkAZRyuKIrKYzaEHo1AkeKGzoFKqFKPnIYgkXqrxFWmcCCQ1pWOoGaW6IkwT5qEhpXEdQiTgptEcDCJfo3AZqCfVovikdh82qLMs/6M0H/\u002BcJKj\u002BonWi\u002BaSRE/Un/Cido\u002BAhOaJxovAfd5mrnygdfpLgJeEl3JZIHqwYJRfqJS2k7i2kHWOg3qAIlt\u002BieyFxJQyjd6LbpX\u002BnU6WppLUlPqMdlSSrT6RzIqYXcaYkkown1aOxH2qbwSGPma6iyZ3TIGik5CCslAIii6bhpASfOKMbI9ukcaIvFgyjyChtJEskGQ4ZoVIkRhnqpHMid6xNrP4nOKBzEC2eQyCDGS6dgiD7kfMl6ptKJQ6fnqB1rH2Ug6UlJbEo9yJ5nVQpTyUpIaultiYRG7KoEJfnoBGVyhyTofsX/BHel9wa9KG1moSlL6pLIygh5SJRpWOp/SFcG4WkfpuknqWbbiEPqTOR6Ry1qhEjxigbKciZfKScpdsg3Bf9IxuaHJkKJxQgQCNhI9OVGKL/Fxgik6TNoFkbsiqdGNgiFiMuosicryWzJhGjGSehFDShiad2rzUdeKDcIT0WbKdQI\u002BAYWyHaoW2hOR2poomhJ5/3oQujS6E5kOmnoSAAoBsaExvQoAiljaQpJDSkZKXNpSImG6AaHoMm4aSGpVifrZ7mG8sZWSR/kmQb3aVuG14b7BACnEOiM6CvIFiniiCnksYYrKowID\u002BmiRVrIq6m1Z9iHOCfeqn6nX4fmKDiIGIfBqeQKdiLGy33qO8XsqTFGXqk1RjXJJch/aUnI\u002BccR6X9JHSkpyhmn46jdaVwJTCldaJqpUul/Z02J9GbXqIjnKCeIxucIOesCh8ipRAisBwgljYgoJWJobKnoBljoxKlBCQ8JKAXeo2FmWqh4CFKnTclfqW4nyiUTiKUpr2cby6mooMiD5nUKX0cI6ObIzEXB5F0lt2ZhySop7mkVxCsowCW3o2OpOIfc6PdpYukS4BXJzMmt6DtJHCQ9aTFpJEeIiebI/Eg0xGdItgg/CVwJkQjZB4opqEkPqFGnlyVc6FCFGUYGKEVmCClvhrXosuo/ybEoqQk96IRGO4r36H5pQkZUCM/HCglCaKjoKwco50tnp6kNxzfnYym",
+    "strict": null,
+    "loose": "g",
+    "note": "webp-animated.webp, 3 frames, mean vector; another synthetic animation, alike to the model (cosine 0.96 to 0.98)"
   }
 ]

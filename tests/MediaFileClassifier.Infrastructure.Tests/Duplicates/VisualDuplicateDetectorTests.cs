@@ -80,6 +80,37 @@ public sealed class VisualDuplicateDetectorTests : IAsyncLifetime
         Assert.Equal(strictGroups.Select(group => group.Id.Value).Order(), groups.Select(group => group.Id.Value).Order());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task IncrementalAndFullPass_GiveTheSameGroups(bool loose)
+    {
+        var sensitivity = loose ? VisualDuplicateSensitivity.Loose : VisualDuplicateSensitivity.Strict;
+
+        // Incremental: items arrive a few at a time, in an order that splits most groups across batches, and the
+        // queue is worked off after each batch, as the maintainer does after item changes (E12-S02-T04).
+        await SetSensitivityAsync(sensitivity);
+        var scattered = Features.Select((feature, index) => (feature, index)).OrderBy(entry => entry.index % 7).ThenBy(entry => entry.index).Select(entry => entry.feature).ToList();
+        foreach (var batch in scattered.Chunk(5))
+        {
+            await bed.AddAsync(batch);
+            await bed.ReconcileAllAsync();
+        }
+
+        var incremental = await bed.GroupsAsync();
+
+        // Full pass: a second library gets every item with nothing queued, then queues all and works the queue off.
+        await using var full = await VisualDuplicateTestBed.CreateAsync();
+        await full.Library.Library.UpdateSettingsAsync(settings => settings with { VisualDuplicateSensitivity = sensitivity }, Token);
+        await full.AddAsync(Features);
+        await DropQueueAsync(full);
+        Assert.True(await full.Library.Library.VisualDuplicates.QueueAllAsync(Token) >= Features.Count);
+        await full.ReconcileAllAsync();
+
+        Assert.Equal(VisualDuplicateTestBed.Expected(Features, loose), incremental);
+        Assert.Equal(incremental, await full.GroupsAsync());
+    }
+
     [Fact]
     public async Task Videos_ReencodedCopyIsGroupedWithTheOriginal()
     {
@@ -205,6 +236,13 @@ public sealed class VisualDuplicateDetectorTests : IAsyncLifetime
         }
 
         Assert.Equal(["cat, cat-thumb"], await bed.GroupsAsync());
+    }
+
+    private static async Task DropQueueAsync(VisualDuplicateTestBed target)
+    {
+        var queued = await target.Library.Library.VisualDuplicates.PeekQueueAsync(int.MaxValue, Token);
+        await target.Library.Library.VisualDuplicates.ApplyAsync(new([], [], queued), target.Library.Clock.Tick(), Token);
+        Assert.Equal(0, await target.Library.Library.VisualDuplicates.CountQueuedAsync(Token));
     }
 
     private Task SetSensitivityAsync(VisualDuplicateSensitivity sensitivity) =>
